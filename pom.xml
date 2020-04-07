@@ -26,7 +26,6 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>graph</module>
 <!--        <module>machine</module>-->
         <module>diagnostic</module>
         <module>api</module>
