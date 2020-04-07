@@ -30,6 +30,7 @@
 <!--        <module>machine</module>-->
 <!--        <module>diagnostic</module>-->
         <module>api</module>
+        <module>compiler</module>
         <module>native</module>
         <module>vm</module>
         <module>metaprogram</module>
