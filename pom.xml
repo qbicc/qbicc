@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>cc.quarkus</groupId>
+    <artifactId>qcc-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+
+    <parent>
+        <groupId>org.jboss</groupId>
+        <artifactId>jboss-parent</artifactId>
+        <version>36</version>
+    </parent>
+
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.release>11</maven.compiler.release>
+
+        <version.io.smallrye.common>1.0.0</version.io.smallrye.common>
+        <version.org.ow2.asm>7.2</version.org.ow2.asm>
+    </properties>
+
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>graph</module>
+<!--        <module>machine</module>-->
+<!--        <module>diagnostic</module>-->
+        <module>api</module>
+        <module>native</module>
+        <module>vm</module>
+        <module>metaprogram</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+
+            <!-- internal -->
+
+            <!-- api -->
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- graph -->
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-vandergraaph</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- file formats -->
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-machine-file-parent</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-machine-file-bin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-machine-file-elf</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- tools -->
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-machine-tool-parent</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-machine-tool-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-machine-tool-gnu</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- assembly -->
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-machine-asm-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-machine-asm-x86</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- native -->
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-native-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-native-posix</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-native-linux</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- external -->
+
+            <dependency>
+                <groupId>io.smallrye.common</groupId>
+                <artifactId>smallrye-common-constraint</artifactId>
+                <version>${version.io.smallrye.common}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.smallrye.common</groupId>
+                <artifactId>smallrye-common-function</artifactId>
+                <version>${version.io.smallrye.common}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.mandrel</groupId>
+                <artifactId>mandrel-diagnostic</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm</artifactId>
+                <version>${version.org.ow2.asm}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-tree</artifactId>
+                <version>${version.org.ow2.asm}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-analysis</artifactId>
+                <version>${version.org.ow2.asm}</version>
+            </dependency>
+
+            <!-- test -->
+
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>5.5.2</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>4.13</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <release>11</release>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
