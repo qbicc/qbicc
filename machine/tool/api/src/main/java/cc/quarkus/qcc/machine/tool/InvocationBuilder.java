@@ -4,7 +4,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 
-import cc.quarkus.qcc.diagnostic.DiagnosticContext;
+import cc.quarkus.qcc.context.Context;
 import io.smallrye.common.function.ExceptionBiConsumer;
 
 /**
@@ -54,7 +54,7 @@ public abstract class InvocationBuilder<P, R> {
         final InputSource inputSource = this.inputSource;
         final ProcessBuilder pb = createProcessBuilder(param);
         pb.redirectInput(ProcessBuilder.Redirect.PIPE);
-        DiagnosticContext.debug(null, ">>> %s", String.join(" ", pb.command()));
+        Context.debug(null, ">>> %s", String.join(" ", pb.command()));
         final Process process;
         try {
             process = pb.start();
@@ -63,14 +63,14 @@ public abstract class InvocationBuilder<P, R> {
         }
         try (ProcessCloseable ignored1 = new ProcessCloseable(process)) {
             // start output collectors
-            try (CollectorThread<P> ignored2 = new CollectorThread<>(DiagnosticContext.requireCurrent(), param,
+            try (CollectorThread<P> ignored2 = new CollectorThread<>(Context.requireCurrent(), param,
                     process.getInputStream(), this::collectOutput)) {
-                try (CollectorThread<P> ignored3 = new CollectorThread<>(DiagnosticContext.requireCurrent(), param,
+                try (CollectorThread<P> ignored3 = new CollectorThread<>(Context.requireCurrent(), param,
                         process.getErrorStream(), this::collectError)) {
                     try {
                         inputSource.writeTo(process);
                     } catch (IOException e) {
-                        DiagnosticContext.error(null, "Failed to transfer input to process: %s", e);
+                        Context.error(null, "Failed to transfer input to process: %s", e);
                     }
                 }
             }
@@ -126,13 +126,13 @@ public abstract class InvocationBuilder<P, R> {
     }
 
     static final class CollectorThread<P> extends Thread implements AutoCloseable {
-        private final DiagnosticContext dc;
+        private final Context dc;
         private final P param;
         private final InputStream inputStream;
         private final ExceptionBiConsumer<P, InputStream, Exception> collector;
         Throwable problem;
 
-        CollectorThread(final DiagnosticContext dc, final P param, final InputStream inputStream,
+        CollectorThread(final Context dc, final P param, final InputStream inputStream,
                 final ExceptionBiConsumer<P, InputStream, Exception> collector) {
             super("Process output collector");
             this.dc = dc;

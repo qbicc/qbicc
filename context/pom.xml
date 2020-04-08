@@ -10,7 +10,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-diagnostic</artifactId>
+    <artifactId>qcc-context</artifactId>
 
     <dependencies>
         <dependency>

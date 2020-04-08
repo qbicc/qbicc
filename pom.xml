@@ -27,7 +27,7 @@
 
     <modules>
         <module>machine</module>
-        <module>diagnostic</module>
+        <module>context</module>
         <module>api</module>
         <module>compiler</module>
         <module>native</module>
@@ -127,11 +127,11 @@
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- diagnostics -->
+            <!-- context -->
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-diagnostic</artifactId>
+                <artifactId>qcc-context</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

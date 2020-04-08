@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.UnaryOperator;
 
-import cc.quarkus.qcc.diagnostic.DiagnosticContext;
+import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.machine.tool.CCompiler;
 import cc.quarkus.qcc.machine.tool.CompilationResult;
 import cc.quarkus.qcc.machine.tool.CompilerInvocationBuilder;
@@ -81,7 +81,7 @@ public class StructProbe {
         }
         ib.setInputSource(new InputSource.String(b.toString()));
         final CompilationResult compilationResult = ib.invoke();
-        if (DiagnosticContext.errors() > 0) {
+        if (Context.errors() > 0) {
             // failed due to errors
             return null;
         }

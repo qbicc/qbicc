@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.diagnostic;
+package cc.quarkus.qcc.context;
 
 /**
  *

@@ -8,7 +8,7 @@ import java.util.Iterator;
 
 import org.junit.jupiter.api.Test;
 
-import cc.quarkus.qcc.diagnostic.DiagnosticContext;
+import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.machine.tool.ToolProvider;
 import cc.quarkus.qcc.machine.tool.gnu.GccCompiler;
 
@@ -19,7 +19,7 @@ public class TestStructProbe {
 
     @Test
     public void testAProbe() throws Exception {
-        final DiagnosticContext dc = new DiagnosticContext(false);
+        final Context dc = new Context(false);
         final StructProbe probe = new StructProbe(StructProbe.Qualifier.STRUCT, "iovec");
         probe.addMember("iov_base", Object.class);
         probe.addMember("iov_len", long.class);
@@ -34,7 +34,7 @@ public class TestStructProbe {
             final GccCompiler gccCompiler = iterator.next();
             assertFalse(iterator.hasNext());
             final StructProbe.Result res = probe.runProbe(gccCompiler);
-            DiagnosticContext.dump(System.out);
+            Context.dump(System.out);
             return res;
         });
         assertNotNull(result);

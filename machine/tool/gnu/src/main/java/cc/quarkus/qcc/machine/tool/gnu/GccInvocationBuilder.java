@@ -9,7 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import cc.quarkus.qcc.diagnostic.DiagnosticContext;
+import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.machine.tool.CompilationResult;
 import cc.quarkus.qcc.machine.tool.CompilerInvocationBuilder;
 import cc.quarkus.qcc.machine.tool.InputSource;
@@ -47,7 +47,7 @@ public class GccInvocationBuilder extends CompilerInvocationBuilder<GccInvocatio
         final BufferedReader br = new BufferedReader(isr);
         String line;
         while ((line = br.readLine()) != null) {
-            DiagnosticContext.error(null, "%s", line);
+            Context.error(null, "%s", line);
         }
     }
 
@@ -59,7 +59,7 @@ public class GccInvocationBuilder extends CompilerInvocationBuilder<GccInvocatio
     protected CompilationResult produceResult(final Param param, final Process process) throws Exception {
         final int res = waitForProcessUninterruptibly(process);
         if (res != 0) {
-            DiagnosticContext.error(null, "Process returned exit code %d", Integer.valueOf(res));
+            Context.error(null, "Process returned exit code %d", Integer.valueOf(res));
             return null;
         }
         if (Files.exists(param.outputFile)) {
