@@ -26,7 +26,7 @@
     <packaging>pom</packaging>
 
     <modules>
-<!--        <module>machine</module>-->
+        <module>machine</module>
         <module>diagnostic</module>
         <module>api</module>
         <module>compiler</module>
