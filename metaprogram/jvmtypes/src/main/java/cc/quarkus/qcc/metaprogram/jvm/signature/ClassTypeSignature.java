@@ -5,7 +5,7 @@ import cc.quarkus.qcc.metaprogram.jvm.PackageName;
 /**
  * Some class (or interface).  Does not specify whether the class is accessed by reference or by value.
  */
-public interface ClassTypeSignature extends ReferenceTypeSignature {
+public interface ClassTypeSignature extends ThrowableTypeSignature {
     default boolean isClass() {
         return true;
     }
@@ -69,4 +69,11 @@ public interface ClassTypeSignature extends ReferenceTypeSignature {
      * @return the type argument at the given index
      */
     TypeArgument getTypeArgument(int index) throws IndexOutOfBoundsException;
+
+    /**
+     * Get the "raw" version of this type signature (with no type arguments).
+     *
+     * @return the raw type
+     */
+    ClassTypeSignature getRawType();
 }

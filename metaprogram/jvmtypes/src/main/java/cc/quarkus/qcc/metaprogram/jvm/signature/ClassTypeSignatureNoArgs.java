@@ -44,4 +44,8 @@ class ClassTypeSignatureNoArgs implements ClassTypeSignature {
     public TypeArgument getTypeArgument(final int index) throws IndexOutOfBoundsException {
         throw new IndexOutOfBoundsException(index);
     }
+
+    public ClassTypeSignature getRawType() {
+        return this;
+    }
 }

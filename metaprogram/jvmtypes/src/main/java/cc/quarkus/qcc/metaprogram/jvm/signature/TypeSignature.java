@@ -47,6 +47,14 @@ public interface TypeSignature {
         throw new ClassCastException();
     }
 
+    default boolean isThrowable() {
+        return false;
+    }
+
+    default ThrowableTypeSignature asThrowable() {
+        throw new ClassCastException();
+    }
+
     /**
      * Parse a type signature.  Requires an active {@link Context}.
      *

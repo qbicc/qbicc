@@ -3,7 +3,7 @@ package cc.quarkus.qcc.metaprogram.jvm.signature;
 /**
  * A type variable signature.
  */
-public interface TypeVariableSignature extends ReferenceTypeSignature {
+public interface TypeVariableSignature extends ThrowableTypeSignature {
     default boolean isTypeVariable() {
         return true;
     }

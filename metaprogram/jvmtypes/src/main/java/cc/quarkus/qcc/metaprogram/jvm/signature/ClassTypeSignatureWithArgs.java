@@ -45,4 +45,8 @@ final class ClassTypeSignatureWithArgs implements ClassTypeSignature {
             return delegate.getTypeArgument(index);
         }
     }
+
+    public ClassTypeSignature getRawType() {
+        return delegate.getRawType();
+    }
 }
