@@ -2,6 +2,7 @@ package cc.quarkus.qcc.metaprogram.jvm.signature;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.Context;
@@ -32,7 +33,11 @@ final class ParsingCache {
 
     String getCachedName(final String str, final int start, final int end) {
         // todo optimize to avoid string and lambda construction
-        return stringCache.computeIfAbsent(str.substring(start, end), k -> k);
+        return stringCache.computeIfAbsent(str.substring(start, end), Function.identity());
+    }
+
+    String getCachedName(final String str) {
+        return stringCache.computeIfAbsent(str, Function.identity());
     }
 
     TypeVariableSignature getTypeVariableNamed(final String name) {

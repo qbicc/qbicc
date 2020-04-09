@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.metaprogram.jvm.signature;
 
 import cc.quarkus.qcc.context.Context;
+import cc.quarkus.qcc.metaprogram.jvm.PackageName;
 
 /**
  * The base type for all JVM-defined generic signature types.
@@ -15,5 +16,42 @@ public interface TypeSignature {
      */
     static TypeSignature parseTypeSignature(String signature) {
         return Parsing.parseTypeSignature(signature);
+    }
+
+    static TypeSignature forClass(Class<?> clazz) {
+        final ParsingCache pc = ParsingCache.get();
+        if (clazz.isPrimitive()) {
+            final BaseTypeSignature res = BaseTypeSignature.forClass(clazz);
+            if (res == null) {
+                throw new IllegalArgumentException("No type signature for " + clazz);
+            }
+            return res;
+        } else if (clazz.isArray()) {
+            return pc.getArrayOf(forClass(clazz.getComponentType()));
+        } else {
+            final Class<?> enclosingClass = clazz.getEnclosingClass();
+            ClassTypeSignature enclosing;
+            PackageName packageName = null;
+            if (enclosingClass != null) {
+                enclosing = (ClassTypeSignature) forClass(enclosingClass);
+                packageName = null;
+            } else {
+                enclosing = null;
+                final String clazzName = clazz.getName();
+                int end = clazzName.indexOf('.');
+                if (end != -1) {
+                    int start = 0;
+                    String seg;
+                    do {
+                        seg = pc.getCachedName(clazzName, start, end);
+                        packageName = pc.getPackageNamed(packageName, seg);
+                        start = end + 1;
+                        end = clazzName.indexOf('.', start);
+                    } while (end != -1);
+                }
+            }
+            final String simpleName = pc.getCachedName(clazz.getSimpleName());
+            return pc.getTypeSignature(packageName, enclosing, simpleName);
+        }
     }
 }

@@ -40,4 +40,20 @@ public enum BaseTypeSignature implements TypeSignature {
             default: return null;
         }
     }
+
+    public static BaseTypeSignature forClass(Class<?> clazz) {
+        if (! clazz.isPrimitive()) {
+            return null;
+        }
+        switch (clazz.getSimpleName()) {
+            case "byte": return BYTE;
+            case "short": return SHORT;
+            case "int": return INT;
+            case "long": return LONG;
+            case "float": return FLOAT;
+            case "double": return DOUBLE;
+            case "boolean": return BOOLEAN;
+            default: return null;
+        }
+    }
 }

@@ -24,7 +24,6 @@ public class SignatureParsingTests {
             assertEquals(TypeSignature.parseTypeSignature("Z"), BaseTypeSignature.BOOLEAN);
             assertEquals(TypeSignature.parseTypeSignature("F"), BaseTypeSignature.FLOAT);
             assertEquals(TypeSignature.parseTypeSignature("D"), BaseTypeSignature.DOUBLE);
-            assertEquals(TypeSignature.parseTypeSignature("V"), BaseTypeSignature.VOID);
         });
     }
 
