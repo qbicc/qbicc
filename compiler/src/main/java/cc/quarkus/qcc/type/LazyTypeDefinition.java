@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.type;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ForkJoinTask;
@@ -19,7 +20,7 @@ public class LazyTypeDefinition implements TypeDefinition {
             if ( prev != null ) {
                 return prev;
             }
-            return this.universe.getPool().submit( ()-> this.universe.resolveClass(this.name));
+            return this.universe.getPool().submit( ()-> this.universe.defineClass(name, ByteBuffer.wrap(universe.getClassFinder().findClass(name).readAllBytes())));
         });
     }
 
