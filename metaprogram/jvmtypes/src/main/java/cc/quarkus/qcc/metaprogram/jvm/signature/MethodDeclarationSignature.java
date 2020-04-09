@@ -24,4 +24,8 @@ public interface MethodDeclarationSignature {
     int getThrowsCount();
 
     ThrowableTypeSignature getThrowsType(int index);
+
+    static MethodDeclarationSignature parseMethodDeclarationSignature(String signature) {
+        return Parsing.parseMethodDeclarationSignature(signature);
+    }
 }

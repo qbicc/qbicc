@@ -32,6 +32,10 @@ final class ParsingCache {
     private final ConcurrentMap<ClassTypeSignature, ClassDeclarationSignature> classDeclSigWithSuperclass = new ConcurrentHashMap<>();
     private final ConcurrentMap<ClassDeclarationSignature, ConcurrentMap<ClassTypeSignature, ClassDeclarationSignature>> classDeclSigWithInterface = new ConcurrentHashMap<>();
     private final ConcurrentMap<ClassDeclarationSignature, ConcurrentMap<TypeParameter, ClassDeclarationSignature>> classDeclSigWithParam = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MethodDeclarationSignature, ConcurrentMap<TypeSignature, MethodDeclarationSignature>> methodSigWithArgType = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MethodDeclarationSignature, ConcurrentMap<TypeParameter, MethodDeclarationSignature>> methodSigWithTypeParam = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MethodDeclarationSignature, ConcurrentMap<ThrowableTypeSignature, MethodDeclarationSignature>> methodSigWithThrows = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MethodDeclarationSignature, ConcurrentMap<TypeSignature, MethodDeclarationSignature>> methodSigWithReturnType = new ConcurrentHashMap<>();
 
     static ParsingCache get() {
         return Context.requireCurrent().computeAttachmentIfAbsent(key, ParsingCache::new);
@@ -111,6 +115,22 @@ final class ParsingCache {
 
     ClassDeclarationSignature getCachedClassDeclarationSignatureWithParameter(final ClassDeclarationSignature base, final TypeParameter param) {
         return classDeclSigWithParam.computeIfAbsent(base, ParsingCache::newMap).computeIfAbsent(param, p -> new ClassDeclarationSignatureWithParam(base, param));
+    }
+
+    MethodDeclarationSignature getMethodSignatureWithParamSignature(final MethodDeclarationSignature base, final TypeSignature paramSig) {
+        return methodSigWithArgType.computeIfAbsent(base, ParsingCache::newMap).computeIfAbsent(paramSig, s -> new MethodDeclarationSignatureWithParam(base, paramSig));
+    }
+
+    MethodDeclarationSignature getMethodSignatureWithReturnType(final MethodDeclarationSignature base, final TypeSignature retSig) {
+        return methodSigWithReturnType.computeIfAbsent(base, ParsingCache::newMap).computeIfAbsent(retSig, s -> new MethodDeclarationSignatureWithReturnType(base, retSig));
+    }
+
+    MethodDeclarationSignature getMethodSignatureWithThrowable(final MethodDeclarationSignature base, final ThrowableTypeSignature throwable) {
+        return methodSigWithThrows.computeIfAbsent(base, ParsingCache::newMap).computeIfAbsent(throwable, t -> new MethodDeclarationSignatureWithThrows(base, t));
+    }
+
+    MethodDeclarationSignature getMethodSignatureWithTypeParameter(final MethodDeclarationSignature base, final TypeParameter param) {
+        return methodSigWithTypeParam.computeIfAbsent(base, ParsingCache::newMap).computeIfAbsent(param, p -> new MethodDeclarationSignatureWithTypeParam(base, p));
     }
 
     static <I, K, V> ConcurrentHashMap<K, V> newMap(I ignored) {
