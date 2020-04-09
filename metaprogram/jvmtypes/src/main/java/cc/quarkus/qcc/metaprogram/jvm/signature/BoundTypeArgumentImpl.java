@@ -3,16 +3,16 @@ package cc.quarkus.qcc.metaprogram.jvm.signature;
 /**
  *
  */
-final class BoundTypeArgumentImpl implements ClassTypeSignature.BoundTypeArgument {
-    private final ClassTypeSignature.Variance variance;
+final class BoundTypeArgumentImpl implements BoundTypeArgument {
+    private final Variance variance;
     private final ReferenceTypeSignature type;
 
-    BoundTypeArgumentImpl(final ClassTypeSignature.Variance variance, final ReferenceTypeSignature type) {
+    BoundTypeArgumentImpl(final Variance variance, final ReferenceTypeSignature type) {
         this.variance = variance;
         this.type = type;
     }
 
-    public ClassTypeSignature.Variance getVariance() {
+    public Variance getVariance() {
         return variance;
     }
 

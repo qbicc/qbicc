@@ -27,6 +27,14 @@ public enum BaseTypeSignature implements TypeSignature {
         return name;
     }
 
+    public boolean isBase() {
+        return true;
+    }
+
+    public BaseTypeSignature asBase() {
+        return this;
+    }
+
     public static BaseTypeSignature forCharacter(char c) {
         switch (c) {
             case 'B': return BYTE;

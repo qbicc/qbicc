@@ -8,7 +8,7 @@ import cc.quarkus.qcc.metaprogram.jvm.PackageName;
  *
  */
 final class Parsing {
-    private static final ClassTypeSignature.TypeArgument[] NO_ARGUMENTS = new ClassTypeSignature.TypeArgument[0];
+    private static final TypeArgument[] NO_ARGUMENTS = new TypeArgument[0];
 
     // this sucks but Java makes it really hard to do recursive-descent parsing on a string
     private static final AttachmentKey<ParsingContext> PC_KEY = new AttachmentKey<>();
@@ -128,17 +128,17 @@ final class Parsing {
             }
         } else if (ch == '*') {
             pc.pos++;
-            return parseClassTypeSignatureArgs(cache, signature, pc, cache.getTypeSignature(delegate, ClassTypeSignature.AnyTypeArgument.INSTANCE));
+            return parseClassTypeSignatureArgs(cache, signature, pc, cache.getTypeSignature(delegate, AnyTypeArgument.INSTANCE));
         } else {
-            ClassTypeSignature.Variance v;
+            Variance v;
             if (ch == '+') {
                 pc.pos++;
-                v = ClassTypeSignature.Variance.COVARIANT;
+                v = Variance.COVARIANT;
             } else if (ch == '-') {
                 pc.pos++;
-                v = ClassTypeSignature.Variance.CONTRAVARIANT;
+                v = Variance.CONTRAVARIANT;
             } else {
-                v = ClassTypeSignature.Variance.INVARIANT;
+                v = Variance.INVARIANT;
             }
             final ReferenceTypeSignature nested = parseReferenceTypeSignature(cache, signature, pc);
             return parseClassTypeSignatureArgs(cache, signature, pc, cache.getTypeSignature(delegate, cache.getBoundTypeArgument(v, nested)));

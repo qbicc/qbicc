@@ -7,6 +7,46 @@ import cc.quarkus.qcc.metaprogram.jvm.PackageName;
  * The base type for all JVM-defined generic signature types.
  */
 public interface TypeSignature {
+    default boolean isArray() {
+        return false;
+    }
+
+    default ArrayTypeSignature asArray() {
+        throw new ClassCastException();
+    }
+
+    default boolean isReference() {
+        return false;
+    }
+
+    default ReferenceTypeSignature asReference() {
+        throw new ClassCastException();
+    }
+
+    default boolean isTypeVariable() {
+        return false;
+    }
+
+    default TypeVariableSignature asTypeVariable() {
+        throw new ClassCastException();
+    }
+
+    default boolean isClass() {
+        return false;
+    }
+
+    default ClassTypeSignature asClass() {
+        throw new ClassCastException();
+    }
+
+    default boolean isBase() {
+        return false;
+    }
+
+    default BaseTypeSignature asBase() {
+        throw new ClassCastException();
+    }
+
     /**
      * Parse a type signature.  Requires an active {@link Context}.
      *

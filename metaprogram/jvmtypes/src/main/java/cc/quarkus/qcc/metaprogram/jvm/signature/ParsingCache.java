@@ -22,10 +22,10 @@ final class ParsingCache {
     private final ConcurrentMap<PackageName, ConcurrentMap<String, ClassTypeSignature>> rawClassInPackageCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<ClassTypeSignature, ConcurrentMap<String, ClassTypeSignature>> rawClassInEnclosingCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ClassTypeSignature> topLevelRawClassCache = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ClassTypeSignature, ConcurrentMap<ClassTypeSignature.TypeArgument, ClassTypeSignature>> typesWithArgumentsCache = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ReferenceTypeSignature, ClassTypeSignature.BoundTypeArgument> contravariantArgumentsCache = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ReferenceTypeSignature, ClassTypeSignature.BoundTypeArgument> invariantArgumentsCache = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ReferenceTypeSignature, ClassTypeSignature.BoundTypeArgument> covariantArgumentsCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ClassTypeSignature, ConcurrentMap<TypeArgument, ClassTypeSignature>> typesWithArgumentsCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ReferenceTypeSignature, BoundTypeArgument> contravariantArgumentsCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ReferenceTypeSignature, BoundTypeArgument> invariantArgumentsCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ReferenceTypeSignature, BoundTypeArgument> covariantArgumentsCache = new ConcurrentHashMap<>();
 
     static ParsingCache get() {
         return Context.requireCurrent().computeAttachmentIfAbsent(key, ParsingCache::new);
@@ -103,18 +103,18 @@ final class ParsingCache {
         }
     }
 
-    ClassTypeSignature getTypeSignature(final ClassTypeSignature delegate, final ClassTypeSignature.TypeArgument arg) {
+    ClassTypeSignature getTypeSignature(final ClassTypeSignature delegate, final TypeArgument arg) {
         return typesWithArgumentsCache.computeIfAbsent(delegate, s -> new ConcurrentHashMap<>()).computeIfAbsent(arg, a -> new ClassTypeSignatureWithArgs(delegate, a));
     }
 
-    ClassTypeSignature.BoundTypeArgument getBoundTypeArgument(final ClassTypeSignature.Variance variance, final ReferenceTypeSignature nested) {
-        if (variance == ClassTypeSignature.Variance.CONTRAVARIANT) {
-            return contravariantArgumentsCache.computeIfAbsent(nested, s -> new BoundTypeArgumentImpl(ClassTypeSignature.Variance.CONTRAVARIANT, s));
-        } else if (variance == ClassTypeSignature.Variance.INVARIANT) {
-            return invariantArgumentsCache.computeIfAbsent(nested, s -> new BoundTypeArgumentImpl(ClassTypeSignature.Variance.INVARIANT, s));
+    BoundTypeArgument getBoundTypeArgument(final Variance variance, final ReferenceTypeSignature nested) {
+        if (variance == Variance.CONTRAVARIANT) {
+            return contravariantArgumentsCache.computeIfAbsent(nested, s -> new BoundTypeArgumentImpl(Variance.CONTRAVARIANT, s));
+        } else if (variance == Variance.INVARIANT) {
+            return invariantArgumentsCache.computeIfAbsent(nested, s -> new BoundTypeArgumentImpl(Variance.INVARIANT, s));
         } else {
-            assert variance == ClassTypeSignature.Variance.COVARIANT;
-            return covariantArgumentsCache.computeIfAbsent(nested, s -> new BoundTypeArgumentImpl(ClassTypeSignature.Variance.COVARIANT, s));
+            assert variance == Variance.COVARIANT;
+            return covariantArgumentsCache.computeIfAbsent(nested, s -> new BoundTypeArgumentImpl(Variance.COVARIANT, s));
         }
     }
 }

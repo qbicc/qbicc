@@ -6,6 +6,14 @@ import cc.quarkus.qcc.metaprogram.jvm.PackageName;
  * Some class (or interface).  Does not specify whether the class is accessed by reference or by value.
  */
 public interface ClassTypeSignature extends ReferenceTypeSignature {
+    default boolean isClass() {
+        return true;
+    }
+
+    default ClassTypeSignature asClass() {
+        return this;
+    }
+
     /**
      * The simple name of the class.
      *
@@ -61,42 +69,4 @@ public interface ClassTypeSignature extends ReferenceTypeSignature {
      * @return the type argument at the given index
      */
     TypeArgument getTypeArgument(int index) throws IndexOutOfBoundsException;
-
-    /**
-     * Any kind of type argument.
-     */
-    interface TypeArgument {}
-
-    /**
-     * The explicit "any" type argument, encoded as {@code *}.
-     */
-    interface AnyTypeArgument extends TypeArgument {
-        AnyTypeArgument INSTANCE = new AnyTypeArgument() {};
-    }
-
-    /**
-     * A type argument that is a bound of some sort.
-     */
-    interface BoundTypeArgument extends TypeArgument {
-        /**
-         * Get the variance of the bound.
-         *
-         * @return the variance of the bound
-         */
-        Variance getVariance();
-
-        /**
-         * Get the type of the bound.
-         *
-         * @return the type of the bound
-         */
-        ReferenceTypeSignature getValue();
-    }
-
-    enum Variance {
-        CONTRAVARIANT,
-        INVARIANT,
-        COVARIANT,
-        ;
-    }
 }
