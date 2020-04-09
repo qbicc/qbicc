@@ -1,9 +1,7 @@
 package cc.quarkus.qcc.metaprogram.jvm.signature;
 
-import cc.quarkus.qcc.metaprogram.jvm.signature.ReferenceTypeSignature;
-
 /**
- *
+ * A formal type parameter. For actual type parameter arguments, see {@link TypeArgument}.
  */
 public interface TypeParameter {
     String getSimpleName();

@@ -9,6 +9,7 @@ import cc.quarkus.qcc.metaprogram.jvm.PackageName;
  */
 final class Parsing {
     private static final TypeArgument[] NO_ARGUMENTS = new TypeArgument[0];
+    private static final TypeParameter[] NO_PARAMS = new TypeParameter[0];
 
     // this sucks but Java makes it really hard to do recursive-descent parsing on a string
     private static final AttachmentKey<ParsingContext> PC_KEY = new AttachmentKey<>();
@@ -59,7 +60,7 @@ final class Parsing {
         } else if (ch == 'L') {
             // class possibly in a package
             pc.pos ++;
-            return parseClassTypeSignature(cache, signature, pc, null, null);
+            return parseSimpleClassTypeSignature(cache, signature, pc, null, null);
         } else if (ch == '[') {
             // array
             pc.pos ++;
@@ -69,7 +70,7 @@ final class Parsing {
         }
     }
 
-    static ClassTypeSignature parseClassTypeSignature(ParsingCache cache, String signature, ParsingContext pc, PackageName packageName, ClassTypeSignature enclosing) {
+    static ClassTypeSignature parseSimpleClassTypeSignature(ParsingCache cache, String signature, ParsingContext pc, PackageName packageName, ClassTypeSignature enclosing) {
         assert packageName == null || enclosing == null;
         char ch;
         int start = pc.pos;
@@ -84,10 +85,10 @@ final class Parsing {
                     throw new IllegalArgumentException("Package name in enclosed class type signature");
                 }
                 name = cache.getCachedName(signature, start, pc.pos++);
-                return parseClassTypeSignature(cache, signature, pc, cache.getPackageNamed(packageName, name), null);
+                return parseSimpleClassTypeSignature(cache, signature, pc, cache.getPackageNamed(packageName, name), null);
             } else if (ch == '.') {
                 name = cache.getCachedName(signature, start, pc.pos++);
-                return parseClassTypeSignature(cache, signature, pc, null, cache.getTypeSignature(packageName, enclosing, name));
+                return parseSimpleClassTypeSignature(cache, signature, pc, null, cache.getTypeSignature(packageName, enclosing, name));
             } else if (ch == ';') {
                 name = cache.getCachedName(signature, start, pc.pos++);
                 return cache.getTypeSignature(packageName, enclosing, name);
@@ -98,7 +99,7 @@ final class Parsing {
                 ch = signature.charAt(pc.pos);
                 if (ch == '.') {
                     pc.pos++;
-                    return parseClassTypeSignature(cache, signature, pc, null, thisWithArgs);
+                    return parseSimpleClassTypeSignature(cache, signature, pc, null, thisWithArgs);
                 } else if (ch == ';') {
                     pc.pos++;
                     return thisWithArgs;
@@ -143,6 +144,88 @@ final class Parsing {
             final ReferenceTypeSignature nested = parseReferenceTypeSignature(cache, signature, pc);
             return parseClassTypeSignatureArgs(cache, signature, pc, cache.getTypeSignature(delegate, cache.getBoundTypeArgument(v, nested)));
         }
+    }
+
+    static ClassDeclarationSignature parseClassDeclarationSignature(final String signature) {
+        final ParsingCache parsingCache = ParsingCache.get();
+        final ParsingContext pc = Context.requireCurrent().computeAttachmentIfAbsent(PC_KEY, ParsingContext::new);
+        int old = pc.pos;
+        try {
+            return parseClassDeclarationSignature(parsingCache, signature, pc);
+        } finally {
+            pc.pos = old;
+        }
+    }
+
+    static ClassDeclarationSignature parseClassDeclarationSignature(final ParsingCache parsingCache, final String signature, final ParsingContext pc) {
+        char ch;
+        ch = signature.charAt(pc.pos);
+        // unfortunately we need a temporary array
+        TypeParameter[] params;
+        if (ch == '<') {
+            pc.pos++;
+            // begin type parameters
+            params = parseTypeParameters(parsingCache, signature, pc, 0);
+        } else {
+            params = NO_PARAMS;
+        }
+        ClassTypeSignature superclassSig = parseReferenceTypeSignature(parsingCache, signature, pc).asClass();
+        ClassDeclarationSignature sig = parsingCache.getCachedClassDeclarationSignature(superclassSig);
+        while (pc.pos < signature.length()) {
+            final ClassTypeSignature interfaceSig = parseReferenceTypeSignature(parsingCache, signature, pc).asClass();
+            sig = parsingCache.getCachedClassDeclarationSignatureWithInterface(sig, interfaceSig);
+        }
+        for (TypeParameter param : params) {
+            sig = parsingCache.getCachedClassDeclarationSignatureWithParameter(sig, param);
+        }
+        return sig;
+    }
+
+    static TypeParameter[] parseTypeParameters(final ParsingCache parsingCache, final String signature, final ParsingContext pc, final int idx) {
+        TypeParameter param = parseTypeParameter(parsingCache, signature, pc);
+        TypeParameter[] array;
+        if (signature.charAt(pc.pos) == '>') {
+            pc.pos++;
+            array = new TypeParameter[idx + 1];
+        } else {
+            array = parseTypeParameters(parsingCache, signature, pc, idx + 1);
+        }
+        array[idx] = param;
+        return array;
+    }
+
+    static TypeParameter parseTypeParameter(final ParsingCache parsingCache, final String signature, final ParsingContext pc) {
+        int start = pc.pos;
+        char ch = signature.charAt(start);
+        while (ch != ':') {
+            pc.pos ++;
+            ch = signature.charAt(pc.pos);
+        }
+        String identifier = parsingCache.getCachedName(signature, start, pc.pos);
+        pc.pos++; // past the class bound leading :
+        TypeParameter tp = parsingCache.getCachedTypeParameter(identifier);
+        // class bound
+        ch = signature.charAt(pc.pos);
+        if (ch == '>') {
+            // no class bounds and no further type parameters
+            pc.pos++;
+            return tp;
+        }
+        if (ch != ':') {
+            // there's a class bound; parse it
+            tp = parsingCache.getCachedTypeParameterWithClassBound(tp, parseReferenceTypeSignature(parsingCache, signature, pc));
+            ch = signature.charAt(pc.pos);
+        }
+        // first char after class bound
+        while (ch == ':') {
+            pc.pos++;
+            tp = parsingCache.getCachedTypeParameterWithInterfaceBound(tp, parseReferenceTypeSignature(parsingCache, signature, pc));
+            ch = signature.charAt(pc.pos);
+        }
+        if (ch != '>') {
+            throw new IllegalArgumentException("Unrecognized character at index " + pc.pos);
+        }
+        return tp;
     }
 
     static final class ParsingContext {

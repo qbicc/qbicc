@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.metaprogram.jvm.signature;
 
+import java.util.Locale;
+
 /**
  *
  */
@@ -63,5 +65,9 @@ public enum BaseTypeSignature implements TypeSignature {
             case "boolean": return BOOLEAN;
             default: return null;
         }
+    }
+
+    public StringBuilder toString(final StringBuilder b) {
+        return b.append(name().toLowerCase(Locale.ROOT));
     }
 }

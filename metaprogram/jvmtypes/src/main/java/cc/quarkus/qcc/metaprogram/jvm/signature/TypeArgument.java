@@ -19,4 +19,6 @@ public interface TypeArgument {
     default BoundTypeArgument asBound() {
         throw new ClassCastException();
     }
+
+    StringBuilder toString(StringBuilder b);
 }

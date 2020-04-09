@@ -102,4 +102,6 @@ public interface TypeSignature {
             return pc.getTypeSignature(packageName, enclosing, simpleName);
         }
     }
+
+    StringBuilder toString(StringBuilder b);
 }

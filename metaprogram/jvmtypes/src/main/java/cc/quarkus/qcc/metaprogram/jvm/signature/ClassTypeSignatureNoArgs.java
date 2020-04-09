@@ -3,7 +3,7 @@ package cc.quarkus.qcc.metaprogram.jvm.signature;
 import cc.quarkus.qcc.metaprogram.jvm.PackageName;
 import io.smallrye.common.constraint.Assert;
 
-class ClassTypeSignatureNoArgs implements ClassTypeSignature {
+final class ClassTypeSignatureNoArgs implements ClassTypeSignature {
     private final PackageName packageName;
     private final ClassTypeSignature enclosing;
     private final String simpleName;
@@ -47,5 +47,19 @@ class ClassTypeSignatureNoArgs implements ClassTypeSignature {
 
     public ClassTypeSignature getRawType() {
         return this;
+    }
+
+    public StringBuilder toString(StringBuilder b) {
+        if (packageName != null) {
+            packageName.appendQualifiedName(b).append('.');
+        } else if (enclosing != null) {
+            enclosing.toString(b).append('.');
+        }
+        b.append(simpleName);
+        return b;
+    }
+
+    public String toString() {
+        return toString(new StringBuilder()).toString();
     }
 }

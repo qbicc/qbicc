@@ -19,4 +19,16 @@ final class BoundTypeArgumentImpl implements BoundTypeArgument {
     public ReferenceTypeSignature getValue() {
         return type;
     }
+
+    public StringBuilder toString(final StringBuilder b) {
+        if (variance == Variance.CONTRAVARIANT) {
+            b.append("super ");
+        } else if (variance == Variance.COVARIANT) {
+            b.append("extends ");
+        } else {
+            b.append("exactly ");
+        }
+        type.toString(b);
+        return b;
+    }
 }

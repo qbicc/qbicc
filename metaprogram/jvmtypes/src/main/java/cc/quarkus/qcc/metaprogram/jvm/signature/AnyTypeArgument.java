@@ -3,14 +3,21 @@ package cc.quarkus.qcc.metaprogram.jvm.signature;
 /**
  * The explicit "any" type argument, encoded as {@code *}.
  */
-public interface AnyTypeArgument extends TypeArgument {
-    AnyTypeArgument INSTANCE = new AnyTypeArgument() {};
+public final class AnyTypeArgument implements TypeArgument {
+    public static final AnyTypeArgument INSTANCE = new AnyTypeArgument();
 
-    default boolean isAny() {
+    private AnyTypeArgument() {
+    }
+
+    public boolean isAny() {
         return true;
     }
 
-    default AnyTypeArgument asAny() {
+    public AnyTypeArgument asAny() {
         return this;
+    }
+
+    public StringBuilder toString(final StringBuilder b) {
+        return b.append('*');
     }
 }

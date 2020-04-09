@@ -26,6 +26,12 @@ final class ParsingCache {
     private final ConcurrentMap<ReferenceTypeSignature, BoundTypeArgument> contravariantArgumentsCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<ReferenceTypeSignature, BoundTypeArgument> invariantArgumentsCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<ReferenceTypeSignature, BoundTypeArgument> covariantArgumentsCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, TypeParameter> baseTypeParameterCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<TypeParameter, ConcurrentMap<ReferenceTypeSignature, TypeParameter>> typeParamWithClassBoundCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<TypeParameter, ConcurrentMap<ReferenceTypeSignature, TypeParameter>> typeParamWithInterfaceBoundCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ClassTypeSignature, ClassDeclarationSignature> classDeclSigWithSuperclass = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ClassDeclarationSignature, ConcurrentMap<ClassTypeSignature, ClassDeclarationSignature>> classDeclSigWithInterface = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ClassDeclarationSignature, ConcurrentMap<TypeParameter, ClassDeclarationSignature>> classDeclSigWithParam = new ConcurrentHashMap<>();
 
     static ParsingCache get() {
         return Context.requireCurrent().computeAttachmentIfAbsent(key, ParsingCache::new);
@@ -40,71 +46,36 @@ final class ParsingCache {
         return stringCache.computeIfAbsent(str, Function.identity());
     }
 
-    TypeVariableSignature getTypeVariableNamed(final String name) {
-        // todo impl class
-        return typeVarCache.computeIfAbsent(name, n -> new TypeVariableSignature() {
-            public String getSimpleName() {
-                return name;
-            }
-        });
+    TypeVariableSignature getTypeVariableNamed(final String simpleName) {
+        return typeVarCache.computeIfAbsent(simpleName, TypeVariableSignatureImpl::new);
     }
 
     ArrayTypeSignature getArrayOf(final TypeSignature nestedType) {
-        // todo impl class
-        return arrayTypeCache.computeIfAbsent(nestedType, nt -> new ArrayTypeSignature() {
-            public TypeSignature getMemberSignature() {
-                return nt;
-            }
-        });
+        return arrayTypeCache.computeIfAbsent(nestedType, ArrayTypeSignatureImpl::new);
     }
 
     PackageName getPackageNamed(final PackageName enclosing, final String simpleName) {
-        // todo impl class
         if (enclosing == null) {
-            return topLevelPackageCache.computeIfAbsent(simpleName, n -> new PackageName() {
-                public String getSimpleName() {
-                    return n;
-                }
-
-                public PackageName getEnclosing() {
-                    return null;
-                }
-
-                public boolean hasEnclosing() {
-                    return false;
-                }
-            });
+            return topLevelPackageCache.computeIfAbsent(simpleName, PackageNameImpl::new);
         } else {
-            return nestedPackageCache.computeIfAbsent(enclosing, e -> new ConcurrentHashMap<>()).computeIfAbsent(simpleName, n -> new PackageName() {
-                public String getSimpleName() {
-                    return n;
-                }
-
-                public PackageName getEnclosing() {
-                    return enclosing;
-                }
-
-                public boolean hasEnclosing() {
-                    return true;
-                }
-            });
+            return nestedPackageCache.computeIfAbsent(enclosing, ParsingCache::newMap).computeIfAbsent(simpleName, n -> new PackageNameImpl(enclosing, n));
         }
     }
 
     ClassTypeSignature getTypeSignature(final PackageName packageName, final ClassTypeSignature enclosing, final String simpleName) {
         if (packageName != null) {
             assert enclosing == null;
-            return rawClassInPackageCache.computeIfAbsent(packageName, pn -> new ConcurrentHashMap<>()).computeIfAbsent(simpleName, n -> new ClassTypeSignatureNoArgs(packageName, null, n));
+            return rawClassInPackageCache.computeIfAbsent(packageName, ParsingCache::newMap).computeIfAbsent(simpleName, n -> new ClassTypeSignatureNoArgs(packageName, null, n));
         } else if (enclosing != null) {
             assert packageName == null;
-            return rawClassInEnclosingCache.computeIfAbsent(enclosing, e -> new ConcurrentHashMap<>()).computeIfAbsent(simpleName, n -> new ClassTypeSignatureNoArgs(null, enclosing, n));
+            return rawClassInEnclosingCache.computeIfAbsent(enclosing, ParsingCache::newMap).computeIfAbsent(simpleName, n -> new ClassTypeSignatureNoArgs(null, enclosing, n));
         } else {
             return topLevelRawClassCache.computeIfAbsent(simpleName, n -> new ClassTypeSignatureNoArgs(null, null, n));
         }
     }
 
     ClassTypeSignature getTypeSignature(final ClassTypeSignature delegate, final TypeArgument arg) {
-        return typesWithArgumentsCache.computeIfAbsent(delegate, s -> new ConcurrentHashMap<>()).computeIfAbsent(arg, a -> new ClassTypeSignatureWithArgs(delegate, a));
+        return typesWithArgumentsCache.computeIfAbsent(delegate, ParsingCache::newMap).computeIfAbsent(arg, a -> new ClassTypeSignatureWithArgs(delegate, a));
     }
 
     BoundTypeArgument getBoundTypeArgument(final Variance variance, final ReferenceTypeSignature nested) {
@@ -116,5 +87,33 @@ final class ParsingCache {
             assert variance == Variance.COVARIANT;
             return covariantArgumentsCache.computeIfAbsent(nested, s -> new BoundTypeArgumentImpl(Variance.COVARIANT, s));
         }
+    }
+
+    TypeParameter getCachedTypeParameter(final String identifier) {
+        return baseTypeParameterCache.computeIfAbsent(identifier, BaseTypeParameter::new);
+    }
+
+    TypeParameter getCachedTypeParameterWithClassBound(final TypeParameter base, final ReferenceTypeSignature classBound) {
+        return typeParamWithClassBoundCache.computeIfAbsent(base, ParsingCache::newMap).computeIfAbsent(classBound, b -> new TypeParameterWithClassBound(base, b));
+    }
+
+    TypeParameter getCachedTypeParameterWithInterfaceBound(final TypeParameter base, final ReferenceTypeSignature interfaceBound) {
+        return typeParamWithInterfaceBoundCache.computeIfAbsent(base, ParsingCache::newMap).computeIfAbsent(interfaceBound, b -> new TypeParameterWithInterfaceBound(base, b));
+    }
+
+    ClassDeclarationSignature getCachedClassDeclarationSignature(final ClassTypeSignature superclassSig) {
+        return classDeclSigWithSuperclass.computeIfAbsent(superclassSig, sc -> new ClassDeclarationSignatureWithSuperclass(RootClassDeclarationSignature.INSTANCE, superclassSig));
+    }
+
+    ClassDeclarationSignature getCachedClassDeclarationSignatureWithInterface(final ClassDeclarationSignature base, final ClassTypeSignature interfaceSig) {
+        return classDeclSigWithInterface.computeIfAbsent(base, ParsingCache::newMap).computeIfAbsent(interfaceSig, sc -> new ClassDeclarationSignatureWithInterface(base, sc));
+    }
+
+    ClassDeclarationSignature getCachedClassDeclarationSignatureWithParameter(final ClassDeclarationSignature base, final TypeParameter param) {
+        return classDeclSigWithParam.computeIfAbsent(base, ParsingCache::newMap).computeIfAbsent(param, p -> new ClassDeclarationSignatureWithParam(base, param));
+    }
+
+    static <I, K, V> ConcurrentHashMap<K, V> newMap(I ignored) {
+        return new ConcurrentHashMap<>();
     }
 }
