@@ -12,7 +12,6 @@ public enum BaseTypeSignature implements TypeSignature {
     FLOAT('F'),
     DOUBLE('D'),
     BOOLEAN('Z'),
-    VOID('V'),
     ;
     private final char name;
 
@@ -22,6 +21,10 @@ public enum BaseTypeSignature implements TypeSignature {
 
     public String toString() {
         return String.valueOf(name);
+    }
+
+    public char getName() {
+        return name;
     }
 
     public static BaseTypeSignature forCharacter(char c) {
@@ -34,7 +37,6 @@ public enum BaseTypeSignature implements TypeSignature {
             case 'F': return FLOAT;
             case 'D': return DOUBLE;
             case 'Z': return BOOLEAN;
-            case 'V': return VOID;
             default: return null;
         }
     }
