@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
-import cc.quarkus.qcc.graph.type.BooleanType;
+import cc.quarkus.qcc.graph.type.IfType;
 
 public abstract class IfNode extends ControlNode<IfType> {
 

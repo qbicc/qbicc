@@ -17,7 +17,7 @@ import cc.quarkus.qcc.graph.node.CompareOp;
 import cc.quarkus.qcc.graph.node.ConstantNode;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.EndNode;
-import cc.quarkus.qcc.graph.node.IOType;
+import cc.quarkus.qcc.graph.type.IOType;
 import cc.quarkus.qcc.graph.node.IfNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.RegionNode;

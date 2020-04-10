@@ -1,6 +1,4 @@
-package cc.quarkus.qcc.graph.node;
-
-import cc.quarkus.qcc.graph.type.Type;
+package cc.quarkus.qcc.graph.type;
 
 public class IOType implements Type {
     public static final IOType INSTANCE = new IOType();

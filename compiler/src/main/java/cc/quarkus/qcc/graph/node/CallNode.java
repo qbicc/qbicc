@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.graph.type.IOType;
 import cc.quarkus.qcc.graph.type.Type;
 import cc.quarkus.qcc.graph.type.ControlType;
 import cc.quarkus.qcc.graph.type.FunctionType;

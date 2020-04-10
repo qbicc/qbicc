@@ -6,9 +6,8 @@ import java.util.Deque;
 import java.util.List;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
-import cc.quarkus.qcc.graph.node.IOType;
+import cc.quarkus.qcc.graph.type.IOType;
 import cc.quarkus.qcc.graph.node.Node;
-import cc.quarkus.qcc.graph.type.AnyType;
 import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.MemoryType;
 import cc.quarkus.qcc.graph.type.Type;

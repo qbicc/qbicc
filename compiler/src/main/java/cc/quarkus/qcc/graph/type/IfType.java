@@ -1,6 +1,4 @@
-package cc.quarkus.qcc.graph.node;
-
-import cc.quarkus.qcc.graph.type.ControlType;
+package cc.quarkus.qcc.graph.type;
 
 public class IfType extends ControlType {
 
