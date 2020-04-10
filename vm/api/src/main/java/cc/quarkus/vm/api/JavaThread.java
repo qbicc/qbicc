@@ -17,19 +17,34 @@ public interface JavaThread extends AutoCloseable {
      */
     void doAttached(Runnable r);
 
+    /**
+     * Ensure that the given class is initialized.
+     *
+     * @param clazz the class to initialize
+     */
+    void initClass(JavaClass clazz);
+
     JavaClass defineClass(String name, JavaObject classLoader, ByteBuffer bytes);
+
+    JavaClass defineAnonymousClass(JavaClass hostClass, ByteBuffer bytes);
 
     JavaObject allocateObject(JavaClass type);
 
-    void initObject(JavaObject newObj, Object... args);
+    void initObject(JavaObject newObj, JavaConstructor ctor, Object... args);
 
-    JavaMethod lookupStaticMethod(JavaClass type, String signature);
+    JavaConstructor lookupConstructor(JavaClass type, String name, String signature);
 
-    JavaMethod lookupInstanceMethod(JavaClass type, String signature);
+    JavaMethod lookupStaticMethod(JavaClass type, String name, String signature);
+
+    JavaMethod lookupInstanceMethod(JavaClass type, String name, String signature);
 
     void callStaticVoid(JavaMethod method, Object... args);
 
     // todo: callStatic<Primitive>, callStaticObject, callInstance*, callInstanceExact*
+
+    JavaField lookupStaticField(JavaClass type, String name);
+
+    JavaField lookupInstanceField(JavaClass type, String name);
 
     // todo: get/put fields
 

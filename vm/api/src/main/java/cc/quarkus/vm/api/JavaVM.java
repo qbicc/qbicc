@@ -28,6 +28,14 @@ public interface JavaVM extends AutoCloseable {
     HostMethod registerNativeMethod(JavaClass javaClass, String methodName, String methodSignature, HostMethod method);
 
     /**
+     * Wait for the VM to terminate, returning the exit code.
+     *
+     * @return the VM exit code
+     * @throws InterruptedException if the calling thread was interrupted before the VM terminates
+     */
+    int awaitTermination() throws InterruptedException;
+
+    /**
      * Kill the VM, terminating all in-progress threads and releasing all heap objects.
      */
     void close();
