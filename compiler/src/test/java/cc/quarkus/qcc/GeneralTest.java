@@ -6,7 +6,6 @@ import java.nio.file.Paths;
 import cc.quarkus.qcc.finders.ClassLoaderClassFinder;
 import cc.quarkus.qcc.graph.DotWriter;
 import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.graph.node.StartNode;
 import cc.quarkus.qcc.parse.BytecodeParser;
 import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.TypeDefinition;
@@ -26,7 +25,7 @@ public class GeneralTest {
         BytecodeParser parser = new BytecodeParser(m);
         Graph graph = parser.parse();
 
-        try (DotWriter writer = new DotWriter(Paths.get("graph.dot"))) {
+        try (DotWriter writer = new DotWriter(Paths.get("target/graph.dot"))) {
             writer.write(graph);
         }
     }
