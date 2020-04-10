@@ -6,18 +6,16 @@
 
     <parent>
         <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-parent</artifactId>
+        <artifactId>qcc-machine-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-machine-parent</artifactId>
+    <artifactId>qcc-machine-arch</artifactId>
 
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>probe</module>
-        <module>tool</module>
-        <module>file</module>
-        <module>arch</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>io.smallrye.common</groupId>
+            <artifactId>smallrye-common-constraint</artifactId>
+        </dependency>
+    </dependencies>
 </project>
