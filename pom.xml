@@ -135,6 +135,14 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- compiler -->
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-compiler</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- metaprogram -->
 
             <dependency>

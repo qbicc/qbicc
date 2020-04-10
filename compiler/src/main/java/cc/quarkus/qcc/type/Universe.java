@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.type;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
@@ -74,18 +74,16 @@ public class Universe {
         return this.objectTypes.computeIfAbsent(name, (k) -> new LazyTypeDefinition(this, name, resolve));
     }
 
-    TypeDefinition resolveClass(String name) {
-        InputStream in = null;
+    TypeDefinition defineClass(String name, ByteBuffer buffer) {
+        ClassReader reader = null;
         try {
-            in = getClassFinder().findClass(name);
-            ClassReader reader = new ClassReader(in);
-            TypeDefinitionNode node = new TypeDefinitionNode(this);
-            reader.accept(node, 0);
-            return node;
-        } catch (ClassNotFoundException | IOException e) {
-            //e.printStackTrace();
+            reader = new ClassReader(new ByteBufferInputStream(buffer));
+        } catch (IOException e) {
             return new UnresolvableClassDefinition(name);
         }
+        TypeDefinitionNode node = new TypeDefinitionNode(this);
+        reader.accept(node, 0);
+        return node;
     }
 
     public void await(long timeout, TimeUnit unit) {
