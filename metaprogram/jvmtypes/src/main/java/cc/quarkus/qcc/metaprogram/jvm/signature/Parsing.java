@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.metaprogram.jvm.signature;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.metaprogram.jvm.PackageName;
 
 /**
@@ -12,13 +10,13 @@ final class Parsing {
     private static final TypeParameter[] NO_PARAMS = new TypeParameter[0];
 
     // this sucks but Java makes it really hard to do recursive-descent parsing on a string
-    private static final AttachmentKey<ParsingContext> PC_KEY = new AttachmentKey<>();
+    private static final ThreadLocal<ParsingContext> PC_TL = ThreadLocal.withInitial(ParsingContext::new);
 
     private Parsing() {}
 
     static TypeSignature parseTypeSignature(String signature) {
         final ParsingCache parsingCache = ParsingCache.get();
-        final ParsingContext pc = Context.requireCurrent().computeAttachmentIfAbsent(PC_KEY, ParsingContext::new);
+        final ParsingContext pc = PC_TL.get();
         int old = pc.pos;
         try {
             return parseTypeSignature(parsingCache, signature, pc);
@@ -148,7 +146,7 @@ final class Parsing {
 
     static ClassDeclarationSignature parseClassDeclarationSignature(final String signature) {
         final ParsingCache parsingCache = ParsingCache.get();
-        final ParsingContext pc = Context.requireCurrent().computeAttachmentIfAbsent(PC_KEY, ParsingContext::new);
+        final ParsingContext pc = PC_TL.get();
         int old = pc.pos;
         try {
             return parseClassDeclarationSignature(parsingCache, signature, pc);
@@ -230,7 +228,7 @@ final class Parsing {
 
     static MethodDeclarationSignature parseMethodDeclarationSignature(final String signature) {
         final ParsingCache parsingCache = ParsingCache.get();
-        final ParsingContext pc = Context.requireCurrent().computeAttachmentIfAbsent(PC_KEY, ParsingContext::new);
+        final ParsingContext pc = PC_TL.get();
         int old = pc.pos;
         try {
             return parseMethodDeclarationSignature(parsingCache, signature, pc);
