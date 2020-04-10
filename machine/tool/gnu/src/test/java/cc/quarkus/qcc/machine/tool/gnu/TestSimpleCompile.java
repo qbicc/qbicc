@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.nio.file.Path;
 import java.util.Iterator;
 
-import org.junit.jupiter.api.Test;
-
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.machine.file.bin.BinaryBuffer;
 import cc.quarkus.qcc.machine.file.elf.ElfHeader;
@@ -15,12 +13,16 @@ import cc.quarkus.qcc.machine.file.elf.ElfSymbolTableEntry;
 import cc.quarkus.qcc.machine.tool.CompilationResult;
 import cc.quarkus.qcc.machine.tool.InputSource;
 import cc.quarkus.qcc.machine.tool.ToolProvider;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 /**
  *
  */
 public class TestSimpleCompile {
     @Test
+    @EnabledOnOs(OS.LINUX)
     public void testSimpleCompile() throws Exception {
         final Context dc = new Context(false);
         final CompilationResult result = dc.run(() -> {

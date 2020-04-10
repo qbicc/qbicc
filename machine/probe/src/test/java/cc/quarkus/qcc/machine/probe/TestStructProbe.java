@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.machine.tool.ToolProvider;
 import cc.quarkus.qcc.machine.tool.gnu.GccCompiler;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 /**
  *
@@ -18,6 +20,7 @@ import cc.quarkus.qcc.machine.tool.gnu.GccCompiler;
 public class TestStructProbe {
 
     @Test
+    @EnabledOnOs(OS.LINUX)
     public void testAProbe() throws Exception {
         final Context dc = new Context(false);
         final StructProbe probe = new StructProbe(StructProbe.Qualifier.STRUCT, "iovec");
