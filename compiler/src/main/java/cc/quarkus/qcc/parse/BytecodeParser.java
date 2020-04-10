@@ -1,7 +1,13 @@
 package cc.quarkus.qcc.parse;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.Mnemonics;
 import cc.quarkus.qcc.graph.Graph;
@@ -44,14 +50,20 @@ import static cc.quarkus.qcc.graph.node.ConstantNode.intConstant;
 import static cc.quarkus.qcc.graph.node.ConstantNode.longConstant;
 import static org.objectweb.asm.Opcodes.ACONST_NULL;
 import static org.objectweb.asm.Opcodes.ALOAD;
+import static org.objectweb.asm.Opcodes.ARETURN;
+import static org.objectweb.asm.Opcodes.ASTORE;
 import static org.objectweb.asm.Opcodes.BIPUSH;
 import static org.objectweb.asm.Opcodes.DCONST_0;
 import static org.objectweb.asm.Opcodes.DCONST_1;
 import static org.objectweb.asm.Opcodes.DLOAD;
+import static org.objectweb.asm.Opcodes.DRETURN;
+import static org.objectweb.asm.Opcodes.DSTORE;
 import static org.objectweb.asm.Opcodes.FCONST_0;
 import static org.objectweb.asm.Opcodes.FCONST_1;
 import static org.objectweb.asm.Opcodes.FCONST_2;
 import static org.objectweb.asm.Opcodes.FLOAD;
+import static org.objectweb.asm.Opcodes.FRETURN;
+import static org.objectweb.asm.Opcodes.FSTORE;
 import static org.objectweb.asm.Opcodes.GOTO;
 import static org.objectweb.asm.Opcodes.IADD;
 import static org.objectweb.asm.Opcodes.ICONST_0;
@@ -62,9 +74,25 @@ import static org.objectweb.asm.Opcodes.ICONST_4;
 import static org.objectweb.asm.Opcodes.ICONST_5;
 import static org.objectweb.asm.Opcodes.ICONST_M1;
 import static org.objectweb.asm.Opcodes.IFEQ;
+import static org.objectweb.asm.Opcodes.IFGE;
+import static org.objectweb.asm.Opcodes.IFGT;
+import static org.objectweb.asm.Opcodes.IFLE;
+import static org.objectweb.asm.Opcodes.IFLT;
 import static org.objectweb.asm.Opcodes.IFNE;
+import static org.objectweb.asm.Opcodes.IF_ACMPEQ;
+import static org.objectweb.asm.Opcodes.IF_ACMPNE;
+import static org.objectweb.asm.Opcodes.IF_ICMPEQ;
 import static org.objectweb.asm.Opcodes.IF_ICMPGE;
+import static org.objectweb.asm.Opcodes.IF_ICMPGT;
+import static org.objectweb.asm.Opcodes.IF_ICMPLE;
+import static org.objectweb.asm.Opcodes.IF_ICMPLT;
+import static org.objectweb.asm.Opcodes.IF_ICMPNE;
 import static org.objectweb.asm.Opcodes.ILOAD;
+import static org.objectweb.asm.Opcodes.INVOKEDYNAMIC;
+import static org.objectweb.asm.Opcodes.INVOKEINTERFACE;
+import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
+import static org.objectweb.asm.Opcodes.INVOKESTATIC;
+import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
 import static org.objectweb.asm.Opcodes.IRETURN;
 import static org.objectweb.asm.Opcodes.ISTORE;
 import static org.objectweb.asm.Opcodes.ISUB;
@@ -72,52 +100,339 @@ import static org.objectweb.asm.Opcodes.LCONST_0;
 import static org.objectweb.asm.Opcodes.LCONST_1;
 import static org.objectweb.asm.Opcodes.LDC;
 import static org.objectweb.asm.Opcodes.LLOAD;
+import static org.objectweb.asm.Opcodes.LRETURN;
+import static org.objectweb.asm.Opcodes.LSTORE;
 import static org.objectweb.asm.Opcodes.NOP;
+import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.Opcodes.SIPUSH;
 
 public class BytecodeParser {
+
+    public static final int SLOT_IO = -1;
+    public static final int SLOT_MEMORY = -2;
 
     public BytecodeParser(MethodDefinition method) {
         this.method = method;
     }
 
-    protected void analyzeLeaders() {
+    protected void buildControlFlowGraph(ControlFlowHelper links) {
         InsnList instrList = this.method.getInstructions();
         int instrLen = instrList.size();
 
-        for (int i = 0; i < instrLen; ++i) {
-            AbstractInsnNode instr = instrList.get(i);
+        RegionNode root = new RegionNode(this.start.frame().maxLocals(), this.start.frame().maxStack());
+        links.control(0, root);
+        root.addInput(this.start);
+        control(root);
+
+        for (int bci = 0; bci < instrLen; ++bci) {
+            AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
 
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
                 int destIndex = instrList.indexOf(dest);
+                links.control(destIndex, new RegionNode(this.start.frame().maxLocals(), this.start.frame().maxStack()));
+            }
+        }
+
+        for (int bci = 0; bci < instrLen; ++bci) {
+            AbstractInsnNode instr = instrList.get(bci);
+            int opcode = instr.getOpcode();
+
+            System.err.println("CFG: " + bci + " // " + Mnemonics.of(opcode));
+            if (instr instanceof JumpInsnNode) {
+                LabelNode dest = ((JumpInsnNode) instr).label;
+                int destIndex = instrList.indexOf(dest);
+                /*
                 this.leaders.put(destIndex, new RegionNode(this.method.getMaxLocals(), this.method.getMaxStack()));
                 if (opcode != GOTO) {
                     // some flavor of IF
                     // mark a leader for the next instruction, but not ourself
                     this.leaders.put(i + 1, new RegionNode(this.method.getMaxLocals(), this.method.getMaxStack()));
                 }
+                 */
+                switch (opcode) {
+                    case IF_ICMPEQ:
+                    case IF_ICMPNE:
+                    case IF_ICMPGE:
+                    case IF_ICMPLE:
+                    case IF_ICMPGT:
+                    case IF_ICMPLT: {
+                        BinaryIfNode<IntType> node = new BinaryIfNode<>(control());
+                        links.control(bci, node);
+                        //links.control(bci+1, node.getFalseOut());
+                        links.add(bci + 1, node.getFalseOut());
+                        links.add(destIndex, node.getTrueOut());
+                        control(node.getFalseOut());
+                        break;
+                    }
+                    case IF_ACMPEQ:
+                    case IF_ACMPNE: {
+                        BinaryIfNode<ObjectType> node = new BinaryIfNode<>(control());
+                        links.control(bci, node);
+                        //links.control(bci+1, node.getFalseOut());
+                        links.add(bci + 1, node.getFalseOut());
+                        links.add(destIndex, node.getTrueOut());
+                        control(node.getFalseOut());
+                        break;
+                    }
+                    case IFEQ:
+                    case IFNE:
+                    case IFGE:
+                    case IFLE:
+                    case IFGT:
+                    case IFLT: {
+                        UnaryIfNode node = new UnaryIfNode(control());
+                        links.control(bci, node);
+                        //links.control(bci+1, node.getFalseOut());
+                        links.add(bci + 1, node.getFalseOut());
+                        links.add(destIndex, node.getTrueOut());
+                        control(node.getFalseOut());
+                        break;
+                    }
+                    case GOTO: {
+                        links.add(destIndex, control());
+                        control(null);
+                        break;
+                    }
+
+                }
+            } else {
+                ControlNode<?> candidate = links.control(bci);
+                if (candidate != null) {
+                    if (control() != null) {
+                        candidate.addInput(control());
+                    }
+                    control(candidate);
+                }
+                switch (opcode) {
+                    case RETURN:
+                    case IRETURN:
+                    case DRETURN:
+                    case FRETURN:
+                    case LRETURN:
+                    case ARETURN: {
+                        System.err.println("add END");
+                        this.end.addInput(control());
+                        break;
+                    }
+                }
             }
         }
     }
 
+    protected void calculateDominanceFrontiers(ControlFlowHelper links) {
+
+        Map<Node<?>, Set<Node<?>>> dominators = new HashMap<>();
+        Set<ControlNode<?>> nodes = links.nodes();
+
+
+        for (Node<?> n : nodes) {
+            dominators.put(n, new HashSet<>(Collections.singleton(n)));
+        }
+
+        boolean changed = true;
+
+        while (changed) {
+            changed = false;
+            for (Node<?> n : nodes) {
+                Set<Node<?>> temp = new HashSet<>();
+                System.err.println( "n=" + n);
+                System.err.println( "n.predecessors=" + n.getPredecessors());
+                System.err.println( "n.predecessors.dom=" + n.getPredecessors().stream().map(dominators::get).collect(Collectors.toList()));
+                temp.add(n);
+                temp.addAll(
+                        intersect(
+                                n.getPredecessors().stream().map(dominators::get).collect(Collectors.toList())
+                        )
+                );
+
+                if ( ! dominators.get(n).equals(temp)) {
+                    dominators.put(n, temp);
+                    changed = true;
+                }
+            }
+        }
+
+        Map<Node<?>, Node<?>> immediateDominators = new HashMap<>();
+
+        for (Node<?> n : nodes) {
+            Set<Node<?>> strictDominators = new HashSet<>(dominators.get(n));
+            System.err.println( "A sdom for " + n + " >> " + strictDominators);
+            strictDominators.remove(n);
+            System.err.println( "B sdom for " + n + " >> " + strictDominators);
+            Node idom = strictDominators.stream()
+                    .filter(e -> dominators.get(e).containsAll(strictDominators))
+                    .findFirst().orElse(null);
+
+            immediateDominators.put(n, idom);
+        }
+
+        Map<ControlNode<?>, Set<ControlNode<?>>> dominanceFrontier = new HashMap<>();
+
+        for (ControlNode<?> n : nodes) {
+            dominanceFrontier.put(n, new HashSet<>());
+        }
+
+        for (ControlNode<?> n : nodes) {
+            if ( n.getPredecessors().size() > 1 ) {
+                System.err.println( "calc DF for " + n);
+                for (ControlNode<?> p : n.getControlPredecessors()) {
+                    Node<?> runner = p;
+                    System.err.println( "runner: " + runner + " vs " + immediateDominators.get(n));
+                    while ( immediateDominators.get(n) != runner ) {
+                        System.err.println( "add " + n + " to DF for " + runner);
+                        dominanceFrontier.get(runner).add(n);
+                        runner = immediateDominators.get(runner);
+                        System.err.println( "runner now: " + runner);
+                    }
+                }
+            }
+        }
+
+        System.err.println("********************");
+        for (Node<?> n : nodes) {
+            System.err.println( "** " + n);
+            System.err.println( "dom: " + dominators.get(n));
+            System.err.println( "idom: " + immediateDominators.get(n));
+            System.err.println( "df: " + dominanceFrontier.get(n));
+            System.err.println( "--");
+        }
+        System.err.println("********************");
+
+        links.dominanceFrontier(dominanceFrontier);
+    }
+
+    private Collection<Node<?>> intersect(List<Set<Node<?>>> sets) {
+        if (sets.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<Node<?>> intersection = new HashSet<>(sets.get(0));
+
+        for (int i = 1; i < sets.size(); ++i) {
+            intersection.retainAll(sets.get(i));
+        }
+
+        return intersection;
+    }
+
+    protected Set<Local.PhiLocal<?>> placePhis(ControlFlowHelper links) {
+        InsnList instructions = this.method.getInstructions();
+        int numInstrs = instructions.size();
+
+        //Map<ControlNode<?>, Set<Integer>> phiPlacements = new HashMap<>();
+        PhiPlacements phiPlacements = new PhiPlacements();
+
+        control(links.control(-1));
+
+        for (int bci = 0; bci < numInstrs ; ++bci) {
+            AbstractInsnNode instr = instructions.get(bci);
+            int opcode = instr.getOpcode();
+
+            System.err.println( "pp: " + bci + ": " + Mnemonics.of(opcode));
+
+            ControlNode<?> candidate = links.control(bci);
+            if ( candidate != null ) {
+                control(candidate);
+            }
+
+            switch (opcode) {
+                case ISTORE: {
+                    phiPlacements.record(control(), ((VarInsnNode)instr).var, IntType.INSTANCE);
+                    break;
+                }
+                case LSTORE: {
+                    phiPlacements.record(control(), ((VarInsnNode)instr).var, LongType.INSTANCE);
+                    break;
+                }
+                case FSTORE: {
+                    phiPlacements.record(control(), ((VarInsnNode)instr).var, FloatType.INSTANCE);
+                    break;
+                }
+                case DSTORE: {
+                    phiPlacements.record(control(), ((VarInsnNode)instr).var, DoubleType.INSTANCE);
+                    break;
+                }
+                case ASTORE: {
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, ObjectType.java.lang.Object);
+                    break;
+                }
+                    //int index = ((VarInsnNode)instr).var;
+                    //Set<Integer> set = phiPlacements.get(control());
+                    //if ( set == null ) {
+                        //set = new HashSet<>();
+                        //phiPlacements.put(control(), set);
+                    //}
+                    //set.add(index);
+                    //break;
+                //}
+                case INVOKEDYNAMIC:
+                case INVOKEINTERFACE:
+                case INVOKESPECIAL:
+                case INVOKESTATIC:
+                case INVOKEVIRTUAL: {
+                    //Set<Integer> set = phiPlacements.get(control());
+                    //if ( set == null ) {
+                        //set = new HashSet<>();
+                        //phiPlacements.put(control(), set);
+                    //}
+                    //set.add(SLOT_IO);
+                    //set.add(SLOT_MEMORY);
+                    phiPlacements.record(control(), SLOT_IO, IOType.INSTANCE);
+                    phiPlacements.record(control(), SLOT_MEMORY, MemoryType.INSTANCE);
+                    break;
+                }
+            }
+        }
+
+        Set<Local.PhiLocal<?>> phis = new HashSet<>();
+        phiPlacements.forEach((node, entries)->{
+            Set<ControlNode<?>> df = links.dominanceFrontier(node);
+
+            System.err.println( "DF "+ node + " >> " + df);
+
+            for (PhiPlacements.Entry entry : entries) {
+                for (ControlNode<?> dest : df) {
+                    System.err.println( " place " + node + "@" + entry.index + " in " + dest);
+                    phis.add( dest.frame().ensurePhi(entry.index, node, entry.type) );
+                }
+            }
+        });
+
+        return phis;
+    }
+
     public Graph parse() {
-        analyzeLeaders();
-        initialize();
+        ControlFlowHelper links = initialize();
+        buildControlFlowGraph(links);
+        calculateDominanceFrontiers(links);
+        Set<Local.PhiLocal<?>> phis = placePhis(links);
+
+        execute(links);
+
+        for (Local.PhiLocal<?> phi : phis) {
+            phi.complete();
+        }
+
+        return new Graph(this.start, this.end);
+    }
+
+    public Graph execute(ControlFlowHelper links) {
 
         InsnList instrList = this.method.getInstructions();
         int instrLen = instrList.size();
 
+        control(links.control(-1));
+
         for (int bci = 0; bci < instrLen; ++bci) {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
-            System.err.println("** " + Mnemonics.of(opcode));
+            System.err.println("** " + bci + " " + Mnemonics.of(opcode));
 
-            RegionNode candidate = this.leaders.get(bci);
-            if (candidate != null) {
-                if ( control() != null ) {
-                    candidate.addInput(control());
+            ControlNode<?> candidate = links.control(bci);
+            if ( candidate != null ) {
+                if (control() != null) {
+                    candidate.frame().mergeFrom(control().frame());
                 }
                 control(candidate);
             }
@@ -127,25 +442,35 @@ public class BytecodeParser {
                 int destIndex = instrList.indexOf(dest);
 
                 if (opcode == GOTO) {
-                    control(destIndex, control());
-                    control(this.leaders.get(bci + 1));
+                    //control(destIndex, control());
+                    //control(this.leaders.get(bci + 1));
                 } else {
                     IfNode node = null;
                     switch (opcode) {
                         case IFEQ: {
                             Node<IntType> test = pop(IntType.INSTANCE);
-                            node = new UnaryIfNode(control(), test, CompareOp.EQUAL);
+                            //node = new UnaryIfNode(control(), test, CompareOp.EQUAL);
+                            node = (IfNode) links.control(bci);
+                            node.setOp(CompareOp.EQUAL);
+                            node.addPredecessor(test);
                             break;
                         }
                         case IFNE: {
                             Node<IntType> test = pop(IntType.INSTANCE);
-                            node = new UnaryIfNode(control(), test, CompareOp.NOT_EQUAL);
+                            //node = new UnaryIfNode(control(), test, CompareOp.NOT_EQUAL);
+                            node = (IfNode) links.control(bci);
+                            node.setOp(CompareOp.NOT_EQUAL);
+                            node.addPredecessor(test);
                             break;
                         }
                         case IF_ICMPGE: {
                             Node<IntType> lhs = pop(IntType.INSTANCE);
                             Node<IntType> rhs = pop(IntType.INSTANCE);
-                            node = new BinaryIfNode<>(control(), lhs, rhs, CompareOp.GREATER_THAN_OR_EQUAL);
+                            //node = new BinaryIfNode<>(control(), lhs, rhs, CompareOp.GREATER_THAN_OR_EQUAL);
+                            node = (IfNode) links.control(bci);
+                            node.setOp(CompareOp.GREATER_THAN_OR_EQUAL);
+                            node.addPredecessor(lhs);
+                            node.addPredecessor(rhs);
                             break;
                         }
                         default: {
@@ -155,19 +480,19 @@ public class BytecodeParser {
 
                     assert node != null;
                     //node.addInput(control());
-                    node.getTrueOut().frame().merge(control().frame());
-                    node.getFalseOut().frame().merge(control().frame());
+                    //node.getTrueOut().frame().merge(control().frame());
+                    //node.getFalseOut().frame().merge(control().frame());
 
-                    control(destIndex, node.getTrueOut());
-                    control(bci + 1, node.getFalseOut());
+                    //control(destIndex, node.getTrueOut());
+                    //control(bci + 1, node.getFalseOut());
 
                     //node.getFalseOut().frame().merge(control().frame());
                     //node.getFalseOut().addInput(control());
-                    control(node.getFalseOut());
+                    //control(node.getFalseOut());
                 }
             } else {
-                if (control() == null) {
-                    control(this.leaders.get(bci));
+                if (links.control(bci) != null) {
+                    control(links.control(bci));
                 }
                 switch (opcode) {
                     case NOP: {
@@ -290,8 +615,6 @@ public class BytecodeParser {
                         Node<IntType> val = pop(IntType.INSTANCE);
                         ReturnNode<IntType> ret = new ReturnNode<>(control(), IntType.INSTANCE, val);
                         this.end.addInput(control());
-                        //this.end.frame().io(io());
-                        //this.end.frame().memory(memory());
                         this.end.addPredecessor(io());
                         this.end.addPredecessor(memory());
                         this.end.returnValue(ret);
@@ -308,39 +631,13 @@ public class BytecodeParser {
         //possiblySimplify();
         //return this.start;
         Graph graph = new Graph(this.start, this.end);
-        return possiblySimplify(graph);
-        //return graph;
-    }
-
-    protected Graph<?> possiblySimplify(Graph<?> graph) {
-        for (Node<?> node : graph.postOrder()) {
-            if ( node instanceof ControlNode ) {
-                ((ControlNode) node).possiblySimplify();
-            }
-        }
-
+        //return possiblySimplify(graph);
         return graph;
-
-
-        //Deque<Node<?>> worklist = new ArrayDeque<>();
-        //Set<Node<?>> seen = new HashSet<>();
-//
-        //worklist.push(this.start);
-//
-        //while (!worklist.isEmpty()) {
-            //Node<?> each = worklist.pop();
-            //if (!seen.contains(each)) {
-                //seen.add(each);
-                //if ( each instanceof ControlNode ) {
-                    //((ControlNode) each).possiblySimplify();
-                //}
-                //worklist.addAll(each.getSuccessors());
-            //}
-        //}
     }
 
     protected Node<IntType> loadInt(int index) {
         return control().frame().load(index, IntType.INSTANCE);
+        //return null;
     }
 
     protected void storeInt(int index, Node<IntType> val) {
@@ -363,10 +660,11 @@ public class BytecodeParser {
         return control().frame().load(index, ObjectType.java.lang.Object);
     }
 
-    protected void initialize() {
+    protected ControlFlowHelper initialize() {
         this.start = new StartNode(startType());
         this.end = new EndNode<>(this.method.getReturnType());
         control(this.start);
+        return new ControlFlowHelper(this.start);
     }
 
     protected StartType startType() {
@@ -388,27 +686,23 @@ public class BytecodeParser {
     }
 
     protected void control(ControlNode<?> node) {
+        System.err.println("set control:: " + node);
         this.control = node;
-    }
-
-    protected void control(int bci, ControlNode<?> node) {
-        RegionNode region = this.leaders.get(bci);
-        region.addInput(node);
     }
 
     protected <T extends Node<? extends ConcreteType<?>>> T push(T node) {
         return control().frame().push(node);
+        //return null;
     }
 
     protected <T extends ConcreteType<?>> Node<T> pop(T type) {
         return control().frame().pop(type);
+        //return null;
     }
 
     private StartNode start;
 
     private EndNode<?> end;
-
-    private Map<Integer, RegionNode> leaders = new HashMap<>();
 
     private final MethodDefinition method;
 

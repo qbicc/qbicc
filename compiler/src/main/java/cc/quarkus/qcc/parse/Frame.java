@@ -1,34 +1,35 @@
 package cc.quarkus.qcc.parse;
 
-import java.lang.reflect.Member;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.IOType;
 import cc.quarkus.qcc.graph.node.Node;
+import cc.quarkus.qcc.graph.type.AnyType;
 import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.MemoryType;
+import cc.quarkus.qcc.graph.type.Type;
 
 import static cc.quarkus.qcc.parse.TypeUtil.checkType;
 
 public class Frame {
 
     public Frame(ControlNode<?> control, int maxLocals, int maxStack) {
+        this.control = control;
         this.maxLocals = maxLocals;
         this.maxStack = maxStack;
-        this.locals = new MultiData[maxLocals];
-        for ( int i = 0 ; i < locals.length ; ++i) {
-            this.locals[i] = new MultiData(control);
+        this.locals = new Local.SimpleLocal[maxLocals];
+        for (int i = 0; i < locals.length; ++i) {
+            //this.locals[i] = new Local.SimpleLocal<>(control, i);
+            this.locals[i] = null;
         }
         this.stack = new ArrayDeque<>(maxStack);
-        this.id = COUNTER.incrementAndGet();
-
-        this.io = new MultiData(control);
-        this.memory = new MultiData(control);
+        this.io = new Local.SimpleLocal<>(control, BytecodeParser.SLOT_IO);
+        this.memory = new Local.SimpleLocal<>(control, BytecodeParser.SLOT_MEMORY);
+        this.id = control.getId();
     }
 
     public int maxLocals() {
@@ -39,25 +40,38 @@ public class Frame {
         return this.maxStack;
     }
 
+    public Local<?> local(int index) {
+        return this.locals[index];
+    }
+
     public <T extends Node<? extends ConcreteType<?>>> T push(T node) {
-        //System.err.println( this.id + " push " + node);
+        System.err.println(this.id + " push " + node);
         this.stack.push(node);
         return node;
     }
 
     public <T extends ConcreteType<?>> Node<T> pop(T type) {
-        //System.err.println( this.id + " pop " + type);
-        return checkType(this.stack.pop(), type);
+        Node<?> val = this.stack.pop();
+        System.err.println(this.id + " pop " + type + " > " + val);
+        return checkType(val, type);
     }
 
     public <T extends ConcreteType<?>> Node<T> load(int index, T type) {
-        //System.err.println( this.id + " load " + type + " @ " + index);
-        return (Node<T>) this.locals[index].load(type);
+        System.err.println(this.id + " load " + type + " @ " + index);
+        return this.locals[index].load(type);
     }
 
-    public  <T extends ConcreteType<?>> void store(int index, Node<T> val) {
-        //System.err.println( this.id + " store " + val + " @ " + index);
-        this.locals[index].store((Node<ConcreteType<?>>) val);
+    public <T extends ConcreteType<?>> Node<T> get(int index, T type) {
+        System.err.println(this.id + " get " + type + " @ " + index);
+        return this.locals[index].get(type);
+    }
+
+    public <T extends ConcreteType<?>> void store(int index, Node<T> val) {
+        System.err.println(this.id + " store " + val + " @ " + index);
+        if ( this.locals[index] == null ) {
+            this.locals[index] = new Local.SimpleLocal<>(this.control, index);
+        }
+        this.locals[index].store(val);
     }
 
     public void memory(Node<MemoryType> memory) {
@@ -76,15 +90,31 @@ public class Frame {
         return this.io.load(IOType.INSTANCE);
     }
 
-    public void merge(Frame frame) {
-        System.err.println( "merge " + frame.id + " into " + this.id);
-        for ( int i = 0 ; i < this.locals.length ; ++i) {
-            //System.err.println( "inbound: " +i + " > " + frame.local(i));
-            this.locals[i].merge(frame.local(i));
-        }
+    //public void merge(Frame frame) {
+        //System.err.println("merge " + frame.id + " into " + this.id);
+        //for (int i = 0; i < this.locals.length; ++i) {
+            ////System.err.println( "inbound: " +i + " > " + frame.local(i));
+            //this.locals[i].merge(frame.local(i));
+        //}
 
-        this.memory.merge(frame.memory);
-        this.io.merge(frame.io);
+        //this.memory.merge(frame.memory);
+        //this.io.merge(frame.io);
+    //}
+
+    public void mergeFrom(Frame inbound) {
+        for ( int i = 0 ; i < this.locals.length; ++i) {
+            if ( this.locals[i] == null) {
+                this.locals[i] = inbound.locals[i];
+            }
+        }
+        this.stack.clear();;
+        this.stack.addAll(inbound.stack);
+        if ( ! ( this.io instanceof Local.PhiLocal<?>)) {
+            this.io = inbound.io;
+        }
+        if ( ! ( this.memory instanceof Local.PhiLocal<?>)) {
+            this.memory = inbound.memory;
+        }
     }
 
     public void returnValue(Node<? extends ConcreteType<?>> val) {
@@ -92,21 +122,32 @@ public class Frame {
 
     }
 
-    public void possiblySimplify() {
-        for (MultiData local : this.locals) {
-            local.possiblySimplify();
+    public Local.PhiLocal<?> ensurePhi(int index, ControlNode<?> input, Type type) {
+        if (index == BytecodeParser.SLOT_IO) {
+            if (!(this.io instanceof Local.PhiLocal<?>)) {
+                this.io = new Local.PhiLocal(this.control, index, type);
+            }
+            ((Local.PhiLocal<IOType>) this.io).addInput(input, type);
+            return (Local.PhiLocal<?>) this.io;
+        } else if (index == BytecodeParser.SLOT_MEMORY) {
+            if (!(this.memory instanceof Local.PhiLocal<?>)) {
+                this.memory = new Local.PhiLocal(this.control, index, type);
+            }
+            ((Local.PhiLocal<MemoryType>) this.memory).addInput(input, type);
+            return (Local.PhiLocal<?>) this.memory;
+        } else {
+            if (!(this.locals[index] instanceof Local.PhiLocal)) {
+                this.locals[index] = new Local.PhiLocal(this.control, index, type);
+            }
+            ((Local.PhiLocal<?>) this.locals[index]).addInput(input, type);
+            return (Local.PhiLocal<?>) this.locals[index];
         }
-        this.io.possiblySimplify();
-        this.memory.possiblySimplify();
-    }
-
-    private MultiData local(int i) {
-        return this.locals[i];
     }
 
     public String toString() {
-        return "frame-"+ this.id;
+        return "frame-" + this.id;
     }
+
 
     private final int maxLocals;
 
@@ -114,13 +155,15 @@ public class Frame {
 
     private final int id;
 
-    private MultiData<ConcreteType<?>>[] locals;
+    private final ControlNode<?> control;
 
-    private MultiData<MemoryType> memory;
-    private MultiData<IOType> io;
+    private Local<?>[] locals;
+
+    private Local<MemoryType> memory;
+
+    private Local<IOType> io;
 
     private Deque<Node<?>> stack;
-    private List<Node<? extends ConcreteType<?>>> returnValue = new ArrayList<>();
 
-    private static final AtomicInteger COUNTER = new AtomicInteger(0);
+    private List<Node<? extends ConcreteType<?>>> returnValue = new ArrayList<>();
 }

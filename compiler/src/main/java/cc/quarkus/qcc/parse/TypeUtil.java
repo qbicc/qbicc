@@ -15,6 +15,10 @@ public class TypeUtil {
         }
 
         if ((type instanceof ObjectType && !((ObjectType) type).isAssignableFrom(val.getType())) || (type != val.getType())) {
+            Node<T> coerced = val.tryCoerce(type);
+            if (coerced != null ) {
+                return coerced;
+            }
             throw new ParseException(val + " is not assignable to " + type);
         }
         return (Node<T>) val;

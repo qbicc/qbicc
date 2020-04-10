@@ -6,6 +6,7 @@ import cc.quarkus.qcc.parse.Frame;
 public abstract class ControlNode<T extends ControlType> extends Node<T> {
     protected ControlNode(ControlNode<?> control, T outType) {
         super(control, outType);
+        System.err.println( "--> " + control);
         this.frame = new Frame(this, control.frame().maxLocals(), control.frame().maxStack());
     }
 
@@ -14,11 +15,15 @@ public abstract class ControlNode<T extends ControlType> extends Node<T> {
         this.frame = new Frame(this, maxLocals, maxStack);
     }
 
+    public ControlNode(T outType) {
+        super(outType);
+    }
+
     public <T extends ControlNode<?>> void addInput(T node) {
-        System.err.println( this + " add input " + node );
+        //System.err.println( this + " add input " + node );
         if ( node != this && ! this.getPredecessors().contains(node)) {
             addPredecessor(node);
-            frame().merge(node.frame());
+            //frame().merge(node.frame());
         }
     }
 
@@ -28,10 +33,6 @@ public abstract class ControlNode<T extends ControlType> extends Node<T> {
 
     protected void setFrame(Frame frame) {
         this.frame = frame;
-    }
-
-    public void possiblySimplify() {
-        this.frame.possiblySimplify();
     }
 
     private Frame frame;

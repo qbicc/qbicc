@@ -15,6 +15,7 @@ import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.PhiNode;
 import cc.quarkus.qcc.graph.node.StartNode;
 import cc.quarkus.qcc.graph.type.ConcreteType;
+import cc.quarkus.qcc.graph.type.Type;
 
 public class DotWriter implements AutoCloseable {
 
@@ -51,9 +52,9 @@ public class DotWriter implements AutoCloseable {
         }
 
         //if (node instanceof PhiNode) {
-            //Collection<Node<? extends ConcreteType<?>>> values = ((PhiNode<?>) node).values();
-            //for ( Node<? extends ConcreteType<?>> each : values ) {
-                //out.print(each.getId() + " ->" + node.getId() + " [style=dotted];");
+         //   Collection<? extends Node<?>> values = ((PhiNode<?>) node).values();
+          //  for ( Node<? extends Type> each : values ) {
+           //     out.print(each.getId() + " ->" + node.getId() + " [style=dotted,color=red];");
             //}
         //}
 

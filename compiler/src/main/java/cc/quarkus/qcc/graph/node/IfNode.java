@@ -7,22 +7,33 @@ import cc.quarkus.qcc.graph.type.BooleanType;
 
 public abstract class IfNode extends ControlNode<IfType> {
 
+    /*
     public IfNode(ControlNode<?> control, CompareOp op) {
         super(control, IfType.INSTANCE);
         this.op = op;
     }
+     */
+
+    public IfNode(ControlNode<?> control) {
+        super(control, IfType.INSTANCE);
+    }
+
+    public void setOp(CompareOp op) {
+        this.op = op;
+    }
 
     public IfTrueProjection getTrueOut() {
-        return this.ifTrueOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IfTrueProjection(this)));
+        return this.ifTrueOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IfTrueProjection(this )));
     }
 
     public IfFalseProjection getFalseOut() {
-        return this.ifFalseOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IfFalseProjection(this)));
+        return this.ifFalseOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IfFalseProjection(this )));
     }
 
     private AtomicReference<IfTrueProjection> ifTrueOut = new AtomicReference<>();
+
     private AtomicReference<IfFalseProjection> ifFalseOut = new AtomicReference<>();
 
-    private final CompareOp op;
+    private CompareOp op;
 
 }

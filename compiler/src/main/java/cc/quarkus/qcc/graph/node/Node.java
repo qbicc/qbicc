@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.Type;
@@ -19,9 +20,19 @@ public class Node<T extends Type> {
         this.id = COUNTER.incrementAndGet();
     }
 
+
     public void addPredecessor(Node<?> in) {
         this.predecessors.add(in);
         in.addSuccessor(this);
+    }
+
+    public <T extends Type> Node<T> tryCoerce(Type type) {
+        if ( type == getType() ) {
+            System.err.println( "tryCoerce 1");
+            return (Node<T>) this;
+        }
+        System.err.println( "tryCoerce 2");
+        return type.coerce(this);
     }
 
     private void addSuccessor(Node<?> out) {
@@ -32,8 +43,16 @@ public class Node<T extends Type> {
         return this.predecessors;
     }
 
+    public List<ControlNode<?>> getControlPredecessors() {
+        return this.predecessors.stream().filter(e->e instanceof ControlNode).map(e->(ControlNode<?>)e).collect(Collectors.toList());
+    }
+
     public List<Node<?>> getSuccessors() {
         return this.successors;
+    }
+
+    public List<ControlNode<?>> getControlSuccessors() {
+        return this.successors.stream().filter(e->e instanceof ControlNode).map(e->(ControlNode<?>)e).collect(Collectors.toList());
     }
 
     public T getType() {
