@@ -22,7 +22,7 @@ public class ControlFlowHelper {
     }
 
     public void control(int startBci, ControlNode<?> control) {
-        System.err.println("reg: " + startBci + " / " + control);
+        System.err.println("reg: bci=" + startBci + " / control=" + control);
         this.controls.put(startBci, control);
     }
 
@@ -31,11 +31,13 @@ public class ControlFlowHelper {
     }
 
     public void add(int bci, ControlNode<?> input) {
-        System.err.println( "add dest " + bci + " from " + input);
+        System.err.println( "add dest bci=" + bci + " from control=" + input);
         ControlNode<?> dest = control(bci);
         if (dest == null) {
             dest = new RegionNode(input.frame().maxLocals(), input.frame().maxStack());
             control(bci, dest);
+        } else {
+            System.err.println( "dest is: " + dest);
         }
         dest.addInput(input);
     }

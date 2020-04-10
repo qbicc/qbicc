@@ -13,6 +13,7 @@ import cc.quarkus.qcc.Mnemonics;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.node.AddNode;
 import cc.quarkus.qcc.graph.node.BinaryIfNode;
+import cc.quarkus.qcc.graph.node.CallNode;
 import cc.quarkus.qcc.graph.node.CompareOp;
 import cc.quarkus.qcc.graph.node.ConstantNode;
 import cc.quarkus.qcc.graph.node.ControlNode;
@@ -33,6 +34,7 @@ import cc.quarkus.qcc.graph.type.LongType;
 import cc.quarkus.qcc.graph.type.MemoryType;
 import cc.quarkus.qcc.graph.type.ObjectType;
 import cc.quarkus.qcc.graph.type.StartType;
+import cc.quarkus.qcc.graph.type.VoidType;
 import cc.quarkus.qcc.type.MethodDefinition;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
@@ -48,6 +50,7 @@ import static cc.quarkus.qcc.graph.node.ConstantNode.doubleConstant;
 import static cc.quarkus.qcc.graph.node.ConstantNode.floatConstant;
 import static cc.quarkus.qcc.graph.node.ConstantNode.intConstant;
 import static cc.quarkus.qcc.graph.node.ConstantNode.longConstant;
+import static cc.quarkus.qcc.graph.node.ConstantNode.stringConstant;
 import static org.objectweb.asm.Opcodes.ACONST_NULL;
 import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.ARETURN;
@@ -109,6 +112,7 @@ import static org.objectweb.asm.Opcodes.SIPUSH;
 public class BytecodeParser {
 
     public static final int SLOT_IO = -1;
+
     public static final int SLOT_MEMORY = -2;
 
     public BytecodeParser(MethodDefinition method) {
@@ -127,10 +131,12 @@ public class BytecodeParser {
         for (int bci = 0; bci < instrLen; ++bci) {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
+            System.err.println( bci + " : " + Mnemonics.of(opcode));
 
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
                 int destIndex = instrList.indexOf(dest);
+                System.err.println( "jump to: " + destIndex);
                 links.control(destIndex, new RegionNode(this.start.frame().maxLocals(), this.start.frame().maxStack()));
             }
         }
@@ -139,7 +145,6 @@ public class BytecodeParser {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
 
-            System.err.println("CFG: " + bci + " // " + Mnemonics.of(opcode));
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
                 int destIndex = instrList.indexOf(dest);
@@ -212,7 +217,6 @@ public class BytecodeParser {
                     case FRETURN:
                     case LRETURN:
                     case ARETURN: {
-                        System.err.println("add END");
                         this.end.addInput(control());
                         break;
                     }
@@ -237,9 +241,6 @@ public class BytecodeParser {
             changed = false;
             for (Node<?> n : nodes) {
                 Set<Node<?>> temp = new HashSet<>();
-                System.err.println( "n=" + n);
-                System.err.println( "n.predecessors=" + n.getPredecessors());
-                System.err.println( "n.predecessors.dom=" + n.getPredecessors().stream().map(dominators::get).collect(Collectors.toList()));
                 temp.add(n);
                 temp.addAll(
                         intersect(
@@ -247,7 +248,7 @@ public class BytecodeParser {
                         )
                 );
 
-                if ( ! dominators.get(n).equals(temp)) {
+                if (!dominators.get(n).equals(temp)) {
                     dominators.put(n, temp);
                     changed = true;
                 }
@@ -258,9 +259,7 @@ public class BytecodeParser {
 
         for (Node<?> n : nodes) {
             Set<Node<?>> strictDominators = new HashSet<>(dominators.get(n));
-            System.err.println( "A sdom for " + n + " >> " + strictDominators);
             strictDominators.remove(n);
-            System.err.println( "B sdom for " + n + " >> " + strictDominators);
             Node idom = strictDominators.stream()
                     .filter(e -> dominators.get(e).containsAll(strictDominators))
                     .findFirst().orElse(null);
@@ -275,30 +274,16 @@ public class BytecodeParser {
         }
 
         for (ControlNode<?> n : nodes) {
-            if ( n.getPredecessors().size() > 1 ) {
-                System.err.println( "calc DF for " + n);
+            if (n.getPredecessors().size() > 1) {
                 for (ControlNode<?> p : n.getControlPredecessors()) {
                     Node<?> runner = p;
-                    System.err.println( "runner: " + runner + " vs " + immediateDominators.get(n));
-                    while ( immediateDominators.get(n) != runner ) {
-                        System.err.println( "add " + n + " to DF for " + runner);
+                    while (immediateDominators.get(n) != runner) {
                         dominanceFrontier.get(runner).add(n);
                         runner = immediateDominators.get(runner);
-                        System.err.println( "runner now: " + runner);
                     }
                 }
             }
         }
-
-        System.err.println("********************");
-        for (Node<?> n : nodes) {
-            System.err.println( "** " + n);
-            System.err.println( "dom: " + dominators.get(n));
-            System.err.println( "idom: " + immediateDominators.get(n));
-            System.err.println( "df: " + dominanceFrontier.get(n));
-            System.err.println( "--");
-        }
-        System.err.println("********************");
 
         links.dominanceFrontier(dominanceFrontier);
     }
@@ -325,46 +310,45 @@ public class BytecodeParser {
 
         control(links.control(-1));
 
-        for (int bci = 0; bci < numInstrs ; ++bci) {
+        for (int bci = 0; bci < numInstrs; ++bci) {
             AbstractInsnNode instr = instructions.get(bci);
             int opcode = instr.getOpcode();
 
-            System.err.println( "pp: " + bci + ": " + Mnemonics.of(opcode));
 
             ControlNode<?> candidate = links.control(bci);
-            if ( candidate != null ) {
+            if (candidate != null) {
                 control(candidate);
             }
 
             switch (opcode) {
                 case ISTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode)instr).var, IntType.INSTANCE);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, IntType.INSTANCE);
                     break;
                 }
                 case LSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode)instr).var, LongType.INSTANCE);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, LongType.INSTANCE);
                     break;
                 }
                 case FSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode)instr).var, FloatType.INSTANCE);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, FloatType.INSTANCE);
                     break;
                 }
                 case DSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode)instr).var, DoubleType.INSTANCE);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, DoubleType.INSTANCE);
                     break;
                 }
                 case ASTORE: {
                     phiPlacements.record(control(), ((VarInsnNode) instr).var, ObjectType.java.lang.Object);
                     break;
                 }
-                    //int index = ((VarInsnNode)instr).var;
-                    //Set<Integer> set = phiPlacements.get(control());
-                    //if ( set == null ) {
-                        //set = new HashSet<>();
-                        //phiPlacements.put(control(), set);
-                    //}
-                    //set.add(index);
-                    //break;
+                //int index = ((VarInsnNode)instr).var;
+                //Set<Integer> set = phiPlacements.get(control());
+                //if ( set == null ) {
+                //set = new HashSet<>();
+                //phiPlacements.put(control(), set);
+                //}
+                //set.add(index);
+                //break;
                 //}
                 case INVOKEDYNAMIC:
                 case INVOKEINTERFACE:
@@ -373,8 +357,8 @@ public class BytecodeParser {
                 case INVOKEVIRTUAL: {
                     //Set<Integer> set = phiPlacements.get(control());
                     //if ( set == null ) {
-                        //set = new HashSet<>();
-                        //phiPlacements.put(control(), set);
+                    //set = new HashSet<>();
+                    //phiPlacements.put(control(), set);
                     //}
                     //set.add(SLOT_IO);
                     //set.add(SLOT_MEMORY);
@@ -386,19 +370,19 @@ public class BytecodeParser {
         }
 
         Set<Local.PhiLocal<?>> phis = new HashSet<>();
-        phiPlacements.forEach((node, entries)->{
+        phiPlacements.forEach((node, entries) -> {
             Set<ControlNode<?>> df = links.dominanceFrontier(node);
-
-            System.err.println( "DF "+ node + " >> " + df);
+            System.err.println( "PHI NODE: " + node + " df=" + df );
 
             for (PhiPlacements.Entry entry : entries) {
                 for (ControlNode<?> dest : df) {
-                    System.err.println( " place " + node + "@" + entry.index + " in " + dest);
-                    phis.add( dest.frame().ensurePhi(entry.index, node, entry.type) );
+                    System.err.println( "INSERT PHI: " + node + " > " + entry.index + " into " + dest + " of " + entry.type);
+                    phis.add(dest.frame().ensurePhi(entry.index, node, entry.type));
                 }
             }
         });
 
+        System.err.println( "PHI: " + phis);
         return phis;
     }
 
@@ -427,12 +411,15 @@ public class BytecodeParser {
         for (int bci = 0; bci < instrLen; ++bci) {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
-            System.err.println("** " + bci + " " + Mnemonics.of(opcode));
 
             ControlNode<?> candidate = links.control(bci);
-            if ( candidate != null ) {
+            if (candidate != null) {
                 if (control() != null) {
                     candidate.frame().mergeFrom(control().frame());
+                    if ( candidate instanceof IfNode ) {
+                        ((IfNode) candidate).getTrueOut().frame().mergeFrom(control().frame());
+                        ((IfNode) candidate).getFalseOut().frame().mergeFrom(control().frame());
+                    }
                 }
                 control(candidate);
             }
@@ -611,10 +598,38 @@ public class BytecodeParser {
                         break;
                     }
 
+                    // ----------------------------------------
+                    case INVOKEDYNAMIC:
+                    case INVOKEINTERFACE:
+                    case INVOKESPECIAL:
+                    case INVOKESTATIC:
+                    case INVOKEVIRTUAL: {
+                        //Set<Integer> set = phiPlacements.get(control());
+                        //if ( set == null ) {
+                        //set = new HashSet<>();
+                        //phiPlacements.put(control(), set);
+                        //}
+                        //set.add(SLOT_IO);
+                        //set.add(SLOT_MEMORY);
+                        //phiPlacements.record(control(), SLOT_IO, IOType.INSTANCE);
+                        //phiPlacements.record(control(), SLOT_MEMORY, MemoryType.INSTANCE);
+                        CallNode<VoidType> node = new CallNode<VoidType>(
+                                control(),
+                                io(),
+                                memory(),
+                                null,
+                                new Node[]{});
+                        io(node.getIOOut());
+                        memory(node.getMemoryOut());
+                        break;
+                    }
+
                     case IRETURN: {
                         Node<IntType> val = pop(IntType.INSTANCE);
                         ReturnNode<IntType> ret = new ReturnNode<>(control(), IntType.INSTANCE, val);
                         this.end.addInput(control());
+                        System.err.println( "passing IO to end: " + io() + " from " + control());
+                        System.err.println( "passing memory to end: " + memory() + " from " + control());
                         this.end.addPredecessor(io());
                         this.end.addPredecessor(memory());
                         this.end.returnValue(ret);
@@ -681,12 +696,19 @@ public class BytecodeParser {
         return control().frame().io();
     }
 
+    protected void io(Node<IOType> io) {
+        control().frame().io(io);
+    }
+
     protected Node<MemoryType> memory() {
         return control().frame().memory();
     }
 
+    protected void memory(Node<MemoryType> memory) {
+        control().frame().memory(memory);
+    }
+
     protected void control(ControlNode<?> node) {
-        System.err.println("set control:: " + node);
         this.control = node;
     }
 

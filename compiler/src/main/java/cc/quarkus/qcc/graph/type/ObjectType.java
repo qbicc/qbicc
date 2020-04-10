@@ -26,12 +26,17 @@ public class ObjectType implements ConcreteType<Object> {
     }
 
     public boolean isAssignableFrom(Type type) {
+        System.err.println( "can I be assigned from " + type);
         return true;
     }
 
     @Override
     public String label() {
-        return this.definition.getName();
+        return "type: " + this.definition.getName();
+    }
+
+    public String toString() {
+        return label();
     }
 
     private final TypeDefinition definition;

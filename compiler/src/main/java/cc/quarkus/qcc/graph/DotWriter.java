@@ -45,6 +45,10 @@ public class DotWriter implements AutoCloseable {
         }
         this.seen.add(node);
 
+        for (Node<?> successor : node.getSuccessors()) {
+            writeNode(successor);
+        }
+
         out.println(node.getId() + " [label=\"" + label(node) + "\",shape=" + shape(node) + ",style=\"" + style(node) + "\"];");
 
         for (Node<?> successor : node.getSuccessors()) {
@@ -58,9 +62,6 @@ public class DotWriter implements AutoCloseable {
             //}
         //}
 
-        for (Node<?> successor : node.getSuccessors()) {
-            writeNode(successor);
-        }
     }
 
     protected String label(Node<?> node) {

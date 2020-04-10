@@ -26,11 +26,11 @@ public class CallNode<T extends Type> extends ControlNode<FunctionType<T>> {
         );
     }
 
-    protected CallNode(ControlNode<?> control,
-                       Node<IOType> io,
-                       Node<MemoryType> memory,
-                       FunctionType<T> outType,
-                       Node<?>... parameters) {
+    public CallNode(ControlNode<?> control,
+                    Node<IOType> io,
+                    Node<MemoryType> memory,
+                    FunctionType<T> outType,
+                    Node<?>... parameters) {
         super(control, outType);
         addPredecessor(io);
         addPredecessor(memory);
@@ -48,15 +48,23 @@ public class CallNode<T extends Type> extends ControlNode<FunctionType<T>> {
             return (Node<J>) this;
         }
         if (type instanceof IOType) {
-            return (Node<J>) this.ioOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IOProjection(this)));
+            return (Node<J>) getIOOut();
         }
         if (type instanceof MemoryType) {
-            return (Node<J>) this.memoryOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new MemoryProjection(this)));
+            return (Node<J>) getMemoryOut();
         }
         if (type instanceof ThrowType) {
             return (Node<J>) this.throwOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ThrowProjection(this)));
         }
         return null;
+    }
+
+    public IOProjection getIOOut() {
+        return  this.ioOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IOProjection(this)));
+    }
+
+    public MemoryProjection getMemoryOut() {
+        return this.memoryOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new MemoryProjection(this)));
     }
 
     private AtomicReference<IOProjection> ioOut = new AtomicReference<>();

@@ -1,15 +1,23 @@
 package cc.quarkus.qcc.type;
 
+import java.util.concurrent.atomic.AtomicReference;
+
+import cc.quarkus.qcc.graph.type.ObjectType;
+
 public class Core {
 
     public static class java {
         public static class lang {
+            static final AtomicReference<TypeDefinition> _Object = new AtomicReference<>();
+
+            static final AtomicReference<TypeDefinition> _String = new AtomicReference<>();
+
             public static TypeDefinition Object() {
-                return null;
+                return Universe.instance().findClass("java/lang/Object");
             }
 
             public static TypeDefinition String() {
-                return null;
+                return Universe.instance().findClass("java/lang/String");
             }
         }
     }

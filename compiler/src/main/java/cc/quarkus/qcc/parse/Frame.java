@@ -26,8 +26,8 @@ public class Frame {
             this.locals[i] = null;
         }
         this.stack = new ArrayDeque<>(maxStack);
-        this.io = new Local.SimpleLocal<>(control, BytecodeParser.SLOT_IO);
-        this.memory = new Local.SimpleLocal<>(control, BytecodeParser.SLOT_MEMORY);
+        //this.io = new Local.SimpleLocal<>(control, BytecodeParser.SLOT_IO);
+        //this.memory = new Local.SimpleLocal<>(control, BytecodeParser.SLOT_MEMORY);
         this.id = control.getId();
     }
 
@@ -60,20 +60,30 @@ public class Frame {
         return this.locals[index].load(type);
     }
 
-    public <T extends ConcreteType<?>> Node<T> get(int index, T type) {
+    public <T extends Type> Node<T> get(int index, T type) {
         System.err.println(this.id + " get " + type + " @ " + index);
+        if (index == BytecodeParser.SLOT_IO) {
+            return (Node<T>) this.io.get(IOType.INSTANCE);
+        }
+        if (index == BytecodeParser.SLOT_MEMORY) {
+            return (Node<T>) this.memory.get(MemoryType.INSTANCE);
+        }
         return this.locals[index].get(type);
     }
 
     public <T extends ConcreteType<?>> void store(int index, Node<T> val) {
         System.err.println(this.id + " store " + val + " @ " + index);
-        if ( this.locals[index] == null ) {
+        if (this.locals[index] == null) {
             this.locals[index] = new Local.SimpleLocal<>(this.control, index);
         }
         this.locals[index].store(val);
     }
 
     public void memory(Node<MemoryType> memory) {
+        System.err.println(this.control + " store memory() " + memory);
+        if (this.memory == null) {
+            this.memory = new Local.SimpleLocal<>(this.control, BytecodeParser.SLOT_MEMORY);
+        }
         this.memory.store(memory);
     }
 
@@ -82,37 +92,54 @@ public class Frame {
     }
 
     public void io(Node<IOType> io) {
+        System.err.println(this.control + " store io() " + io);
+        if (this.io == null) {
+            this.io = new Local.SimpleLocal<>(this.control, BytecodeParser.SLOT_IO);
+        }
         this.io.store(io);
     }
 
     public Node<IOType> io() {
+        System.err.println(control + " get io() " + this.io);
         return this.io.load(IOType.INSTANCE);
     }
 
     //public void merge(Frame frame) {
-        //System.err.println("merge " + frame.id + " into " + this.id);
-        //for (int i = 0; i < this.locals.length; ++i) {
-            ////System.err.println( "inbound: " +i + " > " + frame.local(i));
-            //this.locals[i].merge(frame.local(i));
-        //}
+    //System.err.println("merge " + frame.id + " into " + this.id);
+    //for (int i = 0; i < this.locals.length; ++i) {
+    ////System.err.println( "inbound: " +i + " > " + frame.local(i));
+    //this.locals[i].merge(frame.local(i));
+    //}
 
-        //this.memory.merge(frame.memory);
-        //this.io.merge(frame.io);
+    //this.memory.merge(frame.memory);
+    //this.io.merge(frame.io);
     //}
 
     public void mergeFrom(Frame inbound) {
-        for ( int i = 0 ; i < this.locals.length; ++i) {
-            if ( this.locals[i] == null) {
-                this.locals[i] = inbound.locals[i];
+        System.err.println( "merge frame=" + this.id + " from " + inbound.id);
+        for (int i = 0; i < this.locals.length; ++i) {
+            if (this.locals[i] == null) {
+                System.err.println( " actual merge: " + i + " = " + inbound.locals[i]);
+                if ( inbound.locals[i] != null ) {
+                    this.locals[i] = inbound.locals[i].duplicate();
+                }
             }
         }
-        this.stack.clear();;
+        this.stack.clear();
         this.stack.addAll(inbound.stack);
-        if ( ! ( this.io instanceof Local.PhiLocal<?>)) {
-            this.io = inbound.io;
+        //if ( ! ( this.io instanceof Local.PhiLocal<?>)) {
+        if (this.io == null) {
+            System.err.println("merge io " + this.control + " from " + inbound + " // " + inbound.io);
+            this.io = inbound.io.duplicate();
+        } else {
+            System.err.println("NOT merge io " + this.control + " from " + inbound + " // " + this.io);
         }
-        if ( ! ( this.memory instanceof Local.PhiLocal<?>)) {
-            this.memory = inbound.memory;
+        //if ( ! ( this.memory instanceof Local.PhiLocal<?>)) {
+        if (this.memory == null) {
+            System.err.println("merge memory " + this.control + " from " + inbound + " // " + inbound.memory);
+            this.memory = inbound.memory.duplicate();
+        } else {
+            System.err.println("NOT merge memory " + this.control + " from " + inbound + " // " + this.memory);
         }
     }
 

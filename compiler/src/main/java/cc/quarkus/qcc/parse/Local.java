@@ -22,11 +22,17 @@ public abstract class Local<T extends Type> {
     }
 
     public abstract <J extends Type> void store(Node<J> val);
+
     public abstract <J extends Type> Node<J> load(J type);
+
     public abstract <J extends Type> Node<J> get(J type);
 
+    public abstract Local<T> duplicate();
+
     protected final int index;
+
     protected boolean killed;
+
     protected ControlNode<?> control;
 
     public static class SimpleLocal<T extends Type> extends Local<T> {
@@ -43,6 +49,7 @@ public abstract class Local<T extends Type> {
 
         @Override
         public <J extends Type> Node<J> load(J type) {
+            System.err.println("load: " + type + " > " + this.val);
             return TypeUtil.checkType(this.val, type);
         }
 
@@ -50,7 +57,18 @@ public abstract class Local<T extends Type> {
             return load(type);
         }
 
-        private Node<?> val;
+        public String toString() {
+            return "Local: val=" + val;
+        }
+
+        @Override
+        public Local<T> duplicate() {
+            SimpleLocal<T> dupe = new SimpleLocal<>(this.control, this.index);
+            dupe.val = this.val;
+            return dupe;
+        }
+
+        protected Node<?> val;
     }
 
     public static class PhiLocal<T extends Type> extends SimpleLocal<T> {
@@ -62,7 +80,7 @@ public abstract class Local<T extends Type> {
 
         @Override
         public <J extends Type> Node<J> load(J type) {
-            if ( ! this.killed ) {
+            if (!this.killed) {
                 //return TypeUtil.checkType(new PhiNode<>(this.control, type, this), type);
                 return TypeUtil.checkType(this.phi, type);
             }
@@ -75,13 +93,8 @@ public abstract class Local<T extends Type> {
 
         @Override
         public <J extends Type> void store(Node<J> val) {
-            //System.err.println( "storing: " + val + " > " + this.inputs + " vs " + val.getControlPredecessors().iterator().next());
-            //if ( ! this.inputs.contains(val.getControlPredecessors().iterator().next())) {
-              //  System.err.println( "killing with " + val);
-               // super.store(val);
-            //}
             super.store(val);
-            if ( this.inputs.contains(val.getControlPredecessors().iterator().next())) {
+            if (this.inputs.contains(val.getControlPredecessors().iterator().next())) {
                 this.killed = false;
             }
         }
@@ -96,15 +109,34 @@ public abstract class Local<T extends Type> {
         }
 
         public void complete() {
+            System.err.println("**************************");
+            System.err.println("complete: " + this.type);
             List<ControlNode<?>> discriminators = this.control.getControlPredecessors();
 
             for (ControlNode<?> discriminator : discriminators) {
-                this.phi.addPredecessor( discriminator.frame().get(this.index, AnyType.INSTANCE));
+                //System.err.println("discriminator: " + discriminator + " for " + this.index + discriminator.frame().local(this.index));
+                Node<Type> inbound = discriminator.frame().get(this.index, AnyType.INSTANCE);
+                System.err.println( "---> " + inbound);
+                this.phi.addPredecessor(inbound);
             }
         }
 
-        private final PhiNode<?> phi;
+        public String toString() {
+            return "PhiLocal: val=" + val + " kill=" + this.killed + " phi=" + this.phi + " inputs=" + this.inputs;
+        }
+
+        @Override
+        public Local<T> duplicate() {
+            PhiLocal<T> dupe = new PhiLocal<T>(this.control, this.index, (T) this.type);
+            dupe.phi = this.phi;
+            dupe.inputs = this.inputs;
+            return dupe;
+        }
+
+        private PhiNode<?> phi;
+
         private Type type;
+
         private List<ControlNode<?>> inputs = new ArrayList<>();
 
     }

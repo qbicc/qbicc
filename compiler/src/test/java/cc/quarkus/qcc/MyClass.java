@@ -3,12 +3,22 @@ package cc.quarkus.qcc;
 public class MyClass {
 
     public int sum(int a, int b) {
-        int i = 0;
-
-        while ( i < 34 ) {
-            i = i + a;
+        //foo();
+        //if (a < b) {
+            ////foo();
+            //foo();
+        //}
+        ////return b + i;
+        //return 42;
+        //int c = 0;
+        foo();
+        if ( a < b ) {
+            foo();
         }
+        return 2;
+    }
 
-        return b + i;
+    public void foo() {
+
     }
 }

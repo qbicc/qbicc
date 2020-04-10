@@ -13,6 +13,15 @@ public class TypeUtil {
         if ( type == AnyType.INSTANCE ) {
             return (Node<T>) val;
         }
+        if ( type instanceof ObjectType ) {
+            if ( ((ObjectType) type).isAssignableFrom(val.getType())) {
+                System.err.println( "apparently I can");
+                return (Node<T>) val;
+            } else {
+                // not assignable
+                System.err.println("not assignable");
+            }
+        }
 
         if ((type instanceof ObjectType && !((ObjectType) type).isAssignableFrom(val.getType())) || (type != val.getType())) {
             Node<T> coerced = val.tryCoerce(type);
