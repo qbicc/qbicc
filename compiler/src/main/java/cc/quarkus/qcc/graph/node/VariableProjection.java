@@ -10,7 +10,7 @@ public class VariableProjection<T extends ConcreteType<?>> extends Projection<St
     }
 
     public String label() {
-        return "<" + index + "> " + getType().label();
+        return "<param> " + index + ": " + getType().label();
     }
 
     private final int index;

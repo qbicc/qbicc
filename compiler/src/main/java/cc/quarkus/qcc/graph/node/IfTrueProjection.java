@@ -8,4 +8,8 @@ public class IfTrueProjection extends ControlProjection<IfNode, ControlType> {
         super(in, ControlType.INSTANCE);
     }
 
+    @Override
+    public String label() {
+        return "<proj> true";
+    }
 }

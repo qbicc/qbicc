@@ -110,13 +110,13 @@ public abstract class Local<T extends Type> {
 
         public void complete() {
             System.err.println("**************************");
-            System.err.println("complete: " + this.type);
+            System.err.println("complete: " + this.type + " in " + this.control);
             List<ControlNode<?>> discriminators = this.control.getControlPredecessors();
 
             for (ControlNode<?> discriminator : discriminators) {
-                //System.err.println("discriminator: " + discriminator + " for " + this.index + discriminator.frame().local(this.index));
+                System.err.println("discriminator: " + discriminator + " for " + this.index + discriminator.frame().local(this.index));
                 Node<Type> inbound = discriminator.frame().get(this.index, AnyType.INSTANCE);
-                System.err.println( "---> " + inbound);
+                System.err.println( "---> " + inbound + " // " + inbound.getId() );
                 this.phi.addPredecessor(inbound);
             }
         }

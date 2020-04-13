@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.graph.type.Type;
+import cc.quarkus.qcc.parse.BytecodeParser;
 import cc.quarkus.qcc.parse.Local;
 
 public class PhiNode<T extends Type> extends Node<T> {
@@ -16,15 +17,16 @@ public class PhiNode<T extends Type> extends Node<T> {
         this.id = COUNTER.incrementAndGet();
     }
 
-    //public Collection<? extends Node<T>> values() {
-    //return local.values();
-    //return null;
-    //}
-
-
     @Override
     public String label() {
-        return "phi: " + this.id;
+        if ( this.local.getIndex() == BytecodeParser.SLOT_RETURN ) {
+            return "<phi> return";
+        } else if ( this.local.getIndex() == BytecodeParser.SLOT_IO ) {
+            return "<phi> i/o";
+        } else if ( this.local.getIndex() == BytecodeParser.SLOT_MEMORY ) {
+            return "<phi> memory";
+        }
+        return "<phi> " + this.id;
     }
 
     @Override

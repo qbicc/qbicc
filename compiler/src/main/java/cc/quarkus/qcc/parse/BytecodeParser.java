@@ -18,6 +18,8 @@ import cc.quarkus.qcc.graph.node.CompareOp;
 import cc.quarkus.qcc.graph.node.ConstantNode;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.EndNode;
+import cc.quarkus.qcc.graph.type.AnyType;
+import cc.quarkus.qcc.graph.type.FunctionType;
 import cc.quarkus.qcc.graph.type.IOType;
 import cc.quarkus.qcc.graph.node.IfNode;
 import cc.quarkus.qcc.graph.node.Node;
@@ -36,12 +38,16 @@ import cc.quarkus.qcc.graph.type.ObjectType;
 import cc.quarkus.qcc.graph.type.StartType;
 import cc.quarkus.qcc.graph.type.VoidType;
 import cc.quarkus.qcc.type.MethodDefinition;
+import cc.quarkus.qcc.type.MethodDescriptor;
+import cc.quarkus.qcc.type.MethodDescriptorParser;
+import cc.quarkus.qcc.type.Universe;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 import static cc.quarkus.qcc.graph.node.ConstantNode.byteConstant;
@@ -111,9 +117,9 @@ import static org.objectweb.asm.Opcodes.SIPUSH;
 
 public class BytecodeParser {
 
-    public static final int SLOT_IO = -1;
-
-    public static final int SLOT_MEMORY = -2;
+    public static final int SLOT_RETURN = -1;
+    public static final int SLOT_IO = -2;
+    public static final int SLOT_MEMORY = -3;
 
     public BytecodeParser(MethodDefinition method) {
         this.method = method;
@@ -131,12 +137,12 @@ public class BytecodeParser {
         for (int bci = 0; bci < instrLen; ++bci) {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
-            System.err.println( bci + " : " + Mnemonics.of(opcode));
+            System.err.println(bci + " : " + Mnemonics.of(opcode));
 
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
                 int destIndex = instrList.indexOf(dest);
-                System.err.println( "jump to: " + destIndex);
+                System.err.println("jump to: " + destIndex);
                 links.control(destIndex, new RegionNode(this.start.frame().maxLocals(), this.start.frame().maxStack()));
             }
         }
@@ -163,9 +169,8 @@ public class BytecodeParser {
                     case IF_ICMPLE:
                     case IF_ICMPGT:
                     case IF_ICMPLT: {
-                        BinaryIfNode<IntType> node = new BinaryIfNode<>(control());
+                        BinaryIfNode<IntType> node = new BinaryIfNode<>(control(), op(opcode));
                         links.control(bci, node);
-                        //links.control(bci+1, node.getFalseOut());
                         links.add(bci + 1, node.getFalseOut());
                         links.add(destIndex, node.getTrueOut());
                         control(node.getFalseOut());
@@ -173,9 +178,8 @@ public class BytecodeParser {
                     }
                     case IF_ACMPEQ:
                     case IF_ACMPNE: {
-                        BinaryIfNode<ObjectType> node = new BinaryIfNode<>(control());
+                        BinaryIfNode<ObjectType> node = new BinaryIfNode<>(control(), op(opcode));
                         links.control(bci, node);
-                        //links.control(bci+1, node.getFalseOut());
                         links.add(bci + 1, node.getFalseOut());
                         links.add(destIndex, node.getTrueOut());
                         control(node.getFalseOut());
@@ -187,7 +191,7 @@ public class BytecodeParser {
                     case IFLE:
                     case IFGT:
                     case IFLT: {
-                        UnaryIfNode node = new UnaryIfNode(control());
+                        UnaryIfNode node = new UnaryIfNode(control(), op(opcode));
                         links.control(bci, node);
                         //links.control(bci+1, node.getFalseOut());
                         links.add(bci + 1, node.getFalseOut());
@@ -217,12 +221,42 @@ public class BytecodeParser {
                     case FRETURN:
                     case LRETURN:
                     case ARETURN: {
-                        this.end.addInput(control());
+                        this.endRegion.addInput(control());
+                        control(null);
                         break;
                     }
                 }
             }
         }
+    }
+
+    protected CompareOp op(int opcode) {
+        switch ( opcode ) {
+            case IFEQ:
+            case IF_ACMPEQ:
+            case IF_ICMPEQ: {
+                return CompareOp.EQUAL;
+            }
+            case IFNE:
+            case IF_ACMPNE:
+            case IF_ICMPNE: {
+                return CompareOp.NOT_EQUAL;
+            }
+            case IF_ICMPGE: {
+                return CompareOp.GREATER_THAN_OR_EQUAL;
+            }
+            case IF_ICMPLE: {
+                return CompareOp.LESS_THAN_OR_EQUAL;
+            }
+            case IF_ICMPGT: {
+                return CompareOp.GREATER_THAN;
+            }
+            case IF_ICMPLT: {
+                return CompareOp.LESS_THAN;
+            }
+        }
+        return null;
+
     }
 
     protected void calculateDominanceFrontiers(ControlFlowHelper links) {
@@ -341,29 +375,22 @@ public class BytecodeParser {
                     phiPlacements.record(control(), ((VarInsnNode) instr).var, ObjectType.java.lang.Object);
                     break;
                 }
-                //int index = ((VarInsnNode)instr).var;
-                //Set<Integer> set = phiPlacements.get(control());
-                //if ( set == null ) {
-                //set = new HashSet<>();
-                //phiPlacements.put(control(), set);
-                //}
-                //set.add(index);
-                //break;
-                //}
                 case INVOKEDYNAMIC:
                 case INVOKEINTERFACE:
                 case INVOKESPECIAL:
                 case INVOKESTATIC:
                 case INVOKEVIRTUAL: {
-                    //Set<Integer> set = phiPlacements.get(control());
-                    //if ( set == null ) {
-                    //set = new HashSet<>();
-                    //phiPlacements.put(control(), set);
-                    //}
-                    //set.add(SLOT_IO);
-                    //set.add(SLOT_MEMORY);
                     phiPlacements.record(control(), SLOT_IO, IOType.INSTANCE);
                     phiPlacements.record(control(), SLOT_MEMORY, MemoryType.INSTANCE);
+                    break;
+                }
+                case RETURN:
+                case IRETURN:
+                case LRETURN:
+                case DRETURN:
+                case FRETURN:
+                case ARETURN: {
+                    phiPlacements.record(control(), SLOT_RETURN, method.getReturnType());
                     break;
                 }
             }
@@ -372,17 +399,22 @@ public class BytecodeParser {
         Set<Local.PhiLocal<?>> phis = new HashSet<>();
         phiPlacements.forEach((node, entries) -> {
             Set<ControlNode<?>> df = links.dominanceFrontier(node);
-            System.err.println( "PHI NODE: " + node + " df=" + df );
+            System.err.println("PHI NODE: " + node + " df=" + df);
 
             for (PhiPlacements.Entry entry : entries) {
                 for (ControlNode<?> dest : df) {
-                    System.err.println( "INSERT PHI: " + node + " > " + entry.index + " into " + dest + " of " + entry.type);
-                    phis.add(dest.frame().ensurePhi(entry.index, node, entry.type));
+                    //if ( dest != this.end ) {
+                        System.err.println("INSERT PHI: " + node + " > " + entry.index + " into " + dest + " of " + entry.type + " into " + dest);
+                        phis.add(dest.frame().ensurePhi(entry.index, node, entry.type));
+                    //}
                 }
             }
         });
 
-        System.err.println( "PHI: " + phis);
+        //System.err.println("PHI: " + phis);
+        this.end.addPredecessor( this.endRegion.frame().io() );
+        this.end.addPredecessor( this.endRegion.frame().memory() );
+        this.end.addPredecessor( this.endRegion.frame().returnValue() );
         return phis;
     }
 
@@ -412,11 +444,20 @@ public class BytecodeParser {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
 
+            System.err.println( "execute: " + bci + " " + Mnemonics.of(opcode));
+
             ControlNode<?> candidate = links.control(bci);
             if (candidate != null) {
                 if (control() != null) {
                     candidate.frame().mergeFrom(control().frame());
-                    if ( candidate instanceof IfNode ) {
+                    if (candidate instanceof IfNode) {
+                        ((IfNode) candidate).getTrueOut().frame().mergeFrom(control().frame());
+                        ((IfNode) candidate).getFalseOut().frame().mergeFrom(control().frame());
+                    }
+                } else {
+                    ControlNode<?> prev = candidate.getControlPredecessors().iterator().next();
+                    candidate.frame().mergeFrom(prev.frame());
+                    if (candidate instanceof IfNode) {
                         ((IfNode) candidate).getTrueOut().frame().mergeFrom(control().frame());
                         ((IfNode) candidate).getFalseOut().frame().mergeFrom(control().frame());
                     }
@@ -438,7 +479,6 @@ public class BytecodeParser {
                             Node<IntType> test = pop(IntType.INSTANCE);
                             //node = new UnaryIfNode(control(), test, CompareOp.EQUAL);
                             node = (IfNode) links.control(bci);
-                            node.setOp(CompareOp.EQUAL);
                             node.addPredecessor(test);
                             break;
                         }
@@ -446,16 +486,13 @@ public class BytecodeParser {
                             Node<IntType> test = pop(IntType.INSTANCE);
                             //node = new UnaryIfNode(control(), test, CompareOp.NOT_EQUAL);
                             node = (IfNode) links.control(bci);
-                            node.setOp(CompareOp.NOT_EQUAL);
                             node.addPredecessor(test);
                             break;
                         }
                         case IF_ICMPGE: {
                             Node<IntType> lhs = pop(IntType.INSTANCE);
                             Node<IntType> rhs = pop(IntType.INSTANCE);
-                            //node = new BinaryIfNode<>(control(), lhs, rhs, CompareOp.GREATER_THAN_OR_EQUAL);
                             node = (IfNode) links.control(bci);
-                            node.setOp(CompareOp.GREATER_THAN_OR_EQUAL);
                             node.addPredecessor(lhs);
                             node.addPredecessor(rhs);
                             break;
@@ -604,35 +641,38 @@ public class BytecodeParser {
                     case INVOKESPECIAL:
                     case INVOKESTATIC:
                     case INVOKEVIRTUAL: {
-                        //Set<Integer> set = phiPlacements.get(control());
-                        //if ( set == null ) {
-                        //set = new HashSet<>();
-                        //phiPlacements.put(control(), set);
-                        //}
-                        //set.add(SLOT_IO);
-                        //set.add(SLOT_MEMORY);
-                        //phiPlacements.record(control(), SLOT_IO, IOType.INSTANCE);
-                        //phiPlacements.record(control(), SLOT_MEMORY, MemoryType.INSTANCE);
-                        CallNode<VoidType> node = new CallNode<VoidType>(
+                        MethodDescriptorParser parser = new MethodDescriptorParser(Universe.instance(),
+                                                                                   ((MethodInsnNode) instr).desc,
+                                                                                   opcode == INVOKESTATIC,
+                                                                                   Universe.instance().findClass(((MethodInsnNode) instr).owner)
+                        );
+                        MethodDescriptor descriptor = parser.parseMethodDescriptor();
+                        ConcreteType<?> returnType = descriptor.getReturnType();
+                        Node<?>[] params = new Node<?>[descriptor.getParamTypes().size()];
+                        for (int i = params.length - 1; i >= 0; --i) {
+                            params[i] = pop(AnyType.INSTANCE);
+                        }
+                        CallNode<?> node = CallNode.make(
                                 control(),
                                 io(),
                                 memory(),
-                                null,
-                                new Node[]{});
+                                returnType,
+                                params);
                         io(node.getIOOut());
                         memory(node.getMemoryOut());
+                        if (!(returnType instanceof VoidType)) {
+                            push(node.getResultOut());
+                        }
                         break;
                     }
 
                     case IRETURN: {
                         Node<IntType> val = pop(IntType.INSTANCE);
                         ReturnNode<IntType> ret = new ReturnNode<>(control(), IntType.INSTANCE, val);
-                        this.end.addInput(control());
-                        System.err.println( "passing IO to end: " + io() + " from " + control());
-                        System.err.println( "passing memory to end: " + memory() + " from " + control());
-                        this.end.addPredecessor(io());
-                        this.end.addPredecessor(memory());
-                        this.end.returnValue(ret);
+                        control().frame().returnValue(ret);
+                        //this.end.addPredecessor(ret);
+                        //this.endRegion.frame().returnValue(ret);
+                        control(null);
                         break;
                     }
 
@@ -677,7 +717,8 @@ public class BytecodeParser {
 
     protected ControlFlowHelper initialize() {
         this.start = new StartNode(startType());
-        this.end = new EndNode<>(this.method.getReturnType());
+        this.endRegion = new RegionNode(this.method.getMaxLocals(), this.method.getMaxStack());
+        this.end = new EndNode<>(this.endRegion, this.method.getReturnType());
         control(this.start);
         return new ControlFlowHelper(this.start);
     }
@@ -724,6 +765,7 @@ public class BytecodeParser {
 
     private StartNode start;
 
+    private RegionNode endRegion;
     private EndNode<?> end;
 
     private final MethodDefinition method;

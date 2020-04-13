@@ -72,7 +72,7 @@ public class ConstantNode<C, T extends ConcreteType<C>> extends Node<T> {
 
     @Override
     public String label() {
-        return getType().label() + ": " + this.val;
+        return "<const> " + this.val;
     }
 
     private C val;

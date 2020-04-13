@@ -7,18 +7,8 @@ import cc.quarkus.qcc.graph.type.IfType;
 
 public abstract class IfNode extends ControlNode<IfType> {
 
-    /*
     public IfNode(ControlNode<?> control, CompareOp op) {
         super(control, IfType.INSTANCE);
-        this.op = op;
-    }
-     */
-
-    public IfNode(ControlNode<?> control) {
-        super(control, IfType.INSTANCE);
-    }
-
-    public void setOp(CompareOp op) {
         this.op = op;
     }
 
@@ -30,10 +20,15 @@ public abstract class IfNode extends ControlNode<IfType> {
         return this.ifFalseOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IfFalseProjection(this )));
     }
 
-    private AtomicReference<IfTrueProjection> ifTrueOut = new AtomicReference<>();
+    @Override
+    public String label() {
+        return "<if> " + this.op.label();
+    }
 
-    private AtomicReference<IfFalseProjection> ifFalseOut = new AtomicReference<>();
+    private final AtomicReference<IfTrueProjection> ifTrueOut = new AtomicReference<>();
 
-    private CompareOp op;
+    private final AtomicReference<IfFalseProjection> ifFalseOut = new AtomicReference<>();
+
+    private final CompareOp op;
 
 }

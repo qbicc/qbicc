@@ -7,4 +7,9 @@ public class ReturnNode<T extends ConcreteType<?>> extends Node<T> {
         super(control, outType);
         addPredecessor(value);
     }
+
+    @Override
+    public String label() {
+        return "<return> " + getType().label();
+    }
 }

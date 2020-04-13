@@ -6,6 +6,7 @@ import java.util.Deque;
 import java.util.List;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
+import cc.quarkus.qcc.graph.type.AnyType;
 import cc.quarkus.qcc.graph.type.IOType;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.type.ConcreteType;
@@ -26,8 +27,6 @@ public class Frame {
             this.locals[i] = null;
         }
         this.stack = new ArrayDeque<>(maxStack);
-        //this.io = new Local.SimpleLocal<>(control, BytecodeParser.SLOT_IO);
-        //this.memory = new Local.SimpleLocal<>(control, BytecodeParser.SLOT_MEMORY);
         this.id = control.getId();
     }
 
@@ -40,6 +39,15 @@ public class Frame {
     }
 
     public Local<?> local(int index) {
+        if ( index == BytecodeParser.SLOT_RETURN ) {
+            return this.returnValue;
+        }
+        if ( index == BytecodeParser.SLOT_IO ) {
+            return this.io;
+        }
+        if ( index == BytecodeParser.SLOT_MEMORY ) {
+            return this.memory;
+        }
         return this.locals[index];
     }
 
@@ -62,6 +70,9 @@ public class Frame {
 
     public <T extends Type> Node<T> get(int index, T type) {
         System.err.println(this.id + " get " + type + " @ " + index);
+        if ( index == BytecodeParser.SLOT_RETURN ) {
+            return this.returnValue.get(type);
+        }
         if (index == BytecodeParser.SLOT_IO) {
             return (Node<T>) this.io.get(IOType.INSTANCE);
         }
@@ -77,6 +88,17 @@ public class Frame {
             this.locals[index] = new Local.SimpleLocal<>(this.control, index);
         }
         this.locals[index].store(val);
+    }
+
+    public void returnValue(Node<?> returnValue) {
+        if ( this.returnValue == null ) {
+            this.returnValue = new Local.SimpleLocal<>(this.control, BytecodeParser.SLOT_RETURN);
+        }
+        this.returnValue.store(returnValue);
+    }
+
+    public Node<?> returnValue() {
+        return this.returnValue.load(AnyType.INSTANCE);
     }
 
     public void memory(Node<MemoryType> memory) {
@@ -104,17 +126,6 @@ public class Frame {
         return this.io.load(IOType.INSTANCE);
     }
 
-    //public void merge(Frame frame) {
-    //System.err.println("merge " + frame.id + " into " + this.id);
-    //for (int i = 0; i < this.locals.length; ++i) {
-    ////System.err.println( "inbound: " +i + " > " + frame.local(i));
-    //this.locals[i].merge(frame.local(i));
-    //}
-
-    //this.memory.merge(frame.memory);
-    //this.io.merge(frame.io);
-    //}
-
     public void mergeFrom(Frame inbound) {
         System.err.println( "merge frame=" + this.id + " from " + inbound.id);
         for (int i = 0; i < this.locals.length; ++i) {
@@ -128,6 +139,9 @@ public class Frame {
         this.stack.clear();
         this.stack.addAll(inbound.stack);
         //if ( ! ( this.io instanceof Local.PhiLocal<?>)) {
+        if ( this.returnValue == null && inbound.returnValue != null) {
+            this.returnValue = inbound.returnValue.duplicate();
+        }
         if (this.io == null) {
             System.err.println("merge io " + this.control + " from " + inbound + " // " + inbound.io);
             this.io = inbound.io.duplicate();
@@ -143,13 +157,14 @@ public class Frame {
         }
     }
 
-    public void returnValue(Node<? extends ConcreteType<?>> val) {
-        this.returnValue.add(val);
-
-    }
-
     public Local.PhiLocal<?> ensurePhi(int index, ControlNode<?> input, Type type) {
-        if (index == BytecodeParser.SLOT_IO) {
+        if ( index == BytecodeParser.SLOT_RETURN ) {
+            if ( !(this.returnValue instanceof Local.PhiLocal<?>)) {
+                this.returnValue = new Local.PhiLocal(this.control, index, type);
+            }
+            ((Local.PhiLocal<?>) this.returnValue).addInput(input, type);
+            return (Local.PhiLocal<?>) this.returnValue;
+        } else if (index == BytecodeParser.SLOT_IO) {
             if (!(this.io instanceof Local.PhiLocal<?>)) {
                 this.io = new Local.PhiLocal(this.control, index, type);
             }
@@ -191,5 +206,5 @@ public class Frame {
 
     private Deque<Node<?>> stack;
 
-    private List<Node<? extends ConcreteType<?>>> returnValue = new ArrayList<>();
+    private Local<? extends ConcreteType<?>> returnValue;
 }

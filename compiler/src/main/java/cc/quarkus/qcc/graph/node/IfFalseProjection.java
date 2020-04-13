@@ -7,4 +7,9 @@ public class IfFalseProjection extends ControlProjection<IfNode, ControlType> {
     protected IfFalseProjection(IfNode in) {
         super(in, ControlType.INSTANCE);
     }
+
+    @Override
+    public String label() {
+        return "<proj> false";
+    }
 }

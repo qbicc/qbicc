@@ -11,7 +11,7 @@ public class UnaryIfNode extends IfNode {
     }
      */
 
-    public UnaryIfNode(ControlNode<?> control) {
-        super(control);
+    public UnaryIfNode(ControlNode<?> control, CompareOp op) {
+        super(control, op);
     }
 }

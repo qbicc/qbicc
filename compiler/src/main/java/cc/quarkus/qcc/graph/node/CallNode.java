@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.IOType;
 import cc.quarkus.qcc.graph.type.Type;
 import cc.quarkus.qcc.graph.type.ControlType;
@@ -10,9 +11,9 @@ import cc.quarkus.qcc.graph.type.FunctionType;
 import cc.quarkus.qcc.graph.type.MemoryType;
 import cc.quarkus.qcc.graph.type.ThrowType;
 
-public class CallNode<T extends Type> extends ControlNode<FunctionType<T>> {
+public class CallNode<T extends ConcreteType<?>> extends ControlNode<FunctionType<T>> {
 
-    public static <T extends Type> CallNode make(ControlNode<?> control,
+    public static <T extends ConcreteType<?>> CallNode make(ControlNode<?> control,
                                                  Node<IOType> io,
                                                  Node<MemoryType> memory,
                                                  T returnType,
@@ -59,6 +60,10 @@ public class CallNode<T extends Type> extends ControlNode<FunctionType<T>> {
         return null;
     }
 
+    public ResultProjection<T> getResultOut() {
+        return  this.resultOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ResultProjection<>(this, getType().getReturnType())));
+    }
+
     public IOProjection getIOOut() {
         return  this.ioOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IOProjection(this)));
     }
@@ -67,6 +72,7 @@ public class CallNode<T extends Type> extends ControlNode<FunctionType<T>> {
         return this.memoryOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new MemoryProjection(this)));
     }
 
+    private AtomicReference<ResultProjection<T>> resultOut = new AtomicReference<>();
     private AtomicReference<IOProjection> ioOut = new AtomicReference<>();
     private AtomicReference<MemoryProjection> memoryOut = new AtomicReference<>();
     private AtomicReference<ThrowProjection> throwOut = new AtomicReference<>();
