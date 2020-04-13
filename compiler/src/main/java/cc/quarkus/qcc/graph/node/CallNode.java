@@ -10,18 +10,25 @@ import cc.quarkus.qcc.graph.type.ControlType;
 import cc.quarkus.qcc.graph.type.FunctionType;
 import cc.quarkus.qcc.graph.type.MemoryType;
 import cc.quarkus.qcc.graph.type.ThrowType;
+import cc.quarkus.qcc.type.TypeDefinition;
 
 public class CallNode<T extends ConcreteType<?>> extends ControlNode<FunctionType<T>> {
 
     public static <T extends ConcreteType<?>> CallNode make(ControlNode<?> control,
                                                  Node<IOType> io,
                                                  Node<MemoryType> memory,
+                                                 boolean isStatic,
+                                                 TypeDefinition owner,
+                                                 String name,
                                                  T returnType,
                                                  Node<?>... parameters) {
         return new CallNode<>(
                 control,
                 io,
                 memory,
+                isStatic,
+                owner,
+                name,
                 new FunctionType<>(returnType),
                 parameters
         );
@@ -30,6 +37,9 @@ public class CallNode<T extends ConcreteType<?>> extends ControlNode<FunctionTyp
     public CallNode(ControlNode<?> control,
                     Node<IOType> io,
                     Node<MemoryType> memory,
+                    boolean isStatic,
+                    TypeDefinition owner,
+                    String name,
                     FunctionType<T> outType,
                     Node<?>... parameters) {
         super(control, outType);
@@ -38,6 +48,9 @@ public class CallNode<T extends ConcreteType<?>> extends ControlNode<FunctionTyp
         for (Node<?> parameter : parameters) {
             addPredecessor(parameter);
         }
+        this.isStatic = isStatic;
+        this.owner = owner;
+        this.name = name;
     }
 
     @SuppressWarnings("unchecked")
@@ -71,6 +84,17 @@ public class CallNode<T extends ConcreteType<?>> extends ControlNode<FunctionTyp
     public MemoryProjection getMemoryOut() {
         return this.memoryOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new MemoryProjection(this)));
     }
+
+    @Override
+    public String label() {
+        return "<call> " + this.owner.getName() + "#" + this.name + (this.isStatic ? " (static)" : "");
+    }
+
+    private final boolean isStatic;
+
+    private final TypeDefinition owner;
+
+    private final String name;
 
     private AtomicReference<ResultProjection<T>> resultOut = new AtomicReference<>();
     private AtomicReference<IOProjection> ioOut = new AtomicReference<>();

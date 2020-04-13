@@ -656,6 +656,9 @@ public class BytecodeParser {
                                 control(),
                                 io(),
                                 memory(),
+                                parser.isStatic(),
+                                parser.getOwner(),
+                                ((MethodInsnNode) instr).name,
                                 returnType,
                                 params);
                         io(node.getIOOut());

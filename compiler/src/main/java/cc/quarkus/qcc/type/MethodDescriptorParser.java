@@ -98,6 +98,14 @@ public class MethodDescriptorParser {
         throw new RuntimeException("Unable to parse: " + this.descriptor + " at " + this.cur );
     }
 
+    public TypeDefinition getOwner() {
+        return this.owner;
+    }
+
+    public boolean isStatic() {
+        return this.isStatic;
+    }
+
     protected ConcreteType<?> parseClass() {
         consume(); // L
         StringBuilder name = new StringBuilder();
