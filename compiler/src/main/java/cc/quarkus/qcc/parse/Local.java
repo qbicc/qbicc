@@ -127,10 +127,11 @@ public abstract class Local<T extends Type> {
 
         @Override
         public Local<T> duplicate() {
-            PhiLocal<T> dupe = new PhiLocal<T>(this.control, this.index, (T) this.type);
-            dupe.phi = this.phi;
-            dupe.inputs = this.inputs;
-            return dupe;
+            //PhiLocal<T> dupe = new PhiLocal<T>(this.control, this.index, (T) this.type);
+            //dupe.phi = this.phi;
+            //dupe.inputs = this.inputs;
+            //return dupe;
+            return this;
         }
 
         private PhiNode<?> phi;

@@ -17,11 +17,12 @@ import cc.quarkus.qcc.graph.type.VoidType;
 
 public class MethodDescriptorParser {
 
-    public MethodDescriptorParser(Universe universe, String descriptor, boolean isStatic, TypeDefinition owner) {
+    public MethodDescriptorParser(Universe universe, TypeDefinition owner, String name, String descriptor, boolean isStatic) {
         this.universe = universe;
+        this.owner = owner;
+        this.name = name;
         this.descriptor = descriptor;
         this.isStatic = isStatic;
-        this.owner = owner;
         this.cur = 0;
     }
 
@@ -33,7 +34,7 @@ public class MethodDescriptorParser {
 
         List<ConcreteType<?>> parameters = parseParameters();
         ConcreteType<?> returnType = parseType();
-        return new MethodDescriptor(parameters, returnType);
+        return new MethodDescriptor(this.owner, this.name, parameters, returnType, isStatic);
     }
 
     public List<ConcreteType<?>> parseParameters() {
@@ -142,8 +143,9 @@ public class MethodDescriptorParser {
     }
 
     private final Universe universe;
-    private final String descriptor;
     private final TypeDefinition owner;
+    private final String name;
+    private final String descriptor;
     private final boolean isStatic;
 
     private int cur;

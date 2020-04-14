@@ -12,7 +12,7 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
         super(Universe.ASM_VERSION, access, name, descriptor, signature, exceptions);
         this.typeDefinition = typeDefinition;
 
-        MethodDescriptorParser parser = new MethodDescriptorParser(typeDefinition.getUniverse(), descriptor, isStatic(), typeDefinition);
+        MethodDescriptorParser parser = new MethodDescriptorParser(typeDefinition.getUniverse(), typeDefinition, name, descriptor, isStatic());
         this.methodDescriptor = parser.parseMethodDescriptor();
     }
 

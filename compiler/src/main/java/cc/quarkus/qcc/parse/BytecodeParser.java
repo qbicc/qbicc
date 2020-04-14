@@ -13,26 +13,25 @@ import cc.quarkus.qcc.Mnemonics;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.node.AddNode;
 import cc.quarkus.qcc.graph.node.BinaryIfNode;
-import cc.quarkus.qcc.graph.node.CallNode;
 import cc.quarkus.qcc.graph.node.CompareOp;
 import cc.quarkus.qcc.graph.node.ConstantNode;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.EndNode;
-import cc.quarkus.qcc.graph.node.NewNode;
-import cc.quarkus.qcc.graph.node.ThrowNode;
-import cc.quarkus.qcc.graph.type.AnyType;
-import cc.quarkus.qcc.graph.type.FunctionType;
-import cc.quarkus.qcc.graph.type.IOType;
 import cc.quarkus.qcc.graph.node.IfNode;
+import cc.quarkus.qcc.graph.node.InvokeNode;
+import cc.quarkus.qcc.graph.node.NewNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.node.ReturnNode;
 import cc.quarkus.qcc.graph.node.StartNode;
 import cc.quarkus.qcc.graph.node.SubNode;
+import cc.quarkus.qcc.graph.node.ThrowNode;
 import cc.quarkus.qcc.graph.node.UnaryIfNode;
+import cc.quarkus.qcc.graph.type.AnyType;
 import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.DoubleType;
 import cc.quarkus.qcc.graph.type.FloatType;
+import cc.quarkus.qcc.graph.type.IOType;
 import cc.quarkus.qcc.graph.type.IntType;
 import cc.quarkus.qcc.graph.type.LongType;
 import cc.quarkus.qcc.graph.type.MemoryType;
@@ -42,7 +41,6 @@ import cc.quarkus.qcc.graph.type.VoidType;
 import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.MethodDescriptor;
 import cc.quarkus.qcc.type.MethodDescriptorParser;
-import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.Universe;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
@@ -60,7 +58,6 @@ import static cc.quarkus.qcc.graph.node.ConstantNode.doubleConstant;
 import static cc.quarkus.qcc.graph.node.ConstantNode.floatConstant;
 import static cc.quarkus.qcc.graph.node.ConstantNode.intConstant;
 import static cc.quarkus.qcc.graph.node.ConstantNode.longConstant;
-import static cc.quarkus.qcc.graph.node.ConstantNode.stringConstant;
 import static org.objectweb.asm.Opcodes.ACONST_NULL;
 import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.ARETURN;
@@ -125,7 +122,9 @@ import static org.objectweb.asm.Opcodes.SIPUSH;
 public class BytecodeParser {
 
     public static final int SLOT_RETURN = -1;
+
     public static final int SLOT_IO = -2;
+
     public static final int SLOT_MEMORY = -3;
 
     public BytecodeParser(MethodDefinition method) {
@@ -211,13 +210,7 @@ public class BytecodeParser {
                         control(null);
                         break;
                     }
-                    case INVOKEVIRTUAL:
-                    case INVOKESPECIAL:
-                    case INVOKEINTERFACE:
-                    case INVOKEDYNAMIC:
-                    case INVOKESTATIC: {
 
-                    }
                 }
             } else {
                 ControlNode<?> candidate = links.control(bci);
@@ -238,13 +231,24 @@ public class BytecodeParser {
                         control(null);
                         break;
                     }
+                    case INVOKEVIRTUAL:
+                    case INVOKESPECIAL:
+                    case INVOKEINTERFACE:
+                    case INVOKEDYNAMIC:
+                    case INVOKESTATIC: {
+                        InvokeNode node = new InvokeNode(control());
+                        links.control(bci, node);
+                        links.add(bci + 1, node.getNormalControlOut());
+                        control(node.getNormalControlOut());
+                        break;
+                    }
                 }
             }
         }
     }
 
     protected CompareOp op(int opcode) {
-        switch ( opcode ) {
+        switch (opcode) {
             case IFEQ:
             case IF_ACMPEQ:
             case IF_ICMPEQ: {
@@ -417,8 +421,8 @@ public class BytecodeParser {
             for (PhiPlacements.Entry entry : entries) {
                 for (ControlNode<?> dest : df) {
                     //if ( dest != this.end ) {
-                        System.err.println("INSERT PHI: " + node + " > " + entry.index + " into " + dest + " of " + entry.type + " into " + dest);
-                        phis.add(dest.frame().ensurePhi(entry.index, node, entry.type));
+                    System.err.println("INSERT PHI: " + node + " > " + entry.index + " into " + dest + " of " + entry.type + " into " + dest);
+                    phis.add(dest.frame().ensurePhi(entry.index, node, entry.type));
                     //}
                 }
             }
@@ -441,9 +445,9 @@ public class BytecodeParser {
             phi.complete();
         }
 
-        this.end.addPredecessor( this.endRegion.frame().io() );
-        this.end.addPredecessor( this.endRegion.frame().memory() );
-        this.end.addPredecessor( this.endRegion.frame().returnValue() );
+        this.end.addPredecessor(this.endRegion.frame().io());
+        this.end.addPredecessor(this.endRegion.frame().memory());
+        this.end.addPredecessor(this.endRegion.frame().returnValue());
 
         return new Graph(this.start, this.end);
     }
@@ -459,7 +463,7 @@ public class BytecodeParser {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
 
-            System.err.println( "execute: " + bci + " " + Mnemonics.of(opcode));
+            System.err.println("execute: " + bci + " " + Mnemonics.of(opcode));
 
             ControlNode<?> candidate = links.control(bci);
             if (candidate != null) {
@@ -671,32 +675,45 @@ public class BytecodeParser {
                     case INVOKESPECIAL:
                     case INVOKESTATIC:
                     case INVOKEVIRTUAL: {
-                        System.err.println( "INVOKE");
+                        System.err.println("INVOKE");
                         MethodDescriptorParser parser = new MethodDescriptorParser(Universe.instance(),
+                                                                                   Universe.instance().findClass(((MethodInsnNode) instr).owner),
+                                                                                   ((MethodInsnNode) instr).name,
                                                                                    ((MethodInsnNode) instr).desc,
-                                                                                   opcode == INVOKESTATIC,
-                                                                                   Universe.instance().findClass(((MethodInsnNode) instr).owner)
-                        );
+                                                                                   opcode == INVOKESTATIC);
                         MethodDescriptor descriptor = parser.parseMethodDescriptor();
+
                         ConcreteType<?> returnType = descriptor.getReturnType();
                         Node<?>[] params = new Node<?>[descriptor.getParamTypes().size()];
                         for (int i = params.length - 1; i >= 0; --i) {
                             params[i] = pop(AnyType.INSTANCE);
                         }
-                        //if ( ((MethodInsnNode) instr).name.equals("<init>")) {
-                            //returnType = (ConcreteType<?>) params[0].getType();
-                        //}
-                        CallNode<?> node = CallNode.make(
-                                control(),
-                                io(),
-                                memory(),
-                                parser.isStatic(),
-                                parser.getOwner(),
-                                ((MethodInsnNode) instr).name,
-                                returnType,
-                                params);
+
+                        InvokeNode node = (InvokeNode) control();
+                        node.setMethodDescriptor(descriptor);
+
+                        for (Node<?> param : params) {
+                            node.addPredecessor(param);
+                        }
+
                         io(node.getIOOut());
                         memory(node.getMemoryOut());
+
+
+                        //if ( ((MethodInsnNode) instr).name.equals("<init>")) {
+                        //returnType = (ConcreteType<?>) params[0].getType();
+                        //}
+                        //CallNode<?> node = CallNode.make(
+                         //       control(),
+                          //      io(),
+                           //     memory(),
+                            //    parser.isStatic(),
+                             //   parser.getOwner(),
+                              //  ((MethodInsnNode) instr).name,
+                               // returnType,
+                                //params);
+                        //io(node.getIOOut());
+                        //memory(node.getMemoryOut());
 
                         if (!(returnType instanceof VoidType)) {
                             push(node.getResultOut());
@@ -820,6 +837,7 @@ public class BytecodeParser {
     private StartNode start;
 
     private RegionNode endRegion;
+
     private EndNode<?> end;
 
     private final MethodDefinition method;
