@@ -63,6 +63,16 @@ public class Frame {
         return checkType(val, type);
     }
 
+    public <T extends ConcreteType<?>> Node<T> peek(T type) {
+        Node<?> val = this.stack.peek();
+        System.err.println(this.id + " peek " + type + " > " + val);
+        return checkType(val, type);
+    }
+
+    public void clear() {
+        this.stack.clear();
+    }
+
     public <T extends ConcreteType<?>> Node<T> load(int index, T type) {
         System.err.println(this.id + " load " + type + " @ " + index);
         return this.locals[index].load(type);

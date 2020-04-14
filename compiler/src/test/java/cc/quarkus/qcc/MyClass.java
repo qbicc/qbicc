@@ -4,7 +4,9 @@ public class MyClass {
 
     public int sum(int a, int b) {
         if (a < b) {
-            return foo();
+            //return foo();
+            throw new NullPointerException("dang");
+            //a++;
         }
         return 2;
     }

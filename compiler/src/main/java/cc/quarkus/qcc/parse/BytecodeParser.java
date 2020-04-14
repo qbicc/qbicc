@@ -18,6 +18,8 @@ import cc.quarkus.qcc.graph.node.CompareOp;
 import cc.quarkus.qcc.graph.node.ConstantNode;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.EndNode;
+import cc.quarkus.qcc.graph.node.NewNode;
+import cc.quarkus.qcc.graph.node.ThrowNode;
 import cc.quarkus.qcc.graph.type.AnyType;
 import cc.quarkus.qcc.graph.type.FunctionType;
 import cc.quarkus.qcc.graph.type.IOType;
@@ -40,6 +42,7 @@ import cc.quarkus.qcc.graph.type.VoidType;
 import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.MethodDescriptor;
 import cc.quarkus.qcc.type.MethodDescriptorParser;
+import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.Universe;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
@@ -48,6 +51,7 @@ import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 import static cc.quarkus.qcc.graph.node.ConstantNode.byteConstant;
@@ -61,12 +65,14 @@ import static org.objectweb.asm.Opcodes.ACONST_NULL;
 import static org.objectweb.asm.Opcodes.ALOAD;
 import static org.objectweb.asm.Opcodes.ARETURN;
 import static org.objectweb.asm.Opcodes.ASTORE;
+import static org.objectweb.asm.Opcodes.ATHROW;
 import static org.objectweb.asm.Opcodes.BIPUSH;
 import static org.objectweb.asm.Opcodes.DCONST_0;
 import static org.objectweb.asm.Opcodes.DCONST_1;
 import static org.objectweb.asm.Opcodes.DLOAD;
 import static org.objectweb.asm.Opcodes.DRETURN;
 import static org.objectweb.asm.Opcodes.DSTORE;
+import static org.objectweb.asm.Opcodes.DUP;
 import static org.objectweb.asm.Opcodes.FCONST_0;
 import static org.objectweb.asm.Opcodes.FCONST_1;
 import static org.objectweb.asm.Opcodes.FCONST_2;
@@ -111,6 +117,7 @@ import static org.objectweb.asm.Opcodes.LDC;
 import static org.objectweb.asm.Opcodes.LLOAD;
 import static org.objectweb.asm.Opcodes.LRETURN;
 import static org.objectweb.asm.Opcodes.LSTORE;
+import static org.objectweb.asm.Opcodes.NEW;
 import static org.objectweb.asm.Opcodes.NOP;
 import static org.objectweb.asm.Opcodes.RETURN;
 import static org.objectweb.asm.Opcodes.SIPUSH;
@@ -204,7 +211,13 @@ public class BytecodeParser {
                         control(null);
                         break;
                     }
+                    case INVOKEVIRTUAL:
+                    case INVOKESPECIAL:
+                    case INVOKEINTERFACE:
+                    case INVOKEDYNAMIC:
+                    case INVOKESTATIC: {
 
+                    }
                 }
             } else {
                 ControlNode<?> candidate = links.control(bci);
@@ -412,9 +425,7 @@ public class BytecodeParser {
         });
 
         //System.err.println("PHI: " + phis);
-        this.end.addPredecessor( this.endRegion.frame().io() );
-        this.end.addPredecessor( this.endRegion.frame().memory() );
-        this.end.addPredecessor( this.endRegion.frame().returnValue() );
+
         return phis;
     }
 
@@ -429,6 +440,10 @@ public class BytecodeParser {
         for (Local.PhiLocal<?> phi : phis) {
             phi.complete();
         }
+
+        this.end.addPredecessor( this.endRegion.frame().io() );
+        this.end.addPredecessor( this.endRegion.frame().memory() );
+        this.end.addPredecessor( this.endRegion.frame().returnValue() );
 
         return new Graph(this.start, this.end);
     }
@@ -620,6 +635,12 @@ public class BytecodeParser {
                         break;
                     }
 
+                    case DUP: {
+                        Node<AnyType> val = peek(AnyType.INSTANCE);
+                        push(val);
+                        break;
+                    }
+
                     // ----------------------------------------
 
                     case IADD: {
@@ -634,6 +655,15 @@ public class BytecodeParser {
                         push(new SubNode<>(control(), IntType.INSTANCE, val1, val2));
                         break;
                     }
+                    // ----------------------------------------
+
+                    case NEW: {
+                        //TypeDefinition type = Universe.instance().findClass(((TypeInsnNode) instr).desc;);
+                        ConcreteType<?> type = Universe.instance().findType(((TypeInsnNode) instr).desc);
+                        NewNode<?> node = new NewNode<>(control(), type);
+                        push(node);
+                        break;
+                    }
 
                     // ----------------------------------------
                     case INVOKEDYNAMIC:
@@ -641,6 +671,7 @@ public class BytecodeParser {
                     case INVOKESPECIAL:
                     case INVOKESTATIC:
                     case INVOKEVIRTUAL: {
+                        System.err.println( "INVOKE");
                         MethodDescriptorParser parser = new MethodDescriptorParser(Universe.instance(),
                                                                                    ((MethodInsnNode) instr).desc,
                                                                                    opcode == INVOKESTATIC,
@@ -652,6 +683,9 @@ public class BytecodeParser {
                         for (int i = params.length - 1; i >= 0; --i) {
                             params[i] = pop(AnyType.INSTANCE);
                         }
+                        //if ( ((MethodInsnNode) instr).name.equals("<init>")) {
+                            //returnType = (ConcreteType<?>) params[0].getType();
+                        //}
                         CallNode<?> node = CallNode.make(
                                 control(),
                                 io(),
@@ -663,9 +697,18 @@ public class BytecodeParser {
                                 params);
                         io(node.getIOOut());
                         memory(node.getMemoryOut());
+
                         if (!(returnType instanceof VoidType)) {
                             push(node.getResultOut());
                         }
+                        break;
+                    }
+
+                    case ATHROW: {
+                        Node<AnyType> thrown = pop(AnyType.INSTANCE);
+                        clear();
+                        ThrowNode<AnyType> node = new ThrowNode<>(control(), thrown);
+                        push(node);
                         break;
                     }
 
@@ -673,6 +716,7 @@ public class BytecodeParser {
                         Node<IntType> val = pop(IntType.INSTANCE);
                         ReturnNode<IntType> ret = new ReturnNode<>(control(), IntType.INSTANCE, val);
                         control().frame().returnValue(ret);
+                        this.endRegion.frame().mergeFrom(control().frame());
                         //this.end.addPredecessor(ret);
                         //this.endRegion.frame().returnValue(ret);
                         control(null);
@@ -763,7 +807,14 @@ public class BytecodeParser {
 
     protected <T extends ConcreteType<?>> Node<T> pop(T type) {
         return control().frame().pop(type);
-        //return null;
+    }
+
+    protected <T extends ConcreteType<?>> Node<T> peek(T type) {
+        return control().frame().peek(type);
+    }
+
+    protected void clear() {
+        control().frame().clear();
     }
 
     private StartNode start;
