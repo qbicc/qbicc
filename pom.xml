@@ -28,7 +28,7 @@
     <modules>
         <module>machine</module>
         <module>context</module>
-        <module>api</module>
+        <module>runtime</module>
         <module>compiler</module>
         <module>native</module>
         <module>vm</module>
@@ -40,11 +40,11 @@
 
             <!-- internal -->
 
-            <!-- api -->
+            <!-- runtime -->
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-api</artifactId>
+                <artifactId>qcc-runtime-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

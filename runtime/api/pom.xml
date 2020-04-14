@@ -6,10 +6,10 @@
 
     <parent>
         <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-parent</artifactId>
+        <artifactId>qcc-runtime-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-api</artifactId>
+    <artifactId>qcc-runtime-api</artifactId>
 
 </project>

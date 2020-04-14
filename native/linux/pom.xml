@@ -15,7 +15,7 @@
     <dependencies>
         <dependency>
             <groupId>cc.quarkus</groupId>
-            <artifactId>qcc-api</artifactId>
+            <artifactId>qcc-runtime-api</artifactId>
         </dependency>
         <dependency>
             <groupId>cc.quarkus</groupId>
