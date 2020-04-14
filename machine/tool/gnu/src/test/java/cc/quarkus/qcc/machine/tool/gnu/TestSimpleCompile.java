@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.Iterator;
 
 import cc.quarkus.qcc.context.Context;
+import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.file.bin.BinaryBuffer;
 import cc.quarkus.qcc.machine.file.elf.ElfHeader;
 import cc.quarkus.qcc.machine.file.elf.ElfSectionHeaderEntry;
@@ -26,7 +27,7 @@ public class TestSimpleCompile {
     public void testSimpleCompile() throws Exception {
         final Context dc = new Context(false);
         final CompilationResult result = dc.run(() -> {
-            final Iterable<GccCompiler> tools = ToolProvider.findAllTools(GccCompiler.class,
+            final Iterable<GccCompiler> tools = ToolProvider.findAllTools(GccCompiler.class, Platform.HOST_PLATFORM, c -> true,
                     TestSimpleCompile.class.getClassLoader());
             final Iterator<GccCompiler> iterator = tools.iterator();
             assertTrue(iterator.hasNext());

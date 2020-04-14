@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
@@ -44,6 +45,12 @@ final class DumpMachineInvocationBuilder extends InvocationBuilder<Void, Platfor
         while ((line = br.readLine()) != null) {
             Context.error(null, "%s", line);
         }
+    }
+
+    protected ProcessBuilder createProcessBuilder(final Void param) {
+        final ProcessBuilder pb = super.createProcessBuilder(param);
+        pb.command().addAll(List.of("-dumpmachine"));
+        return pb;
     }
 
     protected Platform produceResult(final Void param, final Process process) throws Exception {
