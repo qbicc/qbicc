@@ -22,23 +22,24 @@ import cc.quarkus.qcc.machine.tool.Tool;
 /**
  *
  */
-final class DumpMachineInvocationBuilder extends InvocationBuilder<Void, Platform> {
+final class DumpMachineInvocationBuilder extends InvocationBuilder<DumpMachineInvocationBuilder.Param, Platform> {
     private static final Pattern PROBE_PATTERN = generateProbePattern();
-
-    volatile String platformString;
-    final CountDownLatch latch = new CountDownLatch(1);
 
     DumpMachineInvocationBuilder(final Tool tool) {
         super(tool);
     }
 
-    protected void collectOutput(final Void param, final InputStream stream) throws Exception {
-        final byte[] bytes = stream.readAllBytes();
-        platformString = new String(bytes, StandardCharsets.UTF_8).trim();
-        latch.countDown();
+    protected Param createCollectorParam() throws Exception {
+        return new Param(this);
     }
 
-    protected void collectError(final Void param, final InputStream stream) throws Exception {
+    protected void collectOutput(final Param param, final InputStream stream) throws Exception {
+        final byte[] bytes = stream.readAllBytes();
+        param.platformString = new String(bytes, StandardCharsets.UTF_8).trim();
+        param.latch.countDown();
+    }
+
+    protected void collectError(final Param param, final InputStream stream) throws Exception {
         final InputStreamReader isr = new InputStreamReader(stream, StandardCharsets.UTF_8);
         final BufferedReader br = new BufferedReader(isr);
         String line;
@@ -47,16 +48,16 @@ final class DumpMachineInvocationBuilder extends InvocationBuilder<Void, Platfor
         }
     }
 
-    protected ProcessBuilder createProcessBuilder(final Void param) {
+    protected ProcessBuilder createProcessBuilder(final Param param) {
         final ProcessBuilder pb = super.createProcessBuilder(param);
         pb.command().addAll(List.of("-dumpmachine"));
         return pb;
     }
 
-    protected Platform produceResult(final Void param, final Process process) throws Exception {
+    protected Platform produceResult(final Param param, final Process process) throws Exception {
         process.waitFor();
-        latch.await();
-        final Matcher matcher = PROBE_PATTERN.matcher(platformString);
+        param.latch.await();
+        final Matcher matcher = PROBE_PATTERN.matcher(param.platformString);
         if (! matcher.matches()) {
             return new Platform(Cpu.UNKNOWN, OS.UNKNOWN, ABI.UNKNOWN);
         } else {
@@ -95,6 +96,16 @@ final class DumpMachineInvocationBuilder extends InvocationBuilder<Void, Platfor
                 b.append(Pattern.quote(iter.next()));
             }
             b.append(')');
+        }
+    }
+
+    static final class Param {
+        final DumpMachineInvocationBuilder outer;
+        volatile String platformString;
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        Param(final DumpMachineInvocationBuilder outer) {
+            this.outer = outer;
         }
     }
 }
