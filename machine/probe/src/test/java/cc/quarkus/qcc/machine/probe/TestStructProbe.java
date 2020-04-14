@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
 
+import cc.quarkus.qcc.machine.arch.Platform;
 import org.junit.jupiter.api.Test;
 
 import cc.quarkus.qcc.context.Context;
@@ -30,7 +31,7 @@ public class TestStructProbe {
         probe.define("_BSD_SOURCE");
         probe.include("<sys/uio.h>");
         final StructProbe.Result result = dc.run(() -> {
-            final Iterable<GccCompiler> tools = ToolProvider.findAllTools(GccCompiler.class,
+            final Iterable<GccCompiler> tools = ToolProvider.findAllTools(GccCompiler.class, Platform.HOST_PLATFORM, s -> true,
                     TestStructProbe.class.getClassLoader());
             final Iterator<GccCompiler> iterator = tools.iterator();
             assertTrue(iterator.hasNext());
