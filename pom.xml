@@ -56,6 +56,14 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- machine general -->
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-machine-arch</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- file formats -->
 
             <dependency>

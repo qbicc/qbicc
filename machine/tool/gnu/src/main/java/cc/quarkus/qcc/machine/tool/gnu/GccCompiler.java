@@ -2,7 +2,9 @@ package cc.quarkus.qcc.machine.tool.gnu;
 
 import java.nio.file.Path;
 
+import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.tool.CCompiler;
+import cc.quarkus.qcc.machine.tool.ToolExecutionFailureException;
 
 /**
  *
@@ -24,6 +26,14 @@ public class GccCompiler extends CCompiler {
 
     public Path getExecutablePath() {
         return executablePath;
+    }
+
+    public boolean supportsPlatform(final Platform platform) {
+        return super.supportsPlatform(platform);
+    }
+
+    public Platform probePlatform() throws ToolExecutionFailureException {
+        return new DumpMachineInvocationBuilder(this).invoke();
     }
 
     public GccInvocationBuilder invocationBuilder() {
