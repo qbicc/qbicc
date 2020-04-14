@@ -87,12 +87,13 @@ public abstract class InvocationBuilder<P, R> {
     protected int waitForProcessUninterruptibly(Process p) {
         boolean intr = Thread.interrupted();
         try {
-            for (;;)
+            for (;;) {
                 try {
                     return p.waitFor();
                 } catch (InterruptedException e) {
                     intr = true;
                 }
+            }
         } finally {
             if (intr) {
                 Thread.currentThread().interrupt();

@@ -37,7 +37,7 @@ public final class Platform {
     }
 
     public String toString() {
-        return cpu.toString() + '-' + os + '-' + abi;
+        return cpu.getSimpleName() + '-' + os + '-' + abi;
     }
 
     public boolean isSupersetOf(Platform other) {

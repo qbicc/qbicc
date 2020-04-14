@@ -18,6 +18,7 @@ import cc.quarkus.qcc.machine.tool.InputSource;
  *
  */
 public class GccInvocationBuilder extends CompilerInvocationBuilder<GccInvocationBuilder.Param> {
+    private Path outputFile;
 
     GccInvocationBuilder(final GccCompiler gcc) {
         super(gcc);
@@ -32,10 +33,13 @@ public class GccInvocationBuilder extends CompilerInvocationBuilder<GccInvocatio
     }
 
     protected Param createCollectorParam() throws IOException {
-        final Path tempDirectory = Files.createTempDirectory("mandrel-");
-        final Path probeObjPath = tempDirectory.resolve("probe.o");
-        probeObjPath.toFile().deleteOnExit();
-        return new Param(this, probeObjPath);
+        Path outputFile = this.outputFile;
+        if (outputFile == null) {
+            final Path tempDirectory = Files.createTempDirectory("qcc-");
+            outputFile = tempDirectory.resolve("probe.o");
+            outputFile.toFile().deleteOnExit();
+        }
+        return new Param(this, outputFile);
     }
 
     protected int waitForProcessUninterruptibly(final Process p) {
@@ -67,6 +71,15 @@ public class GccInvocationBuilder extends CompilerInvocationBuilder<GccInvocatio
         } else {
             return null;
         }
+    }
+
+    public Path getOutputFile() {
+        return outputFile;
+    }
+
+    public GccInvocationBuilder setOutputFile(final Path outputFile) {
+        this.outputFile = outputFile;
+        return this;
     }
 
     static final class Param {

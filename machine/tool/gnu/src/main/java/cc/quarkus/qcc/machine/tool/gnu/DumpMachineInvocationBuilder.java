@@ -1,13 +1,13 @@
 package cc.quarkus.qcc.machine.tool.gnu;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,16 +30,15 @@ final class DumpMachineInvocationBuilder extends InvocationBuilder<DumpMachineIn
     }
 
     protected Param createCollectorParam() throws Exception {
-        return new Param(this);
+        return new Param();
     }
 
-    protected void collectOutput(final Param param, final InputStream stream) throws Exception {
+    protected void collectOutput(final Param param, final InputStream stream) throws IOException {
         final byte[] bytes = stream.readAllBytes();
         param.platformString = new String(bytes, StandardCharsets.UTF_8).trim();
-        param.latch.countDown();
     }
 
-    protected void collectError(final Param param, final InputStream stream) throws Exception {
+    protected void collectError(final Param param, final InputStream stream) throws IOException{
         final InputStreamReader isr = new InputStreamReader(stream, StandardCharsets.UTF_8);
         final BufferedReader br = new BufferedReader(isr);
         String line;
@@ -54,9 +53,8 @@ final class DumpMachineInvocationBuilder extends InvocationBuilder<DumpMachineIn
         return pb;
     }
 
-    protected Platform produceResult(final Param param, final Process process) throws Exception {
-        process.waitFor();
-        param.latch.await();
+    protected Platform produceResult(final Param param, final Process process) {
+        waitForProcessUninterruptibly(process);
         final Matcher matcher = PROBE_PATTERN.matcher(param.platformString);
         if (! matcher.matches()) {
             return new Platform(Cpu.UNKNOWN, OS.UNKNOWN, ABI.UNKNOWN);
@@ -100,12 +98,9 @@ final class DumpMachineInvocationBuilder extends InvocationBuilder<DumpMachineIn
     }
 
     static final class Param {
-        final DumpMachineInvocationBuilder outer;
         volatile String platformString;
-        final CountDownLatch latch = new CountDownLatch(1);
 
-        Param(final DumpMachineInvocationBuilder outer) {
-            this.outer = outer;
+        Param() {
         }
     }
 }

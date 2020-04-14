@@ -11,7 +11,7 @@ public class Cpu extends PlatformComponent {
     public static final Cpu UNKNOWN = new Cpu("unknown");
 
     public static final Cpu X86_64 = new Cpu("x86_64", "amd64");
-    public static final Cpu X86 = new Cpu("x86", "i386", "i486", "i586", "i686");
+    public static final Cpu X86 = new Cpu("i686", "x86", "i386", "i486", "i586");
     public static final Cpu AARCH64 = new Cpu("aarch64", "arm64");
     public static final ArmCpu ARMV4 = new ArmCpu(ArmCpuArch.V4);
     public static final ArmCpu ARMV4T = new ArmCpu(ArmCpuArch.V4T);
