@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class NoneType implements ConcreteType<Void> {
+public class NoneType implements ConcreteType<NoneValue> {
 
     public static final NoneType INSTANCE = new NoneType();
 

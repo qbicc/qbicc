@@ -10,6 +10,7 @@ import cc.quarkus.qcc.graph.node.EndNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.StartNode;
 import cc.quarkus.qcc.graph.type.ConcreteType;
+import cc.quarkus.qcc.graph.type.StartValue;
 
 public class Graph<T extends ConcreteType<?>> {
 
@@ -33,6 +34,10 @@ public class Graph<T extends ConcreteType<?>> {
 
     public StartNode getStart() {
         return this.start;
+    }
+
+    public void execute(StartValue context) {
+        this.start.receive(context);
     }
 
     private void walk(List<Node<?>> order, Set<Node<?>> seen, Node<?> node) {

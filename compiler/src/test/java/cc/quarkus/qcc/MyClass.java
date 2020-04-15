@@ -22,4 +22,12 @@ public class MyClass {
     public int foo() {
         return 89;
     }
+
+    public static int min(int a, int b) {
+        if ( a < b ) {
+            return a;
+        }
+
+        return b;
+    }
 }

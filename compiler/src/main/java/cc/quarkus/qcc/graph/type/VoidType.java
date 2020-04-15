@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class VoidType implements ConcreteType<Void> {
+public class VoidType implements ConcreteType<VoidValue> {
 
     public static final VoidType INSTANCE = new VoidType();
 
@@ -8,4 +8,8 @@ public class VoidType implements ConcreteType<Void> {
 
     }
 
+    @Override
+    public VoidValue newInstance(Object... args) {
+        return VoidValue.VOID;
+    }
 }

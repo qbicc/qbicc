@@ -2,47 +2,56 @@ package cc.quarkus.qcc.graph.node;
 
 import cc.quarkus.qcc.graph.ParseException;
 import cc.quarkus.qcc.graph.type.ByteType;
+import cc.quarkus.qcc.graph.type.ByteValue;
 import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.DoubleType;
+import cc.quarkus.qcc.graph.type.DoubleValue;
 import cc.quarkus.qcc.graph.type.FloatType;
+import cc.quarkus.qcc.graph.type.FloatValue;
 import cc.quarkus.qcc.graph.type.IntType;
+import cc.quarkus.qcc.graph.type.IntValue;
 import cc.quarkus.qcc.graph.type.LongType;
+import cc.quarkus.qcc.graph.type.LongValue;
 import cc.quarkus.qcc.graph.type.NullType;
+import cc.quarkus.qcc.graph.type.NullValue;
 import cc.quarkus.qcc.graph.type.ObjectType;
+import cc.quarkus.qcc.graph.type.ObjectValue;
 import cc.quarkus.qcc.graph.type.ShortType;
+import cc.quarkus.qcc.graph.type.ShortValue;
+import cc.quarkus.qcc.graph.type.Value;
 
-public class ConstantNode<C, T extends ConcreteType<C>> extends Node<T> {
+public class ConstantNode<C extends Value<T>, T extends ConcreteType<C>> extends Node<T> {
 
-    public static ConstantNode<Object, NullType> nullConstant(ControlNode<?> control) {
-        return new ConstantNode<>(control, NullType.INSTANCE, null);
+    public static ConstantNode<NullValue, NullType> nullConstant(ControlNode<?> control) {
+        return new ConstantNode<>(control, NullValue.NULL);
     }
 
-    public static ConstantNode<Object, ObjectType> stringConstant(ControlNode<?> control, String val) {
-        return new ConstantNode<>(control, ObjectType.java.lang.String, val);
+    public static ConstantNode<ObjectValue, ObjectType> stringConstant(ControlNode<?> control, String val) {
+        return new ConstantNode<>(control, ObjectType.java.lang.String.newInstance(val));
     }
 
-    public static ConstantNode<Integer, IntType> intConstant(ControlNode<?> control, int val) {
-        return new ConstantNode<>(control, IntType.INSTANCE, val);
+    public static ConstantNode<IntValue, IntType> intConstant(ControlNode<?> control, int val) {
+        return new ConstantNode<>(control, new IntValue(val));
     }
 
-    public static ConstantNode<Long, LongType> longConstant(ControlNode<?> control, long val) {
-        return new ConstantNode<>(control, LongType.INSTANCE, val);
+    public static ConstantNode<LongValue, LongType> longConstant(ControlNode<?> control, long val) {
+        return new ConstantNode<>(control, new LongValue(val));
     }
 
-    public static ConstantNode<Float, FloatType> floatConstant(ControlNode<?> control, float val) {
-        return new ConstantNode<>(control, FloatType.INSTANCE, val);
+    public static ConstantNode<FloatValue, FloatType> floatConstant(ControlNode<?> control, float val) {
+        return new ConstantNode<>(control, new FloatValue(val));
     }
 
-    public static ConstantNode<Double, DoubleType> doubleConstant(ControlNode<?> control, double val) {
-        return new ConstantNode<>(control, DoubleType.INSTANCE, val);
+    public static ConstantNode<DoubleValue, DoubleType> doubleConstant(ControlNode<?> control, double val) {
+        return new ConstantNode<>(control, new DoubleValue(val));
     }
 
-    public static ConstantNode<Byte, ByteType> byteConstant(ControlNode<?> control, byte val) {
-        return new ConstantNode<>(control, ByteType.INSTANCE, val);
+    public static ConstantNode<ByteValue, ByteType> byteConstant(ControlNode<?> control, byte val) {
+        return new ConstantNode<>(control, new ByteValue(val));
     }
 
-    public static ConstantNode<Short, ShortType> shortConstant(ControlNode<?> control, short val) {
-        return new ConstantNode<>(control, ShortType.INSTANCE, val);
+    public static ConstantNode<ShortValue, ShortType> shortConstant(ControlNode<?> control, short val) {
+        return new ConstantNode<>(control, new ShortValue(val));
     }
 
     public static ConstantNode<?,?> constant(ControlNode<?> control, Object val) {
@@ -65,8 +74,8 @@ public class ConstantNode<C, T extends ConcreteType<C>> extends Node<T> {
         throw new ParseException("not a constant: " + val);
     }
 
-    protected ConstantNode(ControlNode<?> control, T outType, C val) {
-        super(control, outType);
+    protected ConstantNode(ControlNode<?> control, C val) {
+        super(control, val.getType());
         this.val = val;
     }
 

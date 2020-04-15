@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.Type;
+import cc.quarkus.qcc.graph.type.Value;
 
 public class Node<T extends Type> {
 
@@ -19,7 +20,6 @@ public class Node<T extends Type> {
         this.outType = outType;
         this.id = COUNTER.incrementAndGet();
     }
-
 
     public void addPredecessor(Node<?> in) {
         this.predecessors.add(in);
@@ -106,6 +106,15 @@ public class Node<T extends Type> {
         this.successors.remove(node);
     }
 
+    public void receive(Value<?> value) {
+        for (Node<?> successor : getSuccessors()) {
+            successor.receive(process(value));
+        }
+    }
+
+    public Value<?> process(Value<?> value) {
+        return value;
+    }
 
     private final List<Node<?>> predecessors = new ArrayList<>();
     private final List<Node<?>> successors = new ArrayList<>();

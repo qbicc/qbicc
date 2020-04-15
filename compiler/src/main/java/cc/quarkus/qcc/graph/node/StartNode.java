@@ -4,7 +4,7 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.StartType;
-import cc.quarkus.qcc.parse.Frame;
+import cc.quarkus.qcc.graph.type.Value;
 
 public class StartNode extends ControlNode<StartType> {
 
@@ -18,6 +18,7 @@ public class StartNode extends ControlNode<StartType> {
         frame().io(new IOProjection(this));
         frame().memory(new MemoryProjection(this));
     }
+
 
     private <T extends ConcreteType<?>> VariableProjection<T> projection(int index, T type) {
         return new VariableProjection<>(this, type, index);
