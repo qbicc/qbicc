@@ -114,7 +114,7 @@ public abstract class Local<T extends Type> {
             List<ControlNode<?>> discriminators = this.control.getControlPredecessors();
 
             for (ControlNode<?> discriminator : discriminators) {
-                System.err.println("discriminator: " + discriminator + " for " + this.index + discriminator.frame().local(this.index));
+                System.err.println("discriminator: " + discriminator + " for " + this.index + " " + discriminator.frame().local(this.index));
                 Node<Type> inbound = discriminator.frame().get(this.index, AnyType.INSTANCE);
                 System.err.println( "---> " + inbound + " // " + inbound.getId() );
                 this.phi.addPredecessor(inbound);

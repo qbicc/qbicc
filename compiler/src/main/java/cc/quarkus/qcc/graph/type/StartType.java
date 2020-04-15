@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph.type;
 
 import java.util.List;
 
-public class StartType extends ControlType {
+public class StartType implements Type {
 
     public StartType(int maxLocals, int maxStack, List<ConcreteType<?>> paramTypes) {
         this.maxLocals = maxLocals;

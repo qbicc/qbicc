@@ -136,9 +136,8 @@ public class BytecodeParser {
         int instrLen = instrList.size();
 
         RegionNode root = new RegionNode(this.start.frame().maxLocals(), this.start.frame().maxStack());
-        links.control(0, root);
-        root.addInput(this.start);
-        control(root);
+        links.control(0, this.start);
+        control(this.start);
 
         for (int bci = 0; bci < instrLen; ++bci) {
             AbstractInsnNode instr = instrList.get(bci);
@@ -483,6 +482,8 @@ public class BytecodeParser {
                 }
                 control(candidate);
             }
+
+            System.err.println( "control() " + control());
 
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
