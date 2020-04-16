@@ -30,13 +30,10 @@ public abstract class Node<T extends Type<?>> {
 
     public <T extends Type<?>> Node<T> tryCoerce(Type<?> type) {
         if ( type == getType() ) {
-            System.err.println( "tryCoerce 1");
             return (Node<T>) this;
         }
-        System.err.println( "tryCoerce 2");
         return type.coerce(this);
     }
-
 
     public Value<?> getValue(Context context)  {
         return null;
@@ -84,26 +81,6 @@ public abstract class Node<T extends Type<?>> {
     @Override
     public String toString() {
         return label();
-    }
-
-    protected <T extends ConcreteType<?>> void replacePredecessor(PhiNode target, Node<? extends Type> replacement) {
-        System.err.println( this + " >a> " + this.predecessors);
-
-        this.predecessors.replaceAll( (each)->{
-            if ( each == target ) {
-                System.err.println( "replace with " + replacement);
-                replacement.addSuccessor(this);
-                return replacement;
-            }
-            return each;
-        });
-        System.err.println( this + " >b> " + this.predecessors);
-
-    }
-
-    protected <T extends Type<?>> void removeSuccessor(PhiNode<T> node) {
-        System.err.println( this + " remove successor " + node);
-        this.successors.remove(node);
     }
 
     private final List<Node<?>> predecessors = new ArrayList<>();

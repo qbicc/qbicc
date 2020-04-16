@@ -60,7 +60,6 @@ public class LazyTypeDefinition implements TypeDefinition {
 
     @Override
     public MethodDefinition getMethod(String name, String desc) {
-        System.err.println("delegate: " + getDelegate() + " // " + getDelegate().getClass());
         return getDelegate().getMethod(name, desc);
     }
 

@@ -38,7 +38,6 @@ public interface Type<T extends Value<?>> {
     @SuppressWarnings("unchecked")
     default <T extends Type<?>> Node<T> coerce(Node<?> node) {
         if ( node.getType() == this ) {
-            System.err.println( "COERCE: " + node.getType() + " vs " + this);
             return (Node<T>) node;
         }
         return null;

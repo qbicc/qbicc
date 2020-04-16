@@ -52,20 +52,17 @@ public class Frame {
     }
 
     public <T extends Node<? extends ConcreteType<?>>> T push(T node) {
-        System.err.println(this.id + " push " + node);
         this.stack.push(node);
         return node;
     }
 
     public <T extends ConcreteType<?>> Node<T> pop(T type) {
         Node<?> val = this.stack.pop();
-        System.err.println(this.id + " pop " + type + " > " + val);
         return checkType(val, type);
     }
 
     public <T extends ConcreteType<?>> Node<T> peek(T type) {
         Node<?> val = this.stack.peek();
-        System.err.println(this.id + " peek " + type + " > " + val);
         return checkType(val, type);
     }
 
@@ -74,12 +71,10 @@ public class Frame {
     }
 
     public <T extends ConcreteType<?>> Node<T> load(int index, T type) {
-        System.err.println(this.id + " load " + type + " @ " + index);
         return this.locals[index].load(type);
     }
 
     public <T extends Type<?>> Node<T> get(int index, T type) {
-        System.err.println(this.id + " get " + type + " @ " + index);
         if ( index == BytecodeParser.SLOT_RETURN ) {
             return this.returnValue.get(type);
         }
@@ -93,7 +88,6 @@ public class Frame {
     }
 
     public <T extends ConcreteType<?>> void store(int index, Node<T> val) {
-        System.err.println(this.id + " store " + val + " @ " + index);
         if (this.locals[index] == null) {
             this.locals[index] = new Local.SimpleLocal<>(this.control, index);
         }
@@ -112,7 +106,6 @@ public class Frame {
     }
 
     public void memory(Node<MemoryType> memory) {
-        System.err.println(this.control + " store memory() " + memory);
         if (this.memory == null) {
             this.memory = new Local.SimpleLocal<>(this.control, BytecodeParser.SLOT_MEMORY);
         }
@@ -124,7 +117,6 @@ public class Frame {
     }
 
     public void io(Node<IOType> io) {
-        System.err.println(this.control + " store io() " + io);
         if (this.io == null) {
             this.io = new Local.SimpleLocal<>(this.control, BytecodeParser.SLOT_IO);
         }
@@ -132,15 +124,12 @@ public class Frame {
     }
 
     public Node<IOType> io() {
-        System.err.println(control + " get io() " + this.io);
         return this.io.load(IOType.INSTANCE);
     }
 
     public void mergeFrom(Frame inbound) {
-        System.err.println( "merge frame=" + this.id + " from " + inbound.id);
         for (int i = 0; i < this.locals.length; ++i) {
             if (this.locals[i] == null) {
-                System.err.println( " actual merge: " + i + " = " + inbound.locals[i]);
                 if ( inbound.locals[i] != null ) {
                     this.locals[i] = inbound.locals[i].duplicate();
                 }
@@ -148,22 +137,14 @@ public class Frame {
         }
         this.stack.clear();
         this.stack.addAll(inbound.stack);
-        //if ( ! ( this.io instanceof Local.PhiLocal<?>)) {
         if ( this.returnValue == null && inbound.returnValue != null) {
             this.returnValue = inbound.returnValue.duplicate();
         }
         if (this.io == null) {
-            System.err.println("merge io " + this.control + " from " + inbound + " // " + inbound.io);
             this.io = inbound.io.duplicate();
-        } else {
-            System.err.println("NOT merge io " + this.control + " from " + inbound + " // " + this.io);
         }
-        //if ( ! ( this.memory instanceof Local.PhiLocal<?>)) {
         if (this.memory == null) {
-            System.err.println("merge memory " + this.control + " from " + inbound + " // " + inbound.memory);
             this.memory = inbound.memory.duplicate();
-        } else {
-            System.err.println("NOT merge memory " + this.control + " from " + inbound + " // " + this.memory);
         }
     }
 

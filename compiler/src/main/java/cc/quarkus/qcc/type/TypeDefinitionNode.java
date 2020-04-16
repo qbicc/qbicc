@@ -70,15 +70,12 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
 
     @Override
     public MethodDefinition getMethod(String name, String desc) {
-        System.err.println("my methods: " + this.methods);
         for (MethodNode each : this.methods) {
-            System.err.println("compare: " + name + "/" + desc + " vs " + each.name + "/" + each.desc);
             if ( each.name.equals(name) && each.desc.equals(desc)) {
                 return (MethodDefinition) each;
             }
         }
         throw new RuntimeException("Unresolved method " + name + desc);
-        //return null;
     }
 
     @Override

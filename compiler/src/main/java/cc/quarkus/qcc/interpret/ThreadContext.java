@@ -10,7 +10,6 @@ public class ThreadContext implements Context {
 
     @Override
     public void set(Node<?> node, Value<?> value) {
-        System.err.println( "bind: " +node + " = " + value);
         this.bindings.put(node, value);
     }
 

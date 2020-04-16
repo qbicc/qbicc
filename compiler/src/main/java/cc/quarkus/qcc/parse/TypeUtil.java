@@ -15,11 +15,7 @@ public class TypeUtil {
         }
         if ( type instanceof ObjectType ) {
             if ( ((ObjectType) type).isAssignableFrom(val.getType())) {
-                System.err.println( "apparently I can");
                 return (Node<T>) val;
-            } else {
-                // not assignable
-                System.err.println("not assignable");
             }
         }
 

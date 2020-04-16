@@ -32,7 +32,6 @@ public class ObjectType implements ConcreteType<ObjectValue> {
     }
 
     public boolean isAssignableFrom(Type type) {
-        System.err.println( "can I be assigned from " + type);
         return true;
     }
 

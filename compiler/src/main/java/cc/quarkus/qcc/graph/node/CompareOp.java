@@ -24,27 +24,5 @@ public enum CompareOp {
         return this.label;
     }
 
-    /*
-    public <T extends Value<?> & Comparable<T>> BooleanValue compare(T lhsValue, T rhsValue) {
-        int result = lhsValue.compareTo(rhsValue);
-        System.err.println( "COMPOP " + lhsValue + " " + this + " " + rhsValue);
-        switch (this) {
-            case EQUAL:
-                return of(result == 0);
-            case NOT_EQUAL:
-                return of(result != 0);
-            case LESS_THAN:
-                return of(result < 0);
-            case LESS_THAN_OR_EQUAL:
-                return of(result <= 0);
-            case GREATER_THAN:
-                return of(result > 0);
-            case GREATER_THAN_OR_EQUAL:
-                return of(result >= 0);
-        }
-        return BooleanValue.FALSE;
-    }
-     */
-
     private final String label;
 }

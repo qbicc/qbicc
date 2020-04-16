@@ -41,28 +41,23 @@ public class Thread implements Context {
         next.addAll(graph.getStart().getSuccessors());
 
         ControlNode<?> control = null;
-        System.err.println( "INIT FOO: " + graph.getStart().getSuccessors());
 
         //ready.add( graph.getStart() );
         try {
             while ( ! next.isEmpty() ) {
-                System.err.println( "NEXT: " + next + " // " + nextControl);
                 prevControl = control;
                 control = nextControl;
-                System.err.println( "control -> " + control + " >> " + next);
-                ControlNode curControl = control;
+                ControlNode<?> curControl = control;
                 worklist.addAll(next.stream().filter(e->e.getControlPredecessors().contains(curControl)).collect(Collectors.toList()));
                 next.clear();
                 while (!worklist.isEmpty()) {
                     Node<?> cur = worklist.pop();
                     if (!isReady(prevControl, cur)) {
-                        System.err.println( "move " + cur + " to waiting");
                         waiting.add(cur);
                         continue;
                     }
 
                     Value<?> val = getValue(prevControl, cur);
-                    System.err.println("process: " + cur + " > " + val);
                     if (val != null) {
                         set(cur, val);
                         if ( val instanceof EndValue ) {
@@ -70,14 +65,12 @@ public class Thread implements Context {
                         }
                         if ( cur instanceof ControlNode ) {
                             nextControl = (ControlNode<?>) cur;
-                            System.err.println( "NEXT CONTROL: " + nextControl);
                         }
                         next.addAll(cur.getSuccessors());
                         ListIterator<Node<?>> iter = waiting.listIterator();
                         while (iter.hasNext()) {
                             Node<?> each = iter.next();
                             if (isReady(prevControl, each)) {
-                                System.err.println("move " + each + " to ready");
                                 //ready.add(each);
                                 worklist.push(each);
                                 iter.remove();
@@ -96,14 +89,12 @@ public class Thread implements Context {
 
     protected Value<?> getValue(ControlNode<?> discriminator, Node<?> node) {
         if ( node instanceof PhiNode ) {
-            System.err.println( "PHI inbound " + node + " is " + ((PhiNode)node).getValue(discriminator));
             return ((PhiNode<?>) node).getValue(discriminator).getValue(peekContext());
         }
         return node.getValue(peekContext());
     }
 
     protected boolean isReady(ControlNode<?> discriminator, Node<?> node) {
-        System.err.println( "is ready? " + node);
         if ( node instanceof RegionNode ) {
             return isRegionReady((RegionNode) node);
         }
@@ -111,7 +102,6 @@ public class Thread implements Context {
             return isPhiReady(discriminator, (PhiNode<?>) node);
         }
         Optional<Node<?>> firstMissing = node.getPredecessors().stream().filter(e -> get(e) == null).findFirst();
-        firstMissing.ifPresent(value -> System.err.println("missing: " + value));
         return ! firstMissing.isPresent();
     }
 
@@ -121,7 +111,6 @@ public class Thread implements Context {
     }
 
     protected boolean isPhiReady(ControlNode<?> discriminator, PhiNode<?> node) {
-        System.err.println( "phi discrim: " + discriminator + " > " + node );
         return peekContext().get(node.getValue(discriminator)) != null;
         //return false;
     }

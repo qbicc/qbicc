@@ -1,17 +1,13 @@
 package cc.quarkus.qcc.parse;
 
 import java.util.ArrayDeque;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import javax.naming.ldap.Control;
-
 import cc.quarkus.qcc.graph.node.ControlNode;
-import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.node.StartNode;
 
@@ -22,7 +18,6 @@ public class ControlFlowHelper {
     }
 
     public void control(int startBci, ControlNode<?> control) {
-        System.err.println("reg: bci=" + startBci + " / control=" + control);
         this.controls.put(startBci, control);
     }
 
@@ -31,13 +26,10 @@ public class ControlFlowHelper {
     }
 
     public void add(int bci, ControlNode<?> input) {
-        System.err.println( "add dest bci=" + bci + " from control=" + input);
         ControlNode<?> dest = control(bci);
         if (dest == null) {
             dest = new RegionNode(input.frame().maxLocals(), input.frame().maxStack());
             control(bci, dest);
-        } else {
-            System.err.println( "dest is: " + dest);
         }
         dest.addInput(input);
     }

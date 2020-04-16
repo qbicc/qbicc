@@ -50,7 +50,6 @@ public abstract class Local<T extends Type<?>> {
 
         @Override
         public <J extends Type<?>> Node<J> load(J type) {
-            System.err.println("load: " + type + " > " + this.val);
             return TypeUtil.checkType(this.val, type);
         }
 
@@ -82,7 +81,6 @@ public abstract class Local<T extends Type<?>> {
         @Override
         public <J extends Type<?>> Node<J> load(J type) {
             if (!this.killed) {
-                //return TypeUtil.checkType(new PhiNode<>(this.control, type, this), type);
                 return TypeUtil.checkType(this.phi, type);
             }
             return super.load(type);
@@ -110,14 +108,10 @@ public abstract class Local<T extends Type<?>> {
         }
 
         public void complete() {
-            System.err.println("**************************");
-            System.err.println("complete: " + this.type + " in " + this.control);
             List<ControlNode<?>> discriminators = this.control.getControlPredecessors();
 
             for (ControlNode<?> discriminator : discriminators) {
-                System.err.println("discriminator: " + discriminator + " for " + this.index + " " + discriminator.frame().local(this.index));
                 Node<Type<?>> inbound = discriminator.frame().get(this.index, AnyType.INSTANCE);
-                System.err.println( "---> " + inbound + " // " + inbound.getId() );
                 this.phi.addPredecessor(inbound);
                 this.values.put(discriminator, inbound);
             }

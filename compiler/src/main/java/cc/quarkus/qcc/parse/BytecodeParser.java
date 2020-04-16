@@ -142,12 +142,10 @@ public class BytecodeParser {
         for (int bci = 0; bci < instrLen; ++bci) {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
-            System.err.println(bci + " : " + Mnemonics.of(opcode));
 
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
                 int destIndex = instrList.indexOf(dest);
-                System.err.println("jump to: " + destIndex);
                 links.control(destIndex, new RegionNode(this.start.frame().maxLocals(), this.start.frame().maxStack()));
             }
         }
@@ -415,19 +413,13 @@ public class BytecodeParser {
         Set<Local.PhiLocal<?>> phis = new HashSet<>();
         phiPlacements.forEach((node, entries) -> {
             Set<ControlNode<?>> df = links.dominanceFrontier(node);
-            System.err.println("PHI NODE: " + node + " df=" + df);
 
             for (PhiPlacements.Entry entry : entries) {
                 for (ControlNode<?> dest : df) {
-                    //if ( dest != this.end ) {
-                    System.err.println("INSERT PHI: " + node + " > " + entry.index + " into " + dest + " of " + entry.type + " into " + dest);
                     phis.add(dest.frame().ensurePhi(entry.index, node, entry.type));
-                    //}
                 }
             }
         });
-
-        //System.err.println("PHI: " + phis);
 
         return phis;
     }
@@ -462,8 +454,6 @@ public class BytecodeParser {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
 
-            System.err.println("execute: " + bci + " " + Mnemonics.of(opcode));
-
             ControlNode<?> candidate = links.control(bci);
             if (candidate != null) {
                 if (control() != null) {
@@ -482,8 +472,6 @@ public class BytecodeParser {
                 }
                 control(candidate);
             }
-
-            System.err.println( "control() " + control());
 
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
@@ -513,28 +501,18 @@ public class BytecodeParser {
                             Node<IntType> rhs = pop(IntType.INSTANCE);
                             Node<IntType> lhs = pop(IntType.INSTANCE);
                             node = (IfNode) links.control(bci);
-                            System.err.println( "IFF LHS: " + lhs);
-                            System.err.println( "IFF RHS: " + rhs);
                             node.addPredecessor(lhs);
                             node.addPredecessor(rhs);
                             break;
                         }
                         default: {
-                            System.err.println("unhandled: " + Mnemonics.of(opcode));
+                            if ( opcode >= 0 ) {
+                                System.err.println("unhandled: " + Mnemonics.of(opcode) + " " + opcode);
+                            }
                         }
                     }
 
                     assert node != null;
-                    //node.addInput(control());
-                    //node.getTrueOut().frame().merge(control().frame());
-                    //node.getFalseOut().frame().merge(control().frame());
-
-                    //control(destIndex, node.getTrueOut());
-                    //control(bci + 1, node.getFalseOut());
-
-                    //node.getFalseOut().frame().merge(control().frame());
-                    //node.getFalseOut().addInput(control());
-                    //control(node.getFalseOut());
                 }
             } else {
                 if (links.control(bci) != null) {
@@ -678,7 +656,6 @@ public class BytecodeParser {
                     case INVOKESPECIAL:
                     case INVOKESTATIC:
                     case INVOKEVIRTUAL: {
-                        System.err.println("INVOKE");
                         MethodDescriptorParser parser = new MethodDescriptorParser(Universe.instance(),
                                                                                    Universe.instance().findClass(((MethodInsnNode) instr).owner),
                                                                                    ((MethodInsnNode) instr).name,
@@ -744,7 +721,9 @@ public class BytecodeParser {
                     }
 
                     default: {
-                        System.err.println("unknown bytecode: " + Mnemonics.of(opcode));
+                        if ( opcode >= 0 ) {
+                            System.err.println("unhandled: " + Mnemonics.of(opcode) + " " + opcode);
+                        }
                     }
                 }
             }

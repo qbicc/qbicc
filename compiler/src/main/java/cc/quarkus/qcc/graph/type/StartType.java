@@ -8,9 +8,6 @@ public class StartType implements Type<StartValue> {
         this.maxLocals = maxLocals;
         this.maxStack = maxStack;
         this.paramTypes = paramTypes;
-        for ( ConcreteType<?> param : paramTypes) {
-            System.err.println( "param: " + param);
-        }
     }
 
     @Override

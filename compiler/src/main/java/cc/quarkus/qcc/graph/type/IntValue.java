@@ -15,7 +15,6 @@ public class IntValue implements Value<IntType> {
 
     @Override
     public boolean compare(CompareOp op, Value<IntType> other) {
-        System.err.println( "COMPOP " + this + " " + op + " " + other);
         if ( other instanceof IntValue ) {
             switch ( op ) {
                 case EQUAL:
