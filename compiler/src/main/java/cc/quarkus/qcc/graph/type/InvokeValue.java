@@ -1,21 +1,16 @@
 package cc.quarkus.qcc.graph.type;
 
-public class StartValue implements Value<StartType>, IOSource, MemorySource {
+public class InvokeValue implements Value<InvokeType>, IOSource, MemorySource {
 
-    public StartValue(StartType type, Value<?>...arguments) {
+    public InvokeValue(InvokeType type) {
         this.type = type;
-        this.arguments = arguments;
         this.io = new IOValue();
         this.memory = new MemoryValue();
     }
 
     @Override
-    public StartType getType() {
+    public InvokeType getType() {
         return this.type;
-    }
-
-    public Value<?> getArgument(int index) {
-        return this.arguments[index];
     }
 
     @Override
@@ -28,8 +23,9 @@ public class StartValue implements Value<StartType>, IOSource, MemorySource {
         return this.memory;
     }
 
-    private final StartType type;
-    private final Value<?>[] arguments;
+    private final InvokeType type;
+
     private final IOValue io;
+
     private final MemoryValue memory;
 }

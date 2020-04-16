@@ -4,7 +4,7 @@ import cc.quarkus.qcc.graph.type.ControlType;
 import cc.quarkus.qcc.graph.type.Type;
 import cc.quarkus.qcc.parse.Frame;
 
-public abstract class ControlNode<T extends Type> extends Node<T> {
+public abstract class ControlNode<T extends Type<?>> extends Node<T> {
     protected ControlNode(ControlNode<?> control, T outType) {
         super(control, outType);
         System.err.println( "--> " + control);

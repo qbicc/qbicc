@@ -12,6 +12,10 @@ public abstract class IfNode extends ControlNode<IfType> {
         this.op = op;
     }
 
+    public CompareOp getOp() {
+        return this.op;
+    }
+
     public IfTrueProjection getTrueOut() {
         return this.ifTrueOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IfTrueProjection(this )));
     }

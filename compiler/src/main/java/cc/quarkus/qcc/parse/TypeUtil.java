@@ -9,7 +9,7 @@ import cc.quarkus.qcc.graph.type.Type;
 
 public class TypeUtil {
     @SuppressWarnings("unchecked")
-    public static <T extends Type> Node<T> checkType(Node<?> val, Type type) {
+    public static <T extends Type<?>> Node<T> checkType(Node<?> val, Type type) {
         if ( type == AnyType.INSTANCE ) {
             return (Node<T>) val;
         }

@@ -15,8 +15,8 @@ public interface Type<T extends Value<?>> {
         }
 
         for ( int i = 0 ; i < args.length ; ++i ) {
-            if ( ! types[i].isAssignableFrom(args.getClass()))  {
-                throw new IllegalArgumentException( "argument " + i + " should be of type " + types[i]);
+            if ( ! types[i].isAssignableFrom(args[i].getClass()))  {
+                throw new IllegalArgumentException( "argument " + i + " should be of type " + types[i] + " but was " + args[0] );
             }
         }
     }
@@ -36,7 +36,7 @@ public interface Type<T extends Value<?>> {
     }
 
     @SuppressWarnings("unchecked")
-    default <T extends Type> Node<T> coerce(Node<?> node) {
+    default <T extends Type<?>> Node<T> coerce(Node<?> node) {
         if ( node.getType() == this ) {
             System.err.println( "COERCE: " + node.getType() + " vs " + this);
             return (Node<T>) node;

@@ -510,9 +510,11 @@ public class BytecodeParser {
                             break;
                         }
                         case IF_ICMPGE: {
-                            Node<IntType> lhs = pop(IntType.INSTANCE);
                             Node<IntType> rhs = pop(IntType.INSTANCE);
+                            Node<IntType> lhs = pop(IntType.INSTANCE);
                             node = (IfNode) links.control(bci);
+                            System.err.println( "IFF LHS: " + lhs);
+                            System.err.println( "IFF RHS: " + rhs);
                             node.addPredecessor(lhs);
                             node.addPredecessor(rhs);
                             break;

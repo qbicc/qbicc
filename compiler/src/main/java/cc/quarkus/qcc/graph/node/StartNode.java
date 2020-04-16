@@ -4,7 +4,10 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.StartType;
+import cc.quarkus.qcc.graph.type.StartValue;
 import cc.quarkus.qcc.graph.type.Value;
+import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.interpret.Thread;
 
 public class StartNode extends ControlNode<StartType> {
 
@@ -27,6 +30,11 @@ public class StartNode extends ControlNode<StartType> {
     @Override
     public void addPredecessor(Node<?> in) {
         // no-op
+    }
+
+    @Override
+    public Value<?> getValue(Context context) {
+        return context.get(this);
     }
 
     @Override

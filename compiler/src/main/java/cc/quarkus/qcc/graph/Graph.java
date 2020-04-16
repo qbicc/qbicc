@@ -37,7 +37,7 @@ public class Graph<T extends ConcreteType<?>> {
     }
 
     public void execute(StartValue context) {
-        this.start.receive(context);
+        //this.start.receive(context);
     }
 
     private void walk(List<Node<?>> order, Set<Node<?>> seen, Node<?> node) {

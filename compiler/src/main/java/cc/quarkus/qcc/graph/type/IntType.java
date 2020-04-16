@@ -19,7 +19,7 @@ public class IntType implements ConcreteType<IntValue> {
     }
 
     @Override
-    public <T extends Type> Node<T> coerce(Node<?> node) {
+    public <T extends Type<?>> Node<T> coerce(Node<?> node) {
         if ( node.getType() instanceof ByteType ) {
             return new WidenNode<T>(node.getControlPredecessors().iterator().next(), node, (T) ByteType.INSTANCE);
         }

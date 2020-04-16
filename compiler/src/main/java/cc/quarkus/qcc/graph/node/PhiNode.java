@@ -6,10 +6,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.graph.type.Type;
+import cc.quarkus.qcc.graph.type.Value;
+import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.parse.BytecodeParser;
 import cc.quarkus.qcc.parse.Local;
 
-public class PhiNode<T extends Type> extends Node<T> {
+public class PhiNode<T extends Type<?>> extends Node<T> {
 
     public PhiNode(ControlNode<?> control, T outType, Local.PhiLocal local) {
         super(control, outType);
@@ -20,18 +22,22 @@ public class PhiNode<T extends Type> extends Node<T> {
     @Override
     public String label() {
         if ( this.local.getIndex() == BytecodeParser.SLOT_RETURN ) {
-            return "<phi> return";
+            return getId() + ": <phi> return";
         } else if ( this.local.getIndex() == BytecodeParser.SLOT_IO ) {
-            return "<phi> i/o";
+            return getId() + ": <phi> i/o";
         } else if ( this.local.getIndex() == BytecodeParser.SLOT_MEMORY ) {
-            return "<phi> memory";
+            return getId() + ": <phi> memory";
         }
-        return "<phi> " + this.id;
+        return getId() + ": <phi>";
     }
 
     @Override
     public String toString() {
         return label();
+    }
+
+    public Node<?> getValue(ControlNode<?> discriminator) {
+        return this.local.getValue(discriminator);
     }
 
     private final Local.PhiLocal<T> local;

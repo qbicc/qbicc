@@ -8,8 +8,10 @@ import java.util.stream.Collectors;
 import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.Type;
 import cc.quarkus.qcc.graph.type.Value;
+import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.interpret.Thread;
 
-public class Node<T extends Type> {
+public abstract class Node<T extends Type<?>> {
 
     protected Node(ControlNode<?> control, T outType) {
         this(outType);
@@ -26,13 +28,18 @@ public class Node<T extends Type> {
         in.addSuccessor(this);
     }
 
-    public <T extends Type> Node<T> tryCoerce(Type type) {
+    public <T extends Type<?>> Node<T> tryCoerce(Type<?> type) {
         if ( type == getType() ) {
             System.err.println( "tryCoerce 1");
             return (Node<T>) this;
         }
         System.err.println( "tryCoerce 2");
         return type.coerce(this);
+    }
+
+
+    public Value<?> getValue(Context context)  {
+        return null;
     }
 
     private void addSuccessor(Node<?> out) {
@@ -57,13 +64,6 @@ public class Node<T extends Type> {
 
     public T getType() {
         return this.outType;
-    }
-
-    public <J extends Type> Node<J> getOut(J type) {
-        if ( type == this.outType ) {
-            return (Node<J>) this;
-        }
-        return null;
     }
 
     public int getId() {
@@ -101,19 +101,9 @@ public class Node<T extends Type> {
 
     }
 
-    protected <T extends Type> void removeSuccessor(PhiNode<T> node) {
+    protected <T extends Type<?>> void removeSuccessor(PhiNode<T> node) {
         System.err.println( this + " remove successor " + node);
         this.successors.remove(node);
-    }
-
-    public void receive(Value<?> value) {
-        for (Node<?> successor : getSuccessors()) {
-            successor.receive(process(value));
-        }
-    }
-
-    public Value<?> process(Value<?> value) {
-        return value;
     }
 
     private final List<Node<?>> predecessors = new ArrayList<>();

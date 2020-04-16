@@ -78,7 +78,7 @@ public class Frame {
         return this.locals[index].load(type);
     }
 
-    public <T extends Type> Node<T> get(int index, T type) {
+    public <T extends Type<?>> Node<T> get(int index, T type) {
         System.err.println(this.id + " get " + type + " @ " + index);
         if ( index == BytecodeParser.SLOT_RETURN ) {
             return this.returnValue.get(type);

@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.InvokeType;
 import cc.quarkus.qcc.type.MethodDescriptor;
 
@@ -20,7 +21,7 @@ public class InvokeNode extends ControlNode<InvokeType> {
         return this.normalControlOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new NormalControlProjection(this)));
     }
 
-    public ResultProjection<?> getResultOut() {
+    public ResultProjection<? extends ConcreteType<?>> getResultOut() {
         return this.resultOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ResultProjection<>(this, getType().getReturnType())));
     }
 
@@ -38,7 +39,7 @@ public class InvokeNode extends ControlNode<InvokeType> {
     }
 
     private AtomicReference<NormalControlProjection> normalControlOut = new AtomicReference<>();
-    private AtomicReference<ResultProjection<?>> resultOut = new AtomicReference<>();
+    private AtomicReference<ResultProjection<? extends ConcreteType<?>>> resultOut = new AtomicReference<>();
     private AtomicReference<IOProjection> ioOut = new AtomicReference<>();
     private AtomicReference<MemoryProjection> memoryOut = new AtomicReference<>();
     private AtomicReference<ThrowProjection> throwOut = new AtomicReference<>();

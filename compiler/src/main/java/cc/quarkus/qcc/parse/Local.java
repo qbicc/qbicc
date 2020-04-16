@@ -1,16 +1,17 @@
 package cc.quarkus.qcc.parse;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.PhiNode;
 import cc.quarkus.qcc.graph.type.AnyType;
-import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.Type;
 
-public abstract class Local<T extends Type> {
+public abstract class Local<T extends Type<?>> {
 
     public Local(ControlNode<?> control, int index) {
         this.control = control;
@@ -21,11 +22,11 @@ public abstract class Local<T extends Type> {
         return this.index;
     }
 
-    public abstract <J extends Type> void store(Node<J> val);
+    public abstract <J extends Type<?>> void store(Node<J> val);
 
-    public abstract <J extends Type> Node<J> load(J type);
+    public abstract <J extends Type<?>> Node<J> load(J type);
 
-    public abstract <J extends Type> Node<J> get(J type);
+    public abstract <J extends Type<?>> Node<J> get(J type);
 
     public abstract Local<T> duplicate();
 
@@ -35,25 +36,25 @@ public abstract class Local<T extends Type> {
 
     protected ControlNode<?> control;
 
-    public static class SimpleLocal<T extends Type> extends Local<T> {
+    public static class SimpleLocal<T extends Type<?>> extends Local<T> {
 
         public SimpleLocal(ControlNode<?> control, int index) {
             super(control, index);
         }
 
         @Override
-        public <J extends Type> void store(Node<J> val) {
+        public <J extends Type<?>> void store(Node<J> val) {
             this.val = val;
             this.killed = true;
         }
 
         @Override
-        public <J extends Type> Node<J> load(J type) {
+        public <J extends Type<?>> Node<J> load(J type) {
             System.err.println("load: " + type + " > " + this.val);
             return TypeUtil.checkType(this.val, type);
         }
 
-        public <J extends Type> Node<J> get(J type) {
+        public <J extends Type<?>> Node<J> get(J type) {
             return load(type);
         }
 
@@ -71,7 +72,7 @@ public abstract class Local<T extends Type> {
         protected Node<?> val;
     }
 
-    public static class PhiLocal<T extends Type> extends SimpleLocal<T> {
+    public static class PhiLocal<T extends Type<?>> extends SimpleLocal<T> {
         public PhiLocal(ControlNode<?> control, int index, T type) {
             super(control, index);
             this.phi = new PhiNode<>(this.control, type, this);
@@ -79,7 +80,7 @@ public abstract class Local<T extends Type> {
         }
 
         @Override
-        public <J extends Type> Node<J> load(J type) {
+        public <J extends Type<?>> Node<J> load(J type) {
             if (!this.killed) {
                 //return TypeUtil.checkType(new PhiNode<>(this.control, type, this), type);
                 return TypeUtil.checkType(this.phi, type);
@@ -87,12 +88,12 @@ public abstract class Local<T extends Type> {
             return super.load(type);
         }
 
-        public <J extends Type> Node<J> get(J type) {
+        public <J extends Type<?>> Node<J> get(J type) {
             return super.load(type);
         }
 
         @Override
-        public <J extends Type> void store(Node<J> val) {
+        public <J extends Type<?>> void store(Node<J> val) {
             super.store(val);
             if (this.inputs.contains(val.getControlPredecessors().iterator().next())) {
                 this.killed = false;
@@ -115,10 +116,15 @@ public abstract class Local<T extends Type> {
 
             for (ControlNode<?> discriminator : discriminators) {
                 System.err.println("discriminator: " + discriminator + " for " + this.index + " " + discriminator.frame().local(this.index));
-                Node<Type> inbound = discriminator.frame().get(this.index, AnyType.INSTANCE);
+                Node<Type<?>> inbound = discriminator.frame().get(this.index, AnyType.INSTANCE);
                 System.err.println( "---> " + inbound + " // " + inbound.getId() );
                 this.phi.addPredecessor(inbound);
+                this.values.put(discriminator, inbound);
             }
+        }
+
+        public Node<?> getValue(ControlNode<?> discriminator) {
+            return this.values.get(discriminator);
         }
 
         public String toString() {
@@ -136,6 +142,7 @@ public abstract class Local<T extends Type> {
         private Type type;
 
         private List<ControlNode<?>> inputs = new ArrayList<>();
+        private Map<ControlNode<?>, Node<?>> values = new HashMap<>();
 
     }
 }

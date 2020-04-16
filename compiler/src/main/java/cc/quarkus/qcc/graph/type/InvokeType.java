@@ -4,7 +4,7 @@ import java.lang.reflect.Method;
 
 import cc.quarkus.qcc.type.MethodDescriptor;
 
-public class InvokeType implements Type {
+public class InvokeType implements Type<InvokeValue> {
     public InvokeType() {
 
     }

@@ -9,6 +9,13 @@ public class BooleanValue implements Value<BooleanType> {
         this.val = val;
     }
 
+    public static BooleanValue of(boolean bool) {
+        if ( bool ) {
+            return TRUE;
+        }
+        return FALSE;
+    }
+
     @Override
     public BooleanType getType() {
         return BooleanType.INSTANCE;
