@@ -538,6 +538,23 @@ public final class CNative {
         }
     }
 
+    /**
+     * The special type representing the platform-specific variable argument list.
+     */
+    public static final class va_list extends object {
+    }
+
+    /**
+     * Start the variable argument processing.  May only be called from methods which have a final
+     * variadic argument of type {@code object...}.
+     *
+     * @param ap the list to initialize
+     */
+    public static native void va_start(va_list ap);
+    public static native <T extends object> T va_arg(va_list ap, Class<T> type);
+    public static native void va_end(va_list ap);
+    public static native void va_copy(va_list dest, va_list src);
+
     // basic types
 
     @name("char")
