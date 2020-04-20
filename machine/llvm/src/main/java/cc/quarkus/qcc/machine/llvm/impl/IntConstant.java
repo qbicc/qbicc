@@ -10,6 +10,6 @@ final class IntConstant extends AbstractValue {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendHex(target.append("0x"), value);
+        return appendDecimal(target, value);
     }
 }

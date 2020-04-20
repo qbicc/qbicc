@@ -83,4 +83,9 @@ abstract class AbstractEmittable implements Emittable {
         }
         return target;
     }
+
+    static <A extends Appendable> A appendDecimal(A target, long val) throws IOException {
+        target.append(Long.toString(val));
+        return target;
+    }
 }
