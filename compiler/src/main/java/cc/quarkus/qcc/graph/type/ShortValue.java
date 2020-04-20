@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class ShortValue implements Value<ShortType> {
+public class ShortValue implements Value<ShortType, ShortValue> {
 
     public ShortValue(short val) {
         this.val = val;

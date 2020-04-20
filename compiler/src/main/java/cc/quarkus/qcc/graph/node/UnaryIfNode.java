@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.graph.node;
 
-import cc.quarkus.qcc.graph.type.IntType;
-
 public class UnaryIfNode extends IfNode {
 
     /*
@@ -11,7 +9,7 @@ public class UnaryIfNode extends IfNode {
     }
      */
 
-    public UnaryIfNode(ControlNode<?> control, CompareOp op) {
+    public UnaryIfNode(AbstractControlNode<?> control, CompareOp op) {
         super(control, op);
     }
 }

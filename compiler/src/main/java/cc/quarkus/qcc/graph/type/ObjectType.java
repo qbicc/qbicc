@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import cc.quarkus.qcc.type.Core;
 import cc.quarkus.qcc.type.TypeDefinition;
 
-public class ObjectType implements ConcreteType<ObjectValue> {
+public class ObjectType implements ConcreteType<ObjectType> {
 
     public static class java {
         public static class lang {

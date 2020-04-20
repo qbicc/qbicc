@@ -1,6 +1,9 @@
 package cc.quarkus.qcc.graph.node;
 
 import cc.quarkus.qcc.graph.type.BooleanValue;
+import cc.quarkus.qcc.graph.type.IfValue;
+import cc.quarkus.qcc.graph.type.NumericType;
+import cc.quarkus.qcc.graph.type.NumericValue;
 import cc.quarkus.qcc.graph.type.Type;
 import cc.quarkus.qcc.graph.type.Value;
 
@@ -22,6 +25,25 @@ public enum CompareOp {
 
     public String label() {
         return this.label;
+    }
+
+    public <C extends Comparable<C>> boolean execute(C lhsValue, C rhsValue) {
+        int result = lhsValue.compareTo(rhsValue);
+        switch ( this ) {
+            case EQUAL:
+                return result == 0;
+            case NOT_EQUAL:
+                return result != 0;
+            case LESS_THAN:
+                return result < 0;
+            case LESS_THAN_OR_EQUAL:
+                return result <= 0;
+            case GREATER_THAN:
+                return result > 0;
+            case GREATER_THAN_OR_EQUAL:
+                return result >= 0;
+        }
+        throw new UnsupportedOperationException("should not reach here");
     }
 
     private final String label;

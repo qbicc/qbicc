@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class FloatValue implements Value<FloatType> {
+public class FloatValue implements Value<FloatType, FloatValue> {
 
     public FloatValue(float val) {
         this.val = val;

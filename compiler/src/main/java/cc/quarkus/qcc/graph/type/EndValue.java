@@ -1,8 +1,8 @@
 package cc.quarkus.qcc.graph.type;
 
-public class EndValue implements Value<EndType<?>> {
+public class EndValue<T extends ConcreteType<T>> implements Value<EndType<T>, EndValue<T>> {
 
-    public EndValue(EndType<?> type, IOValue io, MemoryValue memory, Value<?> returnValue) {
+    public EndValue(EndType<T> type, IOValue io, MemoryValue memory, Value<T,?> returnValue) {
         this.type = type;
         this.io = io;
         this.memory = memory;
@@ -10,7 +10,7 @@ public class EndValue implements Value<EndType<?>> {
     }
 
     @Override
-    public EndType<?> getType() {
+    public EndType<T> getType() {
         return this.type;
     }
 
@@ -24,11 +24,11 @@ public class EndValue implements Value<EndType<?>> {
                 '}';
     }
 
-    private final EndType<?> type;
+    private final EndType<T> type;
 
     private final IOValue io;
 
     private final MemoryValue memory;
 
-    private final Value<?> returnValue;
+    private final Value<T,?> returnValue;
 }

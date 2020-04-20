@@ -1,21 +1,43 @@
 package cc.quarkus.qcc.graph.node;
 
+import java.util.List;
+
 import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.EndType;
+import cc.quarkus.qcc.graph.type.EndValue;
 import cc.quarkus.qcc.graph.type.IOValue;
 import cc.quarkus.qcc.graph.type.MemoryValue;
 import cc.quarkus.qcc.graph.type.Value;
 import cc.quarkus.qcc.interpret.Context;
 
-public class EndNode<T extends ConcreteType<?>> extends Node<EndType<T>> {
-    public EndNode(ControlNode<?> control, T returnType) {
-        super(control, new EndType<>(returnType));
+public class EndNode<T extends ConcreteType<T>> extends AbstractNode<EndType<T>, EndValue<T>> {
+
+    public EndNode(ControlNode<?,?> control, T returnType) {
+        super(control, new EndType<T>(returnType));
+    }
+
+    /*
+    @Override
+    public Value getValue(Context context) {
+        return null;
+    }
+     */
+
+    @Override
+    public EndValue<T> getValue(Context context) {
+        return null;
+    }
+
+    @Override
+    public List<? extends Node<?, ?>> getPredecessors() {
+        return null;
     }
 
     public String label() {
         return "<end>";
     }
 
+    /*
     @Override
     public Value<?> getValue(Context context) {
         //for (Node<?> predecessor : getPredecessors()) {
@@ -27,4 +49,5 @@ public class EndNode<T extends ConcreteType<?>> extends Node<EndType<T>> {
 
         return getType().newInstance(io, memory, returnValue);
     }
+     */
 }

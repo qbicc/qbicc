@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class FunctionType<T extends Type> implements Type {
+public class FunctionType<T extends Type<T>> implements Type<T> {
 
     public FunctionType(T returnType) {
         this.returnType = returnType;

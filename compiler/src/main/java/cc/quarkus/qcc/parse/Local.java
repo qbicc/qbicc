@@ -8,12 +8,15 @@ import java.util.Map;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.PhiNode;
+import cc.quarkus.qcc.graph.node.PhiOwner;
+import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.type.AnyType;
 import cc.quarkus.qcc.graph.type.Type;
+import cc.quarkus.qcc.graph.type.Value;
 
-public abstract class Local<T extends Type<?>> {
+public abstract class Local {
 
-    public Local(ControlNode<?> control, int index) {
+    public Local(ControlNode<?,?> control, int index) {
         this.control = control;
         this.index = index;
     }
@@ -22,38 +25,38 @@ public abstract class Local<T extends Type<?>> {
         return this.index;
     }
 
-    public abstract <J extends Type<?>> void store(Node<J> val);
+    public abstract void store(Node<?,?> val);
 
-    public abstract <J extends Type<?>> Node<J> load(J type);
+    public abstract Node<?,?> load(Type<?> type);
 
-    public abstract <J extends Type<?>> Node<J> get(J type);
+    public abstract Node<?, ?> get(Type<?> type);
 
-    public abstract Local<T> duplicate();
+    public abstract Local duplicate();
 
     protected final int index;
 
     protected boolean killed;
 
-    protected ControlNode<?> control;
+    protected ControlNode<?,?> control;
 
-    public static class SimpleLocal<T extends Type<?>> extends Local<T> {
+    public static class SimpleLocal extends Local {
 
-        public SimpleLocal(ControlNode<?> control, int index) {
+        public SimpleLocal(ControlNode<?,?> control, int index) {
             super(control, index);
         }
 
         @Override
-        public <J extends Type<?>> void store(Node<J> val) {
+        public  void store(Node<?,?> val) {
             this.val = val;
             this.killed = true;
         }
 
         @Override
-        public <J extends Type<?>> Node<J> load(J type) {
+        public Node<?,?> load(Type<?> type) {
             return TypeUtil.checkType(this.val, type);
         }
 
-        public <J extends Type<?>> Node<J> get(J type) {
+        public Node<?,?> get(Type<?> type) {
             return load(type);
         }
 
@@ -62,62 +65,61 @@ public abstract class Local<T extends Type<?>> {
         }
 
         @Override
-        public Local<T> duplicate() {
-            SimpleLocal<T> dupe = new SimpleLocal<>(this.control, this.index);
+        public Local duplicate() {
+            SimpleLocal dupe = new SimpleLocal(this.control, this.index);
             dupe.val = this.val;
             return dupe;
         }
 
-        protected Node<?> val;
+        protected Node<?,?> val;
     }
 
-    public static class PhiLocal<T extends Type<?>> extends SimpleLocal<T> {
-        public PhiLocal(ControlNode<?> control, int index, T type) {
+    public static class PhiLocal extends SimpleLocal {
+        public <T extends ControlNode<?,?> & PhiOwner> PhiLocal(T control, int index, Type<?> type) {
             super(control, index);
-            this.phi = new PhiNode<>(this.control, type, this);
+            this.phi = new PhiNode(this.control, type, this);
             this.type = type;
         }
 
-        @Override
-        public <J extends Type<?>> Node<J> load(J type) {
+        PhiOwner getPhiOwner() {
+            return (PhiOwner) this.control;
+        }
+
+        public Node<?,?> load(Type<?> type) {
             if (!this.killed) {
                 return TypeUtil.checkType(this.phi, type);
             }
             return super.load(type);
         }
 
-        public <J extends Type<?>> Node<J> get(J type) {
+        public Node<?,?> get(Type<?> type) {
             return super.load(type);
         }
 
         @Override
-        public <J extends Type<?>> void store(Node<J> val) {
+        public void store(Node<?,?> val) {
             super.store(val);
-            if (this.inputs.contains(val.getControlPredecessors().iterator().next())) {
+            if ( this.inputs.contains(val.getControl())) {
                 this.killed = false;
             }
         }
 
-        public void addInput(ControlNode<?> control, Type type) {
+        public void addInput(ControlNode<?,?> control, Type<?> type) {
             this.type = this.type.join(type);
             this.inputs.add(control);
         }
 
-        public List<ControlNode<?>> getInputs() {
-            return this.inputs;
-        }
-
         public void complete() {
-            List<ControlNode<?>> discriminators = this.control.getControlPredecessors();
+            List<ControlNode<?,?>> discriminators = getPhiOwner().getInputs();
 
-            for (ControlNode<?> discriminator : discriminators) {
-                Node<Type<?>> inbound = discriminator.frame().get(this.index, AnyType.INSTANCE);
-                this.phi.addPredecessor(inbound);
+            for (ControlNode<?,?> discriminator : discriminators) {
+                Node<?,?> inbound = discriminator.frame().get(this.index, AnyType.INSTANCE);
+                this.phi.addInput(inbound);
                 this.values.put(discriminator, inbound);
             }
         }
 
-        public Node<?> getValue(ControlNode<?> discriminator) {
+        public Node<?,?> getValue(ControlNode<?,?> discriminator) {
             return this.values.get(discriminator);
         }
 
@@ -126,17 +128,15 @@ public abstract class Local<T extends Type<?>> {
         }
 
         @Override
-        public Local<T> duplicate() {
+        public Local duplicate() {
             // don't really duplicate.
             return this;
         }
 
-        private PhiNode<?> phi;
-
-        private Type type;
-
-        private List<ControlNode<?>> inputs = new ArrayList<>();
-        private Map<ControlNode<?>, Node<?>> values = new HashMap<>();
+        private PhiNode<?,?> phi;
+        private Type<?> type;
+        private List<ControlNode<?,?>> inputs = new ArrayList<>();
+        private Map<ControlNode<?,?>, Node<?,?>> values = new HashMap<>();
 
     }
 }

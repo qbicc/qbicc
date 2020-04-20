@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class MemoryType implements Type<MemoryValue> {
+public class MemoryType implements Type<MemoryType> {
     public static final MemoryType INSTANCE = new MemoryType();
 
     private MemoryType() {

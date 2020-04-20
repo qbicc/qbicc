@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class LongValue implements Value<LongType> {
+public class LongValue implements Value<LongType, LongValue> {
 
     public LongValue(long val) {
         this.val = val;

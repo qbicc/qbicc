@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class ControlValue implements Value<ControlType> {
+public final class ControlValue implements Value<ControlType,ControlValue> {
     @Override
     public ControlType getType() {
         return ControlType.INSTANCE;

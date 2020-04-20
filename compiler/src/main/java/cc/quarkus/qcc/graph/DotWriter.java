@@ -4,18 +4,11 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-import cc.quarkus.qcc.graph.node.ControlNode;
-import cc.quarkus.qcc.graph.node.Node;
-import cc.quarkus.qcc.graph.node.PhiNode;
-import cc.quarkus.qcc.graph.node.StartNode;
-import cc.quarkus.qcc.graph.type.ConcreteType;
-import cc.quarkus.qcc.graph.type.Type;
+import cc.quarkus.qcc.graph.node.AbstractControlNode;
+import cc.quarkus.qcc.graph.node.AbstractNode;
 
 public class DotWriter implements AutoCloseable {
 
@@ -39,19 +32,19 @@ public class DotWriter implements AutoCloseable {
         out.println("}");
     }
 
-    protected void writeNode(Node<?> node) {
+    protected void writeNode(AbstractNode<?> node) {
         if (this.seen.contains(node)) {
             return;
         }
         this.seen.add(node);
 
-        for (Node<?> successor : node.getSuccessors()) {
+        for (AbstractNode<?> successor : node.getSuccessors()) {
             writeNode(successor);
         }
 
         out.println(node.getId() + " [label=\"" + label(node) + "\",shape=" + shape(node) + ",style=\"" + style(node) + "\"];");
 
-        for (Node<?> successor : node.getSuccessors()) {
+        for (AbstractNode<?> successor : node.getSuccessors()) {
             writeEdge(node, successor);
         }
 
@@ -64,37 +57,37 @@ public class DotWriter implements AutoCloseable {
 
     }
 
-    protected String label(Node<?> node) {
+    protected String label(AbstractNode<?> node) {
         return node.label();
     }
 
-    protected String shape(Node<?> node) {
+    protected String shape(AbstractNode<?> node) {
         return "box";
     }
 
-    protected String style(Node<?> node) {
+    protected String style(AbstractNode<?> node) {
         return "normal";
     }
 
-    protected void writeEdge(Node<?> head, Node<?> tail) {
+    protected void writeEdge(AbstractNode<?> head, AbstractNode<?> tail) {
         out.println(head.getId() + " -> " + tail.getId() + " [color=" + color(head, tail) + ",style=" + style(head, tail) + "];");
     }
 
-    protected String color(Node<?> head, Node<?> tail) {
-        if ( head instanceof ControlNode ) {
+    protected String color(AbstractNode<?> head, AbstractNode<?> tail) {
+        if ( head instanceof AbstractControlNode) {
             return "blue";
         }
         return "black";
     }
 
-    protected String style(Node<?> head, Node<?> tail) {
-        if ( head instanceof ControlNode && ! ( tail instanceof ControlNode )) {
+    protected String style(AbstractNode<?> head, AbstractNode<?> tail) {
+        if ( head instanceof AbstractControlNode && ! ( tail instanceof AbstractControlNode)) {
             return "dotted";
         }
         return "solid";
     }
 
-    private Set<Node<?>> seen = new HashSet<>();
+    private Set<AbstractNode<?>> seen = new HashSet<>();
 
     private final PrintWriter out;
 }

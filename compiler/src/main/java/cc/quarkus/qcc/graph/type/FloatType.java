@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class FloatType implements ConcreteType<FloatValue> {
+public class FloatType implements ConcreteType<FloatType> {
 
     public static final FloatType INSTANCE = new FloatType();
 

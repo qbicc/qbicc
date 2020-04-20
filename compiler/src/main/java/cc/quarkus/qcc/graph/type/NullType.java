@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class NullType implements ConcreteType<NullValue> {
+public class NullType implements ConcreteType<NullType> {
 
     public static final NullType INSTANCE = new NullType();
 

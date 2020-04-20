@@ -4,10 +4,11 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 import cc.quarkus.qcc.graph.type.IfType;
+import cc.quarkus.qcc.graph.type.IfValue;
 
-public abstract class IfNode extends ControlNode<IfType> {
+public abstract class IfNode extends AbstractControlNode<IfType, IfValue> {
 
-    public IfNode(ControlNode<?> control, CompareOp op) {
+    public IfNode(ControlNode<?,?> control, CompareOp op) {
         super(control, IfType.INSTANCE);
         this.op = op;
     }

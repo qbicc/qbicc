@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph.type;
 
 import cc.quarkus.qcc.graph.node.CompareOp;
 
-public class IntValue implements Value<IntType> {
+public class IntValue implements NumericValue<IntType, IntValue> {
 
     public IntValue(int val) {
         this.val = val;
@@ -14,31 +14,50 @@ public class IntValue implements Value<IntType> {
     }
 
     @Override
-    public boolean compare(CompareOp op, Value<IntType> other) {
-        if ( other instanceof IntValue ) {
-            switch ( op ) {
-                case EQUAL:
-                    return this.val == ((IntValue) other).val;
-                case NOT_EQUAL:
-                    return this.val != ((IntValue) other).val;
-                case LESS_THAN:
-                    return this.val < ((IntValue) other).val;
-                case LESS_THAN_OR_EQUAL:
-                    return this.val <= ((IntValue) other).val;
-                case GREATER_THAN:
-                    return this.val > ((IntValue) other).val;
-                case GREATER_THAN_OR_EQUAL:
-                    return this.val >= ((IntValue) other).val;
-            }
-        }
-        return false;
-    }
-
-    @Override
     public String toString() {
         return "IntValue{" +
                 "val=" + val +
                 '}';
+    }
+
+    @Override
+    public int intValue() {
+        return this.val;
+    }
+
+    @Override
+    public long longValue() {
+        return this.val;
+    }
+
+    @Override
+    public double doubleValue() {
+        return this.val;
+    }
+
+    @Override
+    public IntValue add(NumericValue<IntType,IntValue> other) {
+        return new IntValue(intValue() + other.intValue());
+    }
+
+    @Override
+    public IntValue sub(NumericValue<IntType,IntValue> other) {
+        return new IntValue(intValue() - other.intValue());
+    }
+
+    @Override
+    public IntValue div(NumericValue<IntType,IntValue> other) {
+        return new IntValue(intValue() / other.intValue());
+    }
+
+    @Override
+    public IntValue mul(NumericValue<IntType,IntValue> other) {
+        return new IntValue(intValue() * other.intValue());
+    }
+
+    @Override
+    public int compareTo(IntValue o) {
+        return Integer.compare(intValue(), o.intValue());
     }
 
     private final int val;

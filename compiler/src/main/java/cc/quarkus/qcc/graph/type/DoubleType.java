@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class DoubleType implements ConcreteType<DoubleValue> {
+public class DoubleType implements ConcreteType<DoubleType> {
 
     public static final DoubleType INSTANCE = new DoubleType();
 

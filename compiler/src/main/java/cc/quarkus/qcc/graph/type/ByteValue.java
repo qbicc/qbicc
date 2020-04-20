@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class ByteValue implements Value<ByteType> {
+public class ByteValue implements Value<ByteType, ByteValue> {
 
     public ByteValue(byte val) {
         this.val = val;

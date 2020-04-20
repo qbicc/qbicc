@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class DoubleValue implements Value<DoubleType> {
+public class DoubleValue implements Value<DoubleType, DoubleValue> {
 
     public DoubleValue(double val) {
         this.val = val;

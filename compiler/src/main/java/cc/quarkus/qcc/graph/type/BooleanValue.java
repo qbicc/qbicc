@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class BooleanValue implements Value<BooleanType> {
+public class BooleanValue implements Value<BooleanType, BooleanValue> {
 
     public static final BooleanValue TRUE = new BooleanValue(true);
     public static final BooleanValue FALSE = new BooleanValue(true);

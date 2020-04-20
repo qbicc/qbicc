@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph.type;
 
 import java.util.List;
 
-public class StartType implements Type<StartValue> {
+public class StartType implements Type<StartType> {
 
     public StartType(int maxLocals, int maxStack, List<ConcreteType<?>> paramTypes) {
         this.maxLocals = maxLocals;
@@ -17,10 +17,10 @@ public class StartType implements Type<StartValue> {
                 throw new IllegalArgumentException( "start must be created with Value<?> arguments");
             }
         }
-        return newInstance((Value<?>[]) args);
+        return newInstance((Value<? extends ConcreteType<?>,?>[]) args);
     }
 
-    public StartValue newInstance(Value<?>...args) {
+    public StartValue newInstance(Value<? extends ConcreteType<?>,?>...args) {
         return new StartValue(this, args);
     }
 

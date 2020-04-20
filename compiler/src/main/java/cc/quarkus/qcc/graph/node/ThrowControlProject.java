@@ -3,15 +3,16 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Collections;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.ControlType;
 import cc.quarkus.qcc.graph.type.ControlValue;
 import cc.quarkus.qcc.graph.type.InvokeValue;
+import cc.quarkus.qcc.graph.type.ThrowType;
 import cc.quarkus.qcc.interpret.Context;
 
-public class NormalControlProjection extends AbstractNode<ControlType, ControlValue>{
-    protected NormalControlProjection(InvokeNode in) {
-        super(in, ControlType.INSTANCE);
+public class ThrowControlProject extends AbstractNode<ControlType, ControlValue> {
+
+    protected ThrowControlProject(InvokeNode control) {
+        super(control, ControlType.INSTANCE);
     }
 
     @Override
@@ -22,7 +23,7 @@ public class NormalControlProjection extends AbstractNode<ControlType, ControlVa
     @Override
     public ControlValue getValue(Context context) {
         InvokeValue input = context.get(getControl());
-        if ( input.getThrowValue() == null ) {
+        if ( input.getThrowValue() != null ) {
             return new ControlValue();
         }
         return null;
@@ -31,10 +32,5 @@ public class NormalControlProjection extends AbstractNode<ControlType, ControlVa
     @Override
     public List<Node<?, ?>> getPredecessors() {
         return Collections.singletonList(getControl());
-    }
-
-    @Override
-    public String label() {
-        return "<proj> normal control";
     }
 }

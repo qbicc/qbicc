@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph.type;
 
-public class BooleanType implements ConcreteType<BooleanValue> {
+public class BooleanType implements ConcreteType<BooleanType> {
+
     public static final BooleanType INSTANCE = new BooleanType();
 
     private BooleanType() {

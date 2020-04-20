@@ -1,8 +1,8 @@
 package cc.quarkus.qcc.graph.type;
 
-public class StartValue implements Value<StartType>, IOSource, MemorySource {
+public class StartValue implements Value<StartType, StartValue>, IOSource, MemorySource {
 
-    public StartValue(StartType type, Value<?>...arguments) {
+    public StartValue(StartType type, Value<? extends ConcreteType<?>,?>...arguments) {
         this.type = type;
         this.arguments = arguments;
         this.io = new IOValue();
@@ -14,7 +14,7 @@ public class StartValue implements Value<StartType>, IOSource, MemorySource {
         return this.type;
     }
 
-    public Value<?> getArgument(int index) {
+    public Value<? extends ConcreteType<?>,?> getArgument(int index) {
         return this.arguments[index];
     }
 
@@ -29,7 +29,7 @@ public class StartValue implements Value<StartType>, IOSource, MemorySource {
     }
 
     private final StartType type;
-    private final Value<?>[] arguments;
+    private final Value<? extends ConcreteType<?>,?>[] arguments;
     private final IOValue io;
     private final MemoryValue memory;
 }

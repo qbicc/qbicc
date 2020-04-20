@@ -1,11 +1,12 @@
 package cc.quarkus.qcc.graph.type;
 
 import cc.quarkus.qcc.graph.ParseException;
+import cc.quarkus.qcc.graph.node.AbstractNode;
 import cc.quarkus.qcc.graph.node.Node;
 
-public interface Type<T extends Value<?>> {
+public interface Type<T extends Type<T>> {
 
-    default T newInstance(Object...args) {
+    default Value<T,?> newInstance(Object...args) {
         throw new IllegalArgumentException( label() + " is not instantiable");
     }
 
@@ -36,10 +37,14 @@ public interface Type<T extends Value<?>> {
     }
 
     @SuppressWarnings("unchecked")
-    default <T extends Type<?>> Node<T> coerce(Node<?> node) {
+    default <V extends Value<T,V>> Node<T,V> coerce(Node<?,?> node) {
         if ( node.getType() == this ) {
-            return (Node<T>) node;
+            return (Node<T,V>) node;
         }
         return null;
+    }
+
+    default Value<?,?> coerce(Value<?,?> val) {
+        throw new UnsupportedOperationException( this.getClass().getName() + " cannot coerce " + val);
     }
 }

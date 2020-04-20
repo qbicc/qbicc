@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class ObjectValue implements Value<ObjectType> {
+public class ObjectValue implements Value<ObjectType, ObjectValue> {
 
     public ObjectValue(ObjectType type, Object...arguments) {
         this.type = type;

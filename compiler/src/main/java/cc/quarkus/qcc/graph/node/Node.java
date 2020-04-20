@@ -1,92 +1,44 @@
 package cc.quarkus.qcc.graph.node;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import cc.quarkus.qcc.graph.type.ConcreteType;
+import javax.naming.ldap.Control;
+
 import cc.quarkus.qcc.graph.type.Type;
 import cc.quarkus.qcc.graph.type.Value;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.interpret.Thread;
 
-public abstract class Node<T extends Type<?>> {
+public interface Node<T extends Type<T>, V extends Value<T,V>> {
 
-    protected Node(ControlNode<?> control, T outType) {
-        this(outType);
-        addPredecessor(control);
+    int getId();
+
+    ControlNode<?, ?> getControl();
+
+    void setControl(ControlNode<?, ?> control);
+
+    void addSuccessor(Node<?, ?> out);
+
+    V getValue(Context context);
+
+    T getType();
+
+    List<? extends Node<?, ?>> getPredecessors();
+
+    default List<? extends ControlNode<?,?>> getControlPredecessors() {
+        return getPredecessors().stream()
+                .filter(e-> e instanceof ControlNode<?,?> )
+                .map(e->(ControlNode<?,?>)e)
+                .collect(Collectors.toList());
     }
 
-    protected Node(T outType) {
-        this.outType = outType;
-        this.id = COUNTER.incrementAndGet();
+    List<? extends Node<?, ?>> getSuccessors();
+
+    default List<? extends ControlNode<?, ?>> getControlSuccessors() {
+        return getSuccessors().stream()
+                .filter(e-> e instanceof ControlNode<?,?> )
+                .map(e->(ControlNode<?,?>)e)
+                .collect(Collectors.toList());
     }
 
-    public void addPredecessor(Node<?> in) {
-        this.predecessors.add(in);
-        in.addSuccessor(this);
-    }
-
-    public <T extends Type<?>> Node<T> tryCoerce(Type<?> type) {
-        if ( type == getType() ) {
-            return (Node<T>) this;
-        }
-        return type.coerce(this);
-    }
-
-    public Value<?> getValue(Context context)  {
-        return null;
-    }
-
-    private void addSuccessor(Node<?> out) {
-        this.successors.add(out);
-    }
-
-    public List<Node<?>> getPredecessors() {
-        return this.predecessors;
-    }
-
-    public List<ControlNode<?>> getControlPredecessors() {
-        return this.predecessors.stream().filter(e->e instanceof ControlNode).map(e->(ControlNode<?>)e).collect(Collectors.toList());
-    }
-
-    public List<Node<?>> getSuccessors() {
-        return this.successors;
-    }
-
-    public List<ControlNode<?>> getControlSuccessors() {
-        return this.successors.stream().filter(e->e instanceof ControlNode).map(e->(ControlNode<?>)e).collect(Collectors.toList());
-    }
-
-    public T getType() {
-        return this.outType;
-    }
-
-    public int getId() {
-        return this.id;
-    }
-
-    public String label() {
-        String n = this.id + ": " + getClass().getSimpleName();
-        if ( n.endsWith( "Node" ) ) {
-            return n.substring(0, n.length() - "node".length()).toLowerCase();
-        } else if ( n.endsWith( "Projection") ) {
-            return n.substring(0, n.length() - "projection".length()).toLowerCase();
-        } else {
-            return n;
-        }
-    }
-
-    @Override
-    public String toString() {
-        return label();
-    }
-
-    private final List<Node<?>> predecessors = new ArrayList<>();
-    private final List<Node<?>> successors = new ArrayList<>();
-    private final T outType;
-    private final int id;
-
-    private static final AtomicInteger COUNTER = new AtomicInteger(0);
 }

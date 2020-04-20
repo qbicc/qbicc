@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class CharValue implements Value<CharType> {
+public class CharValue implements Value<CharType, CharValue> {
 
     public CharValue(char val) {
         this.val = val;

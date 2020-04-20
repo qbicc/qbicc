@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class ShortType implements ConcreteType<ShortValue> {
+public class ShortType implements ConcreteType<ShortType> {
 
     public static final ShortType INSTANCE = new ShortType();
 

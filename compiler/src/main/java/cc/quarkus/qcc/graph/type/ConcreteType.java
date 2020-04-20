@@ -1,8 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-import cc.quarkus.qcc.graph.ParseException;
-
-public interface ConcreteType<T extends Value<?>> extends Type<T> {
+public interface ConcreteType<T extends ConcreteType<T>> extends Type<T> {
 
     @Override
     default String label() {

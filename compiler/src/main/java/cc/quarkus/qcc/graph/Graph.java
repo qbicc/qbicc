@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import cc.quarkus.qcc.graph.node.EndNode;
-import cc.quarkus.qcc.graph.node.Node;
+import cc.quarkus.qcc.graph.node.AbstractNode;
 import cc.quarkus.qcc.graph.node.StartNode;
 import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.StartValue;
@@ -19,15 +19,15 @@ public class Graph<T extends ConcreteType<?>> {
         this.end = end;
     }
 
-    public List<Node<?>> reversePostOrder() {
-        List<Node<?>> order = postOrder();
+    public List<AbstractNode<?>> reversePostOrder() {
+        List<AbstractNode<?>> order = postOrder();
         Collections.reverse(order);
         return order;
     }
 
-    public List<Node<?>> postOrder() {
-        List<Node<?>> order = new ArrayList<>();
-        Set<Node<?>> seen = new HashSet<>();
+    public List<AbstractNode<?>> postOrder() {
+        List<AbstractNode<?>> order = new ArrayList<>();
+        Set<AbstractNode<?>> seen = new HashSet<>();
         walk(order, seen, this.start);
         return order;
     }
@@ -40,12 +40,12 @@ public class Graph<T extends ConcreteType<?>> {
         //this.start.receive(context);
     }
 
-    private void walk(List<Node<?>> order, Set<Node<?>> seen, Node<?> node) {
+    private void walk(List<AbstractNode<?>> order, Set<AbstractNode<?>> seen, AbstractNode<?> node) {
         if ( seen.contains(node)) {
             return;
         }
         seen.add(node);
-        for (Node<?> successor : node.getSuccessors()) {
+        for (AbstractNode<?> successor : node.getSuccessors()) {
             walk(order, seen, successor);
         }
         order.add(node);
