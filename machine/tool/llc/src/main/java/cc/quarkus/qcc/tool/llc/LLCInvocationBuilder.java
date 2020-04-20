@@ -34,7 +34,7 @@ public class LLCInvocationBuilder extends InvocationBuilder<LLCInvocationBuilder
         Path outputFile = this.outputFile;
         if (outputFile == null) {
             final Path tempDirectory = Files.createTempDirectory("qcc-");
-            outputFile = tempDirectory.resolve("probe.o");
+            outputFile = tempDirectory.resolve("build.s");
             outputFile.toFile().deleteOnExit();
         }
         return new Param(outputFile, platform);
@@ -43,7 +43,7 @@ public class LLCInvocationBuilder extends InvocationBuilder<LLCInvocationBuilder
     protected ProcessBuilder createProcessBuilder(final Param param) {
         final ProcessBuilder pb = super.createProcessBuilder(param);
         //noinspection SpellCheckingInspection
-        pb.command().addAll(List.of("-mtriple=" + param.platform, "--filetype=obj", "-mcpu=" + param.platform.getCpu().getName(), "-o=" + outputFile.toString()));
+        pb.command().addAll(List.of("-mtriple=" + param.platform, "--filetype=asm", "-mcpu=" + param.platform.getCpu().getName(), "-o=" + outputFile.toString()));
         return pb;
     }
 
