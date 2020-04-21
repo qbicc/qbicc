@@ -31,6 +31,11 @@ final class StoreImpl extends AbstractInstruction implements Store {
         return this;
     }
 
+    public Store comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     public Store align(final int alignment) {
         Assert.checkMinimumParameter("alignment", 1, alignment);
         if (Integer.bitCount(alignment) != 1) {

@@ -15,6 +15,11 @@ abstract class AbstractReturn extends AbstractInstruction implements Return {
         return this;
     }
 
+    public Return comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     public Appendable appendTo(final Appendable target) throws IOException {
         return super.appendTo(target).append("ret");
     }

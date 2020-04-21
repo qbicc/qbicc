@@ -22,6 +22,11 @@ abstract class AbstractBinary extends AbstractYieldingInstruction implements Bin
         return this;
     }
 
+    public Binary comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     Appendable appendTrailer(final Appendable target) throws IOException {
         type.appendTo(target);
         target.append(' ');

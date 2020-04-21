@@ -30,6 +30,11 @@ final class SelectImpl extends AbstractYieldingInstruction implements Select {
         return this;
     }
 
+    public Select comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     public Select withFlags(final Set<FastMathFlag> flagSet) {
         Assert.checkNotNullParam("flagSet", flagSet);
         this.flags = flagSet;

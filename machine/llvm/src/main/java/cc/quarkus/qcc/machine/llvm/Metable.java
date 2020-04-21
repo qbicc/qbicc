@@ -3,6 +3,6 @@ package cc.quarkus.qcc.machine.llvm;
 /**
  *
  */
-public interface Metable {
+public interface Metable extends Commentable {
     Metable meta(String name, Value data);
 }

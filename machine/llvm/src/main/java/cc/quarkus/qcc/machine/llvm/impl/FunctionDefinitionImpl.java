@@ -3,14 +3,14 @@ package cc.quarkus.qcc.machine.llvm.impl;
 import java.io.IOException;
 
 import cc.quarkus.qcc.machine.llvm.AddressNaming;
+import cc.quarkus.qcc.machine.llvm.BasicBlock;
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
 import cc.quarkus.qcc.machine.llvm.DllStorageClass;
+import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.RuntimePreemption;
-import cc.quarkus.qcc.machine.llvm.Visibility;
-import cc.quarkus.qcc.machine.llvm.BasicBlock;
-import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.Visibility;
 import cc.quarkus.qcc.machine.llvm.op.Assignment;
 import cc.quarkus.qcc.machine.llvm.op.AtomicRmwInstruction;
 import cc.quarkus.qcc.machine.llvm.op.Binary;
@@ -111,6 +111,11 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         return this;
     }
 
+    public FunctionDefinitionImpl comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     ///////////////////////
     // Basic block stuff //
     ///////////////////////
@@ -159,18 +164,18 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
     }
 
     void appendAfterPrologue(final Appendable target) throws IOException {
-        // todo: personality
+        appendMeta(target);
         appendAfterPersonality(target);
     }
 
     void appendAfterPersonality(final Appendable target) throws IOException {
-        // todo: metadata
         appendAfterMetadata(target);
     }
 
     void appendAfterMetadata(final Appendable target) throws IOException {
         target.append(' ');
         target.append('{');
+        appendComment(target);
         target.append(System.lineSeparator());
         lastBlock.appendAsBlockTo(target);
         target.append('}');

@@ -29,6 +29,11 @@ final class LoadImpl extends AbstractYieldingInstruction implements Load {
         return this;
     }
 
+    public Load comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     public Load align(final int alignment) {
         Assert.checkMinimumParameter("alignment", 1, alignment);
         if (Integer.bitCount(alignment) != 1) {

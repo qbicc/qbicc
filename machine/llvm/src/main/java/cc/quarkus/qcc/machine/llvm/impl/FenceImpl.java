@@ -26,6 +26,11 @@ final class FenceImpl extends AbstractInstruction implements Fence {
         return this;
     }
 
+    public Fence comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     public Appendable appendTo(final Appendable target) throws IOException {
         super.appendTo(target);
         target.append("fence").append(' ');

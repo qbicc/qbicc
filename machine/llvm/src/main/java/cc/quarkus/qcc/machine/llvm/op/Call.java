@@ -24,6 +24,8 @@ public interface Call extends YieldingInstruction {
 
     Call addrSpace(int num);
 
+    Call comment(String comment);
+
     Call meta(String name, Value data);
 
     Argument arg(Value type, Value value);

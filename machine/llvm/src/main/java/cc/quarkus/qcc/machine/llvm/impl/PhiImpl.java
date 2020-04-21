@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 
-import cc.quarkus.qcc.machine.llvm.FastMathFlag;
 import cc.quarkus.qcc.machine.llvm.BasicBlock;
+import cc.quarkus.qcc.machine.llvm.FastMathFlag;
 import cc.quarkus.qcc.machine.llvm.Value;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
 
@@ -21,6 +21,11 @@ final class PhiImpl extends AbstractYieldingInstruction implements Phi {
 
     public Phi meta(final String name, final Value data) {
         super.meta(name, data);
+        return this;
+    }
+
+    public Phi comment(final String comment) {
+        super.comment(comment);
         return this;
     }
 

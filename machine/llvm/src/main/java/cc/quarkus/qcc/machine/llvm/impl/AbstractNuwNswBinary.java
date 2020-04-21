@@ -17,6 +17,11 @@ abstract class AbstractNuwNswBinary extends AbstractBinary implements NuwNswBina
         return this;
     }
 
+    public NuwNswBinary comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     public NuwNswBinary nuw() {
         nuw = true;
         return this;

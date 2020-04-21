@@ -6,6 +6,8 @@ import cc.quarkus.qcc.machine.llvm.Value;
  *
  */
 public interface AtomicRmwInstruction extends YieldingInstruction {
+    AtomicRmwInstruction comment(String comment);
+
     AtomicRmwInstruction meta(String name, Value data);
 
     AtomicRmwInstruction volatile_();

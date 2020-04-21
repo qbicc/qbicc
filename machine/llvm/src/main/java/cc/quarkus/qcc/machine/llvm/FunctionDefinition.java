@@ -25,6 +25,8 @@ public interface FunctionDefinition extends Function, BasicBlock {
 
     FunctionDefinition meta(String name, Value metadata);
 
+    FunctionDefinition comment(String comment);
+
     // additional properties
 
     FunctionDefinition section(String section);

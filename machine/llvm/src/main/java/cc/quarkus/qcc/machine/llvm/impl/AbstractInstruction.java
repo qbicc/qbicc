@@ -15,6 +15,11 @@ abstract class AbstractInstruction extends AbstractMetable implements Instructio
         return this;
     }
 
+    public Instruction comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     public Appendable appendTo(final Appendable target) throws IOException {
         return target;
     }

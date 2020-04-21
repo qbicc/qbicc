@@ -6,6 +6,7 @@ import cc.quarkus.qcc.machine.llvm.AddressNaming;
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
 import cc.quarkus.qcc.machine.llvm.DllStorageClass;
 import cc.quarkus.qcc.machine.llvm.Linkage;
+import cc.quarkus.qcc.machine.llvm.Metable;
 import cc.quarkus.qcc.machine.llvm.Visibility;
 import cc.quarkus.qcc.machine.llvm.Function;
 import cc.quarkus.qcc.machine.llvm.Value;
@@ -89,6 +90,11 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
 
     public Function meta(final String name, final Value data) {
         super.meta(name, data);
+        return this;
+    }
+
+    public Function comment(final String comment) {
+        super.comment(comment);
         return this;
     }
 

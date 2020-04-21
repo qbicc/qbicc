@@ -6,6 +6,8 @@ import cc.quarkus.qcc.machine.llvm.Value;
  *
  */
 public interface YieldingInstruction extends Instruction {
+    YieldingInstruction comment(String comment);
+
     YieldingInstruction meta(String name, Value data);
 
     Value asGlobal();

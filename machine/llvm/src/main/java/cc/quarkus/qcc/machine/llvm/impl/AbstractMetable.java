@@ -9,7 +9,7 @@ import io.smallrye.common.constraint.Assert;
 /**
  *
  */
-abstract class AbstractMetable extends AbstractEmittable implements Metable {
+abstract class AbstractMetable extends AbstractCommentable implements Metable {
     MetaItem lastMetaItem;
 
     AbstractMetable() {}
@@ -21,7 +21,17 @@ abstract class AbstractMetable extends AbstractEmittable implements Metable {
         return this;
     }
 
+    public Metable comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     Appendable appendTrailer(final Appendable target) throws IOException {
+        appendMeta(target);
+        return super.appendTrailer(target);
+    }
+
+    Appendable appendMeta(final Appendable target) throws IOException {
         final MetaItem item = this.lastMetaItem;
         if (item != null) {
             item.appendTo(target);

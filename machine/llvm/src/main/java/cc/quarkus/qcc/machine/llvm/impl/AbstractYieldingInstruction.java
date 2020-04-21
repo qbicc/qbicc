@@ -35,6 +35,11 @@ abstract class AbstractYieldingInstruction extends AbstractInstruction implement
         return lvalue = value;
     }
 
+    public YieldingInstruction comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     public YieldingInstruction meta(final String name, final Value data) {
         super.meta(name, data);
         return this;

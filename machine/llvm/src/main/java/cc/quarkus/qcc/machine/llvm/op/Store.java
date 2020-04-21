@@ -8,6 +8,8 @@ import cc.quarkus.qcc.machine.llvm.Value;
 public interface Store extends Instruction {
     Store meta(String name, Value data);
 
+    Store comment(String comment);
+
     Store align(int alignment);
 
     Store atomic(OrderingConstraint constraint);

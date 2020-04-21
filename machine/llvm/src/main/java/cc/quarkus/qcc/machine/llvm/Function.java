@@ -26,6 +26,8 @@ public interface Function extends Metable {
 
     Function meta(String name, Value metadata);
 
+    Function comment(String comment);
+
     interface Parameter {
         /**
          * Start the next parameter.

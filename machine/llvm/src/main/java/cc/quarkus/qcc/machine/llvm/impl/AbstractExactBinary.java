@@ -17,6 +17,11 @@ abstract class AbstractExactBinary extends AbstractBinary implements ExactBinary
         return this;
     }
 
+    public ExactBinary comment(final String comment) {
+        super.comment(comment);
+        return this;
+    }
+
     public ExactBinary exact() {
         exact = true;
         return this;
