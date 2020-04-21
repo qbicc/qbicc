@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.tool.llc;
+package cc.quarkus.qcc.tool.llvm;
 
 import java.nio.file.Path;
 

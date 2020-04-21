@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.tool.llc;
+package cc.quarkus.qcc.tool.llvm;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,9 +10,9 @@ import cc.quarkus.qcc.machine.tool.ToolProvider;
 import cc.quarkus.qcc.machine.tool.ToolUtil;
 
 /**
- * The tool provider for LLVM's {@code llc} program.
+ * The tool provider for LLVM programs.
  */
-public final class LLCToolProvider implements ToolProvider {
+public final class LLVMToolProvider implements ToolProvider {
 
     public <T extends Tool> Iterable<T> findTools(final Class<T> type, final Platform platform) {
         if (type.isAssignableFrom(LLCTool.class)) {
