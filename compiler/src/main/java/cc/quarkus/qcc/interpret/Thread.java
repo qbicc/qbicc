@@ -52,9 +52,7 @@ public class Thread implements Context {
 
             while ( ! ready.isEmpty() ) {
                 Node<?> cur = ready.pop();
-                //Object value = cur.getValue(this);
                 Object value = getValue(prevControl, cur);
-                System.err.println( "==" + value);
                 if (value != null) {
                     if ( value instanceof EndToken ) {
                         this.endToken = (EndToken) value;
@@ -78,7 +76,6 @@ public class Thread implements Context {
     }
 
     protected boolean isReady(ControlNode<?> discriminator, ControlNode<?> curControl, Node<?> node) {
-        System.err.println( "** isReady(" + discriminator + ", " + node + ")");
         if ( node instanceof RegionNode ) {
             return isRegionReady(curControl, (RegionNode) node);
         }
@@ -86,24 +83,18 @@ public class Thread implements Context {
             return isPhiReady(discriminator, (PhiNode<?>) node);
         }
         Optional<? extends Node<?>> firstMissing = node.getPredecessors().stream().filter(e -> get(e) == null).findFirst();
-        if ( firstMissing.isPresent() ) {
-            System.err.println( "missing: " + firstMissing.get());
-
-        }
         return ! firstMissing.isPresent();
     }
 
     protected boolean isRegionReady(ControlNode<?> discriminator, RegionNode node) {
         Optional<? extends Node<?>> firstFound = node.getPredecessors().stream().filter(e -> get(e) != null).findFirst();
         if ( ! firstFound.isPresent() ) {
-            System.err.println( "region missing input");
             return false;
         }
         return node.getSuccessors().stream().filter(e->e instanceof PhiNode).allMatch(e->isPhiReady(discriminator, (PhiNode<?>) e));
     }
 
     protected boolean isPhiReady(ControlNode<?> discriminator, PhiNode<?> node) {
-        System.err.println( "is phi ready? " + node + " from " + discriminator );
         return peekContext().get(node.getValue(discriminator)) != null;
         //return false;
     }

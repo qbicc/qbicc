@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import cc.quarkus.qcc.graph.node.AbstractControlNode;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.node.StartNode;
@@ -19,7 +18,6 @@ public class ControlFlowHelper {
     }
 
     public void control(int startBci, ControlNode<?> control) {
-        System.err.println( "add control: " + startBci + " > " + control);
         this.controls.put(startBci, control);
     }
 
@@ -63,7 +61,6 @@ public class ControlFlowHelper {
             }
         }
 
-        System.err.println( "NODES: " + nodes);
         return nodes;
     }
 

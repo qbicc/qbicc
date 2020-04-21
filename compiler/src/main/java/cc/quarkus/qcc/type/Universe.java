@@ -77,7 +77,6 @@ public class Universe {
 
     public void await(long timeout, TimeUnit unit) {
         this.pool.awaitQuiescence(timeout, unit);
-        System.err.println("resolved classes: " + this.objectTypes.size());
     }
 
     public ClassFinder getClassFinder() {

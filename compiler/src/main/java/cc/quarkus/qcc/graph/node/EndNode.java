@@ -49,7 +49,6 @@ public class EndNode extends AbstractNode<EndToken> {
         IOToken io = context.get(this.io);
         MemoryToken memory = context.get(this.memory);
         Object returnValue = context.get(this.returnValue);
-        System.err.println( "END TOKEN: " + this.returnValue + " " + returnValue);
 
         return new EndToken(io, memory, returnValue);
     }

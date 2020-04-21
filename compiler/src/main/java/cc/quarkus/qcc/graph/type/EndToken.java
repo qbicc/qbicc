@@ -17,6 +17,10 @@ public class EndToken {
                 '}';
     }
 
+    public Object getReturnValue() {
+        return this.returnValue;
+    }
+
     private final IOToken io;
 
     private final MemoryToken memory;
