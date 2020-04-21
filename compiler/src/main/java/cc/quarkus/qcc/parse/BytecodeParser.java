@@ -15,13 +15,11 @@ import cc.quarkus.qcc.graph.node.AddNode;
 import cc.quarkus.qcc.graph.node.BinaryIfNode;
 import cc.quarkus.qcc.graph.node.CompareOp;
 import cc.quarkus.qcc.graph.node.ConstantNode;
-import cc.quarkus.qcc.graph.node.AbstractControlNode;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.EndNode;
 import cc.quarkus.qcc.graph.node.IfNode;
 import cc.quarkus.qcc.graph.node.InvokeNode;
 import cc.quarkus.qcc.graph.node.NewNode;
-import cc.quarkus.qcc.graph.node.AbstractNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.node.ReturnNode;
@@ -29,22 +27,13 @@ import cc.quarkus.qcc.graph.node.StartNode;
 import cc.quarkus.qcc.graph.node.SubNode;
 import cc.quarkus.qcc.graph.node.ThrowNode;
 import cc.quarkus.qcc.graph.node.UnaryIfNode;
-import cc.quarkus.qcc.graph.type.AnyType;
-import cc.quarkus.qcc.graph.type.ConcreteType;
-import cc.quarkus.qcc.graph.type.DoubleType;
-import cc.quarkus.qcc.graph.type.FloatType;
-import cc.quarkus.qcc.graph.type.IOType;
-import cc.quarkus.qcc.graph.type.IntType;
-import cc.quarkus.qcc.graph.type.IntValue;
-import cc.quarkus.qcc.graph.type.LongType;
-import cc.quarkus.qcc.graph.type.MemoryType;
-import cc.quarkus.qcc.graph.type.ObjectType;
-import cc.quarkus.qcc.graph.type.ObjectValue;
-import cc.quarkus.qcc.graph.type.StartType;
-import cc.quarkus.qcc.graph.type.VoidType;
+import cc.quarkus.qcc.graph.type.IOToken;
+import cc.quarkus.qcc.graph.type.MemoryToken;
+import cc.quarkus.qcc.graph.type.ObjectReference;
 import cc.quarkus.qcc.type.MethodDefinition;
-import cc.quarkus.qcc.type.MethodDescriptor;
+import cc.quarkus.qcc.type.MethodDescriptorImpl;
 import cc.quarkus.qcc.type.MethodDescriptorParser;
+import cc.quarkus.qcc.type.TypeDescriptor;
 import cc.quarkus.qcc.type.Universe;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.InsnList;
@@ -158,6 +147,7 @@ public class BytecodeParser {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
 
+            System.err.println( "CFG: " + instr + " " + Mnemonics.of(opcode));
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
                 int destIndex = instrList.indexOf(dest);
@@ -168,7 +158,7 @@ public class BytecodeParser {
                     case IF_ICMPLE:
                     case IF_ICMPGT:
                     case IF_ICMPLT: {
-                        BinaryIfNode<IntType, IntValue> node = new BinaryIfNode<>(control(), op(opcode));
+                        BinaryIfNode<Integer> node = new BinaryIfNode<>(control(), op(opcode));
                         links.control(bci, node);
                         links.add(bci + 1, node.getFalseOut());
                         links.add(destIndex, node.getTrueOut());
@@ -177,7 +167,7 @@ public class BytecodeParser {
                     }
                     case IF_ACMPEQ:
                     case IF_ACMPNE: {
-                        BinaryIfNode<ObjectType, ObjectValue> node = new BinaryIfNode<>(control(), op(opcode));
+                        BinaryIfNode<ObjectReference> node = new BinaryIfNode<>(control(), op(opcode));
                         links.control(bci, node);
                         links.add(bci + 1, node.getFalseOut());
                         links.add(destIndex, node.getTrueOut());
@@ -206,10 +196,18 @@ public class BytecodeParser {
 
                 }
             } else {
-                ControlNode<?,?> candidate = links.control(bci);
+                ControlNode<?> candidate = links.control(bci);
                 if (candidate != null) {
                     if (control() != null) {
-                        candidate.addInput(control());
+                        if ( candidate instanceof RegionNode ) {
+                            System.err.println( "add control to " + candidate + " from " + control());
+                            ((RegionNode)candidate).addInput(control());
+                        } else {
+                            if ( candidate.getControl() == null ) {
+                                System.err.println( "set control on " + candidate + " to " + control());
+                                candidate.setControl(control());
+                            }
+                        }
                     }
                     control(candidate);
                 }
@@ -229,7 +227,15 @@ public class BytecodeParser {
                     case INVOKEINTERFACE:
                     case INVOKEDYNAMIC:
                     case INVOKESTATIC: {
-                        InvokeNode node = new InvokeNode(control());
+                        MethodDescriptorParser parser = new MethodDescriptorParser(Universe.instance(),
+                                                                                   Universe.instance().findClass(((MethodInsnNode) instr).owner),
+                                                                                   ((MethodInsnNode) instr).name,
+                                                                                   ((MethodInsnNode) instr).desc,
+                                                                                   opcode == INVOKESTATIC);
+                        MethodDescriptorImpl descriptor = parser.parseMethodDescriptor();
+                        TypeDescriptor<?> returnType = descriptor.getReturnType();
+
+                        InvokeNode<?> node = new InvokeNode(control(), returnType.valueType(), descriptor.getParamTypes());
                         links.control(bci, node);
                         links.add(bci + 1, node.getNormalControlOut());
                         control(node.getNormalControlOut());
@@ -271,11 +277,11 @@ public class BytecodeParser {
 
     protected void calculateDominanceFrontiers(ControlFlowHelper links) {
 
-        Map<AbstractNode<?>, Set<AbstractNode<?>>> dominators = new HashMap<>();
-        Set<AbstractControlNode<?>> nodes = links.nodes();
+        Map<Node<?>, Set<Node<?>>> dominators = new HashMap<>();
+        Set<ControlNode<?>> nodes = links.nodes();
 
 
-        for (AbstractNode<?> n : nodes) {
+        for (Node<?> n : nodes) {
             dominators.put(n, new HashSet<>(Collections.singleton(n)));
         }
 
@@ -283,12 +289,19 @@ public class BytecodeParser {
 
         while (changed) {
             changed = false;
-            for (AbstractNode<?> n : nodes) {
-                Set<AbstractNode<?>> temp = new HashSet<>();
+            for (Node<?> n : nodes) {
+                Set<Node<?>> temp = new HashSet<>();
                 temp.add(n);
                 temp.addAll(
                         intersect(
-                                n.getPredecessors().stream().map(dominators::get).collect(Collectors.toList())
+                                n.getPredecessors().stream().map(e->{
+                                    if ( e == null ) {
+                                        System.err.println( n + " pred are null");
+                                    }
+                                    Set<Node<?>> dom = dominators.get(e);
+                                    System.err.println( e + " dominators = " + dom);
+                                    return dom;
+                                }).collect(Collectors.toList())
                         )
                 );
 
@@ -299,28 +312,29 @@ public class BytecodeParser {
             }
         }
 
-        Map<AbstractNode<?>, AbstractNode<?>> immediateDominators = new HashMap<>();
+        Map<Node<?>, Node<?>> immediateDominators = new HashMap<>();
 
-        for (AbstractNode<?> n : nodes) {
-            Set<AbstractNode<?>> strictDominators = new HashSet<>(dominators.get(n));
+        for (Node<?> n : nodes) {
+            Set<Node<?>> strictDominators = new HashSet<>(dominators.get(n));
             strictDominators.remove(n);
-            AbstractNode idom = strictDominators.stream()
+            Node<?> idom = strictDominators.stream()
                     .filter(e -> dominators.get(e).containsAll(strictDominators))
                     .findFirst().orElse(null);
 
             immediateDominators.put(n, idom);
         }
 
-        Map<ControlNode<?,?>, Set<ControlNode<?,?>>> dominanceFrontier = new HashMap<>();
+        Map<ControlNode<?>, Set<ControlNode<?>>> dominanceFrontier = new HashMap<>();
 
-        for (ControlNode<?,?> n : nodes) {
+        for (ControlNode<?> n : nodes) {
             dominanceFrontier.put(n, new HashSet<>());
+            System.err.println( n + " --> df");
         }
 
-        for (ControlNode<?,?> n : nodes) {
+        for (ControlNode<?> n : nodes) {
             if (n.getPredecessors().size() > 1) {
-                for (ControlNode<?,?> p : n.getControlPredecessors()) {
-                    Node<?,?> runner = p;
+                for (ControlNode<?> p : n.getControlPredecessors()) {
+                    Node<?> runner = p;
                     while (immediateDominators.get(n) != runner) {
                         dominanceFrontier.get(runner).add(n);
                         runner = immediateDominators.get(runner);
@@ -332,11 +346,12 @@ public class BytecodeParser {
         links.dominanceFrontier(dominanceFrontier);
     }
 
-    private Collection<Node<?,?>> intersect(List<Set<Node<?,?>>> sets) {
+    private Collection<Node<?>> intersect(List<Set<Node<?>>> sets) {
         if (sets.isEmpty()) {
             return Collections.emptySet();
         }
-        Set<Node<?,?>> intersection = new HashSet<>(sets.get(0));
+        System.err.println( "intersect: " + sets);
+        Set<Node<?>> intersection = new HashSet<>(sets.get(0));
 
         for (int i = 1; i < sets.size(); ++i) {
             intersection.retainAll(sets.get(i));
@@ -359,30 +374,30 @@ public class BytecodeParser {
             int opcode = instr.getOpcode();
 
 
-            ControlNode<?,?> candidate = links.control(bci);
+            ControlNode<?> candidate = links.control(bci);
             if (candidate != null) {
                 control(candidate);
             }
 
             switch (opcode) {
                 case ISTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, IntType.INSTANCE);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, Integer.class);
                     break;
                 }
                 case LSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, LongType.INSTANCE);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, Long.class);
                     break;
                 }
                 case FSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, FloatType.INSTANCE);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, Float.class);
                     break;
                 }
                 case DSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, DoubleType.INSTANCE);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, Double.class);
                     break;
                 }
                 case ASTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, ObjectType.java.lang.Object);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, ObjectReference.class);
                     break;
                 }
                 case INVOKEDYNAMIC:
@@ -390,8 +405,8 @@ public class BytecodeParser {
                 case INVOKESPECIAL:
                 case INVOKESTATIC:
                 case INVOKEVIRTUAL: {
-                    phiPlacements.record(control(), SLOT_IO, IOType.INSTANCE);
-                    phiPlacements.record(control(), SLOT_MEMORY, MemoryType.INSTANCE);
+                    phiPlacements.record(control(), SLOT_IO, IOToken.class);
+                    phiPlacements.record(control(), SLOT_MEMORY, MemoryToken.class);
                     break;
                 }
                 case RETURN:
@@ -400,7 +415,8 @@ public class BytecodeParser {
                 case DRETURN:
                 case FRETURN:
                 case ARETURN: {
-                    phiPlacements.record(control(), SLOT_RETURN, method.getReturnType());
+                    System.err.println( "PHI RETURN");
+                    phiPlacements.record(control(), SLOT_RETURN, method.getReturnType().valueType());
                     break;
                 }
             }
@@ -408,10 +424,14 @@ public class BytecodeParser {
 
         Set<Local.PhiLocal> phis = new HashSet<>();
         phiPlacements.forEach((node, entries) -> {
-            Set<ControlNode<?,?>> df = links.dominanceFrontier(node);
+            Set<ControlNode<?>> df = links.dominanceFrontier(node);
+
+            System.err.println( "calc phi placement for " + node);
 
             for (PhiPlacements.Entry entry : entries) {
-                for (ControlNode<?,?> dest : df) {
+                System.err.println( "--> " + entry + " // " + entry.index + " // " + entry.type);
+                for (ControlNode<?> dest : df) {
+                    System.err.println( "place phi: " + dest );
                     phis.add(dest.frame().ensurePhi(entry.index, node, entry.type));
                 }
             }
@@ -432,9 +452,9 @@ public class BytecodeParser {
             phi.complete();
         }
 
-        this.end.addPredecessor(this.endRegion.frame().io());
-        this.end.addPredecessor(this.endRegion.frame().memory());
-        this.end.addPredecessor(this.endRegion.frame().returnValue());
+        this.end.setIO(this.endRegion.frame().io());
+        this.end.setMemory(this.endRegion.frame().memory());
+        this.end.setReturnValue(this.endRegion.frame().returnValue());
 
         return new Graph(this.start, this.end);
     }
@@ -450,7 +470,7 @@ public class BytecodeParser {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
 
-            ControlNode<?,?> candidate = links.control(bci);
+            ControlNode<?> candidate = links.control(bci);
             if (candidate != null) {
                 if (control() != null) {
                     candidate.frame().mergeFrom(control().frame());
@@ -459,7 +479,7 @@ public class BytecodeParser {
                         ((IfNode) candidate).getFalseOut().frame().mergeFrom(control().frame());
                     }
                 } else {
-                    ControlNode<?,?> prev = candidate.getControlPredecessors().iterator().next();
+                    ControlNode<?> prev = candidate.getControlPredecessors().iterator().next();
                     candidate.frame().mergeFrom(prev.frame());
                     if (candidate instanceof IfNode) {
                         ((IfNode) candidate).getTrueOut().frame().mergeFrom(control().frame());
@@ -480,31 +500,31 @@ public class BytecodeParser {
                     IfNode node = null;
                     switch (opcode) {
                         case IFEQ: {
-                            Node<IntType, IntValue> test = pop(IntType.INSTANCE);
+                            Node<Integer> test = pop(Integer.class);
                             //node = new UnaryIfNode(control(), test, CompareOp.EQUAL);
                             node = (IfNode) links.control(bci);
-                            node.addPredecessor(test);
+                            ((UnaryIfNode)node).setInput(test);
                             break;
                         }
                         case IFNE: {
-                            Node<IntType, IntValue> test = pop(IntType.INSTANCE);
+                            Node<Integer> test = pop(Integer.class);
                             //node = new UnaryIfNode(control(), test, CompareOp.NOT_EQUAL);
                             node = (IfNode) links.control(bci);
-                            node.addPredecessor(test);
+                            ((UnaryIfNode)node).setInput(test);
                             break;
                         }
                         case IF_ICMPGE: {
-                            Node<IntType, ?> rhs = pop(IntType.INSTANCE);
-                            Node<IntType, ?> lhs = pop(IntType.INSTANCE);
-                            node = (IfNode links.control(bci);
+                            Node<Integer> rhs = pop(Integer.class);
+                            Node<Integer> lhs = pop(Integer.class);
+                            node = (IfNode) links.control(bci);
                             //node.addPredecessor(lhs);
                             //node.addPredecessor(rhs);
-                            ((BinaryIfNode<IntType, IntValue>)node).setLHS((Node<IntType, IntValue>) lhs);
-                            ((BinaryIfNode<IntType, IntValue>)node).setRHS((Node<IntType, IntValue>) rhs);
+                            ((BinaryIfNode<Integer>) node).setLHS(lhs);
+                            ((BinaryIfNode<Integer>) node).setRHS(rhs);
                             break;
                         }
                         default: {
-                            if ( opcode >= 0 ) {
+                            if (opcode >= 0) {
                                 System.err.println("unhandled: " + Mnemonics.of(opcode) + " " + opcode);
                             }
                         }
@@ -598,7 +618,7 @@ public class BytecodeParser {
                         break;
                     }
                     case ISTORE: {
-                        storeInt(((VarInsnNode) instr).var, pop(IntType.INSTANCE));
+                        storeInt(((VarInsnNode) instr).var, pop(Integer.class));
                         break;
                     }
                     case LLOAD: {
@@ -619,7 +639,7 @@ public class BytecodeParser {
                     }
 
                     case DUP: {
-                        Node<?,?> val = peek(AnyType.INSTANCE);
+                        Node<?> val = peek(null);
                         push(val);
                         break;
                     }
@@ -627,22 +647,22 @@ public class BytecodeParser {
                     // ----------------------------------------
 
                     case IADD: {
-                        Node<IntType,IntValue> val1 = pop(IntType.INSTANCE);
-                        Node<IntType,IntValue> val2 = pop(IntType.INSTANCE);
-                        push(new AddNode<>(control(), IntType.INSTANCE, val1, val2));
+                        Node<Integer> val1 = pop(Integer.class);
+                        Node<Integer> val2 = pop(Integer.class);
+                        push(new AddNode<>(control(), Integer.class, val1, val2, Integer::sum));
                         break;
                     }
                     case ISUB: {
-                        AbstractNode<IntType> val1 = pop(IntType.INSTANCE);
-                        AbstractNode<IntType> val2 = pop(IntType.INSTANCE);
-                        push(new SubNode<>(control(), IntType.INSTANCE, val1, val2));
+                        Node<Integer> val1 = pop(Integer.class);
+                        Node<Integer> val2 = pop(Integer.class);
+                        push(new SubNode<>(control(), Integer.class, val1, val2, (l, r) -> l - r));
                         break;
                     }
                     // ----------------------------------------
 
                     case NEW: {
                         //TypeDefinition type = Universe.instance().findClass(((TypeInsnNode) instr).desc;);
-                        ConcreteType<?> type = Universe.instance().findType(((TypeInsnNode) instr).desc);
+                        TypeDescriptor<?> type = Universe.instance().findType(((TypeInsnNode) instr).desc);
                         NewNode<?> node = new NewNode<>(control(), type);
                         push(node);
                         break;
@@ -654,24 +674,26 @@ public class BytecodeParser {
                     case INVOKESPECIAL:
                     case INVOKESTATIC:
                     case INVOKEVIRTUAL: {
-                        MethodDescriptorParser parser = new MethodDescriptorParser(Universe.instance(),
-                                                                                   Universe.instance().findClass(((MethodInsnNode) instr).owner),
-                                                                                   ((MethodInsnNode) instr).name,
-                                                                                   ((MethodInsnNode) instr).desc,
-                                                                                   opcode == INVOKESTATIC);
-                        MethodDescriptor descriptor = parser.parseMethodDescriptor();
+                        //MethodDescriptorParser parser = new MethodDescriptorParser(Universe.instance(),
+                                                                                   //Universe.instance().findClass(((MethodInsnNode) instr).owner),
+                                                                                   //((MethodInsnNode) instr).name,
+                                                                                   //((MethodInsnNode) instr).desc,
+                                                                                   //opcode == INVOKESTATIC);
+                        //MethodDescriptor descriptor = parser.parseMethodDescriptor();
+                        InvokeNode<?> node = (InvokeNode<?>) control();
 
-                        ConcreteType<?> returnType = descriptor.getReturnType();
-                        AbstractNode<?>[] params = new AbstractNode<?>[descriptor.getParamTypes().size()];
-                        for (int i = params.length - 1; i >= 0; --i) {
-                            params[i] = pop(AnyType.INSTANCE);
+                        Class<?> returnType = node.getType();
+
+                        Node<?>[] args = new Node<?>[node.getParamTypes().size()];
+                        for (int i = args.length - 1; i >= 0; --i) {
+                            args[i] = pop(null);
                         }
 
-                        InvokeNode node = (InvokeNode) control();
-                        node.setMethodDescriptor(descriptor);
+                        //node.setMethodDescriptor(descriptor);
 
-                        for (AbstractNode<?> param : params) {
-                            node.addPredecessor(param);
+                        for (Node<?> arg : args) {
+                            //node.addPredecessor(param);
+                            node.addArgument(arg);
                         }
 
                         io(node.getIOOut());
@@ -682,36 +704,37 @@ public class BytecodeParser {
                         //returnType = (ConcreteType<?>) params[0].getType();
                         //}
                         //CallNode<?> node = CallNode.make(
-                         //       control(),
-                          //      io(),
-                           //     memory(),
-                            //    parser.isStatic(),
-                             //   parser.getOwner(),
-                              //  ((MethodInsnNode) instr).name,
-                               // returnType,
-                                //params);
+                        //       control(),
+                        //      io(),
+                        //     memory(),
+                        //    parser.isStatic(),
+                        //   parser.getOwner(),
+                        //  ((MethodInsnNode) instr).name,
+                        // returnType,
+                        //params);
                         //io(node.getIOOut());
                         //memory(node.getMemoryOut());
 
-                        if (!(returnType instanceof VoidType)) {
+                        if (returnType != Void.class) {
                             push(node.getResultOut());
                         }
                         break;
                     }
 
                     case ATHROW: {
-                        AbstractNode<AnyType> thrown = pop(AnyType.INSTANCE);
+                        Node<?> thrown = pop(null);
                         clear();
-                        ThrowNode<AnyType> node = new ThrowNode<>(control(), thrown);
+                        ThrowNode<?> node = new ThrowNode(control(), thrown);
                         push(node);
                         break;
                     }
 
                     case IRETURN: {
-                        AbstractNode<IntType> val = pop(IntType.INSTANCE);
-                        ReturnNode<IntType> ret = new ReturnNode<>(control(), IntType.INSTANCE, val);
+                        Node<Integer> val = pop(Integer.class);
+                        ReturnNode<Integer> ret = new ReturnNode<>(control(), val);
                         control().frame().returnValue(ret);
                         this.endRegion.frame().mergeFrom(control().frame());
+                        //this.endRegion.addInput(control());
                         //this.end.addPredecessor(ret);
                         //this.endRegion.frame().returnValue(ret);
                         control(null);
@@ -719,7 +742,7 @@ public class BytecodeParser {
                     }
 
                     default: {
-                        if ( opcode >= 0 ) {
+                        if (opcode >= 0) {
                             System.err.println("unhandled: " + Mnemonics.of(opcode) + " " + opcode);
                         }
                     }
@@ -734,80 +757,78 @@ public class BytecodeParser {
         return graph;
     }
 
-
-    protected Node<IntType,?> loadInt(int index) {
-        return control().frame().load(index, IntType.INSTANCE);
+    protected Node<Integer> loadInt(int index) {
+        return control().frame().load(index, Integer.class);
         //return null;
     }
 
-    protected void storeInt(int index, Node<IntType,?> val) {
+    protected void storeInt(int index, Node<Integer> val) {
         control().frame().store(index, val);
     }
 
-    protected Node<LongType,?> loadLong(int index) {
-        return control().frame().load(index, LongType.INSTANCE);
+    protected Node<Long> loadLong(int index) {
+        return control().frame().load(index, Long.class);
     }
 
-    protected Node<FloatType,?> loadFloat(int index) {
-        return control().frame().load(index, FloatType.INSTANCE);
+    protected Node<Float> loadFloat(int index) {
+        return control().frame().load(index, Float.class);
     }
 
-    protected Node<DoubleType,?> loadDouble(int index) {
-        return control().frame().load(index, DoubleType.INSTANCE);
+    protected Node<Double> loadDouble(int index) {
+        return control().frame().load(index, Double.class);
     }
 
-    protected Node<ObjectType, ?> loadObject(int index) {
-        return control().frame().load(index, ObjectType.java.lang.Object);
+    protected Node<ObjectReference> loadObject(int index) {
+        return control().frame().load(index, ObjectReference.class);
     }
 
     protected ControlFlowHelper initialize() {
-        this.start = new StartNode(startType());
+        this.start = new StartNode(this.method, this.method.getMaxLocals(), this.method.getMaxStack());
         this.endRegion = new RegionNode(this.method.getMaxLocals(), this.method.getMaxStack());
-        this.end = new EndNode<>(this.endRegion, this.method.getReturnType());
+        this.end = new EndNode(this.endRegion, this.method.getReturnType());
         control(this.start);
         return new ControlFlowHelper(this.start);
     }
 
-    protected StartType startType() {
-        return new StartType(this.method.getMaxLocals(),
-                             this.method.getMaxStack(),
-                             this.method.getParamTypes());
-    }
+    //protected StartType startType() {
+        ////return new StartType(this.method.getMaxLocals(),
+                             //this.method.getMaxStack(),
+                             //this.method.getParamTypes());
+    //}
 
-    protected AbstractControlNode<?> control() {
+    protected ControlNode<?> control() {
         return this.control;
     }
 
-    protected AbstractNode<IOType> io() {
+    protected Node<IOToken> io() {
         return control().frame().io();
     }
 
-    protected void io(AbstractNode<IOType> io) {
+    protected void io(Node<IOToken> io) {
         control().frame().io(io);
     }
 
-    protected AbstractNode<MemoryType> memory() {
+    protected Node<MemoryToken> memory() {
         return control().frame().memory();
     }
 
-    protected void memory(AbstractNode<MemoryType> memory) {
+    protected void memory(Node<MemoryToken> memory) {
         control().frame().memory(memory);
     }
 
-    protected void control(ControlNode<?,?> node) {
+    protected void control(ControlNode<?> node) {
         this.control = node;
     }
 
-    protected <T extends Node<? extends ConcreteType<?>,?>> T push(T node) {
+    protected <T> Node<T> push(Node<T> node) {
         return control().frame().push(node);
-        //return null;
     }
 
-    protected <T extends ConcreteType<T>> Node<T,?> pop(T type) {
+    protected <T> Node<T> pop(Class<T> type) {
         return control().frame().pop(type);
     }
 
-    protected <T extends ConcreteType<T>> Node<T,?> peek(T type) {
+    protected <T> Node<T> peek(Class<T> type) {
         return control().frame().peek(type);
     }
 
@@ -819,9 +840,9 @@ public class BytecodeParser {
 
     private RegionNode endRegion;
 
-    private EndNode<?> end;
+    private EndNode end;
 
     private final MethodDefinition method;
 
-    private ControlNode<?,?> control;
+    private ControlNode<?> control;
 }

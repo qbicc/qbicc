@@ -7,10 +7,10 @@ import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.graph.type.InvokeValue;
 import cc.quarkus.qcc.interpret.Context;
 
-public class NormalControlProjection extends AbstractControlNode<ControlToken> {
+public class ThrowControlProjection extends AbstractNode<ControlToken> {
 
-    protected NormalControlProjection(InvokeNode<?> in) {
-        super(in, ControlToken.class);
+    protected ThrowControlProjection(InvokeNode<?> control) {
+        super(control, ControlToken.class);
     }
 
     @Override
@@ -21,7 +21,7 @@ public class NormalControlProjection extends AbstractControlNode<ControlToken> {
     @Override
     public ControlToken getValue(Context context) {
         InvokeValue input = context.get(getControl());
-        if ( input.getThrowValue() == null ) {
+        if ( input.getThrowValue() != null ) {
             return new ControlToken();
         }
         return null;
@@ -30,10 +30,5 @@ public class NormalControlProjection extends AbstractControlNode<ControlToken> {
     @Override
     public List<Node<?>> getPredecessors() {
         return Collections.singletonList(getControl());
-    }
-
-    @Override
-    public String label() {
-        return "<proj> normal control";
     }
 }

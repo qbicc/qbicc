@@ -1,53 +1,61 @@
 package cc.quarkus.qcc.graph.node;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.ConcreteType;
-import cc.quarkus.qcc.graph.type.EndType;
-import cc.quarkus.qcc.graph.type.EndValue;
-import cc.quarkus.qcc.graph.type.IOValue;
-import cc.quarkus.qcc.graph.type.MemoryValue;
-import cc.quarkus.qcc.graph.type.Value;
+import cc.quarkus.qcc.graph.type.EndToken;
+import cc.quarkus.qcc.graph.type.IOToken;
+import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class EndNode<T extends ConcreteType<T>> extends AbstractNode<EndType<T>, EndValue<T>> {
+public class EndNode extends AbstractNode<EndToken> {
 
-    public EndNode(ControlNode<?,?> control, T returnType) {
-        super(control, new EndType<T>(returnType));
-    }
-
-    /*
-    @Override
-    public Value getValue(Context context) {
-        return null;
-    }
-     */
-
-    @Override
-    public EndValue<T> getValue(Context context) {
-        return null;
+    public EndNode(ControlNode<?> control, TypeDescriptor returnType) {
+        super(control, EndToken.class);
     }
 
     @Override
-    public List<? extends Node<?, ?>> getPredecessors() {
-        return null;
+    public List<? extends Node<?>> getPredecessors() {
+        return new ArrayList<>() {{
+            add(getControl());
+            add(io);
+            add(memory);
+            add(returnValue);
+        }};
     }
 
     public String label() {
         return "<end>";
     }
 
-    /*
-    @Override
-    public Value<?> getValue(Context context) {
-        //for (Node<?> predecessor : getPredecessors()) {
-            //System.err.println( "end pred: " + predecessor + " >> " + context.get(predecessor));
-        //}
-        IOValue io = (IOValue) context.get(getPredecessors().get(1));
-        MemoryValue memory = (MemoryValue) context.get(getPredecessors().get(2));
-        Value<?> returnValue = context.get(getPredecessors().get(3));
-
-        return getType().newInstance(io, memory, returnValue);
+    public void setIO(Node<IOToken> io) {
+        this.io = io;
+        io.addSuccessor(this);
     }
-     */
+
+    public void setMemory(Node<MemoryToken> memory) {
+        this.memory = memory;
+        memory.addSuccessor(this);
+    }
+
+    public void setReturnValue(Node<?> returnValue) {
+        this.returnValue = returnValue;
+        returnValue.addSuccessor(this);
+    }
+
+    @Override
+    public EndToken getValue(Context context) {
+        IOToken io = context.get(this.io);
+        MemoryToken memory = context.get(this.memory);
+        Object returnValue = context.get(this.returnValue);
+        System.err.println( "END TOKEN: " + this.returnValue + " " + returnValue);
+
+        return new EndToken(io, memory, returnValue);
+    }
+
+    private Node<IOToken> io;
+    private Node<MemoryToken> memory;
+    private Node<?> returnValue;
+
 }

@@ -1,43 +1,35 @@
 package cc.quarkus.qcc.graph.type;
 
-public class InvokeValue implements Value<InvokeType,InvokeValue>, IOSource, MemorySource {
+public class InvokeValue implements IOSource, MemorySource {
 
-    public InvokeValue(InvokeType type, Value<? extends ConcreteType<?>,?> returnValue, ObjectValue throwValue) {
-        this.type = type;
-        this.io = new IOValue();
-        this.memory = new MemoryValue();
+    public InvokeValue(Object returnValue, ObjectReference throwValue) {
+        this.io = new IOToken();
+        this.memory = new MemoryToken();
         this.returnValue = returnValue;
         this.throwValue = throwValue;
     }
 
     @Override
-    public InvokeType getType() {
-        return this.type;
-    }
-
-    @Override
-    public IOValue getIO() {
+    public IOToken getIO() {
         return this.io;
     }
 
     @Override
-    public MemoryValue getMemory() {
+    public MemoryToken getMemory() {
         return this.memory;
     }
 
-    public Value<? extends ConcreteType<?>, ?> getReturnValue() {
-        return this.returnValue;
+    public Object getReturnValue() {
+        return returnValue;
     }
 
-    public ObjectValue getThrowValue() {
+    public ObjectReference getThrowValue() {
         return this.throwValue;
     }
 
-    private final InvokeType type;
+    private final IOToken io;
 
-    private final IOValue io;
-
-    private final MemoryValue memory;
-    private final Value<? extends ConcreteType<?>, ?> returnValue;
-    private final ObjectValue throwValue;
+    private final MemoryToken memory;
+    private final Object returnValue;
+    private final ObjectReference throwValue;
 }

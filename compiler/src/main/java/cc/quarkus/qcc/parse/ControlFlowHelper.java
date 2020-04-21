@@ -18,16 +18,17 @@ public class ControlFlowHelper {
         control(-1, startNode);
     }
 
-    public void control(int startBci, ControlNode<?,?> control) {
+    public void control(int startBci, ControlNode<?> control) {
+        System.err.println( "add control: " + startBci + " > " + control);
         this.controls.put(startBci, control);
     }
 
-    public ControlNode<?,?> control(int bci) {
+    public ControlNode<?> control(int bci) {
         return this.controls.get(bci);
     }
 
-    public void add(int bci, ControlNode<?,?> input) {
-        ControlNode<?,?> dest = control(bci);
+    public void add(int bci, ControlNode<?> input) {
+        ControlNode<?> dest = control(bci);
         if (dest == null) {
             dest = new RegionNode(input.frame().maxLocals(), input.frame().maxStack());
             control(bci, dest);
@@ -39,33 +40,34 @@ public class ControlFlowHelper {
         }
     }
 
-    public void dominanceFrontier(Map<ControlNode<?,?>, Set<ControlNode<?,?>>> dominanceFrontier) {
+    public void dominanceFrontier(Map<ControlNode<?>, Set<ControlNode<?>>> dominanceFrontier) {
         this.dominanceFrontier = dominanceFrontier;
     }
 
-    public Set<ControlNode<?,?>> dominanceFrontier(ControlNode<?,?> n) {
+    public Set<ControlNode<?>> dominanceFrontier(ControlNode<?> n) {
         return this.dominanceFrontier.get(n);
     }
 
-    Set<ControlNode<?,?>> nodes() {
-        Set<ControlNode<?,?>> nodes = new HashSet<>();
-        Deque<ControlNode<?,?>> worklist = new ArrayDeque<>();
+    Set<ControlNode<?>> nodes() {
+        Set<ControlNode<?>> nodes = new HashSet<>();
+        Deque<ControlNode<?>> worklist = new ArrayDeque<>();
         worklist.add(control(-1));
 
         while ( ! worklist.isEmpty() ) {
-            ControlNode<?,?> cur = worklist.pop();
+            ControlNode<?> cur = worklist.pop();
             nodes.add(cur);
-            for (ControlNode<?,?> successor : cur.getControlSuccessors()) {
+            for (ControlNode<?> successor : cur.getControlSuccessors()) {
                 if ( ! nodes.contains(successor)) {
                     worklist.add(successor);
                 }
             }
         }
 
+        System.err.println( "NODES: " + nodes);
         return nodes;
     }
 
     //private Map<Integer,List<ControlNode<?>>> links = new HashMap<>();
-    private Map<Integer, ControlNode<?,?>> controls = new HashMap<>();
-    private Map<ControlNode<?,?>, Set<ControlNode<?,?>>> dominanceFrontier;
+    private Map<Integer, ControlNode<?>> controls = new HashMap<>();
+    private Map<ControlNode<?>, Set<ControlNode<?>>> dominanceFrontier;
 }

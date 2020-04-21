@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph.type;
 
-public class IfValue implements Value<IfType, IfValue> {
+public class IfValue {
 
     public static final IfValue TRUE = new IfValue(true);
     public static final IfValue FALSE = new IfValue(false);
@@ -18,11 +18,6 @@ public class IfValue implements Value<IfType, IfValue> {
             return TRUE;
         }
         return FALSE;
-    }
-
-    @Override
-    public IfType getType() {
-        return IfType.INSTANCE;
     }
 
     private final boolean value;

@@ -1,17 +1,14 @@
 package cc.quarkus.qcc.graph.node;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.StartValue;
-import cc.quarkus.qcc.graph.type.Value;
 import cc.quarkus.qcc.interpret.Context;
 
-public class VariableProjection<T extends ConcreteType<T>, V extends Value<T,V>> extends AbstractNode<T,V> {
+public class VariableProjection<V> extends AbstractNode<V> {
 
-    protected VariableProjection(StartNode in, T outType, int index) {
+    protected VariableProjection(StartNode in, Class<V> outType, int index) {
         super(in, outType);
         this.index = index;
     }
@@ -29,22 +26,13 @@ public class VariableProjection<T extends ConcreteType<T>, V extends Value<T,V>>
     }
 
     @Override
-    public List<Node<?, ?>> getPredecessors() {
+    public List<Node<?>> getPredecessors() {
         return Collections.singletonList(getControl());
     }
 
     public String label() {
-        return "<param> " + index + ": " + getType().label();
+        return "<param> " + index + ": " + getType();
     }
 
-    /*
-    @Override
-    public Value<?> getValue(Context context) {
-        StartValue input = (StartValue) context.get(getPredecessors().get(0));
-        return input.getArgument(this.index);
-    }
-
-
-     */
     private final int index;
 }

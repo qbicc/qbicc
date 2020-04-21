@@ -3,21 +3,18 @@ package cc.quarkus.qcc.interpret;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.graph.node.AbstractControlNode;
-import cc.quarkus.qcc.graph.node.AbstractNode;
+import cc.quarkus.qcc.graph.node.ControlNode;
+import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.PhiNode;
 import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.graph.type.EndValue;
+import cc.quarkus.qcc.graph.type.ControlToken;
+import cc.quarkus.qcc.graph.type.EndToken;
 import cc.quarkus.qcc.graph.type.StartValue;
-import cc.quarkus.qcc.graph.type.Value;
 
 public class Thread implements Context {
 
@@ -25,89 +22,88 @@ public class Thread implements Context {
 
     }
 
-    public EndValue execute(Graph graph, StartValue arguments) {
+
+    public  EndToken execute(Graph graph, StartValue arguments) {
         pushContext();
-        set(graph.getStart(), arguments);
-
-        //Set<Node<?>> ready = new HashSet<>();
-        List<AbstractNode<?>> waiting = new ArrayList<>();
-        Deque<AbstractNode<?>> worklist = new ArrayDeque<>();
-        Set<AbstractNode<?>> next = new HashSet<>();
-        AbstractControlNode<?> prevControl = null;
-        AbstractControlNode<?> nextControl = graph.getStart();
-        next.addAll(graph.getStart().getSuccessors());
-
-        AbstractControlNode<?> control = null;
-
-        //ready.add( graph.getStart() );
         try {
-            while ( ! next.isEmpty() ) {
+            set(graph.getStart(), arguments);
+            ControlNode<?> prevControl = null;
+            ControlNode<?> nextControl = null;
+            ControlNode<?> control = graph.getStart();
+            do {
+                nextControl = executeControl(prevControl, control);
                 prevControl = control;
                 control = nextControl;
-                AbstractControlNode<?> curControl = control;
-                worklist.addAll(next.stream().filter(e->e.getControlPredecessors().contains(curControl)).collect(Collectors.toList()));
-                next.clear();
-                while (!worklist.isEmpty()) {
-                    AbstractNode<?> cur = worklist.pop();
-                    if (!isReady(prevControl, cur)) {
-                        waiting.add(cur);
-                        continue;
-                    }
-
-                    Value<?> val = getValue(prevControl, cur);
-                    if (val != null) {
-                        set(cur, val);
-                        if ( val instanceof EndValue ) {
-                            return (EndValue) val;
-                        }
-                        if ( cur instanceof AbstractControlNode) {
-                            nextControl = (AbstractControlNode<?>) cur;
-                        }
-                        next.addAll(cur.getSuccessors());
-                        ListIterator<AbstractNode<?>> iter = waiting.listIterator();
-                        while (iter.hasNext()) {
-                            AbstractNode<?> each = iter.next();
-                            if (isReady(prevControl, each)) {
-                                //ready.add(each);
-                                worklist.push(each);
-                                iter.remove();
-                            }
-                        }
-                    }
-                }
-            }
-            //set(graph.getStart(), arguments);
-            //graph.getStart().accept(this);
+            } while (control != null);
         } finally {
             popContext();
         }
-        return null;
+        return this.endToken;
     }
 
-    protected Value<?> getValue(AbstractControlNode<?> discriminator, AbstractNode<?> node) {
+    protected ControlNode<?> executeControl(ControlNode<?> prevControl, ControlNode<?> control) {
+        List<Node<?>> worklist = new ArrayList<>(control.getSuccessors());
+
+        ControlNode<?> nextControl = null;
+
+        while ( ! worklist.isEmpty() ) {
+            Deque<Node<?>> ready = new ArrayDeque<>(worklist.stream().filter(e->isReady(prevControl, control, e)).collect(Collectors.toList()));
+            worklist.removeAll(ready);
+
+            while ( ! ready.isEmpty() ) {
+                Node<?> cur = ready.pop();
+                //Object value = cur.getValue(this);
+                Object value = getValue(prevControl, cur);
+                System.err.println( "==" + value);
+                if (value != null) {
+                    if ( value instanceof EndToken ) {
+                        this.endToken = (EndToken) value;
+                        return null;
+                    }
+                    set0(cur, value);
+                    if (cur instanceof ControlNode) {
+                        nextControl = (ControlNode<?>) cur;
+                    }
+                }
+            }
+        }
+        return nextControl;
+    }
+
+    protected <T> T getValue(ControlNode<?> discriminator, Node<T> node) {
         if ( node instanceof PhiNode ) {
-            return ((PhiNode<?>) node).getValue(discriminator).getValue(peekContext());
+            return (T) ((PhiNode<?>) node).getValue(discriminator).getValue(peekContext());
         }
         return node.getValue(peekContext());
     }
 
-    protected boolean isReady(AbstractControlNode<?> discriminator, AbstractNode<?> node) {
+    protected boolean isReady(ControlNode<?> discriminator, ControlNode<?> curControl, Node<?> node) {
+        System.err.println( "** isReady(" + discriminator + ", " + node + ")");
         if ( node instanceof RegionNode ) {
-            return isRegionReady((RegionNode) node);
+            return isRegionReady(curControl, (RegionNode) node);
         }
         if ( node instanceof PhiNode ) {
             return isPhiReady(discriminator, (PhiNode<?>) node);
         }
-        Optional<AbstractNode<?>> firstMissing = node.getPredecessors().stream().filter(e -> get(e) == null).findFirst();
+        Optional<? extends Node<?>> firstMissing = node.getPredecessors().stream().filter(e -> get(e) == null).findFirst();
+        if ( firstMissing.isPresent() ) {
+            System.err.println( "missing: " + firstMissing.get());
+
+        }
         return ! firstMissing.isPresent();
     }
 
-    protected boolean isRegionReady(RegionNode node) {
-        Optional<AbstractNode<?>> firstFound = node.getPredecessors().stream().filter(e -> get(e) != null).findFirst();
-        return firstFound.isPresent();
+    protected boolean isRegionReady(ControlNode<?> discriminator, RegionNode node) {
+        Optional<? extends Node<?>> firstFound = node.getPredecessors().stream().filter(e -> get(e) != null).findFirst();
+        if ( ! firstFound.isPresent() ) {
+            System.err.println( "region missing input");
+            return false;
+        }
+        return node.getSuccessors().stream().filter(e->e instanceof PhiNode).allMatch(e->isPhiReady(discriminator, (PhiNode<?>) e));
     }
 
-    protected boolean isPhiReady(AbstractControlNode<?> discriminator, PhiNode<?> node) {
+    protected boolean isPhiReady(ControlNode<?> discriminator, PhiNode<?> node) {
+        System.err.println( "is phi ready? " + node + " from " + discriminator );
         return peekContext().get(node.getValue(discriminator)) != null;
         //return false;
     }
@@ -124,17 +120,21 @@ public class Thread implements Context {
         return this.callStack.peek();
     }
 
+
     @Override
-    public void set(AbstractNode<?> node, Value<?> value) {
-        peekContext().set(node, value);
+    public <T> void set(Node<T> node, T val) {
+        peekContext().set(node, val);
+    }
+
+    protected <T> void set0(Node<T> node, Object val) {
+        set(node, (T) val);
     }
 
     @Override
-    public Value<?> get(AbstractNode<?> node) {
+    public <T> T get(Node<T> node) {
         return peekContext().get(node);
     }
 
     private Deque<ThreadContext> callStack = new ArrayDeque<>();
-    //private Set<Node<?>> ready = new HashSet<>();
-    //private List<Node<?>> waiting = new ArrayList<>();
+    private EndToken endToken;
 }

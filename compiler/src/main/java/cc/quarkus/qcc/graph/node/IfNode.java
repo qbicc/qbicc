@@ -3,13 +3,12 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
-import cc.quarkus.qcc.graph.type.IfType;
 import cc.quarkus.qcc.graph.type.IfValue;
 
-public abstract class IfNode extends AbstractControlNode<IfType, IfValue> {
+public abstract class IfNode extends AbstractControlNode<IfValue> {
 
-    public IfNode(ControlNode<?,?> control, CompareOp op) {
-        super(control, IfType.INSTANCE);
+    public IfNode(ControlNode<?> control, CompareOp op) {
+        super(control, IfValue.class);
         this.op = op;
     }
 
@@ -27,7 +26,7 @@ public abstract class IfNode extends AbstractControlNode<IfType, IfValue> {
 
     @Override
     public String label() {
-        return "<if> " + this.op.label();
+        return "<if> ";// + this.op.label();
     }
 
     private final AtomicReference<IfTrueProjection> ifTrueOut = new AtomicReference<>();

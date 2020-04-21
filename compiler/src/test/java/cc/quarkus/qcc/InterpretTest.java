@@ -6,8 +6,7 @@ import java.nio.file.Paths;
 import cc.quarkus.qcc.finders.ClassLoaderClassFinder;
 import cc.quarkus.qcc.graph.DotWriter;
 import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.graph.type.ConcreteType;
-import cc.quarkus.qcc.graph.type.IntValue;
+import cc.quarkus.qcc.graph.type.EndToken;
 import cc.quarkus.qcc.graph.type.StartValue;
 import cc.quarkus.qcc.interpret.Interpreter;
 import cc.quarkus.qcc.parse.BytecodeParser;
@@ -31,10 +30,8 @@ public class InterpretTest {
             writer.write(graph);
         }
 
-        //StartValue context = graph.getStart().getType().newInstance(new IntValue(42), new IntValue(88));
-        //graph.execute(context);
         Interpreter interp = new Interpreter();
-        Object result = interp.execute(graph, graph.getStart().getType().newInstance(new IntValue(42), new IntValue(88)));
+        EndToken result = interp.execute(graph, new StartValue(42, 88));
         System.err.println( "result ==> " + result);
         //graph.interpret(graph.getStart().getType().newInstance())
     }

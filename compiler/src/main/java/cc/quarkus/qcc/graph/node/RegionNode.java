@@ -3,28 +3,29 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.ControlType;
-import cc.quarkus.qcc.graph.type.ControlValue;
-import cc.quarkus.qcc.graph.type.Value;
+import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.interpret.Context;
 
-public class RegionNode extends AbstractControlNode<ControlType, ControlValue> implements PhiOwner {
+public class RegionNode extends AbstractControlNode<ControlToken> {
 
     public RegionNode(int maxLocals, int maxStack) {
-        super(ControlType.INSTANCE, maxLocals, maxStack);
+        super(ControlToken.class, maxLocals, maxStack);
     }
 
-    public void addInput(ControlNode<?,?> input) {
+    public void addInput(ControlNode<?> input) {
+        if( this.inputs.contains(input) ) {
+            return;
+        }
         this.inputs.add( input );
+        input.addSuccessor(this);
     }
 
     @Override
-    public List<? extends Node<?, ?>> getPredecessors() {
+    public List<? extends Node<?>> getPredecessors() {
         return getInputs();
     }
 
-    @Override
-    public List<ControlNode<?, ?>> getInputs() {
+    public List<ControlNode<?>> getInputs() {
         return this.inputs;
     }
 
@@ -34,10 +35,15 @@ public class RegionNode extends AbstractControlNode<ControlType, ControlValue> i
     }
 
     @Override
-    public ControlValue getValue(Context context) {
-        return new ControlValue();
+    public String toString() {
+        return label();
     }
 
-    private final List<ControlNode<?,?>> inputs = new ArrayList<>();
+    @Override
+    public ControlToken getValue(Context context) {
+        return new ControlToken();
+    }
+
+    private final List<ControlNode<?>> inputs = new ArrayList<>();
 }
 

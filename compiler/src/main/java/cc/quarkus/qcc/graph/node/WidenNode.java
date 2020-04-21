@@ -3,35 +3,31 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.Type;
-import cc.quarkus.qcc.graph.type.Value;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.parse.TypeUtil;
 
-public class WidenNode<T extends Type<T>, V extends Value<T,V> > extends AbstractNode<T, V> {
+public class WidenNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
 
-    public WidenNode(ControlNode<?, ?> control, Node<?, ?> input, T outType) {
-        super(outType);
-        this.control = control;
+    public WidenNode(ControlNode<?> control, Node<INPUT_V> input, Class<OUTPUT_V> outType) {
+        super(control, outType);
         this.input = input;
-        control.addSuccessor(this);
         input.addSuccessor(this);
     }
 
     @Override
-    public V getValue(Context context) {
-        Value<?, ?> src = context.get(this.input);
-        return (V) getType().coerce(src);
+    public OUTPUT_V getValue(Context context) {
+        INPUT_V src = context.get(this.input);
+        //return getType().coerce(src);
+        return TypeUtil.coerce(src, getType());
     }
 
     @Override
-    public List<Node<?, ?>> getPredecessors() {
+    public List<Node<?>> getPredecessors() {
         return new ArrayList<>() {{
-            add(control);
+            add(getControl());
             add(input);
         }};
     }
 
-    private final ControlNode<?, ?> control;
-
-    private final Node<?, ?> input;
+    private final Node<INPUT_V> input;
 }

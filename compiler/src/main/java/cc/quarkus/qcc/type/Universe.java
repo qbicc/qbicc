@@ -7,17 +7,6 @@ import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import cc.quarkus.qcc.graph.type.BooleanType;
-import cc.quarkus.qcc.graph.type.ByteType;
-import cc.quarkus.qcc.graph.type.CharType;
-import cc.quarkus.qcc.graph.type.ConcreteType;
-import cc.quarkus.qcc.graph.type.DoubleType;
-import cc.quarkus.qcc.graph.type.FloatType;
-import cc.quarkus.qcc.graph.type.IntType;
-import cc.quarkus.qcc.graph.type.LongType;
-import cc.quarkus.qcc.graph.type.ObjectType;
-import cc.quarkus.qcc.graph.type.ShortType;
-import cc.quarkus.qcc.graph.type.VoidType;
 import cc.quarkus.qcc.spi.ClassFinder;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
@@ -42,28 +31,28 @@ public class Universe {
         INSTANCE.set(this);
     }
 
-    public ConcreteType<?> findType(String name) {
+    public TypeDescriptor<?> findType(String name) {
         if ( name.equals("void")) {
             //return PrimitiveTypeDef.VOID;
-            return VoidType.INSTANCE;
+            return TypeDescriptor.VOID;
         } else if ( name.equals("byte")) {
-            return ByteType.INSTANCE;
+            return TypeDescriptor.BYTE;
         } else if ( name.equals("char")) {
-            return CharType.INSTANCE;
+            return TypeDescriptor.CHAR;
         } else if ( name.equals("short")) {
-            return ShortType.INSTANCE;
+            return TypeDescriptor.SHORT;
         } else if ( name.equals("int")) {
-            return IntType.INSTANCE;
+            return TypeDescriptor.INT;
         } else if ( name.equals("long")) {
-            return LongType.INSTANCE;
+            return TypeDescriptor.LONG;
         } else if ( name.equals("boolean")) {
-            return BooleanType.INSTANCE;
+            return TypeDescriptor.BOOLEAN;
         } else if ( name.equals("float")) {
-            return FloatType.INSTANCE;
+            return TypeDescriptor.FLOAT;
         } else if ( name.equals("double")) {
-            return DoubleType.INSTANCE;
+            return TypeDescriptor.DOUBLE;
         }
-        return ObjectType.of( findClass(name) );
+        return TypeDescriptor.of( findClass(name) );
     }
 
     public TypeDefinition findClass(String name) {

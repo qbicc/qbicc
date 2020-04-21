@@ -2,7 +2,6 @@ package cc.quarkus.qcc.type;
 
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.ConcreteType;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
@@ -36,13 +35,23 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
     }
 
     @Override
-    public List<ConcreteType<?>> getParamTypes() {
+    public List<TypeDescriptor<?>> getParamTypes() {
         return this.methodDescriptor.getParamTypes();
     }
 
     @Override
-    public ConcreteType<?> getReturnType() {
+    public TypeDescriptor<?> getReturnType() {
         return this.methodDescriptor.getReturnType();
+    }
+
+    @Override
+    public TypeDefinition getOwner() {
+        return this.typeDefinition;
+    }
+
+    @Override
+    public String getName() {
+        return this.name;
     }
 
     @Override
@@ -60,8 +69,9 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
         return this.typeDefinition;
     }
 
-    public boolean isMatching(ConcreteType<?>[] parameterTypes) {
-        List<ConcreteType<?>> params = this.methodDescriptor.getParamTypes();
+    /*
+    public boolean isMatching(Class<?>[] parameterTypes) {
+        List<TypeDescriptor<?>> params = this.methodDescriptor.getParamTypes();
         if ( parameterTypes.length != params.size() ) {
             return false;
         }
@@ -74,13 +84,14 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
 
         return true;
     }
+     */
 
     @Override
     public String toString() {
         return this.typeDefinition + " " + this.name + this.desc;
     }
 
-    private final MethodDescriptor methodDescriptor;
+    private final MethodDescriptorImpl methodDescriptor;
 
     private final TypeDefinitionNode typeDefinition;
 }

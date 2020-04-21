@@ -1,35 +1,28 @@
 package cc.quarkus.qcc.graph.type;
 
-public class StartValue implements Value<StartType, StartValue>, IOSource, MemorySource {
+public class StartValue implements IOSource, MemorySource {
 
-    public StartValue(StartType type, Value<? extends ConcreteType<?>,?>...arguments) {
-        this.type = type;
+    public StartValue(Object...arguments) {
         this.arguments = arguments;
-        this.io = new IOValue();
-        this.memory = new MemoryValue();
+        this.io = new IOToken();
+        this.memory = new MemoryToken();
     }
 
-    @Override
-    public StartType getType() {
-        return this.type;
-    }
-
-    public Value<? extends ConcreteType<?>,?> getArgument(int index) {
+    public Object getArgument(int index) {
         return this.arguments[index];
     }
 
     @Override
-    public IOValue getIO() {
+    public IOToken getIO() {
         return this.io;
     }
 
     @Override
-    public MemoryValue getMemory() {
+    public MemoryToken getMemory() {
         return this.memory;
     }
 
-    private final StartType type;
-    private final Value<? extends ConcreteType<?>,?>[] arguments;
-    private final IOValue io;
-    private final MemoryValue memory;
+    private final Object[] arguments;
+    private final IOToken io;
+    private final MemoryToken memory;
 }

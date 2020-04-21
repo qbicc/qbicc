@@ -1,14 +1,5 @@
 package cc.quarkus.qcc.graph.node;
 
-import cc.quarkus.qcc.graph.type.BooleanValue;
-import cc.quarkus.qcc.graph.type.IfValue;
-import cc.quarkus.qcc.graph.type.NumericType;
-import cc.quarkus.qcc.graph.type.NumericValue;
-import cc.quarkus.qcc.graph.type.Type;
-import cc.quarkus.qcc.graph.type.Value;
-
-import static cc.quarkus.qcc.graph.type.BooleanValue.of;
-
 public enum CompareOp {
 
     EQUAL("=="),

@@ -8,15 +8,11 @@ import java.util.Map;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.PhiNode;
-import cc.quarkus.qcc.graph.node.PhiOwner;
 import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.graph.type.AnyType;
-import cc.quarkus.qcc.graph.type.Type;
-import cc.quarkus.qcc.graph.type.Value;
 
 public abstract class Local {
 
-    public Local(ControlNode<?,?> control, int index) {
+    public Local(ControlNode<?> control, int index) {
         this.control = control;
         this.index = index;
     }
@@ -25,11 +21,11 @@ public abstract class Local {
         return this.index;
     }
 
-    public abstract void store(Node<?,?> val);
+    public abstract void store(Node<?> val);
 
-    public abstract Node<?,?> load(Type<?> type);
+    public abstract <V> Node<V> load(Class<V> type);
 
-    public abstract Node<?, ?> get(Type<?> type);
+    public abstract <V> Node<V> get(Class<V> type);
 
     public abstract Local duplicate();
 
@@ -37,26 +33,26 @@ public abstract class Local {
 
     protected boolean killed;
 
-    protected ControlNode<?,?> control;
+    protected ControlNode<?> control;
 
     public static class SimpleLocal extends Local {
 
-        public SimpleLocal(ControlNode<?,?> control, int index) {
+        public SimpleLocal(ControlNode<?> control, int index) {
             super(control, index);
         }
 
         @Override
-        public  void store(Node<?,?> val) {
+        public void store(Node<?> val) {
             this.val = val;
             this.killed = true;
         }
 
         @Override
-        public Node<?,?> load(Type<?> type) {
+        public <V> Node<V> load(Class<V> type) {
             return TypeUtil.checkType(this.val, type);
         }
 
-        public Node<?,?> get(Type<?> type) {
+        public <V> Node<V> get(Class<V> type) {
             return load(type);
         }
 
@@ -71,55 +67,58 @@ public abstract class Local {
             return dupe;
         }
 
-        protected Node<?,?> val;
+        protected Node<?> val;
     }
 
     public static class PhiLocal extends SimpleLocal {
-        public <T extends ControlNode<?,?> & PhiOwner> PhiLocal(T control, int index, Type<?> type) {
+        public PhiLocal(RegionNode control, int index, Class<?> type) {
             super(control, index);
             this.phi = new PhiNode(this.control, type, this);
             this.type = type;
         }
 
-        PhiOwner getPhiOwner() {
-            return (PhiOwner) this.control;
+        RegionNode getRegion() {
+            return (RegionNode) this.control;
         }
 
-        public Node<?,?> load(Type<?> type) {
+        public <V> Node<V> load(Class<V> type) {
             if (!this.killed) {
                 return TypeUtil.checkType(this.phi, type);
             }
             return super.load(type);
         }
 
-        public Node<?,?> get(Type<?> type) {
+        public <V> Node<V> get(Class<V> type) {
             return super.load(type);
         }
 
         @Override
-        public void store(Node<?,?> val) {
+        public void store(Node<?> val) {
             super.store(val);
-            if ( this.inputs.contains(val.getControl())) {
+            if (this.inputs.contains(val.getControl())) {
                 this.killed = false;
             }
         }
 
-        public void addInput(ControlNode<?,?> control, Type<?> type) {
-            this.type = this.type.join(type);
+        public void addInput(ControlNode<?> control, Class<?> type) {
+            //this.type = this.type.join(type);
+            if (this.type != type) {
+                throw new RuntimeException("Incompatible type " + type + " vs " + this.type);
+            }
             this.inputs.add(control);
         }
 
         public void complete() {
-            List<ControlNode<?,?>> discriminators = getPhiOwner().getInputs();
-
-            for (ControlNode<?,?> discriminator : discriminators) {
-                Node<?,?> inbound = discriminator.frame().get(this.index, AnyType.INSTANCE);
+            List<ControlNode<?>> discriminators = getRegion().getInputs();
+            for (ControlNode<?> discriminator : discriminators) {
+                Node<?> inbound = discriminator.frame().get(this.index, null);
+                System.err.println( this + " PHI INPUT FROM " + inbound);
                 this.phi.addInput(inbound);
                 this.values.put(discriminator, inbound);
             }
         }
 
-        public Node<?,?> getValue(ControlNode<?,?> discriminator) {
+        public Node<?> getValue(ControlNode<?> discriminator) {
             return this.values.get(discriminator);
         }
 
@@ -129,14 +128,16 @@ public abstract class Local {
 
         @Override
         public Local duplicate() {
-            // don't really duplicate.
             return this;
         }
 
-        private PhiNode<?,?> phi;
-        private Type<?> type;
-        private List<ControlNode<?,?>> inputs = new ArrayList<>();
-        private Map<ControlNode<?,?>, Node<?,?>> values = new HashMap<>();
+        private PhiNode<?> phi;
+
+        private Class<?> type;
+
+        private List<ControlNode<?>> inputs = new ArrayList<>();
+
+        private Map<ControlNode<?>, Node<?>> values = new HashMap<>();
 
     }
 }

@@ -3,20 +3,19 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Collections;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.ConcreteType;
 import cc.quarkus.qcc.graph.type.InvokeValue;
-import cc.quarkus.qcc.graph.type.Value;
 import cc.quarkus.qcc.interpret.Context;
 
-public class ResultProjection<T extends ConcreteType<T>, V extends Value<T,V>> extends AbstractNode<T, V>{
+public class ResultProjection<V> extends AbstractNode<V>{
 
-    protected ResultProjection(InvokeNode in, T outType) {
+    protected ResultProjection(InvokeNode<V> in, Class<V> outType) {
         super(in, outType);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public InvokeNode getControl() {
-        return (InvokeNode) super.getControl();
+    public InvokeNode<V> getControl() {
+        return (InvokeNode<V>) super.getControl();
     }
 
     @SuppressWarnings("unchecked")
@@ -27,12 +26,8 @@ public class ResultProjection<T extends ConcreteType<T>, V extends Value<T,V>> e
     }
 
     @Override
-    public List<Node<?, ?>> getPredecessors() {
+    public List<Node< ?>> getPredecessors() {
         return Collections.singletonList(getControl());
     }
 
-    @Override
-    public String label() {
-        return "<proj> result: " + getType().label();
-    }
 }

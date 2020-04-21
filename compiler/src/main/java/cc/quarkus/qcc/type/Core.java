@@ -2,8 +2,6 @@ package cc.quarkus.qcc.type;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import cc.quarkus.qcc.graph.type.ObjectType;
-
 public class Core {
 
     public static class java {

@@ -1,5 +1,4 @@
 package cc.quarkus.qcc.graph.type;
 
-public class ThrowValue {
-
+public final class ControlToken {
 }

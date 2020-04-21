@@ -3,13 +3,13 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Collections;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.ConcreteType;
-import cc.quarkus.qcc.graph.type.Value;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class NewNode<T extends ConcreteType<T>, V extends Value<T, V>> extends AbstractNode<T, V> {
-    public NewNode(ControlNode<?, ?> control, T outType) {
-        super(control, outType);
+public class NewNode<V> extends AbstractNode<V> {
+    public NewNode(ControlNode<?> control, TypeDescriptor<V> typeDescriptor) {
+        super(control, typeDescriptor.valueType());
+        this.typeDescriptor = typeDescriptor;
     }
 
     @Override
@@ -19,7 +19,7 @@ public class NewNode<T extends ConcreteType<T>, V extends Value<T, V>> extends A
     }
 
     @Override
-    public List<Node<?, ?>> getPredecessors() {
+    public List<Node<?>> getPredecessors() {
         return Collections.singletonList(getControl());
     }
 
@@ -27,4 +27,6 @@ public class NewNode<T extends ConcreteType<T>, V extends Value<T, V>> extends A
     public String label() {
         return "<new> " + getType();
     }
+
+    private final TypeDescriptor<V> typeDescriptor;
 }

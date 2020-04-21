@@ -3,42 +3,42 @@ package cc.quarkus.qcc.graph.node;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.naming.ldap.Control;
-
-import cc.quarkus.qcc.graph.type.Type;
-import cc.quarkus.qcc.graph.type.Value;
 import cc.quarkus.qcc.interpret.Context;
 
-public interface Node<T extends Type<T>, V extends Value<T,V>> {
+public interface Node<V> {
 
     int getId();
 
-    ControlNode<?, ?> getControl();
+    ControlNode<?> getControl();
 
-    void setControl(ControlNode<?, ?> control);
+    void setControl(ControlNode<?> control);
 
-    void addSuccessor(Node<?, ?> out);
+    void addSuccessor(Node<?> out);
 
     V getValue(Context context);
 
-    T getType();
+    Class<V> getType();
 
-    List<? extends Node<?, ?>> getPredecessors();
+    List<? extends Node<?>> getPredecessors();
 
-    default List<? extends ControlNode<?,?>> getControlPredecessors() {
+    default List<? extends ControlNode<?>> getControlPredecessors() {
         return getPredecessors().stream()
-                .filter(e-> e instanceof ControlNode<?,?> )
-                .map(e->(ControlNode<?,?>)e)
+                .filter(e-> e instanceof ControlNode<?> )
+                .map(e->(ControlNode<?>)e)
                 .collect(Collectors.toList());
     }
 
-    List<? extends Node<?, ?>> getSuccessors();
+    List<? extends Node<?>> getSuccessors();
 
-    default List<? extends ControlNode<?, ?>> getControlSuccessors() {
+    default List<? extends ControlNode<?>> getControlSuccessors() {
         return getSuccessors().stream()
-                .filter(e-> e instanceof ControlNode<?,?> )
-                .map(e->(ControlNode<?,?>)e)
+                .filter(e-> e instanceof ControlNode<?> )
+                .map(e->(ControlNode<?>)e)
                 .collect(Collectors.toList());
+    }
+
+    default String label() {
+        return "node " + getId();
     }
 
 }

@@ -3,18 +3,6 @@ package cc.quarkus.qcc.type;
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.BooleanType;
-import cc.quarkus.qcc.graph.type.ByteType;
-import cc.quarkus.qcc.graph.type.CharType;
-import cc.quarkus.qcc.graph.type.ConcreteType;
-import cc.quarkus.qcc.graph.type.DoubleType;
-import cc.quarkus.qcc.graph.type.FloatType;
-import cc.quarkus.qcc.graph.type.IntType;
-import cc.quarkus.qcc.graph.type.LongType;
-import cc.quarkus.qcc.graph.type.ObjectType;
-import cc.quarkus.qcc.graph.type.ShortType;
-import cc.quarkus.qcc.graph.type.VoidType;
-
 public class MethodDescriptorParser {
 
     public MethodDescriptorParser(Universe universe, TypeDefinition owner, String name, String descriptor, boolean isStatic) {
@@ -26,22 +14,22 @@ public class MethodDescriptorParser {
         this.cur = 0;
     }
 
-    public MethodDescriptor parseMethodDescriptor() {
+    public MethodDescriptorImpl parseMethodDescriptor() {
         if ( la() != '(') {
             throw new RuntimeException("Unable to parse: " + this.descriptor + " at " + this.cur );
         }
         consume(); // (
 
-        List<ConcreteType<?>> parameters = parseParameters();
-        ConcreteType<?> returnType = parseType();
-        return new MethodDescriptor(this.owner, this.name, parameters, returnType, isStatic);
+        List<TypeDescriptor<?>> parameters = parseParameters();
+        TypeDescriptor<?> returnType = parseType();
+        return new MethodDescriptorImpl(this.owner, this.name, parameters, returnType, isStatic);
     }
 
-    public List<ConcreteType<?>> parseParameters() {
-        List<ConcreteType<?>> result = new ArrayList<>();
+    public List<TypeDescriptor<?>> parseParameters() {
+        List<TypeDescriptor<?>> result = new ArrayList<>();
 
         if ( ! this.isStatic ) {
-            result.add(ObjectType.of(this.owner));
+            result.add(TypeDescriptor.of(this.owner));
         }
 
         LOOP:
@@ -58,35 +46,35 @@ public class MethodDescriptorParser {
         return result;
     }
 
-    public ConcreteType<?> parseType() {
+    public TypeDescriptor<?> parseType() {
         while ( la() != (char) -1 ) {
             switch ( la() ) {
                 case 'Z':
                     consume();
-                    return BooleanType.INSTANCE;
+                    return TypeDescriptor.BOOLEAN;
                 case 'B':
                     consume();
-                    return ByteType.INSTANCE;
+                    return TypeDescriptor.BYTE;
                 case 'C':
                     consume();
-                    return CharType.INSTANCE;
+                    return TypeDescriptor.CHAR;
                 case 'S':
                     consume();
-                    return ShortType.INSTANCE;
+                    return TypeDescriptor.SHORT;
                 case 'I':
                     consume();
-                    return IntType.INSTANCE;
+                    return TypeDescriptor.INT;
                 case 'J':
                     consume();
-                    return LongType.INSTANCE;
+                    return TypeDescriptor.LONG;
                 case 'F':
                     consume();
-                    return FloatType.INSTANCE;
+                    return TypeDescriptor.FLOAT;
                 case 'D':
                     consume();
-                    return DoubleType.INSTANCE;
+                    return TypeDescriptor.DOUBLE;
                 case 'V':
-                    return VoidType.INSTANCE;
+                    return TypeDescriptor.VOID;
                 case 'L':
                     return parseClass();
                 //case '[':
@@ -107,7 +95,7 @@ public class MethodDescriptorParser {
         return this.isStatic;
     }
 
-    protected ConcreteType<?> parseClass() {
+    protected TypeDescriptor<?> parseClass() {
         consume(); // L
         StringBuilder name = new StringBuilder();
         LOOP:
@@ -121,7 +109,7 @@ public class MethodDescriptorParser {
             }
         }
 
-        return this.universe.findType(name.toString());
+        return TypeDescriptor.of(this.universe.findClass(name.toString()));
     }
 
 

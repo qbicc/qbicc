@@ -2,10 +2,9 @@ package cc.quarkus.qcc.type;
 
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.ConcreteType;
 import org.objectweb.asm.tree.InsnList;
 
-public interface MethodDefinition {
+public interface MethodDefinition extends MethodDescriptor {
 
     InsnList getInstructions();
 
@@ -13,11 +12,11 @@ public interface MethodDefinition {
 
     int getMaxStack();
 
-    List<ConcreteType<?>> getParamTypes();
+    //List<Class<?>> getParamTypes();
 
-    ConcreteType<?> getReturnType();
+    //Class<?> getReturnType();
 
-    boolean isStatic();
+    //boolean isStatic();
 
     boolean isSynchronized();
 

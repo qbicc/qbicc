@@ -1,22 +1,24 @@
 package cc.quarkus.qcc.graph.node;
 
-import cc.quarkus.qcc.graph.type.NumericType;
-import cc.quarkus.qcc.graph.type.NumericValue;
-import cc.quarkus.qcc.graph.type.Type;
+import java.util.function.BiFunction;
+
 import cc.quarkus.qcc.interpret.Context;
 
-public class SubNode<T extends NumericType<T>, V extends NumericValue<T,V>> extends BinaryNode<T,V,T,V> {
+public class SubNode<V extends Number> extends BinaryNode<V,V> {
 
-    public SubNode(ControlNode<?,?> control, T outType, Node<T,V> lhs, Node<T,V> rhs) {
+    public SubNode(ControlNode<?> control, Class<V> outType, Node<V> lhs, Node<V> rhs, BiFunction<V,V,V> subber) {
         super(control, outType);
         setLHS(lhs);
         setRHS(rhs);
+        this.subber = subber;
     }
 
     @Override
     public V getValue(Context context) {
         V lhsValue = getLHSValue(context);
         V rhsValue = getRHSValue(context);
-        return (V) lhsValue.sub(rhsValue);
+        return this.subber.apply(lhsValue, rhsValue);
     }
+
+    private final BiFunction<V, V, V> subber;
 }

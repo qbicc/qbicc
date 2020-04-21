@@ -2,45 +2,14 @@ package cc.quarkus.qcc.type;
 
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.ConcreteType;
+public interface MethodDescriptor {
+    TypeDefinition getOwner();
 
-public class MethodDescriptor {
+    String getName();
 
-    MethodDescriptor(TypeDefinition owner, String name, List<ConcreteType<?>> paramTypes, ConcreteType<?> returnType, boolean isStatic) {
-        this.owner = owner;
-        this.name = name;
-        this.paramTypes = paramTypes;
-        this.returnType = returnType;
-        this.isStatic = isStatic;
-    }
+    boolean isStatic();
 
-    public TypeDefinition getOwner() {
-        return this.owner;
-    }
+    List<TypeDescriptor<?>> getParamTypes();
 
-    public String getName() {
-        return this.name;
-    }
-
-    public boolean isStatic() {
-        return this.isStatic;
-    }
-
-    public List<ConcreteType<?>> getParamTypes() {
-        return this.paramTypes;
-    }
-
-    public ConcreteType<?> getReturnType() {
-        return this.returnType;
-    }
-
-    private final List<ConcreteType<?>> paramTypes;
-
-    private final ConcreteType<?> returnType;
-
-    private final TypeDefinition owner;
-
-    private final String name;
-
-    private final boolean isStatic;
+    TypeDescriptor<?> getReturnType();
 }
