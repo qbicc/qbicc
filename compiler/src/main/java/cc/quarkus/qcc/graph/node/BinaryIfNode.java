@@ -43,7 +43,6 @@ public class BinaryIfNode<V> extends IfNode {
         }
         
         if ( lhsValue instanceof Comparable && rhsValue instanceof Comparable ) {
-            System.err.println( lhsValue + " " + getOp() + " " + rhsValue);
             switch ( getOp() ) {
                 case LESS_THAN:
                     return IfValue.of(((Comparable) lhsValue).compareTo(rhsValue) < 0);

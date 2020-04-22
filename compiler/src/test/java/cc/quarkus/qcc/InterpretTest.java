@@ -15,6 +15,8 @@ import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.Universe;
 import org.junit.Test;
 
+import static org.fest.assertions.api.Assertions.assertThat;
+
 public class InterpretTest {
 
     @Test
@@ -30,9 +32,8 @@ public class InterpretTest {
             writer.write(graph);
         }
 
-        Interpreter interp = new Interpreter();
-        EndToken result = interp.execute(graph, new StartValue(42, 88));
-        System.err.println( "result ==> " + result);
-        //graph.interpret(graph.getStart().getType().newInstance())
+        Interpreter interp = new Interpreter(graph);
+        EndToken result = interp.execute(42, 88);
+        assertThat(result.getReturnValue()).isEqualTo(42);
     }
 }

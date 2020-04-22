@@ -9,14 +9,13 @@ import cc.quarkus.qcc.graph.type.StartValue;
 
 public class Interpreter {
 
-    public Interpreter() {
-
+    public Interpreter(Graph graph) {
+        this.graph = graph;
     }
 
-    public EndToken execute(Graph graph, StartValue arguments) {
-        Thread thread = new Thread();
-        return thread.execute(graph, arguments);
+    public EndToken execute(Object...arguments) {
+        return new Thread().execute(this.graph, new StartValue(arguments));
     }
 
-    private List<Thread> threads = new ArrayList<>();
+    private final Graph graph;
 }

@@ -112,7 +112,6 @@ public abstract class Local {
             List<ControlNode<?>> discriminators = getRegion().getInputs();
             for (ControlNode<?> discriminator : discriminators) {
                 Node<?> inbound = discriminator.frame().get(this.index, null);
-                System.err.println( this + " PHI INPUT FROM " + inbound);
                 this.phi.addInput(inbound);
                 this.values.put(discriminator, inbound);
             }

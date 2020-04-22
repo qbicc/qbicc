@@ -93,7 +93,6 @@ public class Frame {
     }
 
     public void returnValue(Node<?> returnValue) {
-        System.err.println( "frame.returnValue( " + returnValue + " )");
         if ( this.returnValue == null ) {
             this.returnValue = new Local.SimpleLocal(this.control, BytecodeParser.SLOT_RETURN);
         }
@@ -127,7 +126,6 @@ public class Frame {
     }
 
     public void mergeFrom(Frame inbound) {
-        System.err.println( "merge frame " + this.control + " from " + inbound.control);
         for (int i = 0; i < this.locals.length; ++i) {
             if (this.locals[i] == null) {
                 if ( inbound.locals[i] != null ) {
@@ -139,7 +137,6 @@ public class Frame {
         this.stack.addAll(inbound.stack);
         if ( this.returnValue == null && inbound.returnValue != null) {
             this.returnValue = inbound.returnValue.duplicate();
-            System.err.println( "SET RETURN: " + this.returnValue);
         }
         if (this.io == null) {
             this.io = inbound.io.duplicate();

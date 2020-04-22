@@ -147,7 +147,6 @@ public class BytecodeParser {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
 
-            System.err.println( "CFG: " + instr + " " + Mnemonics.of(opcode));
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
                 int destIndex = instrList.indexOf(dest);
@@ -200,11 +199,9 @@ public class BytecodeParser {
                 if (candidate != null) {
                     if (control() != null) {
                         if ( candidate instanceof RegionNode ) {
-                            System.err.println( "add control to " + candidate + " from " + control());
                             ((RegionNode)candidate).addInput(control());
                         } else {
                             if ( candidate.getControl() == null ) {
-                                System.err.println( "set control on " + candidate + " to " + control());
                                 candidate.setControl(control());
                             }
                         }
@@ -294,14 +291,7 @@ public class BytecodeParser {
                 temp.add(n);
                 temp.addAll(
                         intersect(
-                                n.getPredecessors().stream().map(e->{
-                                    if ( e == null ) {
-                                        System.err.println( n + " pred are null");
-                                    }
-                                    Set<Node<?>> dom = dominators.get(e);
-                                    System.err.println( e + " dominators = " + dom);
-                                    return dom;
-                                }).collect(Collectors.toList())
+                                n.getPredecessors().stream().map(dominators::get).collect(Collectors.toList())
                         )
                 );
 
@@ -328,7 +318,6 @@ public class BytecodeParser {
 
         for (ControlNode<?> n : nodes) {
             dominanceFrontier.put(n, new HashSet<>());
-            System.err.println( n + " --> df");
         }
 
         for (ControlNode<?> n : nodes) {
@@ -350,7 +339,7 @@ public class BytecodeParser {
         if (sets.isEmpty()) {
             return Collections.emptySet();
         }
-        System.err.println( "intersect: " + sets);
+
         Set<Node<?>> intersection = new HashSet<>(sets.get(0));
 
         for (int i = 1; i < sets.size(); ++i) {
@@ -364,7 +353,6 @@ public class BytecodeParser {
         InsnList instructions = this.method.getInstructions();
         int numInstrs = instructions.size();
 
-        //Map<ControlNode<?>, Set<Integer>> phiPlacements = new HashMap<>();
         PhiPlacements phiPlacements = new PhiPlacements();
 
         control(links.control(-1));
@@ -415,7 +403,6 @@ public class BytecodeParser {
                 case DRETURN:
                 case FRETURN:
                 case ARETURN: {
-                    System.err.println( "PHI RETURN");
                     phiPlacements.record(control(), SLOT_RETURN, method.getReturnType().valueType());
                     break;
                 }
@@ -426,12 +413,8 @@ public class BytecodeParser {
         phiPlacements.forEach((node, entries) -> {
             Set<ControlNode<?>> df = links.dominanceFrontier(node);
 
-            System.err.println( "calc phi placement for " + node);
-
             for (PhiPlacements.Entry entry : entries) {
-                System.err.println( "--> " + entry + " // " + entry.index + " // " + entry.type);
                 for (ControlNode<?> dest : df) {
-                    System.err.println( "place phi: " + dest );
                     phis.add(dest.frame().ensurePhi(entry.index, node, entry.type));
                 }
             }

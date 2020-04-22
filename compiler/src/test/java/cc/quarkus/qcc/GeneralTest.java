@@ -20,8 +20,6 @@ public class GeneralTest {
         TypeDefinition c = universe.findClass("cc/quarkus/qcc/MyClass");
         MethodDefinition m = c.getMethod("sum", "(II)I");
 
-        System.err.println("method: " + m);
-
         BytecodeParser parser = new BytecodeParser(m);
         Graph graph = parser.parse();
 

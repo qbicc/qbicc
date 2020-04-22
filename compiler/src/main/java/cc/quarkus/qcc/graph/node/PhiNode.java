@@ -14,7 +14,6 @@ public class PhiNode<V> extends AbstractNode<V> {
     public PhiNode(ControlNode<?> control, Class<V> outType, Local.PhiLocal local) {
         super(control, outType);
         this.local = local;
-        System.err.println(System.identityHashCode(this) + " >> " + this.local);
         this.id = COUNTER.incrementAndGet();
     }
 
@@ -30,7 +29,6 @@ public class PhiNode<V> extends AbstractNode<V> {
 
     @Override
     public String label() {
-        System.err.println("LABEL : " + System.identityHashCode(this) + " >> " + this.local);
         if (this.local.getIndex() == BytecodeParser.SLOT_RETURN) {
             return getId() + ": <phi> return";
         } else if (this.local.getIndex() == BytecodeParser.SLOT_IO) {
