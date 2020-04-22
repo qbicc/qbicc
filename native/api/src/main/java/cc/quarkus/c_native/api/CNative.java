@@ -86,8 +86,7 @@ public final class CNative {
 
     /**
      * Get the offset of a member of a native object. The expression must statically resolve to a field read of a member of a
-     * native object.  Note that this returns a {@link size_t} as per the specification for the corresponding C macro;
-     * however, the result may also be safely cast to {@link ptrdiff_t}.
+     * native object.  Note that this returns a {@link size_t} as per the specification for the corresponding C macro.
      *
      * @param expr the member
      * @return the offset of the member
@@ -690,7 +689,7 @@ public final class CNative {
         public native ptrdiff_t minus(ptr<T> other);
 
         /**
-         * Get a pointer to an arbitrary type which is offset from the base by the given positive difference.
+         * Get a pointer to an arbitrary type which is offset from the base by the given signed difference.
          *
          * @param offset the pointer offset
          * @return the offset pointer
@@ -698,12 +697,28 @@ public final class CNative {
         public native <R extends object> ptr<R> plus(ptrdiff_t offset);
 
         /**
-         * Get a pointer to an arbitrary type which is offset from the base by the given negative difference.
+         * Get a pointer to an arbitrary type which is offset from the base by the given unsigned offset.
+         *
+         * @param offset the pointer offset
+         * @return the offset pointer
+         */
+        public native <R extends object> ptr<R> plus(size_t offset);
+
+        /**
+         * Get a pointer to an arbitrary type which is offset from the base by the negation of the given signed difference.
          *
          * @param offset the pointer offset
          * @return the offset pointer
          */
         public native <R extends object> ptr<R> minus(ptrdiff_t offset);
+
+        /**
+         * Get a pointer to an arbitrary type which is offset from the base by the negation of the given unsigned offset.
+         *
+         * @param offset the pointer offset
+         * @return the offset pointer
+         */
+        public native <R extends object> ptr<R> minus(size_t offset);
 
         /**
          * Determine if this pointer instance is a pointer to a pinned Java data structure.
