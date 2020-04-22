@@ -1,5 +1,7 @@
 package cc.quarkus.c_native.api;
 
+import static cc.quarkus.c_native.api.CNative.*;
+
 import java.util.Locale;
 import java.util.function.BooleanSupplier;
 
@@ -129,19 +131,19 @@ public final class Build {
         // OS
 
         public static boolean isUnix() {
-            return CNative.defined(__unix__);
+            return defined(__unix__);
         }
 
         public static boolean isLinux() {
-            return CNative.defined(linux);
+            return defined(linux);
         }
 
         public static boolean isWindows() {
-            return CNative.defined(_WIN32) || CNative.defined(WIN32);
+            return defined(_WIN32) || defined(WIN32);
         }
 
         public static boolean isApple() {
-            return CNative.defined(__APPLE__) && __APPLE__.booleanValue();
+            return defined(__APPLE__) && __APPLE__.booleanValue();
         }
 
         public static boolean isMacOs() {
@@ -153,41 +155,41 @@ public final class Build {
         }
 
         public static boolean isAix() {
-            return CNative.defined(_AIX);
+            return defined(_AIX);
         }
 
         public static boolean isPosix() {
-            return CNative.defined(__unix__) && CNative.defined(_POSIX_VERSION);
+            return defined(__unix__) && defined(_POSIX_VERSION);
         }
 
         // CPU
 
         public static boolean isAmd64() {
-            return CNative.defined(GCC) && CNative.defined(x86_64) || CNative.defined(MSVC) && CNative.defined(_M_AMD64);
+            return defined(GCC) && defined(x86_64) || defined(MSVC) && defined(_M_AMD64);
         }
 
         public static boolean isI386() {
-            return CNative.defined(GCC) && CNative.defined(__i386__) || CNative.defined(MSVC) && CNative.defined(_M_X86);
+            return defined(GCC) && defined(__i386__) || defined(MSVC) && defined(_M_X86);
         }
 
         public static boolean isArm() {
-            return CNative.defined(GCC) && CNative.defined(__arm__) || CNative.defined(MSVC) && CNative.defined(_M_ARM);
+            return defined(GCC) && defined(__arm__) || defined(MSVC) && defined(_M_ARM);
         }
 
         public static boolean isAarch64() {
-            return CNative.defined(GCC) && CNative.defined(__aarch64__);
+            return defined(GCC) && defined(__aarch64__);
         }
 
         // Toolchain
 
         public static boolean isGcc() {
-            return CNative.defined(GCC);
+            return defined(GCC);
         }
 
         // C environment
 
         public static boolean isGLibCLike() {
-            return CNative.defined(__GNU_LIBRARY__);
+            return defined(__GNU_LIBRARY__);
         }
 
         public static boolean isGLibC() {
@@ -195,52 +197,52 @@ public final class Build {
         }
 
         public static boolean isUCLibC() {
-            return CNative.defined(__UCLIBC__);
+            return defined(__UCLIBC__);
         }
 
         public static boolean isMusl() {
-            return CNative.defined(__MUSL__);
+            return defined(__MUSL__);
         }
 
         // object environment
 
         public static boolean isElf() {
-            return CNative.defined(__ELF__);
+            return defined(__ELF__);
         }
 
         public static boolean isMachO() {
-            return CNative.defined(__MACH__);
+            return defined(__MACH__);
         }
 
-        private static final CNative.object __MACH__ = CNative.constant();
-        private static final CNative.object __ELF__ = CNative.constant();
-        private static final CNative.object __unix__ = CNative.constant();
-        @CNative.include(value = "<unistd.h>", when = IsUnix.class)
-        private static final CNative.c_long _POSIX_VERSION = CNative.constant();
-        @CNative.include(value = "<TargetConditionals.h>", when = IsApple.class)
-        private static final CNative.c_int TARGET_OS_IPHONE = CNative.constant();
-        @CNative.include(value = "<TargetConditionals.h>", when = IsApple.class)
-        private static final CNative.c_int TARGET_OS_MAC = CNative.constant();
-        private static final CNative.c_int __APPLE__ = CNative.constant();
-        private static final CNative.object _WIN32 = CNative.constant();
-        private static final CNative.object WIN32 = CNative.constant();
-        private static final CNative.object GCC = CNative.constant();
-        private static final CNative.object __i386__ = CNative.constant();
-        private static final CNative.object MSVC = CNative.constant();
-        private static final CNative.object x86_64 = CNative.constant();
-        private static final CNative.object _M_AMD64 = CNative.constant();
-        private static final CNative.object _M_X86 = CNative.constant();
-        private static final CNative.object linux = CNative.constant();
-        private static final CNative.object __arm__ = CNative.constant();
-        private static final CNative.object __aarch64__ = CNative.constant();
-        private static final CNative.object _M_ARM = CNative.constant();
-        @CNative.include("<feature.h>")
-        private static final CNative.c_int __GNU_LIBRARY__ = CNative.constant();
-        @CNative.include("<feature.h>")
-        private static final CNative.object __UCLIBC__ = CNative.constant();
-        @CNative.include("<feature.h>")
-        private static final CNative.object __MUSL__ = CNative.constant();
-        private static final CNative.object _AIX = CNative.constant();
+        private static final object __MACH__ = constant();
+        private static final object __ELF__ = constant();
+        private static final object __unix__ = constant();
+        @include(value = "<unistd.h>", when = IsUnix.class)
+        private static final c_long _POSIX_VERSION = constant();
+        @include(value = "<TargetConditionals.h>", when = IsApple.class)
+        private static final c_int TARGET_OS_IPHONE = constant();
+        @include(value = "<TargetConditionals.h>", when = IsApple.class)
+        private static final c_int TARGET_OS_MAC = constant();
+        private static final c_int __APPLE__ = constant();
+        private static final object _WIN32 = constant();
+        private static final object WIN32 = constant();
+        private static final object GCC = constant();
+        private static final object __i386__ = constant();
+        private static final object MSVC = constant();
+        private static final object x86_64 = constant();
+        private static final object _M_AMD64 = constant();
+        private static final object _M_X86 = constant();
+        private static final object linux = constant();
+        private static final object __arm__ = constant();
+        private static final object __aarch64__ = constant();
+        private static final object _M_ARM = constant();
+        @include("<feature.h>")
+        private static final c_int __GNU_LIBRARY__ = constant();
+        @include("<feature.h>")
+        private static final object __UCLIBC__ = constant();
+        @include("<feature.h>")
+        private static final object __MUSL__ = constant();
+        private static final object _AIX = constant();
 
         public static final class IsPosix implements BooleanSupplier {
             public boolean getAsBoolean() {
