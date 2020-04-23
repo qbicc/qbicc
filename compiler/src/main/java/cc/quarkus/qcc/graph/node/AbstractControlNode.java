@@ -16,6 +16,17 @@ public abstract class AbstractControlNode<V> extends AbstractNode<V> implements 
     }
 
     @Override
+    public void mergeInputs() {
+        frame().mergeInputs();
+        for (ControlNode<?> each : getControlSuccessors()) {
+            if (each instanceof Projection) {
+                //System.err.println( "** merge from " + this + " to " + each);
+                each.mergeInputs();
+            }
+        }
+    }
+
+    @Override
     public Frame frame() {
         return this.frame;
     }

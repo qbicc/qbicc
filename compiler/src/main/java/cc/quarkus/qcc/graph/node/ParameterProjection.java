@@ -7,7 +7,7 @@ import cc.quarkus.qcc.graph.type.StartToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class ParameterProjection<V> extends AbstractNode<V> {
+public class ParameterProjection<V> extends AbstractNode<V> implements Projection {
 
     protected ParameterProjection(StartNode in, TypeDescriptor<V> outType, int index) {
         super(in, outType);

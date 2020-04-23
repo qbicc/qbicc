@@ -8,7 +8,7 @@ import cc.quarkus.qcc.graph.type.IfToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class IfFalseProjection extends AbstractControlNode<ControlToken> {
+public class IfFalseProjection extends AbstractControlNode<ControlToken> implements Projection {
 
     protected IfFalseProjection(IfNode in) {
         super(in, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);

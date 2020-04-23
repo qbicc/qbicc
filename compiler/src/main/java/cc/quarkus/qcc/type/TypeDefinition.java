@@ -15,4 +15,7 @@ public interface TypeDefinition {
     Set<MethodDefinition> getMethods();
 
     MethodDefinition getMethod(String name, String desc);
+
+    boolean isAssignableFrom(TypeDefinition other);
+
 }

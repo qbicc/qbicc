@@ -62,6 +62,29 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     }
 
     @Override
+    public boolean isAssignableFrom(TypeDefinition other) {
+        if ( other == null ) {
+            return false;
+        }
+
+        if ( other == this ) {
+            return true;
+        }
+
+        if ( isAssignableFrom( other.getSuperclass() ) ) {
+            return true;
+        }
+
+        for (TypeDefinition each : other.getInterfaces()) {
+            if ( isAssignableFrom( each ) ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
     public Set<MethodDefinition> getMethods() {
         return this.methods.stream()
                 .map(e -> (MethodDefinition) e)

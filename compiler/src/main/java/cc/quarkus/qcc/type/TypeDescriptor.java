@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.type;
 
+import cc.quarkus.qcc.graph.type.CatchToken;
 import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.graph.type.EndToken;
 import cc.quarkus.qcc.graph.type.IOToken;
@@ -73,6 +74,10 @@ public interface TypeDescriptor<T> {
             return this.typeDefinition.getName();
         }
 
+        public TypeDefinition getTypeDefinition() {
+            return this.typeDefinition;
+        }
+
         private final TypeDefinition typeDefinition;
     }
 
@@ -99,6 +104,7 @@ public interface TypeDescriptor<T> {
         public static final TypeDescriptor<StartToken> START_TOKEN = new EphemeralTypeDescriptor<>(StartToken.class);
         public static final TypeDescriptor<EndToken> END_TOKEN = new EphemeralTypeDescriptor<>(EndToken.class);
         public static final TypeDescriptor<InvokeToken> INVOKE_TOKEN = new EphemeralTypeDescriptor<>(InvokeToken.class);
+        public static final TypeDescriptor<CatchToken> CATCH_TOKEN = new EphemeralTypeDescriptor<>(CatchToken.class);
         public static final TypeDescriptor<ControlToken> CONTROL_TOKEN = new EphemeralTypeDescriptor<>(ControlToken.class);
         public static final TypeDescriptor<IOToken> IO_TOKEN = new EphemeralTypeDescriptor<>(IOToken.class);
         public static final TypeDescriptor<MemoryToken> MEMORY_TOKEN = new EphemeralTypeDescriptor<>(MemoryToken.class);

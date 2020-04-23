@@ -14,6 +14,10 @@ public class RegionNode extends AbstractControlNode<ControlToken> {
     }
 
     public void addInput(ControlNode<?> input) {
+        if ( input == null ) {
+            System.err.println( "null input");
+            return;
+        }
         if( this.inputs.contains(input) ) {
             return;
         }

@@ -8,7 +8,7 @@ import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class IOProjection extends AbstractNode<IOToken> {
+public class IOProjection extends AbstractNode<IOToken> implements Projection {
 
     protected <T extends ControlNode<? extends IOSource>> IOProjection(T control) {
         super(control, TypeDescriptor.EphemeralTypeDescriptor.IO_TOKEN);

@@ -4,6 +4,8 @@ import cc.quarkus.qcc.graph.node.Node;
 
 public class TypeUtil {
     public static <V> Node<V> checkType(Node<?> node, Class<V> type) {
+        //System.err.println( "checkType: " + node + " // " + type );
+        //new Exception().printStackTrace();;
         if ( type == null ) {
             return (Node<V>) node;
         }
@@ -11,7 +13,7 @@ public class TypeUtil {
             return (Node<V>) node;
         }
 
-        throw new RuntimeException( node + " is not assignable to " + type);
+        throw new RuntimeException( node + " (" + node.getType() + ") is not assignable to " + type);
     }
 
     public static <OUT_V, IN_V> OUT_V coerce(IN_V val, Class<OUT_V> outType) {

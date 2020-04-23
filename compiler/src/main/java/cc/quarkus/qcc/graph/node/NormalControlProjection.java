@@ -8,7 +8,7 @@ import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class NormalControlProjection extends AbstractControlNode<ControlToken> {
+public class NormalControlProjection extends AbstractControlNode<ControlToken> implements Projection {
 
     protected NormalControlProjection(InvokeNode<?> in) {
         super(in, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);

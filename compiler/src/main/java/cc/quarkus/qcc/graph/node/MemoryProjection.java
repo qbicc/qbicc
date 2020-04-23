@@ -8,7 +8,7 @@ import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class MemoryProjection extends AbstractNode<MemoryToken> {
+public class MemoryProjection extends AbstractNode<MemoryToken> implements Projection {
 
     protected <T extends ControlNode<? extends MemorySource>> MemoryProjection(T input) {
         super(input, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);

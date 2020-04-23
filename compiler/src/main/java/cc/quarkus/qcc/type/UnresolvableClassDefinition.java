@@ -17,6 +17,11 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     }
 
     @Override
+    public boolean isAssignableFrom(TypeDefinition other) {
+        return false;
+    }
+
+    @Override
     public int getAccess() {
         return 0;
     }

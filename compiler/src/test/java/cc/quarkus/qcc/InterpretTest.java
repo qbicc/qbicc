@@ -35,4 +35,23 @@ public class InterpretTest {
         EndToken result = interp.execute(42, 88);
         assertThat(result.getReturnValue()).isEqualTo(42);
     }
+
+    @Test
+    public void testThrows() throws FileNotFoundException {
+        Universe universe = new Universe(new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
+        TypeDefinition c = universe.findClass("cc/quarkus/qcc/MyThrowingClass");
+        MethodDefinition m = c.getMethod("foo", "()I");
+
+        BytecodeParser parser = new BytecodeParser(m);
+        Graph graph = parser.parse();
+
+        try (DotWriter writer = new DotWriter(Paths.get("target/graph.dot"))) {
+            writer.write(graph);
+        }
+
+        Interpreter interp = new Interpreter(graph);
+        EndToken result = interp.execute();
+        System.err.println( "--> " + result);
+        //assertThat(result.getReturnValue()).isEqualTo(42);
+    }
 }
