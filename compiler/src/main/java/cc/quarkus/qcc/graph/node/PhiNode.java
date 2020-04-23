@@ -8,10 +8,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.parse.BytecodeParser;
 import cc.quarkus.qcc.parse.Local;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class PhiNode<V> extends AbstractNode<V> {
 
-    public PhiNode(ControlNode<?> control, Class<V> outType, Local.PhiLocal local) {
+    public PhiNode(ControlNode<?> control, TypeDescriptor<V> outType, Local.PhiLocal local) {
         super(control, outType);
         this.local = local;
         this.id = COUNTER.incrementAndGet();
@@ -30,13 +31,13 @@ public class PhiNode<V> extends AbstractNode<V> {
     @Override
     public String label() {
         if (this.local.getIndex() == BytecodeParser.SLOT_RETURN) {
-            return getId() + ": <phi> return";
+            return "<phi> return";
         } else if (this.local.getIndex() == BytecodeParser.SLOT_IO) {
-            return getId() + ": <phi> i/o";
+            return "<phi> i/o";
         } else if (this.local.getIndex() == BytecodeParser.SLOT_MEMORY) {
-            return getId() + ": <phi> memory";
+            return "<phi> memory";
         }
-        return getId() + ": <phi>";
+        return "<phi> " + getTypeDescriptor().label();
     }
 
     //@Override

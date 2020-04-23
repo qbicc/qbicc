@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.IfValue;
+import cc.quarkus.qcc.graph.type.IfToken;
 import cc.quarkus.qcc.interpret.Context;
 
 public class BinaryIfNode<V> extends IfNode {
@@ -31,27 +31,27 @@ public class BinaryIfNode<V> extends IfNode {
     }
 
     @Override
-    public IfValue getValue(Context context) {
+    public IfToken getValue(Context context) {
         V lhsValue = getLHSValue(context);
         V rhsValue = getRHSValue(context);
         switch (getOp()) {
             case EQUAL:
-                return IfValue.of(lhsValue.equals(rhsValue));
+                return IfToken.of(lhsValue.equals(rhsValue));
             case NOT_EQUAL:
-                return IfValue.of(lhsValue.equals(rhsValue));
+                return IfToken.of(lhsValue.equals(rhsValue));
 
         }
         
         if ( lhsValue instanceof Comparable && rhsValue instanceof Comparable ) {
             switch ( getOp() ) {
                 case LESS_THAN:
-                    return IfValue.of(((Comparable) lhsValue).compareTo(rhsValue) < 0);
+                    return IfToken.of(((Comparable) lhsValue).compareTo(rhsValue) < 0);
                 case LESS_THAN_OR_EQUAL:
-                    return IfValue.of(((Comparable) lhsValue).compareTo(rhsValue) <= 0);
+                    return IfToken.of(((Comparable) lhsValue).compareTo(rhsValue) <= 0);
                 case GREATER_THAN:
-                    return IfValue.of(((Comparable) lhsValue).compareTo(rhsValue) > 0);
+                    return IfToken.of(((Comparable) lhsValue).compareTo(rhsValue) > 0);
                 case GREATER_THAN_OR_EQUAL:
-                    return IfValue.of(((Comparable) lhsValue).compareTo(rhsValue) >= 0);
+                    return IfToken.of(((Comparable) lhsValue).compareTo(rhsValue) >= 0);
             }
         }
 

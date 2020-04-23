@@ -5,14 +5,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
-import cc.quarkus.qcc.graph.type.InvokeValue;
+import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.MethodDescriptor;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class InvokeNode<V> extends AbstractControlNode<InvokeValue> {
+public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
-    public InvokeNode(ControlNode<?> control, Class<V> returnType, List<Class<?>> paramTypes) {
-        super(control, InvokeValue.class);
+    public InvokeNode(ControlNode<?> control, TypeDescriptor<V> returnType, List<Class<?>> paramTypes) {
+        super(control, TypeDescriptor.EphemeralTypeDescriptor.INVOKE_TOKEN);
         this.returnType = returnType;
         this.paramTypes = paramTypes;
     }
@@ -47,7 +47,7 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeValue> {
     }
 
     @Override
-    public InvokeValue getValue(Context context) {
+    public InvokeToken getValue(Context context) {
         return null;
     }
 
@@ -80,6 +80,6 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeValue> {
 
     //private MethodDescriptor methodDescriptor;
 
-    private final Class<V> returnType;
+    private final TypeDescriptor<V> returnType;
 
 }

@@ -4,13 +4,14 @@ import java.util.Collections;
 import java.util.List;
 
 import cc.quarkus.qcc.graph.type.ControlToken;
-import cc.quarkus.qcc.graph.type.IfValue;
+import cc.quarkus.qcc.graph.type.IfToken;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class IfTrueProjection extends AbstractControlNode<ControlToken> {
 
     protected IfTrueProjection(IfNode in) {
-        super(in, ControlToken.class);
+        super(in, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);
     }
 
     @Override
@@ -30,7 +31,7 @@ public class IfTrueProjection extends AbstractControlNode<ControlToken> {
 
     @Override
     public ControlToken getValue(Context context) {
-        IfValue input = context.get(getControl());
+        IfToken input = context.get(getControl());
         if ( input.getValue() ) {
             return new ControlToken();
         }

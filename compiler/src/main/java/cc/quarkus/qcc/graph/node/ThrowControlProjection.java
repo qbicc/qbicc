@@ -4,13 +4,14 @@ import java.util.Collections;
 import java.util.List;
 
 import cc.quarkus.qcc.graph.type.ControlToken;
-import cc.quarkus.qcc.graph.type.InvokeValue;
+import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class ThrowControlProjection extends AbstractNode<ControlToken> {
 
     protected ThrowControlProjection(InvokeNode<?> control) {
-        super(control, ControlToken.class);
+        super(control, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);
     }
 
     @Override
@@ -20,7 +21,7 @@ public class ThrowControlProjection extends AbstractNode<ControlToken> {
 
     @Override
     public ControlToken getValue(Context context) {
-        InvokeValue input = context.get(getControl());
+        InvokeToken input = context.get(getControl());
         if ( input.getThrowValue() != null ) {
             return new ControlToken();
         }

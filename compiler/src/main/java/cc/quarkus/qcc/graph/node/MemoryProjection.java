@@ -6,11 +6,12 @@ import java.util.List;
 import cc.quarkus.qcc.graph.type.MemorySource;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class MemoryProjection extends AbstractNode<MemoryToken> {
 
     protected <T extends ControlNode<? extends MemorySource>> MemoryProjection(T input) {
-        super(input, MemoryToken.class);
+        super(input, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
     }
 
     @SuppressWarnings("unchecked")

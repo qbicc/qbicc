@@ -8,39 +8,43 @@ import cc.quarkus.qcc.graph.type.IntrinsicObjectReference;
 import cc.quarkus.qcc.graph.type.Null;
 import cc.quarkus.qcc.graph.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.Core;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class ConstantNode<V> extends AbstractNode<V> {
 
-    public static ConstantNode<Null> nullConstant(ControlNode<?> control) {
-        return new ConstantNode<>(control, Null.NULL);
+    public static ConstantNode<ObjectReference> nullConstant(ControlNode<?> control) {
+        ObjectReference constantVal = IntrinsicObjectReference.newNull();
+        return new ConstantNode<>(control, constantVal, constantVal.getTypeDescriptor());
     }
 
     public static ConstantNode<ObjectReference> stringConstant(ControlNode<?> control, String val) {
-        return new ConstantNode<>(control, IntrinsicObjectReference.newString(val));
+        ObjectReference constantVal = IntrinsicObjectReference.newString(val);
+        return new ConstantNode<>(control, constantVal, constantVal.getTypeDescriptor());
     }
 
     public static ConstantNode<Integer> intConstant(ControlNode<?> control, int val) {
-        return new ConstantNode<>(control, val);
+        return new ConstantNode<>(control, val, TypeDescriptor.INT);
     }
 
     public static ConstantNode<Long> longConstant(ControlNode<?> control, long val) {
-        return new ConstantNode<>(control, val);
+        return new ConstantNode<>(control, val, TypeDescriptor.LONG);
     }
 
     public static ConstantNode<Float> floatConstant(ControlNode<?> control, float val) {
-        return new ConstantNode<>(control, val);
+        return new ConstantNode<>(control, val, TypeDescriptor.FLOAT);
     }
 
     public static ConstantNode<Double> doubleConstant(ControlNode<?> control, double val) {
-        return new ConstantNode<>(control, val);
+        return new ConstantNode<>(control, val, TypeDescriptor.DOUBLE);
     }
 
     public static ConstantNode<Byte> byteConstant(ControlNode<?> control, byte val) {
-        return new ConstantNode<>(control, val);
+        return new ConstantNode<>(control, val, TypeDescriptor.BYTE);
     }
 
     public static ConstantNode<Short> shortConstant(ControlNode<?> control, short val) {
-        return new ConstantNode<>(control, val);
+        return new ConstantNode<>(control, val, TypeDescriptor.SHORT);
     }
 
     @SuppressWarnings("unchecked")
@@ -64,8 +68,8 @@ public class ConstantNode<V> extends AbstractNode<V> {
         throw new ParseException("not a constant: " + val);
     }
 
-    protected ConstantNode(ControlNode<?> control, V val) {
-        super(control, (Class<V>) val.getClass());
+    protected ConstantNode(ControlNode<?> control, V val, TypeDescriptor<V> type) {
+        super(control, type);
         this.val = val;
     }
 
@@ -81,7 +85,7 @@ public class ConstantNode<V> extends AbstractNode<V> {
 
     @Override
     public String label() {
-        return "<const> " + this.val;
+        return "<const> " + getTypeDescriptor().label() + "=" + this.val;
     }
 
     private V val;

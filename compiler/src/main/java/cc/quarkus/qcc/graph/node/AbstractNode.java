@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import cc.quarkus.qcc.type.TypeDescriptor;
+
 public abstract class AbstractNode<V> implements Node<V> {
 
-    protected AbstractNode(ControlNode<?> control, Class<V> outType) {
+    protected AbstractNode(ControlNode<?> control, TypeDescriptor<V> outType) {
         this.outType = outType;
         this.id = COUNTER.incrementAndGet();
         this.control = control;
@@ -15,7 +17,7 @@ public abstract class AbstractNode<V> implements Node<V> {
         }
     }
 
-    protected AbstractNode(Class<V> outType) {
+    protected AbstractNode(TypeDescriptor<V> outType) {
         this(null, outType);
     }
 
@@ -48,6 +50,10 @@ public abstract class AbstractNode<V> implements Node<V> {
     }
 
     public Class<V> getType() {
+        return this.outType.valueType();
+    }
+
+    public TypeDescriptor<V> getTypeDescriptor() {
         return this.outType;
     }
 
@@ -56,14 +62,15 @@ public abstract class AbstractNode<V> implements Node<V> {
     }
 
     public String label() {
-        String n = this.id + ": " + getClass().getSimpleName();
+        String n = getClass().getSimpleName();
         if (n.endsWith("Node")) {
-            return n.substring(0, n.length() - "node".length()).toLowerCase();
+            n = n.substring(0, n.length() - "node".length()).toLowerCase();
         } else if (n.endsWith("Projection")) {
-            return n.substring(0, n.length() - "projection".length()).toLowerCase();
+            n = n.substring(0, n.length() - "projection".length()).toLowerCase();
         } else {
-            return n;
+            n = n;
         }
+        return n + " " + getTypeDescriptor().label();
     }
 
     //@Override
@@ -73,7 +80,7 @@ public abstract class AbstractNode<V> implements Node<V> {
 
     private final List<Node<?>> successors = new ArrayList<>();
 
-    private final Class<V> outType;
+    private final TypeDescriptor<V> outType;
 
     private final int id;
 

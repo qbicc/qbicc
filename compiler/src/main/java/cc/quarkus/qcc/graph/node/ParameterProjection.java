@@ -3,12 +3,13 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Collections;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.StartValue;
+import cc.quarkus.qcc.graph.type.StartToken;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class VariableProjection<V> extends AbstractNode<V> {
+public class ParameterProjection<V> extends AbstractNode<V> {
 
-    protected VariableProjection(StartNode in, Class<V> outType, int index) {
+    protected ParameterProjection(StartNode in, TypeDescriptor<V> outType, int index) {
         super(in, outType);
         this.index = index;
     }
@@ -21,7 +22,7 @@ public class VariableProjection<V> extends AbstractNode<V> {
     @SuppressWarnings("unchecked")
     @Override
     public V getValue(Context context) {
-        StartValue input = context.get(getControl());
+        StartToken input = context.get(getControl());
         return (V) input.getArgument(this.index);
     }
 
@@ -31,7 +32,7 @@ public class VariableProjection<V> extends AbstractNode<V> {
     }
 
     public String label() {
-        return "<param> " + index + ": " + getType();
+        return "<param:" + this.index + "> " + getTypeDescriptor().label();
     }
 
     private final int index;

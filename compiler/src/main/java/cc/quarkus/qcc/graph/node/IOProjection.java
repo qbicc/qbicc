@@ -6,11 +6,12 @@ import java.util.List;
 import cc.quarkus.qcc.graph.type.IOSource;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class IOProjection extends AbstractNode<IOToken> {
 
     protected <T extends ControlNode<? extends IOSource>> IOProjection(T control) {
-        super(control, IOToken.class);
+        super(control, TypeDescriptor.EphemeralTypeDescriptor.IO_TOKEN);
     }
 
     @SuppressWarnings("unchecked")

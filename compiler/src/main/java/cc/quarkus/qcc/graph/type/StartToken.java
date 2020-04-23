@@ -1,8 +1,8 @@
 package cc.quarkus.qcc.graph.type;
 
-public class StartValue implements IOSource, MemorySource {
+public class StartToken implements IOSource, MemorySource {
 
-    public StartValue(Object...arguments) {
+    public StartToken(Object...arguments) {
         this.arguments = arguments;
         this.io = new IOToken();
         this.memory = new MemoryToken();

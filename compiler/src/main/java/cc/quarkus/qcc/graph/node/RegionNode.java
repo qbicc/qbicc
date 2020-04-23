@@ -5,11 +5,12 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class RegionNode extends AbstractControlNode<ControlToken> {
 
     public RegionNode(int maxLocals, int maxStack) {
-        super(ControlToken.class, maxLocals, maxStack);
+        super(TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN, maxLocals, maxStack);
     }
 
     public void addInput(ControlNode<?> input) {
@@ -31,7 +32,7 @@ public class RegionNode extends AbstractControlNode<ControlToken> {
 
     @Override
     public String label() {
-        return getId() + ": <region>";
+        return "<region:" + getId() + ">";
     }
 
     @Override

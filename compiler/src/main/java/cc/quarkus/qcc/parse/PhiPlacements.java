@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class PhiPlacements {
 
@@ -14,7 +15,7 @@ public class PhiPlacements {
 
     }
 
-    public void record(ControlNode<?> src, int index, Class<?> type) {
+    public void record(ControlNode<?> src, int index, TypeDescriptor<?> type) {
         Set<Entry> set = this.indexes.get(src);
         if ( set == null ) {
             set = new HashSet<>();
@@ -30,12 +31,12 @@ public class PhiPlacements {
     private Map<ControlNode<?>, Set<Entry>> indexes = new HashMap<>();
 
     static class Entry {
-        Entry(int index, Class<?> type) {
+        Entry(int index, TypeDescriptor<?> type) {
             this.index = index;
             this.type = type;
         }
 
         final int index;
-        final Class<?> type;
+        final TypeDescriptor<?> type;
     }
 }

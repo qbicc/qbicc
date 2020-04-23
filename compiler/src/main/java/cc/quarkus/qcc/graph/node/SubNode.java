@@ -3,10 +3,11 @@ package cc.quarkus.qcc.graph.node;
 import java.util.function.BiFunction;
 
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class SubNode<V extends Number> extends BinaryNode<V,V> {
 
-    public SubNode(ControlNode<?> control, Class<V> outType, Node<V> lhs, Node<V> rhs, BiFunction<V,V,V> subber) {
+    public SubNode(ControlNode<?> control, TypeDescriptor<V> outType, Node<V> lhs, Node<V> rhs, BiFunction<V,V,V> subber) {
         super(control, outType);
         setLHS(lhs);
         setRHS(rhs);

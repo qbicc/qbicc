@@ -7,7 +7,6 @@ import cc.quarkus.qcc.finders.ClassLoaderClassFinder;
 import cc.quarkus.qcc.graph.DotWriter;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.EndToken;
-import cc.quarkus.qcc.graph.type.StartValue;
 import cc.quarkus.qcc.interpret.Interpreter;
 import cc.quarkus.qcc.parse.BytecodeParser;
 import cc.quarkus.qcc.type.MethodDefinition;

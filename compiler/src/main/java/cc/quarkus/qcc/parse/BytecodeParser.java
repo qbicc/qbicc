@@ -30,6 +30,7 @@ import cc.quarkus.qcc.graph.node.UnaryIfNode;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.graph.type.ObjectReference;
+import cc.quarkus.qcc.type.Core;
 import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.MethodDescriptorImpl;
 import cc.quarkus.qcc.type.MethodDescriptorParser;
@@ -198,10 +199,10 @@ public class BytecodeParser {
                 ControlNode<?> candidate = links.control(bci);
                 if (candidate != null) {
                     if (control() != null) {
-                        if ( candidate instanceof RegionNode ) {
-                            ((RegionNode)candidate).addInput(control());
+                        if (candidate instanceof RegionNode) {
+                            ((RegionNode) candidate).addInput(control());
                         } else {
-                            if ( candidate.getControl() == null ) {
+                            if (candidate.getControl() == null) {
                                 candidate.setControl(control());
                             }
                         }
@@ -232,7 +233,7 @@ public class BytecodeParser {
                         MethodDescriptorImpl descriptor = parser.parseMethodDescriptor();
                         TypeDescriptor<?> returnType = descriptor.getReturnType();
 
-                        InvokeNode<?> node = new InvokeNode(control(), returnType.valueType(), descriptor.getParamTypes());
+                        InvokeNode<?> node = new InvokeNode(control(), returnType, descriptor.getParamTypes());
                         links.control(bci, node);
                         links.add(bci + 1, node.getNormalControlOut());
                         control(node.getNormalControlOut());
@@ -369,23 +370,23 @@ public class BytecodeParser {
 
             switch (opcode) {
                 case ISTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, Integer.class);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, TypeDescriptor.INT);
                     break;
                 }
                 case LSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, Long.class);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, TypeDescriptor.LONG);
                     break;
                 }
                 case FSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, Float.class);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, TypeDescriptor.FLOAT);
                     break;
                 }
                 case DSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, Double.class);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, TypeDescriptor.DOUBLE);
                     break;
                 }
                 case ASTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, ObjectReference.class);
+                    phiPlacements.record(control(), ((VarInsnNode) instr).var, TypeDescriptor.OBJECT);
                     break;
                 }
                 case INVOKEDYNAMIC:
@@ -393,8 +394,8 @@ public class BytecodeParser {
                 case INVOKESPECIAL:
                 case INVOKESTATIC:
                 case INVOKEVIRTUAL: {
-                    phiPlacements.record(control(), SLOT_IO, IOToken.class);
-                    phiPlacements.record(control(), SLOT_MEMORY, MemoryToken.class);
+                    phiPlacements.record(control(), SLOT_IO, TypeDescriptor.EphemeralTypeDescriptor.IO_TOKEN);
+                    phiPlacements.record(control(), SLOT_MEMORY, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
                     break;
                 }
                 case RETURN:
@@ -403,7 +404,7 @@ public class BytecodeParser {
                 case DRETURN:
                 case FRETURN:
                 case ARETURN: {
-                    phiPlacements.record(control(), SLOT_RETURN, method.getReturnType().valueType());
+                    phiPlacements.record(control(), SLOT_RETURN, method.getReturnType());
                     break;
                 }
             }
@@ -486,14 +487,14 @@ public class BytecodeParser {
                             Node<Integer> test = pop(Integer.class);
                             //node = new UnaryIfNode(control(), test, CompareOp.EQUAL);
                             node = (IfNode) links.control(bci);
-                            ((UnaryIfNode)node).setInput(test);
+                            ((UnaryIfNode) node).setInput(test);
                             break;
                         }
                         case IFNE: {
                             Node<Integer> test = pop(Integer.class);
                             //node = new UnaryIfNode(control(), test, CompareOp.NOT_EQUAL);
                             node = (IfNode) links.control(bci);
-                            ((UnaryIfNode)node).setInput(test);
+                            ((UnaryIfNode) node).setInput(test);
                             break;
                         }
                         case IF_ICMPGE: {
@@ -632,13 +633,13 @@ public class BytecodeParser {
                     case IADD: {
                         Node<Integer> val1 = pop(Integer.class);
                         Node<Integer> val2 = pop(Integer.class);
-                        push(new AddNode<>(control(), Integer.class, val1, val2, Integer::sum));
+                        push(new AddNode<>(control(), TypeDescriptor.INT, val1, val2, Integer::sum));
                         break;
                     }
                     case ISUB: {
                         Node<Integer> val1 = pop(Integer.class);
                         Node<Integer> val2 = pop(Integer.class);
-                        push(new SubNode<>(control(), Integer.class, val1, val2, (l, r) -> l - r));
+                        push(new SubNode<>(control(), TypeDescriptor.INT, val1, val2, (l, r) -> l - r));
                         break;
                     }
                     // ----------------------------------------
@@ -658,10 +659,10 @@ public class BytecodeParser {
                     case INVOKESTATIC:
                     case INVOKEVIRTUAL: {
                         //MethodDescriptorParser parser = new MethodDescriptorParser(Universe.instance(),
-                                                                                   //Universe.instance().findClass(((MethodInsnNode) instr).owner),
-                                                                                   //((MethodInsnNode) instr).name,
-                                                                                   //((MethodInsnNode) instr).desc,
-                                                                                   //opcode == INVOKESTATIC);
+                        //Universe.instance().findClass(((MethodInsnNode) instr).owner),
+                        //((MethodInsnNode) instr).name,
+                        //((MethodInsnNode) instr).desc,
+                        //opcode == INVOKESTATIC);
                         //MethodDescriptor descriptor = parser.parseMethodDescriptor();
                         InvokeNode<?> node = (InvokeNode<?>) control();
 
@@ -774,9 +775,9 @@ public class BytecodeParser {
     }
 
     //protected StartType startType() {
-        ////return new StartType(this.method.getMaxLocals(),
-                             //this.method.getMaxStack(),
-                             //this.method.getParamTypes());
+    ////return new StartType(this.method.getMaxLocals(),
+    //this.method.getMaxStack(),
+    //this.method.getParamTypes());
     //}
 
     protected ControlNode<?> control() {
