@@ -1,11 +1,11 @@
 package cc.quarkus.qcc.graph.type;
 
-public class IfValue {
+public class IfToken {
 
-    public static final IfValue TRUE = new IfValue(true);
-    public static final IfValue FALSE = new IfValue(false);
+    public static final IfToken TRUE = new IfToken(true);
+    public static final IfToken FALSE = new IfToken(false);
 
-    private IfValue(boolean value) {
+    private IfToken(boolean value) {
         this.value = value;
     }
 
@@ -13,7 +13,7 @@ public class IfValue {
         return this.value;
     }
 
-    public static IfValue of(boolean result) {
+    public static IfToken of(boolean result) {
         if ( result ) {
             return TRUE;
         }

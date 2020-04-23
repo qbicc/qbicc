@@ -8,6 +8,7 @@ import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 import static cc.quarkus.qcc.parse.TypeUtil.checkType;
 
@@ -146,7 +147,7 @@ public class Frame {
         }
     }
 
-    public Local.PhiLocal ensurePhi(int index, ControlNode<?> input, Class<?> type) {
+    public Local.PhiLocal ensurePhi(int index, ControlNode<?> input, TypeDescriptor<?> type) {
         if ( !( this.control instanceof RegionNode) ) {
             throw new UnsupportedOperationException( this.control + " cannot own Phi nodes");
         }

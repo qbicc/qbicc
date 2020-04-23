@@ -5,10 +5,11 @@ import java.util.List;
 
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.parse.TypeUtil;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class WidenNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
 
-    public WidenNode(ControlNode<?> control, Node<INPUT_V> input, Class<OUTPUT_V> outType) {
+    public WidenNode(ControlNode<?> control, Node<INPUT_V> input, TypeDescriptor<OUTPUT_V> outType) {
         super(control, outType);
         this.input = input;
         input.addSuccessor(this);

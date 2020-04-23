@@ -1,8 +1,8 @@
 package cc.quarkus.qcc.graph.type;
 
-public class InvokeValue implements IOSource, MemorySource {
+public class InvokeToken implements IOSource, MemorySource {
 
-    public InvokeValue(Object returnValue, ObjectReference throwValue) {
+    public InvokeToken(Object returnValue, ObjectReference throwValue) {
         this.io = new IOToken();
         this.memory = new MemoryToken();
         this.returnValue = returnValue;

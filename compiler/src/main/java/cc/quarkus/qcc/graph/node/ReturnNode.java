@@ -7,7 +7,7 @@ import cc.quarkus.qcc.interpret.Context;
 
 public class ReturnNode<V> extends AbstractNode<V> {
     public ReturnNode(ControlNode<?> control, Node<V> input) {
-        super(control, input.getType());
+        super(control, input.getTypeDescriptor());
         this.input = input;
         input.addSuccessor(this);
     }
@@ -31,7 +31,7 @@ public class ReturnNode<V> extends AbstractNode<V> {
 
     @Override
     public String label() {
-        return getId() + ": <return> " + getType();
+        return getId() + ": <return> " + getTypeDescriptor().label();
     }
 
     private final Node<V> input;

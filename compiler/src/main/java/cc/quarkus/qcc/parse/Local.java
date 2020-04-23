@@ -9,6 +9,7 @@ import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.PhiNode;
 import cc.quarkus.qcc.graph.node.RegionNode;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public abstract class Local {
 
@@ -71,7 +72,7 @@ public abstract class Local {
     }
 
     public static class PhiLocal extends SimpleLocal {
-        public PhiLocal(RegionNode control, int index, Class<?> type) {
+        public PhiLocal(RegionNode control, int index, TypeDescriptor<?> type) {
             super(control, index);
             this.phi = new PhiNode(this.control, type, this);
             this.type = type;
@@ -100,7 +101,8 @@ public abstract class Local {
             }
         }
 
-        public void addInput(ControlNode<?> control, Class<?> type) {
+        public void addInput(ControlNode<?> control, TypeDescriptor<?> type) {
+            // FIXME not identity equality
             //this.type = this.type.join(type);
             if (this.type != type) {
                 throw new RuntimeException("Incompatible type " + type + " vs " + this.type);
@@ -132,7 +134,7 @@ public abstract class Local {
 
         private PhiNode<?> phi;
 
-        private Class<?> type;
+        private TypeDescriptor<?> type;
 
         private List<ControlNode<?>> inputs = new ArrayList<>();
 

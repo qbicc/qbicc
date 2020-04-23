@@ -12,9 +12,8 @@ import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.PhiNode;
 import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.graph.type.EndToken;
-import cc.quarkus.qcc.graph.type.StartValue;
+import cc.quarkus.qcc.graph.type.StartToken;
 
 public class Thread implements Context {
 
@@ -23,7 +22,7 @@ public class Thread implements Context {
     }
 
 
-    public  EndToken execute(Graph graph, StartValue arguments) {
+    public  EndToken execute(Graph graph, StartToken arguments) {
         pushContext();
         try {
             set(graph.getStart(), arguments);

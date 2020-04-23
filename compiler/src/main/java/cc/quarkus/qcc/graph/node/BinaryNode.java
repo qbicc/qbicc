@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public abstract class BinaryNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
 
-    protected BinaryNode(ControlNode<?> control, Class<OUTPUT_V> outType) {
+    protected BinaryNode(ControlNode<?> control, TypeDescriptor<OUTPUT_V> outType) {
         super(control, outType);
     }
 

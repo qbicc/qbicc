@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
 
 public interface Node<V> {
 
@@ -18,6 +19,7 @@ public interface Node<V> {
     V getValue(Context context);
 
     Class<V> getType();
+    TypeDescriptor<V> getTypeDescriptor();
 
     List<? extends Node<?>> getPredecessors();
 

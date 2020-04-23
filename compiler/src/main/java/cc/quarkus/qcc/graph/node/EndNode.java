@@ -9,10 +9,10 @@ import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class EndNode extends AbstractNode<EndToken> {
+public class EndNode<T> extends AbstractNode<EndToken> {
 
-    public EndNode(ControlNode<?> control, TypeDescriptor returnType) {
-        super(control, EndToken.class);
+    public EndNode(ControlNode<?> control, TypeDescriptor<T> returnType) {
+        super(control, TypeDescriptor.EphemeralTypeDescriptor.END_TOKEN);
     }
 
     @Override
@@ -39,7 +39,7 @@ public class EndNode extends AbstractNode<EndToken> {
         memory.addSuccessor(this);
     }
 
-    public void setReturnValue(Node<?> returnValue) {
+    public void setReturnValue(Node<T> returnValue) {
         this.returnValue = returnValue;
         returnValue.addSuccessor(this);
     }
@@ -55,6 +55,6 @@ public class EndNode extends AbstractNode<EndToken> {
 
     private Node<IOToken> io;
     private Node<MemoryToken> memory;
-    private Node<?> returnValue;
+    private Node<T> returnValue;
 
 }

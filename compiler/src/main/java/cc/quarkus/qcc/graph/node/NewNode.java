@@ -8,7 +8,7 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class NewNode<V> extends AbstractNode<V> {
     public NewNode(ControlNode<?> control, TypeDescriptor<V> typeDescriptor) {
-        super(control, typeDescriptor.valueType());
+        super(control, typeDescriptor);
         this.typeDescriptor = typeDescriptor;
     }
 

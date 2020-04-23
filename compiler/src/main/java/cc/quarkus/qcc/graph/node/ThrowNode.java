@@ -9,7 +9,7 @@ import cc.quarkus.qcc.interpret.Context;
 public class ThrowNode<V extends ObjectReference> extends AbstractNode<V> {
 
     public ThrowNode(ControlNode<?> control, Node<V> thrown) {
-        super(control, thrown.getType());
+        super(control, thrown.getTypeDescriptor());
         this.thrown = thrown;
     }
 

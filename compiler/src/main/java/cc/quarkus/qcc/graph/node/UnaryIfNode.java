@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph.node;
 
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.IfValue;
+import cc.quarkus.qcc.graph.type.IfToken;
 import cc.quarkus.qcc.interpret.Context;
 
 public class UnaryIfNode extends IfNode {
@@ -12,7 +12,7 @@ public class UnaryIfNode extends IfNode {
     }
 
     @Override
-    public IfValue getValue(Context context) {
+    public IfToken getValue(Context context) {
         return null;
     }
 
