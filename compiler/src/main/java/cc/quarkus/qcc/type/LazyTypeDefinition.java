@@ -54,6 +54,11 @@ public class LazyTypeDefinition implements TypeDefinition {
     }
 
     @Override
+    public boolean isAssignableFrom(TypeDefinition other) {
+        return getDelegate().isAssignableFrom(other);
+    }
+
+    @Override
     public Set<MethodDefinition> getMethods() {
         return getDelegate().getMethods();
     }

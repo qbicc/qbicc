@@ -7,12 +7,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.parse.BytecodeParser;
-import cc.quarkus.qcc.parse.Local;
+import cc.quarkus.qcc.parse.PhiLocal;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class PhiNode<V> extends AbstractNode<V> {
 
-    public PhiNode(ControlNode<?> control, TypeDescriptor<V> outType, Local.PhiLocal local) {
+    public PhiNode(ControlNode<?> control, TypeDescriptor<V> outType, PhiLocal local) {
         super(control, outType);
         this.local = local;
         this.id = COUNTER.incrementAndGet();
@@ -56,7 +56,7 @@ public class PhiNode<V> extends AbstractNode<V> {
 
     private final List<Node<?>> inputs = new ArrayList<>();
 
-    private final Local.PhiLocal local;
+    private final PhiLocal local;
 
     private static final AtomicInteger COUNTER = new AtomicInteger(0);
 

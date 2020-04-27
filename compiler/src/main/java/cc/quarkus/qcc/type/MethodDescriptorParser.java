@@ -14,7 +14,7 @@ public class MethodDescriptorParser {
         this.cur = 0;
     }
 
-    public MethodDescriptorImpl parseMethodDescriptor() {
+    public MethodDescriptor parseMethodDescriptor() {
         if ( la() != '(') {
             throw new RuntimeException("Unable to parse: " + this.descriptor + " at " + this.cur );
         }

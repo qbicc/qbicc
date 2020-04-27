@@ -7,7 +7,7 @@ import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class ResultProjection<V> extends AbstractNode<V>{
+public class ResultProjection<V> extends AbstractNode<V> implements Projection {
 
     protected ResultProjection(InvokeNode<V> in, TypeDescriptor<V> outType) {
         super(in, outType);

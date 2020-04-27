@@ -4,4 +4,5 @@ import cc.quarkus.qcc.parse.Frame;
 
 public interface ControlNode<V> extends Node<V> {
     Frame frame();
+    void mergeInputs();
 }

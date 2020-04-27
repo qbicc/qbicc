@@ -5,6 +5,7 @@ import java.util.List;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public class MethodDefinitionNode extends MethodNode implements MethodDefinition {
     public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, String descriptor, String signature, String[] exceptions) {
@@ -17,6 +18,11 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
 
     public MethodNode getMethodNode() {
         return this;
+    }
+
+    @Override
+    public List<TryCatchBlockNode> getTryCatchBlocks() {
+        return this.tryCatchBlocks;
     }
 
     @Override
@@ -91,7 +97,7 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
         return this.typeDefinition + " " + this.name + this.desc;
     }
 
-    private final MethodDescriptorImpl methodDescriptor;
+    private final MethodDescriptor methodDescriptor;
 
     private final TypeDefinitionNode typeDefinition;
 }

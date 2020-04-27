@@ -8,10 +8,10 @@ import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class ThrowControlProjection extends AbstractNode<ControlToken> {
+public class ThrowControlProjection extends AbstractControlNode<InvokeToken> implements Projection {
 
     protected ThrowControlProjection(InvokeNode<?> control) {
-        super(control, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);
+        super(control, TypeDescriptor.EphemeralTypeDescriptor.INVOKE_TOKEN);
     }
 
     @Override
@@ -20,10 +20,10 @@ public class ThrowControlProjection extends AbstractNode<ControlToken> {
     }
 
     @Override
-    public ControlToken getValue(Context context) {
+    public InvokeToken getValue(Context context) {
         InvokeToken input = context.get(getControl());
         if ( input.getThrowValue() != null ) {
-            return new ControlToken();
+            return input;
         }
         return null;
     }
@@ -31,5 +31,10 @@ public class ThrowControlProjection extends AbstractNode<ControlToken> {
     @Override
     public List<Node<?>> getPredecessors() {
         return Collections.singletonList(getControl());
+    }
+
+    @Override
+    public String label() {
+        return "<proj> throw control";
     }
 }

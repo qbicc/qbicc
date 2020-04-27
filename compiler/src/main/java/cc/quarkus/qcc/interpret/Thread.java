@@ -41,17 +41,20 @@ public class Thread implements Context {
     }
 
     protected ControlNode<?> executeControl(ControlNode<?> prevControl, ControlNode<?> control) {
+        //System.err.println( "EXEC: " + control);
         List<Node<?>> worklist = new ArrayList<>(control.getSuccessors());
 
         ControlNode<?> nextControl = null;
 
         while ( ! worklist.isEmpty() ) {
             Deque<Node<?>> ready = new ArrayDeque<>(worklist.stream().filter(e->isReady(prevControl, control, e)).collect(Collectors.toList()));
+            //System.err.println( "ready: " + ready);
             worklist.removeAll(ready);
 
             while ( ! ready.isEmpty() ) {
                 Node<?> cur = ready.pop();
                 Object value = getValue(prevControl, cur);
+                //System.err.println( cur + " = " + value);
                 if (value != null) {
                     if ( value instanceof EndToken ) {
                         this.endToken = (EndToken) value;
