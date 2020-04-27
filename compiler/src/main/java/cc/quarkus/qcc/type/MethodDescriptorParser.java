@@ -22,7 +22,7 @@ public class MethodDescriptorParser {
 
         List<TypeDescriptor<?>> parameters = parseParameters();
         TypeDescriptor<?> returnType = parseType();
-        return new MethodDescriptorImpl(this.owner, this.name, parameters, returnType, isStatic);
+        return new MethodDescriptorImpl(this.owner, this.name, parameters, returnType, descriptor, isStatic);
     }
 
     public List<TypeDescriptor<?>> parseParameters() {

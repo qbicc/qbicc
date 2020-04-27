@@ -4,11 +4,12 @@ import java.util.List;
 
 public class MethodDescriptorImpl implements MethodDescriptor {
 
-    MethodDescriptorImpl(TypeDefinition owner, String name, List<TypeDescriptor<?>> paramTypes, TypeDescriptor<?> returnType, boolean isStatic) {
+    MethodDescriptorImpl(TypeDefinition owner, String name, List<TypeDescriptor<?>> paramTypes, TypeDescriptor<?> returnType, String descriptor, boolean isStatic) {
         this.owner = owner;
         this.name = name;
         this.paramTypes = paramTypes;
         this.returnType = returnType;
+        this.descriptor = descriptor;
         this.isStatic = isStatic;
     }
 
@@ -37,6 +38,11 @@ public class MethodDescriptorImpl implements MethodDescriptor {
         return this.returnType;
     }
 
+    @Override
+    public String getDescriptor() {
+        return this.descriptor;
+    }
+
     private final List<TypeDescriptor<?>> paramTypes;
 
     private final TypeDescriptor<?> returnType;
@@ -46,4 +52,6 @@ public class MethodDescriptorImpl implements MethodDescriptor {
     private final String name;
 
     private final boolean isStatic;
+
+    private final String descriptor;
 }

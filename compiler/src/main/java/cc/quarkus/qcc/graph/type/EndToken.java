@@ -1,6 +1,8 @@
 package cc.quarkus.qcc.graph.type;
 
-public class EndToken {
+import cc.quarkus.qcc.type.CallResult;
+
+public class EndToken implements CallResult {
 
     public EndToken(IOToken io, MemoryToken memory, Object returnValue) {
         this.io = io;
