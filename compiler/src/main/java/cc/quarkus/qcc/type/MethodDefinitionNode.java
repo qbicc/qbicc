@@ -1,7 +1,18 @@
 package cc.quarkus.qcc.type;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.graph.DotWriter;
+import cc.quarkus.qcc.graph.Graph;
+import cc.quarkus.qcc.graph.type.EndToken;
+import cc.quarkus.qcc.interpret.Interpreter;
+import cc.quarkus.qcc.parse.BytecodeParser;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
@@ -14,10 +25,17 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
 
         MethodDescriptorParser parser = new MethodDescriptorParser(typeDefinition.getUniverse(), typeDefinition, name, descriptor, isStatic());
         this.methodDescriptor = parser.parseMethodDescriptor();
+        //this.signature = signature;
+
     }
 
     public MethodNode getMethodNode() {
         return this;
+    }
+
+    @Override
+    public String getDescriptor() {
+        return this.methodDescriptor.getDescriptor();
     }
 
     @Override
@@ -75,22 +93,40 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
         return this.typeDefinition;
     }
 
-    /*
-    public boolean isMatching(Class<?>[] parameterTypes) {
-        List<TypeDescriptor<?>> params = this.methodDescriptor.getParamTypes();
-        if ( parameterTypes.length != params.size() ) {
-            return false;
-        }
-
-        for ( int i = 0 ; i < parameterTypes.length ; ++i ) {
-            if ( ! parameterTypes[i].equals(params.get(i))) {
-                return false;
-            }
-        }
-
-        return true;
+    @Override
+    public CallResult call(Object... arguments) {
+        Interpreter interp = new Interpreter(getGraph());
+        return interp.execute(arguments);
     }
-     */
+
+    @Override
+    public void writeGraph(Path path) throws IOException {
+        if (Files.isDirectory(path)) {
+            path = path.resolve(defaultGraphName());
+            path = path.getParent().resolve( path.getFileName() + ".dot");
+        }
+
+        Files.createDirectories(path.getParent());
+
+
+        try ( DotWriter writer = new DotWriter(path) ) {
+            writer.write(getGraph());
+        }
+    }
+
+    protected String defaultGraphName() {
+        return getTypeDefinition().getName() + "-" + getName() + getDescriptor();
+    }
+
+    protected Graph getGraph() {
+        return this.graph.updateAndGet( (prev)->{
+            if ( prev != null ) {
+                return prev;
+            }
+            BytecodeParser parser = new BytecodeParser(this);
+            return parser.parse();
+        });
+    }
 
     @Override
     public String toString() {
@@ -100,4 +136,6 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
     private final MethodDescriptor methodDescriptor;
 
     private final TypeDefinitionNode typeDefinition;
+
+    private final AtomicReference<Graph> graph = new AtomicReference<>();
 }
