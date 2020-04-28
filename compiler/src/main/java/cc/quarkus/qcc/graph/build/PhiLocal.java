@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.parse;
+package cc.quarkus.qcc.graph.build;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +34,7 @@ public class PhiLocal extends SimpleLocal {
     }
 
     public <V> Node<V> get(Class<V> type) {
-        return super.load(type);
+        return load(type);
     }
 
     @Override
@@ -47,7 +47,6 @@ public class PhiLocal extends SimpleLocal {
 
     public void addInput(ControlNode<?> control, TypeDescriptor<?> type) {
         // FIXME not identity equality
-        //this.type = this.type.join(type);
         if (this.type != type) {
             throw new RuntimeException("Incompatible type " + type + " vs " + this.type);
         }
@@ -57,7 +56,6 @@ public class PhiLocal extends SimpleLocal {
     public void complete() {
         List<ControlNode<?>> discriminators = getRegion().getInputs();
         for (ControlNode<?> discriminator : discriminators) {
-            //System.err.println( "complete: " + this.index + " "  + getRegion() + " >> " + getRegion().getInputs() + " >>>>> " + discriminator);
             Node<?> inbound = discriminator.frame().get(this.index, this.type.valueType());
             this.phi.addInput(inbound);
             this.values.put(discriminator, inbound);

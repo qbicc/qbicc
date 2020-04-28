@@ -35,6 +35,11 @@ public class NormalControlProjection extends AbstractControlNode<ControlToken> i
 
     @Override
     public String label() {
-        return "<proj> normal control";
+        return "<proj:" + getId() + "> normal control";
+    }
+
+    @Override
+    public String toString() {
+        return label();
     }
 }

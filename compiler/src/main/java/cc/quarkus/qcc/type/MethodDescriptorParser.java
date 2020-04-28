@@ -77,9 +77,9 @@ public class MethodDescriptorParser {
                     return TypeDescriptor.VOID;
                 case 'L':
                     return parseClass();
-                //case '[':
-                    //consume();
-                    //return new ArrayDef(parseType());
+                case '[':
+                    consume();
+                    return parseType().array(1);
                 default:
                     throw new RuntimeException("Unable to parse: " + this.descriptor + " at " + this.cur );
             }
@@ -108,7 +108,6 @@ public class MethodDescriptorParser {
                     name.append(consume());
             }
         }
-
         return TypeDescriptor.of(this.universe.findClass(name.toString()));
     }
 

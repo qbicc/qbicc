@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.parse;
+package cc.quarkus.qcc.graph.build;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
@@ -30,7 +30,7 @@ public class SimpleLocal extends Local {
 
     @Override
     public Local duplicate() {
-        cc.quarkus.qcc.parse.SimpleLocal dupe = new cc.quarkus.qcc.parse.SimpleLocal(this.control, this.index);
+        cc.quarkus.qcc.graph.build.SimpleLocal dupe = new cc.quarkus.qcc.graph.build.SimpleLocal(this.control, this.index);
         dupe.val = this.val;
         return dupe;
     }

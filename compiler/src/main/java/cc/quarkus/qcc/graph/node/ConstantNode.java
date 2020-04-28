@@ -5,13 +5,16 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.ParseException;
 import cc.quarkus.qcc.graph.type.IntrinsicObjectReference;
-import cc.quarkus.qcc.graph.type.Null;
 import cc.quarkus.qcc.graph.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.Core;
+import cc.quarkus.qcc.type.Sentinel;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class ConstantNode<V> extends AbstractNode<V> {
+
+    public static ConstantNode<Sentinel.Void> voidConstant(ControlNode<?> control) {
+        return new ConstantNode<>(control, Sentinel.Void.VOID, TypeDescriptor.VOID);
+    }
 
     public static ConstantNode<ObjectReference> nullConstant(ControlNode<?> control) {
         ObjectReference constantVal = IntrinsicObjectReference.newNull();

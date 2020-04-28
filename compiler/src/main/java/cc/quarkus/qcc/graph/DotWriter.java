@@ -10,6 +10,8 @@ import java.util.Set;
 import cc.quarkus.qcc.graph.node.AbstractNode;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
+import cc.quarkus.qcc.graph.node.PhiNode;
+import cc.quarkus.qcc.graph.node.Projection;
 
 public class DotWriter implements AutoCloseable {
 
@@ -24,7 +26,7 @@ public class DotWriter implements AutoCloseable {
 
     public void write(Graph graph) {
         out.println("digraph thegraph {");
-        this.out.println("  graph [fontname = \"helvetica\",fontsize=10,ordering=in,outputorder=depthfirst];");
+        this.out.println("  graph [fontname = \"helvetica\",fontsize=10,ordering=in,outputorder=depthfirst,ranksep=1];");
         this.out.println("  node [fontname = \"helvetica\",fontsize=10,ordering=in];");
         this.out.println("  edge [fontname = \"helvetica\",fontsize=10];");
 
@@ -63,15 +65,22 @@ public class DotWriter implements AutoCloseable {
     }
 
     protected String shape(Node<?> node) {
+        if ( node instanceof PhiNode ) {
+            return "house";
+        }
+
+        if ( node instanceof Projection ) {
+            return "oval";
+        }
         return "box";
     }
 
     protected String style(Node<?> node) {
-        return "normal";
+        return "solid";
     }
 
     protected void writeEdge(Node<?> head, Node<?> tail) {
-        out.println(head.getId() + " -> " + tail.getId() + " [color=" + color(head, tail) + ",style=" + style(head, tail) + "];");
+        out.println(head.getId() + " -> " + tail.getId() + " [color=" + color(head, tail) + ",style=" + style(head, tail) + ",penwidth=" + penwidth(head, tail) + "];");
     }
 
     protected String color(Node<?> head, Node<?> tail) {
@@ -86,6 +95,13 @@ public class DotWriter implements AutoCloseable {
             return "dotted";
         }
         return "solid";
+    }
+
+    protected String penwidth(Node<?> head, Node<?> tail) {
+        if ( head instanceof ControlNode && tail instanceof ControlNode) {
+            return "1.2";
+        }
+        return "1";
     }
 
     private Set<Node<?>> seen = new HashSet<>();

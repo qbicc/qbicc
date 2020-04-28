@@ -4,18 +4,20 @@ import cc.quarkus.qcc.type.CallResult;
 
 public class EndToken implements CallResult {
 
-    public EndToken(IOToken io, MemoryToken memory, Object returnValue) {
+    public EndToken(IOToken io, MemoryToken memory, Object returnValue, ObjectReference throwValue) {
         this.io = io;
         this.memory = memory;
         this.returnValue = returnValue;
+        this.throwValue = throwValue;
     }
 
     @Override
     public String toString() {
-        return "EndValue{" +
-                ", io=" + io +
+        return "EndToken{" +
+                "io=" + io +
                 ", memory=" + memory +
                 ", returnValue=" + returnValue +
+                ", throwValue=" + throwValue +
                 '}';
     }
 
@@ -23,9 +25,16 @@ public class EndToken implements CallResult {
         return this.returnValue;
     }
 
+    @Override
+    public ObjectReference getThrowValue() {
+        return this.throwValue;
+    }
+
     private final IOToken io;
 
     private final MemoryToken memory;
 
     private final Object returnValue;
+
+    private final ObjectReference throwValue;
 }

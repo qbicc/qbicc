@@ -6,7 +6,7 @@ import java.nio.file.Paths;
 import cc.quarkus.qcc.finders.ClassLoaderClassFinder;
 import cc.quarkus.qcc.graph.DotWriter;
 import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.parse.BytecodeParser;
+import cc.quarkus.qcc.graph.build.GraphBuilder;
 import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.Universe;
@@ -20,8 +20,8 @@ public class GeneralTest {
         TypeDefinition c = universe.findClass("cc/quarkus/qcc/MyClass");
         MethodDefinition m = c.getMethod("sum", "(II)I");
 
-        BytecodeParser parser = new BytecodeParser(m);
-        Graph graph = parser.parse();
+        GraphBuilder parser = new GraphBuilder(m);
+        Graph graph = parser.build();
 
         try (DotWriter writer = new DotWriter(Paths.get("target/graph.dot"))) {
             writer.write(graph);

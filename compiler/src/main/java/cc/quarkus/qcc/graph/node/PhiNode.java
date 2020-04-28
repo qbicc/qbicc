@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.parse.BytecodeParser;
-import cc.quarkus.qcc.parse.PhiLocal;
+import cc.quarkus.qcc.graph.build.GraphBuilder;
+import cc.quarkus.qcc.graph.build.PhiLocal;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class PhiNode<V> extends AbstractNode<V> {
@@ -20,7 +20,8 @@ public class PhiNode<V> extends AbstractNode<V> {
 
     @Override
     public V getValue(Context context) {
-        throw new UnsupportedOperationException("Phi has no value without discriminator");
+        //throw new UnsupportedOperationException("Phi has no value without discriminator");
+        return context.get(this);
     }
 
     @Override
@@ -30,26 +31,29 @@ public class PhiNode<V> extends AbstractNode<V> {
 
     @Override
     public String label() {
-        if (this.local.getIndex() == BytecodeParser.SLOT_RETURN) {
-            return "<phi> return";
-        } else if (this.local.getIndex() == BytecodeParser.SLOT_IO) {
-            return "<phi> i/o";
-        } else if (this.local.getIndex() == BytecodeParser.SLOT_MEMORY) {
-            return "<phi> memory";
+        if (this.local.getIndex() == GraphBuilder.SLOT_COMPLETION) {
+            return "<phi:" + getId() + "> completion";
+        } else if (this.local.getIndex() == GraphBuilder.SLOT_IO) {
+            return "<phi:" + getId() + "> i/o";
+        } else if (this.local.getIndex() == GraphBuilder.SLOT_MEMORY) {
+            return "<phi:" + getId() + "> memory";
         }
-        return "<phi> " + getTypeDescriptor().label();
+        return "<phi:" + getId() + "> " + getTypeDescriptor().label();
     }
 
-    //@Override
-    //public String toString() {
-        //return label();
-    //}
+    @Override
+    public String toString() {
+        return label();
+    }
 
     public Node<V> getValue(ControlNode<?> discriminator) {
         return (Node<V>) this.local.getValue(discriminator);
     }
 
     public void addInput(Node<?> input) {
+        if ( input == null ) {
+            return;
+        }
         this.inputs.add(input);
         input.addSuccessor(this);
     }

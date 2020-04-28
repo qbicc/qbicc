@@ -1,0 +1,45 @@
+package cc.quarkus.qcc.graph.node;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import cc.quarkus.qcc.graph.type.CompletionToken;
+import cc.quarkus.qcc.graph.type.ObjectReference;
+import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.TypeDescriptor;
+
+public class ExceptionCompletionNode extends AbstractNode<CompletionToken>  {
+
+    protected ExceptionCompletionNode(CatchControlProjection control, Node<ObjectReference> exception) {
+        super(control, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
+        this.exception = exception;
+        exception.addSuccessor(this);
+    }
+
+    @Override
+    public CatchControlProjection getControl() {
+        return (CatchControlProjection) super.getControl();
+    }
+
+    @Override
+    public CompletionToken getValue(Context context) {
+        return new CompletionToken(null, context.get(this.exception));
+    }
+
+    @Override
+    public List<? extends Node<?>> getPredecessors() {
+        return new ArrayList<>() {{
+            add( getControl());
+            add( exception );
+        }};
+    }
+
+    @Override
+    public String label() {
+        return "<exception-completion:" + getId() + ">";
+    }
+
+    private final Node<ObjectReference> exception;
+}

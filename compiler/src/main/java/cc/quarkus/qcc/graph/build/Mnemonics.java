@@ -1,4 +1,4 @@
-package cc.quarkus.qcc;
+package cc.quarkus.qcc.graph.build;
 
 import java.util.HashMap;
 import java.util.Map;

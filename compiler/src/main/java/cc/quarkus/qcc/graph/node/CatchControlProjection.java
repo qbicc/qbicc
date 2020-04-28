@@ -2,19 +2,29 @@ package cc.quarkus.qcc.graph.node;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
-import cc.quarkus.qcc.graph.type.CatchToken;
 import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.graph.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDefinition;
+import cc.quarkus.qcc.graph.build.CatchMatcher;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class CatchControlProjection extends AbstractControlNode<ObjectReference> implements Projection {
 
-    public CatchControlProjection(ThrowControlProjection control, TypeDefinition catchType) {
+    public CatchControlProjection(ThrowControlProjection control, ExceptionProjection exception, CatchMatcher matcher) {
         super(control, TypeDescriptor.OBJECT);
-        this.catchType = catchType;
+        this.exception = exception;
+        this.matcher = matcher;
+    }
+
+    public ExceptionProjection getException() {
+        return this.exception;
+    }
+
+    public ExceptionCompletionNode getCompletionOut() {
+        return this.completionOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ExceptionCompletionNode(this, this.exception)));
     }
 
     @Override
@@ -28,7 +38,7 @@ public class CatchControlProjection extends AbstractControlNode<ObjectReference>
         if ( input.getThrowValue() == null ) {
             return null;
         }
-        if ( ! this.catchType.isAssignableFrom(input.getThrowValue().getTypeDefinition()) ) {
+        if ( ! this.matcher.matches(input.getThrowValue().getTypeDefinition())) {
             return null;
         }
         return input.getThrowValue();
@@ -39,10 +49,20 @@ public class CatchControlProjection extends AbstractControlNode<ObjectReference>
         return Collections.singletonList(getControl());
     }
 
+
     @Override
     public String label() {
-        return "<proj> catch " + this.catchType.getName();
+        return "<proj:" + getId() + "> catch " + this.matcher;
     }
 
-    private final TypeDefinition catchType;
+    @Override
+    public String toString() {
+        return label();
+    }
+
+    private final CatchMatcher matcher;
+
+    private final ExceptionProjection exception;
+
+    private AtomicReference<ExceptionCompletionNode> completionOut = new AtomicReference<>();
 }

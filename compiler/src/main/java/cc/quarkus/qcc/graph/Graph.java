@@ -8,13 +8,23 @@ import java.util.Set;
 
 import cc.quarkus.qcc.graph.node.EndNode;
 import cc.quarkus.qcc.graph.node.Node;
+import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.node.StartNode;
+import cc.quarkus.qcc.type.MethodDefinition;
 
 public class Graph {
 
-    public Graph(StartNode start, EndNode end) {
+    /*
+    public Graph(StartNode start, EndNode<?> end) {
         this.start = start;
         this.end = end;
+    }
+     */
+    public Graph(MethodDefinition method) {
+        this.method = method;
+        this.start = new StartNode(method, method.getMaxLocals(), method.getMaxStack());
+        this.endRegion = new RegionNode(this.method.getMaxLocals(), this.method.getMaxStack());
+        this.end = new EndNode<>(this.endRegion, this.method.getReturnType());
     }
 
     public List<Node<?>> reversePostOrder() {
@@ -34,6 +44,14 @@ public class Graph {
         return this.start;
     }
 
+    public EndNode<?> getEnd() {
+        return this.end;
+    }
+
+    public RegionNode getEndRegion() {
+        return this.endRegion;
+    }
+
     private void walk(List<Node<?>> order, Set<Node<?>> seen, Node<?> node) {
         if ( seen.contains(node)) {
             return;
@@ -45,7 +63,9 @@ public class Graph {
         order.add(node);
     }
 
+    private final MethodDefinition method;
+    private final RegionNode endRegion;
     private final StartNode start;
+    private final EndNode<?> end;
 
-    private final EndNode end;
 }

@@ -1,29 +1,37 @@
 package cc.quarkus.qcc.graph.node;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.CallResult;
+import cc.quarkus.qcc.type.MethodDefinition;
+import cc.quarkus.qcc.type.MethodDescriptor;
 import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
-    public InvokeNode(ControlNode<?> control, TypeDefinition owner, String name, TypeDescriptor<V> returnType, List<Class<?>> paramTypes) {
+    public InvokeNode(ControlNode<?> control, MethodDescriptor methodDescriptor) {
         super(control, TypeDescriptor.EphemeralTypeDescriptor.INVOKE_TOKEN);
-        this.owner = owner;
-        this.name = name;
-        this.returnType = returnType;
-        this.paramTypes = paramTypes;
+        this.methodDescriptor = methodDescriptor;
+    }
+
+    @Override
+    public InvokeNode<V> setLine(int line) {
+        return (InvokeNode<V>) super.setLine(line);
     }
 
     public List<Class<?>> getParamTypes() {
-        return this.paramTypes;
+        return this.methodDescriptor.getParamTypes().stream().map(e -> e.valueType()).collect(Collectors.toList());
     }
 
     public void addArgument(Node<?> node) {
@@ -50,7 +58,11 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
     }
 
     public ResultProjection<V> getResultOut() {
-        return this.resultOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ResultProjection<V>(this, this.returnType)));
+        return this.resultOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ResultProjection<V>(this, (TypeDescriptor<V>) this.methodDescriptor.getReturnType())));
+    }
+
+    public ExceptionProjection getExceptionOut() {
+        return this.exceptionOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ExceptionProjection(this)));
     }
 
     public IOProjection getIOOut() {
@@ -63,7 +75,9 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
     @Override
     public InvokeToken getValue(Context context) {
-        return null;
+        MethodDefinition m = this.methodDescriptor.getOwner().getMethod(this.methodDescriptor);
+        CallResult result = m.call(this.arguments.stream().map(e -> e.getValue(context)).collect(Collectors.toList()));
+        return new InvokeToken(result.getReturnValue(), result.getThrowValue());
     }
 
     @Override
@@ -84,10 +98,10 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
     public void mergeInputs() {
         //frame().mergeInputs();
         //for (ControlNode<?> each : getControlSuccessors()) {
-            //if (each instanceof Projection) {
-                //System.err.println( "** merge from " + this + " to " + each);
-                //each.mergeInputs();
-            //}
+        //if (each instanceof Projection) {
+        //System.err.println( "** merge from " + this + " to " + each);
+        //each.mergeInputs();
+        //}
         //}
         getThrowControlOut().frame().io(getIOOut());
         getThrowControlOut().frame().memory(getMemoryOut());
@@ -99,7 +113,7 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
     @Override
     public String label() {
-        return getId() + " <invoke> " + this.owner.getName() + "#" + this.name;
+        return "<invoke:" + getId() + " (" + getLine() + ")> " + this.methodDescriptor.getOwner().getName() + "#" + this.methodDescriptor.getName();
     }
 
     @Override
@@ -111,19 +125,23 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
     private AtomicReference<ResultProjection<V>> resultOut = new AtomicReference<>();
 
+    private AtomicReference<ExceptionProjection> exceptionOut = new AtomicReference<>();
+
     private AtomicReference<IOProjection> ioOut = new AtomicReference<>();
 
     private AtomicReference<MemoryProjection> memoryOut = new AtomicReference<>();
 
     private AtomicReference<ThrowControlProjection> throwOut = new AtomicReference<>();
 
-    private final TypeDefinition owner;
+    private final MethodDescriptor methodDescriptor;
 
-    private final String name;
+    //private final TypeDefinition owner;
 
-    private final List<Class<?>> paramTypes;
+    //private final String name;
 
-    private final TypeDescriptor<V> returnType;
+    //private final List<Class<?>> paramTypes;
+
+    //private final TypeDescriptor<V> returnType;
 
     private final List<Node<?>> arguments = new ArrayList<>();
 
@@ -131,5 +149,5 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
     private Node<MemoryToken> memory;
 
-
 }
+

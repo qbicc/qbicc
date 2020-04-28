@@ -23,6 +23,7 @@ public interface MethodDefinition extends MethodDescriptor {
     TypeDefinition getTypeDefinition();
 
     CallResult call(Object...arguments);
+    CallResult call(List<Object> arguments);
 
     default void writeGraph(String path) throws IOException {
         writeGraph(Paths.get(path));
