@@ -2,93 +2,71 @@ package cc.quarkus.qcc.machine.tool.gnu;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import cc.quarkus.qcc.context.Context;
-import cc.quarkus.qcc.machine.tool.CompilationResult;
-import cc.quarkus.qcc.machine.tool.CompilerInvocationBuilder;
-import cc.quarkus.qcc.machine.tool.InputSource;
+import cc.quarkus.qcc.machine.tool.CompilationFailureException;
+import cc.quarkus.qcc.machine.tool.CompilerInvokerBuilder;
+import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
+import cc.quarkus.qcc.machine.tool.process.OutputDestination;
 
-/**
- *
- */
-public class GccInvocationBuilder extends CompilerInvocationBuilder<GccInvocationBuilder.Param> {
-    private Path outputFile;
+public final class GccInvocationBuilder extends CompilerInvokerBuilder {
+    private static final long pid = ProcessHandle.current().pid();
+    private static final String tmpDir = System.getProperty("java.io.tmpdir");
+    private static final AtomicInteger cnt = new AtomicInteger();
 
     GccInvocationBuilder(final GccCompiler gcc) {
         super(gcc);
     }
 
-    protected ProcessBuilder createProcessBuilder(Param param) {
-        final ProcessBuilder pb = super.createProcessBuilder(param);
-        pb.redirectOutput(ProcessBuilder.Redirect.DISCARD);
-        //noinspection SpellCheckingInspection
-        pb.command().addAll(List.of("-std=gnu11", "-finput-charset=UTF-8", "-pipe", "-c", "-x", "c", "-o", param.outputFile.toString(), "-"));
-        return pb;
-    }
-
-    protected Param createCollectorParam() throws IOException {
-        Path outputFile = this.outputFile;
-        if (outputFile == null) {
-            final Path tempDirectory = Files.createTempDirectory("qcc-");
-            outputFile = tempDirectory.resolve("probe.o");
-            outputFile.toFile().deleteOnExit();
+    public OutputDestination build() {
+        OutputDestination errorHandler = OutputDestination.of(GccInvocationBuilder::collectError, getMessageHandler(), StandardCharsets.UTF_8);
+        List<String> cmd = new ArrayList<>();
+        cmd.add(getTool().getExecutablePath().toString());
+        Collections.addAll(cmd, "-std=gnu11", "-f" + "input-charset=UTF-8", "-pipe");
+        for (Path includePath : getIncludePaths()) {
+            cmd.add("-I" + includePath.toString());
         }
-        return new Param(this, outputFile);
+        Collections.addAll(cmd, "-c", "-x", "c", "-o", getOutputPath().toString(), "-");
+        ProcessBuilder pb = new ProcessBuilder();
+        pb.command(cmd);
+        pb.environment().put("LC_ALL", "C");
+        pb.environment().put("LANG", "C");
+        return OutputDestination.of(pb, errorHandler, OutputDestination.discarding(), p -> {
+            int ev = p.exitValue();
+            if (ev != 0) {
+                throw new CompilationFailureException("Compiler terminated with exit code " + ev);
+            }
+        });
     }
 
-    protected int waitForProcessUninterruptibly(final Process p) {
-        return super.waitForProcessUninterruptibly(p);
-    }
+    static final Pattern DIAG_PATTERN = Pattern.compile("([^:]+):(\\d+):(?:(\\d+):)? (error|warning|note): (.*)(?: \\[-[^]]+])?");
 
-    protected void collectError(final Param param, final InputStream stream) throws Exception {
-        final InputStreamReader isr = new InputStreamReader(stream, StandardCharsets.UTF_8);
-        final BufferedReader br = new BufferedReader(isr);
-        String line;
-        while ((line = br.readLine()) != null) {
-            Context.error(null, "%s", line);
-        }
-    }
-
-    public GccInvocationBuilder setInputSource(final InputSource inputSource) {
-        super.setInputSource(inputSource);
-        return this;
-    }
-
-    protected CompilationResult produceResult(final Param param, final Process process) throws Exception {
-        final int res = waitForProcessUninterruptibly(process);
-        if (res != 0) {
-            Context.error(null, "Process returned exit code %d", Integer.valueOf(res));
-            return null;
-        }
-        if (Files.exists(param.outputFile)) {
-            return new GccCompilationResult(param.outputFile);
-        } else {
-            return null;
-        }
-    }
-
-    public Path getOutputFile() {
-        return outputFile;
-    }
-
-    public GccInvocationBuilder setOutputFile(final Path outputFile) {
-        this.outputFile = outputFile;
-        return this;
-    }
-
-    static final class Param {
-        final GccInvocationBuilder outer;
-        final Path outputFile;
-
-        Param(final GccInvocationBuilder outer, final Path outputFile) {
-            this.outer = outer;
-            this.outputFile = outputFile;
+    static void collectError(final ToolMessageHandler handler, final Reader reader) throws IOException {
+        try (BufferedReader br = new BufferedReader(reader)) {
+            String line;
+            Matcher matcher;
+            while ((line = br.readLine()) != null) {
+                matcher = DIAG_PATTERN.matcher(line.trim());
+                if (matcher.matches()) {
+                    String levelStr = matcher.group(4);
+                    ToolMessageHandler.Level level;
+                    switch (levelStr) {
+                        case "note": level = ToolMessageHandler.Level.INFO; break;
+                        case "warning": level = ToolMessageHandler.Level.WARNING; break;
+                        default: level = ToolMessageHandler.Level.ERROR; break;
+                    }
+                    // don't log potentially misleading line numbers
+                    handler.handleMessage(level, matcher.group(1), Integer.parseInt(matcher.group(2)), -1, matcher.group(5));
+                }
+            }
         }
     }
 }

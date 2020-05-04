@@ -11,5 +11,5 @@ public abstract class CCompiler extends Tool {
         return "C Compiler";
     }
 
-    public abstract CompilerInvocationBuilder<?> invocationBuilder();
+    public abstract CompilerInvokerBuilder invocationBuilder();
 }

@@ -30,7 +30,7 @@ public @interface AccessWith {
     Class<? extends BooleanSupplier>[] when() default {};
 
     /**
-     * Prevent this annotation from taking effect if <em>any</em> of the given conditions returns {@code true}.
+     * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
      *
      * @return the condition classes
      */

@@ -5,23 +5,25 @@ import java.util.Objects;
 import io.smallrye.common.constraint.Assert;
 
 /**
- * A platform which consists of a CPU architecture, optional sub-architecture, vendor, system, and ABI.
+ * A platform which consists of a CPU architecture, operating system, ABI, and object file type.
  */
 public final class Platform {
     private final Cpu cpu;
     private final OS os;
     private final ABI abi;
+    private final ObjectType objectType;
     private final int hashCode;
 
-    public Platform(final Cpu cpu, final OS os, final ABI abi) {
+    public Platform(final Cpu cpu, final OS os, final ABI abi, final ObjectType objectType) {
         this.cpu = Assert.checkNotNullParam("cpu", cpu);
         this.os = Assert.checkNotNullParam("system", os);
         this.abi = Assert.checkNotNullParam("abi", abi);
-        hashCode = Objects.hash(cpu, os, abi);
+        this.objectType = Assert.checkNotNullParam("objectType", objectType);
+        hashCode = Objects.hash(cpu, os, abi, objectType);
     }
 
     public Platform(final Cpu cpu, final OS os) {
-        this(cpu, os, os.getDefaultAbi(cpu));
+        this(cpu, os, os.getDefaultAbi(cpu), os.getDefaultObjectType(cpu));
     }
 
     public Cpu getCpu() {
@@ -36,8 +38,12 @@ public final class Platform {
         return abi;
     }
 
+    public ObjectType getObjectType() {
+        return objectType;
+    }
+
     public String toString() {
-        return cpu.getSimpleName() + '-' + os + '-' + abi;
+        return cpu.getSimpleName() + '-' + os + '-' + abi + '-' + objectType;
     }
 
     public boolean isSupersetOf(Platform other) {

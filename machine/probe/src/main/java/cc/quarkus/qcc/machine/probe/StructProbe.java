@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.machine.probe;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,15 +11,19 @@ import java.util.NoSuchElementException;
 import java.util.function.UnaryOperator;
 
 import cc.quarkus.qcc.context.Context;
+import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.tool.CCompiler;
+import cc.quarkus.qcc.machine.tool.CompilationFailureException;
 import cc.quarkus.qcc.machine.tool.CompilationResult;
-import cc.quarkus.qcc.machine.tool.CompilerInvocationBuilder;
-import cc.quarkus.qcc.machine.tool.InputSource;
+import cc.quarkus.qcc.machine.tool.CompilerInvokerBuilder;
 import cc.quarkus.qcc.machine.file.bin.BinaryBuffer;
 import cc.quarkus.qcc.machine.file.elf.Elf;
 import cc.quarkus.qcc.machine.file.elf.ElfHeader;
 import cc.quarkus.qcc.machine.file.elf.ElfSectionHeaderEntry;
 import cc.quarkus.qcc.machine.file.elf.ElfSymbolTableEntry;
+import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
+import cc.quarkus.qcc.machine.tool.process.InputSource;
+import cc.quarkus.qcc.machine.tool.process.OutputDestination;
 
 /**
  *
@@ -51,7 +56,7 @@ public class StructProbe {
     }
 
     public Result runProbe(CCompiler compiler) throws IOException {
-        final CompilerInvocationBuilder<?> ib = compiler.invocationBuilder();
+        final CompilerInvokerBuilder ib = compiler.invocationBuilder();
         StringBuilder b = new StringBuilder();
         // todo: gnu-specific
         b.append("#define typeof __typeof__\n");
@@ -79,13 +84,21 @@ public class StructProbe {
             decl("offsetof_" + memberName, offsetof(type, memberName)).apply(b);
             decl("alignof_" + memberName, alignof(memberOf(type, memberName))).apply(b);
         }
-        ib.setInputSource(new InputSource.String(b.toString()));
-        final CompilationResult compilationResult = ib.invoke();
-        if (Context.errors() > 0) {
-            // failed due to errors
+        ib.setMessageHandler(new ToolMessageHandler() {
+            public void handleMessage(final Level level, final String file, final int line, final int column, final String message) {
+                System.out.println(level + ": " + file + ":" + line + " -> " + message);
+            }
+        });
+        // TODO: use the current target platform
+        final Path path = Files.createTempFile("qcc-probe-", Platform.HOST_PLATFORM.getObjectType().objectSuffix());
+        ib.setOutputPath(path);
+        OutputDestination od = ib.build();
+        try {
+            InputSource.from(b).transferTo(od);
+        } catch (CompilationFailureException e) {
+            // no result
             return null;
         }
-        final Path path = compilationResult.getObjectFilePath();
         // read back the symbol info
         try (BinaryBuffer objFile = BinaryBuffer.openRead(path)) {
             final ElfHeader elfHeader = ElfHeader.forBuffer(objFile);

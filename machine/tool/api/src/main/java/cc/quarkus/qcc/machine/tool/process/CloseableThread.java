@@ -2,14 +2,23 @@ package cc.quarkus.qcc.machine.tool.process;
 
 import java.io.IOException;
 
-abstract class CloseableThread extends Thread {
+import io.smallrye.common.function.ExceptionRunnable;
+
+final class CloseableThread extends Thread {
+    private final ExceptionRunnable<IOException> runnable;
+
     Throwable problem;
 
     CloseableThread(final String name) {
-        super(name);
+        this(name, () -> {});
     }
 
-    public void run() {
+    CloseableThread(final String name, final ExceptionRunnable<IOException> runnable) {
+        super(name);
+        this.runnable = runnable;
+    }
+
+    public final void run() {
         try {
             runWithException();
         } catch (Throwable t) {
@@ -17,5 +26,7 @@ abstract class CloseableThread extends Thread {
         }
     }
 
-    abstract void runWithException() throws IOException;
+    void runWithException() throws IOException {
+        runnable.run();
+    }
 }

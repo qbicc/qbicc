@@ -4,6 +4,7 @@ import static cc.quarkus.c_native.stdc.Stddef.*;
 import static cc.quarkus.c_native.stdc.Stdint.*;
 import static cc.quarkus.c_native.stdc.String.*;
 
+import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
@@ -76,13 +77,21 @@ public final class CNative {
      */
     public static native boolean typesAreEquivalent(Class<? extends object> type1, Class<? extends object> type2);
 
+    public static native size_t sizeof(object[] array);
+
     public static native size_t sizeof(object obj);
+
+    public static native size_t sizeofArray(Class<? extends object[]> obj);
 
     public static native size_t sizeof(Class<? extends object> obj);
 
     public static native size_t alignof(object obj);
 
     public static native size_t alignof(Class<? extends object> obj);
+
+    public static <T extends object> int elementCount(T[] array) {
+        return (int) (sizeof(array).longValue() / sizeof(array[0]).longValue());
+    }
 
     /**
      * Get the offset of a member of a native object. The expression must statically resolve to a field read of a member of a
@@ -515,6 +524,10 @@ public final class CNative {
             return !isZero();
         }
 
+        public final boolean isNonNull() {
+            return !isZero();
+        }
+
         public final boolean isNull() {
             return isZero();
         }
@@ -532,8 +545,16 @@ public final class CNative {
             return longValue() < 0;
         }
 
+        public final boolean isNotNegative() {
+            return isUnsigned(getClass()) || longValue() >= 0;
+        }
+
         public final boolean isPositive() {
             return isUnsigned(getClass()) ? isNonZero() : longValue() > 0;
+        }
+
+        public final boolean isNotPositive() {
+            return isUnsigned(getClass()) ? isZero() : longValue() <= 0;
         }
     }
 
@@ -557,6 +578,7 @@ public final class CNative {
     // basic types
 
     @name("char")
+    @size(1) // by definition
     public static final class c_char extends word {
     }
 
@@ -566,44 +588,56 @@ public final class CNative {
     // basic signed types
 
     @name("signed char")
+    @size(1) // by definition
+    @signed(true) // by definition
     public static final class signed_char extends word {
     }
 
     @name("short")
+    @signed(true) // by definition
     public static final class c_short extends word {
     }
 
     @name("int")
+    @signed(true) // by definition
     public static final class c_int extends word {
     }
 
     @name("long")
+    @signed(true) // by definition
     public static final class c_long extends word {
     }
 
     @name("long long")
+    @signed(true) // by definition
     public static final class long_long extends word {
     }
 
     // basic unsigned types
 
     @name("unsigned char")
+    @size(1) // by definition
+    @signed(false) // by definition
     public static final class unsigned_char extends word {
     }
 
     @name("unsigned short")
+    @signed(false) // by definition
     public static final class unsigned_short extends word {
     }
 
     @name("unsigned int")
+    @signed(false) // by definition
     public static final class unsigned_int extends word {
     }
 
     @name("unsigned long")
+    @signed(false) // by definition
     public static final class unsigned_long extends word {
     }
 
     @name("unsigned long long")
+    @signed(false) // by definition
     public static final class unsigned_long_long extends word {
     }
 
@@ -779,7 +813,7 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] when() default {};
 
         /**
-         * Prevent this annotation from taking effect if <em>any</em> of the given conditions returns {@code true}.
+         * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
          *
          * @return the condition classes
          */
@@ -811,7 +845,7 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] when() default {};
 
         /**
-         * Prevent this annotation from taking effect if <em>any</em> of the given conditions returns {@code true}.
+         * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
          *
          * @return the condition classes
          */
@@ -850,7 +884,7 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] when() default {};
 
         /**
-         * Prevent this annotation from taking effect if <em>any</em> of the given conditions returns {@code true}.
+         * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
          *
          * @return the condition classes
          */
@@ -865,6 +899,7 @@ public final class CNative {
 
     @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
     @Retention(RetentionPolicy.RUNTIME)
+    @Documented
     public @interface name {
         String value();
     }
@@ -877,6 +912,8 @@ public final class CNative {
      */
     @Target({ ElementType.TYPE, ElementType.FIELD })
     @Retention(RetentionPolicy.RUNTIME)
+    @Repeatable(incomplete.List.class)
+    @Documented
     public @interface incomplete {
         /**
          * Cause this annotation to take effect only if <em>all</em> of the given conditions return {@code true}.
@@ -886,11 +923,150 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] when() default {};
 
         /**
-         * Prevent this annotation from taking effect if <em>any</em> of the given conditions returns {@code true}.
+         * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
          *
          * @return the condition classes
          */
         Class<? extends BooleanSupplier>[] unless() default {};
+
+        @Target({ ElementType.TYPE, ElementType.FIELD })
+        @Retention(RetentionPolicy.RUNTIME)
+        @Documented
+        @interface List {
+            incomplete[] value();
+        }
+    }
+
+    /**
+     * Explicitly specify the exact size of an object.  The size will not be probed.  Different sizes can be specified
+     * for different platforms.
+     */
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Repeatable(size.List.class)
+    @Documented
+    public @interface size {
+        int value();
+
+        /**
+         * Cause this annotation to take effect only if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] when() default {};
+
+        /**
+         * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] unless() default {};
+
+        @Target(ElementType.TYPE)
+        @Retention(RetentionPolicy.RUNTIME)
+        @Documented
+        @interface List {
+            size[] value();
+        }
+    }
+
+    /**
+     * Explicitly specify the exact alignment of an object.  The alignment will not be probed.  Different alignments can be specified
+     * for different platforms.
+     */
+    @Target({ ElementType.TYPE, ElementType.FIELD })
+    @Retention(RetentionPolicy.RUNTIME)
+    @Repeatable(align.List.class)
+    @Documented
+    public @interface align {
+        int value();
+
+        /**
+         * Cause this annotation to take effect only if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] when() default {};
+
+        /**
+         * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] unless() default {};
+
+        @Target({ ElementType.TYPE, ElementType.FIELD })
+        @Retention(RetentionPolicy.RUNTIME)
+        @Documented
+        @interface List {
+            align[] value();
+        }
+    }
+
+    /**
+     * Explicitly specify the exact offset of an object member.  The offset will not be probed.  Different offsets can
+     * be specified for different platforms.
+     */
+    @Target(ElementType.FIELD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Repeatable(offset.List.class)
+    @Documented
+    public @interface offset {
+        int value();
+
+        /**
+         * Cause this annotation to take effect only if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] when() default {};
+
+        /**
+         * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] unless() default {};
+
+        @Target(ElementType.FIELD)
+        @Retention(RetentionPolicy.RUNTIME)
+        @Documented
+        @interface List {
+            offset[] value();
+        }
+    }
+
+    /**
+     * Explicitly specify whether an object is signed.  The signedness of the object will not be probed.  Different
+     * signedness can be specified for different platforms.
+     */
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Repeatable(signed.List.class)
+    @Documented
+    public @interface signed {
+        boolean value();
+
+        /**
+         * Cause this annotation to take effect only if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] when() default {};
+
+        /**
+         * Prevent this annotation from taking effect if <em>all</em> of the given conditions return {@code true}.
+         *
+         * @return the condition classes
+         */
+        Class<? extends BooleanSupplier>[] unless() default {};
+
+        @Target(ElementType.TYPE)
+        @Retention(RetentionPolicy.RUNTIME)
+        @Documented
+        @interface List {
+            signed[] value();
+        }
     }
 
     /**
@@ -899,6 +1075,7 @@ public final class CNative {
      */
     @Target({ ElementType.METHOD, ElementType.FIELD })
     @Retention(RetentionPolicy.RUNTIME)
+    @Documented
     public @interface extern {
         String withName() default "";
 
@@ -913,6 +1090,7 @@ public final class CNative {
      */
     @Target(ElementType.TYPE)
     @Retention(RetentionPolicy.RUNTIME)
+    @Documented
     public @interface internal {
     }
 
@@ -924,6 +1102,7 @@ public final class CNative {
      */
     @Target({ ElementType.METHOD, ElementType.FIELD })
     @Retention(RetentionPolicy.RUNTIME)
+    @Documented
     public @interface export {
         String withName() default "";
 

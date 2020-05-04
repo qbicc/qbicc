@@ -3,6 +3,7 @@ package cc.quarkus.c_native.posix;
 import static cc.quarkus.c_native.api.CNative.*;
 import static cc.quarkus.c_native.posix.SysTypes.*;
 import static cc.quarkus.c_native.stdc.Signal.*;
+import static cc.quarkus.c_native.stdc.Stddef.*;
 import static cc.quarkus.c_native.stdc.Time.*;
 
 import java.util.function.Consumer;
@@ -82,6 +83,63 @@ public final class Signal {
         @incomplete(unless = Build.Target.IsLinux.class)
         public unsigned_int si_arch;
     }
+
+    public static final class stack_t extends object {
+        ptr<?> ss_sp;
+        c_int ss_flags;
+        size_t ss_size;
+    }
+
+    // si_code values
+    public static final c_int ILL_ILLOPC = constant();
+    public static final c_int ILL_ILLOPN = constant();
+    public static final c_int ILL_ILLADR = constant();
+    public static final c_int ILL_ILLTRP = constant();
+    public static final c_int ILL_PRVOPC = constant();
+    public static final c_int ILL_COPROC = constant();
+    public static final c_int ILL_BADSTK = constant();
+
+    public static final c_int FPE_INTDIV = constant();
+    public static final c_int FPE_INTOVF = constant();
+    public static final c_int FPE_FLTDIV = constant();
+    public static final c_int FPE_FLTOVF = constant();
+    public static final c_int FPE_FLTUND = constant();
+    public static final c_int FPE_FLTRES = constant();
+    public static final c_int FPE_FLTINV = constant();
+    public static final c_int FPE_FLTSUB = constant();
+
+    public static final c_int SEGV_MAPERR = constant();
+    public static final c_int SEGV_ACCERR = constant();
+
+    public static final c_int BUS_ADRALN = constant();
+    public static final c_int BUS_ADRERR = constant();
+    public static final c_int BUS_OBJERR = constant();
+
+    public static final c_int TRAP_BRKPT = constant();
+    public static final c_int TRAP_TRACE = constant();
+
+    public static final c_int CLD_EXITED = constant();
+    public static final c_int CLD_KILLED = constant();
+    public static final c_int CLD_DUMPED = constant();
+    public static final c_int CLD_TRAPPED = constant();
+    public static final c_int CLD_STOPPED = constant();
+    public static final c_int CLD_CONTINUED = constant();
+
+    public static final c_int POLL_IN = constant();
+    public static final c_int POLL_OUT = constant();
+    public static final c_int POLL_MSG = constant();
+    public static final c_int POLL_ERR = constant();
+    public static final c_int POLL_PRI = constant();
+    public static final c_int POLL_HUP = constant();
+
+    public static final c_int SI_USER = constant();
+    public static final c_int SI_QUEUE = constant();
+    public static final c_int SI_TIMER = constant();
+    public static final c_int SI_ASYNCIO = constant();
+    public static final c_int SI_MESGQ = constant();
+
+    @incomplete(unless = Build.Target.IsLinux.class)
+    public static final c_int SI_KERNEL = constant();
 
     // POSIX 1990
     // SIGABRT is defined by stdc

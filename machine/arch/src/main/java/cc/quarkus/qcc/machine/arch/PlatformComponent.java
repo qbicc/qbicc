@@ -14,6 +14,11 @@ public abstract class PlatformComponent {
         this.aliases = Set.of(aliases);
     }
 
+    PlatformComponent(final String name) {
+        this.name = name;
+        this.aliases = Set.of();
+    }
+
     public String getName() {
         return name;
     }

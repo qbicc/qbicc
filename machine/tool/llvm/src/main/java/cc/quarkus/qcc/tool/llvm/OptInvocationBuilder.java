@@ -5,18 +5,21 @@ import java.util.Collections;
 import java.util.List;
 
 import cc.quarkus.qcc.machine.tool.InvokerBuilder;
-import cc.quarkus.qcc.machine.tool.Tool;
 import cc.quarkus.qcc.machine.tool.process.OutputDestination;
 import io.smallrye.common.constraint.Assert;
 
 /**
  *
  */
-public class LLCInvocationBuilder extends InvokerBuilder {
+public class OptInvocationBuilder extends InvokerBuilder {
     private OutputDestination outputDestination = OutputDestination.discarding();
 
-    LLCInvocationBuilder(final Tool tool) {
+    OptInvocationBuilder(final OptTool tool) {
         super(tool);
+    }
+
+    public OptTool getTool() {
+        return (OptTool) super.getTool();
     }
 
     public OutputDestination getOutputDestination() {
@@ -32,7 +35,7 @@ public class LLCInvocationBuilder extends InvokerBuilder {
         ProcessBuilder pb = new ProcessBuilder();
         List<String> cmd = new ArrayList<>();
         cmd.add(getTool().getExecutablePath().toString());
-        Collections.addAll(cmd, "--filetype=asm");
+        Collections.addAll(cmd, "-O2");
         pb.command(cmd);
         return OutputDestination.of(pb, OutputDestination.discarding(), outputDestination);
     }

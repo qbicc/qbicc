@@ -6,16 +6,16 @@
 
     <parent>
         <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-parent</artifactId>
+        <artifactId>qcc-vm-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-vm-parent</artifactId>
+    <artifactId>qcc-vm-spi</artifactId>
 
-    <packaging>pom</packaging>
-
-    <modules>
-        <module>api</module>
-        <module>spi</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>cc.quarkus</groupId>
+            <artifactId>qcc-native-api</artifactId>
+        </dependency>
+    </dependencies>
 </project>
