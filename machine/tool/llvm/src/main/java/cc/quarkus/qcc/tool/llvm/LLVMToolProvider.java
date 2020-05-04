@@ -23,6 +23,14 @@ public final class LLVMToolProvider implements ToolProvider {
             } else {
                 return List.of();
             }
+        } else if (type.isAssignableFrom(OptTool.class)) {
+            final Path path = ToolUtil.findExecutable("opt");
+            if (path != null && Files.isExecutable(path)) {
+                // TODO: test it
+                return List.of(type.cast(new OptTool(path)));
+            } else {
+                return List.of();
+            }
         } else {
             return List.of();
         }
