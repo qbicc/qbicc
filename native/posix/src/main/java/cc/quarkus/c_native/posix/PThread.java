@@ -2,6 +2,7 @@ package cc.quarkus.c_native.posix;
 
 import static cc.quarkus.c_native.api.CNative.*;
 import static cc.quarkus.c_native.stdc.Signal.*;
+import static cc.quarkus.c_native.stdc.Stddef.*;
 
 import java.util.function.UnaryOperator;
 
@@ -22,8 +23,10 @@ public final class PThread {
     }
 
     public static native c_int pthread_attr_init(ptr<pthread_attr_t> attr);
-
     public static native c_int pthread_attr_destroy(ptr<pthread_attr_t> attr);
+
+    public static native c_int pthread_attr_getstack(ptr<@c_const pthread_attr_t> attr, ptr<ptr<?>> stackAddr, ptr<size_t> stackSize);
+    public static native c_int pthread_attr_setstack(ptr<pthread_attr_t> attr, ptr<?> stackAddr, size_t stackSize);
 
     public static native c_int pthread_create(ptr<pthread_t> thread, ptr<@c_const pthread_attr_t> attr,
             ptr<function<UnaryOperator<ptr<?>>>> start_routine, ptr<?> arg);
