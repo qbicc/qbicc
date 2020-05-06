@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.parse;
+package cc.quarkus.qcc.graph.build;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -7,11 +7,12 @@ import cc.quarkus.qcc.graph.node.CatchControlProjection;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.RegionNode;
+import cc.quarkus.qcc.graph.type.CompletionToken;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-import static cc.quarkus.qcc.parse.TypeUtil.checkType;
+import static cc.quarkus.qcc.graph.build.TypeUtil.checkType;
 
 public class Frame {
 
@@ -36,13 +37,13 @@ public class Frame {
     }
 
     public Local local(int index) {
-        if (index == BytecodeParser.SLOT_RETURN) {
-            return this.returnValue;
+        if (index == GraphBuilder.SLOT_COMPLETION) {
+            return this.completion;
         }
-        if (index == BytecodeParser.SLOT_IO) {
+        if (index == GraphBuilder.SLOT_IO) {
             return this.io;
         }
-        if (index == BytecodeParser.SLOT_MEMORY) {
+        if (index == GraphBuilder.SLOT_MEMORY) {
             return this.memory;
         }
         return this.locals[index];
@@ -53,79 +54,71 @@ public class Frame {
         return node;
     }
 
-    @SuppressWarnings("unchecked")
     public <T> Node<T> pop(Class<T> type) {
         Node<?> val = this.stack.pop();
-        return (Node<T>) checkType(val, type);
+        return checkType(val, type);
     }
 
-    @SuppressWarnings("unchecked")
     public <T> Node<T> peek(Class<T> type) {
         Node<?> val = this.stack.peek();
-        return (Node<T>) checkType(val, type);
+        return checkType(val, type);
     }
 
     public void clear() {
         this.stack.clear();
     }
 
-    @SuppressWarnings("unchecked")
     public <T> Node<T> load(int index, Class<T> type) {
-        return (Node<T>) checkType(this.locals[index].load(type), type);
+        return checkType(this.locals[index].load(type), type);
     }
 
+    @SuppressWarnings("unchecked")
     public <T> Node<T> get(int index, Class<T> type) {
-        //System.err.println("frame: " + this.control + " get " + index + " / " + type);
-        if (index == BytecodeParser.SLOT_RETURN) {
-            return checkType(this.returnValue.get(type), type);
+        if (index == GraphBuilder.SLOT_COMPLETION) {
+            return checkType(this.completion.get(type), type);
         }
-        //System.err.println("GET 1");
-        if (index == BytecodeParser.SLOT_IO) {
-            //System.err.println( this.control + " get io: " + this.io + " >> " + this.io.get(IOToken.class));
+        if (index == GraphBuilder.SLOT_IO) {
             if (this.io instanceof PhiLocal) {
-                //System.err.println("return io phi");
                 return (Node<T>) ((PhiLocal) this.io).getPhiNode();
             }
-            //System.err.println("return io local");
             return (Node<T>) checkType(this.io.get(IOToken.class), IOToken.class);
         }
-        //System.err.println("GET 2");
-        if (index == BytecodeParser.SLOT_MEMORY) {
-            //System.err.println( this.control +  " get memory: " + this.memory + " >> " + this.memory.get(MemoryToken.class));
+        if (index == GraphBuilder.SLOT_MEMORY) {
             if (this.memory instanceof PhiLocal) {
-                //System.err.println("return memory phi");
                 return (Node<T>) ((PhiLocal) this.memory).getPhiNode();
             }
-            //System.err.println("return memory local");
             return (Node<T>) checkType(this.memory.get(MemoryToken.class), MemoryToken.class);
         }
-        //System.err.println("GET 3 @ " + index + " on " + this.control + " >> " + this.locals[index] );
+        if (this.locals[index] == null) {
+            return null;
+        }
         return checkType(this.locals[index].get(type), type);
     }
 
     public void store(int index, Node<?> val) {
-        //System.err.println( "STORE " + index + " = " + val + " on " + this.control);
         if (this.locals[index] == null) {
             this.locals[index] = new SimpleLocal(this.control, index);
         }
-        //System.err.println( "  perform store on " + this.locals)
         this.locals[index].store(val);
     }
 
-    public void returnValue(Node<?> returnValue) {
-        if (this.returnValue == null) {
-            this.returnValue = new SimpleLocal(this.control, BytecodeParser.SLOT_RETURN);
+    public void completion(Node<CompletionToken> completion) {
+        if (this.completion == null) {
+            this.completion = new SimpleLocal(this.control, GraphBuilder.SLOT_COMPLETION);
         }
-        this.returnValue.store(returnValue);
+        this.completion.store(completion);
     }
 
-    public Node<?> returnValue() {
-        return this.returnValue.load(null);
+    public Node<CompletionToken> completion() {
+        if (this.completion == null) {
+            return null;
+        }
+        return this.completion.load(null);
     }
 
     public void memory(Node<MemoryToken> memory) {
         if (this.memory == null) {
-            this.memory = new SimpleLocal(this.control, BytecodeParser.SLOT_MEMORY);
+            this.memory = new SimpleLocal(this.control, GraphBuilder.SLOT_MEMORY);
         }
         this.memory.store(memory);
     }
@@ -136,7 +129,7 @@ public class Frame {
 
     public void io(Node<IOToken> io) {
         if (this.io == null) {
-            this.io = new SimpleLocal(this.control, BytecodeParser.SLOT_IO);
+            this.io = new SimpleLocal(this.control, GraphBuilder.SLOT_IO);
         }
         this.io.store(io);
     }
@@ -146,11 +139,9 @@ public class Frame {
     }
 
     public void mergeInputs() {
-        //System.err.println( this.control + " merge inputs");
         for (ControlNode<?> each : this.control.getControlPredecessors()) {
-            //System.err.println( this.control + " << " + each );
-            if ( this.control instanceof CatchControlProjection ) {
-                mergeFrom(each.frame(), this.control);
+            if (this.control instanceof CatchControlProjection) {
+                mergeFrom(each.frame(), ((CatchControlProjection) this.control).getException());
             } else {
                 mergeFrom(each.frame());
             }
@@ -162,8 +153,6 @@ public class Frame {
     }
 
     public void mergeFrom(Frame inbound, Node<?> thrown) {
-        //System.err.println(this.control + " merge from " + inbound.control + " thrown=" + thrown);
-        //new Exception().printStackTrace();
         if (thrown == null) {
             for (int i = 0; i < this.locals.length; ++i) {
                 if (this.locals[i] == null) {
@@ -179,20 +168,15 @@ public class Frame {
             this.stack.add(thrown);
         }
 
-        if (this.returnValue == null && inbound.returnValue != null) {
-            this.returnValue = inbound.returnValue.duplicate();
+        if (this.completion == null && inbound.completion != null) {
+            this.completion = inbound.completion.duplicate();
         }
+
         if (this.io == null) {
-            //System.err.println("dupe io " + inbound.io);
             this.io = inbound.io.duplicate();
-        } else {
-            //System.err.println("have io " + this.io);
         }
         if (this.memory == null) {
-            //System.err.println("dupe memory " + inbound.memory);
             this.memory = inbound.memory.duplicate();
-        } else {
-            //System.err.println("have memory " + this.memory);
         }
     }
 
@@ -200,19 +184,19 @@ public class Frame {
         if (!(this.control instanceof RegionNode)) {
             throw new UnsupportedOperationException(this.control + " cannot own Phi nodes");
         }
-        if (index == BytecodeParser.SLOT_RETURN) {
-            if (!(this.returnValue instanceof PhiLocal)) {
-                this.returnValue = new PhiLocal((RegionNode) this.control, index, type);
+        if (index == GraphBuilder.SLOT_COMPLETION) {
+            if (!(this.completion instanceof PhiLocal)) {
+                this.completion = new PhiLocal((RegionNode) this.control, index, type);
             }
-            ((PhiLocal) this.returnValue).addInput(input, type);
-            return (PhiLocal) this.returnValue;
-        } else if (index == BytecodeParser.SLOT_IO) {
+            ((PhiLocal) this.completion).addInput(input, type);
+            return (PhiLocal) this.completion;
+        } else if (index == GraphBuilder.SLOT_IO) {
             if (!(this.io instanceof PhiLocal)) {
                 this.io = new PhiLocal((RegionNode) this.control, index, type);
             }
             ((PhiLocal) this.io).addInput(input, type);
             return (PhiLocal) this.io;
-        } else if (index == BytecodeParser.SLOT_MEMORY) {
+        } else if (index == GraphBuilder.SLOT_MEMORY) {
             if (!(this.memory instanceof PhiLocal)) {
                 this.memory = new PhiLocal((RegionNode) this.control, index, type);
             }
@@ -247,5 +231,5 @@ public class Frame {
 
     private Deque<Node<?>> stack;
 
-    private Local returnValue;
+    private Local completion;
 }

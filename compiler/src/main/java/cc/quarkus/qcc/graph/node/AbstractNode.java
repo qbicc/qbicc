@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph.node;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cc.quarkus.qcc.type.TypeDescriptor;
@@ -19,6 +20,16 @@ public abstract class AbstractNode<V> implements Node<V> {
 
     protected AbstractNode(TypeDescriptor<V> outType) {
         this(null, outType);
+    }
+
+    public Node<V> setLine(int line) {
+        this.line = line;
+        return this;
+    }
+
+    @Override
+    public int getLine() {
+        return this.line;
     }
 
     @Override
@@ -73,12 +84,26 @@ public abstract class AbstractNode<V> implements Node<V> {
         return n + " " + getTypeDescriptor().label();
     }
 
+    @Override
+    public boolean removeUnreachableSuccessors() {
+        ListIterator<Node<?>> iter = this.successors.listIterator();
+        boolean changed = false;
+        while ( iter.hasNext() ) {
+            Node<?> each = iter.next();
+            if ( each.getSuccessors().isEmpty() && ! ( each instanceof EndNode ))  {
+                changed = true;
+                iter.remove();
+            }
+        }
+        return changed;
+    }
+
     //@Override
     //public String toString() {
         ////return label();
     //}
 
-    private final List<Node<?>> successors = new ArrayList<>();
+    protected final List<Node<?>> successors = new ArrayList<>();
 
     private final TypeDescriptor<V> outType;
 
@@ -86,5 +111,7 @@ public abstract class AbstractNode<V> implements Node<V> {
 
     private static final AtomicInteger COUNTER = new AtomicInteger(0);
 
-    private ControlNode<?> control;
+    protected ControlNode<?> control;
+
+    private int line = -1;
 }

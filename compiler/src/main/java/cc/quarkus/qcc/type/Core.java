@@ -14,6 +14,10 @@ public class Core {
                 return Universe.instance().findClass("java/lang/Object");
             }
 
+            public static TypeDefinition Throwable() {
+                return Universe.instance().findClass("java/lang/Throwable");
+            }
+
             public static TypeDefinition String() {
                 return Universe.instance().findClass("java/lang/String");
             }

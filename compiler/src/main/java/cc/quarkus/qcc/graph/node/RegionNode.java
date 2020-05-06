@@ -2,6 +2,8 @@ package cc.quarkus.qcc.graph.node;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Set;
 
 import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.interpret.Context;
@@ -13,9 +15,13 @@ public class RegionNode extends AbstractControlNode<ControlToken> {
         super(TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN, maxLocals, maxStack);
     }
 
+    public void removeUnreachable(Set<ControlNode<?>> reachable) {
+        this.inputs.retainAll(reachable);
+        super.removeUnreachable(reachable);
+    }
+
     public void addInput(ControlNode<?> input) {
         if ( input == null ) {
-            System.err.println( "null input");
             return;
         }
         if( this.inputs.contains(input) ) {
@@ -23,6 +29,11 @@ public class RegionNode extends AbstractControlNode<ControlToken> {
         }
         this.inputs.add( input );
         input.addSuccessor(this);
+    }
+
+    @Override
+    public RegionNode setLine(int line) {
+        return (RegionNode) super.setLine(line);
     }
 
     @Override
@@ -36,7 +47,7 @@ public class RegionNode extends AbstractControlNode<ControlToken> {
 
     @Override
     public String label() {
-        return "<region:" + getId() + ">";
+        return "<region:" + getId() + ( getLine() > 0 ? " (" + getLine() + ")>" : ">" );
     }
 
     @Override

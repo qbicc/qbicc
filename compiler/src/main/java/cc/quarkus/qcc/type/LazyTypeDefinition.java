@@ -69,6 +69,11 @@ public class LazyTypeDefinition implements TypeDefinition {
     }
 
     @Override
+    public MethodDefinition getMethod(MethodDescriptor methodDescriptor) {
+        return getDelegate().getMethod(methodDescriptor);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         return getDelegate().equals(obj);
     }

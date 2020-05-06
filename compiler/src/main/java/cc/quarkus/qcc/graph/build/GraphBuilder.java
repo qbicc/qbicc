@@ -1,15 +1,20 @@
-package cc.quarkus.qcc.parse;
+package cc.quarkus.qcc.graph.build;
 
+import java.io.FileNotFoundException;
+import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import cc.quarkus.qcc.Mnemonics;
+import cc.quarkus.qcc.graph.DotWriter;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.node.AddNode;
 import cc.quarkus.qcc.graph.node.BinaryIfNode;
@@ -22,7 +27,6 @@ import cc.quarkus.qcc.graph.node.IfNode;
 import cc.quarkus.qcc.graph.node.InvokeNode;
 import cc.quarkus.qcc.graph.node.NewNode;
 import cc.quarkus.qcc.graph.node.Node;
-import cc.quarkus.qcc.graph.node.Projection;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.node.ReturnNode;
 import cc.quarkus.qcc.graph.node.StartNode;
@@ -35,6 +39,7 @@ import cc.quarkus.qcc.graph.type.ObjectReference;
 import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.MethodDescriptor;
 import cc.quarkus.qcc.type.MethodDescriptorParser;
+import cc.quarkus.qcc.type.Sentinel;
 import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.TypeDescriptor;
 import cc.quarkus.qcc.type.Universe;
@@ -44,6 +49,7 @@ import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
+import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 import org.objectweb.asm.tree.TypeInsnNode;
@@ -52,24 +58,51 @@ import org.objectweb.asm.tree.VarInsnNode;
 import static cc.quarkus.qcc.graph.node.ConstantNode.*;
 import static org.objectweb.asm.Opcodes.*;
 
-public class BytecodeParser {
+public class GraphBuilder {
 
-    public static final int SLOT_RETURN = -1;
+    public static final int SLOT_COMPLETION = -1;
+
+    //public static final int SLOT_THROW = -2;
 
     public static final int SLOT_IO = -2;
 
     public static final int SLOT_MEMORY = -3;
 
-    public BytecodeParser(MethodDefinition method) {
+    public GraphBuilder(MethodDefinition method) {
         this.method = method;
+        initialize();
     }
 
-    protected void buildControlFlowGraph(ControlFlowHelper links) {
+    protected StartNode getStart() {
+        return this.graph.getStart();
+    }
+
+    protected EndNode<?> getEnd() {
+        return this.graph.getEnd();
+    }
+
+    protected RegionNode getEndRegion() {
+        return this.graph.getEndRegion();
+    }
+
+    protected int getMaxLocals() {
+        return this.method.getMaxLocals();
+    }
+
+    protected int getMaxStack() {
+        return this.method.getMaxStack();
+    }
+
+    protected ControlManager controlManager() {
+        return this.controlManager;
+    }
+
+    protected void buildControlFlowGraph() {
         InsnList instrList = this.method.getInstructions();
         int instrLen = instrList.size();
 
-        links.control(0, this.start);
-        control(this.start);
+        controlManager().recordControlForBci(0, getStart());
+        control(getStart());
 
         List<TryCatchBlockNode> tryCatchBlocks = this.method.getTryCatchBlocks();
 
@@ -77,18 +110,24 @@ public class BytecodeParser {
             int startIndex = instrList.indexOf(each.start);
             int endIndex = instrList.indexOf(each.end);
             int handlerIndex = instrList.indexOf(each.handler);
-            TypeDefinition type = Universe.instance().findClass(each.type);
-            RegionNode catchRegion = new RegionNode(this.start.frame().maxLocals(), this.start.frame().maxStack());
-            //System.err.println( "catch region: " + catchRegion);
-            links.catches(type, startIndex, endIndex, handlerIndex, catchRegion);
+            TypeDefinition type = null;
+            if (each.type != null) {
+                type = Universe.instance().findClass(each.type);
+            }
+            controlManager().addCatch(type, startIndex, endIndex, handlerIndex);
         }
+
+        int line = 0;
 
         for (int bci = 0; bci < instrLen; ++bci) {
             AbstractInsnNode instr = instrList.get(bci);
+            if (instr instanceof LineNumberNode) {
+                line = ((LineNumberNode) instr).line;
+            }
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
                 int destIndex = instrList.indexOf(dest);
-                links.control(destIndex, new RegionNode(this.start.frame().maxLocals(), this.start.frame().maxStack()));
+                controlManager().recordControlForBci(destIndex, new RegionNode(getMaxLocals(), getMaxStack()).setLine(line));
             }
         }
 
@@ -96,7 +135,9 @@ public class BytecodeParser {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
 
-            //System.err.println( bci + " " + control() + " " + Mnemonics.of(opcode) + " " + instr);
+            if (instr instanceof LineNumberNode) {
+                line = ((LineNumberNode) instr).line;
+            }
 
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
@@ -109,18 +150,18 @@ public class BytecodeParser {
                     case IF_ICMPGT:
                     case IF_ICMPLT: {
                         BinaryIfNode<Integer> node = new BinaryIfNode<>(control(), op(opcode));
-                        links.control(bci, node);
-                        links.add(bci + 1, node.getFalseOut());
-                        links.add(destIndex, node.getTrueOut());
+                        controlManager().recordControlForBci(bci, node);
+                        controlManager().addControlInputForBci(bci + 1, node.getFalseOut());
+                        controlManager().addControlInputForBci(destIndex, node.getTrueOut());
                         control(node.getFalseOut());
                         break;
                     }
                     case IF_ACMPEQ:
                     case IF_ACMPNE: {
                         BinaryIfNode<ObjectReference> node = new BinaryIfNode<>(control(), op(opcode));
-                        links.control(bci, node);
-                        links.add(bci + 1, node.getFalseOut());
-                        links.add(destIndex, node.getTrueOut());
+                        controlManager().recordControlForBci(bci, node);
+                        controlManager().addControlInputForBci(bci + 1, node.getFalseOut());
+                        controlManager().addControlInputForBci(destIndex, node.getTrueOut());
                         control(node.getFalseOut());
                         break;
                     }
@@ -131,21 +172,21 @@ public class BytecodeParser {
                     case IFGT:
                     case IFLT: {
                         UnaryIfNode node = new UnaryIfNode(control(), op(opcode));
-                        links.control(bci, node);
-                        links.add(bci + 1, node.getFalseOut());
-                        links.add(destIndex, node.getTrueOut());
+                        controlManager().recordControlForBci(bci, node);
+                        controlManager().addControlInputForBci(bci + 1, node.getFalseOut());
+                        controlManager().addControlInputForBci(destIndex, node.getTrueOut());
                         control(node.getFalseOut());
                         break;
                     }
                     case GOTO: {
-                        links.add(destIndex, control());
+                        controlManager().addControlInputForBci(destIndex, control());
                         control(null);
                         break;
                     }
 
                 }
             } else {
-                ControlNode<?> candidate = links.control(bci);
+                ControlNode<?> candidate = controlManager().getControlForBci(bci);
                 if (candidate != null) {
                     if (control() != null) {
                         if (candidate instanceof RegionNode) {
@@ -165,7 +206,7 @@ public class BytecodeParser {
                     case FRETURN:
                     case LRETURN:
                     case ARETURN: {
-                        this.endRegion.addInput(control());
+                        getEndRegion().addInput(control());
                         control(null);
                         break;
                     }
@@ -174,25 +215,28 @@ public class BytecodeParser {
                     case INVOKEINTERFACE:
                     case INVOKEDYNAMIC:
                     case INVOKESTATIC: {
+                        assert instr instanceof MethodInsnNode;
                         MethodDescriptorParser parser = new MethodDescriptorParser(Universe.instance(),
                                                                                    Universe.instance().findClass(((MethodInsnNode) instr).owner),
                                                                                    ((MethodInsnNode) instr).name,
                                                                                    ((MethodInsnNode) instr).desc,
                                                                                    opcode == INVOKESTATIC);
                         MethodDescriptor descriptor = parser.parseMethodDescriptor();
-                        TypeDescriptor<?> returnType = descriptor.getReturnType();
 
-                        InvokeNode<?> node = new InvokeNode(control(), descriptor.getOwner(), descriptor.getName(), returnType, descriptor.getParamTypes());
-                        links.control(bci, node);
-                        links.add(bci + 1, node.getNormalControlOut());
+                        InvokeNode<?> node = new InvokeNode<>(control(), descriptor).setLine(line);
+                        controlManager().recordControlForBci(bci, node);
+                        controlManager().addControlInputForBci(bci + 1, node.getNormalControlOut());
                         control(node.getNormalControlOut());
-                        List<ControlFlowHelper.CatchEntry> catches = links.catchesFor(bci);
-                        //for (RegionNode each : catches) {
-                        for (ControlFlowHelper.CatchEntry each : catches) {
-                            CatchControlProjection catchProjection = new CatchControlProjection(node.getThrowControlOut(), each.type);
-                            each.handler.addInput(catchProjection);
-                        }
+                        List<TryRange> ranges = controlManager().getCatchesForBci(bci);
+                        for (TryRange range : ranges) {
+                            for (CatchEntry entry : range.getCatches()) {
+                                CatchControlProjection catchProjection = new CatchControlProjection(node.getThrowControlOut(), node.getExceptionOut(), entry.getMatcher());
+                                entry.getRegion().addInput(catchProjection);
+                            }
 
+                        }
+                        CatchControlProjection notCaughtProjection = new CatchControlProjection(node.getThrowControlOut(), node.getExceptionOut(), new CatchMatcher());
+                        getEndRegion().addInput(notCaughtProjection);
                         break;
                     }
                 }
@@ -229,13 +273,13 @@ public class BytecodeParser {
 
     }
 
-    protected void calculateDominanceFrontiers(ControlFlowHelper links) {
+    @SuppressWarnings("SuspiciousMethodCalls")
+    protected void calculateDominanceFrontiers() {
 
-        Map<Node<?>, Set<Node<?>>> dominators = new HashMap<>();
-        Set<ControlNode<?>> nodes = links.nodes();
+        Map<ControlNode<?>, Set<Node<?>>> dominators = new HashMap<>();
+        Set<ControlNode<?>> nodes = controlManager().getAllControlNodes();
 
-
-        for (Node<?> n : nodes) {
+        for (ControlNode<?> n : nodes) {
             dominators.put(n, new HashSet<>(Collections.singleton(n)));
         }
 
@@ -243,18 +287,14 @@ public class BytecodeParser {
 
         while (changed) {
             changed = false;
-            for (Node<?> n : nodes) {
-                //System.err.println( "df n=" + n);
+            for (ControlNode<?> n : nodes) {
                 Set<Node<?>> tmp = new HashSet<>();
-                //System.err.println( "df preds=" + n.getPredecessors());
-                //System.err.println( "df sets=" + n.getPredecessors().stream().map(dominators::get).collect(Collectors.toList()));
                 tmp.add(n);
                 tmp.addAll(
                         intersect(
                                 n.getPredecessors().stream().map(dominators::get).collect(Collectors.toList())
                         )
                 );
-                //System.err.println( "df tmp=" + tmp);
 
                 if (!dominators.get(n).equals(tmp)) {
                     dominators.put(n, tmp);
@@ -285,21 +325,26 @@ public class BytecodeParser {
             if (n.getPredecessors().size() > 1) {
                 for (ControlNode<?> p : n.getControlPredecessors()) {
                     Node<?> runner = p;
-                    while (immediateDominators.get(n) != runner) {
-                        dominanceFrontier.get(runner).add(n);
-                        runner = immediateDominators.get(runner);
+                    if (this.reachable.contains(runner)) {
+                        while (immediateDominators.get(n) != runner) {
+                            dominanceFrontier.get(runner).add(n);
+                            runner = immediateDominators.get(runner);
+                        }
                     }
                 }
             }
         }
 
-        links.dominanceFrontier(dominanceFrontier);
+        controlManager().dominanceFrontier(dominanceFrontier);
     }
 
     private Collection<Node<?>> intersect(List<Set<Node<?>>> sets) {
         if (sets.isEmpty()) {
             return Collections.emptySet();
         }
+
+        // remove any unconnected?
+        sets = sets.stream().filter(Objects::nonNull).collect(Collectors.toList());
 
         Set<Node<?>> intersection = new HashSet<>(sets.get(0));
 
@@ -310,20 +355,19 @@ public class BytecodeParser {
         return intersection;
     }
 
-    protected Set<PhiLocal> placePhis(ControlFlowHelper links) {
+    protected Set<PhiLocal> placePhis() {
         InsnList instructions = this.method.getInstructions();
         int numInstrs = instructions.size();
 
         PhiPlacements phiPlacements = new PhiPlacements();
 
-        control(links.control(-1));
+        control(controlManager().getControlForBci(-1));
 
         for (int bci = 0; bci < numInstrs; ++bci) {
             AbstractInsnNode instr = instructions.get(bci);
             int opcode = instr.getOpcode();
 
-
-            ControlNode<?> candidate = links.control(bci);
+            ControlNode<?> candidate = controlManager().getControlForBci(bci);
             if (candidate != null) {
                 control(candidate);
             }
@@ -356,6 +400,7 @@ public class BytecodeParser {
                 case INVOKEVIRTUAL: {
                     phiPlacements.record(control(), SLOT_IO, TypeDescriptor.EphemeralTypeDescriptor.IO_TOKEN);
                     phiPlacements.record(control(), SLOT_MEMORY, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
+                    //phiPlacements.record(control(), SLOT_THROW, TypeDescriptor.OBJECT);
                     break;
                 }
                 case RETURN:
@@ -364,23 +409,31 @@ public class BytecodeParser {
                 case DRETURN:
                 case FRETURN:
                 case ARETURN: {
-                    phiPlacements.record(control(), SLOT_RETURN, method.getReturnType());
+                    phiPlacements.record(control(), SLOT_COMPLETION, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
                     break;
+                }
+                case ATHROW: {
+                    //phiPlacements.record(control(), SLOT_THROW, null);
+                    break;
+
                 }
             }
         }
 
         Set<PhiLocal> phis = new HashSet<>();
         phiPlacements.forEach((node, entries) -> {
-            Set<ControlNode<?>> df = links.dominanceFrontier(node);
+            if (!this.reachable.contains(node)) {
+                return;
+            }
+
+            Set<ControlNode<?>> df = controlManager().dominanceFrontier(node);
 
             for (PhiPlacements.Entry entry : entries) {
                 for (ControlNode<?> dest : df) {
-                    if (dest == this.endRegion && (entry.index != SLOT_MEMORY && entry.index != SLOT_IO && entry.index != SLOT_RETURN)) {
+                    if (dest == getEndRegion() && (entry.index != SLOT_MEMORY && entry.index != SLOT_IO && entry.index != SLOT_COMPLETION)) {
                         // skip
                         continue;
                     }
-                    //System.err.println("place phi: " + node + " -> " + dest + " " + entry.index);
                     phis.add(dest.frame().ensurePhi(entry.index, node, entry.type));
                 }
             }
@@ -389,51 +442,124 @@ public class BytecodeParser {
         return phis;
     }
 
-    public Graph parse() {
-        ControlFlowHelper links = initialize();
-        buildControlFlowGraph(links);
-        calculateDominanceFrontiers(links);
-        Set<PhiLocal> phis = placePhis(links);
+    protected void determineReachability() {
+        Deque<ControlNode<?>> worklist = new ArrayDeque<>();
+        worklist.add(getStart());
 
-        execute(links);
+        while (!worklist.isEmpty()) {
+            ControlNode<?> cur = worklist.pop();
+            if (this.reachable.contains(cur)) {
+                continue;
+            }
+            this.reachable.add(cur);
+            worklist.addAll(cur.getControlSuccessors());
+        }
+    }
+
+    public Graph build() {
+        //ControlManager links = initialize();
+        buildControlFlowGraph();
+
+        try (DotWriter writer = new DotWriter(Paths.get("target/cfg.dot"))) {
+            //writer.write(new Graph(this.start, this.end));
+            writer.write(this.graph);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        determineReachability();
+
+        calculateDominanceFrontiers();
+        Set<PhiLocal> phis = placePhis();
+
+        execute();
 
         for (PhiLocal phi : phis) {
             phi.complete();
         }
 
-        this.end.setIO(this.endRegion.frame().io());
-        this.end.setMemory(this.endRegion.frame().memory());
-        this.end.setReturnValue(this.endRegion.frame().returnValue());
+        getEndRegion().mergeInputs();
 
-        return new Graph(this.start, this.end);
+        getEnd().setIO(getEndRegion().frame().io());
+        getEnd().setMemory(getEndRegion().frame().memory());
+        getEnd().setCompletion(getEndRegion().frame().completion());
+        //this.end.setThrowValue(this.endRegion.frame().throwValue());
+
+        tidyGraph();
+
+        //return new Graph(this.start, this.end);
+        return this.graph;
     }
 
-    @SuppressWarnings("unchecked")
-    public Graph execute(ControlFlowHelper links) {
-        Graph graph = new Graph(this.start, this.end);
+    protected void tidyGraph() {
+        removeUnreachableControls();
+        removeUnreachableDefinitions();
+    }
 
+    protected void removeUnreachableControls() {
+        Deque<ControlNode<?>> worklist = new ArrayDeque<>();
+        worklist.add(getEndRegion());
+
+        Set<ControlNode<?>> processed = new HashSet<>();
+
+        while (!worklist.isEmpty()) {
+            ControlNode<?> cur = worklist.pop();
+            cur.removeUnreachable(this.reachable);
+            processed.add(cur);
+
+            for (ControlNode<?> each : cur.getControlPredecessors()) {
+                if (this.reachable.contains(each) && !processed.contains(each)) {
+                    worklist.add(each);
+                }
+            }
+        }
+    }
+
+    protected void removeUnreachableDefinitions() {
+        Deque<Node<?>> worklist = new ArrayDeque<>();
+        Set<Node<?>> processed = new HashSet<>();
+        worklist.add(getStart());
+
+        while ( ! worklist.isEmpty() ) {
+            Node<?> cur = worklist.pop();
+            if ( processed.contains(cur)) {
+                continue;
+            }
+            if ( cur.removeUnreachableSuccessors() ) {
+                worklist.addAll(cur.getPredecessors());
+            } else {
+                processed.add(cur);
+            }
+            worklist.addAll(cur.getSuccessors());
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "UnusedReturnValue"})
+    public void execute() {
         InsnList instrList = this.method.getInstructions();
         int instrLen = instrList.size();
 
-        control(links.control(-1));
+        control(controlManager().getControlForBci(-1));
 
         for (int bci = 0; bci < instrLen; ++bci) {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
 
-            ControlNode<?> candidate = links.control(bci);
+            ControlNode<?> candidate = controlManager().getControlForBci(bci);
 
             if (candidate != null) {
-                candidate.mergeInputs();
+                if (this.reachable.contains(candidate)) {
+                    candidate.mergeInputs();
+                }
                 control(candidate);
             }
 
-            //System.err.println( control() + " :: " + bci + " " + Mnemonics.of(opcode));
+            if (!this.reachable.contains(control())) {
+                continue;
+            }
 
+            //System.err.println( control() + " :: " + bci + " :: " + Mnemonics.of(opcode));
             if (instr instanceof JumpInsnNode) {
-                LabelNode dest = ((JumpInsnNode) instr).label;
-                int destIndex = instrList.indexOf(dest);
-
                 if (opcode == GOTO) {
                     // just skip this ish
                 } else {
@@ -441,23 +567,29 @@ public class BytecodeParser {
                     switch (opcode) {
                         case IFEQ: {
                             Node<Integer> test = pop(Integer.class);
-                            node = (IfNode) links.control(bci);
+                            node = (IfNode) controlManager().getControlForBci(bci);
                             ((UnaryIfNode) node).setInput(test);
                             break;
                         }
                         case IFNE: {
                             Node<Integer> test = pop(Integer.class);
-                            node = (IfNode) links.control(bci);
+                            node = (IfNode) controlManager().getControlForBci(bci);
                             ((UnaryIfNode) node).setInput(test);
                             break;
                         }
                         case IF_ICMPGE: {
                             Node<Integer> rhs = pop(Integer.class);
                             Node<Integer> lhs = pop(Integer.class);
-                            node = (IfNode) links.control(bci);
+                            node = (IfNode) controlManager().getControlForBci(bci);
                             ((BinaryIfNode<Integer>) node).setLHS(lhs);
                             ((BinaryIfNode<Integer>) node).setRHS(rhs);
                             break;
+                        }
+                        case IFNULL: {
+
+                        }
+                        case IFNONNULL: {
+
                         }
                         default: {
                             if (opcode >= 0) {
@@ -469,8 +601,8 @@ public class BytecodeParser {
                     assert node != null;
                 }
             } else {
-                if (links.control(bci) != null) {
-                    control(links.control(bci));
+                if (controlManager().getControlForBci(bci) != null) {
+                    control(controlManager().getControlForBci(bci));
                 }
                 switch (opcode) {
                     case NOP: {
@@ -541,7 +673,7 @@ public class BytecodeParser {
                         break;
                     }
                     case SIPUSH: {
-                        push(byteConstant(control(), (byte) ((IntInsnNode) instr).operand));
+                        push(shortConstant(control(), (byte) ((IntInsnNode) instr).operand));
                         break;
                     }
                     case LDC: {
@@ -602,7 +734,7 @@ public class BytecodeParser {
 
                     case NEW: {
                         TypeDescriptor<?> type = Universe.instance().findType(((TypeInsnNode) instr).desc);
-                        NewNode<?> node = new NewNode<>(control(), type);
+                        NewNode node = new NewNode(control(), (TypeDescriptor<ObjectReference>) type);
                         push(node);
                         break;
                     }
@@ -618,6 +750,7 @@ public class BytecodeParser {
                         Class<?> returnType = node.getType();
 
                         Node<?>[] args = new Node<?>[node.getParamTypes().size()];
+
                         for (int i = args.length - 1; i >= 0; --i) {
                             args[i] = pop(null);
                         }
@@ -635,22 +768,50 @@ public class BytecodeParser {
                         if (returnType != Void.class) {
                             push(node.getResultOut());
                         }
+
+                        node.getThrowControlOut().frame().io(io());
+                        node.getThrowControlOut().frame().memory(memory());
+
+                        for (ControlNode<?> each : node.getThrowControlOut().getControlSuccessors()) {
+                            if (each instanceof CatchControlProjection && each.getControlSuccessors().contains(getEndRegion())) {
+                                each.frame().completion(((CatchControlProjection) each).getCompletionOut());
+                                each.frame().io(io());
+                                each.frame().memory(memory());
+                            }
+                        }
+
                         break;
                     }
 
                     case ATHROW: {
-                        Node<?> thrown = pop(null);
+                        Node<? extends ObjectReference> thrown = pop(ObjectReference.class);
                         clear();
-                        ThrowNode<?> node = new ThrowNode(control(), thrown);
-                        push(node);
+                        ThrowNode<? extends ObjectReference> node = new ThrowNode<>(control(), thrown);
+                        /*
+                        List<ControlFlowHelper.CatchEntry> catches = links.catchesFor(bci);
+                        for (ControlFlowHelper.CatchEntry each : catches) {
+                            CatchControlProjection catchProjection = new CatchControlProjection(control(), each.type);
+                            each.handler.addInput(catchProjection);
+                        }
+                         */
+                        getEndRegion().frame().mergeFrom(control().frame());
+                        break;
+                    }
+
+                    case RETURN: {
+                        ConstantNode<Sentinel.Void> val = voidConstant(control());
+                        ReturnNode<Sentinel.Void> ret = new ReturnNode<>(control(), val);
+                        control().frame().completion(ret);
+                        getEndRegion().frame().mergeFrom(control().frame());
+                        control(null);
                         break;
                     }
 
                     case IRETURN: {
                         Node<Integer> val = pop(Integer.class);
                         ReturnNode<Integer> ret = new ReturnNode<>(control(), val);
-                        control().frame().returnValue(ret);
-                        this.endRegion.frame().mergeFrom(control().frame());
+                        control().frame().completion(ret);
+                        getEndRegion().frame().mergeFrom(control().frame());
                         control(null);
                         break;
                     }
@@ -663,8 +824,6 @@ public class BytecodeParser {
                 }
             }
         }
-
-        return graph;
     }
 
     protected Node<Integer> loadInt(int index) {
@@ -689,22 +848,18 @@ public class BytecodeParser {
     }
 
     protected Node<ObjectReference> loadObject(int index) {
-        //System.err.println( control + " ALOAD " + index );
         return control().frame().load(index, ObjectReference.class);
     }
 
     protected void storeObject(int index, Node<ObjectReference> val) {
-        //System.err.println( control() + " ASTORE " + index + " = " + val);
         control().frame().store(index, val);
     }
 
 
-    protected ControlFlowHelper initialize() {
-        this.start = new StartNode(this.method, this.method.getMaxLocals(), this.method.getMaxStack());
-        this.endRegion = new RegionNode(this.method.getMaxLocals(), this.method.getMaxStack());
-        this.end = new EndNode(this.endRegion, this.method.getReturnType());
-        control(this.start);
-        return new ControlFlowHelper(this.start);
+    protected void initialize() {
+        this.graph = new Graph(this.method);
+        control(getStart());
+        this.controlManager = new ControlManager(getStart());
     }
 
     protected ControlNode<?> control() {
@@ -716,7 +871,6 @@ public class BytecodeParser {
     }
 
     protected void io(Node<IOToken> io) {
-        //System.err.println("SET IO " + io + " to " + control());
         control().frame().io(io);
     }
 
@@ -725,7 +879,6 @@ public class BytecodeParser {
     }
 
     protected void memory(Node<MemoryToken> memory) {
-        //System.err.println("SET MEMORY " + memory + " to " + control());
         control().frame().memory(memory);
     }
 
@@ -733,6 +886,7 @@ public class BytecodeParser {
         this.control = node;
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     protected <T> Node<T> push(Node<T> node) {
         return control().frame().push(node);
     }
@@ -741,6 +895,7 @@ public class BytecodeParser {
         return control().frame().pop(type);
     }
 
+    @SuppressWarnings("SameParameterValue")
     protected <T> Node<T> peek(Class<T> type) {
         return control().frame().peek(type);
     }
@@ -749,13 +904,14 @@ public class BytecodeParser {
         control().frame().clear();
     }
 
-    private StartNode start;
+    private Graph graph;
 
-    private RegionNode endRegion;
-
-    private EndNode end;
+    private ControlManager controlManager;
 
     private final MethodDefinition method;
 
     private ControlNode<?> control;
+
+    private Set<ControlNode<?>> reachable = new HashSet<>();
+
 }

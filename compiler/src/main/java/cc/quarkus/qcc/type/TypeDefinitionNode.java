@@ -67,7 +67,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
             return false;
         }
 
-        if ( other == this ) {
+        if ( getName().equals(other.getName())) {
             return true;
         }
 
@@ -99,6 +99,11 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
             }
         }
         throw new RuntimeException("Unresolved method " + name + desc);
+    }
+
+    @Override
+    public MethodDefinition getMethod(MethodDescriptor methodDescriptor) {
+        return getMethod(methodDescriptor.getName(), methodDescriptor.getDescriptor());
     }
 
     @Override

@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.type;
 
 import cc.quarkus.qcc.graph.type.CatchToken;
+import cc.quarkus.qcc.graph.type.CompletionToken;
 import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.graph.type.EndToken;
 import cc.quarkus.qcc.graph.type.IOToken;
@@ -16,7 +17,7 @@ public interface TypeDescriptor<T> {
         return new ObjectTypeDescriptor(typeDefinition);
     }
 
-    TypeDescriptor<Void> VOID = new PrimitiveTypeDescriptor<>(Void.class, "void");
+    TypeDescriptor<Sentinel.Void> VOID = new PrimitiveTypeDescriptor<>(Sentinel.Void.class, "void");
     TypeDescriptor<Boolean> BOOLEAN = new PrimitiveTypeDescriptor<>(Boolean.class, "boolean");
     TypeDescriptor<Byte> BYTE = new PrimitiveTypeDescriptor<>(Byte.class, "byte");
     TypeDescriptor<Character> CHAR = new PrimitiveTypeDescriptor<>(Character.class, "char");
@@ -26,9 +27,10 @@ public interface TypeDescriptor<T> {
     TypeDescriptor<Float> FLOAT = new PrimitiveTypeDescriptor<>(Float.class, "float");
     TypeDescriptor<Double> DOUBLE = new PrimitiveTypeDescriptor<>(Double.class, "double");
     TypeDescriptor<ObjectReference> OBJECT = of(Core.java.lang.Object());
+    TypeDescriptor<ObjectReference> THROWABLE = of(Core.java.lang.Throwable());
 
     default TypeDescriptor<?> array(int dim) {
-        if (dim == 1) {
+        if (dim == 0) {
             return this;
         }
         return new ArrayTypeDescriptor(this).array(dim - 1);
@@ -108,6 +110,8 @@ public interface TypeDescriptor<T> {
         public static final TypeDescriptor<ControlToken> CONTROL_TOKEN = new EphemeralTypeDescriptor<>(ControlToken.class);
         public static final TypeDescriptor<IOToken> IO_TOKEN = new EphemeralTypeDescriptor<>(IOToken.class);
         public static final TypeDescriptor<MemoryToken> MEMORY_TOKEN = new EphemeralTypeDescriptor<>(MemoryToken.class);
+
+        public static final TypeDescriptor<CompletionToken> COMPLETION_TOKEN = new EphemeralTypeDescriptor<>(CompletionToken.class);
 
         public static final TypeDescriptor<IfToken> IF_TOKEN = new EphemeralTypeDescriptor<>(IfToken.class);
 

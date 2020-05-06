@@ -43,6 +43,18 @@ public class MethodDescriptorImpl implements MethodDescriptor {
         return this.descriptor;
     }
 
+    @Override
+    public String toString() {
+        return "MethodDescriptorImpl{" +
+                "paramTypes=" + paramTypes +
+                ", returnType=" + returnType +
+                ", owner=" + owner +
+                ", name='" + name + '\'' +
+                ", isStatic=" + isStatic +
+                ", descriptor='" + descriptor + '\'' +
+                '}';
+    }
+
     private final List<TypeDescriptor<?>> paramTypes;
 
     private final TypeDescriptor<?> returnType;

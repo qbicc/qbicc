@@ -35,6 +35,11 @@ public class ThrowControlProjection extends AbstractControlNode<InvokeToken> imp
 
     @Override
     public String label() {
-        return "<proj> throw control";
+        return "<proj:" + getId() + "> throw control";
+    }
+
+    @Override
+    public String toString() {
+        return label();
     }
 }

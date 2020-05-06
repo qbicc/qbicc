@@ -1,18 +1,15 @@
 package cc.quarkus.qcc.type;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import cc.quarkus.qcc.graph.DotWriter;
 import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.graph.type.EndToken;
 import cc.quarkus.qcc.interpret.Interpreter;
-import cc.quarkus.qcc.parse.BytecodeParser;
+import cc.quarkus.qcc.graph.build.GraphBuilder;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
@@ -100,6 +97,12 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
     }
 
     @Override
+    public CallResult call(List<Object> arguments) {
+        Interpreter interp = new Interpreter(getGraph());
+        return interp.execute(arguments);
+    }
+
+    @Override
     public void writeGraph(Path path) throws IOException {
         if (Files.isDirectory(path)) {
             path = path.resolve(defaultGraphName());
@@ -123,8 +126,8 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
             if ( prev != null ) {
                 return prev;
             }
-            BytecodeParser parser = new BytecodeParser(this);
-            return parser.parse();
+            GraphBuilder parser = new GraphBuilder(this);
+            return parser.build();
         });
     }
 

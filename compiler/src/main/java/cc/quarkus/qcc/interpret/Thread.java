@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.node.ControlNode;
+import cc.quarkus.qcc.graph.node.EndNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.PhiNode;
 import cc.quarkus.qcc.graph.node.RegionNode;
@@ -41,22 +42,23 @@ public class Thread implements Context {
     }
 
     protected ControlNode<?> executeControl(ControlNode<?> prevControl, ControlNode<?> control) {
-        //System.err.println( "EXEC: " + control);
+        if ( control instanceof RegionNode ) {
+            hydratePhis(prevControl, (RegionNode) control);
+        }
+
         List<Node<?>> worklist = new ArrayList<>(control.getSuccessors());
 
         ControlNode<?> nextControl = null;
 
         while ( ! worklist.isEmpty() ) {
-            Deque<Node<?>> ready = new ArrayDeque<>(worklist.stream().filter(e->isReady(prevControl, control, e)).collect(Collectors.toList()));
-            //System.err.println( "ready: " + ready);
+            Deque<Node<?>> ready = worklist.stream().filter(e -> isReady(prevControl, control, e)).collect(Collectors.toCollection(ArrayDeque::new));
             worklist.removeAll(ready);
 
             while ( ! ready.isEmpty() ) {
                 Node<?> cur = ready.pop();
-                Object value = getValue(prevControl, cur);
-                //System.err.println( cur + " = " + value);
+                Object value = cur.getValue(peekContext());
                 if (value != null) {
-                    if ( value instanceof EndToken ) {
+                    if ( cur instanceof EndNode ) {
                         this.endToken = (EndToken) value;
                         return null;
                     }
@@ -70,6 +72,14 @@ public class Thread implements Context {
         return nextControl;
     }
 
+    protected void hydratePhis(ControlNode<?> discriminator, RegionNode region) {
+        region.getSuccessors().stream().filter(e->e instanceof PhiNode).forEach( phi->{
+            Node<?> v = ((PhiNode<?>) phi).getValue(discriminator);
+            set0(phi, v.getValue(peekContext()));
+        });
+    }
+
+    @SuppressWarnings("unchecked")
     protected <T> T getValue(ControlNode<?> discriminator, Node<T> node) {
         if ( node instanceof PhiNode ) {
             return (T) ((PhiNode<?>) node).getValue(discriminator).getValue(peekContext());
@@ -85,20 +95,20 @@ public class Thread implements Context {
             return isPhiReady(discriminator, (PhiNode<?>) node);
         }
         Optional<? extends Node<?>> firstMissing = node.getPredecessors().stream().filter(e -> get(e) == null).findFirst();
-        return ! firstMissing.isPresent();
+        return firstMissing.isEmpty();
     }
 
     protected boolean isRegionReady(ControlNode<?> discriminator, RegionNode node) {
         Optional<? extends Node<?>> firstFound = node.getPredecessors().stream().filter(e -> get(e) != null).findFirst();
-        if ( ! firstFound.isPresent() ) {
+        if (firstFound.isEmpty()) {
             return false;
         }
         return node.getSuccessors().stream().filter(e->e instanceof PhiNode).allMatch(e->isPhiReady(discriminator, (PhiNode<?>) e));
     }
 
     protected boolean isPhiReady(ControlNode<?> discriminator, PhiNode<?> node) {
-        return peekContext().get(node.getValue(discriminator)) != null;
-        //return false;
+        boolean result = peekContext().get(node.getValue(discriminator)) != null;
+        return result;
     }
 
     protected void pushContext() {
@@ -119,6 +129,7 @@ public class Thread implements Context {
         peekContext().set(node, val);
     }
 
+    @SuppressWarnings("unchecked")
     protected <T> void set0(Node<T> node, Object val) {
         set(node, (T) val);
     }

@@ -3,9 +3,11 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.type.CompletionToken;
 import cc.quarkus.qcc.graph.type.EndToken;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
+import cc.quarkus.qcc.graph.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
@@ -21,7 +23,7 @@ public class EndNode<T> extends AbstractNode<EndToken> {
             add(getControl());
             add(io);
             add(memory);
-            add(returnValue);
+            add(completion);
         }};
     }
 
@@ -34,27 +36,40 @@ public class EndNode<T> extends AbstractNode<EndToken> {
         io.addSuccessor(this);
     }
 
+    public Node<IOToken> getIO() {
+        return this.io;
+    }
+
     public void setMemory(Node<MemoryToken> memory) {
         this.memory = memory;
         memory.addSuccessor(this);
     }
 
-    public void setReturnValue(Node<T> returnValue) {
-        this.returnValue = returnValue;
-        returnValue.addSuccessor(this);
+    public Node<MemoryToken> getMemory() {
+        return this.memory;
     }
+
+    public void setCompletion(Node<CompletionToken> completion) {
+        this.completion = completion;
+        this.completion.addSuccessor(this);
+    }
+
+    public Node<CompletionToken> getCompletion() {
+        return this.completion;
+    }
+
 
     @Override
     public EndToken getValue(Context context) {
         IOToken io = context.get(this.io);
         MemoryToken memory = context.get(this.memory);
-        Object returnValue = context.get(this.returnValue);
+        CompletionToken completion = context.get(this.completion);
 
-        return new EndToken(io, memory, returnValue);
+        return new EndToken(io, memory, completion.returnValue(), completion.throwValue());
     }
 
     private Node<IOToken> io;
     private Node<MemoryToken> memory;
-    private Node<T> returnValue;
+    private Node<CompletionToken> completion;
 
 }

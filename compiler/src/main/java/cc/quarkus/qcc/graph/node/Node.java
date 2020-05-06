@@ -10,6 +10,8 @@ public interface Node<V> {
 
     int getId();
 
+    int getLine();
+
     ControlNode<?> getControl();
 
     void setControl(ControlNode<?> control);
@@ -42,5 +44,7 @@ public interface Node<V> {
     default String label() {
         return "node " + getId();
     }
+
+    boolean removeUnreachableSuccessors();
 
 }

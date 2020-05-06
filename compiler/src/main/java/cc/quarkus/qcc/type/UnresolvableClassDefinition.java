@@ -13,7 +13,11 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     @Override
     public MethodDefinition getMethod(String name, String desc) {
         throw new RuntimeException("Class " + this.name + " is unresolved");
-        //return null;
+    }
+
+    @Override
+    public MethodDefinition getMethod(MethodDescriptor methodDescriptor) {
+        throw new RuntimeException("Class " + this.name + " is unresolved");
     }
 
     @Override

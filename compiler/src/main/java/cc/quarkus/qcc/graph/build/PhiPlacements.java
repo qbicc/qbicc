@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.parse;
+package cc.quarkus.qcc.graph.build;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,7 +36,16 @@ public class PhiPlacements {
             this.type = type;
         }
 
+        @Override
+        public String toString() {
+            return "Entry{" +
+                    "index=" + index +
+                    ", type=" + type +
+                    '}';
+        }
+
         final int index;
         final TypeDescriptor<?> type;
     }
+
 }
