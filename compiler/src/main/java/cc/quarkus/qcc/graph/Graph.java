@@ -27,6 +27,10 @@ public class Graph {
         this.end = new EndNode<>(this.endRegion, this.method.getReturnType());
     }
 
+    public MethodDefinition getMethod() {
+        return this.method;
+    }
+
     public List<Node<?>> reversePostOrder() {
         List<Node<?>> order = postOrder();
         Collections.reverse(order);

@@ -46,6 +46,7 @@ public class PhiNode<V> extends AbstractNode<V> {
         return label();
     }
 
+    @SuppressWarnings("unchecked")
     public Node<V> getValue(ControlNode<?> discriminator) {
         return (Node<V>) this.local.getValue(discriminator);
     }

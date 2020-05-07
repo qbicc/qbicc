@@ -1,10 +1,8 @@
 package cc.quarkus.qcc.graph.node;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -15,7 +13,6 @@ import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.CallResult;
 import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.MethodDescriptor;
-import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
@@ -75,8 +72,8 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
     @Override
     public InvokeToken getValue(Context context) {
-        MethodDefinition m = this.methodDescriptor.getOwner().getMethod(this.methodDescriptor);
-        CallResult result = m.call(this.arguments.stream().map(e -> e.getValue(context)).collect(Collectors.toList()));
+        MethodDefinition m = this.methodDescriptor.getOwner().findMethod(this.methodDescriptor);
+        CallResult result = m.call(context.heap(), this.arguments.stream().map(e -> e.getValue(context)).collect(Collectors.toList()));
         return new InvokeToken(result.getReturnValue(), result.getThrowValue());
     }
 
@@ -96,13 +93,6 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
     @Override
     public void mergeInputs() {
-        //frame().mergeInputs();
-        //for (ControlNode<?> each : getControlSuccessors()) {
-        //if (each instanceof Projection) {
-        //System.err.println( "** merge from " + this + " to " + each);
-        //each.mergeInputs();
-        //}
-        //}
         getThrowControlOut().frame().io(getIOOut());
         getThrowControlOut().frame().memory(getMemoryOut());
 

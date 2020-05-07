@@ -5,7 +5,11 @@ import java.util.Map;
 
 import cc.quarkus.qcc.graph.node.Node;
 
-public class ThreadContext implements Context {
+public class StackFrame implements Context {
+
+    protected StackFrame(Heap heap) {
+        this.heap = heap;
+    }
 
     @Override
     public <T> void set(Node<T> node, T value) {
@@ -16,6 +20,13 @@ public class ThreadContext implements Context {
     public <T> T get(Node<T> node) {
         return (T) this.bindings.get(node);
     }
+
+    @Override
+    public Heap heap() {
+        return this.heap;
+    }
+
+    private final Heap heap;
 
     private Map<Node<?>, Object> bindings = new HashMap<>();
 }

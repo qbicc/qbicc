@@ -5,7 +5,7 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.ParseException;
 import cc.quarkus.qcc.graph.type.IntrinsicObjectReference;
-import cc.quarkus.qcc.graph.type.ObjectReference;
+import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.Sentinel;
 import cc.quarkus.qcc.type.TypeDescriptor;

@@ -1,5 +1,10 @@
 package cc.quarkus.qcc.type;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+
 import cc.quarkus.qcc.graph.type.CatchToken;
 import cc.quarkus.qcc.graph.type.CompletionToken;
 import cc.quarkus.qcc.graph.type.ControlToken;
@@ -8,13 +13,14 @@ import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.IfToken;
 import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
-import cc.quarkus.qcc.graph.type.ObjectReference;
 import cc.quarkus.qcc.graph.type.StartToken;
 
 public interface TypeDescriptor<T> {
 
+    static Map<TypeDefinition,TypeDescriptor<ObjectReference>> DESCRIPTORS = new ConcurrentHashMap<>();
+
     static TypeDescriptor<ObjectReference> of(TypeDefinition typeDefinition) {
-        return new ObjectTypeDescriptor(typeDefinition);
+        return DESCRIPTORS.computeIfAbsent(typeDefinition, ObjectTypeDescriptor::new);
     }
 
     TypeDescriptor<Sentinel.Void> VOID = new PrimitiveTypeDescriptor<>(Sentinel.Void.class, "void");
@@ -56,8 +62,12 @@ public interface TypeDescriptor<T> {
             return this.label;
         }
 
-        private final Class<T> type;
+        @Override
+        public String toString() {
+            return label();
+        }
 
+        private final Class<T> type;
         private final String label;
     }
 
@@ -78,6 +88,24 @@ public interface TypeDescriptor<T> {
 
         public TypeDefinition getTypeDefinition() {
             return this.typeDefinition;
+        }
+
+        @Override
+        public String toString() {
+            return this.getTypeDefinition().getName();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ObjectTypeDescriptor that = (ObjectTypeDescriptor) o;
+            return Objects.equals(typeDefinition, that.typeDefinition);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(typeDefinition);
         }
 
         private final TypeDefinition typeDefinition;

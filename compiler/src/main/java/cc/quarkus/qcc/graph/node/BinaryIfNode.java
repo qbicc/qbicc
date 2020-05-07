@@ -30,6 +30,7 @@ public class BinaryIfNode<V> extends IfNode {
         return this.rhs.getValue(context);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public IfToken getValue(Context context) {
         V lhsValue = getLHSValue(context);
