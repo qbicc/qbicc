@@ -12,7 +12,7 @@ import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.node.StartNode;
 import cc.quarkus.qcc.type.MethodDefinition;
 
-public class Graph {
+public class Graph<V> {
 
     /*
     public Graph(StartNode start, EndNode<?> end) {
@@ -20,14 +20,14 @@ public class Graph {
         this.end = end;
     }
      */
-    public Graph(MethodDefinition method) {
+    public Graph(MethodDefinition<V> method) {
         this.method = method;
         this.start = new StartNode(method, method.getMaxLocals(), method.getMaxStack());
         this.endRegion = new RegionNode(this.method.getMaxLocals(), this.method.getMaxStack());
         this.end = new EndNode<>(this.endRegion, this.method.getReturnType());
     }
 
-    public MethodDefinition getMethod() {
+    public MethodDefinition<V> getMethod() {
         return this.method;
     }
 
@@ -67,9 +67,9 @@ public class Graph {
         order.add(node);
     }
 
-    private final MethodDefinition method;
+    private final MethodDefinition<V> method;
     private final RegionNode endRegion;
     private final StartNode start;
-    private final EndNode<?> end;
+    private final EndNode<V> end;
 
 }

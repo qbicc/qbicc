@@ -23,7 +23,8 @@ public class Thread implements Context {
     }
 
 
-    public EndToken execute(Graph graph, StartToken arguments) {
+    @SuppressWarnings("unchecked")
+    public <V> EndToken<V> execute(Graph<V> graph, StartToken arguments) {
         //System.err.println( ">> CALL " + graph.getMethod());
         pushContext();
         try {
@@ -40,7 +41,7 @@ public class Thread implements Context {
             popContext();
         }
         //System.err.println( "<< CALL " + graph.getMethod() + " = " + this.endToken);
-        return this.endToken;
+        return (EndToken<V>) this.endToken;
     }
 
     protected ControlNode<?> executeControl(ControlNode<?> prevControl, ControlNode<?> control) {
@@ -62,7 +63,7 @@ public class Thread implements Context {
                 //System.err.println( "EXECUTE: " + control + " :: " + cur + " = " + value);
                 if (value != null) {
                     if (cur instanceof EndNode) {
-                        this.endToken = (EndToken) value;
+                        this.endToken = (EndToken<?>) value;
                         return null;
                     }
                     set0(cur, value);
@@ -110,8 +111,7 @@ public class Thread implements Context {
     }
 
     protected boolean isPhiReady(ControlNode<?> discriminator, PhiNode<?> node) {
-        boolean result = peekContext().get(node.getValue(discriminator)) != null;
-        return result;
+        return peekContext().get(node.getValue(discriminator)) != null;
     }
 
     protected void pushContext() {
@@ -149,7 +149,7 @@ public class Thread implements Context {
 
     private Deque<StackFrame> callStack = new ArrayDeque<>();
 
-    private EndToken endToken;
+    private EndToken<?> endToken;
 
     private Heap heap;
 }

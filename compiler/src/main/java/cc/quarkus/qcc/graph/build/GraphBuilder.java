@@ -64,7 +64,7 @@ import org.objectweb.asm.tree.VarInsnNode;
 import static cc.quarkus.qcc.graph.node.ConstantNode.*;
 import static org.objectweb.asm.Opcodes.*;
 
-public class GraphBuilder {
+public class GraphBuilder<V> {
 
     public static final int SLOT_COMPLETION = -1;
 
@@ -74,7 +74,7 @@ public class GraphBuilder {
 
     public static final int SLOT_MEMORY = -3;
 
-    public GraphBuilder(MethodDefinition method) {
+    public GraphBuilder(MethodDefinition<V> method) {
         this.method = method;
         initialize();
     }
@@ -229,7 +229,7 @@ public class GraphBuilder {
                                                                                    ((MethodInsnNode) instr).name,
                                                                                    ((MethodInsnNode) instr).desc,
                                                                                    opcode == INVOKESTATIC);
-                        MethodDescriptor descriptor = parser.parseMethodDescriptor();
+                        MethodDescriptor<?> descriptor = parser.parseMethodDescriptor();
 
                         InvokeNode<?> node = new InvokeNode<>(control(), descriptor).setLine(line);
                         controlManager().recordControlForBci(bci, node);
@@ -474,7 +474,7 @@ public class GraphBuilder {
         }
     }
 
-    public Graph build() {
+    public Graph<V> build() {
         //ControlManager links = initialize();
         buildControlFlowGraph();
 
@@ -826,7 +826,6 @@ public class GraphBuilder {
                     case GETSTATIC: {
                         String name = ((FieldInsnNode) instr).name;
                         String owner = ((FieldInsnNode) instr).owner;
-                        String desc = ((FieldInsnNode) instr).desc;
                         TypeDefinition type = Universe.instance().findClass(owner);
                         FieldDefinition<?> field = type.findField(name);
                         GetStaticNode<?> node = new GetStaticNode<>(control(), field);
@@ -920,7 +919,7 @@ public class GraphBuilder {
 
 
     protected void initialize() {
-        this.graph = new Graph(this.method);
+        this.graph = new Graph<>(this.method);
         control(getStart());
         this.controlManager = new ControlManager(getStart());
     }
@@ -967,11 +966,11 @@ public class GraphBuilder {
         control().frame().clear();
     }
 
-    private Graph graph;
+    private Graph<V> graph;
 
     private ControlManager controlManager;
 
-    private final MethodDefinition method;
+    private final MethodDefinition<V> method;
 
     private ControlNode<?> control;
 

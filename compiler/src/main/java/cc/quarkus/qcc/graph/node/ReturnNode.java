@@ -19,8 +19,8 @@ public class ReturnNode<V> extends AbstractNode<CompletionToken> {
     }
 
     @Override
-    public CompletionToken getValue(Context context) {
-        return new CompletionToken(context.get(getInput()), null);
+    public CompletionToken<V> getValue(Context context) {
+        return new CompletionToken<>(context.get(getInput()), null);
     }
 
     @Override

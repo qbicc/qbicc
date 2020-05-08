@@ -2,14 +2,14 @@ package cc.quarkus.qcc.graph.type;
 
 import cc.quarkus.qcc.type.ObjectReference;
 
-public class CompletionToken {
+public class CompletionToken<V> {
 
-    public CompletionToken(Object returnValue, ObjectReference throwValue) {
+    public CompletionToken(V returnValue, ObjectReference throwValue) {
         this.returnValue = returnValue;
         this.throwValue = throwValue;
     }
 
-    public Object returnValue() {
+    public V returnValue() {
         return this.returnValue;
     }
 
@@ -17,7 +17,7 @@ public class CompletionToken {
         return this.throwValue;
     }
 
-    private final Object returnValue;
+    private final V returnValue;
 
     private final ObjectReference throwValue;
 }
