@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
@@ -17,8 +18,8 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
-    public InvokeNode(ControlNode<?> control, MethodDescriptor<V> methodDescriptor) {
-        super(control, TypeDescriptor.EphemeralTypeDescriptor.INVOKE_TOKEN);
+    public InvokeNode(Graph<?> graph, ControlNode<?> control, MethodDescriptor<V> methodDescriptor) {
+        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.INVOKE_TOKEN);
         this.methodDescriptor = methodDescriptor;
     }
 
@@ -48,27 +49,27 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
     }
 
     public NormalControlProjection getNormalControlOut() {
-        return this.normalControlOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new NormalControlProjection(this)));
+        return this.normalControlOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new NormalControlProjection(getGraph(), this)));
     }
 
     public ThrowControlProjection getThrowControlOut() {
-        return this.throwOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ThrowControlProjection(this)));
+        return this.throwOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ThrowControlProjection(getGraph(), this)));
     }
 
     public ResultProjection<V> getResultOut() {
-        return this.resultOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ResultProjection<V>(this, this.methodDescriptor.getReturnType())));
+        return this.resultOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ResultProjection<V>(getGraph(), this, this.methodDescriptor.getReturnType())));
     }
 
     public ExceptionProjection getExceptionOut() {
-        return this.exceptionOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ExceptionProjection(this)));
+        return this.exceptionOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ExceptionProjection(getGraph(), this)));
     }
 
     public IOProjection getIOOut() {
-        return this.ioOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IOProjection(this)));
+        return this.ioOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IOProjection(getGraph(), this)));
     }
 
     public MemoryProjection getMemoryOut() {
-        return this.memoryOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new MemoryProjection(this)));
+        return this.memoryOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new MemoryProjection(getGraph(), this)));
     }
 
     @Override
@@ -104,7 +105,9 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
     @Override
     public String label() {
-        return "<invoke:" + getId() + " (" + getLine() + ")> " + this.methodDescriptor.getOwner().getName() + "#" + this.methodDescriptor.getName();
+        return "<invoke:" + getId() + " (" + getLine() + ")> "
+                + (this.methodDescriptor == null ? "" :
+                (this.methodDescriptor.getOwner().getName() + "#" + this.methodDescriptor.getName()));
     }
 
     @Override

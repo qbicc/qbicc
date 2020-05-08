@@ -5,14 +5,16 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class RegionNode extends AbstractControlNode<ControlToken> {
 
-    public RegionNode(int maxLocals, int maxStack) {
-        super(TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN, maxLocals, maxStack);
+    public RegionNode(Graph<?> graph, int maxLocals, int maxStack) {
+        super(graph, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN, maxLocals, maxStack);
+        //new Exception( "ctor region:" + getId() ).printStackTrace();
     }
 
     public void removeUnreachable(Set<ControlNode<?>> reachable) {
@@ -57,7 +59,7 @@ public class RegionNode extends AbstractControlNode<ControlToken> {
 
     @Override
     public ControlToken getValue(Context context) {
-        return new ControlToken();
+        return ControlToken.CONTROL;
     }
 
     private final List<ControlNode<?>> inputs = new ArrayList<>();

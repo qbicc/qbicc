@@ -1,12 +1,13 @@
 package cc.quarkus.qcc.graph.node;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class CompareNode<V extends Comparable<V>> extends BinaryNode<V, Boolean> {
 
-    protected CompareNode(ControlNode<?> control, Node<V> lhs, Node<V> rhs, CompareOp op) {
-        super(control, TypeDescriptor.BOOLEAN);
+    protected CompareNode(Graph<?> graph, ControlNode<?> control, Node<V> lhs, Node<V> rhs, CompareOp op) {
+        super(graph, control, TypeDescriptor.BOOLEAN);
         setLHS(lhs);
         setRHS(rhs);
         this.op = op;

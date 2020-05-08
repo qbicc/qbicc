@@ -3,14 +3,15 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Collections;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.StartToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class ParameterProjection<V> extends AbstractNode<V> implements Projection {
 
-    protected ParameterProjection(StartNode in, TypeDescriptor<V> outType, int index) {
-        super(in, outType);
+    protected ParameterProjection(Graph<?> graph, StartNode in, TypeDescriptor<V> outType, int index) {
+        super(graph, in, outType);
         this.index = index;
     }
 
@@ -32,7 +33,12 @@ public class ParameterProjection<V> extends AbstractNode<V> implements Projectio
     }
 
     public String label() {
-        return "<param:" + this.index + "> " + getTypeDescriptor().label();
+        return "<param:" + getId() + "> [" + this.index + "] " + getTypeDescriptor().label();
+    }
+
+    @Override
+    public String toString() {
+        return label();
     }
 
     private final int index;

@@ -5,7 +5,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.interpret.Heap;
 import cc.quarkus.qcc.interpret.SimpleHeap;
 import org.objectweb.asm.tree.InsnList;

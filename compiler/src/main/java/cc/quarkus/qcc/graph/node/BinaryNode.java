@@ -3,13 +3,14 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public abstract class BinaryNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
 
-    protected BinaryNode(ControlNode<?> control, TypeDescriptor<OUTPUT_V> outType) {
-        super(control, outType);
+    protected BinaryNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<OUTPUT_V> outType) {
+        super(graph, control, outType);
     }
 
     public void setLHS(Node<INPUT_V> lhs) {

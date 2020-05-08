@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.graph.build.GraphBuilder;
 import cc.quarkus.qcc.graph.build.PhiLocal;
@@ -12,8 +13,8 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class PhiNode<V> extends AbstractNode<V> {
 
-    public PhiNode(ControlNode<?> control, TypeDescriptor<V> outType, PhiLocal local) {
-        super(control, outType);
+    public PhiNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> outType, PhiLocal local) {
+        super(graph, control, outType);
         this.local = local;
         this.id = COUNTER.incrementAndGet();
     }

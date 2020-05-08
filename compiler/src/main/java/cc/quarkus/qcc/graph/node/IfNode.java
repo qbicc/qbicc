@@ -3,13 +3,14 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.IfToken;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public abstract class IfNode extends AbstractControlNode<IfToken> {
 
-    public IfNode(ControlNode<?> control, CompareOp op) {
-        super(control, TypeDescriptor.EphemeralTypeDescriptor.IF_TOKEN);
+    public IfNode(Graph<?> graph, ControlNode<?> control, CompareOp op) {
+        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.IF_TOKEN);
         this.op = op;
     }
 
@@ -18,11 +19,11 @@ public abstract class IfNode extends AbstractControlNode<IfToken> {
     }
 
     public IfTrueProjection getTrueOut() {
-        return this.ifTrueOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IfTrueProjection(this )));
+        return this.ifTrueOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IfTrueProjection(getGraph(), this )));
     }
 
     public IfFalseProjection getFalseOut() {
-        return this.ifFalseOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IfFalseProjection(this )));
+        return this.ifFalseOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IfFalseProjection(getGraph(), this )));
     }
 
     @Override

@@ -3,23 +3,29 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.concurrent.atomic.AtomicInteger;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public abstract class AbstractNode<V> implements Node<V> {
 
-    protected AbstractNode(ControlNode<?> control, TypeDescriptor<V> outType) {
+    protected AbstractNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> outType) {
+        this.graph = graph;
         this.outType = outType;
-        this.id = COUNTER.incrementAndGet();
+        this.id = graph.consumeNextId();
         this.control = control;
         if (control != null) {
             control.addSuccessor(this);
         }
     }
 
-    protected AbstractNode(TypeDescriptor<V> outType) {
-        this(null, outType);
+    protected AbstractNode(Graph<?> graph, TypeDescriptor<V> outType) {
+        this(graph, null, outType);
+    }
+
+    @Override
+    public Graph<?> getGraph() {
+        return this.graph;
     }
 
     public Node<V> setLine(int line) {
@@ -98,10 +104,10 @@ public abstract class AbstractNode<V> implements Node<V> {
         return changed;
     }
 
-    //@Override
-    //public String toString() {
-        ////return label();
-    //}
+    @Override
+    public String toString() {
+        return label();
+    }
 
     protected final List<Node<?>> successors = new ArrayList<>();
 
@@ -109,7 +115,7 @@ public abstract class AbstractNode<V> implements Node<V> {
 
     private final int id;
 
-    private static final AtomicInteger COUNTER = new AtomicInteger(0);
+    private final Graph<?> graph;
 
     protected ControlNode<?> control;
 

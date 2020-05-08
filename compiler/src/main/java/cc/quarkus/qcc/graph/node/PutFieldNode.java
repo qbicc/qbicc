@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.FieldDescriptor;
@@ -12,8 +13,8 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class PutFieldNode<V> extends AbstractNode<MemoryToken> {
 
-    public PutFieldNode(ControlNode<?> control, Node<ObjectReference> objRef, Node<V> val, FieldDescriptor<V> field, Node<MemoryToken> memory) {
-        super(control, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
+    public PutFieldNode(Graph<?> graph, ControlNode<?> control, Node<ObjectReference> objRef, Node<V> val, FieldDescriptor<V> field, Node<MemoryToken> memory) {
+        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
         this.objRef = objRef;
         this.val = val;
         this.field = field;
@@ -44,6 +45,11 @@ public class PutFieldNode<V> extends AbstractNode<MemoryToken> {
     @Override
     public String label() {
         return "<putfield:" + getId() + "> " + this.field;
+    }
+
+    @Override
+    public String toString() {
+        return label();
     }
 
     private final Node<ObjectReference> objRef;

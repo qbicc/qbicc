@@ -5,12 +5,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.type.TypeDefinition;
 
 public class TryRange {
 
-    public TryRange(int startIndex, int endIndex, int maxLocals, int maxStack) {
+    public TryRange(Graph<?> graph, int startIndex, int endIndex, int maxLocals, int maxStack) {
+        this.graph = graph;
         this.startIndex = startIndex;
         this.endIndex = endIndex;
         this.maxLocals = maxLocals;
@@ -45,7 +47,7 @@ public class TryRange {
 
     public CatchEntry addCatch(TypeDefinition type, int handlerIndex) {
         CatchEntry entry = getEntry(handlerIndex);
-        if ( type != null ) {
+        if (type != null) {
             entry.getMatcher().addIncludeType(type);
             excludeFromOthers(entry, type);
             excludeOthersFrom(entry);
@@ -63,7 +65,7 @@ public class TryRange {
             return result.get();
         }
 
-        RegionNode region = new RegionNode(this.maxLocals, this.maxStack);
+        RegionNode region = new RegionNode(this.graph, this.maxLocals, this.maxStack);
         CatchEntry entry = new CatchEntry(handlerIndex, region);
         this.catches.add(entry);
         return entry;
@@ -97,4 +99,5 @@ public class TryRange {
 
     private final List<CatchEntry> catches = new ArrayList<>();
 
+    private final Graph<?> graph;
 }

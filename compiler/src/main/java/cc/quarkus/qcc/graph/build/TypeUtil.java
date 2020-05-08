@@ -26,13 +26,13 @@ public class TypeUtil {
     @SuppressWarnings("unchecked")
     public static <INPUT_V, OUTPUT_V> Node<OUTPUT_V> maybeWiden(Node<INPUT_V> node, Class<OUTPUT_V> type) {
         if ( type == Byte.class) {
-            return new WidenNode<>(node.getControl(), node, (TypeDescriptor<OUTPUT_V>) TypeDescriptor.BYTE);
+            return new WidenNode<>(node.getGraph(), node.getControl(), node, (TypeDescriptor<OUTPUT_V>) TypeDescriptor.BYTE);
         } else if ( type == Short.class ) {
-            return new WidenNode<>(node.getControl(), node, (TypeDescriptor<OUTPUT_V>) TypeDescriptor.SHORT);
+            return new WidenNode<>(node.getGraph(), node.getControl(), node, (TypeDescriptor<OUTPUT_V>) TypeDescriptor.SHORT);
         } else if ( type == Integer.class ) {
-            return new WidenNode<>(node.getControl(), node, (TypeDescriptor<OUTPUT_V>) TypeDescriptor.INT);
+            return new WidenNode<>(node.getGraph(), node.getControl(), node, (TypeDescriptor<OUTPUT_V>) TypeDescriptor.INT);
         } else if ( type == Long.class ) {
-            return new WidenNode<>(node.getControl(), node, (TypeDescriptor<OUTPUT_V>) TypeDescriptor.LONG);
+            return new WidenNode<>(node.getGraph(), node.getControl(), node, (TypeDescriptor<OUTPUT_V>) TypeDescriptor.LONG);
         }
         throw new RuntimeException( node + " (" + node.getType() + ") is not assignable to " + type);
     }

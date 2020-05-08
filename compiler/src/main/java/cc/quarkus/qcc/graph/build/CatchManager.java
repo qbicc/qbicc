@@ -6,14 +6,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.type.TypeDefinition;
 
 public class CatchManager {
 
-    public CatchManager(int maxLocals, int maxStack) {
-        this.maxLocals = maxLocals;
-        this.maxStack = maxStack;
+    public CatchManager(Graph<?> graph) {
+        this.graph = graph;
     }
 
     public RegionNode addCatch(int startIndex, int endIndex, TypeDefinition type, int handlerIndex) {
@@ -35,15 +35,21 @@ public class CatchManager {
             return result.get();
         }
 
-        TryRange range = new TryRange(startIndex, endIndex, this.maxLocals, this.maxStack);
+        TryRange range = new TryRange(this.graph, startIndex, endIndex, maxLocals(), maxStack());
         this.ranges.add( range );
         return range;
     }
 
+    protected int maxLocals() {
+        return this.graph.getMethod().getMaxLocals();
+    }
+
+    protected int maxStack() {
+        return this.graph.getMethod().getMaxStack();
+    }
+
     private final List<TryRange> ranges = new ArrayList<>();
 
-    private final int maxLocals;
 
-    private final int maxStack;
-
+    private final Graph<?> graph;
 }

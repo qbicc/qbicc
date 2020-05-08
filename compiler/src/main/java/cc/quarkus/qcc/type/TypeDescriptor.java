@@ -14,6 +14,7 @@ import cc.quarkus.qcc.graph.type.IfToken;
 import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.graph.type.StartToken;
+import cc.quarkus.qcc.graph.type.ThrowToken;
 
 public interface TypeDescriptor<T> {
 
@@ -133,15 +134,16 @@ public interface TypeDescriptor<T> {
 
         public static final TypeDescriptor<StartToken> START_TOKEN = new EphemeralTypeDescriptor<>(StartToken.class);
         public static final TypeDescriptor<EndToken> END_TOKEN = new EphemeralTypeDescriptor<>(EndToken.class);
+
         public static final TypeDescriptor<InvokeToken> INVOKE_TOKEN = new EphemeralTypeDescriptor<>(InvokeToken.class);
-        public static final TypeDescriptor<CatchToken> CATCH_TOKEN = new EphemeralTypeDescriptor<>(CatchToken.class);
+        public static final TypeDescriptor<ThrowToken> THROW_TOKEN = new EphemeralTypeDescriptor<>(ThrowToken.class);
+
+        public static final TypeDescriptor<IfToken> IF_TOKEN = new EphemeralTypeDescriptor<>(IfToken.class);
         public static final TypeDescriptor<ControlToken> CONTROL_TOKEN = new EphemeralTypeDescriptor<>(ControlToken.class);
         public static final TypeDescriptor<IOToken> IO_TOKEN = new EphemeralTypeDescriptor<>(IOToken.class);
         public static final TypeDescriptor<MemoryToken> MEMORY_TOKEN = new EphemeralTypeDescriptor<>(MemoryToken.class);
 
         public static final TypeDescriptor<CompletionToken> COMPLETION_TOKEN = new EphemeralTypeDescriptor<>(CompletionToken.class);
-
-        public static final TypeDescriptor<IfToken> IF_TOKEN = new EphemeralTypeDescriptor<>(IfToken.class);
 
         private EphemeralTypeDescriptor(Class<T> valueType) {
             this.valueType = valueType;

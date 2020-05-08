@@ -3,6 +3,8 @@ package cc.quarkus.qcc.graph.build;
 import java.util.List;
 
 import cc.quarkus.qcc.finders.ClassLoaderClassFinder;
+import cc.quarkus.qcc.graph.Graph;
+import cc.quarkus.qcc.graph.MockMethodDefinition;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.type.Universe;
 import org.junit.Test;
@@ -15,7 +17,7 @@ public class CatchManagerTest {
     public void test() {
         Universe universe = new Universe( new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
 
-        CatchManager manager = new CatchManager(1,2);
+        CatchManager manager = new CatchManager(new Graph<>(new MockMethodDefinition<>()));
         RegionNode fnfe1 = manager.addCatch(10, 20, universe.findClass("java/io/FileNotFoundException"), 40);
         RegionNode ioe1 = manager.addCatch(10, 20, universe.findClass("java/io/IOException"), 70);
         RegionNode fin1 = manager.addCatch(10, 20, null, 90);

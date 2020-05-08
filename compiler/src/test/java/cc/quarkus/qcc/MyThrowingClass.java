@@ -1,7 +1,5 @@
 package cc.quarkus.qcc;
 
-import java.io.IOException;
-
 public class MyThrowingClass {
 
     public static int foo() {

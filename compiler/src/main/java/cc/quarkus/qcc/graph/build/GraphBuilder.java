@@ -68,8 +68,6 @@ public class GraphBuilder<V> {
 
     public static final int SLOT_COMPLETION = -1;
 
-    //public static final int SLOT_THROW = -2;
-
     public static final int SLOT_IO = -2;
 
     public static final int SLOT_MEMORY = -3;
@@ -103,11 +101,13 @@ public class GraphBuilder<V> {
         return this.controlManager;
     }
 
-    protected void buildControlFlowGraph() {
+    protected DefUse buildControlFlowGraph() {
         InsnList instrList = this.method.getInstructions();
         int instrLen = instrList.size();
 
-        controlManager().recordControlForBci(0, getStart());
+        DefUse defUse = new DefUse();
+
+        //controlManager().recordControlForBci(0, getStart());
         control(getStart());
 
         List<TryCatchBlockNode> tryCatchBlocks = this.method.getTryCatchBlocks();
@@ -133,7 +133,7 @@ public class GraphBuilder<V> {
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
                 int destIndex = instrList.indexOf(dest);
-                controlManager().recordControlForBci(destIndex, new RegionNode(getMaxLocals(), getMaxStack()).setLine(line));
+                controlManager().recordControlForBci(destIndex, new RegionNode(graph(), getMaxLocals(), getMaxStack()).setLine(line));
             }
         }
 
@@ -155,7 +155,7 @@ public class GraphBuilder<V> {
                     case IF_ICMPLE:
                     case IF_ICMPGT:
                     case IF_ICMPLT: {
-                        BinaryIfNode<Integer> node = new BinaryIfNode<>(control(), op(opcode));
+                        BinaryIfNode<Integer> node = new BinaryIfNode<>(graph(), control(), op(opcode));
                         controlManager().recordControlForBci(bci, node);
                         controlManager().addControlInputForBci(bci + 1, node.getFalseOut());
                         controlManager().addControlInputForBci(destIndex, node.getTrueOut());
@@ -164,7 +164,7 @@ public class GraphBuilder<V> {
                     }
                     case IF_ACMPEQ:
                     case IF_ACMPNE: {
-                        BinaryIfNode<ObjectReference> node = new BinaryIfNode<>(control(), op(opcode));
+                        BinaryIfNode<ObjectReference> node = new BinaryIfNode<>(graph(), control(), op(opcode));
                         controlManager().recordControlForBci(bci, node);
                         controlManager().addControlInputForBci(bci + 1, node.getFalseOut());
                         controlManager().addControlInputForBci(destIndex, node.getTrueOut());
@@ -179,7 +179,7 @@ public class GraphBuilder<V> {
                     case IFLT:
                     case IFNULL:
                     case IFNONNULL: {
-                        UnaryIfNode node = new UnaryIfNode(control(), op(opcode));
+                        UnaryIfNode node = new UnaryIfNode(graph(), control(), op(opcode));
                         controlManager().recordControlForBci(bci, node);
                         controlManager().addControlInputForBci(bci + 1, node.getFalseOut());
                         controlManager().addControlInputForBci(destIndex, node.getTrueOut());
@@ -188,24 +188,25 @@ public class GraphBuilder<V> {
                     }
                     case GOTO: {
                         controlManager().addControlInputForBci(destIndex, control());
-                        control(null);
+                        clearControl();
                         break;
                     }
 
                 }
             } else {
-                ControlNode<?> candidate = controlManager().getControlForBci(bci);
-                if (candidate != null) {
+                //ControlNode<?> candidate = controlManager().getControlForBci(bci);
+                List<ControlNode<?>> chain = controlManager().getControlChainForBci(bci);
+                if (chain != null) {
                     if (control() != null) {
-                        if (candidate instanceof RegionNode) {
-                            ((RegionNode) candidate).addInput(control());
+                        if (chain.get(0) instanceof RegionNode) {
+                            ((RegionNode) chain.get(0)).addInput(control());
                         } else {
-                            if (candidate.getControl() == null) {
-                                candidate.setControl(control());
+                            if (chain.get(0).getControl() == null) {
+                                chain.get(0).setControl(control());
                             }
                         }
                     }
-                    control(candidate);
+                    control(chain);
                 }
                 switch (opcode) {
                     case RETURN:
@@ -214,8 +215,9 @@ public class GraphBuilder<V> {
                     case FRETURN:
                     case LRETURN:
                     case ARETURN: {
+                        defUse.def(control(), SLOT_COMPLETION, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
                         getEndRegion().addInput(control());
-                        control(null);
+                        clearControl();
                         break;
                     }
                     case INVOKEVIRTUAL:
@@ -231,26 +233,48 @@ public class GraphBuilder<V> {
                                                                                    opcode == INVOKESTATIC);
                         MethodDescriptor<?> descriptor = parser.parseMethodDescriptor();
 
-                        InvokeNode<?> node = new InvokeNode<>(control(), descriptor).setLine(line);
+                        InvokeNode<?> node = new InvokeNode<>(graph(), control(), descriptor).setLine(line);
                         controlManager().recordControlForBci(bci, node);
                         controlManager().addControlInputForBci(bci + 1, node.getNormalControlOut());
+                        defUse.def(node, SLOT_IO, TypeDescriptor.EphemeralTypeDescriptor.IO_TOKEN);
+                        defUse.def(node, SLOT_MEMORY, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
                         control(node.getNormalControlOut());
                         List<TryRange> ranges = controlManager().getCatchesForBci(bci);
                         for (TryRange range : ranges) {
                             for (CatchEntry entry : range.getCatches()) {
-                                CatchControlProjection catchProjection = new CatchControlProjection(node.getThrowControlOut(), node.getExceptionOut(), entry.getMatcher());
+                                CatchControlProjection catchProjection = new CatchControlProjection(graph(), node.getThrowControlOut(), node.getExceptionOut(), entry.getMatcher());
                                 entry.getRegion().addInput(catchProjection);
                             }
-
                         }
-                        CatchControlProjection notCaughtProjection = new CatchControlProjection(node.getThrowControlOut(), node.getExceptionOut(), new CatchMatcher());
+                        // TODO check for possibility of uncaught avoidance.
+                        CatchControlProjection notCaughtProjection = new CatchControlProjection(graph(), node.getThrowControlOut(), node.getExceptionOut(), new CatchMatcher());
                         getEndRegion().addInput(notCaughtProjection);
+                        defUse.def(notCaughtProjection, SLOT_COMPLETION, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
                         break;
                     }
 
+                    case ATHROW: {
+                        ThrowNode node = new ThrowNode(graph(), control());
+                        controlManager().recordControlForBci(bci, node);
+
+                        List<TryRange> ranges = controlManager().getCatchesForBci(bci);
+                        for (TryRange range : ranges) {
+                            for (CatchEntry entry : range.getCatches()) {
+                                CatchControlProjection catchProjection = new CatchControlProjection(graph(), node.getThrowControlOut(), node.getExceptionOut(), entry.getMatcher());
+                                entry.getRegion().addInput(catchProjection);
+                            }
+                        }
+                        // TODO check for possibility of uncaught avoidance.
+                        CatchControlProjection notCaughtProjection = new CatchControlProjection(graph(), node.getThrowControlOut(), node.getExceptionOut(), new CatchMatcher());
+                        getEndRegion().addInput(notCaughtProjection);
+                        defUse.def(notCaughtProjection, SLOT_COMPLETION, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        break;
+                    }
                 }
             }
         }
+
+        return defUse;
     }
 
     protected CompareOp op(int opcode) {
@@ -373,85 +397,24 @@ public class GraphBuilder<V> {
         return intersection;
     }
 
-    protected Set<PhiLocal> placePhis() {
-        InsnList instructions = this.method.getInstructions();
-        int numInstrs = instructions.size();
-
-        PhiPlacements phiPlacements = new PhiPlacements();
-
-        control(controlManager().getControlForBci(-1));
-
-        for (int bci = 0; bci < numInstrs; ++bci) {
-            AbstractInsnNode instr = instructions.get(bci);
-            int opcode = instr.getOpcode();
-
-            ControlNode<?> candidate = controlManager().getControlForBci(bci);
-            if (candidate != null) {
-                control(candidate);
-            }
-
-            switch (opcode) {
-                case ISTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, TypeDescriptor.INT);
-                    break;
-                }
-                case LSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, TypeDescriptor.LONG);
-                    break;
-                }
-                case FSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, TypeDescriptor.FLOAT);
-                    break;
-                }
-                case DSTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, TypeDescriptor.DOUBLE);
-                    break;
-                }
-                case ASTORE: {
-                    phiPlacements.record(control(), ((VarInsnNode) instr).var, TypeDescriptor.OBJECT);
-                    break;
-                }
-                case INVOKEDYNAMIC:
-                case INVOKEINTERFACE:
-                case INVOKESPECIAL:
-                case INVOKESTATIC:
-                case INVOKEVIRTUAL: {
-                    phiPlacements.record(control(), SLOT_IO, TypeDescriptor.EphemeralTypeDescriptor.IO_TOKEN);
-                    phiPlacements.record(control(), SLOT_MEMORY, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
-                    //phiPlacements.record(control(), SLOT_THROW, TypeDescriptor.OBJECT);
-                    break;
-                }
-                case RETURN:
-                case IRETURN:
-                case LRETURN:
-                case DRETURN:
-                case FRETURN:
-                case ARETURN: {
-                    phiPlacements.record(control(), SLOT_COMPLETION, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
-                    break;
-                }
-                case ATHROW: {
-                    //phiPlacements.record(control(), SLOT_THROW, null);
-                    break;
-
-                }
-            }
-        }
-
+    protected Set<PhiLocal> placePhis(DefUse defUse) {
         Set<PhiLocal> phis = new HashSet<>();
-        phiPlacements.forEach((node, entries) -> {
+        defUse.forEach((node, entries) -> {
             if (!this.reachable.contains(node)) {
                 return;
             }
 
             Set<ControlNode<?>> df = controlManager().dominanceFrontier(node);
 
-            for (PhiPlacements.Entry entry : entries) {
+            //System.err.println( "DEF: " + node + " >> " + entries);
+
+            for (DefUse.Entry entry : entries) {
                 for (ControlNode<?> dest : df) {
-                    if (dest == getEndRegion() && (entry.index != SLOT_MEMORY && entry.index != SLOT_IO && entry.index != SLOT_COMPLETION)) {
-                        // skip
-                        continue;
-                    }
+                    //if (dest == getEndRegion() && (entry.index != SLOT_MEMORY && entry.index != SLOT_IO && entry.index != SLOT_COMPLETION)) {
+                        //// skip
+                        //continue;
+                    //}
+                    //System.err.println( "PLACE PHI: " + dest + " for " + entry.index);
                     phis.add(dest.frame().ensurePhi(entry.index, node, entry.type));
                 }
             }
@@ -476,11 +439,11 @@ public class GraphBuilder<V> {
 
     public Graph<V> build() {
         //ControlManager links = initialize();
-        buildControlFlowGraph();
+        DefUse defUse = buildControlFlowGraph();
 
         try (DotWriter writer = new DotWriter(Paths.get("target/cfg.dot"))) {
             //writer.write(new Graph(this.start, this.end));
-            writer.write(this.graph);
+            writer.write(graph());
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -488,7 +451,7 @@ public class GraphBuilder<V> {
         determineReachability();
 
         calculateDominanceFrontiers();
-        Set<PhiLocal> phis = placePhis();
+        Set<PhiLocal> phis = placePhis(defUse);
 
         execute();
 
@@ -538,12 +501,12 @@ public class GraphBuilder<V> {
         Set<Node<?>> processed = new HashSet<>();
         worklist.add(getStart());
 
-        while ( ! worklist.isEmpty() ) {
+        while (!worklist.isEmpty()) {
             Node<?> cur = worklist.pop();
-            if ( processed.contains(cur)) {
+            if (processed.contains(cur)) {
                 continue;
             }
-            if ( cur.removeUnreachableSuccessors() ) {
+            if (cur.removeUnreachableSuccessors()) {
                 worklist.addAll(cur.getPredecessors());
             } else {
                 processed.add(cur);
@@ -557,20 +520,31 @@ public class GraphBuilder<V> {
         InsnList instrList = this.method.getInstructions();
         int instrLen = instrList.size();
 
-        control(controlManager().getControlForBci(-1));
+        control(controlManager().getControlChainForBci(-1));
 
         for (int bci = 0; bci < instrLen; ++bci) {
             AbstractInsnNode instr = instrList.get(bci);
             int opcode = instr.getOpcode();
 
-            ControlNode<?> candidate = controlManager().getControlForBci(bci);
+            List<ControlNode<?>> chain = controlManager().getControlChainForBci(bci);
 
+            if ( chain != null ) {
+                if ( this.reachable.contains(chain.get(0))) {
+                    for (ControlNode<?> each : chain) {
+                        each.mergeInputs();
+                    }
+                }
+                control(chain);
+            }
+
+            /*
             if (candidate != null) {
                 if (this.reachable.contains(candidate)) {
                     candidate.mergeInputs();
                 }
                 control(candidate);
             }
+             */
 
             if (!this.reachable.contains(control())) {
                 continue;
@@ -587,14 +561,14 @@ public class GraphBuilder<V> {
                         case IFNE: {
                             Node<Integer> test = pop(Integer.class);
                             node = (IfNode) controlManager().getControlForBci(bci);
-                            ((UnaryIfNode) node).setInput(test);
+                            ((UnaryIfNode) node).setTest(test);
                             break;
                         }
                         case IFNULL:
                         case IFNONNULL: {
                             Node<ObjectReference> test = pop(ObjectReference.class);
                             node = (IfNode) controlManager().getControlForBci(bci);
-                            ((UnaryIfNode) node).setInput(test);
+                            ((UnaryIfNode) node).setTest(test);
                             break;
                         }
                         case IF_ICMPGE: {
@@ -615,8 +589,8 @@ public class GraphBuilder<V> {
                     assert node != null;
                 }
             } else {
-                if (controlManager().getControlForBci(bci) != null) {
-                    control(controlManager().getControlForBci(bci));
+                if (controlManager().getControlChainForBci(bci) != null) {
+                    control(controlManager().getControlChainForBci(bci));
                 }
                 switch (opcode) {
                     case NOP: {
@@ -740,20 +714,20 @@ public class GraphBuilder<V> {
                     case IADD: {
                         Node<Integer> val1 = pop(Integer.class);
                         Node<Integer> val2 = pop(Integer.class);
-                        push(new AddNode<>(control(), TypeDescriptor.INT, val1, val2, Integer::sum));
+                        push(new AddNode<>(graph(), control(), TypeDescriptor.INT, val1, val2, Integer::sum));
                         break;
                     }
                     case ISUB: {
                         Node<Integer> val1 = pop(Integer.class);
                         Node<Integer> val2 = pop(Integer.class);
-                        push(new SubNode<>(control(), TypeDescriptor.INT, val1, val2, (l, r) -> l - r));
+                        push(new SubNode<>(graph(), control(), TypeDescriptor.INT, val1, val2, (l, r) -> l - r));
                         break;
                     }
                     // ----------------------------------------
 
                     case NEW: {
                         TypeDescriptor<?> type = Universe.instance().findType(((TypeInsnNode) instr).desc);
-                        NewNode node = new NewNode(control(), (TypeDescriptor<ObjectReference>) type);
+                        NewNode node = new NewNode(graph(), control(), (TypeDescriptor<ObjectReference>) type);
                         push(node);
                         break;
                     }
@@ -801,6 +775,25 @@ public class GraphBuilder<V> {
 
                         break;
                     }
+                    case ATHROW: {
+                        Node<ObjectReference> thrown = pop(ObjectReference.class);
+                        ThrowNode node = (ThrowNode) control();
+                        node.setThrown(thrown);
+                        clear();
+                        push(thrown);
+
+                        node.getThrowControlOut().frame().io(io());
+                        node.getThrowControlOut().frame().memory(memory());
+
+                        for (ControlNode<?> each : node.getThrowControlOut().getControlSuccessors()) {
+                            if (each instanceof CatchControlProjection && each.getControlSuccessors().contains(getEndRegion())) {
+                                each.frame().completion(((CatchControlProjection) each).getCompletionOut());
+                                each.frame().io(io());
+                                each.frame().memory(memory());
+                            }
+                        }
+                        break;
+                    }
                     case PUTFIELD: {
                         String name = ((FieldInsnNode) instr).name;
                         String owner = ((FieldInsnNode) instr).owner;
@@ -819,7 +812,7 @@ public class GraphBuilder<V> {
                         FieldDefinition<?> field = type.findField(name);
 
                         Node<ObjectReference> objectRef = pop(ObjectReference.class);
-                        GetFieldNode<?> node = new GetFieldNode<>(control(), objectRef, field);
+                        GetFieldNode<?> node = new GetFieldNode<>(graph(), control(), objectRef, field);
                         push(node);
                         break;
                     }
@@ -828,48 +821,35 @@ public class GraphBuilder<V> {
                         String owner = ((FieldInsnNode) instr).owner;
                         TypeDefinition type = Universe.instance().findClass(owner);
                         FieldDefinition<?> field = type.findField(name);
-                        GetStaticNode<?> node = new GetStaticNode<>(control(), field);
+                        GetStaticNode<?> node = new GetStaticNode<>(graph(), control(), field);
                         push(node);
                         break;
                     }
-                    case ATHROW: {
-                        Node<? extends ObjectReference> thrown = pop(ObjectReference.class);
-                        clear();
-                        ThrowNode<? extends ObjectReference> node = new ThrowNode<>(control(), thrown);
-                        /*
-                        List<ControlFlowHelper.CatchEntry> catches = links.catchesFor(bci);
-                        for (ControlFlowHelper.CatchEntry each : catches) {
-                            CatchControlProjection catchProjection = new CatchControlProjection(control(), each.type);
-                            each.handler.addInput(catchProjection);
-                        }
-                         */
-                        getEndRegion().frame().mergeFrom(control().frame());
-                        break;
-                    }
+
 
                     case RETURN: {
                         ConstantNode<Sentinel.Void> val = voidConstant(control());
-                        ReturnNode<Sentinel.Void> ret = new ReturnNode<>(control(), val);
+                        ReturnNode<Sentinel.Void> ret = new ReturnNode<>(graph(), control(), val);
                         control().frame().completion(ret);
                         getEndRegion().frame().mergeFrom(control().frame());
-                        control(null);
+                        clearControl();
                         break;
                     }
 
                     case IRETURN: {
                         Node<Integer> val = pop(Integer.class);
-                        ReturnNode<Integer> ret = new ReturnNode<>(control(), val);
+                        ReturnNode<Integer> ret = new ReturnNode<>(graph(), control(), val);
                         control().frame().completion(ret);
                         getEndRegion().frame().mergeFrom(control().frame());
-                        control(null);
+                        clearControl();
                         break;
                     }
                     case ARETURN: {
                         Node<ObjectReference> val = pop(ObjectReference.class);
-                        ReturnNode<ObjectReference> ret = new ReturnNode<>(control(), val);
+                        ReturnNode<ObjectReference> ret = new ReturnNode<>(graph(), control(), val);
                         control().frame().completion(ret);
                         getEndRegion().frame().mergeFrom(control().frame());
-                        control(null);
+                        clearControl();
                         break;
                     }
                     default: {
@@ -883,9 +863,9 @@ public class GraphBuilder<V> {
     }
 
     protected <V> PutFieldNode<V> newPutField(FieldDescriptor<V> field) {
-        Node<V> value = pop(field.getTypeDescriptor().valueType() );
+        Node<V> value = pop(field.getTypeDescriptor().valueType());
         Node<ObjectReference> objRef = pop(ObjectReference.class);
-        return new PutFieldNode<>(control(), objRef, value, field, memory());
+        return new PutFieldNode<>(graph(), control(), objRef, value, field, memory());
     }
 
     protected Node<Integer> loadInt(int index) {
@@ -921,7 +901,7 @@ public class GraphBuilder<V> {
     protected void initialize() {
         this.graph = new Graph<>(this.method);
         control(getStart());
-        this.controlManager = new ControlManager(getStart());
+        this.controlManager = new ControlManager(graph());
     }
 
     protected ControlNode<?> control() {
@@ -948,6 +928,14 @@ public class GraphBuilder<V> {
         this.control = node;
     }
 
+    protected void control(List<ControlNode<?>> chain) {
+        this.control = chain.get(chain.size()-1);
+    }
+
+    protected void clearControl() {
+        this.control = null;
+    }
+
     @SuppressWarnings("UnusedReturnValue")
     protected <T> Node<T> push(Node<T> node) {
         return control().frame().push(node);
@@ -964,6 +952,10 @@ public class GraphBuilder<V> {
 
     protected void clear() {
         control().frame().clear();
+    }
+
+    protected Graph<V> graph() {
+        return this.graph;
     }
 
     private Graph<V> graph;

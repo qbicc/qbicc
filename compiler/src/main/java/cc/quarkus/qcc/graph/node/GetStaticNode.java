@@ -1,15 +1,17 @@
 package cc.quarkus.qcc.graph.node;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.FieldDefinition;
 import cc.quarkus.qcc.type.TypeDefinition;
 
 public class GetStaticNode<V> extends AbstractNode<V> {
 
-    public GetStaticNode(ControlNode<?> control, FieldDefinition<V> field) {
-        super(control, field.getTypeDescriptor());
+    public GetStaticNode(Graph<?> graph, ControlNode<?> control, FieldDefinition<V> field) {
+        super(graph, control, field.getTypeDescriptor());
         this.field = field;
     }
 
@@ -21,7 +23,19 @@ public class GetStaticNode<V> extends AbstractNode<V> {
 
     @Override
     public List<? extends Node<?>> getPredecessors() {
-        return null;
+        return new ArrayList<>() {{
+            add(getControl());
+        }};
+    }
+
+    @Override
+    public String label() {
+        return "<getstatic:" + getId() + "> " + this.field;
+    }
+
+    @Override
+    public String toString() {
+        return label();
     }
 
     private final FieldDefinition<V> field;

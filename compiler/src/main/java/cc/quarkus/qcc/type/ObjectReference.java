@@ -27,18 +27,27 @@ public class ObjectReference {
 
     @SuppressWarnings("unchecked")
     <V> V getFieldValue(FieldDefinition<V> field) {
-        return (V) this.fields.get(field);
+        Object v = this.fields.get(field);
+        if ( v == Sentinel.Null.NULL ) {
+            return null;
+        }
+        return (V) v;
     }
 
     <V> void setFieldValue(FieldDefinition<V> field, V val) {
-        this.fields.put(field, val);
+        //System.err.println( "setFieldValue: " +field + " = " + val);
+        if ( val == null ) {
+            this.fields.put(field, Sentinel.Null.NULL);
+        } else {
+            this.fields.put(field, val);
+        }
     }
 
     @Override
     public String toString() {
         return "ObjectReference{" +
                 "typeDefinition=" + typeDefinition +
-                ", fields=" + fields +
+                //", fields=" + fields +
                 '}';
     }
 

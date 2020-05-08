@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.CompletionToken;
 import cc.quarkus.qcc.graph.type.EndToken;
 import cc.quarkus.qcc.graph.type.IOToken;
@@ -13,8 +14,8 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 @SuppressWarnings("rawtypes")
 public class EndNode<T> extends AbstractNode<EndToken> {
 
-    public EndNode(ControlNode<?> control, TypeDescriptor<T> returnType) {
-        super(control, TypeDescriptor.EphemeralTypeDescriptor.END_TOKEN);
+    public EndNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<T> returnType) {
+        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.END_TOKEN);
     }
 
     @Override

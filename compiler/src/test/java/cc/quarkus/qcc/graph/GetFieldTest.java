@@ -20,7 +20,7 @@ public class GetFieldTest extends AbstractNodeTestCase {
         ObjectReference obj = cls.newInstance();
         MockNode<ObjectReference> objNode = set(obj);
 
-        GetFieldNode<Integer> node = new GetFieldNode<>(control(), objNode, someInt);
+        GetFieldNode<Integer> node = new GetFieldNode<>(graph(), control(), objNode, someInt);
         Integer val = node.getValue(context());
         assertThat( val ).isEqualTo(42);
     }
