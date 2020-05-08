@@ -16,6 +16,7 @@ public class StackFrame implements Context {
         this.bindings.put(node, value);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> T get(Node<T> node) {
         return (T) this.bindings.get(node);

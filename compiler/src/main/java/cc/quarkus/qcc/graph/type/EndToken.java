@@ -3,9 +3,9 @@ package cc.quarkus.qcc.graph.type;
 import cc.quarkus.qcc.type.CallResult;
 import cc.quarkus.qcc.type.ObjectReference;
 
-public class EndToken implements CallResult {
+public class EndToken<V> implements CallResult<V> {
 
-    public EndToken(IOToken io, MemoryToken memory, Object returnValue, ObjectReference throwValue) {
+    public EndToken(IOToken io, MemoryToken memory, V returnValue, ObjectReference throwValue) {
         this.io = io;
         this.memory = memory;
         this.returnValue = returnValue;
@@ -22,7 +22,7 @@ public class EndToken implements CallResult {
                 '}';
     }
 
-    public Object getReturnValue() {
+    public V getReturnValue() {
         return this.returnValue;
     }
 
@@ -35,7 +35,7 @@ public class EndToken implements CallResult {
 
     private final MemoryToken memory;
 
-    private final Object returnValue;
+    private final V returnValue;
 
     private final ObjectReference throwValue;
 }

@@ -15,11 +15,11 @@ public interface TypeDefinition {
 
     List<TypeDefinition> getInterfaces();
 
-    Set<MethodDefinition> getMethods();
+    Set<MethodDefinition<?>> getMethods();
 
-    MethodDefinition findMethod(String name, String desc);
+    MethodDefinition<?> findMethod(String name, String desc);
 
-    MethodDefinition findMethod(MethodDescriptor methodDescriptor);
+    <V> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor);
 
     <V> FieldDefinition<V> findField(String name);
 

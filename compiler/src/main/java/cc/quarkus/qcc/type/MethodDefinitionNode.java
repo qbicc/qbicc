@@ -17,13 +17,15 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
-public class MethodDefinitionNode extends MethodNode implements MethodDefinition {
-    public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, String descriptor, String signature, String[] exceptions) {
-        super(Universe.ASM_VERSION, access, name, descriptor, signature, exceptions);
+public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinition<V> {
+
+    //public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, String descriptor, String signature, String[] exceptions) {
+    public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, MethodDescriptor<V> methodDescriptor, String signature, String[] exceptions) {
+        super(Universe.ASM_VERSION, access, name, methodDescriptor.getDescriptor(), signature, exceptions);
         this.typeDefinition = typeDefinition;
 
-        MethodDescriptorParser parser = new MethodDescriptorParser(typeDefinition.getUniverse(), typeDefinition, name, descriptor, isStatic());
-        this.methodDescriptor = parser.parseMethodDescriptor();
+        //MethodDescriptorParser parser = new MethodDescriptorParser(typeDefinition.getUniverse(), typeDefinition, name, descriptor, isStatic());
+        this.methodDescriptor = methodDescriptor;
         //this.signature = signature;
 
     }
@@ -63,7 +65,7 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
     }
 
     @Override
-    public TypeDescriptor<?> getReturnType() {
+    public TypeDescriptor<V> getReturnType() {
         return this.methodDescriptor.getReturnType();
     }
 
@@ -93,14 +95,14 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
     }
 
     @Override
-    public CallResult call(Heap heap, Object... arguments) {
-        Interpreter interp = new Interpreter(heap, getGraph());
+    public CallResult<V> call(Heap heap, Object... arguments) {
+        Interpreter<V> interp = new Interpreter<>(heap, getGraph());
         return interp.execute(arguments);
     }
 
     @Override
-    public CallResult call(Heap heap, List<Object> arguments) {
-        Interpreter interp = new Interpreter(heap, getGraph());
+    public CallResult<V> call(Heap heap, List<Object> arguments) {
+        Interpreter<V> interp = new Interpreter<>(heap, getGraph());
         return interp.execute(arguments);
     }
 
@@ -123,12 +125,12 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
         return getTypeDefinition().getName() + "-" + getName() + getDescriptor();
     }
 
-    protected Graph getGraph() {
+    protected Graph<V> getGraph() {
         return this.graph.updateAndGet( (prev)->{
             if ( prev != null ) {
                 return prev;
             }
-            GraphBuilder parser = new GraphBuilder(this);
+            GraphBuilder<V> parser = new GraphBuilder<>(this);
             return parser.build();
         });
     }
@@ -138,9 +140,9 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
         return this.typeDefinition + " " + this.name + this.desc;
     }
 
-    private final MethodDescriptor methodDescriptor;
+    private final MethodDescriptor<V> methodDescriptor;
 
     private final TypeDefinitionNode typeDefinition;
 
-    private final AtomicReference<Graph> graph = new AtomicReference<>();
+    private final AtomicReference<Graph<V>> graph = new AtomicReference<>();
 }

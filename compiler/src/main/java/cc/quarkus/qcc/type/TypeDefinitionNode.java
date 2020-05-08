@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.interpret.Heap;
 import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -36,8 +37,10 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     }
 
     @Override
-    public MethodDefinitionNode visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-        MethodDefinitionNode visitor = new MethodDefinitionNode(this, access, name, descriptor, signature, exceptions);
+    public MethodDefinitionNode<?> visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+        MethodDescriptorParser parser = new MethodDescriptorParser(getUniverse(), this, name, descriptor, (access & Opcodes.ACC_STATIC) != 0);
+        MethodDescriptor<?> methodDescriptor = parser.parseMethodDescriptor();
+        MethodDefinitionNode<?> visitor = new MethodDefinitionNode<>(this, access, name, methodDescriptor, signature, exceptions);
         this.methods.add(visitor);
         return visitor;
     }
@@ -72,7 +75,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     @Override
     public List<TypeDefinition> getInterfaces() {
         return this.interfaces.stream()
-                .map(e-> this.universe.findClass(e))
+                .map(this.universe::findClass)
                 .collect(Collectors.toList());
     }
 
@@ -100,31 +103,32 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     }
 
     @Override
-    public Set<MethodDefinition> getMethods() {
+    public Set<MethodDefinition<?>> getMethods() {
         return this.methods.stream()
-                .map(e -> (MethodDefinition) e)
+                .map(e -> (MethodDefinition<?>) e)
                 .collect(Collectors.toSet());
     }
 
     @Override
-    public MethodDefinition findMethod(String name, String desc) {
+    public MethodDefinition<?> findMethod(String name, String desc) {
         for (MethodNode each : this.methods) {
             if ( each.name.equals(name) && each.desc.equals(desc)) {
-                return (MethodDefinition) each;
+                return (MethodDefinition<?>) each;
             }
         }
         throw new RuntimeException("Unresolved method " + name + desc);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public MethodDefinition findMethod(MethodDescriptor methodDescriptor) {
-        return findMethod(methodDescriptor.getName(), methodDescriptor.getDescriptor());
+    public <V> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
+        return (MethodDefinition<V>) findMethod(methodDescriptor.getName(), methodDescriptor.getDescriptor());
     }
 
-    public MethodDefinition findMethod(String name, List<Object> actualParameters) {
-        List<MethodDefinition> candidates = new ArrayList<>();
+    public MethodDefinition<?> findMethod(String name, List<Object> actualParameters) {
+        List<MethodDefinition<?>> candidates = new ArrayList<>();
         for (MethodNode each : this.methods) {
-            MethodDefinition method = (MethodDefinition) each;
+            MethodDefinition<?> method = (MethodDefinition<?>) each;
             if ( ! method.getName().equals(name)) {
                 continue;
             }
@@ -186,13 +190,13 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         ObjectReference objRef = heap.newObject(this);
         invocationArgs.add(objRef);
         invocationArgs.addAll(Arrays.asList(ctorArguments));
-        MethodDefinition m = findMethod("<init>", invocationArgs);
+        MethodDefinition<?> m = findMethod("<init>", invocationArgs);
         try {
             m.writeGraph("target/");
         } catch (IOException e) {
             e.printStackTrace();
         }
-        CallResult result = m.call(heap, invocationArgs);
+        CallResult<?> result = m.call(heap, invocationArgs);
         if ( result.getReturnValue() != null ) {
             return objRef;
         }

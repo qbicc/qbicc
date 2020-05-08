@@ -22,8 +22,8 @@ public class ExceptionCompletionNode extends AbstractNode<CompletionToken>  {
     }
 
     @Override
-    public CompletionToken getValue(Context context) {
-        return new CompletionToken(null, context.get(this.exception));
+    public CompletionToken<?> getValue(Context context) {
+        return new CompletionToken<>(null, context.get(this.exception));
     }
 
     @Override

@@ -2,7 +2,7 @@ package cc.quarkus.qcc.type;
 
 import java.util.List;
 
-public interface MethodDescriptor {
+public interface MethodDescriptor<V> {
 
     String getDescriptor();
 
@@ -14,5 +14,5 @@ public interface MethodDescriptor {
 
     List<TypeDescriptor<?>> getParamTypes();
 
-    TypeDescriptor<?> getReturnType();
+    TypeDescriptor<V> getReturnType();
 }

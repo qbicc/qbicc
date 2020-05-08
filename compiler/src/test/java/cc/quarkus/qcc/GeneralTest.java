@@ -18,10 +18,10 @@ public class GeneralTest {
     public void testIt() throws FileNotFoundException {
         Universe universe = new Universe(new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
         TypeDefinition c = universe.findClass("cc/quarkus/qcc/MyClass");
-        MethodDefinition m = c.findMethod("sum", "(II)I");
+        MethodDefinition<?> m = c.findMethod("sum", "(II)I");
 
-        GraphBuilder parser = new GraphBuilder(m);
-        Graph graph = parser.build();
+        GraphBuilder<?> parser = new GraphBuilder<>(m);
+        Graph<?> graph = parser.build();
 
         try (DotWriter writer = new DotWriter(Paths.get("target/graph.dot"))) {
             writer.write(graph);

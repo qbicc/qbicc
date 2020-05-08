@@ -11,7 +11,7 @@ import cc.quarkus.qcc.interpret.SimpleHeap;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
-public interface MethodDefinition extends MethodDescriptor {
+public interface MethodDefinition<V> extends MethodDescriptor<V> {
 
     InsnList getInstructions();
 
@@ -25,17 +25,17 @@ public interface MethodDefinition extends MethodDescriptor {
 
     TypeDefinition getTypeDefinition();
 
-    default CallResult call(Object... arguments) {
+    default CallResult<V> call(Object... arguments) {
         return call(new SimpleHeap(), arguments);
     }
 
-    default CallResult call(List<Object> arguments) {
+    default CallResult<V> call(List<Object> arguments) {
         return call(new SimpleHeap(), arguments);
     }
 
-    CallResult call(Heap heap, Object... arguments);
+    CallResult<V> call(Heap heap, Object... arguments);
 
-    CallResult call(Heap heap, List<Object> arguments);
+    CallResult<V> call(Heap heap, List<Object> arguments);
 
     default void writeGraph(String path) throws IOException {
         writeGraph(Paths.get(path));

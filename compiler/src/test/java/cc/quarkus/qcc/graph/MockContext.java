@@ -18,6 +18,7 @@ public class MockContext implements Context  {
         this.values.put(node, value);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public <V> V get(Node<V> node) {
         return (V) this.values.get(node);

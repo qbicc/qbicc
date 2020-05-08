@@ -10,7 +10,7 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class StartNode extends AbstractControlNode<StartToken> {
 
-    public StartNode(MethodDescriptor descriptor, int maxLocals, int maxStack) {
+    public StartNode(MethodDescriptor<?> descriptor, int maxLocals, int maxStack) {
         super(TypeDescriptor.EphemeralTypeDescriptor.START_TOKEN, maxLocals, maxStack);
         List<TypeDescriptor<?>> params = descriptor.getParamTypes();
         for (int i = 0; i < params.size(); ++i) {

@@ -17,18 +17,19 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
-    public InvokeNode(ControlNode<?> control, MethodDescriptor methodDescriptor) {
+    public InvokeNode(ControlNode<?> control, MethodDescriptor<V> methodDescriptor) {
         super(control, TypeDescriptor.EphemeralTypeDescriptor.INVOKE_TOKEN);
         this.methodDescriptor = methodDescriptor;
     }
 
     @Override
     public InvokeNode<V> setLine(int line) {
-        return (InvokeNode<V>) super.setLine(line);
+        super.setLine(line);
+        return this;
     }
 
     public List<Class<?>> getParamTypes() {
-        return this.methodDescriptor.getParamTypes().stream().map(e -> e.valueType()).collect(Collectors.toList());
+        return this.methodDescriptor.getParamTypes().stream().map(TypeDescriptor::valueType).collect(Collectors.toList());
     }
 
     public void addArgument(Node<?> node) {
@@ -55,7 +56,7 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
     }
 
     public ResultProjection<V> getResultOut() {
-        return this.resultOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ResultProjection<V>(this, (TypeDescriptor<V>) this.methodDescriptor.getReturnType())));
+        return this.resultOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ResultProjection<V>(this, this.methodDescriptor.getReturnType())));
     }
 
     public ExceptionProjection getExceptionOut() {
@@ -72,8 +73,8 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
     @Override
     public InvokeToken getValue(Context context) {
-        MethodDefinition m = this.methodDescriptor.getOwner().findMethod(this.methodDescriptor);
-        CallResult result = m.call(context.heap(), this.arguments.stream().map(e -> e.getValue(context)).collect(Collectors.toList()));
+        MethodDefinition<V> m = this.methodDescriptor.getOwner().findMethod(this.methodDescriptor);
+        CallResult<V> result = m.call(context.heap(), this.arguments.stream().map(e -> e.getValue(context)).collect(Collectors.toList()));
         return new InvokeToken(result.getReturnValue(), result.getThrowValue());
     }
 
@@ -123,7 +124,7 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
 
     private AtomicReference<ThrowControlProjection> throwOut = new AtomicReference<>();
 
-    private final MethodDescriptor methodDescriptor;
+    private final MethodDescriptor<V> methodDescriptor;
 
     //private final TypeDefinition owner;
 

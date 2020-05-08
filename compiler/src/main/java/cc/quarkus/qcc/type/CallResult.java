@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type;
 
-public interface CallResult {
-    Object getReturnValue();
+public interface CallResult<V> {
+    V getReturnValue();
     ObjectReference getThrowValue();
 }

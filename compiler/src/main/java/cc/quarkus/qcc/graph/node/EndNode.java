@@ -10,6 +10,7 @@ import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
+@SuppressWarnings("rawtypes")
 public class EndNode<T> extends AbstractNode<EndToken> {
 
     public EndNode(ControlNode<?> control, TypeDescriptor<T> returnType) {
@@ -58,13 +59,14 @@ public class EndNode<T> extends AbstractNode<EndToken> {
     }
 
 
+    @SuppressWarnings("unchecked")
     @Override
-    public EndToken getValue(Context context) {
+    public EndToken<T> getValue(Context context) {
         IOToken io = context.get(this.io);
         MemoryToken memory = context.get(this.memory);
-        CompletionToken completion = context.get(this.completion);
+        CompletionToken<T> completion = context.get(this.completion);
 
-        return new EndToken(io, memory, completion.returnValue(), completion.throwValue());
+        return new EndToken<>(io, memory, completion.returnValue(), completion.throwValue());
     }
 
     private Node<IOToken> io;

@@ -16,12 +16,12 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     }
 
     @Override
-    public MethodDefinition findMethod(String name, String desc) {
+    public MethodDefinition<?> findMethod(String name, String desc) {
         return throwUnresolved();
     }
 
     @Override
-    public MethodDefinition findMethod(MethodDescriptor methodDescriptor) {
+    public <V> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
         return throwUnresolved();
     }
 
@@ -62,32 +62,32 @@ public class UnresolvableClassDefinition implements TypeDefinition {
 
     @Override
     public boolean isAssignableFrom(TypeDefinition other) {
-        return false;
+        return throwUnresolved();
     }
 
     @Override
     public int getAccess() {
-        return 0;
+        return throwUnresolved();
     }
 
     @Override
     public String getName() {
-        return null;
+        return this.name;
     }
 
     @Override
     public TypeDefinition getSuperclass() {
-        return null;
+        return throwUnresolved();
     }
 
     @Override
     public List<TypeDefinition> getInterfaces() {
-        return null;
+        return throwUnresolved();
     }
 
     @Override
-    public Set<MethodDefinition> getMethods() {
-        return null;
+    public Set<MethodDefinition<?>> getMethods() {
+        return throwUnresolved();
     }
 
     private final String name;
