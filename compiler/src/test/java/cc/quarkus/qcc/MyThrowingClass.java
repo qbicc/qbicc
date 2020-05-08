@@ -19,7 +19,7 @@ public class MyThrowingClass {
     }
 
     public static void bar() throws IllegalArgumentException {
-        //throw new IllegalArgumentException();
+        throw new IllegalArgumentException();
     }
 
     /*

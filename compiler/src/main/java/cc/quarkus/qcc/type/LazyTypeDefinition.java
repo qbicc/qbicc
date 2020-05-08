@@ -6,6 +6,8 @@ import java.util.Set;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.interpret.Heap;
+
 public class LazyTypeDefinition implements TypeDefinition {
     public LazyTypeDefinition(Universe universe, String name, boolean resolve) {
         this.universe = universe;
@@ -59,18 +61,53 @@ public class LazyTypeDefinition implements TypeDefinition {
     }
 
     @Override
+    public TypeDescriptor<ObjectReference> getTypeDescriptor() {
+        return getDelegate().getTypeDescriptor();
+    }
+
+    @Override
     public Set<MethodDefinition> getMethods() {
         return getDelegate().getMethods();
     }
 
     @Override
-    public MethodDefinition getMethod(String name, String desc) {
-        return getDelegate().getMethod(name, desc);
+    public MethodDefinition findMethod(String name, String desc) {
+        return getDelegate().findMethod(name, desc);
     }
 
     @Override
-    public MethodDefinition getMethod(MethodDescriptor methodDescriptor) {
-        return getDelegate().getMethod(methodDescriptor);
+    public MethodDefinition findMethod(MethodDescriptor methodDescriptor) {
+        return getDelegate().findMethod(methodDescriptor);
+    }
+
+    @Override
+    public <V> FieldDefinition<V> findField(String name) {
+        return getDelegate().findField(name);
+    }
+
+    @Override
+    public <V> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
+        getDelegate().putField(field, objRef, val);
+    }
+
+    @Override
+    public <V> V getStatic(FieldDefinition<V> field) {
+        return getDelegate().getStatic(field);
+    }
+
+    @Override
+    public <V> V getField(FieldDefinition<V> field, ObjectReference objRef) {
+        return getDelegate().getField(field, objRef);
+    }
+
+    @Override
+    public ObjectReference newInstance(Heap heap, Object... arguments) {
+        return getDelegate().newInstance(heap, arguments);
+    }
+
+    @Override
+    public ObjectReference newInstance(Heap heap, List<Object> arguments) {
+        return getDelegate().newInstance(heap, arguments);
     }
 
     @Override

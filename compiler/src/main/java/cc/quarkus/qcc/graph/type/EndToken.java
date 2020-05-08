@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph.type;
 
 import cc.quarkus.qcc.type.CallResult;
+import cc.quarkus.qcc.type.ObjectReference;
 
 public class EndToken implements CallResult {
 

@@ -14,7 +14,7 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 public class PhiLocal extends SimpleLocal {
     public PhiLocal(RegionNode control, int index, TypeDescriptor<?> type) {
         super(control, index);
-        this.phi = new PhiNode(this.control, type, this);
+        this.phi = new PhiNode<>(this.control, type, this);
         this.type = type;
     }
 

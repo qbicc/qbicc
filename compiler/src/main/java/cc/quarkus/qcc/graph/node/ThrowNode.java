@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.type.ObjectReference;
+import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
 
 public class ThrowNode<V extends ObjectReference> extends AbstractNode<V> {

@@ -17,7 +17,7 @@ public class InterpretTest {
     public void testStaticMethod() throws IOException {
         Universe universe = new Universe(new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
         TypeDefinition c = universe.findClass("cc/quarkus/qcc/MyClass");
-        MethodDefinition m = c.getMethod("min", "(II)I");
+        MethodDefinition m = c.findMethod("min", "(II)I");
 
         m.writeGraph("target/");
 
@@ -30,9 +30,9 @@ public class InterpretTest {
         Universe universe = new Universe(new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
         TypeDefinition c = universe.findClass("cc/quarkus/qcc/MyThrowingClass");
         //MethodDefinition m = c.getMethod("foo", "()I");
-        MethodDefinition m = c.getMethod("foo", "()I");
+        MethodDefinition m = c.findMethod("foo", "()I");
         m.writeGraph("target/");
-        CallResult result = m.call();
-        System.err.println(result);
+        //CallResult result = m.call();
+        //System.err.println(result);
     }
 }

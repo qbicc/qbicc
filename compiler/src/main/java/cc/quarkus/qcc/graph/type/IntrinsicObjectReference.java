@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph.type;
 
 import cc.quarkus.qcc.type.Core;
+import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.Sentinel;
 import cc.quarkus.qcc.type.TypeDefinition;
 

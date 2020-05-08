@@ -8,6 +8,8 @@ public enum CompareOp {
     LESS_THAN_OR_EQUAL("<="),
     GREATER_THAN(">"),
     GREATER_THAN_OR_EQUAL(">="),
+    NULL("is null"),
+    NONNULL("is non-null"),
     ;
 
     CompareOp(String label) {

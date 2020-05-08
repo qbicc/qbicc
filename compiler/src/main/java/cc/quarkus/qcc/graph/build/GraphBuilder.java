@@ -23,10 +23,13 @@ import cc.quarkus.qcc.graph.node.CompareOp;
 import cc.quarkus.qcc.graph.node.ConstantNode;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.EndNode;
+import cc.quarkus.qcc.graph.node.GetFieldNode;
+import cc.quarkus.qcc.graph.node.GetStaticNode;
 import cc.quarkus.qcc.graph.node.IfNode;
 import cc.quarkus.qcc.graph.node.InvokeNode;
 import cc.quarkus.qcc.graph.node.NewNode;
 import cc.quarkus.qcc.graph.node.Node;
+import cc.quarkus.qcc.graph.node.PutFieldNode;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.node.ReturnNode;
 import cc.quarkus.qcc.graph.node.StartNode;
@@ -35,7 +38,9 @@ import cc.quarkus.qcc.graph.node.ThrowNode;
 import cc.quarkus.qcc.graph.node.UnaryIfNode;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
-import cc.quarkus.qcc.graph.type.ObjectReference;
+import cc.quarkus.qcc.type.FieldDescriptor;
+import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.FieldDefinition;
 import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.MethodDescriptor;
 import cc.quarkus.qcc.type.MethodDescriptorParser;
@@ -44,6 +49,7 @@ import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.TypeDescriptor;
 import cc.quarkus.qcc.type.Universe;
 import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
@@ -170,7 +176,9 @@ public class GraphBuilder {
                     case IFGE:
                     case IFLE:
                     case IFGT:
-                    case IFLT: {
+                    case IFLT:
+                    case IFNULL:
+                    case IFNONNULL: {
                         UnaryIfNode node = new UnaryIfNode(control(), op(opcode));
                         controlManager().recordControlForBci(bci, node);
                         controlManager().addControlInputForBci(bci + 1, node.getFalseOut());
@@ -239,6 +247,7 @@ public class GraphBuilder {
                         getEndRegion().addInput(notCaughtProjection);
                         break;
                     }
+
                 }
             }
         }
@@ -268,6 +277,12 @@ public class GraphBuilder {
             case IF_ICMPLT: {
                 return CompareOp.LESS_THAN;
             }
+            case IFNULL: {
+                return CompareOp.NULL;
+            }
+            case IFNONNULL: {
+                return CompareOp.NONNULL;
+            }
         }
         return null;
 
@@ -288,6 +303,8 @@ public class GraphBuilder {
         while (changed) {
             changed = false;
             for (ControlNode<?> n : nodes) {
+                //System.err.println( "n=" + n);
+                //System.err.println( "n.pred=" + n.getPredecessors());
                 Set<Node<?>> tmp = new HashSet<>();
                 tmp.add(n);
                 tmp.addAll(
@@ -343,6 +360,7 @@ public class GraphBuilder {
             return Collections.emptySet();
         }
 
+        //System.err.println( " intersect: "+ sets);
         // remove any unconnected?
         sets = sets.stream().filter(Objects::nonNull).collect(Collectors.toList());
 
@@ -565,14 +583,16 @@ public class GraphBuilder {
                 } else {
                     IfNode node = null;
                     switch (opcode) {
-                        case IFEQ: {
+                        case IFEQ:
+                        case IFNE: {
                             Node<Integer> test = pop(Integer.class);
                             node = (IfNode) controlManager().getControlForBci(bci);
                             ((UnaryIfNode) node).setInput(test);
                             break;
                         }
-                        case IFNE: {
-                            Node<Integer> test = pop(Integer.class);
+                        case IFNULL:
+                        case IFNONNULL: {
+                            Node<ObjectReference> test = pop(ObjectReference.class);
                             node = (IfNode) controlManager().getControlForBci(bci);
                             ((UnaryIfNode) node).setInput(test);
                             break;
@@ -584,12 +604,6 @@ public class GraphBuilder {
                             ((BinaryIfNode<Integer>) node).setLHS(lhs);
                             ((BinaryIfNode<Integer>) node).setRHS(rhs);
                             break;
-                        }
-                        case IFNULL: {
-
-                        }
-                        case IFNONNULL: {
-
                         }
                         default: {
                             if (opcode >= 0) {
@@ -716,6 +730,11 @@ public class GraphBuilder {
                         break;
                     }
 
+                    case POP: {
+                        pop(null);
+                        break;
+                    }
+
                     // ----------------------------------------
 
                     case IADD: {
@@ -782,7 +801,38 @@ public class GraphBuilder {
 
                         break;
                     }
+                    case PUTFIELD: {
+                        String name = ((FieldInsnNode) instr).name;
+                        String owner = ((FieldInsnNode) instr).owner;
+                        TypeDefinition type = Universe.instance().findClass(owner);
+                        FieldDefinition<?> field = type.findField(name);
+                        PutFieldNode<?> node = newPutField(field);
+                        memory(node);
+                        break;
+                    }
 
+                    case GETFIELD: {
+                        String name = ((FieldInsnNode) instr).name;
+                        String owner = ((FieldInsnNode) instr).owner;
+
+                        TypeDefinition type = Universe.instance().findClass(owner);
+                        FieldDefinition<?> field = type.findField(name);
+
+                        Node<ObjectReference> objectRef = pop(ObjectReference.class);
+                        GetFieldNode<?> node = new GetFieldNode<>(control(), objectRef, field);
+                        push(node);
+                        break;
+                    }
+                    case GETSTATIC: {
+                        String name = ((FieldInsnNode) instr).name;
+                        String owner = ((FieldInsnNode) instr).owner;
+                        String desc = ((FieldInsnNode) instr).desc;
+                        TypeDefinition type = Universe.instance().findClass(owner);
+                        FieldDefinition<?> field = type.findField(name);
+                        GetStaticNode<?> node = new GetStaticNode<>(control(), field);
+                        push(node);
+                        break;
+                    }
                     case ATHROW: {
                         Node<? extends ObjectReference> thrown = pop(ObjectReference.class);
                         clear();
@@ -815,7 +865,14 @@ public class GraphBuilder {
                         control(null);
                         break;
                     }
-
+                    case ARETURN: {
+                        Node<ObjectReference> val = pop(ObjectReference.class);
+                        ReturnNode<ObjectReference> ret = new ReturnNode<>(control(), val);
+                        control().frame().completion(ret);
+                        getEndRegion().frame().mergeFrom(control().frame());
+                        control(null);
+                        break;
+                    }
                     default: {
                         if (opcode >= 0) {
                             System.err.println("unhandled: " + Mnemonics.of(opcode) + " " + opcode);
@@ -824,6 +881,12 @@ public class GraphBuilder {
                 }
             }
         }
+    }
+
+    protected <V> PutFieldNode<V> newPutField(FieldDescriptor<V> field) {
+        Node<V> value = pop(field.getTypeDescriptor().valueType() );
+        Node<ObjectReference> objRef = pop(ObjectReference.class);
+        return new PutFieldNode<>(control(), objRef, value, field, memory());
     }
 
     protected Node<Integer> loadInt(int index) {

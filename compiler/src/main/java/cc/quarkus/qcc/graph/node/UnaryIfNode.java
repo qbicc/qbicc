@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.graph.node;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import cc.quarkus.qcc.graph.type.IfToken;
@@ -16,14 +17,22 @@ public class UnaryIfNode extends IfNode {
         return null;
     }
 
-    public void setInput(Node<Integer> input) {
+    public void setInput(Node<?> input) {
         this.input = input;
     }
 
     @Override
     public List<? extends Node<?>> getPredecessors() {
-        return null;
+        return new ArrayList<>() {{
+            add(getControl());
+            add(input);
+        }};
     }
 
-    private Node<Integer> input;
+    @Override
+    public String toString() {
+        return "<if:" + getId() + "> " + getOp();
+    }
+
+    private Node<?> input;
 }

@@ -8,6 +8,7 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class TypeUtil {
 
+    @SuppressWarnings("unchecked")
     public static <V> Node<V> checkType(Node<?> node, Class<V> type) {
         if ( node instanceof ConstantNode && node.getType() == Sentinel.Void.class ) {
             return (Node<V>) node;

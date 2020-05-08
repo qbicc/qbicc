@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 import cc.quarkus.qcc.graph.type.InvokeToken;
-import cc.quarkus.qcc.graph.type.ObjectReference;
+import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.graph.build.CatchMatcher;
 import cc.quarkus.qcc.type.TypeDescriptor;

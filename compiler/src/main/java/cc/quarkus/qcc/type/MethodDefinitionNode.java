@@ -8,6 +8,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import cc.quarkus.qcc.graph.DotWriter;
 import cc.quarkus.qcc.graph.Graph;
+import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.interpret.Heap;
 import cc.quarkus.qcc.interpret.Interpreter;
 import cc.quarkus.qcc.graph.build.GraphBuilder;
 import org.objectweb.asm.Opcodes;
@@ -91,14 +93,14 @@ public class MethodDefinitionNode extends MethodNode implements MethodDefinition
     }
 
     @Override
-    public CallResult call(Object... arguments) {
-        Interpreter interp = new Interpreter(getGraph());
+    public CallResult call(Heap heap, Object... arguments) {
+        Interpreter interp = new Interpreter(heap, getGraph());
         return interp.execute(arguments);
     }
 
     @Override
-    public CallResult call(List<Object> arguments) {
-        Interpreter interp = new Interpreter(getGraph());
+    public CallResult call(Heap heap, List<Object> arguments) {
+        Interpreter interp = new Interpreter(heap, getGraph());
         return interp.execute(arguments);
     }
 

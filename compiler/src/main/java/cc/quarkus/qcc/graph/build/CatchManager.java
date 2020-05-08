@@ -40,7 +40,7 @@ public class CatchManager {
         return range;
     }
 
-    private final List<TryRange> ranges = new ArrayList();
+    private final List<TryRange> ranges = new ArrayList<>();
 
     private final int maxLocals;
 

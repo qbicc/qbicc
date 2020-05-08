@@ -18,7 +18,17 @@ public class WidenNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
     @Override
     public OUTPUT_V getValue(Context context) {
         INPUT_V src = context.get(this.input);
-        return (OUTPUT_V) src;
+        if ( getTypeDescriptor() == TypeDescriptor.LONG ) {
+            return (OUTPUT_V) Long.valueOf(((Number)src).longValue());
+        }
+        if ( getTypeDescriptor() == TypeDescriptor.INT ) {
+            return (OUTPUT_V) Integer.valueOf(((Number)src).intValue());
+        }
+        if ( getTypeDescriptor() == TypeDescriptor.SHORT ) {
+            return (OUTPUT_V) Short.valueOf(((Number)src).shortValue());
+        }
+        throw new RuntimeException( "Unable to widen");
+        //return (OUTPUT_V) src;
     }
 
     @Override
@@ -27,6 +37,11 @@ public class WidenNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
             add(getControl());
             add(input);
         }};
+    }
+
+    @Override
+    public String label() {
+        return "<widen:" + getId() + "> " + getTypeDescriptor();
     }
 
     private final Node<INPUT_V> input;
