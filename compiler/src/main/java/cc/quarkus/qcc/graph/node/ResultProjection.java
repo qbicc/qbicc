@@ -3,14 +3,15 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Collections;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class ResultProjection<V> extends AbstractNode<V> implements Projection {
 
-    protected ResultProjection(InvokeNode<V> in, TypeDescriptor<V> outType) {
-        super(in, outType);
+    protected ResultProjection(Graph<?> graph, InvokeNode<V> in, TypeDescriptor<V> outType) {
+        super(graph, in, outType);
     }
 
     @SuppressWarnings("unchecked")

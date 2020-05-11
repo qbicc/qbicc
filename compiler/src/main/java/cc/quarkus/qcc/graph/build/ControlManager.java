@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph.build;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,31 +9,45 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.graph.node.StartNode;
 import cc.quarkus.qcc.type.TypeDefinition;
 
 public class ControlManager {
 
-    public ControlManager(StartNode startNode) {
-        recordControlForBci(-1, startNode);
-        this.catchManager = new CatchManager(startNode.frame().maxLocals(), startNode.frame().maxStack());
+    public ControlManager(Graph<?> graph) {
+        this.graph = graph;
+        recordControlForBci(-1, graph.getStart());
+        this.catchManager = new CatchManager(graph);
     }
 
     public void recordControlForBci(int startBci, ControlNode<?> control) {
-        this.controls.put(startBci, control);
+        List<ControlNode<?>> chain = this.controls.computeIfAbsent(startBci, k -> new ArrayList<>());
+        chain.add(control);
     }
 
     public ControlNode<?> getControlForBci(int bci) {
+        List<ControlNode<?>> chain = getControlChainForBci(bci);
+        if ( chain == null ) {
+            return null;
+        }
+
+        return chain.get(chain.size()-1);
+    }
+
+    public List<ControlNode<?>> getControlChainForBci(int bci) {
         return this.controls.get(bci);
     }
 
     public void addControlInputForBci(int bci, ControlNode<?> input) {
-        ControlNode<?> dest = getControlForBci(bci);
-        if (dest == null) {
-            dest = new RegionNode(input.frame().maxLocals(), input.frame().maxStack());
+        List<ControlNode<?>> chain = getControlChainForBci(bci);
+        ControlNode<?> dest = null;
+        if (chain == null) {
+            dest = new RegionNode(this.graph, input.frame().maxLocals(), input.frame().maxStack());
             recordControlForBci(bci, dest);
+        } else {
+            dest = chain.get(0);
         }
         if (dest instanceof RegionNode) {
             ((RegionNode) dest).addInput(input);
@@ -61,7 +76,7 @@ public class ControlManager {
     Set<ControlNode<?>> getAllControlNodes() {
         Set<ControlNode<?>> nodes = new HashSet<>();
         Deque<ControlNode<?>> worklist = new ArrayDeque<>();
-        worklist.add(getControlForBci(-1));
+        worklist.addAll(getControlChainForBci(-1));
 
         while (!worklist.isEmpty()) {
             ControlNode<?> cur = worklist.pop();
@@ -76,9 +91,12 @@ public class ControlManager {
         return nodes;
     }
 
-    private Map<Integer, ControlNode<?>> controls = new HashMap<>();
+    private final Graph<?> graph;
+
+    private Map<Integer, List<ControlNode<?>>> controls = new HashMap<>();
 
     private Map<ControlNode<?>, Set<ControlNode<?>>> dominanceFrontier;
 
     private CatchManager catchManager;
+
 }

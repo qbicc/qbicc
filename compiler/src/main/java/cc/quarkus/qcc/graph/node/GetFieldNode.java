@@ -3,14 +3,15 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.FieldDescriptor;
 
 public class GetFieldNode<V> extends AbstractNode<V> {
 
-    public GetFieldNode(ControlNode<?> control, Node<ObjectReference> objRef, FieldDescriptor<V> field) {
-        super(control, field.getTypeDescriptor());
+    public GetFieldNode(Graph<?> graph, ControlNode<?> control, Node<ObjectReference> objRef, FieldDescriptor<V> field) {
+        super(graph, control, field.getTypeDescriptor());
         this.objRef = objRef;
         this.field = field;
         objRef.addSuccessor(this);
@@ -28,6 +29,11 @@ public class GetFieldNode<V> extends AbstractNode<V> {
             add( getControl());
             add( objRef);
         }};
+    }
+
+    @Override
+    public String label() {
+        return "<getfield:" + getId() + "> " + this.field;
     }
 
     private final Node<ObjectReference> objRef;

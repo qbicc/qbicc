@@ -10,8 +10,8 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class MockNode<V> extends AbstractNode<V> {
 
-    MockNode(ControlNode<?> control, TypeDescriptor<V> type, V value) {
-        super(control, type);
+    MockNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> type, V value) {
+        super(graph, control, type);
         this.value = value;
     }
 
@@ -23,6 +23,11 @@ public class MockNode<V> extends AbstractNode<V> {
     @Override
     public List<? extends Node<?>> getPredecessors() {
         return null;
+    }
+
+    @Override
+    public String label() {
+        return "<mock:" + getId() + "> " + this.value;
     }
 
     private final V value;

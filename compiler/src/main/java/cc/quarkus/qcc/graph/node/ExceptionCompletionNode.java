@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.CompletionToken;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
@@ -10,8 +11,8 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class ExceptionCompletionNode extends AbstractNode<CompletionToken>  {
 
-    protected ExceptionCompletionNode(CatchControlProjection control, Node<ObjectReference> exception) {
-        super(control, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
+    protected ExceptionCompletionNode(Graph<?> graph, CatchControlProjection control, Node<ObjectReference> exception) {
+        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
         this.exception = exception;
         exception.addSuccessor(this);
     }

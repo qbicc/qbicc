@@ -3,18 +3,19 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ListIterator;
 import java.util.Set;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.build.Frame;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public abstract class AbstractControlNode<V> extends AbstractNode<V> implements ControlNode<V> {
 
-    protected AbstractControlNode(ControlNode<?> control, TypeDescriptor<V> outType) {
-        super(control, outType);
+    protected AbstractControlNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> outType) {
+        super(graph, control, outType);
         this.frame = new Frame(this, control.frame().maxLocals(), control.frame().maxStack());
     }
 
-    public AbstractControlNode(TypeDescriptor<V> outType, int maxLocals, int maxStack) {
-        super(outType);
+    public AbstractControlNode(Graph<?> graph, TypeDescriptor<V> outType, int maxLocals, int maxStack) {
+        super(graph, outType);
         this.frame = new Frame(this, maxLocals, maxStack);
     }
 
@@ -47,4 +48,5 @@ public abstract class AbstractControlNode<V> extends AbstractNode<V> implements 
     }
 
     private Frame frame;
+
 }

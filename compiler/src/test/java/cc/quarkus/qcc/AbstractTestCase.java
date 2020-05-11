@@ -20,5 +20,9 @@ public class AbstractTestCase {
         return this.universe.findClass( thisClassName().replace('.', '/'));
     }
 
+    protected TypeDefinition getTypeDefinition(Class<?> hostClass) {
+        return this.universe.findClass( hostClass.getName().replace('.', '/'));
+    }
+
     protected Universe universe;
 }

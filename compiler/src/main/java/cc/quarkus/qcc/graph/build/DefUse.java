@@ -7,24 +7,31 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
+import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class PhiPlacements {
+public class DefUse {
 
-    public PhiPlacements() {
+    public DefUse() {
 
     }
 
-    public void record(ControlNode<?> src, int index, TypeDescriptor<?> type) {
-        Set<Entry> set = this.indexes.computeIfAbsent(src, k -> new HashSet<>());
+    public void def(ControlNode<?> src, int index, TypeDescriptor<?> type) {
+        Set<Entry> set = this.defs.computeIfAbsent(src, k -> new HashSet<>());
+        set.add(new Entry(index, type));
+    }
+
+    public void use(ControlNode<?> src, int index, TypeDescriptor<?> type) {
+        Set<Entry> set = this.uses.computeIfAbsent(src, k -> new HashSet<>());
         set.add(new Entry(index, type));
     }
 
     public void forEach(BiConsumer<ControlNode<?>, Set<Entry>> fn) {
-        this.indexes.forEach(fn);
+        this.defs.forEach(fn);
     }
 
-    private Map<ControlNode<?>, Set<Entry>> indexes = new HashMap<>();
+    private Map<ControlNode<?>, Set<Entry>> defs = new HashMap<>();
+    private Map<ControlNode<?>, Set<Entry>> uses = new HashMap<>();
 
     static class Entry {
         Entry(int index, TypeDescriptor<?> type) {

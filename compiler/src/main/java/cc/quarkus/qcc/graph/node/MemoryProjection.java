@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Collections;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.MemorySource;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
@@ -10,8 +11,8 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class MemoryProjection extends AbstractNode<MemoryToken> implements Projection {
 
-    protected <T extends ControlNode<? extends MemorySource>> MemoryProjection(T input) {
-        super(input, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
+    protected <T extends ControlNode<? extends MemorySource>> MemoryProjection(Graph<?> graph, T input) {
+        super(graph, input, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
     }
 
     @SuppressWarnings("unchecked")

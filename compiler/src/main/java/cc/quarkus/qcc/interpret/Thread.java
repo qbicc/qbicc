@@ -13,8 +13,10 @@ import cc.quarkus.qcc.graph.node.EndNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.PhiNode;
 import cc.quarkus.qcc.graph.node.RegionNode;
+import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.graph.type.EndToken;
 import cc.quarkus.qcc.graph.type.StartToken;
+import cc.quarkus.qcc.type.Sentinel;
 
 public class Thread implements Context {
 
@@ -51,25 +53,34 @@ public class Thread implements Context {
 
         List<Node<?>> worklist = new ArrayList<>(control.getSuccessors());
 
+        for (Node<?> node : worklist) {
+            //System.err.println( "wl=" + node);
+        }
+
         ControlNode<?> nextControl = null;
 
         while (!worklist.isEmpty()) {
             Deque<Node<?>> ready = worklist.stream().filter(e -> isReady(prevControl, control, e)).collect(Collectors.toCollection(ArrayDeque::new));
+            if (ready.isEmpty()) {
+                throw new RuntimeException("deadlock");
+            }
+
             worklist.removeAll(ready);
 
             while (!ready.isEmpty()) {
                 Node<?> cur = ready.pop();
+                //System.err.println("PREP: " + control + " :: " + cur);
                 Object value = cur.getValue(peekContext());
-                //System.err.println( "EXECUTE: " + control + " :: " + cur + " = " + value);
-                if (value != null) {
-                    if (cur instanceof EndNode) {
-                        this.endToken = (EndToken<?>) value;
-                        return null;
-                    }
-                    set0(cur, value);
-                    if (cur instanceof ControlNode) {
-                        nextControl = (ControlNode<?>) cur;
-                    }
+                //System.err.println(" V=" + value);
+                //System.err.println(" V'=" + value);
+
+                if (cur instanceof EndNode) {
+                    this.endToken = (EndToken<?>) value;
+                    return null;
+                }
+                set0(cur, value);
+                if (cur instanceof ControlNode && value != ControlToken.NO_CONTROL) {
+                    nextControl = (ControlNode<?>) cur;
                 }
             }
         }
@@ -78,6 +89,7 @@ public class Thread implements Context {
 
     protected void hydratePhis(ControlNode<?> discriminator, RegionNode region) {
         region.getSuccessors().stream().filter(e -> e instanceof PhiNode).forEach(phi -> {
+            //System.err.println( "** hydrate: " + phi);
             Node<?> v = ((PhiNode<?>) phi).getValue(discriminator);
             set0(phi, v.getValue(peekContext()));
         });
@@ -92,18 +104,22 @@ public class Thread implements Context {
     }
 
     protected boolean isReady(ControlNode<?> discriminator, ControlNode<?> curControl, Node<?> node) {
+        //System.err.println("isReady? d=" + discriminator + " c=" + curControl + " n=" + node + " pred=" + node.getPredecessors());
         if (node instanceof RegionNode) {
             return isRegionReady(curControl, (RegionNode) node);
         }
         if (node instanceof PhiNode) {
             return isPhiReady(discriminator, (PhiNode<?>) node);
         }
-        Optional<? extends Node<?>> firstMissing = node.getPredecessors().stream().filter(e -> get(e) == null).findFirst();
+        Optional<? extends Node<?>> firstMissing = node.getPredecessors().stream().filter(e -> ! contains(e) ).findFirst();
+        if (firstMissing.isPresent()) {
+            //System.err.println(" missing: " + firstMissing.get() + " controlled " + firstMissing.get().getControl());
+        }
         return firstMissing.isEmpty();
     }
 
     protected boolean isRegionReady(ControlNode<?> discriminator, RegionNode node) {
-        Optional<? extends Node<?>> firstFound = node.getPredecessors().stream().filter(e -> get(e) != null).findFirst();
+        Optional<? extends Node<?>> firstFound = node.getPredecessors().stream().filter(e -> contains(e) ).findFirst();
         if (firstFound.isEmpty()) {
             return false;
         }
@@ -111,7 +127,7 @@ public class Thread implements Context {
     }
 
     protected boolean isPhiReady(ControlNode<?> discriminator, PhiNode<?> node) {
-        return peekContext().get(node.getValue(discriminator)) != null;
+        return peekContext().contains(node.getValue(discriminator));
     }
 
     protected void pushContext() {
@@ -140,6 +156,10 @@ public class Thread implements Context {
     @Override
     public <T> T get(Node<T> node) {
         return peekContext().get(node);
+    }
+
+    public boolean contains(Node<?> node) {
+        return peekContext().contains(node);
     }
 
     @Override

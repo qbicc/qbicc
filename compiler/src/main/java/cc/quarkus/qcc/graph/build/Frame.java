@@ -6,6 +6,7 @@ import java.util.Deque;
 import cc.quarkus.qcc.graph.node.CatchControlProjection;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
+import cc.quarkus.qcc.graph.node.Projection;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.type.CompletionToken;
 import cc.quarkus.qcc.graph.type.IOToken;

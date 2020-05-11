@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import static org.fest.assertions.api.Assertions.*;
 
-public class GetStaticTest extends AbstractTestCase {
+public class GetStaticTest extends AbstractNodeTestCase {
 
     public static final int SomeInt = 42;
 
@@ -20,8 +20,7 @@ public class GetStaticTest extends AbstractTestCase {
         FieldDefinition<Integer> someInt = cls.findField("SomeInt");
 
         assertThat( TypeDescriptor.INT ).isEqualTo(someInt.getTypeDescriptor());
-        RegionNode control = new RegionNode(0,0);
-        GetStaticNode<Integer> node = new GetStaticNode<>(control, someInt);
+        GetStaticNode<Integer> node = new GetStaticNode<>(graph(), control(), someInt);
 
         Integer result = node.getValue(null);
         assertThat(result).isEqualTo(42);

@@ -13,7 +13,7 @@ public class NewTest extends AbstractNodeTestCase {
     public void testNew() {
         TypeDefinition cls = getTypeDefinition();
 
-        NewNode node = new NewNode( control(), cls.getTypeDescriptor());
+        NewNode node = new NewNode( graph(), control(), cls.getTypeDescriptor());
 
         ObjectReference val = node.getValue(context());
 

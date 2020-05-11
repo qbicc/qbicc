@@ -17,11 +17,11 @@ public class InterpretTest {
     public void testStaticMethod() throws IOException {
         Universe universe = new Universe(new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
         TypeDefinition c = universe.findClass("cc/quarkus/qcc/MyClass");
-        MethodDefinition m = c.findMethod("min", "(II)I");
+        MethodDefinition<?> m = c.findMethod("min", "(II)I");
 
         m.writeGraph("target/");
 
-        CallResult result = m.call(42, 88);
+        CallResult<Integer> result = (CallResult<Integer>) m.call(42, 88);
         assertThat(result.getReturnValue()).isEqualTo(42);
     }
 
@@ -30,9 +30,11 @@ public class InterpretTest {
         Universe universe = new Universe(new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
         TypeDefinition c = universe.findClass("cc/quarkus/qcc/MyThrowingClass");
         //MethodDefinition m = c.getMethod("foo", "()I");
-        MethodDefinition m = c.findMethod("foo", "()I");
+        MethodDefinition<?> m = c.findMethod("foo", "()I");
         m.writeGraph("target/");
-        //CallResult result = m.call();
+        CallResult<?> result = m.call();
+        assertThat(result.getReturnValue()).isNull();
+        assertThat(result.getThrowValue()).isNotNull();
         //System.err.println(result);
     }
 }

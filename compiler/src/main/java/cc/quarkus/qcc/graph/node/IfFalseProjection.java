@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Collections;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.graph.type.IfToken;
 import cc.quarkus.qcc.interpret.Context;
@@ -10,8 +11,8 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class IfFalseProjection extends AbstractControlNode<ControlToken> implements Projection {
 
-    protected IfFalseProjection(IfNode in) {
-        super(in, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);
+    protected IfFalseProjection(Graph<?> graph, IfNode in) {
+        super(graph, in, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);
     }
 
     @Override
@@ -33,9 +34,9 @@ public class IfFalseProjection extends AbstractControlNode<ControlToken> impleme
     public ControlToken getValue(Context context) {
         IfToken input = context.get(getControl());
         if ( ! input.getValue() ) {
-            return new ControlToken();
+            return ControlToken.CONTROL;
         }
-        return null;
+        return ControlToken.NO_CONTROL;
     }
 
 }

@@ -5,16 +5,19 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.graph.Graph;
+import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.graph.type.InvokeToken;
+import cc.quarkus.qcc.graph.type.ThrowSource;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.graph.build.CatchMatcher;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class CatchControlProjection extends AbstractControlNode<ObjectReference> implements Projection {
+public class CatchControlProjection extends AbstractControlNode<ControlToken> implements Projection {
 
-    public CatchControlProjection(ThrowControlProjection control, ExceptionProjection exception, CatchMatcher matcher) {
-        super(control, TypeDescriptor.OBJECT);
+    public CatchControlProjection(Graph<?> graph, ThrowControlProjection control, ExceptionProjection exception, CatchMatcher matcher) {
+        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);
         this.exception = exception;
         this.matcher = matcher;
     }
@@ -24,24 +27,17 @@ public class CatchControlProjection extends AbstractControlNode<ObjectReference>
     }
 
     public ExceptionCompletionNode getCompletionOut() {
-        return this.completionOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ExceptionCompletionNode(this, this.exception)));
+        return this.completionOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ExceptionCompletionNode(getGraph(), this, this.exception)));
     }
 
     @Override
-    public ThrowControlProjection getControl() {
-        return (ThrowControlProjection) super.getControl();
-    }
-
-    @Override
-    public ObjectReference getValue(Context context) {
-        InvokeToken input = context.get(getControl());
-        if ( input.getThrowValue() == null ) {
-            return null;
+    public ControlToken getValue(Context context) {
+        //ObjectReference input = context.get(this.exception);
+        ObjectReference input = this.exception.getValue(context);
+        if ( this.matcher.matches(input.getTypeDefinition())) {
+            return ControlToken.CONTROL;
         }
-        if ( ! this.matcher.matches(input.getThrowValue().getTypeDefinition())) {
-            return null;
-        }
-        return input.getThrowValue();
+        return ControlToken.NO_CONTROL;
     }
 
     @Override

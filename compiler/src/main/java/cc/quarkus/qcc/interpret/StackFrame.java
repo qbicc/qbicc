@@ -27,6 +27,10 @@ public class StackFrame implements Context {
         return this.heap;
     }
 
+    public boolean contains(Node<?> node) {
+        return this.bindings.containsKey(node);
+    }
+
     private final Heap heap;
 
     private Map<Node<?>, Object> bindings = new HashMap<>();

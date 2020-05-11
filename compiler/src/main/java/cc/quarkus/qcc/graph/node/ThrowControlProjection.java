@@ -3,29 +3,30 @@ package cc.quarkus.qcc.graph.node;
 import java.util.Collections;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.ControlToken;
-import cc.quarkus.qcc.graph.type.InvokeToken;
+import cc.quarkus.qcc.graph.type.ThrowSource;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class ThrowControlProjection extends AbstractControlNode<InvokeToken> implements Projection {
+public class ThrowControlProjection extends AbstractControlNode<ControlToken> implements Projection {
 
-    protected ThrowControlProjection(InvokeNode<?> control) {
-        super(control, TypeDescriptor.EphemeralTypeDescriptor.INVOKE_TOKEN);
+    protected ThrowControlProjection(Graph<?> graph, ControlNode<?> control) {
+        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);
+    }
+
+    @SuppressWarnings("unchecked")
+    public ControlNode<? extends ThrowSource> getThrowSource() {
+        return (ControlNode<? extends ThrowSource>) getControl();
     }
 
     @Override
-    public InvokeNode<?> getControl() {
-        return (InvokeNode<?>) super.getControl();
-    }
-
-    @Override
-    public InvokeToken getValue(Context context) {
-        InvokeToken input = context.get(getControl());
+    public ControlToken getValue(Context context) {
+        ThrowSource input = getThrowSource().getValue(context);
         if ( input.getThrowValue() != null ) {
-            return input;
+            return ControlToken.CONTROL;
         }
-        return null;
+        return ControlToken.NO_CONTROL;
     }
 
     @Override

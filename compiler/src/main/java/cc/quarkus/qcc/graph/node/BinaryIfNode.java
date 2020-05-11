@@ -3,13 +3,14 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.IfToken;
 import cc.quarkus.qcc.interpret.Context;
 
 public class BinaryIfNode<V> extends IfNode {
 
-    public BinaryIfNode(ControlNode<?> control, CompareOp op) {
-        super(control, op);
+    public BinaryIfNode(Graph<?> graph, ControlNode<?> control, CompareOp op) {
+        super(graph, control, op);
     }
 
     public void setLHS(Node<V> lhs) {

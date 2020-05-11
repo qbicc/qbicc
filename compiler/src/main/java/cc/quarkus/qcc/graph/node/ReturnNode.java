@@ -3,13 +3,14 @@ package cc.quarkus.qcc.graph.node;
 import java.util.ArrayList;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.CompletionToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class ReturnNode<V> extends AbstractNode<CompletionToken> {
-    public ReturnNode(ControlNode<?> control, Node<V> input) {
-        super(control, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
+    public ReturnNode(Graph<?> graph, ControlNode<?> control, Node<V> input) {
+        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
         this.input = input;
         input.addSuccessor(this);
     }

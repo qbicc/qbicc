@@ -7,6 +7,7 @@ import cc.quarkus.qcc.finders.ClassLoaderClassFinder;
 import cc.quarkus.qcc.graph.DotWriter;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.build.GraphBuilder;
+import cc.quarkus.qcc.type.CallResult;
 import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.Universe;
@@ -26,5 +27,6 @@ public class GeneralTest {
         try (DotWriter writer = new DotWriter(Paths.get("target/graph.dot"))) {
             writer.write(graph);
         }
+
     }
 }
