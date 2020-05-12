@@ -27,6 +27,7 @@ import cc.quarkus.qcc.graph.node.GetFieldNode;
 import cc.quarkus.qcc.graph.node.GetStaticNode;
 import cc.quarkus.qcc.graph.node.IfNode;
 import cc.quarkus.qcc.graph.node.InvokeNode;
+import cc.quarkus.qcc.graph.node.NarrowNode;
 import cc.quarkus.qcc.graph.node.NewNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.PutFieldNode;
@@ -36,6 +37,7 @@ import cc.quarkus.qcc.graph.node.StartNode;
 import cc.quarkus.qcc.graph.node.SubNode;
 import cc.quarkus.qcc.graph.node.ThrowNode;
 import cc.quarkus.qcc.graph.node.UnaryIfNode;
+import cc.quarkus.qcc.graph.node.WidenNode;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.type.FieldDescriptor;
@@ -411,8 +413,8 @@ public class GraphBuilder<V> {
             for (DefUse.Entry entry : entries) {
                 for (ControlNode<?> dest : df) {
                     //if (dest == getEndRegion() && (entry.index != SLOT_MEMORY && entry.index != SLOT_IO && entry.index != SLOT_COMPLETION)) {
-                        //// skip
-                        //continue;
+                    //// skip
+                    //continue;
                     //}
                     //System.err.println( "PLACE PHI: " + dest + " for " + entry.index);
                     phis.add(dest.frame().ensurePhi(entry.index, node, entry.type));
@@ -528,8 +530,8 @@ public class GraphBuilder<V> {
 
             List<ControlNode<?>> chain = controlManager().getControlChainForBci(bci);
 
-            if ( chain != null ) {
-                if ( this.reachable.contains(chain.get(0))) {
+            if (chain != null) {
+                if (this.reachable.contains(chain.get(0))) {
                     for (ControlNode<?> each : chain) {
                         each.mergeInputs();
                     }
@@ -657,11 +659,11 @@ public class GraphBuilder<V> {
                         break;
                     }
                     case BIPUSH: {
-                        push(byteConstant(control(), (byte) ((IntInsnNode) instr).operand));
+                        push(intConstant(control(), ((IntInsnNode) instr).operand));
                         break;
                     }
                     case SIPUSH: {
-                        push(shortConstant(control(), (byte) ((IntInsnNode) instr).operand));
+                        push(intConstant(control(), ((IntInsnNode) instr).operand));
                         break;
                     }
                     case LDC: {
@@ -697,16 +699,41 @@ public class GraphBuilder<V> {
                         push(loadObject(((VarInsnNode) instr).var));
                         break;
                     }
-
+                    case I2B: {
+                        push(NarrowNode.i2b(graph(), control(), pop(Integer.class)));
+                        break;
+                    }
+                    case I2C: {
+                        push(NarrowNode.i2c(graph(), control(), pop(Integer.class)));
+                        break;
+                    }
+                    case I2S: {
+                        push(NarrowNode.i2s(graph(), control(), pop(Integer.class)));
+                        break;
+                    }
+                    case I2L: {
+                        push(WidenNode.i2l(graph(), control(), pop(Integer.class)));
+                        break;
+                    }
+                    case L2I: {
+                        push(NarrowNode.l2i(graph(), control(), pop(Long.class)));
+                        break;
+                    }
                     case DUP: {
                         Node<?> val = peek(null);
                         push(val);
                         break;
                     }
-
                     case POP: {
                         pop(null);
                         break;
+                    }
+                    case POP2: {
+                        Node<?> v = pop(null);
+                        if (v.getTypeDescriptor() != TypeDescriptor.LONG && v.getTypeDescriptor() != TypeDescriptor.DOUBLE) {
+                            // only pop 1 if double or long.
+                            pop(null);
+                        }
                     }
 
                     // ----------------------------------------
@@ -929,7 +956,7 @@ public class GraphBuilder<V> {
     }
 
     protected void control(List<ControlNode<?>> chain) {
-        this.control = chain.get(chain.size()-1);
+        this.control = chain.get(chain.size() - 1);
     }
 
     protected void clearControl() {

@@ -9,6 +9,14 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class WidenNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
 
+    public static WidenNode<Integer,Long> i2l(Graph<?> graph, ControlNode<?> control, Node<Integer> node) {
+        return new WidenNode<>(graph, control, node, TypeDescriptor.LONG);
+    }
+
+    public static WidenNode<Byte,Integer> b2i(Graph<?> graph, ControlNode<?> control, Node<Byte> node) {
+        return new WidenNode<>(graph, control, node, TypeDescriptor.INT);
+    }
+
     public WidenNode(Graph<?> graph, ControlNode<?> control, Node<INPUT_V> input, TypeDescriptor<OUTPUT_V> outType) {
         super(graph, control, outType);
         this.input = input;

@@ -40,6 +40,24 @@ public class AbstractNodeTestCase extends AbstractTestCase {
         return node;
     }
 
+    protected MockNode<Integer> set(Integer val) {
+        MockNode<Integer> node = new MockNode<>(graph(), control(), TypeDescriptor.INT, val);
+        context().set(node, val);
+        return node;
+    }
+
+    protected MockNode<Long> set(Long val) {
+        MockNode<Long> node = new MockNode<>(graph(), control(), TypeDescriptor.LONG, val);
+        context().set(node, val);
+        return node;
+    }
+
+    protected MockNode<Byte> set(Byte val) {
+        MockNode<Byte> node = new MockNode<>(graph(), control(), TypeDescriptor.BYTE, val);
+        context().set(node, val);
+        return node;
+    }
+
     protected Universe universe;
 
     private SimpleHeap heap;
