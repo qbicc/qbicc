@@ -8,8 +8,6 @@ public interface ObjectCType {
 
     boolean isConst();
 
-    int getSize();
-
     default boolean isArray() {
         return false;
     }

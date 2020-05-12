@@ -20,7 +20,5 @@ public interface CompoundCType extends ObjectCType {
         String getName();
 
         ObjectCType getType();
-
-        int getOffset();
     }
 }
