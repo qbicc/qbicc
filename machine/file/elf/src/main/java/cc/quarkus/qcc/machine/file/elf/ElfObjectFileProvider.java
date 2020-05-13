@@ -1,9 +1,11 @@
 package cc.quarkus.qcc.machine.file.elf;
 
 import java.io.IOException;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.NoSuchElementException;
 
+import cc.quarkus.qcc.machine.arch.Cpu;
 import cc.quarkus.qcc.machine.arch.ObjectType;
 import cc.quarkus.qcc.machine.file.bin.BinaryBuffer;
 import cc.quarkus.qcc.machine.object.ObjectFile;
@@ -60,6 +62,18 @@ public class ElfObjectFileProvider implements ObjectFileProvider {
 
             public long getSymbolSize(final String name) {
                 return findSymbol(name).getValueSize();
+            }
+
+            public ByteOrder getByteOrder() {
+                return buffer.getByteOrder();
+            }
+
+            public Cpu getCpu() {
+                return elfHeader.getMachine().toCpu();
+            }
+
+            public ObjectType getObjectType() {
+                return ObjectType.ELF;
             }
 
             private ElfSymbolTableEntry findSymbol(final String name) {

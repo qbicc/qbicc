@@ -84,6 +84,11 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-machine-file-macho</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qcc-machine-file-object</artifactId>
                 <version>${project.version}</version>
             </dependency>

@@ -3,6 +3,8 @@ package cc.quarkus.qcc.machine.file.elf;
 import java.nio.ByteOrder;
 import java.util.Objects;
 
+import cc.quarkus.qcc.machine.arch.Cpu;
+
 /**
  *
  */
@@ -262,26 +264,30 @@ public final class Elf {
             return Relocation.Type.unknown(rawType);
         }
 
+        default Cpu toCpu() {
+            return Cpu.UNKNOWN;
+        }
+
         enum Std implements Machine {
-            NONE(0),
-            M32(1),
-            SPARC(2),
-            X86(3),
-            _68K(4),
-            _88K(5),
-            IA_MCU(6),
-            _860(7),
-            MIPS(8),
-            S370(9),
-            MIPS_RS3_LE(0x0A),
-            PARISC(0x0F),
-            VPP500(0x11),
-            SPARC32PLUS(0x12),
-            _960(0x13),
-            PPC(0x14),
-            PPC64(0x15),
-            S390(0x16),
-            ARM(0x28) {
+            NONE(0, Cpu.UNKNOWN),
+            M32(1, Cpu.UNKNOWN),
+            SPARC(2, Cpu.UNKNOWN),
+            X86(3, Cpu.X86),
+            _68K(4, Cpu.UNKNOWN),
+            _88K(5, Cpu.UNKNOWN),
+            IA_MCU(6, Cpu.UNKNOWN),
+            _860(7, Cpu.UNKNOWN),
+            MIPS(8, Cpu.UNKNOWN),
+            S370(9, Cpu.UNKNOWN),
+            MIPS_RS3_LE(0x0A, Cpu.UNKNOWN),
+            PARISC(0x0F, Cpu.UNKNOWN),
+            VPP500(0x11, Cpu.UNKNOWN),
+            SPARC32PLUS(0x12, Cpu.UNKNOWN),
+            _960(0x13, Cpu.UNKNOWN),
+            PPC(0x14, Cpu.PPC32),
+            PPC64(0x15, Cpu.PPC64),
+            S390(0x16, Cpu.UNKNOWN),
+            ARM(0x28, Cpu.ARM) {
                 public long maskFlags(final long original) {
                     return original & 0xffffff;
                 }
@@ -312,26 +318,32 @@ public final class Elf {
                     return (specificValue & 0xff) << 24 | value & 0xffffff;
                 }
             },
-            SUPER_H(0x2A),
-            SPARCV9(0x2B),
-            IA_64(0x32),
-            X86_64(0x3E),
-            OPENRISC(0x5C),
-            AARCH64(0xB7),
-            CUDA(0xBE),
-            RISC_V(0xF3),
+            SUPER_H(0x2A, Cpu.UNKNOWN),
+            SPARCV9(0x2B, Cpu.UNKNOWN),
+            IA_64(0x32, Cpu.UNKNOWN),
+            X86_64(0x3E, Cpu.X86_64),
+            OPENRISC(0x5C, Cpu.UNKNOWN),
+            AARCH64(0xB7, Cpu.AARCH64),
+            CUDA(0xBE, Cpu.UNKNOWN),
+            RISC_V(0xF3, Cpu.UNKNOWN),
             ;
 
             private static final Std[] VALUES = values();
 
             private final int value;
+            private final Cpu cpu;
 
             public static Std forValue(int value) {
                 return binarySearch(value, VALUES);
             }
 
-            Std(final int value) {
+            public Cpu toCpu() {
+                return cpu;
+            }
+
+            Std(final int value, final Cpu cpu) {
                 this.value = value;
+                this.cpu = cpu;
             }
 
             public int getValue() {

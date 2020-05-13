@@ -68,6 +68,8 @@ public class StructProbe {
             assert qualifier == Qualifier.NONE;
             type = plainType(name, UnaryOperator.identity());
         }
+        // guard with sizeof(size_t) in a (hopefully) 64-bit holder
+        decl(plainType("unsigned long long", UnaryOperator.identity()), "size_t_size", sizeof(plainType("size_t", UnaryOperator.identity()))).apply(b);
         b.append('\n');
         decl("overall_size", sizeof(type)).apply(b);
         decl("overall_align", alignof(type)).apply(b);
@@ -94,13 +96,15 @@ public class StructProbe {
         }
         // read back the symbol info
         try (ObjectFile objectFile = objectFileProvider.openObjectFile(path)) {
-            long overallSize = objectFile.getSymbolValueAsLong("overall_size");
-            long overallAlign = objectFile.getSymbolValueAsLong("overall_align");
+            long size_t_size = objectFile.getSymbolValueAsLong("size_t_size");
+            boolean isLong = size_t_size == 8;
+            long overallSize = isLong ? objectFile.getSymbolValueAsLong("overall_size") : objectFile.getSymbolValueAsInt("overall_size");
+            long overallAlign = isLong ? objectFile.getSymbolValueAsLong("overall_align") : objectFile.getSymbolValueAsInt("overall_align");
             Map<String, Result.Info> infos = new HashMap<>();
             for (Map.Entry<String, Class<?>> entry : members.entrySet()) {
                 final String memberName = entry.getKey();
-                final long memberSize = objectFile.getSymbolValueAsLong("sizeof_" + memberName);
-                final long memberOffset = objectFile.getSymbolValueAsLong("offsetof_" + memberName);
+                final long memberSize = isLong ? objectFile.getSymbolValueAsLong("sizeof_" + memberName) : objectFile.getSymbolValueAsInt("sizeof_" + memberName);
+                final long memberOffset = isLong ? objectFile.getSymbolValueAsLong("offsetof_" + memberName) : objectFile.getSymbolValueAsInt("offsetof_" + memberName);
                 final Result.Info info = new Result.Info(memberSize, memberOffset);
                 infos.put(memberName, info);
             }
