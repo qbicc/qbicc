@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.machine.arch;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -27,7 +28,7 @@ public class Cpu extends PlatformComponent {
     public static final Cpu PPC64 = new Cpu("ppc64");
 
     Cpu(final String name, final String... aliases) {
-        super(name);
+        super(name, aliases);
     }
 
     private static final Map<String, Cpu> index = Indexer.index(Cpu.class);
@@ -42,7 +43,7 @@ public class Cpu extends PlatformComponent {
     }
 
     public static Cpu forName(String name) {
-        return index.getOrDefault(name, UNKNOWN);
+        return index.getOrDefault(name.toLowerCase(Locale.ROOT), UNKNOWN);
     }
 
     public static Set<String> getNames() {

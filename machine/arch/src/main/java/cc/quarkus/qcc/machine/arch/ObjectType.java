@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.machine.arch;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,7 +25,7 @@ public final class ObjectType extends PlatformComponent {
     private static final Map<String, ObjectType> index = Indexer.index(ObjectType.class);
 
     public static ObjectType forName(String name) {
-        return index.getOrDefault(name, UNKNOWN);
+        return index.getOrDefault(name.toLowerCase(Locale.ROOT), UNKNOWN);
     }
 
     public static Set<String> getNames() {
