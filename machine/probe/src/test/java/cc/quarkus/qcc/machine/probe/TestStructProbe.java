@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Iterator;
 
 import cc.quarkus.qcc.machine.arch.Platform;
+import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import org.junit.jupiter.api.Test;
 
 import cc.quarkus.qcc.context.Context;
@@ -25,6 +26,7 @@ public class TestStructProbe {
     public void testAProbe() throws Exception {
         final Context dc = new Context(false);
         final StructProbe probe = new StructProbe(StructProbe.Qualifier.STRUCT, "iovec");
+        final ObjectFileProvider objectFileProvider = ObjectFileProvider.findProvider(Platform.HOST_PLATFORM.getObjectType(), getClass().getClassLoader()).orElseThrow();
         probe.addMember("iov_base", Object.class);
         probe.addMember("iov_len", long.class);
         probe.define("_DEFAULT_SOURCE");
@@ -36,8 +38,7 @@ public class TestStructProbe {
             final Iterator<GccCompiler> iterator = tools.iterator();
             assertTrue(iterator.hasNext());
             final GccCompiler gccCompiler = iterator.next();
-            assertFalse(iterator.hasNext());
-            final StructProbe.Result res = probe.runProbe(gccCompiler);
+            final StructProbe.Result res = probe.runProbe(gccCompiler, objectFileProvider);
             Context.dump(System.out);
             return res;
         });

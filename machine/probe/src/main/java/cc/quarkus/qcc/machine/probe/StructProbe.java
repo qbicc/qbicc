@@ -10,17 +10,11 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.function.UnaryOperator;
 
-import cc.quarkus.qcc.context.Context;
-import cc.quarkus.qcc.machine.arch.Platform;
+import cc.quarkus.qcc.machine.object.ObjectFile;
+import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.tool.CCompiler;
 import cc.quarkus.qcc.machine.tool.CompilationFailureException;
-import cc.quarkus.qcc.machine.tool.CompilationResult;
 import cc.quarkus.qcc.machine.tool.CompilerInvokerBuilder;
-import cc.quarkus.qcc.machine.file.bin.BinaryBuffer;
-import cc.quarkus.qcc.machine.file.elf.Elf;
-import cc.quarkus.qcc.machine.file.elf.ElfHeader;
-import cc.quarkus.qcc.machine.file.elf.ElfSectionHeaderEntry;
-import cc.quarkus.qcc.machine.file.elf.ElfSymbolTableEntry;
 import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
 import cc.quarkus.qcc.machine.tool.process.InputSource;
 import cc.quarkus.qcc.machine.tool.process.OutputDestination;
@@ -55,7 +49,7 @@ public class StructProbe {
         preproc.add("#define " + sym);
     }
 
-    public Result runProbe(CCompiler compiler) throws IOException {
+    public Result runProbe(CCompiler compiler, ObjectFileProvider objectFileProvider) throws IOException {
         final CompilerInvokerBuilder ib = compiler.invocationBuilder();
         StringBuilder b = new StringBuilder();
         // todo: gnu-specific
@@ -89,8 +83,7 @@ public class StructProbe {
                 System.out.println(level + ": " + file + ":" + line + " -> " + message);
             }
         });
-        // TODO: use the current target platform
-        final Path path = Files.createTempFile("qcc-probe-", Platform.HOST_PLATFORM.getObjectType().objectSuffix());
+        final Path path = Files.createTempFile("qcc-probe-", objectFileProvider.getObjectType().objectSuffix());
         ib.setOutputPath(path);
         OutputDestination od = ib.build();
         try {
@@ -100,40 +93,18 @@ public class StructProbe {
             return null;
         }
         // read back the symbol info
-        try (BinaryBuffer objFile = BinaryBuffer.openRead(path)) {
-            final ElfHeader elfHeader = ElfHeader.forBuffer(objFile);
-            long overallSize = getSymbolValueAsLong(elfHeader, "overall_size");
-            long overallAlign = getSymbolValueAsLong(elfHeader, "overall_align");
+        try (ObjectFile objectFile = objectFileProvider.openObjectFile(path)) {
+            long overallSize = objectFile.getSymbolValueAsLong("overall_size");
+            long overallAlign = objectFile.getSymbolValueAsLong("overall_align");
             Map<String, Result.Info> infos = new HashMap<>();
             for (Map.Entry<String, Class<?>> entry : members.entrySet()) {
                 final String memberName = entry.getKey();
-                final long memberSize = getSymbolValueAsLong(elfHeader, "sizeof_" + memberName);
-                final long memberOffset = getSymbolValueAsLong(elfHeader, "offsetof_" + memberName);
+                final long memberSize = objectFile.getSymbolValueAsLong("sizeof_" + memberName);
+                final long memberOffset = objectFile.getSymbolValueAsLong("offsetof_" + memberName);
                 final Result.Info info = new Result.Info(memberSize, memberOffset);
                 infos.put(memberName, info);
             }
             return new Result(overallSize, overallAlign, infos);
-        }
-    }
-
-    private long getSymbolValueAsLong(final ElfHeader elfHeader, final String sym) {
-        final ElfSymbolTableEntry symbol = elfHeader.findSymbol(sym);
-        if (symbol == null) {
-            throw new NoSuchElementException("Symbol \"" + sym + "\" not found in object file");
-        }
-        final long size = symbol.getValueSize();
-        final int linkedSection = symbol.getLinkedSectionIndex();
-        final ElfSectionHeaderEntry codeSection = elfHeader.getSectionHeaderTableEntry(linkedSection);
-        if (codeSection.getType() == Elf.Section.Type.Std.NO_BITS) {
-            // bss
-            return 0;
-        }
-        if (size == 8) {
-            return elfHeader.getBackingBuffer().getLong(codeSection.getOffset() + symbol.getValue());
-        } else if (size == 4) {
-            return elfHeader.getBackingBuffer().getIntUnsigned(codeSection.getOffset() + symbol.getValue());
-        } else {
-            throw new IllegalArgumentException("Unexpected size " + size);
         }
     }
 
