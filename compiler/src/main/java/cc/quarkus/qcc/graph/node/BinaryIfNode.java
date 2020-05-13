@@ -6,8 +6,9 @@ import java.util.List;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.IfToken;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.QType;
 
-public class BinaryIfNode<V> extends IfNode {
+public class BinaryIfNode<V extends QType> extends IfNode {
 
     public BinaryIfNode(Graph<?> graph, ControlNode<?> control, CompareOp op) {
         super(graph, control, op);

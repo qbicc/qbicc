@@ -1,7 +1,10 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.descriptor;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.universe.Universe;
 
 public class MethodDescriptorParser extends TypeDescriptorParser {
 

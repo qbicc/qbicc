@@ -5,10 +5,11 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.FieldDefinition;
-import cc.quarkus.qcc.type.TypeDefinition;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.definition.FieldDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
 
-public class GetStaticNode<V> extends AbstractNode<V> {
+public class GetStaticNode<V extends QType> extends AbstractNode<V> {
 
     public GetStaticNode(Graph<?> graph, ControlNode<?> control, FieldDefinition<V> field) {
         super(graph, control, field.getTypeDescriptor());

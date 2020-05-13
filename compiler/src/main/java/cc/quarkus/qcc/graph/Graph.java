@@ -10,9 +10,10 @@ import cc.quarkus.qcc.graph.node.EndNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.node.StartNode;
-import cc.quarkus.qcc.type.MethodDefinition;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.definition.MethodDefinition;
 
-public class Graph<V> {
+public class Graph<V extends QType> {
 
     public Graph(MethodDefinition<V> method) {
         this.method = method;

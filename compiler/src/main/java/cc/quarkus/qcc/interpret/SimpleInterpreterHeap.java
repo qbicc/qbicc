@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.List;
 
 import cc.quarkus.qcc.type.ObjectReference;
-import cc.quarkus.qcc.type.TypeDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
 
 public class SimpleInterpreterHeap implements InterpreterHeap {
 

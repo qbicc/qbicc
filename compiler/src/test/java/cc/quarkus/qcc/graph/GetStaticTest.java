@@ -1,11 +1,10 @@
 package cc.quarkus.qcc.graph;
 
-import cc.quarkus.qcc.AbstractTestCase;
 import cc.quarkus.qcc.graph.node.GetStaticNode;
-import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.type.FieldDefinition;
-import cc.quarkus.qcc.type.TypeDefinition;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QInt32;
+import cc.quarkus.qcc.type.definition.FieldDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import org.junit.Test;
 
 import static org.fest.assertions.api.Assertions.*;
@@ -17,12 +16,12 @@ public class GetStaticTest extends AbstractNodeTestCase {
     @Test
     public void testGetStatic() {
         TypeDefinition cls = getTypeDefinition();
-        FieldDefinition<Integer> someInt = cls.findField("SomeInt");
+        FieldDefinition<QInt32> someInt = cls.findField("SomeInt");
 
-        assertThat( TypeDescriptor.INT ).isEqualTo(someInt.getTypeDescriptor());
-        GetStaticNode<Integer> node = new GetStaticNode<>(graph(), control(), someInt);
+        assertThat( TypeDescriptor.INT32).isEqualTo(someInt.getTypeDescriptor());
+        GetStaticNode<QInt32> node = new GetStaticNode<>(graph(), control(), someInt);
 
-        Integer result = node.getValue(null);
-        assertThat(result).isEqualTo(42);
+        QInt32 result = node.getValue(null);
+        assertThat(result.value()).isEqualTo(42);
     }
 }

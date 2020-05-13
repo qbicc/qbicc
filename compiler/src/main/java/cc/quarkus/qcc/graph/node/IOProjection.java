@@ -7,12 +7,12 @@ import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.IOSource;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
 
 public class IOProjection extends AbstractNode<IOToken> implements Projection {
 
     public <T extends ControlNode<? extends IOSource>> IOProjection(Graph<?> graph, T control) {
-        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.IO_TOKEN);
+        super(graph, control, EphemeralTypeDescriptor.IO_TOKEN);
     }
 
     @SuppressWarnings("unchecked")

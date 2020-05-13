@@ -9,12 +9,12 @@ import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.ThrowToken;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
 
 public class ThrowNode extends AbstractControlNode<ThrowToken> {
 
     public ThrowNode(Graph<?> graph, ControlNode<?> control) {
-        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.THROW_TOKEN);
+        super(graph, control, EphemeralTypeDescriptor.THROW_TOKEN);
     }
 
     @Override

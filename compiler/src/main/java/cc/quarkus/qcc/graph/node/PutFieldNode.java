@@ -7,14 +7,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.FieldDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
 import cc.quarkus.qcc.type.ObjectReference;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
 
-public class PutFieldNode<V> extends AbstractNode<MemoryToken> {
+public class PutFieldNode<V extends QType> extends AbstractNode<MemoryToken> {
 
     public PutFieldNode(Graph<?> graph, ControlNode<?> control, Node<ObjectReference> objRef, Node<V> val, FieldDescriptor<V> field, Node<MemoryToken> memory) {
-        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
+        super(graph, control, EphemeralTypeDescriptor.MEMORY_TOKEN);
         this.objRef = objRef;
         this.val = val;
         this.field = field;

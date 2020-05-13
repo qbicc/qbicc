@@ -7,12 +7,12 @@ import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.MemorySource;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
 
 public class MemoryProjection extends AbstractNode<MemoryToken> implements Projection {
 
     public <T extends ControlNode<? extends MemorySource>> MemoryProjection(Graph<?> graph, T input) {
-        super(graph, input, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
+        super(graph, input, EphemeralTypeDescriptor.MEMORY_TOKEN);
     }
 
     @SuppressWarnings("unchecked")

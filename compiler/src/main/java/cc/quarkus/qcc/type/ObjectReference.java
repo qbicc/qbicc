@@ -3,7 +3,12 @@ package cc.quarkus.qcc.type;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ObjectReference {
+import cc.quarkus.qcc.type.definition.FieldDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+
+public class ObjectReference implements QType {
 
     public ObjectReference(TypeDefinition typeDefinition) {
         this.typeDefinition = typeDefinition;
@@ -17,27 +22,27 @@ public class ObjectReference {
         return TypeDescriptor.of(getTypeDefinition());
     }
 
-    public <V> V getField(FieldDescriptor<V> field) {
+    public <V extends QType> V getField(FieldDescriptor<V> field) {
         return field.get(this);
     }
 
-    public <V> void putField(FieldDescriptor<V> field, V val) {
+    public <V extends QType> void putField(FieldDescriptor<V> field, V val) {
         field.put(this, val);
     }
 
     @SuppressWarnings("unchecked")
-    <V> V getFieldValue(FieldDefinition<V> field) {
+    public <V extends QType> V getFieldValue(FieldDefinition<V> field) {
         Object v = this.fields.get(field);
-        if ( v == Sentinel.Null.NULL ) {
+        if ( v == QNull.NULL ) {
             return null;
         }
         return (V) v;
     }
 
-    <V> void setFieldValue(FieldDefinition<V> field, V val) {
+    public <V extends QType> void setFieldValue(FieldDefinition<V> field, V val) {
         //System.err.println( "setFieldValue: " +field + " = " + val);
         if ( val == null ) {
-            this.fields.put(field, Sentinel.Null.NULL);
+            this.fields.put(field, QNull.NULL);
         } else {
             this.fields.put(field, val);
         }

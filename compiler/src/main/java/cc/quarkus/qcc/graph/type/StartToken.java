@@ -1,6 +1,8 @@
 package cc.quarkus.qcc.graph.type;
 
-public class StartToken implements IOSource, MemorySource {
+import cc.quarkus.qcc.type.QType;
+
+public class StartToken implements QType, IOSource, MemorySource {
 
     public StartToken(Object...arguments) {
         this.arguments = arguments;

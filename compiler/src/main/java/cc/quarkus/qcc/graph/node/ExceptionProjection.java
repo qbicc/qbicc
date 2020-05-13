@@ -7,7 +7,7 @@ import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.ThrowSource;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 public class ExceptionProjection extends AbstractNode<ObjectReference> implements Projection {
 

@@ -13,15 +13,17 @@ import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.graph.type.MemoryProvider;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.CallResult;
-import cc.quarkus.qcc.type.MethodDefinition;
-import cc.quarkus.qcc.type.MethodDescriptor;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.interpret.CallResult;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.definition.MethodDefinition;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public class InvokeNode<V> extends AbstractControlNode<InvokeToken> implements IOProvider, MemoryProvider {
+public class InvokeNode<V extends QType> extends AbstractControlNode<InvokeToken> implements IOProvider, MemoryProvider {
 
     public InvokeNode(Graph<?> graph, ControlNode<?> control, MethodDescriptor<V> methodDescriptor) {
-        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.INVOKE_TOKEN);
+        super(graph, control, EphemeralTypeDescriptor.INVOKE_TOKEN);
         this.methodDescriptor = methodDescriptor;
     }
 
@@ -32,7 +34,7 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> implements I
     }
 
     public List<Class<?>> getParamTypes() {
-        return this.methodDescriptor.getParamTypes().stream().map(TypeDescriptor::valueType).collect(Collectors.toList());
+        return this.methodDescriptor.getParamTypes().stream().map(TypeDescriptor::type).collect(Collectors.toList());
     }
 
     public void addArgument(Node<?> node) {

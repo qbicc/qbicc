@@ -1,9 +1,13 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.definition;
 
 import java.util.List;
 import java.util.Set;
 
 import cc.quarkus.qcc.interpret.InterpreterThread;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 public class UnresolvableClassDefinition implements TypeDefinition {
 
@@ -21,27 +25,27 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     }
 
     @Override
-    public <V> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
+    public <V extends QType> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
         return throwUnresolved();
     }
 
     @Override
-    public <V> FieldDefinition<V> findField(String name) {
+    public <V extends QType> FieldDefinition<V> findField(String name) {
         return throwUnresolved();
     }
 
     @Override
-    public <V> V getStatic(FieldDefinition<V> field) {
+    public <V extends QType> V getStatic(FieldDefinition<V> field) {
         return throwUnresolved();
     }
 
     @Override
-    public <V> V getField(FieldDefinition<V> field, ObjectReference objRef) {
+    public <V extends QType> V getField(FieldDefinition<V> field, ObjectReference objRef) {
         return throwUnresolved();
     }
 
     @Override
-    public <V> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
+    public <V extends QType> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
         throwUnresolved();
     }
 

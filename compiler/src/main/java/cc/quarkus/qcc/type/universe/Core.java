@@ -1,6 +1,9 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.universe;
 
 import java.util.concurrent.atomic.AtomicReference;
+
+import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.universe.Universe;
 
 public class Core {
 

@@ -5,24 +5,30 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QChar;
+import cc.quarkus.qcc.type.QInt16;
+import cc.quarkus.qcc.type.QInt32;
+import cc.quarkus.qcc.type.QInt64;
+import cc.quarkus.qcc.type.QInt8;
+import cc.quarkus.qcc.type.QIntegral;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public class NarrowNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
+public class NarrowNode<INPUT_V extends QIntegral, OUTPUT_V extends QIntegral> extends AbstractNode<OUTPUT_V> {
 
-    public static NarrowNode<Integer,Byte> i2b(Graph<?> graph, ControlNode<?> control, Node<Integer> node) {
-        return new NarrowNode<>(graph, control, node, TypeDescriptor.BYTE);
+    public static NarrowNode<QInt32, QInt8> i2b(Graph<?> graph, ControlNode<?> control, Node<QInt32> node) {
+        return new NarrowNode<>(graph, control, node, TypeDescriptor.INT8);
     }
 
-    public static NarrowNode<Integer,Character> i2c(Graph<?> graph, ControlNode<?> control, Node<Integer> node) {
+    public static NarrowNode<QInt32, QChar> i2c(Graph<?> graph, ControlNode<?> control, Node<QInt32> node) {
         return new NarrowNode<>(graph, control, node, TypeDescriptor.CHAR);
     }
 
-    public static NarrowNode<Integer,Short> i2s(Graph<?> graph, ControlNode<?> control, Node<Integer> node) {
-        return new NarrowNode<>(graph, control, node, TypeDescriptor.SHORT);
+    public static NarrowNode<QInt32, QInt16> i2s(Graph<?> graph, ControlNode<?> control, Node<QInt32> node) {
+        return new NarrowNode<>(graph, control, node, TypeDescriptor.INT16);
     }
 
-    public static NarrowNode<Long,Integer> l2i(Graph<?> graph, ControlNode<?> control, Node<Long> node) {
-        return new NarrowNode<>(graph, control, node, TypeDescriptor.INT);
+    public static NarrowNode<QInt64,QInt32> l2i(Graph<?> graph, ControlNode<?> control, Node<QInt64> node) {
+        return new NarrowNode<>(graph, control, node, TypeDescriptor.INT32);
     }
 
     public NarrowNode(Graph<?> graph, ControlNode<?> control, Node<INPUT_V> input, TypeDescriptor<OUTPUT_V> outType) {
@@ -35,17 +41,17 @@ public class NarrowNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
     @Override
     public OUTPUT_V getValue(Context context) {
         INPUT_V src = context.get(this.input);
-        if ( getTypeDescriptor() == TypeDescriptor.INT ) {
-            return (OUTPUT_V) Integer.valueOf(((Number)src).intValue());
+        if ( getTypeDescriptor() == TypeDescriptor.INT32) {
+            return (OUTPUT_V) src.asInt32();
         }
-        if ( getTypeDescriptor() == TypeDescriptor.SHORT ) {
-            return (OUTPUT_V) Short.valueOf(((Number)src).shortValue());
+        if ( getTypeDescriptor() == TypeDescriptor.INT16) {
+            return (OUTPUT_V) src.asInt16();
         }
-        if ( getTypeDescriptor() == TypeDescriptor.BYTE ) {
-            return (OUTPUT_V) Byte.valueOf(((Number)src).byteValue());
+        if ( getTypeDescriptor() == TypeDescriptor.INT8) {
+            return (OUTPUT_V) src.asInt8();
         }
         if ( getTypeDescriptor() == TypeDescriptor.CHAR ) {
-            return (OUTPUT_V) Character.valueOf((char) ((Number)src).shortValue());
+            return (OUTPUT_V) src.asChar();
         }
         throw new RuntimeException( "Unable to narrow");
     }

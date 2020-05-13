@@ -1,6 +1,11 @@
 package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.graph.node.NarrowNode;
+import cc.quarkus.qcc.type.QChar;
+import cc.quarkus.qcc.type.QInt16;
+import cc.quarkus.qcc.type.QInt32;
+import cc.quarkus.qcc.type.QInt64;
+import cc.quarkus.qcc.type.QInt8;
 import org.junit.Test;
 
 import static org.fest.assertions.api.Assertions.*;
@@ -9,52 +14,52 @@ public class NarrowTest extends AbstractNodeTestCase {
 
     @Test
     public void testi2b() {
-        MockNode<Integer> in = set(42);
-        NarrowNode<Integer, Byte> node = NarrowNode.i2b(graph(), control(), in);
+        MockNode<QInt32> in = set(42);
+        NarrowNode<QInt32, QInt8> node = NarrowNode.i2b(graph(), control(), in);
 
-        Byte result = node.getValue(context());
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualTo((byte) 42);
+        QInt8 result = node.getValue(context());
+        assertThat(result.value()).isNotNull();
+        assertThat(result.value()).isEqualTo((byte) 42);
     }
 
     @Test
     public void testi2c() {
-        MockNode<Integer> in = set(42);
-        NarrowNode<Integer, Character> node = NarrowNode.i2c(graph(), control(), in);
+        MockNode<QInt32> in = set(42);
+        NarrowNode<QInt32, QChar> node = NarrowNode.i2c(graph(), control(), in);
 
-        Character result = node.getValue(context());
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualTo('*');
+        QChar result = node.getValue(context());
+        assertThat(result.value()).isNotNull();
+        assertThat(result.value()).isEqualTo('*');
     }
 
     @Test
     public void testi2s() {
-        MockNode<Integer> in = set(42);
-        NarrowNode<Integer, Short> node = NarrowNode.i2s(graph(), control(), in);
+        MockNode<QInt32> in = set(42);
+        NarrowNode<QInt32, QInt16> node = NarrowNode.i2s(graph(), control(), in);
 
-        Short result = node.getValue(context());
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualTo((short) 42);
+        QInt16 result = node.getValue(context());
+        assertThat(result.value()).isNotNull();
+        assertThat(result.value()).isEqualTo((short) 42);
     }
 
     @Test
     public void testl2i() {
-        MockNode<Long> in = set(42L);
-        NarrowNode<Long, Integer> node = NarrowNode.l2i(graph(), control(), in);
+        MockNode<QInt64> in = set(42L);
+        NarrowNode<QInt64, QInt32> node = NarrowNode.l2i(graph(), control(), in);
 
-        Integer result = node.getValue(context());
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualTo(42);
+        QInt32 result = node.getValue(context());
+        assertThat(result.value()).isNotNull();
+        assertThat(result.value()).isEqualTo(42);
     }
 
     @Test
     public void testl2i_MoreThan32Bits() {
-        MockNode<Long> in = set( 140737488355343L );
-        NarrowNode<Long, Integer> node = NarrowNode.l2i(graph(), control(), in);
+        MockNode<QInt64> in = set( 140737488355343L );
+        NarrowNode<QInt64, QInt32> node = NarrowNode.l2i(graph(), control(), in);
 
-        Integer result = node.getValue(context());
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualTo(15);
+        QInt32 result = node.getValue(context());
+        assertThat(result.value()).isNotNull();
+        assertThat(result.value()).isEqualTo(15);
     }
 }
 

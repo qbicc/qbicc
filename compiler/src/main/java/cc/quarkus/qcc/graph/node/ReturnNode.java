@@ -6,11 +6,12 @@ import java.util.List;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.CompletionToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
 
-public class ReturnNode<V> extends AbstractNode<CompletionToken> {
+public class ReturnNode<V extends QType> extends AbstractNode<CompletionToken> {
     public ReturnNode(Graph<?> graph, ControlNode<?> control, Node<V> input) {
-        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
+        super(graph, control, EphemeralTypeDescriptor.COMPLETION_TOKEN);
         this.input = input;
         input.addSuccessor(this);
     }

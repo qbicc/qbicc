@@ -9,13 +9,15 @@ import cc.quarkus.qcc.graph.type.EndToken;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 @SuppressWarnings("rawtypes")
-public class EndNode<T> extends AbstractNode<EndToken> {
+public class EndNode<T extends QType> extends AbstractNode<EndToken> {
 
     public EndNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<T> returnType) {
-        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.END_TOKEN);
+        super(graph, control, EphemeralTypeDescriptor.END_TOKEN);
     }
 
     @Override

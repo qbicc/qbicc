@@ -9,10 +9,11 @@ import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.PhiNode;
 import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 public class PhiLocal extends SimpleLocal {
-    public PhiLocal(RegionNode control, int index, TypeDescriptor<?> type) {
+    public PhiLocal(RegionNode control, int index, TypeDescriptor<? extends QType> type) {
         super(control, index);
         this.phi = new PhiNode<>(this.control.getGraph(), this.control, type, this);
         this.type = type;
@@ -26,14 +27,14 @@ public class PhiLocal extends SimpleLocal {
         return (RegionNode) this.control;
     }
 
-    public <V> Node<V> load(Class<V> type) {
+    public <V extends QType> Node<V> load(Class<V> type) {
         if (!this.killed) {
             return TypeUtil.checkType(this.phi, type);
         }
         return super.load(type);
     }
 
-    public <V> Node<V> get(Class<V> type) {
+    public <V extends QType> Node<V> get(Class<V> type) {
         return load(type);
     }
 
@@ -56,7 +57,7 @@ public class PhiLocal extends SimpleLocal {
     public void complete(FrameManager frameManager) {
         List<ControlNode<?>> discriminators = getRegion().getInputs();
         for (ControlNode<?> discriminator : discriminators) {
-            Node<?> inbound = frameManager.of(discriminator).get(this.index, this.type.valueType());
+            Node<?> inbound = frameManager.of(discriminator).get(this.index, this.type.type());
             this.phi.addInput(inbound);
             this.values.put(discriminator, inbound);
         }

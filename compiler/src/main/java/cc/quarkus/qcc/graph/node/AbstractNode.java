@@ -2,12 +2,12 @@ package cc.quarkus.qcc.graph.node;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
 
 import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public abstract class AbstractNode<V> implements Node<V> {
+public abstract class AbstractNode<V extends QType> implements Node<V> {
 
     protected AbstractNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> outType) {
         this.graph = graph;
@@ -67,7 +67,7 @@ public abstract class AbstractNode<V> implements Node<V> {
     }
 
     public Class<V> getType() {
-        return this.outType.valueType();
+        return this.outType.type();
     }
 
     public TypeDescriptor<V> getTypeDescriptor() {

@@ -4,8 +4,9 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.EndToken;
+import cc.quarkus.qcc.type.QType;
 
-public class Interpreter<V> {
+public class Interpreter<V extends QType> {
 
     public Interpreter(InterpreterHeap heap, Graph<V> graph) {
         this.heap = heap;

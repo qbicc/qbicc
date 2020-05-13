@@ -6,7 +6,7 @@ import cc.quarkus.qcc.finders.ClassLoaderClassFinder;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.MockMethodDefinition;
 import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.type.Universe;
+import cc.quarkus.qcc.type.universe.Universe;
 import org.junit.Test;
 
 import static org.fest.assertions.api.Assertions.*;

@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Set;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 public class DefUse {
 

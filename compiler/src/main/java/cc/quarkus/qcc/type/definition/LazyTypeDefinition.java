@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.definition;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -7,6 +7,11 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicReference;
 
 import cc.quarkus.qcc.interpret.InterpreterThread;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.universe.Universe;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 public class LazyTypeDefinition implements TypeDefinition {
     public LazyTypeDefinition(Universe universe, String name, boolean resolve) {
@@ -76,27 +81,27 @@ public class LazyTypeDefinition implements TypeDefinition {
     }
 
     @Override
-    public <V> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
+    public <V extends QType> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
         return getDelegate().findMethod(methodDescriptor);
     }
 
     @Override
-    public <V> FieldDefinition<V> findField(String name) {
+    public <V extends QType> FieldDefinition<V> findField(String name) {
         return getDelegate().findField(name);
     }
 
     @Override
-    public <V> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
+    public <V extends QType> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
         getDelegate().putField(field, objRef, val);
     }
 
     @Override
-    public <V> V getStatic(FieldDefinition<V> field) {
+    public <V extends QType> V getStatic(FieldDefinition<V> field) {
         return getDelegate().getStatic(field);
     }
 
     @Override
-    public <V> V getField(FieldDefinition<V> field, ObjectReference objRef) {
+    public <V extends QType> V getField(FieldDefinition<V> field, ObjectReference objRef) {
         return getDelegate().getField(field, objRef);
     }
 

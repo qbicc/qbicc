@@ -5,16 +5,20 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QInt32;
+import cc.quarkus.qcc.type.QInt64;
+import cc.quarkus.qcc.type.QInt8;
+import cc.quarkus.qcc.type.QIntegral;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public class WidenNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
+public class WidenNode<INPUT_V extends QIntegral, OUTPUT_V extends QIntegral> extends AbstractNode<OUTPUT_V> {
 
-    public static WidenNode<Integer,Long> i2l(Graph<?> graph, ControlNode<?> control, Node<Integer> node) {
-        return new WidenNode<>(graph, control, node, TypeDescriptor.LONG);
+    public static WidenNode<QInt32, QInt64> i2l(Graph<?> graph, ControlNode<?> control, Node<QInt32> node) {
+        return new WidenNode<>(graph, control, node, TypeDescriptor.INT64);
     }
 
-    public static WidenNode<Byte,Integer> b2i(Graph<?> graph, ControlNode<?> control, Node<Byte> node) {
-        return new WidenNode<>(graph, control, node, TypeDescriptor.INT);
+    public static WidenNode<QInt8,QInt32> b2i(Graph<?> graph, ControlNode<?> control, Node<QInt8> node) {
+        return new WidenNode<>(graph, control, node, TypeDescriptor.INT32);
     }
 
     public WidenNode(Graph<?> graph, ControlNode<?> control, Node<INPUT_V> input, TypeDescriptor<OUTPUT_V> outType) {
@@ -27,14 +31,14 @@ public class WidenNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
     @Override
     public OUTPUT_V getValue(Context context) {
         INPUT_V src = context.get(this.input);
-        if ( getTypeDescriptor() == TypeDescriptor.LONG ) {
-            return (OUTPUT_V) Long.valueOf(((Number)src).longValue());
+        if ( getTypeDescriptor() == TypeDescriptor.INT64) {
+            return (OUTPUT_V) src.asInt64();
         }
-        if ( getTypeDescriptor() == TypeDescriptor.INT ) {
-            return (OUTPUT_V) Integer.valueOf(((Number)src).intValue());
+        if ( getTypeDescriptor() == TypeDescriptor.INT32) {
+            return (OUTPUT_V) src.asInt32();
         }
-        if ( getTypeDescriptor() == TypeDescriptor.SHORT ) {
-            return (OUTPUT_V) Short.valueOf(((Number)src).shortValue());
+        if ( getTypeDescriptor() == TypeDescriptor.INT16) {
+            return (OUTPUT_V) src.asInt16();
         }
         throw new RuntimeException( "Unable to widen");
         //return (OUTPUT_V) src;

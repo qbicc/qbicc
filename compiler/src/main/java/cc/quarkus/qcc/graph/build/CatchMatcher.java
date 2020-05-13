@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph.build;
 import java.util.HashSet;
 import java.util.Set;
 
-import cc.quarkus.qcc.type.TypeDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
 
 public class CatchMatcher {
 

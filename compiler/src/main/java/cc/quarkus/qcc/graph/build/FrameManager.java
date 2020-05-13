@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.graph.node.CatchControlProjection;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.IOProjection;
 import cc.quarkus.qcc.graph.node.MemoryProjection;
@@ -15,8 +14,8 @@ import cc.quarkus.qcc.graph.node.StartNode;
 import cc.quarkus.qcc.graph.type.ExceptionProvider;
 import cc.quarkus.qcc.graph.type.IOProvider;
 import cc.quarkus.qcc.graph.type.MemoryProvider;
-import cc.quarkus.qcc.type.MethodDescriptor;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 public class FrameManager {
 

@@ -4,10 +4,10 @@ import java.util.ListIterator;
 import java.util.Set;
 
 import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.graph.build.Frame;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public abstract class AbstractControlNode<V> extends AbstractNode<V> implements ControlNode<V> {
+public abstract class AbstractControlNode<V extends QType> extends AbstractNode<V> implements ControlNode<V> {
 
     protected AbstractControlNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> outType) {
         super(graph, control, outType);
@@ -16,29 +16,4 @@ public abstract class AbstractControlNode<V> extends AbstractNode<V> implements 
     public AbstractControlNode(Graph<?> graph, TypeDescriptor<V> outType) {
         super(graph, outType);
     }
-
-    @Override
-    public void removeUnreachable(Set<ControlNode<?>> reachable) {
-        ListIterator<Node<?>> iter = this.successors.listIterator();
-        while (iter.hasNext()) {
-            Node<?> each = iter.next();
-            if (each instanceof PhiNode) {
-                if (each.getSuccessors().isEmpty()) {
-                    iter.remove();
-                }
-            }
-        }
-    }
-
-   // @Override
-    //public void mergeInputs() {
-     //   frame().mergeInputs();
-      //  for (ControlNode<?> each : getControlSuccessors()) {
-       //     if (each instanceof Projection) {
-        //        each.mergeInputs();
-         //   }
-        //}
-    //}
-
-
 }

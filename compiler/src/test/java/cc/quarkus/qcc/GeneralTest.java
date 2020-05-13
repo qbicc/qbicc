@@ -7,10 +7,9 @@ import cc.quarkus.qcc.finders.ClassLoaderClassFinder;
 import cc.quarkus.qcc.graph.DotWriter;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.build.GraphBuilder;
-import cc.quarkus.qcc.type.CallResult;
-import cc.quarkus.qcc.type.MethodDefinition;
-import cc.quarkus.qcc.type.TypeDefinition;
-import cc.quarkus.qcc.type.Universe;
+import cc.quarkus.qcc.type.definition.MethodDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.universe.Universe;
 import org.junit.Test;
 
 public class GeneralTest {

@@ -6,9 +6,10 @@ import cc.quarkus.qcc.graph.node.AbstractNode;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public class MockNode<V> extends AbstractNode<V> {
+public class MockNode<V extends QType> extends AbstractNode<V> {
 
     MockNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> type, V value) {
         super(graph, control, type);

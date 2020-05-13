@@ -8,13 +8,20 @@ import cc.quarkus.qcc.graph.ParseException;
 import cc.quarkus.qcc.graph.type.IntrinsicObjectReference;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.Sentinel;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QDouble;
+import cc.quarkus.qcc.type.QFloat;
+import cc.quarkus.qcc.type.QInt16;
+import cc.quarkus.qcc.type.QInt32;
+import cc.quarkus.qcc.type.QInt64;
+import cc.quarkus.qcc.type.QInt8;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.QVoid;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public class ConstantNode<V> extends AbstractNode<V> {
+public class ConstantNode<V extends QType> extends AbstractNode<V> {
 
-    public static ConstantNode<Sentinel.Void> voidConstant(ControlNode<?> control) {
-        return new ConstantNode<>(control.getGraph(), control, Sentinel.Void.VOID, TypeDescriptor.VOID);
+    public static ConstantNode<QVoid> voidConstant(ControlNode<?> control) {
+        return new ConstantNode<>(control.getGraph(), control, QVoid.VOID, TypeDescriptor.VOID);
     }
 
     public static ConstantNode<ObjectReference> nullConstant(ControlNode<?> control) {
@@ -27,32 +34,32 @@ public class ConstantNode<V> extends AbstractNode<V> {
         return new ConstantNode<>(control.getGraph(), control, constantVal, constantVal.getTypeDescriptor());
     }
 
-    public static ConstantNode<Integer> intConstant(ControlNode<?> control, int val) {
-        return new ConstantNode<>(control.getGraph(), control, val, TypeDescriptor.INT);
+    public static ConstantNode<QInt32> intConstant(ControlNode<?> control, int val) {
+        return new ConstantNode<>(control.getGraph(), control, QInt32.of(val), TypeDescriptor.INT32);
     }
 
-    public static ConstantNode<Long> longConstant(ControlNode<?> control, long val) {
-        return new ConstantNode<>(control.getGraph(), control, val, TypeDescriptor.LONG);
+    public static ConstantNode<QInt64> longConstant(ControlNode<?> control, long val) {
+        return new ConstantNode<>(control.getGraph(), control, QInt64.of(val), TypeDescriptor.INT64);
     }
 
-    public static ConstantNode<Float> floatConstant(ControlNode<?> control, float val) {
-        return new ConstantNode<>(control.getGraph(), control, val, TypeDescriptor.FLOAT);
+    public static ConstantNode<QFloat> floatConstant(ControlNode<?> control, float val) {
+        return new ConstantNode<>(control.getGraph(), control, QFloat.of(val), TypeDescriptor.FLOAT);
     }
 
-    public static ConstantNode<Double> doubleConstant(ControlNode<?> control, double val) {
-        return new ConstantNode<>(control.getGraph(), control, val, TypeDescriptor.DOUBLE);
+    public static ConstantNode<QDouble> doubleConstant(ControlNode<?> control, double val) {
+        return new ConstantNode<>(control.getGraph(), control, QDouble.of(val), TypeDescriptor.DOUBLE);
     }
 
-    public static ConstantNode<Byte> byteConstant(ControlNode<?> control, byte val) {
-        return new ConstantNode<>(control.getGraph(), control, val, TypeDescriptor.BYTE);
+    public static ConstantNode<QInt8> byteConstant(ControlNode<?> control, byte val) {
+        return new ConstantNode<>(control.getGraph(), control, QInt8.of( val) , TypeDescriptor.INT8);
     }
 
-    public static ConstantNode<Short> shortConstant(ControlNode<?> control, short val) {
-        return new ConstantNode<>(control.getGraph(), control, val, TypeDescriptor.SHORT);
+    public static ConstantNode<QInt16> shortConstant(ControlNode<?> control, short val) {
+        return new ConstantNode<>(control.getGraph(), control, QInt16.of(val), TypeDescriptor.INT16);
     }
 
     @SuppressWarnings("unchecked")
-    public static <V> ConstantNode<V> constant(ControlNode<?> control, V val) {
+    public static <V extends QType> ConstantNode<V> constant(ControlNode<?> control, Object val) {
         if ( val instanceof String ) {
             return (ConstantNode<V>) stringConstant(control, (String) val);
         } else if ( val instanceof Byte) {

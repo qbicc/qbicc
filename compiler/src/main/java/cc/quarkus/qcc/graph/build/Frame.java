@@ -3,15 +3,14 @@ package cc.quarkus.qcc.graph.build;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
-import cc.quarkus.qcc.graph.node.CatchControlProjection;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
-import cc.quarkus.qcc.graph.node.Projection;
 import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.type.CompletionToken;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 import static cc.quarkus.qcc.graph.build.TypeUtil.checkType;
 
@@ -50,17 +49,17 @@ public class Frame {
         return this.locals[index];
     }
 
-    public <T> Node<T> push(Node<T> node) {
+    public <T extends QType> Node<T> push(Node<T> node) {
         this.stack.push(node);
         return node;
     }
 
-    public <T> Node<T> pop(Class<T> type) {
+    public <T extends QType> Node<T> pop(Class<T> type) {
         Node<?> val = this.stack.pop();
         return checkType(val, type);
     }
 
-    public <T> Node<T> peek(Class<T> type) {
+    public <T extends QType> Node<T> peek(Class<T> type) {
         Node<?> val = this.stack.peek();
         return checkType(val, type);
     }
@@ -69,12 +68,12 @@ public class Frame {
         this.stack.clear();
     }
 
-    public <T> Node<T> load(int index, Class<T> type) {
+    public <T extends QType> Node<T> load(int index, Class<T> type) {
         return checkType(this.locals[index].load(type), type);
     }
 
     @SuppressWarnings("unchecked")
-    public <T> Node<T> get(int index, Class<T> type) {
+    public <T extends QType> Node<T> get(int index, Class<T> type) {
         if (index == GraphBuilder.SLOT_COMPLETION) {
             return checkType(this.completion.get(type), type);
         }

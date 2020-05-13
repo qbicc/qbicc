@@ -5,12 +5,12 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.IfToken;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
 
 public abstract class IfNode extends AbstractControlNode<IfToken> {
 
     public IfNode(Graph<?> graph, ControlNode<?> control, CompareOp op) {
-        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.IF_TOKEN);
+        super(graph, control, EphemeralTypeDescriptor.IF_TOKEN);
         this.op = op;
     }
 

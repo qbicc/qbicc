@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.definition;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,6 +8,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.interpret.InterpreterThread;
+import cc.quarkus.qcc.interpret.CallResult;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptorParser;
+import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptorParser;
+import cc.quarkus.qcc.type.universe.Universe;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
@@ -121,7 +129,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <V> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
+    public <V extends QType> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
         return (MethodDefinition<V>) findMethod(methodDescriptor.getName(), methodDescriptor.getDescriptor());
     }
 
@@ -152,7 +160,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <V> FieldDefinition<V> findField(String name) {
+    public <V extends QType> FieldDefinition<V> findField(String name) {
         for (FieldNode field : this.fields) {
             if ( field.name.equals(name)) {
                 return (FieldDefinition<V>) field;
@@ -164,20 +172,19 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <V> V getStatic(FieldDefinition<V> field) {
-        return (V) ((FieldDefinitionNode<V>)field).value;
+    public <V extends QType> V getStatic(FieldDefinition<V> field) {
+        return (V) ((FieldDefinitionNode<V>)field).qvalue;
     }
 
     @Override
-    public <V> V getField(FieldDefinition<V> field, ObjectReference objRef) {
+    public <V extends QType> V getField(FieldDefinition<V> field, ObjectReference objRef) {
         return objRef.getFieldValue(field);
     }
 
     @Override
-    public <V> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
+    public <V extends QType> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
         objRef.setFieldValue(field, val);
     }
-
 
     @Override
     public TypeDescriptor<ObjectReference> getTypeDescriptor() {

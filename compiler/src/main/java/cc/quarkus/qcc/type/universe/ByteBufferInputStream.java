@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.universe;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;

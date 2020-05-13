@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.definition;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,12 +10,17 @@ import cc.quarkus.qcc.graph.DotWriter;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.InterpreterThread;
 import cc.quarkus.qcc.graph.build.GraphBuilder;
+import cc.quarkus.qcc.interpret.CallResult;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.universe.Universe;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
-public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinition<V> {
+public class MethodDefinitionNode<V extends QType> extends MethodNode implements MethodDefinition<V> {
 
     //public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, String descriptor, String signature, String[] exceptions) {
     public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, MethodDescriptor<V> methodDescriptor, String signature, String[] exceptions) {

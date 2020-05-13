@@ -1,6 +1,8 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.descriptor;
 
 import java.util.List;
+
+import cc.quarkus.qcc.type.definition.TypeDefinition;
 
 public class MethodDescriptorImpl implements MethodDescriptor {
 

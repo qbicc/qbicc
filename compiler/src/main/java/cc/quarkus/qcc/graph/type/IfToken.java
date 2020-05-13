@@ -1,6 +1,8 @@
 package cc.quarkus.qcc.graph.type;
 
-public class IfToken {
+import cc.quarkus.qcc.type.QType;
+
+public class IfToken implements QType {
 
     public static final IfToken TRUE = new IfToken(true);
     public static final IfToken FALSE = new IfToken(false);
