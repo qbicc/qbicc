@@ -31,7 +31,6 @@ public class TestSimpleCompile {
         final Iterator<GccCompiler> iterator = tools.iterator();
         assertTrue(iterator.hasNext());
         final GccCompiler gccCompiler = iterator.next();
-        assertFalse(iterator.hasNext());
         final GccInvocationBuilder ib = gccCompiler.invocationBuilder();
         ib.setOutputPath(objectFilePath);
         ib.setMessageHandler(new ToolMessageHandler() {

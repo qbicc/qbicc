@@ -17,5 +17,6 @@
     <modules>
         <module>bin</module>
         <module>elf</module>
+        <module>object</module>
     </modules>
 </project>
