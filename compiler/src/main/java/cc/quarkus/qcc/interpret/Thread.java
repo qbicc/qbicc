@@ -112,14 +112,14 @@ public class Thread implements Context {
             return isPhiReady(discriminator, (PhiNode<?>) node);
         }
         Optional<? extends Node<?>> firstMissing = node.getPredecessors().stream().filter(e -> ! contains(e) ).findFirst();
-        if (firstMissing.isPresent()) {
+        //if (firstMissing.isPresent()) {
             //System.err.println(" missing: " + firstMissing.get() + " controlled " + firstMissing.get().getControl());
-        }
+        //}
         return firstMissing.isEmpty();
     }
 
     protected boolean isRegionReady(ControlNode<?> discriminator, RegionNode node) {
-        Optional<? extends Node<?>> firstFound = node.getPredecessors().stream().filter(e -> contains(e) ).findFirst();
+        Optional<? extends Node<?>> firstFound = node.getPredecessors().stream().filter(this::contains).findFirst();
         if (firstFound.isEmpty()) {
             return false;
         }
@@ -127,7 +127,8 @@ public class Thread implements Context {
     }
 
     protected boolean isPhiReady(ControlNode<?> discriminator, PhiNode<?> node) {
-        return peekContext().contains(node.getValue(discriminator));
+        boolean result = peekContext().contains(node.getValue(discriminator));
+        return result;
     }
 
     protected void pushContext() {

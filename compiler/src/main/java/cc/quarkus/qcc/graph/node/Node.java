@@ -46,8 +46,6 @@ public interface Node<V> {
         return "node " + getId();
     }
 
-    boolean removeUnreachableSuccessors();
-
     Graph<?> getGraph();
 
 }

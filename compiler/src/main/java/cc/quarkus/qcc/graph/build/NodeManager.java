@@ -10,12 +10,8 @@ import java.util.Map;
 import java.util.Set;
 
 import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.graph.node.CatchControlProjection;
 import cc.quarkus.qcc.graph.node.ControlNode;
-import cc.quarkus.qcc.graph.node.Projection;
 import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.graph.type.IOProvider;
-import cc.quarkus.qcc.graph.type.MemoryProvider;
 import cc.quarkus.qcc.type.TypeDefinition;
 
 public class NodeManager {
@@ -36,11 +32,11 @@ public class NodeManager {
 
     public ControlNode<?> getControlForBci(int bci) {
         List<ControlNode<?>> chain = getControlChainForBci(bci);
-        if ( chain == null ) {
+        if (chain == null) {
             return null;
         }
 
-        return chain.get(chain.size()-1);
+        return chain.get(chain.size() - 1);
     }
 
     public List<ControlNode<?>> getControlChainForBci(int bci) {
@@ -94,7 +90,7 @@ public class NodeManager {
     }
 
     public void setControl(List<ControlNode<?>> chain) {
-        setControl(chain.get(chain.size()-1));
+        setControl(chain.get(chain.size() - 1));
     }
 
     public ControlNode<?> currentControl() {
@@ -125,51 +121,12 @@ public class NodeManager {
         List<ControlNode<?>> chain = getControlChainForBci(bci);
 
         if (chain != null) {
-            if (this.reachable.contains(chain.get(0))) {
-                for (ControlNode<?> each : chain) {
-                    mergeInputs(each);
-                }
+            for (ControlNode<?> each : chain) {
+                mergeInputs(each);
             }
             setControl(chain);
         }
 
-    }
-
-    protected void determineReachability() {
-        Deque<ControlNode<?>> worklist = new ArrayDeque<>();
-        worklist.add(graph.getStart());
-
-        while (!worklist.isEmpty()) {
-            ControlNode<?> cur = worklist.pop();
-            if (this.reachable.contains(cur)) {
-                continue;
-            }
-            this.reachable.add(cur);
-            worklist.addAll(cur.getControlSuccessors());
-        }
-    }
-
-    protected boolean isReachable(ControlNode<?> node) {
-        return this.reachable.contains(node);
-    }
-
-    protected void removeUnreachableControls() {
-        Deque<ControlNode<?>> worklist = new ArrayDeque<>();
-        worklist.add(graph.getEndRegion());
-
-        Set<ControlNode<?>> processed = new HashSet<>();
-
-        while (!worklist.isEmpty()) {
-            ControlNode<?> cur = worklist.pop();
-            cur.removeUnreachable(this.reachable);
-            processed.add(cur);
-
-            for (ControlNode<?> each : cur.getControlPredecessors()) {
-                if (this.reachable.contains(each) && !processed.contains(each)) {
-                    worklist.add(each);
-                }
-            }
-        }
     }
 
     protected void mergeInputs(ControlNode<?> control) {
@@ -207,7 +164,4 @@ public class NodeManager {
     private CatchManager catchManager;
 
     private ControlNode<?> currentControl;
-
-    private Set<ControlNode<?>> reachable = new HashSet<>();
-
 }
