@@ -17,6 +17,7 @@
     <modules>
         <module>bin</module>
         <module>elf</module>
+        <module>macho</module>
         <module>object</module>
     </modules>
 </project>
