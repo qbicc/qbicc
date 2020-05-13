@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.machine.arch;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,7 +57,7 @@ public final class ArmCpuArch extends PlatformComponent {
     private static final Map<String, ArmCpuArch> index = Indexer.index(ArmCpuArch.class);
 
     public static ArmCpuArch forName(String name) {
-        return index.get(name);
+        return index.get(name.toLowerCase(Locale.ROOT));
     }
 
     public static Set<String> getNames() {
