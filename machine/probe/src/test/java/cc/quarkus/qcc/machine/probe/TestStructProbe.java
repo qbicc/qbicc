@@ -1,20 +1,16 @@
 package cc.quarkus.qcc.machine.probe;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Iterator;
 
+import cc.quarkus.qcc.context.Context;
+import cc.quarkus.qcc.machine.arch.ObjectType;
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.object.ObjectFileProvider;
-import org.junit.jupiter.api.Test;
-
-import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.machine.tool.ToolProvider;
 import cc.quarkus.qcc.machine.tool.gnu.GccCompiler;
-import org.junit.jupiter.api.condition.EnabledOnOs;
-import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.Test;
 
 /**
  *
@@ -22,11 +18,12 @@ import org.junit.jupiter.api.condition.OS;
 public class TestStructProbe {
 
     @Test
-    @EnabledOnOs(OS.LINUX)
     public void testAProbe() throws Exception {
         final Context dc = new Context(false);
         final StructProbe probe = new StructProbe(StructProbe.Qualifier.STRUCT, "iovec");
-        final ObjectFileProvider objectFileProvider = ObjectFileProvider.findProvider(Platform.HOST_PLATFORM.getObjectType(), getClass().getClassLoader()).orElseThrow();
+        final ObjectType objectType = Platform.HOST_PLATFORM.getObjectType();
+        System.out.println("Local object file type: " + objectType);
+        final ObjectFileProvider objectFileProvider = ObjectFileProvider.findProvider(objectType, getClass().getClassLoader()).orElseThrow();
         probe.addMember("iov_base", Object.class);
         probe.addMember("iov_len", long.class);
         probe.define("_DEFAULT_SOURCE");

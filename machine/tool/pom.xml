@@ -16,6 +16,7 @@
 
     <modules>
         <module>api</module>
+        <module>clang</module>
         <module>gnu</module>
         <module>llvm</module>
     </modules>
