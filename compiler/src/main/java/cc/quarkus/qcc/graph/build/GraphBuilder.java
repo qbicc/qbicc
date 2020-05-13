@@ -2,10 +2,8 @@ package cc.quarkus.qcc.graph.build;
 
 import java.io.FileNotFoundException;
 import java.nio.file.Paths;
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -35,12 +33,12 @@ import cc.quarkus.qcc.graph.node.UnaryIfNode;
 import cc.quarkus.qcc.graph.node.WidenNode;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
-import cc.quarkus.qcc.type.FieldDescriptor;
-import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.FieldDefinition;
+import cc.quarkus.qcc.type.FieldDescriptor;
 import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.MethodDescriptor;
 import cc.quarkus.qcc.type.MethodDescriptorParser;
+import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.Sentinel;
 import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.TypeDescriptor;
@@ -107,6 +105,7 @@ public class GraphBuilder<V> {
         return nodeManager().frameManager();
     }
 
+    @SuppressWarnings("ConstantConditions")
     protected DefUse buildStructure() {
         InsnList instrList = this.method.getInstructions();
         int instrLen = instrList.size();
@@ -195,6 +194,46 @@ public class GraphBuilder<V> {
             } else {
                 nodeManager().initializeControlForStructure(bci);
                 switch (opcode) {
+                    case ASTORE: {
+                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.OBJECT);
+                        break;
+                    }
+                    case ISTORE: {
+                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT);
+                        break;
+                    }
+                    case LSTORE: {
+                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.LONG);
+                        break;
+                    }
+                    case FSTORE: {
+                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.FLOAT);
+                        break;
+                    }
+                    case DSTORE: {
+                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.DOUBLE);
+                        break;
+                    }
+                    case ALOAD: {
+                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.OBJECT);
+                        break;
+                    }
+                    case ILOAD: {
+                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT);
+                        break;
+                    }
+                    case LLOAD: {
+                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.LONG);
+                        break;
+                    }
+                    case FLOAD: {
+                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.FLOAT);
+                        break;
+                    }
+                    case DLOAD: {
+                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.DOUBLE);
+                        break;
+                    }
                     case RETURN:
                     case IRETURN:
                     case DRETURN:
@@ -259,6 +298,10 @@ public class GraphBuilder<V> {
                 }
             }
         }
+
+        defUse.use(getEndRegion(), SLOT_COMPLETION, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
+        defUse.use(getEndRegion(), SLOT_IO, TypeDescriptor.EphemeralTypeDescriptor.IO_TOKEN);
+        defUse.use(getEndRegion(), SLOT_MEMORY, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
 
         return defUse;
     }
@@ -352,11 +395,9 @@ public class GraphBuilder<V> {
             if (n.getPredecessors().size() > 1) {
                 for (ControlNode<?> p : n.getControlPredecessors()) {
                     ControlNode<?> runner = p;
-                    if (nodeManager().isReachable(runner)) {
-                        while (immediateDominators.get(n) != runner) {
-                            dominanceFrontier.get(runner).add(n);
-                            runner = immediateDominators.get(runner);
-                        }
+                    while (immediateDominators.get(n) != runner) {
+                        dominanceFrontier.get(runner).add(n);
+                        runner = immediateDominators.get(runner);
                     }
                 }
             }
@@ -393,7 +434,6 @@ public class GraphBuilder<V> {
             e.printStackTrace();
         }
 
-        nodeManager().determineReachability();
         calculateDominanceFrontiers();
 
         defUse.placePhis();
@@ -406,33 +446,8 @@ public class GraphBuilder<V> {
         getEnd().setMemory(frameOf(getEndRegion()).memory());
         getEnd().setCompletion(frameOf(getEndRegion()).completion());
 
-        tidyGraph();
 
         return this.graph;
-    }
-
-    protected void tidyGraph() {
-        nodeManager().removeUnreachableControls();
-        removeUnreachableDefinitions();
-    }
-
-    protected void removeUnreachableDefinitions() {
-        Deque<Node<?>> worklist = new ArrayDeque<>();
-        Set<Node<?>> processed = new HashSet<>();
-        worklist.add(getStart());
-
-        while (!worklist.isEmpty()) {
-            Node<?> cur = worklist.pop();
-            if (processed.contains(cur)) {
-                continue;
-            }
-            if (cur.removeUnreachableSuccessors()) {
-                worklist.addAll(cur.getPredecessors());
-            } else {
-                processed.add(cur);
-            }
-            worklist.addAll(cur.getSuccessors());
-        }
     }
 
     @SuppressWarnings({"unchecked", "UnusedReturnValue"})
@@ -450,7 +465,7 @@ public class GraphBuilder<V> {
             nodeManager().initializeControlForInstructions(bci);
 
             //if (!this.reachable.contains(currentControl())) {
-             //   continue;
+            //   continue;
             //}
 
             //System.err.println( currentControl() + " :: " + bci + " :: " + Mnemonics.of(opcode));
@@ -493,7 +508,7 @@ public class GraphBuilder<V> {
                 }
             } else {
                 //if (nodeManager().getControlChainForBci(bci) != null) {
-                    //setControl(nodeManager().getControlChainForBci(bci));
+                //setControl(nodeManager().getControlChainForBci(bci));
                 //}
                 switch (opcode) {
                     case NOP: {
@@ -739,7 +754,7 @@ public class GraphBuilder<V> {
                         FieldDefinition<?> field = type.findField(name);
 
                         Node<ObjectReference> objectRef = pop(ObjectReference.class);
-                        push( nodeFactory().getFieldNode(objectRef, field) );
+                        push(nodeFactory().getFieldNode(objectRef, field));
                         break;
                     }
                     case GETSTATIC: {
@@ -747,7 +762,7 @@ public class GraphBuilder<V> {
                         String owner = ((FieldInsnNode) instr).owner;
                         TypeDefinition type = Universe.instance().findClass(owner);
                         FieldDefinition<?> field = type.findField(name);
-                        push( nodeFactory().getStaticNode(field));
+                        push(nodeFactory().getStaticNode(field));
                         break;
                     }
 

@@ -1,13 +1,13 @@
 package cc.quarkus.qcc.graph.build;
 
-import java.util.HashMap;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
-import java.util.function.BiConsumer;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
-import cc.quarkus.qcc.type.TypeDefinition;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class DefUse {
@@ -16,18 +16,24 @@ public class DefUse {
         this.nodeManager = nodeManager;
     }
 
-    public void def(ControlNode<?> src, int index, TypeDescriptor<?> type) {
-        Set<Entry> set = this.defs.computeIfAbsent(src, k -> new HashSet<>());
-        set.add(new Entry(index, type));
+    public Entry def(ControlNode<?> src, int index, TypeDescriptor<?> type) {
+        if (this.defs.stream().anyMatch(e -> (e.src == src) && (e.index == index))) {
+            return null;
+        }
+        Entry entry = new Entry(src, index, type);
+        this.defs.add(entry);
+        return entry;
     }
 
     public void use(ControlNode<?> src, int index, TypeDescriptor<?> type) {
-        Set<Entry> set = this.uses.computeIfAbsent(src, k -> new HashSet<>());
-        set.add(new Entry(index, type));
+        //Set<Entry> set = this.uses.computeIfAbsent(src, k -> new HashSet<>());
+        //set.add(new Entry(index, type));
+        this.uses.add(new Entry(src, index, type));
     }
 
-    public void forEach(BiConsumer<ControlNode<?>, Set<Entry>> fn) {
-        this.defs.forEach(fn);
+    public boolean isAliveAt(ControlNode<?> node, int index) {
+        boolean result = this.uses.stream().anyMatch(e -> e.src == node && e.index == index);
+        return result;
     }
 
     public void completePhis() {
@@ -37,26 +43,25 @@ public class DefUse {
     }
 
     protected void placePhis() {
-        forEach((node, entries) -> {
-            if (!nodeManager().isReachable(node)) {
-                return;
-            }
+        Deque<Entry> worklist = new ArrayDeque<>(this.defs);
 
-            Set<ControlNode<?>> df = nodeManager().dominanceFrontier(node);
+        while (!worklist.isEmpty()) {
 
-            //System.err.println( "DEF: " + node + " >> " + entries);
+            Entry entry = worklist.pop();
 
-            for (DefUse.Entry entry : entries) {
-                for (ControlNode<?> dest : df) {
-                    //if (dest == getEndRegion() && (entry.index != SLOT_MEMORY && entry.index != SLOT_IO && entry.index != SLOT_COMPLETION)) {
-                    //// skip
-                    //continue;
-                    //}
-                    //System.err.println( "PLACE PHI: " + dest + " for " + entry.index);
-                    this.phis.add(frameManager().of(dest).ensurePhi(entry.index, node, entry.type));
+            Set<ControlNode<?>> df = nodeManager().dominanceFrontier(entry.src);
+
+            for (ControlNode<?> dest : df) {
+                if (isAliveAt(dest, entry.index)) {
+                    this.phis.add(frameManager().of(dest).ensurePhi(entry.index, entry.src, entry.type));
+
+                    Entry newEntry = def(dest, entry.index, entry.type);
+                    if (newEntry != null) {
+                        worklist.add(newEntry);
+                    }
                 }
             }
-        });
+        }
     }
 
     protected NodeManager nodeManager() {
@@ -69,13 +74,15 @@ public class DefUse {
 
     private final NodeManager nodeManager;
 
-    private Map<ControlNode<?>, Set<Entry>> defs = new HashMap<>();
-    private Map<ControlNode<?>, Set<Entry>> uses = new HashMap<>();
+    private List<Entry> defs = new ArrayList<>();
+
+    private List<Entry> uses = new ArrayList<>();
 
     private Set<PhiLocal> phis = new HashSet<>();
 
-    static class Entry {
-        Entry(int index, TypeDescriptor<?> type) {
+    public static class Entry {
+        Entry(ControlNode<?> src, int index, TypeDescriptor<?> type) {
+            this.src = src;
             this.index = index;
             this.type = type;
         }
@@ -83,12 +90,16 @@ public class DefUse {
         @Override
         public String toString() {
             return "Entry{" +
-                    "index=" + index +
+                    "src=" + src +
+                    ", index=" + index +
                     ", type=" + type +
                     '}';
         }
 
+        final ControlNode<?> src;
+
         final int index;
+
         final TypeDescriptor<?> type;
     }
 

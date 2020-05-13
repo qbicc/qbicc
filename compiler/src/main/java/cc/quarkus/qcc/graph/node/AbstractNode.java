@@ -91,20 +91,6 @@ public abstract class AbstractNode<V> implements Node<V> {
     }
 
     @Override
-    public boolean removeUnreachableSuccessors() {
-        ListIterator<Node<?>> iter = this.successors.listIterator();
-        boolean changed = false;
-        while ( iter.hasNext() ) {
-            Node<?> each = iter.next();
-            if ( each.getSuccessors().isEmpty() && ! ( each instanceof EndNode ))  {
-                changed = true;
-                iter.remove();
-            }
-        }
-        return changed;
-    }
-
-    @Override
     public String toString() {
         return label();
     }
