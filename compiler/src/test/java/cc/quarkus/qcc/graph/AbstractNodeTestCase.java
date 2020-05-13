@@ -2,7 +2,8 @@ package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.AbstractTestCase;
 import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.interpret.SimpleHeap;
+import cc.quarkus.qcc.interpret.SimpleInterpreterHeap;
+import cc.quarkus.qcc.interpret.InterpreterThread;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.TypeDescriptor;
 import cc.quarkus.qcc.type.Universe;
@@ -14,11 +15,12 @@ public class AbstractNodeTestCase extends AbstractTestCase {
     public void setUpNode() {
         this.method = new MockMethodDefinition<>();
         this.graph = new Graph<>(this.method);
-        this.heap = new SimpleHeap();
-        this.context = new MockContext(this.heap);
+        this.heap = new SimpleInterpreterHeap();
+        this.thread = new InterpreterThread(this.heap);
+        this.context = new MockContext(this.thread);
     }
 
-    protected SimpleHeap heap() {
+    protected SimpleInterpreterHeap heap() {
         return this.heap;
     }
 
@@ -60,11 +62,14 @@ public class AbstractNodeTestCase extends AbstractTestCase {
 
     protected Universe universe;
 
-    private SimpleHeap heap;
+    private InterpreterThread thread;
+
+    private SimpleInterpreterHeap heap;
 
     private MockContext context;
 
     private Graph<?> graph;
 
     private MockMethodDefinition<?> method;
+
 }

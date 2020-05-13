@@ -5,7 +5,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
-import cc.quarkus.qcc.interpret.Heap;
+import cc.quarkus.qcc.interpret.InterpreterThread;
 import cc.quarkus.qcc.type.CallResult;
 import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.TypeDefinition;
@@ -45,12 +45,12 @@ public class MockMethodDefinition<V> implements MethodDefinition<V> {
     }
 
     @Override
-    public CallResult<V> call(Heap heap, Object... arguments) {
+    public CallResult<V> call(InterpreterThread thread, Object... arguments) {
         return null;
     }
 
     @Override
-    public CallResult<V> call(Heap heap, List<Object> arguments) {
+    public CallResult<V> call(InterpreterThread thread, List<Object> arguments) {
         return null;
     }
 

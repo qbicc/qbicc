@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 import cc.quarkus.qcc.graph.Graph;
+import cc.quarkus.qcc.interpret.InterpreterHeap;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.TypeDescriptor;
@@ -16,7 +17,8 @@ public class NewNode extends AbstractNode<ObjectReference> {
 
     @Override
     public ObjectReference getValue(Context context) {
-        ObjectReference objRef = new ObjectReference(((TypeDescriptor.ObjectTypeDescriptor)typeDescriptor).getTypeDefinition());
+        InterpreterHeap heap = context.thread().heap();
+        ObjectReference objRef = heap.newObject(((TypeDescriptor.ObjectTypeDescriptor)typeDescriptor).getTypeDefinition());
         return objRef;
     }
 

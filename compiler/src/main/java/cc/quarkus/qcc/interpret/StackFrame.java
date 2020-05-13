@@ -7,12 +7,17 @@ import cc.quarkus.qcc.graph.node.Node;
 
 public class StackFrame implements Context {
 
-    protected StackFrame(Heap heap) {
-        this.heap = heap;
+    protected StackFrame(InterpreterThread thread) {
+        this.thread = thread;
     }
 
     @Override
     public <T> void set(Node<T> node, T value) {
+        if( value instanceof SimpleInterpreterHeap) {
+            System.err.println( this + " set " + node + " = " + value);
+            new Exception().printStackTrace();
+
+        }
         this.bindings.put(node, value);
     }
 
@@ -23,15 +28,15 @@ public class StackFrame implements Context {
     }
 
     @Override
-    public Heap heap() {
-        return this.heap;
+    public InterpreterThread thread() {
+        return this.thread;
     }
 
     public boolean contains(Node<?> node) {
         return this.bindings.containsKey(node);
     }
 
-    private final Heap heap;
+    private final InterpreterThread thread;
 
     private Map<Node<?>, Object> bindings = new HashMap<>();
 }

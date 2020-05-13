@@ -5,12 +5,12 @@ import java.util.Map;
 
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.interpret.Heap;
+import cc.quarkus.qcc.interpret.InterpreterThread;
 
 public class MockContext implements Context  {
 
-    MockContext(Heap heap) {
-        this.heap = heap;
+    MockContext(InterpreterThread thread) {
+        this.thread = thread;
     }
 
     @Override
@@ -25,10 +25,10 @@ public class MockContext implements Context  {
     }
 
     @Override
-    public Heap heap() {
-        return this.heap;
+    public InterpreterThread thread() {
+        return this.thread;
     }
 
-    private final Heap heap;
+    private final InterpreterThread thread;
     private Map<Node<?>, Object> values = new HashMap<>();
 }

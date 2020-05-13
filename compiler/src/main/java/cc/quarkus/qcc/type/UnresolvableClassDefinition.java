@@ -3,7 +3,7 @@ package cc.quarkus.qcc.type;
 import java.util.List;
 import java.util.Set;
 
-import cc.quarkus.qcc.interpret.Heap;
+import cc.quarkus.qcc.interpret.InterpreterThread;
 
 public class UnresolvableClassDefinition implements TypeDefinition {
 
@@ -51,12 +51,12 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     }
 
     @Override
-    public ObjectReference newInstance(Heap heap, Object... arguments) {
+    public ObjectReference newInstance(InterpreterThread thread, Object... arguments) {
         return throwUnresolved();
     }
 
     @Override
-    public ObjectReference newInstance(Heap heap, List<Object> arguments) {
+    public ObjectReference newInstance(InterpreterThread thread, List<Object> arguments) {
         return throwUnresolved();
     }
 

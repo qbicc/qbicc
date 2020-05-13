@@ -5,5 +5,5 @@ import cc.quarkus.qcc.graph.node.Node;
 public interface Context {
     <V> void set(Node<V> node, V value);
     <V> V get(Node<V> node);
-    Heap heap();
+    InterpreterThread thread();
 }

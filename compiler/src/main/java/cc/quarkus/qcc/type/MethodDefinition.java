@@ -5,8 +5,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-import cc.quarkus.qcc.interpret.Heap;
-import cc.quarkus.qcc.interpret.SimpleHeap;
+import cc.quarkus.qcc.interpret.InterpreterThread;
+import cc.quarkus.qcc.interpret.SimpleInterpreterHeap;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
@@ -25,16 +25,16 @@ public interface MethodDefinition<V> extends MethodDescriptor<V> {
     TypeDefinition getTypeDefinition();
 
     default CallResult<V> call(Object... arguments) {
-        return call(new SimpleHeap(), arguments);
+        return call(new InterpreterThread(new SimpleInterpreterHeap()), arguments);
     }
 
     default CallResult<V> call(List<Object> arguments) {
-        return call(new SimpleHeap(), arguments);
+        return call(new InterpreterThread(new SimpleInterpreterHeap()), arguments);
     }
 
-    CallResult<V> call(Heap heap, Object... arguments);
+    CallResult<V> call(InterpreterThread thread, Object... arguments);
 
-    CallResult<V> call(Heap heap, List<Object> arguments);
+    CallResult<V> call(InterpreterThread thread, List<Object> arguments);
 
     default void writeGraph(String path) throws IOException {
         writeGraph(Paths.get(path));
