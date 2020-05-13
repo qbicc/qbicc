@@ -11,24 +11,13 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class StartNode extends AbstractControlNode<StartToken> {
 
-    public StartNode(Graph<?> graph, MethodDescriptor<?> descriptor, int maxLocals, int maxStack) {
-        super(graph, TypeDescriptor.EphemeralTypeDescriptor.START_TOKEN, maxLocals, maxStack);
-        List<TypeDescriptor<?>> params = descriptor.getParamTypes();
-        for (int i = 0; i < params.size(); ++i) {
-            storeProjection(i, params.get(i));
-        }
-        frame().io(new IOProjection(graph, this));
-        frame().memory(new MemoryProjection(graph, this));
+    public StartNode(Graph<?> graph) {
+        super(graph, TypeDescriptor.EphemeralTypeDescriptor.START_TOKEN);
     }
 
     @Override
     public List<Node<?>> getPredecessors() {
         return Collections.emptyList();
-    }
-
-    private <V> void storeProjection(int index, TypeDescriptor<V> type) {
-        ParameterProjection<V> projection = new ParameterProjection<V>(getGraph(), this, type, index);
-        frame().store(index, projection);
     }
 
     @Override

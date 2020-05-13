@@ -16,8 +16,8 @@ public class Graph<V> {
 
     public Graph(MethodDefinition<V> method) {
         this.method = method;
-        this.start = new StartNode(this, method, method.getMaxLocals(), method.getMaxStack());
-        this.endRegion = new RegionNode(this, this.method.getMaxLocals(), this.method.getMaxStack());
+        this.start = new StartNode(this);
+        this.endRegion = new RegionNode(this);
         this.end = new EndNode<>(this, this.endRegion, this.method.getReturnType());
     }
 

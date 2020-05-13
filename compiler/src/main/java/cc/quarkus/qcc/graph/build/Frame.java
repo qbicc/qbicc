@@ -139,16 +139,6 @@ public class Frame {
         return this.io.load(IOToken.class);
     }
 
-    public void mergeInputs() {
-        for (ControlNode<?> each : this.control.getControlPredecessors()) {
-            if (this.control instanceof CatchControlProjection) {
-                mergeFrom(each.frame(), ((CatchControlProjection) this.control).getException());
-            } else {
-                mergeFrom(each.frame());
-            }
-        }
-    }
-
     public void mergeFrom(Frame inbound) {
         mergeFrom(inbound, null);
     }

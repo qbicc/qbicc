@@ -53,10 +53,10 @@ public class PhiLocal extends SimpleLocal {
         this.inputs.add(control);
     }
 
-    public void complete() {
+    public void complete(FrameManager frameManager) {
         List<ControlNode<?>> discriminators = getRegion().getInputs();
         for (ControlNode<?> discriminator : discriminators) {
-            Node<?> inbound = discriminator.frame().get(this.index, this.type.valueType());
+            Node<?> inbound = frameManager.of(discriminator).get(this.index, this.type.valueType());
             this.phi.addInput(inbound);
             this.values.put(discriminator, inbound);
         }

@@ -10,7 +10,7 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class ParameterProjection<V> extends AbstractNode<V> implements Projection {
 
-    protected ParameterProjection(Graph<?> graph, StartNode in, TypeDescriptor<V> outType, int index) {
+    public ParameterProjection(Graph<?> graph, StartNode in, TypeDescriptor<V> outType, int index) {
         super(graph, in, outType);
         this.index = index;
     }
