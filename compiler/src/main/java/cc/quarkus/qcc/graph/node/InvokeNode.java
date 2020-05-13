@@ -79,7 +79,7 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> implements I
     @Override
     public InvokeToken getValue(Context context) {
         MethodDefinition<V> m = this.methodDescriptor.getOwner().findMethod(this.methodDescriptor);
-        CallResult<V> result = m.call(context.heap(), this.arguments.stream().map(e -> e.getValue(context)).collect(Collectors.toList()));
+        CallResult<V> result = m.call(context.thread(), this.arguments.stream().map(e -> e.getValue(context)).collect(Collectors.toList()));
         return new InvokeToken(result.getReturnValue(), result.getThrowValue());
     }
 

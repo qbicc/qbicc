@@ -7,7 +7,7 @@ import java.util.List;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.TypeDefinition;
 
-public class SimpleHeap implements Heap {
+public class SimpleInterpreterHeap implements InterpreterHeap {
 
     @Override
     public ObjectReference newObject(TypeDefinition type) {

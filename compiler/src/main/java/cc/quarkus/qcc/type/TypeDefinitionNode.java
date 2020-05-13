@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import cc.quarkus.qcc.interpret.Heap;
+import cc.quarkus.qcc.interpret.InterpreterThread;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
@@ -185,9 +185,9 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     }
 
     @Override
-    public ObjectReference newInstance(Heap heap, Object... ctorArguments) {
+    public ObjectReference newInstance(InterpreterThread thread, Object... ctorArguments) {
         List<Object> invocationArgs = new ArrayList<>();
-        ObjectReference objRef = heap.newObject(this);
+        ObjectReference objRef = thread.heap().newObject(this);
         invocationArgs.add(objRef);
         invocationArgs.addAll(Arrays.asList(ctorArguments));
         MethodDefinition<?> m = findMethod("<init>", invocationArgs);
@@ -196,7 +196,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        CallResult<?> result = m.call(heap, invocationArgs);
+        CallResult<?> result = m.call(thread, invocationArgs);
         if ( result.getReturnValue() != null ) {
             return objRef;
         }
@@ -204,7 +204,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     }
 
     @Override
-    public ObjectReference newInstance(Heap heap, List<Object> arguments) {
+    public ObjectReference newInstance(InterpreterThread thread, List<Object> arguments) {
         return null;
     }
 

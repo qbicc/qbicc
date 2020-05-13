@@ -3,8 +3,8 @@ package cc.quarkus.qcc.type;
 import java.util.List;
 import java.util.Set;
 
-import cc.quarkus.qcc.interpret.Heap;
-import cc.quarkus.qcc.interpret.SimpleHeap;
+import cc.quarkus.qcc.interpret.SimpleInterpreterHeap;
+import cc.quarkus.qcc.interpret.InterpreterThread;
 
 public interface TypeDefinition {
     int getAccess();
@@ -34,14 +34,14 @@ public interface TypeDefinition {
     <V> void putField(FieldDefinition<V> field, ObjectReference objRef, V val);
 
     default ObjectReference newInstance(Object... arguments) {
-        return newInstance(new SimpleHeap(), arguments);
+        return newInstance(new InterpreterThread(new SimpleInterpreterHeap()), arguments);
     }
 
     default ObjectReference newInstance(List<Object> arguments) {
-        return newInstance(new SimpleHeap(), arguments);
+        return newInstance(new InterpreterThread(new SimpleInterpreterHeap()), arguments);
     }
 
-    ObjectReference newInstance(Heap heap, Object... arguments);
+    ObjectReference newInstance(InterpreterThread thread, Object... arguments);
 
-    ObjectReference newInstance(Heap heap, List<Object> arguments);
+    ObjectReference newInstance(InterpreterThread thread, List<Object> arguments);
 }

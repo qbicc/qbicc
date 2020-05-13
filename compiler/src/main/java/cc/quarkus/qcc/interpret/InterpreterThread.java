@@ -16,14 +16,21 @@ import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.graph.type.EndToken;
 import cc.quarkus.qcc.graph.type.StartToken;
-import cc.quarkus.qcc.type.Sentinel;
 
-public class Thread implements Context {
+public class InterpreterThread implements Context {
 
-    public Thread(Heap heap) {
+    public InterpreterThread(InterpreterHeap heap) {
         this.heap = heap;
     }
 
+
+    public <V> EndToken<V> execute(Graph<V> graph, Object...arguments) {
+        return execute(graph, new StartToken(arguments));
+    }
+
+    public <V> EndToken<V> execute(Graph<V> graph, List<Object> arguments) {
+        return execute(graph, arguments.toArray());
+    }
 
     @SuppressWarnings("unchecked")
     public <V> EndToken<V> execute(Graph<V> graph, StartToken arguments) {
@@ -52,10 +59,6 @@ public class Thread implements Context {
         }
 
         List<Node<?>> worklist = new ArrayList<>(control.getSuccessors());
-
-        for (Node<?> node : worklist) {
-            //System.err.println( "wl=" + node);
-        }
 
         ControlNode<?> nextControl = null;
 
@@ -132,7 +135,7 @@ public class Thread implements Context {
     }
 
     protected void pushContext() {
-        this.callStack.push(new StackFrame(heap()));
+        this.callStack.push(new StackFrame(thread()));
     }
 
     protected void popContext() {
@@ -164,7 +167,11 @@ public class Thread implements Context {
     }
 
     @Override
-    public Heap heap() {
+    public InterpreterThread thread() {
+        return this;
+    }
+
+    public InterpreterHeap heap() {
         return this.heap;
     }
 
@@ -172,5 +179,5 @@ public class Thread implements Context {
 
     private EndToken<?> endToken;
 
-    private Heap heap;
+    private InterpreterHeap heap;
 }

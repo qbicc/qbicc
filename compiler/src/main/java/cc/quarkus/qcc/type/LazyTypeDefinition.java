@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicReference;
 
-import cc.quarkus.qcc.interpret.Heap;
+import cc.quarkus.qcc.interpret.InterpreterThread;
 
 public class LazyTypeDefinition implements TypeDefinition {
     public LazyTypeDefinition(Universe universe, String name, boolean resolve) {
@@ -101,13 +101,13 @@ public class LazyTypeDefinition implements TypeDefinition {
     }
 
     @Override
-    public ObjectReference newInstance(Heap heap, Object... arguments) {
-        return getDelegate().newInstance(heap, arguments);
+    public ObjectReference newInstance(InterpreterThread thread, Object... arguments) {
+        return getDelegate().newInstance(thread, arguments);
     }
 
     @Override
-    public ObjectReference newInstance(Heap heap, List<Object> arguments) {
-        return getDelegate().newInstance(heap, arguments);
+    public ObjectReference newInstance(InterpreterThread thread, List<Object> arguments) {
+        return getDelegate().newInstance(thread, arguments);
     }
 
     @Override

@@ -8,9 +8,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import cc.quarkus.qcc.graph.DotWriter;
 import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.interpret.Heap;
-import cc.quarkus.qcc.interpret.Interpreter;
+import cc.quarkus.qcc.interpret.InterpreterThread;
 import cc.quarkus.qcc.graph.build.GraphBuilder;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.InsnList;
@@ -95,15 +93,13 @@ public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinit
     }
 
     @Override
-    public CallResult<V> call(Heap heap, Object... arguments) {
-        Interpreter<V> interp = new Interpreter<>(heap, getGraph());
-        return interp.execute(arguments);
+    public CallResult<V> call(InterpreterThread thread, Object... arguments) {
+        return thread.execute(getGraph(), arguments);
     }
 
     @Override
-    public CallResult<V> call(Heap heap, List<Object> arguments) {
-        Interpreter<V> interp = new Interpreter<>(heap, getGraph());
-        return interp.execute(arguments);
+    public CallResult<V> call(InterpreterThread thread, List<Object> arguments) {
+        return thread.execute(getGraph(), arguments);
     }
 
     @Override
@@ -114,7 +110,6 @@ public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinit
         }
 
         Files.createDirectories(path.getParent());
-
 
         try ( DotWriter writer = new DotWriter(path) ) {
             writer.write(getGraph());
