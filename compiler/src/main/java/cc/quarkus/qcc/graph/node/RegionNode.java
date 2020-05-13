@@ -12,9 +12,8 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class RegionNode extends AbstractControlNode<ControlToken> {
 
-    public RegionNode(Graph<?> graph, int maxLocals, int maxStack) {
-        super(graph, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN, maxLocals, maxStack);
-        //new Exception( "ctor region:" + getId() ).printStackTrace();
+    public RegionNode(Graph<?> graph) {
+        super(graph, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);
     }
 
     public void removeUnreachable(Set<ControlNode<?>> reachable) {

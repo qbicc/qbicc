@@ -7,8 +7,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.graph.Graph;
+import cc.quarkus.qcc.graph.type.IOProvider;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.InvokeToken;
+import cc.quarkus.qcc.graph.type.MemoryProvider;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.CallResult;
@@ -16,7 +18,7 @@ import cc.quarkus.qcc.type.MethodDefinition;
 import cc.quarkus.qcc.type.MethodDescriptor;
 import cc.quarkus.qcc.type.TypeDescriptor;
 
-public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
+public class InvokeNode<V> extends AbstractControlNode<InvokeToken> implements IOProvider, MemoryProvider {
 
     public InvokeNode(Graph<?> graph, ControlNode<?> control, MethodDescriptor<V> methodDescriptor) {
         super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.INVOKE_TOKEN);
@@ -64,11 +66,13 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
         return this.exceptionOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new ExceptionProjection(getGraph(), this)));
     }
 
-    public IOProjection getIOOut() {
+    @Override
+    public IOProjection getIO() {
         return this.ioOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new IOProjection(getGraph(), this)));
     }
 
-    public MemoryProjection getMemoryOut() {
+    @Override
+    public MemoryProjection getMemory() {
         return this.memoryOut.updateAndGet(cur -> Objects.requireNonNullElseGet(cur, () -> new MemoryProjection(getGraph(), this)));
     }
 
@@ -93,6 +97,7 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
         return list;
     }
 
+    /*
     @Override
     public void mergeInputs() {
         getThrowControlOut().frame().io(getIOOut());
@@ -102,6 +107,7 @@ public class InvokeNode<V> extends AbstractControlNode<InvokeToken> {
         getNormalControlOut().frame().memory(getMemoryOut());
         super.mergeInputs();
     }
+     */
 
     @Override
     public String label() {

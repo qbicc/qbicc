@@ -17,11 +17,11 @@ public class InterpretTest {
     public void testStaticMethod() throws IOException {
         Universe universe = new Universe(new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
         TypeDefinition c = universe.findClass("cc/quarkus/qcc/MyClass");
-        MethodDefinition<?> m = c.findMethod("min", "(II)I");
+        MethodDefinition<Integer> m = (MethodDefinition<Integer>) c.findMethod("min", "(II)I");
 
         m.writeGraph("target/");
 
-        CallResult<Integer> result = (CallResult<Integer>) m.call(42, 88);
+        CallResult<Integer> result = m.call(42, 88);
         assertThat(result.getReturnValue()).isEqualTo(42);
     }
 

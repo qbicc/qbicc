@@ -11,7 +11,7 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class IOProjection extends AbstractNode<IOToken> implements Projection {
 
-    protected <T extends ControlNode<? extends IOSource>> IOProjection(Graph<?> graph, T control) {
+    public <T extends ControlNode<? extends IOSource>> IOProjection(Graph<?> graph, T control) {
         super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.IO_TOKEN);
     }
 

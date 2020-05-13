@@ -27,7 +27,7 @@ public class AbstractNodeTestCase extends AbstractTestCase {
     }
 
     protected RegionNode control() {
-        return new RegionNode(graph(), 0, 0);
+        return new RegionNode(graph());
     }
 
     protected Graph<?> graph() {

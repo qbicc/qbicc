@@ -35,21 +35,11 @@ public class CatchManager {
             return result.get();
         }
 
-        TryRange range = new TryRange(this.graph, startIndex, endIndex, maxLocals(), maxStack());
+        TryRange range = new TryRange(this.graph, startIndex, endIndex);
         this.ranges.add( range );
         return range;
     }
 
-    protected int maxLocals() {
-        return this.graph.getMethod().getMaxLocals();
-    }
-
-    protected int maxStack() {
-        return this.graph.getMethod().getMaxStack();
-    }
-
     private final List<TryRange> ranges = new ArrayList<>();
-
-
     private final Graph<?> graph;
 }

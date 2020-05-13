@@ -11,12 +11,10 @@ import cc.quarkus.qcc.type.TypeDefinition;
 
 public class TryRange {
 
-    public TryRange(Graph<?> graph, int startIndex, int endIndex, int maxLocals, int maxStack) {
+    public TryRange(Graph<?> graph, int startIndex, int endIndex) {
         this.graph = graph;
         this.startIndex = startIndex;
         this.endIndex = endIndex;
-        this.maxLocals = maxLocals;
-        this.maxStack = maxStack;
     }
 
     public int getStartIndex() {
@@ -65,7 +63,7 @@ public class TryRange {
             return result.get();
         }
 
-        RegionNode region = new RegionNode(this.graph, this.maxLocals, this.maxStack);
+        RegionNode region = new RegionNode(this.graph);
         CatchEntry entry = new CatchEntry(handlerIndex, region);
         this.catches.add(entry);
         return entry;
@@ -92,10 +90,6 @@ public class TryRange {
     private final int startIndex;
 
     private final int endIndex;
-
-    private final int maxLocals;
-
-    private final int maxStack;
 
     private final List<CatchEntry> catches = new ArrayList<>();
 

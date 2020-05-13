@@ -12,8 +12,8 @@ import cc.quarkus.qcc.type.TypeDescriptor;
 
 public class DefUse {
 
-    public DefUse() {
-
+    public DefUse(NodeManager nodeManager) {
+        this.nodeManager = nodeManager;
     }
 
     public void def(ControlNode<?> src, int index, TypeDescriptor<?> type) {
@@ -30,8 +30,49 @@ public class DefUse {
         this.defs.forEach(fn);
     }
 
+    public void completePhis() {
+        for (PhiLocal phi : this.phis) {
+            phi.complete(frameManager());
+        }
+    }
+
+    protected void placePhis() {
+        forEach((node, entries) -> {
+            if (!nodeManager().isReachable(node)) {
+                return;
+            }
+
+            Set<ControlNode<?>> df = nodeManager().dominanceFrontier(node);
+
+            //System.err.println( "DEF: " + node + " >> " + entries);
+
+            for (DefUse.Entry entry : entries) {
+                for (ControlNode<?> dest : df) {
+                    //if (dest == getEndRegion() && (entry.index != SLOT_MEMORY && entry.index != SLOT_IO && entry.index != SLOT_COMPLETION)) {
+                    //// skip
+                    //continue;
+                    //}
+                    //System.err.println( "PLACE PHI: " + dest + " for " + entry.index);
+                    this.phis.add(frameManager().of(dest).ensurePhi(entry.index, node, entry.type));
+                }
+            }
+        });
+    }
+
+    protected NodeManager nodeManager() {
+        return this.nodeManager;
+    }
+
+    protected FrameManager frameManager() {
+        return nodeManager().frameManager();
+    }
+
+    private final NodeManager nodeManager;
+
     private Map<ControlNode<?>, Set<Entry>> defs = new HashMap<>();
     private Map<ControlNode<?>, Set<Entry>> uses = new HashMap<>();
+
+    private Set<PhiLocal> phis = new HashSet<>();
 
     static class Entry {
         Entry(int index, TypeDescriptor<?> type) {

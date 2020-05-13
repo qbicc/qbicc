@@ -11,12 +11,10 @@ public abstract class AbstractControlNode<V> extends AbstractNode<V> implements 
 
     protected AbstractControlNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> outType) {
         super(graph, control, outType);
-        this.frame = new Frame(this, control.frame().maxLocals(), control.frame().maxStack());
     }
 
-    public AbstractControlNode(Graph<?> graph, TypeDescriptor<V> outType, int maxLocals, int maxStack) {
+    public AbstractControlNode(Graph<?> graph, TypeDescriptor<V> outType) {
         super(graph, outType);
-        this.frame = new Frame(this, maxLocals, maxStack);
     }
 
     @Override
@@ -32,21 +30,15 @@ public abstract class AbstractControlNode<V> extends AbstractNode<V> implements 
         }
     }
 
-    @Override
-    public void mergeInputs() {
-        frame().mergeInputs();
-        for (ControlNode<?> each : getControlSuccessors()) {
-            if (each instanceof Projection) {
-                each.mergeInputs();
-            }
-        }
-    }
+   // @Override
+    //public void mergeInputs() {
+     //   frame().mergeInputs();
+      //  for (ControlNode<?> each : getControlSuccessors()) {
+       //     if (each instanceof Projection) {
+        //        each.mergeInputs();
+         //   }
+        //}
+    //}
 
-    @Override
-    public Frame frame() {
-        return this.frame;
-    }
-
-    private Frame frame;
 
 }
