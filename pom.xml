@@ -26,13 +26,13 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>machine</module>
-        <module>context</module>
-        <module>runtime</module>
         <module>compiler</module>
-        <module>native</module>
-        <module>vm</module>
+        <module>context</module>
+        <module>machine</module>
         <module>metaprogram</module>
+        <module>native</module>
+        <module>runtime</module>
+        <module>vm</module>
     </modules>
 
     <dependencyManagement>
