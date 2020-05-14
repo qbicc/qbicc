@@ -16,6 +16,8 @@ public interface ObjectFile extends Closeable {
 
     long getSymbolValueAsLong(String name);
 
+    byte[] getSymbolAsBytes(String name, int size);
+
     String getSymbolValueAsUtfString(String name);
 
     long getSymbolSize(String name);

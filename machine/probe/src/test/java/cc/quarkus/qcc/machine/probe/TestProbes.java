@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 /**
  *
  */
-public class TestCTypeProbe {
+public class TestProbes {
 
     static CCompiler compiler;
     static ObjectFileProvider objectFileProvider;
@@ -23,18 +23,18 @@ public class TestCTypeProbe {
     @BeforeAll
     public static void setUpCompiler() {
         final Iterable<CCompiler> tools = ToolProvider.findAllTools(CCompiler.class, Platform.HOST_PLATFORM, s -> true,
-            TestCTypeProbe.class.getClassLoader());
+            TestProbes.class.getClassLoader());
         final Iterator<CCompiler> iterator = tools.iterator();
         assertTrue(iterator.hasNext());
         compiler = iterator.next();
         final ObjectType objectType = Platform.HOST_PLATFORM.getObjectType();
         System.out.println("Local object file type: " + objectType);
-        objectFileProvider = ObjectFileProvider.findProvider(objectType, TestCTypeProbe.class.getClassLoader()).orElseThrow();
+        objectFileProvider = ObjectFileProvider.findProvider(objectType, TestProbes.class.getClassLoader()).orElseThrow();
     }
 
     @Test
     public void testStructProbe() throws Exception {
-        final CTypeProbe probe = new CTypeProbe(CTypeProbe.Qualifier.STRUCT, "iovec");
+        final CTypeProbe probe = new CTypeProbe(Qualifier.STRUCT, "iovec");
         probe.addMember("iov_base", Object.class);
         probe.addMember("iov_len", long.class);
         probe.define("_DEFAULT_SOURCE");
@@ -59,7 +59,7 @@ public class TestCTypeProbe {
 
     @Test
     public void testIntProbes() throws Exception {
-        final CTypeProbe probe = new CTypeProbe(CTypeProbe.Qualifier.NONE, "int16_t");
+        final CTypeProbe probe = new CTypeProbe(Qualifier.NONE, "int16_t");
         probe.include("<stdint.h>");
         final CTypeProbe.Result result = probe.runProbe(compiler, objectFileProvider);
         assertNotNull(result);
@@ -74,5 +74,15 @@ public class TestCTypeProbe {
         assertTrue(result.isSigned());
         assertFalse(result.isUnsigned());
         assertFalse(result.isFloating());
+    }
+
+    @Test
+    public void testSymbolProbe() throws Exception {
+        final CConstantProbe probe = new CConstantProbe("INT8_MAX", Qualifier.NONE, "int8_t", 1);
+        probe.include("<stdint.h>");
+        final CConstantProbe.Result result = probe.runProbe(compiler, objectFileProvider);
+        assertNotNull(result);
+        assertTrue(result.isDefined());
+        assertArrayEquals(new byte[] { Byte.MAX_VALUE }, result.getValue());
     }
 }
