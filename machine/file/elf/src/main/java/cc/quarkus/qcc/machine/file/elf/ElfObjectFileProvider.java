@@ -22,6 +22,22 @@ public class ElfObjectFileProvider implements ObjectFileProvider {
         final BinaryBuffer buffer = BinaryBuffer.openRead(path);
         final ElfHeader elfHeader = ElfHeader.forBuffer(buffer);
         return new ObjectFile() {
+            public int getSymbolValueAsByte(final String name) {
+                final ElfSymbolTableEntry symbol = findSymbol(name);
+                final long size = symbol.getValueSize();
+                final int linkedSection = symbol.getLinkedSectionIndex();
+                final ElfSectionHeaderEntry codeSection = elfHeader.getSectionHeaderTableEntry(linkedSection);
+                if (codeSection.getType() == Elf.Section.Type.Std.NO_BITS) {
+                    // bss
+                    return 0;
+                }
+                if (size == 1) {
+                    return elfHeader.getBackingBuffer().getByteUnsigned(codeSection.getOffset() + symbol.getValue());
+                } else {
+                    throw new IllegalArgumentException("Unexpected size " + size);
+                }
+            }
+
             public int getSymbolValueAsInt(final String name) {
                 final ElfSymbolTableEntry symbol = findSymbol(name);
                 final long size = symbol.getValueSize();

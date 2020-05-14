@@ -10,6 +10,8 @@ import cc.quarkus.qcc.machine.arch.ObjectType;
  * A generic API to introspect object files in a format-agnostic manner.
  */
 public interface ObjectFile extends Closeable {
+    int getSymbolValueAsByte(String name);
+
     int getSymbolValueAsInt(String name);
 
     long getSymbolValueAsLong(String name);
