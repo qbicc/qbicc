@@ -124,7 +124,10 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
                 return (MethodDefinition<?>) each;
             }
         }
-        throw new RuntimeException("Unresolved method " + name + desc);
+        if ( getSuperclass() == null ) {
+            throw new RuntimeException("Unresolved method " + name + desc);
+        }
+        return getSuperclass().findMethod(name, desc);
     }
 
     @SuppressWarnings("unchecked")

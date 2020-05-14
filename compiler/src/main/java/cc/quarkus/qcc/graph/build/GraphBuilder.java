@@ -53,6 +53,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.IntInsnNode;
+import org.objectweb.asm.tree.InvokeDynamicInsnNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
@@ -264,7 +265,7 @@ public class GraphBuilder<V extends QType> {
                                                                                    opcode == INVOKESTATIC);
                         MethodDescriptor<?> descriptor = parser.parseMethodDescriptor();
 
-                        InvokeNode<?> node = new InvokeNode<>(graph(), currentControl(), descriptor).setLine(line);
+                        InvokeNode<?> node = new InvokeNode<>(graph(), currentControl(), descriptor, invocationType(opcode)).setLine(line);
                         nodeManager().recordControlForBci(bci, node);
                         nodeManager().addControlInputForBci(bci + 1, node.getNormalControlOut());
                         defUse.def(node, SLOT_IO, EphemeralTypeDescriptor.IO_TOKEN);
@@ -310,6 +311,23 @@ public class GraphBuilder<V extends QType> {
         defUse.use(getEndRegion(), SLOT_MEMORY, EphemeralTypeDescriptor.MEMORY_TOKEN);
 
         return defUse;
+    }
+
+    protected InvokeNode.InvocationType invocationType(int opcode) {
+        switch ( opcode ) {
+            case INVOKESTATIC: {
+                return InvokeNode.InvocationType.STATIC;
+            }
+            case INVOKESPECIAL: {
+                return InvokeNode.InvocationType.SPECIAL;
+            }
+            case INVOKEVIRTUAL:
+            case INVOKEINTERFACE: {
+                return InvokeNode.InvocationType.VIRTUAL;
+            }
+        }
+
+        return null;
     }
 
     protected CompareOp op(int opcode) {
