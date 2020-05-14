@@ -72,6 +72,21 @@ public class ElfObjectFileProvider implements ObjectFileProvider {
                 }
             }
 
+            public byte[] getSymbolAsBytes(final String name, final int size) {
+                final ElfSymbolTableEntry symbol = findSymbol(name);
+                final long symSize = symbol.getValueSize();
+                final int linkedSection = symbol.getLinkedSectionIndex();
+                final ElfSectionHeaderEntry codeSection = elfHeader.getSectionHeaderTableEntry(linkedSection);
+                final byte[] array = new byte[size];
+                if (codeSection.getType() == Elf.Section.Type.Std.NO_BITS) {
+                    // bss
+                    return array;
+                } else {
+                    elfHeader.getBackingBuffer().getBytes(codeSection.getOffset() + symbol.getValue(), array);
+                    return array;
+                }
+            }
+
             public String getSymbolValueAsUtfString(final String name) {
                 throw Assert.unsupported();
             }

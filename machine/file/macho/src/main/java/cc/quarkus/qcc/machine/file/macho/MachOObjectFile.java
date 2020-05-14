@@ -160,6 +160,26 @@ public final class MachOObjectFile implements ObjectFile {
         }
     }
 
+    public byte[] getSymbolAsBytes(final String name, final int size) {
+        final byte[] array = new byte[size];
+        final NList symbol = requireSymbol(name);
+        final long value = symbol.value;
+        if (symbol.type == MachO.NList.Type.BSS) {
+            // implicitly zero
+            return array;
+        } else if (symbol.type == MachO.NList.Type.SECT) {
+            // offset into data
+            final Section section = sections.get(symbol.section - 1);
+            if (section.name.equals("__common")) {
+                return array;
+            }
+            buffer.getBytes(section.fileOffset + symbol.value, array);
+            return array;
+        } else {
+            throw new IllegalArgumentException("Unexpected symbol type " + symbol.type);
+        }
+    }
+
     public String getSymbolValueAsUtfString(final String name) {
         throw Assert.unsupported();
     }
@@ -217,9 +237,9 @@ public final class MachOObjectFile implements ObjectFile {
             abi64 = (cpuTypeInt & MachO.CPU_ARCH_ABI64) != 0;
             cpuType = MachO.CpuType.forValue(cpuTypeInt & 0xffffff);
             fileType = MachO.FileType.forValue(buffer.getInt(16));
-            nCmds = buffer.getInt(20);
-            sizeOfCmds = buffer.getInt(24);
-            flags = setOfBits(MachO.Flag.class, buffer.getIntUnsigned(28), MachO.Flag::forValue);
+            nCmds = buffer.getInt(16);
+            sizeOfCmds = buffer.getInt(20);
+            flags = setOfBits(MachO.Flag.class, buffer.getIntUnsigned(24), MachO.Flag::forValue);
         }
     }
 
@@ -293,7 +313,7 @@ public final class MachOObjectFile implements ObjectFile {
             segmentSize = is64 ? buffer.getLong(offset + 24) : buffer.getIntUnsigned(offset + 20);
             segmentOffset = is64 ? buffer.getLong(offset + 32) : buffer.getIntUnsigned(offset + 24);
             fileSize = is64 ? buffer.getLong(offset + 40) : buffer.getIntUnsigned(offset + 28);
-            numSections = is64 ? buffer.getIntUnsigned(offset + 48) : buffer.getIntUnsigned(offset + 36);
+            numSections = is64 ? buffer.getIntUnsigned(offset + 56) : buffer.getIntUnsigned(offset + 36);
         }
 
     }
