@@ -1081,7 +1081,7 @@ public final class CNative {
 
         ExportScope withScope() default ExportScope.GLOBAL;
 
-        CallingConvention callingConvention() default CallingConvention.PLATFORM_DEFAULT;
+        CallingConvention callingConvention() default CallingConvention.C;
     }
 
     /**
@@ -1108,7 +1108,7 @@ public final class CNative {
 
         ExportScope withScope() default ExportScope.GLOBAL;
 
-        CallingConvention callingConvention() default CallingConvention.PLATFORM_DEFAULT;
+        CallingConvention callingConvention() default CallingConvention.C;
     }
 
     /**
@@ -1163,7 +1163,6 @@ public final class CNative {
     }
 
     public enum CallingConvention {
-        PLATFORM_DEFAULT,
         C,
     }
 
