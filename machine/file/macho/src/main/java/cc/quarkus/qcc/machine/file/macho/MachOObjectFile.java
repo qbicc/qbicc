@@ -106,6 +106,24 @@ public final class MachOObjectFile implements ObjectFile {
         }
     }
 
+    public int getSymbolValueAsByte(final String name) {
+        final NList symbol = requireSymbol(name);
+        final long value = symbol.value;
+        if (symbol.type == MachO.NList.Type.BSS) {
+            // implicitly zero
+            return 0;
+        } else if (symbol.type == MachO.NList.Type.SECT) {
+            // offset into data
+            final Section section = sections.get(symbol.section - 1);
+            if (section.name.equals("__common")) {
+                return 0;
+            }
+            return buffer.getByteUnsigned(section.fileOffset + symbol.value);
+        } else {
+            throw new IllegalArgumentException("Unexpected symbol type " + symbol.type);
+        }
+    }
+
     public int getSymbolValueAsInt(final String name) {
         final NList symbol = requireSymbol(name);
         final long value = symbol.value;

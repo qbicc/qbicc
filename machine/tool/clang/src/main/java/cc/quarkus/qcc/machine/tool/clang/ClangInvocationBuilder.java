@@ -37,7 +37,7 @@ public class ClangInvocationBuilder extends CompilerInvokerBuilder {
         for (Path includePath : getIncludePaths()) {
             cmd.add("-I" + includePath.toString());
         }
-        Collections.addAll(cmd, "-W" + "no-gnu-alignof-expression", "-c", "-x", "c", "-o", getOutputPath().toString(), "-");
+        Collections.addAll(cmd, "-c", "-x", "c", "-o", getOutputPath().toString(), "-");
         ProcessBuilder pb = new ProcessBuilder();
         pb.command(cmd);
         pb.environment().put("LC_ALL", "C");
