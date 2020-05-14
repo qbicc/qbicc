@@ -30,7 +30,7 @@ public class ResultProjection<V extends QType> extends AbstractNode<V> implement
 
     @Override
     public List<Node< ?>> getPredecessors() {
-        return Collections.singletonList(getControl());
+        return List.of(getControl());
     }
 
 }

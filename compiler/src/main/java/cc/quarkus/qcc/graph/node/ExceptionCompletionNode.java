@@ -29,10 +29,7 @@ public class ExceptionCompletionNode extends AbstractNode<CompletionToken>  {
 
     @Override
     public List<? extends Node<?>> getPredecessors() {
-        return new ArrayList<>() {{
-            add( getControl());
-            add( exception );
-        }};
+        return List.of( getControl(), this.exception);
     }
 
     @Override

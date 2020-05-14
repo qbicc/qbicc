@@ -58,10 +58,7 @@ public class NarrowNode<INPUT_V extends QIntegral, OUTPUT_V extends QIntegral> e
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return new ArrayList<>() {{
-            add(getControl());
-            add(input);
-        }};
+        return List.of( getControl(), this.input);
     }
 
     @Override

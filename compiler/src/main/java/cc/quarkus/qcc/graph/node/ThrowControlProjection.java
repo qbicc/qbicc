@@ -31,7 +31,7 @@ public class ThrowControlProjection extends AbstractControlNode<ControlToken> im
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return Collections.singletonList(getControl());
+        return List.of(getControl());
     }
 
     @Override

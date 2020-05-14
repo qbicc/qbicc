@@ -19,13 +19,12 @@ public class NewNode extends AbstractNode<ObjectReference> {
     @Override
     public ObjectReference getValue(Context context) {
         InterpreterHeap heap = context.thread().heap();
-        ObjectReference objRef = heap.newObject(((ObjectTypeDescriptor)typeDescriptor).getTypeDefinition());
-        return objRef;
+        return heap.newObject(((ObjectTypeDescriptor) typeDescriptor).getTypeDefinition());
     }
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return Collections.singletonList(getControl());
+        return List.of(getControl());
     }
 
     @Override

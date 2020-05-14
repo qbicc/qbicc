@@ -44,10 +44,10 @@ public class UnaryIfNode extends IfNode {
 
     @Override
     public List<? extends Node<?>> getPredecessors() {
-        return new ArrayList<>() {{
-            add(getControl());
-            add(test);
-        }};
+        if ( this.test == null ) {
+            return List.of(getControl());
+        }
+        return List.of(getControl(), this.test);
     }
 
     @Override

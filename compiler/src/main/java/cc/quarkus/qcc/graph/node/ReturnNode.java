@@ -27,10 +27,7 @@ public class ReturnNode<V extends QType> extends AbstractNode<CompletionToken> {
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return new ArrayList<>() {{
-            add( getControl() );
-            add( getInput() );
-        }};
+        return List.of(getControl(), getInput());
     }
 
     @Override

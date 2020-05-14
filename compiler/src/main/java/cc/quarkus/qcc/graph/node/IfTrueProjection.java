@@ -22,7 +22,7 @@ public class IfTrueProjection extends AbstractControlNode<ControlToken> implemen
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return Collections.singletonList(getControl());
+        return List.of(getControl());
     }
 
     @Override

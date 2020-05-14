@@ -44,9 +44,9 @@ public class BinaryIfNode<V extends QType> extends IfNode {
                 return IfToken.of(lhsValue.equals(rhsValue));
 
         }
-        
-        if ( lhsValue instanceof Comparable && rhsValue instanceof Comparable ) {
-            switch ( getOp() ) {
+
+        if (lhsValue instanceof Comparable && rhsValue instanceof Comparable) {
+            switch (getOp()) {
                 case LESS_THAN:
                     return IfToken.of(((Comparable) lhsValue).compareTo(rhsValue) < 0);
                 case LESS_THAN_OR_EQUAL:
@@ -63,15 +63,10 @@ public class BinaryIfNode<V extends QType> extends IfNode {
 
     @Override
     public List<Node<?>> getPredecessors() {
-       return new ArrayList<>() {{
-            add(getControl());
-            if ( lhs != null ) {
-                add(lhs);
-            }
-            if ( rhs != null ) {
-                add(rhs);
-            }
-        }};
+        if (lhs == null) {
+            return List.of(getControl());
+        }
+        return List.of(getControl(), lhs, rhs);
     }
 
     private Node<V> lhs;
