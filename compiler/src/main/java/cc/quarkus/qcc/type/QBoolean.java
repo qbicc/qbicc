@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type;
 
-public class QBoolean extends PrimitiveType<Boolean> {
+public class QBoolean extends QPrimitive<Boolean> {
 
     public static final QBoolean TRUE = new QBoolean(true);
     public static final QBoolean FALSE = new QBoolean(false);

@@ -106,12 +106,12 @@ public class LazyTypeDefinition implements TypeDefinition {
     }
 
     @Override
-    public ObjectReference newInstance(InterpreterThread thread, Object... arguments) {
+    public ObjectReference newInstance(InterpreterThread thread, QType... arguments) {
         return getDelegate().newInstance(thread, arguments);
     }
 
     @Override
-    public ObjectReference newInstance(InterpreterThread thread, List<Object> arguments) {
+    public ObjectReference newInstance(InterpreterThread thread, List<QType> arguments) {
         return getDelegate().newInstance(thread, arguments);
     }
 

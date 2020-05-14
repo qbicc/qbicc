@@ -6,6 +6,7 @@ import java.util.List;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.IfToken;
 import cc.quarkus.qcc.interpret.Context;
+import cc.quarkus.qcc.type.QType;
 
 public class UnaryIfNode extends IfNode {
 
@@ -15,7 +16,7 @@ public class UnaryIfNode extends IfNode {
 
     @Override
     public IfToken getValue(Context context) {
-        Object val = context.get(this.test);
+        QType val = context.get(this.test);
         switch ( getOp() ) {
             case EQUAL:
                 break;
@@ -30,9 +31,9 @@ public class UnaryIfNode extends IfNode {
             case GREATER_THAN_OR_EQUAL:
                 break;
             case NULL:
-                return IfToken.of ( val == null );
+                return IfToken.of ( val.isNull() );
             case NONNULL:
-                return IfToken.of ( val != null );
+                return IfToken.of ( ! val.isNull() );
         }
         return null;
     }

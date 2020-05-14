@@ -12,9 +12,10 @@ import static org.fest.assertions.api.Assertions.*;
 public class GetFieldTest extends AbstractNodeTestCase {
 
     private int someInt = 42;
+    private Object someNull;
 
     @Test
-    public void testGet() {
+    public void testGetPrimitive() {
         TypeDefinition cls = getTypeDefinition();
         FieldDefinition<QInt32> someInt = cls.findField("someInt");
 
@@ -26,4 +27,17 @@ public class GetFieldTest extends AbstractNodeTestCase {
         assertThat( val.value() ).isEqualTo(42);
     }
 
+    @Test
+    public void testGetNull() {
+        TypeDefinition cls = getTypeDefinition();
+        FieldDefinition<ObjectReference> someInt = cls.findField("someNull");
+
+        ObjectReference obj = cls.newInstance();
+        MockNode<ObjectReference> objNode = set(obj);
+
+        GetFieldNode<ObjectReference> node = new GetFieldNode<>(graph(), control(), objNode, someInt);
+        ObjectReference val = node.getValue(context());
+        assertThat( val ).isNotNull();
+        assertThat( val.isNull() ).isTrue();
+    }
 }

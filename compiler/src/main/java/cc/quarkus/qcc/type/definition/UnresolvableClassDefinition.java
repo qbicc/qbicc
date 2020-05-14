@@ -55,12 +55,12 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     }
 
     @Override
-    public ObjectReference newInstance(InterpreterThread thread, Object... arguments) {
+    public ObjectReference newInstance(InterpreterThread thread, QType... arguments) {
         return throwUnresolved();
     }
 
     @Override
-    public ObjectReference newInstance(InterpreterThread thread, List<Object> arguments) {
+    public ObjectReference newInstance(InterpreterThread thread, List<QType> arguments) {
         return throwUnresolved();
     }
 

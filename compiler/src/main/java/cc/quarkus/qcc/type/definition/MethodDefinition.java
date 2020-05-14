@@ -27,17 +27,17 @@ public interface MethodDefinition<V extends QType> extends MethodDescriptor<V> {
 
     TypeDefinition getTypeDefinition();
 
-    default CallResult<V> call(Object... arguments) {
+    default CallResult<V> call(QType... arguments) {
         return call(new InterpreterThread(new SimpleInterpreterHeap()), arguments);
     }
 
-    default CallResult<V> call(List<Object> arguments) {
+    default CallResult<V> call(List<QType> arguments) {
         return call(new InterpreterThread(new SimpleInterpreterHeap()), arguments);
     }
 
-    CallResult<V> call(InterpreterThread thread, Object... arguments);
+    CallResult<V> call(InterpreterThread thread, QType... arguments);
 
-    CallResult<V> call(InterpreterThread thread, List<Object> arguments);
+    CallResult<V> call(InterpreterThread thread, List<QType> arguments);
 
     default void writeGraph(String path) throws IOException {
         writeGraph(Paths.get(path));

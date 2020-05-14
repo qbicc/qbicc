@@ -46,12 +46,12 @@ public class MockMethodDefinition<V extends QType> implements MethodDefinition<V
     }
 
     @Override
-    public CallResult<V> call(InterpreterThread thread, Object... arguments) {
+    public CallResult<V> call(InterpreterThread thread, QType... arguments) {
         return null;
     }
 
     @Override
-    public CallResult<V> call(InterpreterThread thread, List<Object> arguments) {
+    public CallResult<V> call(InterpreterThread thread, List<QType> arguments) {
         return null;
     }
 

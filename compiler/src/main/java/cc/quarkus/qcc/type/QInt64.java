@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type;
 
-public class QInt64 extends PrimitiveType<Long> implements QIntegral {
+public class QInt64 extends QPrimitive<Long> implements QIntegral {
 
     public static QInt64 of(long value) {
         return new QInt64(value);

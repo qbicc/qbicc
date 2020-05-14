@@ -13,11 +13,11 @@ public class Interpreter<V extends QType> {
         this.graph = graph;
     }
 
-    public EndToken<V> execute(Object...arguments) {
+    public EndToken<V> execute(QType...arguments) {
         return new InterpreterThread(this.heap).execute(this.graph, arguments);
     }
 
-    public EndToken<V> execute(List<Object> arguments) {
+    public EndToken<V> execute(List<QType> arguments) {
         return new InterpreterThread(this.heap).execute(this.graph, arguments);
     }
 

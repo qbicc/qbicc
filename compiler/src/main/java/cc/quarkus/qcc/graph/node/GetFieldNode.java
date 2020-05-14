@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.graph.node;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import cc.quarkus.qcc.graph.Graph;

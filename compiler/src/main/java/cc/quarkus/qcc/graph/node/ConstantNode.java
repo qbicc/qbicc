@@ -1,11 +1,10 @@
 package cc.quarkus.qcc.graph.node;
 
-import java.util.Collections;
 import java.util.List;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.ParseException;
-import cc.quarkus.qcc.graph.type.IntrinsicObjectReference;
+import cc.quarkus.qcc.type.HostBackedObjectReference;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.type.QDouble;
@@ -25,12 +24,12 @@ public class ConstantNode<V extends QType> extends AbstractNode<V> {
     }
 
     public static ConstantNode<ObjectReference> nullConstant(ControlNode<?> control) {
-        ObjectReference constantVal = IntrinsicObjectReference.newNull();
+        ObjectReference constantVal = ObjectReference.NULL;
         return new ConstantNode<>(control.getGraph(), control, constantVal, constantVal.getTypeDescriptor());
     }
 
     public static ConstantNode<ObjectReference> stringConstant(ControlNode<?> control, String val) {
-        ObjectReference constantVal = IntrinsicObjectReference.newString(val);
+        ObjectReference constantVal = HostBackedObjectReference.newString(val);
         return new ConstantNode<>(control.getGraph(), control, constantVal, constantVal.getTypeDescriptor());
     }
 

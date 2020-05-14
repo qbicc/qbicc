@@ -25,12 +25,12 @@ public class InterpreterThread implements Context {
     }
 
 
-    public <V extends QType> EndToken<V> execute(Graph<V> graph, Object...arguments) {
+    public <V extends QType> EndToken<V> execute(Graph<V> graph, QType...arguments) {
         return execute(graph, new StartToken(arguments));
     }
 
-    public <V extends QType> EndToken<V> execute(Graph<V> graph, List<Object> arguments) {
-        return execute(graph, arguments.toArray());
+    public <V extends QType> EndToken<V> execute(Graph<V> graph, List<QType> arguments) {
+        return execute(graph, arguments.toArray(new QType[0]));
     }
 
     @SuppressWarnings("unchecked")
@@ -155,6 +155,7 @@ public class InterpreterThread implements Context {
 
     @SuppressWarnings("unchecked")
     protected <T extends QType> void set0(Node<T> node, Object val) {
+        //assert val != null : "value may not be null: " + node;
         set(node, (T) val);
     }
 
