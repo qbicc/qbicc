@@ -1,11 +1,10 @@
 package cc.quarkus.qcc.type;
 
-import cc.quarkus.qcc.graph.type.IntrinsicObjectReference;
-
 public interface QType {
+
     static QType of(Object value) {
         if ( value == null ) {
-            return QNull.NULL;
+            return ObjectReference.NULL;
         }
         if ( value instanceof Character ) {
             return QChar.of((Character) value);
@@ -23,8 +22,14 @@ public interface QType {
             return QInt64.of((Long) value);
         }
         if ( value instanceof String ) {
-            return IntrinsicObjectReference.newString((String) value);
+            return HostBackedObjectReference.newString((String) value);
         }
         throw new RuntimeException( "Unable to make qtype of " + value);
     }
+
+    default boolean isNull() {
+        return false;
+    }
+
+
 }

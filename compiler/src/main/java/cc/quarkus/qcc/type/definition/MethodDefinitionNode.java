@@ -98,12 +98,12 @@ public class MethodDefinitionNode<V extends QType> extends MethodNode implements
     }
 
     @Override
-    public CallResult<V> call(InterpreterThread thread, Object... arguments) {
+    public CallResult<V> call(InterpreterThread thread, QType... arguments) {
         return thread.execute(getGraph(), arguments);
     }
 
     @Override
-    public CallResult<V> call(InterpreterThread thread, List<Object> arguments) {
+    public CallResult<V> call(InterpreterThread thread, List<QType> arguments) {
         return thread.execute(getGraph(), arguments);
     }
 

@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type;
 
-public class QChar extends PrimitiveType<Character> implements QIntegral {
+public class QChar extends QPrimitive<Character> implements QIntegral {
 
     public static QChar of(char value) {
         return new QChar(value);

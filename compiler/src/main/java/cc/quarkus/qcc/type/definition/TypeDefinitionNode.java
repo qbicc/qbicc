@@ -136,7 +136,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         return (MethodDefinition<V>) findMethod(methodDescriptor.getName(), methodDescriptor.getDescriptor());
     }
 
-    public MethodDefinition<?> findMethod(String name, List<Object> actualParameters) {
+    public MethodDefinition<?> findMethod(String name, List<QType> actualParameters) {
         List<MethodDefinition<?>> candidates = new ArrayList<>();
         for (MethodNode each : this.methods) {
             MethodDefinition<?> method = (MethodDefinition<?>) each;
@@ -195,8 +195,8 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     }
 
     @Override
-    public ObjectReference newInstance(InterpreterThread thread, Object... ctorArguments) {
-        List<Object> invocationArgs = new ArrayList<>();
+    public ObjectReference newInstance(InterpreterThread thread, QType... ctorArguments) {
+        List<QType> invocationArgs = new ArrayList<>();
         ObjectReference objRef = thread.heap().newObject(this);
         invocationArgs.add(objRef);
         invocationArgs.addAll(Arrays.asList(ctorArguments));
@@ -214,8 +214,8 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     }
 
     @Override
-    public ObjectReference newInstance(InterpreterThread thread, List<Object> arguments) {
-        return null;
+    public ObjectReference newInstance(InterpreterThread thread, List<QType> arguments) {
+        return newInstance(thread, arguments.toArray(new QType[0]));
     }
 
     @Override

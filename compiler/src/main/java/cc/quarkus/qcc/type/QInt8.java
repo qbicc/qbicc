@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type;
 
-public class QInt8 extends PrimitiveType<Byte> implements QIntegral {
+public class QInt8 extends QPrimitive<Byte> implements QIntegral {
     public static QInt8 of(byte value) {
         return new QInt8(value);
     }

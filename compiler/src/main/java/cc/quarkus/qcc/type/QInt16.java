@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type;
 
-public class QInt16 extends PrimitiveType<Short> implements QIntegral {
+public class QInt16 extends QPrimitive<Short> implements QIntegral {
     public static QInt16 of(short value) {
         return new QInt16(value);
     }

@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type;
 
-public class QInt32 extends PrimitiveType<Integer> implements QIntegral {
+public class QInt32 extends QPrimitive<Integer> implements QIntegral {
     public static QInt32 of(int val) {
         return new QInt32(val);
     }

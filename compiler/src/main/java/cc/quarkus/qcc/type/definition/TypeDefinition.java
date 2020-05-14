@@ -37,15 +37,15 @@ public interface TypeDefinition {
 
     <V extends QType> void putField(FieldDefinition<V> field, ObjectReference objRef, V val);
 
-    default ObjectReference newInstance(Object... arguments) {
+    default ObjectReference newInstance(QType... arguments) {
         return newInstance(new InterpreterThread(new SimpleInterpreterHeap()), arguments);
     }
 
-    default ObjectReference newInstance(List<Object> arguments) {
+    default ObjectReference newInstance(List<QType> arguments) {
         return newInstance(new InterpreterThread(new SimpleInterpreterHeap()), arguments);
     }
 
-    ObjectReference newInstance(InterpreterThread thread, Object... arguments);
+    ObjectReference newInstance(InterpreterThread thread, QType... arguments);
 
-    ObjectReference newInstance(InterpreterThread thread, List<Object> arguments);
+    ObjectReference newInstance(InterpreterThread thread, List<QType> arguments);
 }
