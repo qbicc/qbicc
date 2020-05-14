@@ -5,9 +5,10 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public abstract class BinaryNode<INPUT_V, OUTPUT_V> extends AbstractNode<OUTPUT_V> {
+public abstract class BinaryNode<INPUT_V extends QType, OUTPUT_V extends QType> extends AbstractNode<OUTPUT_V> {
 
     protected BinaryNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<OUTPUT_V> outType) {
         super(graph, control, outType);

@@ -12,7 +12,7 @@ import java.util.Set;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.type.TypeDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
 
 public class NodeManager {
 

@@ -6,9 +6,10 @@ import java.util.List;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public class ResultProjection<V> extends AbstractNode<V> implements Projection {
+public class ResultProjection<V extends QType> extends AbstractNode<V> implements Projection {
 
     protected ResultProjection(Graph<?> graph, InvokeNode<V> in, TypeDescriptor<V> outType) {
         super(graph, in, outType);

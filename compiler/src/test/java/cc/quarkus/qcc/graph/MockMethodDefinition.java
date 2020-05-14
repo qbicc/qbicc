@@ -6,14 +6,15 @@ import java.util.Collections;
 import java.util.List;
 
 import cc.quarkus.qcc.interpret.InterpreterThread;
-import cc.quarkus.qcc.type.CallResult;
-import cc.quarkus.qcc.type.MethodDefinition;
-import cc.quarkus.qcc.type.TypeDefinition;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.interpret.CallResult;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.definition.MethodDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
-public class MockMethodDefinition<V> implements MethodDefinition<V> {
+public class MockMethodDefinition<V extends QType> implements MethodDefinition<V> {
     @Override
     public InsnList getInstructions() {
         return null;

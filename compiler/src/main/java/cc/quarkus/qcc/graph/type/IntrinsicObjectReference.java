@@ -1,9 +1,9 @@
 package cc.quarkus.qcc.graph.type;
 
-import cc.quarkus.qcc.type.Core;
+import cc.quarkus.qcc.type.QNull;
+import cc.quarkus.qcc.type.universe.Core;
 import cc.quarkus.qcc.type.ObjectReference;
-import cc.quarkus.qcc.type.Sentinel;
-import cc.quarkus.qcc.type.TypeDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
 
 public class IntrinsicObjectReference<T> extends ObjectReference {
 
@@ -12,7 +12,7 @@ public class IntrinsicObjectReference<T> extends ObjectReference {
     }
 
     public static IntrinsicObjectReference<Object> newNull() {
-        return new IntrinsicObjectReference<>(Core.java.lang.Object(), Sentinel.Null.NULL);
+        return new IntrinsicObjectReference<>(Core.java.lang.Object(), QNull.NULL);
     }
 
     private IntrinsicObjectReference(TypeDefinition typeDefinition, T val) {

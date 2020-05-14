@@ -1,6 +1,6 @@
 package cc.quarkus.vm.api;
 
-import cc.quarkus.qcc.type.TypeDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
 
 /**
  *

@@ -1,4 +1,6 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.descriptor;
+
+import cc.quarkus.qcc.type.universe.Universe;
 
 public class TypeDescriptorParser {
     public TypeDescriptorParser(Universe universe, String descriptor) {
@@ -36,19 +38,19 @@ public class TypeDescriptorParser {
                     return TypeDescriptor.BOOLEAN;
                 case 'B':
                     consume();
-                    return TypeDescriptor.BYTE;
+                    return TypeDescriptor.INT8;
                 case 'C':
                     consume();
                     return TypeDescriptor.CHAR;
                 case 'S':
                     consume();
-                    return TypeDescriptor.SHORT;
+                    return TypeDescriptor.INT16;
                 case 'I':
                     consume();
-                    return TypeDescriptor.INT;
+                    return TypeDescriptor.INT32;
                 case 'J':
                     consume();
-                    return TypeDescriptor.LONG;
+                    return TypeDescriptor.INT64;
                 case 'F':
                     consume();
                     return TypeDescriptor.FLOAT;

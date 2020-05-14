@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import cc.quarkus.qcc.graph.node.Node;
+import cc.quarkus.qcc.type.QType;
 
 public class StackFrame implements Context {
 
@@ -12,7 +13,7 @@ public class StackFrame implements Context {
     }
 
     @Override
-    public <T> void set(Node<T> node, T value) {
+    public <T extends QType> void set(Node<T> node, T value) {
         if( value instanceof SimpleInterpreterHeap) {
             System.err.println( this + " set " + node + " = " + value);
             new Exception().printStackTrace();
@@ -23,7 +24,7 @@ public class StackFrame implements Context {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T get(Node<T> node) {
+    public <T extends QType> T get(Node<T> node) {
         return (T) this.bindings.get(node);
     }
 

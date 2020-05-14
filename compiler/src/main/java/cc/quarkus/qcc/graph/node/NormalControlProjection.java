@@ -7,12 +7,12 @@ import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.graph.type.InvokeToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
 
 public class NormalControlProjection extends AbstractControlNode<ControlToken> implements Projection {
 
     protected NormalControlProjection(Graph<?> graph, InvokeNode<?> in) {
-        super(graph, in, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);
+        super(graph, in, EphemeralTypeDescriptor.CONTROL_TOKEN);
     }
 
     @Override

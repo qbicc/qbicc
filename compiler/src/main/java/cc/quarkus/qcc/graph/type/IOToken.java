@@ -1,6 +1,8 @@
 package cc.quarkus.qcc.graph.type;
 
-public class IOToken {
+import cc.quarkus.qcc.type.QType;
+
+public class IOToken implements QType {
 
     @Override
     public String toString() {

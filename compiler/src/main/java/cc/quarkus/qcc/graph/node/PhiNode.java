@@ -9,9 +9,10 @@ import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.graph.build.GraphBuilder;
 import cc.quarkus.qcc.graph.build.PhiLocal;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public class PhiNode<V> extends AbstractNode<V> {
+public class PhiNode<V extends QType> extends AbstractNode<V> {
 
     public PhiNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> outType, PhiLocal local) {
         super(graph, control, outType);

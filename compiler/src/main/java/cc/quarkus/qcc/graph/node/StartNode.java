@@ -6,13 +6,12 @@ import java.util.List;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.StartToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.MethodDescriptor;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
 
 public class StartNode extends AbstractControlNode<StartToken> {
 
     public StartNode(Graph<?> graph) {
-        super(graph, TypeDescriptor.EphemeralTypeDescriptor.START_TOKEN);
+        super(graph, EphemeralTypeDescriptor.START_TOKEN);
     }
 
     @Override

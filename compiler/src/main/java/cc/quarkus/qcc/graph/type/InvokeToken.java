@@ -1,8 +1,9 @@
 package cc.quarkus.qcc.graph.type;
 
 import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.QType;
 
-public class InvokeToken implements IOSource, MemorySource, ThrowSource {
+public class InvokeToken implements QType, IOSource, MemorySource, ThrowSource {
 
     public InvokeToken(Object returnValue, ObjectReference throwValue) {
         this.io = new IOToken();

@@ -16,6 +16,7 @@ import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.graph.type.EndToken;
 import cc.quarkus.qcc.graph.type.StartToken;
+import cc.quarkus.qcc.type.QType;
 
 public class InterpreterThread implements Context {
 
@@ -24,16 +25,16 @@ public class InterpreterThread implements Context {
     }
 
 
-    public <V> EndToken<V> execute(Graph<V> graph, Object...arguments) {
+    public <V extends QType> EndToken<V> execute(Graph<V> graph, Object...arguments) {
         return execute(graph, new StartToken(arguments));
     }
 
-    public <V> EndToken<V> execute(Graph<V> graph, List<Object> arguments) {
+    public <V extends QType> EndToken<V> execute(Graph<V> graph, List<Object> arguments) {
         return execute(graph, arguments.toArray());
     }
 
     @SuppressWarnings("unchecked")
-    public <V> EndToken<V> execute(Graph<V> graph, StartToken arguments) {
+    public <V extends QType> EndToken<V> execute(Graph<V> graph, StartToken arguments) {
         //System.err.println( ">> CALL " + graph.getMethod());
         pushContext();
         try {
@@ -99,7 +100,7 @@ public class InterpreterThread implements Context {
     }
 
     @SuppressWarnings("unchecked")
-    protected <T> T getValue(ControlNode<?> discriminator, Node<T> node) {
+    protected <T extends QType> T getValue(ControlNode<?> discriminator, Node<T> node) {
         if (node instanceof PhiNode) {
             return (T) ((PhiNode<?>) node).getValue(discriminator).getValue(peekContext());
         }
@@ -148,17 +149,17 @@ public class InterpreterThread implements Context {
 
 
     @Override
-    public <T> void set(Node<T> node, T val) {
+    public <T extends QType> void set(Node<T> node, T val) {
         peekContext().set(node, val);
     }
 
     @SuppressWarnings("unchecked")
-    protected <T> void set0(Node<T> node, Object val) {
+    protected <T extends QType> void set0(Node<T> node, Object val) {
         set(node, (T) val);
     }
 
     @Override
-    public <T> T get(Node<T> node) {
+    public <T extends QType> T get(Node<T> node) {
         return peekContext().get(node);
     }
 

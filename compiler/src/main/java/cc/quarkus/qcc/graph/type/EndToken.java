@@ -1,9 +1,10 @@
 package cc.quarkus.qcc.graph.type;
 
-import cc.quarkus.qcc.type.CallResult;
+import cc.quarkus.qcc.interpret.CallResult;
 import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.QType;
 
-public class EndToken<V> implements CallResult<V> {
+public class EndToken<V extends QType> implements QType, CallResult<V> {
 
     public EndToken(IOToken io, MemoryToken memory, V returnValue, ObjectReference throwValue) {
         this.io = io;

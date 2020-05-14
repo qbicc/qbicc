@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph.build;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
+import cc.quarkus.qcc.type.QType;
 
 public abstract class Local {
 
@@ -16,9 +17,9 @@ public abstract class Local {
 
     public abstract void store(Node<?> val);
 
-    public abstract <V> Node<V> load(Class<V> type);
+    public abstract <V extends QType> Node<V> load(Class<V> type);
 
-    public abstract <V> Node<V> get(Class<V> type);
+    public abstract <V extends QType> Node<V> get(Class<V> type);
 
     public abstract Local duplicate();
 

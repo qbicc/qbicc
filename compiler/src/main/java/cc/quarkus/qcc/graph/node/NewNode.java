@@ -7,7 +7,8 @@ import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.InterpreterHeap;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.ObjectTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 public class NewNode extends AbstractNode<ObjectReference> {
     public NewNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<ObjectReference> typeDescriptor) {
@@ -18,7 +19,7 @@ public class NewNode extends AbstractNode<ObjectReference> {
     @Override
     public ObjectReference getValue(Context context) {
         InterpreterHeap heap = context.thread().heap();
-        ObjectReference objRef = heap.newObject(((TypeDescriptor.ObjectTypeDescriptor)typeDescriptor).getTypeDefinition());
+        ObjectReference objRef = heap.newObject(((ObjectTypeDescriptor)typeDescriptor).getTypeDefinition());
         return objRef;
     }
 

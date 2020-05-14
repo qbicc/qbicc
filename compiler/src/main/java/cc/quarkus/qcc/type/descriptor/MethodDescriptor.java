@@ -1,8 +1,11 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.descriptor;
 
 import java.util.List;
 
-public interface MethodDescriptor<V> {
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
+
+public interface MethodDescriptor<V extends QType> {
 
     String getDescriptor();
 

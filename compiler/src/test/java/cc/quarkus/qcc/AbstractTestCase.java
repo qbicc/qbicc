@@ -1,8 +1,8 @@
 package cc.quarkus.qcc;
 
 import cc.quarkus.qcc.finders.ClassLoaderClassFinder;
-import cc.quarkus.qcc.type.TypeDefinition;
-import cc.quarkus.qcc.type.Universe;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.universe.Universe;
 import org.junit.Before;
 
 public class AbstractTestCase {

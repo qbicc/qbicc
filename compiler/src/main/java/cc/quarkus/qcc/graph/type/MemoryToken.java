@@ -1,6 +1,8 @@
 package cc.quarkus.qcc.graph.type;
 
-public class MemoryToken {
+import cc.quarkus.qcc.type.QType;
+
+public class MemoryToken implements QType {
 
     @Override
     public String toString() {

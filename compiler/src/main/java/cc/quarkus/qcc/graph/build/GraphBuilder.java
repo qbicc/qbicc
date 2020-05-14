@@ -33,16 +33,22 @@ import cc.quarkus.qcc.graph.node.UnaryIfNode;
 import cc.quarkus.qcc.graph.node.WidenNode;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
-import cc.quarkus.qcc.type.FieldDefinition;
-import cc.quarkus.qcc.type.FieldDescriptor;
-import cc.quarkus.qcc.type.MethodDefinition;
-import cc.quarkus.qcc.type.MethodDescriptor;
-import cc.quarkus.qcc.type.MethodDescriptorParser;
+import cc.quarkus.qcc.type.QDouble;
+import cc.quarkus.qcc.type.QFloat;
+import cc.quarkus.qcc.type.QInt32;
+import cc.quarkus.qcc.type.QInt64;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.QVoid;
+import cc.quarkus.qcc.type.definition.FieldDefinition;
+import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
+import cc.quarkus.qcc.type.definition.MethodDefinition;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptorParser;
 import cc.quarkus.qcc.type.ObjectReference;
-import cc.quarkus.qcc.type.Sentinel;
-import cc.quarkus.qcc.type.TypeDefinition;
-import cc.quarkus.qcc.type.TypeDescriptor;
-import cc.quarkus.qcc.type.Universe;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.universe.Universe;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.InsnList;
@@ -59,7 +65,7 @@ import org.objectweb.asm.tree.VarInsnNode;
 import static cc.quarkus.qcc.graph.node.ConstantNode.*;
 import static org.objectweb.asm.Opcodes.*;
 
-public class GraphBuilder<V> {
+public class GraphBuilder<V extends QType> {
 
     public static final int SLOT_COMPLETION = -1;
 
@@ -199,11 +205,11 @@ public class GraphBuilder<V> {
                         break;
                     }
                     case ISTORE: {
-                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT);
+                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT32);
                         break;
                     }
                     case LSTORE: {
-                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.LONG);
+                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT64);
                         break;
                     }
                     case FSTORE: {
@@ -219,11 +225,11 @@ public class GraphBuilder<V> {
                         break;
                     }
                     case ILOAD: {
-                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT);
+                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT32);
                         break;
                     }
                     case LLOAD: {
-                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.LONG);
+                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT64);
                         break;
                     }
                     case FLOAD: {
@@ -240,7 +246,7 @@ public class GraphBuilder<V> {
                     case FRETURN:
                     case LRETURN:
                     case ARETURN: {
-                        defUse.def(currentControl(), SLOT_COMPLETION, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        defUse.def(currentControl(), SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
                         getEndRegion().addInput(currentControl());
                         nodeManager().clearControl();
                         break;
@@ -261,8 +267,8 @@ public class GraphBuilder<V> {
                         InvokeNode<?> node = new InvokeNode<>(graph(), currentControl(), descriptor).setLine(line);
                         nodeManager().recordControlForBci(bci, node);
                         nodeManager().addControlInputForBci(bci + 1, node.getNormalControlOut());
-                        defUse.def(node, SLOT_IO, TypeDescriptor.EphemeralTypeDescriptor.IO_TOKEN);
-                        defUse.def(node, SLOT_MEMORY, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
+                        defUse.def(node, SLOT_IO, EphemeralTypeDescriptor.IO_TOKEN);
+                        defUse.def(node, SLOT_MEMORY, EphemeralTypeDescriptor.MEMORY_TOKEN);
                         nodeManager().setControl(node.getNormalControlOut());
                         List<TryRange> ranges = nodeManager().getCatchesForBci(bci);
                         for (TryRange range : ranges) {
@@ -274,7 +280,7 @@ public class GraphBuilder<V> {
                         // TODO check for possibility of uncaught avoidance.
                         CatchControlProjection notCaughtProjection = new CatchControlProjection(graph(), node.getThrowControlOut(), node.getExceptionOut(), new CatchMatcher());
                         getEndRegion().addInput(notCaughtProjection);
-                        defUse.def(notCaughtProjection, SLOT_COMPLETION, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        defUse.def(notCaughtProjection, SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
                         break;
                     }
 
@@ -292,16 +298,16 @@ public class GraphBuilder<V> {
                         // TODO check for possibility of uncaught avoidance.
                         CatchControlProjection notCaughtProjection = new CatchControlProjection(graph(), node.getThrowControlOut(), node.getExceptionOut(), new CatchMatcher());
                         getEndRegion().addInput(notCaughtProjection);
-                        defUse.def(notCaughtProjection, SLOT_COMPLETION, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        defUse.def(notCaughtProjection, SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
                         break;
                     }
                 }
             }
         }
 
-        defUse.use(getEndRegion(), SLOT_COMPLETION, TypeDescriptor.EphemeralTypeDescriptor.COMPLETION_TOKEN);
-        defUse.use(getEndRegion(), SLOT_IO, TypeDescriptor.EphemeralTypeDescriptor.IO_TOKEN);
-        defUse.use(getEndRegion(), SLOT_MEMORY, TypeDescriptor.EphemeralTypeDescriptor.MEMORY_TOKEN);
+        defUse.use(getEndRegion(), SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
+        defUse.use(getEndRegion(), SLOT_IO, EphemeralTypeDescriptor.IO_TOKEN);
+        defUse.use(getEndRegion(), SLOT_MEMORY, EphemeralTypeDescriptor.MEMORY_TOKEN);
 
         return defUse;
     }
@@ -477,7 +483,7 @@ public class GraphBuilder<V> {
                     switch (opcode) {
                         case IFEQ:
                         case IFNE: {
-                            Node<Integer> test = pop(Integer.class);
+                            Node<QInt32> test = pop(QInt32.class);
                             node = (IfNode) nodeManager().getControlForBci(bci);
                             ((UnaryIfNode) node).setTest(test);
                             break;
@@ -490,11 +496,11 @@ public class GraphBuilder<V> {
                             break;
                         }
                         case IF_ICMPGE: {
-                            Node<Integer> rhs = pop(Integer.class);
-                            Node<Integer> lhs = pop(Integer.class);
+                            Node<QInt32> rhs = pop(QInt32.class);
+                            Node<QInt32> lhs = pop(QInt32.class);
                             node = (IfNode) nodeManager().getControlForBci(bci);
-                            ((BinaryIfNode<Integer>) node).setLHS(lhs);
-                            ((BinaryIfNode<Integer>) node).setRHS(rhs);
+                            ((BinaryIfNode<QInt32>) node).setLHS(lhs);
+                            ((BinaryIfNode<QInt32>) node).setRHS(rhs);
                             break;
                         }
                         default: {
@@ -596,7 +602,7 @@ public class GraphBuilder<V> {
                         break;
                     }
                     case ISTORE: {
-                        storeInt(((VarInsnNode) instr).var, pop(Integer.class));
+                        storeInt(((VarInsnNode) instr).var, pop(QInt32.class));
                         break;
                     }
                     case LLOAD: {
@@ -616,23 +622,23 @@ public class GraphBuilder<V> {
                         break;
                     }
                     case I2B: {
-                        push(NarrowNode.i2b(graph(), currentControl(), pop(Integer.class)));
+                        push(NarrowNode.i2b(graph(), currentControl(), pop(QInt32.class)));
                         break;
                     }
                     case I2C: {
-                        push(NarrowNode.i2c(graph(), currentControl(), pop(Integer.class)));
+                        push(NarrowNode.i2c(graph(), currentControl(), pop(QInt32.class)));
                         break;
                     }
                     case I2S: {
-                        push(NarrowNode.i2s(graph(), currentControl(), pop(Integer.class)));
+                        push(NarrowNode.i2s(graph(), currentControl(), pop(QInt32.class)));
                         break;
                     }
                     case I2L: {
-                        push(WidenNode.i2l(graph(), currentControl(), pop(Integer.class)));
+                        push(WidenNode.i2l(graph(), currentControl(), pop(QInt32.class)));
                         break;
                     }
                     case L2I: {
-                        push(NarrowNode.l2i(graph(), currentControl(), pop(Long.class)));
+                        push(NarrowNode.l2i(graph(), currentControl(), pop(QInt64.class)));
                         break;
                     }
                     case DUP: {
@@ -646,7 +652,7 @@ public class GraphBuilder<V> {
                     }
                     case POP2: {
                         Node<?> v = pop(null);
-                        if (v.getTypeDescriptor() != TypeDescriptor.LONG && v.getTypeDescriptor() != TypeDescriptor.DOUBLE) {
+                        if (v.getTypeDescriptor() != TypeDescriptor.INT64 && v.getTypeDescriptor() != TypeDescriptor.DOUBLE) {
                             // only pop 1 if double or long.
                             pop(null);
                         }
@@ -655,15 +661,15 @@ public class GraphBuilder<V> {
                     // ----------------------------------------
 
                     case IADD: {
-                        Node<Integer> val1 = pop(Integer.class);
-                        Node<Integer> val2 = pop(Integer.class);
-                        push(nodeFactory().addNode(TypeDescriptor.INT, val1, val2, Integer::sum));
+                        Node<QInt32> val1 = pop(QInt32.class);
+                        Node<QInt32> val2 = pop(QInt32.class);
+                        push(nodeFactory().addNode(TypeDescriptor.INT32, val1, val2, (l, r) -> QInt32.of(l.value() + r.value())));
                         break;
                     }
                     case ISUB: {
-                        Node<Integer> val1 = pop(Integer.class);
-                        Node<Integer> val2 = pop(Integer.class);
-                        push(nodeFactory().subNode(TypeDescriptor.INT, val1, val2, (l, r) -> l - r));
+                        Node<QInt32> val1 = pop(QInt32.class);
+                        Node<QInt32> val2 = pop(QInt32.class);
+                        push(nodeFactory().subNode(TypeDescriptor.INT32, val1, val2, (l, r) -> QInt32.of(l.value() - r.value())));
                         break;
                     }
                     // ----------------------------------------
@@ -700,7 +706,7 @@ public class GraphBuilder<V> {
                         io(node.getIO());
                         memory(node.getMemory());
 
-                        if (returnType != Void.class) {
+                        if (returnType != QVoid.class) {
                             push(node.getResultOut());
                         }
 
@@ -768,8 +774,8 @@ public class GraphBuilder<V> {
 
 
                     case RETURN: {
-                        ConstantNode<Sentinel.Void> val = voidConstant(currentControl());
-                        ReturnNode<Sentinel.Void> ret = nodeFactory().returnNode(val);
+                        ConstantNode<QVoid> val = voidConstant(currentControl());
+                        ReturnNode<QVoid> ret = nodeFactory().returnNode(val);
                         currentFrame().completion(ret);
                         frameOf(getEndRegion()).mergeFrom(currentFrame());
                         nodeManager().clearControl();
@@ -777,8 +783,8 @@ public class GraphBuilder<V> {
                     }
 
                     case IRETURN: {
-                        Node<Integer> val = pop(Integer.class);
-                        ReturnNode<Integer> ret = nodeFactory().returnNode(val);
+                        Node<QInt32> val = pop(QInt32.class);
+                        ReturnNode<QInt32> ret = nodeFactory().returnNode(val);
                         currentFrame().completion(ret);
                         frameOf(getEndRegion()).mergeFrom(currentFrame());
                         nodeManager().clearControl();
@@ -802,30 +808,30 @@ public class GraphBuilder<V> {
         }
     }
 
-    protected <V> PutFieldNode<V> newPutField(FieldDescriptor<V> field) {
-        Node<V> value = pop(field.getTypeDescriptor().valueType());
+    protected <V extends QType> PutFieldNode<V> newPutField(FieldDescriptor<V> field) {
+        Node<V> value = pop(field.getTypeDescriptor().type());
         Node<ObjectReference> objectRef = pop(ObjectReference.class);
         return nodeFactory().putFieldNode(objectRef, value, field, memory());
     }
 
-    protected Node<Integer> loadInt(int index) {
-        return currentFrame().load(index, Integer.class);
+    protected Node<QInt32> loadInt(int index) {
+        return currentFrame().load(index, QInt32.class);
     }
 
-    protected void storeInt(int index, Node<Integer> val) {
+    protected void storeInt(int index, Node<QInt32> val) {
         currentFrame().store(index, val);
     }
 
-    protected Node<Long> loadLong(int index) {
-        return currentFrame().load(index, Long.class);
+    protected Node<QInt64> loadLong(int index) {
+        return currentFrame().load(index, QInt64.class);
     }
 
-    protected Node<Float> loadFloat(int index) {
-        return currentFrame().load(index, Float.class);
+    protected Node<QFloat> loadFloat(int index) {
+        return currentFrame().load(index, QFloat.class);
     }
 
-    protected Node<Double> loadDouble(int index) {
-        return currentFrame().load(index, Double.class);
+    protected Node<QDouble> loadDouble(int index) {
+        return currentFrame().load(index, QDouble.class);
     }
 
     protected Node<ObjectReference> loadObject(int index) {
@@ -871,16 +877,16 @@ public class GraphBuilder<V> {
     }
 
     @SuppressWarnings("UnusedReturnValue")
-    protected <T> Node<T> push(Node<T> node) {
+    protected <T extends QType> Node<T> push(Node<T> node) {
         return currentFrame().push(node);
     }
 
-    protected <T> Node<T> pop(Class<T> type) {
+    protected <T extends QType> Node<T> pop(Class<T> type) {
         return currentFrame().pop(type);
     }
 
     @SuppressWarnings("SameParameterValue")
-    protected <T> Node<T> peek(Class<T> type) {
+    protected <T extends QType> Node<T> peek(Class<T> type) {
         return currentFrame().peek(type);
     }
 

@@ -6,9 +6,10 @@ import java.util.List;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.StartToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public class ParameterProjection<V> extends AbstractNode<V> implements Projection {
+public class ParameterProjection<V extends QType> extends AbstractNode<V> implements Projection {
 
     public ParameterProjection(Graph<?> graph, StartNode in, TypeDescriptor<V> outType, int index) {
         super(graph, in, outType);

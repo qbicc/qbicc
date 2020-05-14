@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.definition;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -7,10 +7,13 @@ import java.util.List;
 
 import cc.quarkus.qcc.interpret.InterpreterThread;
 import cc.quarkus.qcc.interpret.SimpleInterpreterHeap;
+import cc.quarkus.qcc.interpret.CallResult;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
-public interface MethodDefinition<V> extends MethodDescriptor<V> {
+public interface MethodDefinition<V extends QType> extends MethodDescriptor<V> {
 
     InsnList getInstructions();
 

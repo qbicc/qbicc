@@ -8,17 +8,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.graph.type.ExceptionProvider;
-import cc.quarkus.qcc.graph.type.InvokeToken;
-import cc.quarkus.qcc.graph.type.ThrowSource;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.graph.build.CatchMatcher;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
 
 public class CatchControlProjection extends AbstractControlNode<ControlToken> implements Projection, ExceptionProvider {
 
     public CatchControlProjection(Graph<?> graph, ThrowControlProjection control, ExceptionProjection exception, CatchMatcher matcher) {
-        super(graph, control, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);
+        super(graph, control, EphemeralTypeDescriptor.CONTROL_TOKEN);
         this.exception = exception;
         this.matcher = matcher;
     }

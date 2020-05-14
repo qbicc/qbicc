@@ -2,23 +2,17 @@ package cc.quarkus.qcc.graph.node;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Set;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.type.ControlToken;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
 
 public class RegionNode extends AbstractControlNode<ControlToken> {
 
     public RegionNode(Graph<?> graph) {
-        super(graph, TypeDescriptor.EphemeralTypeDescriptor.CONTROL_TOKEN);
-    }
-
-    public void removeUnreachable(Set<ControlNode<?>> reachable) {
-        this.inputs.retainAll(reachable);
-        super.removeUnreachable(reachable);
+        super(graph, EphemeralTypeDescriptor.CONTROL_TOKEN);
     }
 
     public void addInput(ControlNode<?> input) {

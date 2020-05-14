@@ -5,9 +5,10 @@ import java.util.stream.Collectors;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public interface Node<V> {
+public interface Node<V extends QType> {
 
     int getId();
 

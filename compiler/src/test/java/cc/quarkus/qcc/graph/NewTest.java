@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.graph.node.NewNode;
 import cc.quarkus.qcc.type.ObjectReference;
-import cc.quarkus.qcc.type.TypeDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
 import org.junit.Test;
 
 import static org.fest.assertions.api.Assertions.*;

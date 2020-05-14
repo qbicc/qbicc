@@ -1,8 +1,9 @@
 package cc.quarkus.qcc.graph.type;
 
 import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.QType;
 
-public class CompletionToken<V> {
+public class CompletionToken<V> implements QType {
 
     public CompletionToken(V returnValue, ObjectReference throwValue) {
         this.returnValue = returnValue;

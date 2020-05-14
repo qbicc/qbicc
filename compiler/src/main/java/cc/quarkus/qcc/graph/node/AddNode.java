@@ -4,9 +4,11 @@ import java.util.function.BiFunction;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.interpret.Context;
-import cc.quarkus.qcc.type.TypeDescriptor;
+import cc.quarkus.qcc.type.QIntegral;
+import cc.quarkus.qcc.type.QNumeric;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public class AddNode<V extends Number> extends BinaryNode<V,V> {
+public class AddNode<V extends QNumeric> extends BinaryNode<V,V> {
 
     public AddNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> outType, Node<V> lhs, Node<V> rhs, BiFunction<V,V,V> adder) {
         super(graph, control, outType);

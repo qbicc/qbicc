@@ -7,7 +7,7 @@ import java.util.Optional;
 
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.type.TypeDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
 
 public class TryRange {
 

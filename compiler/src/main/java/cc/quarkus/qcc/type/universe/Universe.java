@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package cc.quarkus.qcc.type.universe;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -8,6 +8,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import cc.quarkus.qcc.spi.ClassFinder;
+import cc.quarkus.qcc.type.definition.LazyTypeDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinitionNode;
+import cc.quarkus.qcc.type.definition.UnresolvableClassDefinition;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 
@@ -36,15 +41,15 @@ public class Universe {
             //return PrimitiveTypeDef.VOID;
             return TypeDescriptor.VOID;
         } else if ( name.equals("byte")) {
-            return TypeDescriptor.BYTE;
+            return TypeDescriptor.INT8;
         } else if ( name.equals("char")) {
             return TypeDescriptor.CHAR;
         } else if ( name.equals("short")) {
-            return TypeDescriptor.SHORT;
+            return TypeDescriptor.INT16;
         } else if ( name.equals("int")) {
-            return TypeDescriptor.INT;
+            return TypeDescriptor.INT32;
         } else if ( name.equals("long")) {
-            return TypeDescriptor.LONG;
+            return TypeDescriptor.INT64;
         } else if ( name.equals("boolean")) {
             return TypeDescriptor.BOOLEAN;
         } else if ( name.equals("float")) {
@@ -63,7 +68,7 @@ public class Universe {
         return this.objectTypes.computeIfAbsent(name, (k) -> new LazyTypeDefinition(this, name, resolve));
     }
 
-    TypeDefinition defineClass(String name, ByteBuffer buffer) {
+    public TypeDefinition defineClass(String name, ByteBuffer buffer) {
         ClassReader reader = null;
         try {
             reader = new ClassReader(new ByteBufferInputStream(buffer));
