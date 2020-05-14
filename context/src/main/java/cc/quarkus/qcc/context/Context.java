@@ -242,23 +242,21 @@ public final class Context {
         }
     }
 
-    public static int errors() {
-        Context dc = requireCurrent();
-        dc.lock.lock();
+    public int errors() {
+        lock.lock();
         try {
-            return dc.errors;
+            return errors;
         } finally {
-            dc.lock.unlock();
+            lock.unlock();
         }
     }
 
-    public static int warnings() {
-        Context dc = requireCurrent();
-        dc.lock.lock();
+    public int warnings() {
+        lock.lock();
         try {
-            return dc.warnings;
+            return warnings;
         } finally {
-            dc.lock.unlock();
+            lock.unlock();
         }
     }
 
