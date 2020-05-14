@@ -35,12 +35,7 @@ public class PutFieldNode<V extends QType> extends AbstractNode<MemoryToken> {
 
     @Override
     public List<? extends Node<?>> getPredecessors() {
-        return new ArrayList<>() {{
-            add(getControl());
-            add(objRef);
-            add(val);
-            add(memory);
-        }};
+        return List.of(getControl(), this.objRef, this.val, this.memory);
     }
 
     @Override

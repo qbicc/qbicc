@@ -29,7 +29,7 @@ public class IOProjection extends AbstractNode<IOToken> implements Projection {
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return Collections.singletonList(getControl());
+        return List.of(getControl());
     }
 
     @Override

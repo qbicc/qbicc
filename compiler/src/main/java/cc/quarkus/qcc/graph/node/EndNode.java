@@ -22,12 +22,7 @@ public class EndNode<T extends QType> extends AbstractNode<EndToken> {
 
     @Override
     public List<? extends Node<?>> getPredecessors() {
-        return new ArrayList<>() {{
-            add(getControl());
-            add(io);
-            add(memory);
-            add(completion);
-        }};
+        return List.of(getControl(), this.io, this.memory, this.completion);
     }
 
     public String label() {
@@ -73,7 +68,9 @@ public class EndNode<T extends QType> extends AbstractNode<EndToken> {
     }
 
     private Node<IOToken> io;
+
     private Node<MemoryToken> memory;
+
     private Node<CompletionToken> completion;
 
 }

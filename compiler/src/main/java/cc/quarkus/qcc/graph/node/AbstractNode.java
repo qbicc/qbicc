@@ -58,10 +58,6 @@ public abstract class AbstractNode<V extends QType> implements Node<V> {
 
     public abstract List<? extends Node<?>> getPredecessors();
 
-    //public List<ControlNode<?>> getControlPredecessors() {
-    //return this.predecessors.stream().filter(e->e instanceof ControlNode).map(e->(ControlNode<?>)e).collect(Collectors.toList());
-    //}
-
     public List<Node<?>> getSuccessors() {
         return this.successors;
     }

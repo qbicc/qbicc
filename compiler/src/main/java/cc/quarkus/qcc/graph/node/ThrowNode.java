@@ -42,10 +42,10 @@ public class ThrowNode extends AbstractControlNode<ThrowToken> {
 
     @Override
     public List<? extends Node<?>> getPredecessors() {
-        return new ArrayList<>() {{
-            add(getControl());
-            add(getThrown());
-        }};
+        if ( getThrown() == null ) {
+            return List.of(getControl());
+        }
+        return List.of(getControl(), getThrown());
     }
 
     @Override

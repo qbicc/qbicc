@@ -28,7 +28,7 @@ public class ExceptionProjection extends AbstractNode<ObjectReference> implement
 
     @Override
     public List<? extends Node<?>> getPredecessors() {
-        return Collections.singletonList(getControl());
+        return List.of(getControl());
     }
 
     @Override

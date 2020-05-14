@@ -31,7 +31,7 @@ public class NormalControlProjection extends AbstractControlNode<ControlToken> i
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return Collections.singletonList(getControl());
+        return List.of(getControl());
     }
 
     @Override

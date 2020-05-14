@@ -91,7 +91,7 @@ public class ConstantNode<V extends QType> extends AbstractNode<V> {
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return Collections.singletonList(getControl());
+        return List.of(getControl());
     }
 
     @Override

@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.graph.node;
 
-import java.util.Collections;
 import java.util.List;
 
 import cc.quarkus.qcc.graph.Graph;
@@ -16,7 +15,7 @@ public class StartNode extends AbstractControlNode<StartToken> {
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return Collections.emptyList();
+        return List.of();
     }
 
     @Override

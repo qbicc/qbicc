@@ -120,18 +120,6 @@ public class InvokeNode<V extends QType> extends AbstractControlNode<InvokeToken
         return list;
     }
 
-    /*
-    @Override
-    public void mergeInputs() {
-        getThrowControlOut().frame().io(getIOOut());
-        getThrowControlOut().frame().memory(getMemoryOut());
-
-        getNormalControlOut().frame().io(getIOOut());
-        getNormalControlOut().frame().memory(getMemoryOut());
-        super.mergeInputs();
-    }
-     */
-
     @Override
     public String label() {
         return "<invoke:" + getId() + " (" + getLine() + ")> "

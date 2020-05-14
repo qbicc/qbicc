@@ -24,9 +24,7 @@ public class GetStaticNode<V extends QType> extends AbstractNode<V> {
 
     @Override
     public List<? extends Node<?>> getPredecessors() {
-        return new ArrayList<>() {{
-            add(getControl());
-        }};
+        return List.of(getControl());
     }
 
     @Override

@@ -32,7 +32,7 @@ public abstract class BinaryNode<INPUT_V extends QType, OUTPUT_V extends QType> 
         return this.rhs;
     }
 
-    public INPUT_V getLHSValue(Context context ) {
+    public INPUT_V getLHSValue(Context context) {
         return this.lhs.getValue(context);
     }
 
@@ -42,14 +42,11 @@ public abstract class BinaryNode<INPUT_V extends QType, OUTPUT_V extends QType> 
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return new ArrayList<>() {{
-            add( getControl() );
-            add( getLHS() );
-            add( getRHS() );
-        }};
+        return List.of(getControl(), getLHS(), getRHS());
     }
 
     private Node<INPUT_V> lhs;
+
     private Node<INPUT_V> rhs;
 
 }

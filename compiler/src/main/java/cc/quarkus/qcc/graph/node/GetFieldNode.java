@@ -26,10 +26,7 @@ public class GetFieldNode<V extends QType> extends AbstractNode<V> {
 
     @Override
     public List<? extends Node<?>> getPredecessors() {
-        return new ArrayList<>() {{
-            add( getControl());
-            add( objRef);
-        }};
+        return List.of(getControl(), this.objRef);
     }
 
     @Override

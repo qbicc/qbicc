@@ -46,10 +46,7 @@ public class WidenNode<INPUT_V extends QIntegral, OUTPUT_V extends QIntegral> ex
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return new ArrayList<>() {{
-            add(getControl());
-            add(input);
-        }};
+        return List.of(getControl(), this.input);
     }
 
     @Override

@@ -30,7 +30,7 @@ public class ParameterProjection<V extends QType> extends AbstractNode<V> implem
 
     @Override
     public List<Node<?>> getPredecessors() {
-        return Collections.singletonList(getControl());
+        return List.of(getControl());
     }
 
     public String label() {
