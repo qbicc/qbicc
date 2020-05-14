@@ -1,0 +1,35 @@
+name: QCC Continuous Integration
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-linux:
+    name: "Linux Build"
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out
+      uses: actions/checkout@v2
+    - name: Set up JDK 
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+  build-mac:
+    name: "Mac OS Build"
+    runs-on: macos-latest
+
+    steps:
+    - name: Check out
+      uses: actions/checkout@v2
+    - name: Set up JDK 
+      uses: actions/setup-java@v1
+      with:
+        java-version: 11
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
