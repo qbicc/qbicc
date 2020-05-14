@@ -14,6 +14,7 @@ import cc.quarkus.qcc.graph.type.MemoryProvider;
 import cc.quarkus.qcc.graph.type.MemoryToken;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.interpret.CallResult;
+import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.QType;
 import cc.quarkus.qcc.type.definition.MethodDefinition;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -22,9 +23,17 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 public class InvokeNode<V extends QType> extends AbstractControlNode<InvokeToken> implements IOProvider, MemoryProvider {
 
-    public InvokeNode(Graph<?> graph, ControlNode<?> control, MethodDescriptor<V> methodDescriptor) {
+
+    public enum InvocationType {
+        STATIC,
+        SPECIAL,
+        VIRTUAL
+    }
+
+    public InvokeNode(Graph<?> graph, ControlNode<?> control, MethodDescriptor<V> methodDescriptor, InvocationType invocationType) {
         super(graph, control, EphemeralTypeDescriptor.INVOKE_TOKEN);
         this.methodDescriptor = methodDescriptor;
+        this.invocationType = invocationType;
     }
 
     @Override
@@ -80,7 +89,19 @@ public class InvokeNode<V extends QType> extends AbstractControlNode<InvokeToken
 
     @Override
     public InvokeToken getValue(Context context) {
-        MethodDefinition<V> m = this.methodDescriptor.getOwner().findMethod(this.methodDescriptor);
+        MethodDefinition<V> m = null;
+        switch ( this.invocationType ) {
+            case STATIC:
+                m = this.methodDescriptor.getOwner().findMethod(this.methodDescriptor);
+                break;
+            case SPECIAL:
+                m = this.methodDescriptor.getOwner().findMethod(this.methodDescriptor);
+                break;
+            case VIRTUAL:
+                ObjectReference objRef = (ObjectReference) this.arguments.get(0).getValue(context);
+                m = objRef.getTypeDefinition().findMethod(this.methodDescriptor);
+                break;
+        }
         CallResult<V> result = m.call(context.thread(), this.arguments.stream().map(e -> e.getValue(context)).collect(Collectors.toList()));
         return new InvokeToken(result.getReturnValue(), result.getThrowValue());
     }
@@ -137,13 +158,7 @@ public class InvokeNode<V extends QType> extends AbstractControlNode<InvokeToken
 
     private final MethodDescriptor<V> methodDescriptor;
 
-    //private final TypeDefinition owner;
-
-    //private final String name;
-
-    //private final List<Class<?>> paramTypes;
-
-    //private final TypeDescriptor<V> returnType;
+    private final InvocationType invocationType;
 
     private final List<Node<?>> arguments = new ArrayList<>();
 
