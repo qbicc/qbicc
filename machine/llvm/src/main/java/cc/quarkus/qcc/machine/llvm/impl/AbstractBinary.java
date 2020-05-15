@@ -28,6 +28,7 @@ abstract class AbstractBinary extends AbstractYieldingInstruction implements Bin
     }
 
     Appendable appendTrailer(final Appendable target) throws IOException {
+        target.append(' ');
         type.appendTo(target);
         target.append(' ');
         arg1.appendTo(target);

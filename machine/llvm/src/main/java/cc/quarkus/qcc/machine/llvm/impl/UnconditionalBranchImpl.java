@@ -11,6 +11,6 @@ final class UnconditionalBranchImpl extends AbstractBranch {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(dest.appendTo(super.appendTo(target).append(' ')));
+        return appendTrailer(dest.appendTo(super.appendTo(target).append(' ').append("label").append(' ')));
     }
 }

@@ -62,6 +62,8 @@ public interface BasicBlock extends Value {
 
     ExactBinary ashr(Value type, Value arg1, Value arg2);
 
+    Binary icmp(IntCondition cond, Value type, Value arg1, Value arg2);
+
     Binary and(Value type, Value arg1, Value arg2);
 
     Binary or(Value type, Value arg1, Value arg2);

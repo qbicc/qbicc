@@ -6,6 +6,7 @@ import java.util.List;
 
 import cc.quarkus.qcc.machine.llvm.BasicBlock;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
+import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.Value;
 import cc.quarkus.qcc.machine.llvm.op.Assignment;
 import cc.quarkus.qcc.machine.llvm.op.AtomicRmwInstruction;
@@ -29,10 +30,9 @@ import io.smallrye.common.constraint.Assert;
 final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
     final BasicBlockImpl prev;
     final FunctionDefinitionImpl func;
-    // probably too many for a reverse linked list here
+    final List<AbstractEmittable> phis = new ArrayList<>();
     final List<AbstractEmittable> items = new ArrayList<>();
     String name;
-    boolean started;
     boolean terminated;
 
     BasicBlockImpl(final BasicBlockImpl prev, final FunctionDefinitionImpl func) {
@@ -54,10 +54,9 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         return item;
     }
 
-    private void checkStarted() {
-        if (started) {
-            throw new IllegalStateException("Basic block already started");
-        }
+    private <I extends AbstractEmittable> I addPhi(I item) {
+        phis.add(item);
+        return item;
     }
 
     private void checkTerminated() {
@@ -70,9 +69,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
 
     public Phi phi(final Value type) {
         Assert.checkNotNullParam("type", type);
-        checkStarted();
-        checkTerminated();
-        return add(new PhiImpl(this, (AbstractValue) type));
+        return addPhi(new PhiImpl(this, (AbstractValue) type));
     }
 
     // terminators
@@ -82,7 +79,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         checkTerminated();
         Branch res = add(new UnconditionalBranchImpl((BasicBlockImpl) dest));
         terminated = true;
-        started = true;
         return res;
     }
 
@@ -93,28 +89,24 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         checkTerminated();
         Branch res = add(new ConditionalBranchImpl((AbstractValue) cond, (BasicBlockImpl) ifTrue, (BasicBlockImpl) ifFalse));
         terminated = true;
-        started = true;
         return res;
     }
 
     public Return ret() {
         checkTerminated();
         terminated = true;
-        started = true;
         return add(VoidReturn.INSTANCE);
     }
 
     public Return ret(final Value type, final Value val) {
         checkTerminated();
         terminated = true;
-        started = true;
         return add(new ValueReturn((AbstractValue) type, (AbstractValue) val));
     }
 
     public void unreachable() {
         checkTerminated();
         terminated = true;
-        started = true;
         add(Unreachable.INSTANCE);
     }
 
@@ -123,13 +115,11 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
     public Assignment assign(final Value value) {
         Assert.checkNotNullParam("value", value);
         checkTerminated();
-        started = true;
         return add(new AssignmentImpl(this, (AbstractValue) value));
     }
 
     public Select select(final Value condType, final Value cond, final Value valueType, final Value trueValue, final Value falseValue) {
         checkTerminated();
-        started = true;
         return add(new SelectImpl(this, (AbstractValue) condType, (AbstractValue) cond, (AbstractValue) valueType, (AbstractValue) trueValue, (AbstractValue) falseValue));
     }
 
@@ -138,7 +128,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new AddImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -147,7 +136,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new SubImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -156,7 +144,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new MulImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -165,7 +152,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new ShlImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -174,7 +160,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new UdivImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -183,7 +168,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new SdivImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -192,7 +176,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new LshrImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -201,8 +184,16 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new AshrImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
+    }
+
+    public Binary icmp(final IntCondition cond, final Value type, final Value arg1, final Value arg2) {
+        Assert.checkNotNullParam("cond", cond);
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("arg1", arg1);
+        Assert.checkNotNullParam("arg2", arg2);
+        checkTerminated();
+        return add(new IcmpImpl(this, cond, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
     public Binary and(final Value type, final Value arg1, final Value arg2) {
@@ -210,7 +201,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new AndImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -219,7 +209,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new OrImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -228,7 +217,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new XorImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -237,7 +225,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new URemImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -246,7 +233,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         checkTerminated();
-        started = true;
         return add(new SRemImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
@@ -254,7 +240,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("function", function);
         checkTerminated();
-        started = true;
         return add(new CallImpl(this, (AbstractValue) type, (AbstractValue) function));
     }
 
@@ -263,7 +248,6 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("pointeeType", pointeeType);
         Assert.checkNotNullParam("pointer", pointer);
         checkTerminated();
-        started = true;
         return add(new LoadImpl(this, (AbstractValue) type, (AbstractValue) pointeeType, (AbstractValue) pointer));
     }
 
@@ -273,14 +257,12 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("pointeeType", pointeeType);
         Assert.checkNotNullParam("pointer", pointer);
         checkTerminated();
-        started = true;
         return add(new StoreImpl((AbstractValue) type, (AbstractValue) value, (AbstractValue) pointeeType, (AbstractValue) pointer));
     }
 
     public Fence fence(final OrderingConstraint ordering) {
         Assert.checkNotNullParam("ordering", ordering);
         checkTerminated();
-        started = true;
         return add(new FenceImpl(ordering));
     }
 
@@ -294,21 +276,27 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
 
     @SuppressWarnings("UnusedReturnValue")
     Appendable appendAsBlockTo(final Appendable target) throws IOException {
-        if (! terminated) {
-            throw new IllegalStateException("Basic block not terminated");
-        }
         final BasicBlockImpl prev = this.prev;
         if (prev != null) {
-            prev.appendTo(target);
+            prev.appendAsBlockTo(target);
+        }
+        if (phis.isEmpty() && items.isEmpty()) {
+            // no block;
+            return target;
+        }
+        if (! terminated) {
+            throw new IllegalStateException("Basic block not terminated");
         }
         String name = this.name;
         if (name != null) {
             target.append(name).append(':').append(System.lineSeparator());
         }
-        for (AbstractEmittable item : items) {
-            target.append("  ");
-            item.appendTo(target);
-            target.append(System.lineSeparator());
+        for (List<AbstractEmittable> list : List.of(phis, items)) {
+            for (AbstractEmittable item : list) {
+                target.append("  ");
+                item.appendTo(target);
+                target.append(System.lineSeparator());
+            }
         }
         return target;
     }

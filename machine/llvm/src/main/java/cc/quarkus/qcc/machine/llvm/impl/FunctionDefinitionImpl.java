@@ -7,6 +7,7 @@ import cc.quarkus.qcc.machine.llvm.BasicBlock;
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
 import cc.quarkus.qcc.machine.llvm.DllStorageClass;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
+import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.RuntimePreemption;
 import cc.quarkus.qcc.machine.llvm.Value;
@@ -240,6 +241,10 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
 
     public ExactBinary ashr(final Value type, final Value arg1, final Value arg2) {
         return rootBlock.ashr(type, arg1, arg2);
+    }
+
+    public Binary icmp(final IntCondition cond, final Value type, final Value arg1, final Value arg2) {
+        return rootBlock.icmp(cond, type, arg1, arg2);
     }
 
     public Binary and(final Value type, final Value arg1, final Value arg2) {
