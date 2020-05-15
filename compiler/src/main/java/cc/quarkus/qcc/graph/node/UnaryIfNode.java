@@ -52,7 +52,7 @@ public class UnaryIfNode extends IfNode {
     }
 
     @Override
-    public String toString() {
+    public String label() {
         return "<if:" + getId() + "> " + getOp();
     }
 

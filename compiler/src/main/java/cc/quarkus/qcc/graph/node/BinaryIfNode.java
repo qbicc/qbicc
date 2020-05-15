@@ -69,6 +69,11 @@ public class BinaryIfNode<V extends QType> extends IfNode {
         return List.of(getControl(), lhs, rhs);
     }
 
+    @Override
+    public String label() {
+        return "<if:" + getId() + "> " + getOp();
+    }
+
     private Node<V> lhs;
 
     private Node<V> rhs;

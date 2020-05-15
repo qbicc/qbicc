@@ -15,5 +15,10 @@ public class QPrimitive<JAVA_TYPE> implements QType {
         return false;
     }
 
+    @Override
+    public String toString() {
+        return this.value.toString();
+    }
+
     private final JAVA_TYPE value;
 }
