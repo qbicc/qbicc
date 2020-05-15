@@ -7,3 +7,9 @@ target
 *.ipr
 *~
 out
+a.out
+*.o
+*.s
+*.ll
+*.bc
+

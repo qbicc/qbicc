@@ -9,4 +9,8 @@ public final class Values {
     private Values() {}
 
     public static final Value ZERO = LLVM.ZERO;
+
+    public static Value intConstant(int val) {
+        return LLVM.intConstant(val);
+    }
 }

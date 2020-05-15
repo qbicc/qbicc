@@ -42,5 +42,5 @@ public class ParameterProjection<V extends QType> extends AbstractNode<V> implem
         return label();
     }
 
-    private final int index;
+    public final int index;
 }

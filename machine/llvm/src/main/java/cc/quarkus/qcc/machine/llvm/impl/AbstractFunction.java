@@ -5,11 +5,10 @@ import java.io.IOException;
 import cc.quarkus.qcc.machine.llvm.AddressNaming;
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
 import cc.quarkus.qcc.machine.llvm.DllStorageClass;
-import cc.quarkus.qcc.machine.llvm.Linkage;
-import cc.quarkus.qcc.machine.llvm.Metable;
-import cc.quarkus.qcc.machine.llvm.Visibility;
 import cc.quarkus.qcc.machine.llvm.Function;
+import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.Visibility;
 import io.smallrye.common.constraint.Assert;
 
 abstract class AbstractFunction extends AbstractMetable implements Function {
@@ -242,6 +241,18 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
             return this;
         }
 
+        public Value type() {
+            return type;
+        }
+
+        public Value asValue() {
+            return new AbstractValue() {
+                public Appendable appendTo(final Appendable target) throws IOException {
+                    return target.append('%').append(name);
+                }
+            };
+        }
+
         public Appendable appendTo(final Appendable target) throws IOException {
             if (prev != null) {
                 prev.appendTo(target);
@@ -249,7 +260,7 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
             }
             type.appendTo(target);
             if (name != null) {
-                target.append(' ').append(name);
+                target.append(' ').append('%').append(name);
             }
             return target;
         }

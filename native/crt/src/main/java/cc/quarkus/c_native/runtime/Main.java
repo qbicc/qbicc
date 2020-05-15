@@ -3,7 +3,7 @@ package cc.quarkus.c_native.runtime;
 import static cc.quarkus.c_native.api.CNative.*;
 import static cc.quarkus.c_native.posix.PThread.*;
 
-import cc.quarkus.api.NoVM;
+import cc.quarkus.api.Detached;
 import cc.quarkus.api.NotReachableException;
 import cc.quarkus.c_native.api.Build;
 
@@ -15,7 +15,7 @@ public final class Main {
     }
 
     @export
-    @NoVM
+    @Detached
     public static c_int main(c_int argc, ptr<c_char>[] argv) {
 
         // first set up VM

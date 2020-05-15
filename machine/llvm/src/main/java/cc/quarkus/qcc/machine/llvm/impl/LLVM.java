@@ -40,4 +40,8 @@ public final class LLVM {
     public static Value vector(final boolean vscale, final int dimension, final Value elementType) {
         return new VectorOf(dimension, (AbstractValue) elementType, vscale);
     }
+
+    public static Value intConstant(int val) {
+        return new IntConstant(val);
+    }
 }

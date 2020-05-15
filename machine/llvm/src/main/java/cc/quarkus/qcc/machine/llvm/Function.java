@@ -38,5 +38,9 @@ public interface Function extends Metable {
         Parameter param(Value type);
 
         Parameter name(String name);
+
+        Value type();
+
+        Value asValue();
     }
 }
