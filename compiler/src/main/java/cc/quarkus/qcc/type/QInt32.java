@@ -38,4 +38,5 @@ public class QInt32 extends QPrimitive<Integer> implements QIntegral {
     public int compareTo(QNumeric o) {
         return Integer.compare(value(), o.asInt32().value());
     }
+
 }
