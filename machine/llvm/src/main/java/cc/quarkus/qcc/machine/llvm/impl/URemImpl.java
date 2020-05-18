@@ -8,6 +8,6 @@ final class URemImpl extends AbstractBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append(' ').append("urem"));
+        return appendTrailer(super.appendTo(target).append("urem"));
     }
 }

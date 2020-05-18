@@ -8,6 +8,6 @@ final class UdivImpl extends AbstractExactBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append(' ').append("udiv"));
+        return appendTrailer(super.appendTo(target).append("udiv"));
     }
 }

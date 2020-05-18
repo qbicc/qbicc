@@ -8,6 +8,6 @@ final class AddImpl extends AbstractNuwNswBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append(' ').append("add"));
+        return appendTrailer(super.appendTo(target).append("add"));
     }
 }

@@ -13,6 +13,6 @@ final class IcmpImpl extends AbstractBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append(' ').append("icmp").append(' ').append(cond.name()));
+        return appendTrailer(super.appendTo(target).append("icmp").append(' ').append(cond.name()));
     }
 }

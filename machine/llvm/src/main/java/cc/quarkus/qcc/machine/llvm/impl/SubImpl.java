@@ -8,6 +8,6 @@ final class SubImpl extends AbstractNuwNswBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append(' ').append("sub"));
+        return appendTrailer(super.appendTo(target).append("sub"));
     }
 }

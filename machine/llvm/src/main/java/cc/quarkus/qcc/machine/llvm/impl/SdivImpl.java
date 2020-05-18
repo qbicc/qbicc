@@ -8,6 +8,6 @@ final class SdivImpl extends AbstractExactBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append(' ').append("sdiv"));
+        return appendTrailer(super.appendTo(target).append("sdiv"));
     }
 }

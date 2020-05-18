@@ -8,6 +8,6 @@ final class MulImpl extends AbstractNuwNswBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append(' ').append("mul"));
+        return appendTrailer(super.appendTo(target).append("mul"));
     }
 }

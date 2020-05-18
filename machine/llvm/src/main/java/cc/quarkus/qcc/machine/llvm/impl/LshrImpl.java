@@ -8,6 +8,6 @@ final class LshrImpl extends AbstractExactBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append(' ').append("lshr"));
+        return appendTrailer(super.appendTo(target).append("lshr"));
     }
 }

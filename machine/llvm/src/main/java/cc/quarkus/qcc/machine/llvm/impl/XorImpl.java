@@ -8,6 +8,6 @@ final class XorImpl extends AbstractBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append(' ').append("xor"));
+        return appendTrailer(super.appendTo(target).append("xor"));
     }
 }

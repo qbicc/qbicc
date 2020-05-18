@@ -8,6 +8,6 @@ final class AndImpl extends AbstractBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append(' ').append("and"));
+        return appendTrailer(super.appendTo(target).append("and"));
     }
 }

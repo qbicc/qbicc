@@ -8,6 +8,6 @@ final class AshrImpl extends AbstractExactBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append(' ').append("ashr"));
+        return appendTrailer(super.appendTo(target).append("ashr"));
     }
 }
