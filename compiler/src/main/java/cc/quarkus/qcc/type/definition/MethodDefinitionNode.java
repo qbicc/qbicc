@@ -125,7 +125,7 @@ public class MethodDefinitionNode<V extends QType> extends MethodNode implements
         return getTypeDefinition().getName() + "-" + getName() + getDescriptor();
     }
 
-    protected Graph<V> getGraph() {
+    public Graph<V> getGraph() {
         return this.graph.updateAndGet( (prev)->{
             if ( prev != null ) {
                 return prev;

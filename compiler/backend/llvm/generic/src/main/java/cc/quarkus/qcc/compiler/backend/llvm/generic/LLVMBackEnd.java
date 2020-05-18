@@ -5,9 +5,6 @@ import static cc.quarkus.qcc.machine.llvm.Types.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -97,14 +94,6 @@ public final class LLVMBackEnd implements BackEnd {
                 }
             }
         }
-        // I can only apologise for this
-        Method getGraph;
-        try {
-            getGraph = MethodDefinitionNode.class.getDeclaredMethod("getGraph");
-            getGraph.setAccessible(true);
-        } catch (NoSuchMethodException e) {
-            throw new NoSuchMethodError(e.getMessage());
-        }
         final Module module = LLVM.newModule();
         // now just emit the methods raw
         while (! methodQueue.isEmpty()) {
@@ -117,14 +106,7 @@ public final class LLVMBackEnd implements BackEnd {
             for (TypeDescriptor<?> paramType : paramTypes) {
                 paramVals.add(func.param(typeOf(paramType)).name("p" + idx++).asValue());
             }
-            final Graph<?> graph;
-            try {
-                graph = (Graph<?>) getGraph.invoke(node);
-            } catch (IllegalAccessException e) {
-                throw new IllegalAccessError(e.getMessage());
-            } catch (InvocationTargetException e) {
-                throw new UndeclaredThrowableException(e);
-            }
+            final Graph<?> graph = node.getGraph();
             try {
                 node.writeGraph("/tmp/graph.dot");
             } catch (IOException e) {
