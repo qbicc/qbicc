@@ -9,26 +9,45 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.ArrayDeque;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import cc.quarkus.qcc.compiler.backend.api.BackEnd;
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.graph.Graph;
 import cc.quarkus.qcc.graph.node.AbstractNode;
+import cc.quarkus.qcc.graph.node.AddNode;
+import cc.quarkus.qcc.graph.node.BinaryIfNode;
+import cc.quarkus.qcc.graph.node.BinaryNode;
+import cc.quarkus.qcc.graph.node.CompareOp;
 import cc.quarkus.qcc.graph.node.ConstantNode;
+import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.EndNode;
+import cc.quarkus.qcc.graph.node.IOProjection;
+import cc.quarkus.qcc.graph.node.IfFalseProjection;
+import cc.quarkus.qcc.graph.node.IfNode;
+import cc.quarkus.qcc.graph.node.IfTrueProjection;
+import cc.quarkus.qcc.graph.node.MemoryProjection;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.graph.node.ParameterProjection;
+import cc.quarkus.qcc.graph.node.PhiNode;
+import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.node.ReturnNode;
+import cc.quarkus.qcc.graph.node.StartNode;
+import cc.quarkus.qcc.graph.node.UnaryIfNode;
+import cc.quarkus.qcc.machine.llvm.BasicBlock;
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
+import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Value;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
+import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.type.QInt32;
 import cc.quarkus.qcc.type.QType;
 import cc.quarkus.qcc.type.definition.MethodDefinition;
@@ -93,10 +112,10 @@ public final class LLVMBackEnd implements BackEnd {
             final FunctionDefinition func = module.define(node.name).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL).returns(typeOf(node.getReturnType()));
             int idx = 0;
             final List<TypeDescriptor<?>> paramTypes = node.getParamTypes();
-            final List<Value> paramVals = Arrays.asList(new Value[ paramTypes.size() ]);
+            final Cache cache = new Cache();
+            final List<Value> paramVals = cache.paramValues;
             for (TypeDescriptor<?> paramType : paramTypes) {
-                final Value pVal = func.param(typeOf(paramType)).name("p" + idx).asValue();
-                paramVals.set(idx++, pVal);
+                paramVals.add(func.param(typeOf(paramType)).name("p" + idx++).asValue());
             }
             final Graph<?> graph;
             try {
@@ -111,8 +130,8 @@ public final class LLVMBackEnd implements BackEnd {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            final EndNode<?> end = graph.getEnd();
-            processNode(paramVals, func, end);
+            final StartNode start = graph.getStart();
+            processNode(cache, func, start);
         }
         try {
             try (BufferedWriter w = new BufferedWriter(new OutputStreamWriter(System.out))) {
@@ -137,40 +156,160 @@ public final class LLVMBackEnd implements BackEnd {
         }
     }
 
-    private Value processValueNode(final List<Value> paramVals, final FunctionDefinition func, final AbstractNode<?> node) {
+    private Value valueOf(final Cache cache, final FunctionDefinition func, final BasicBlock block, final AbstractNode<?> node) {
+        Value value = cache.nodeValues.get(node);
+        if (value != null) {
+            return value;
+        }
         if (node instanceof ConstantNode) {
             final ConstantNode<?> constantNode = (ConstantNode<?>) node;
-            final QType value = constantNode.getValue(null);
-            if (value instanceof QInt32) {
-                return Values.intConstant(((QInt32) value).asInt32().value().intValue());
+            final QType qValue = constantNode.getValue(null);
+            if (qValue instanceof QInt32) {
+                value = Values.intConstant(((QInt32) qValue).asInt32().value().intValue());
+                cache.nodeValues.put(node, value);
+                return value;
             }
         } else if (node instanceof ParameterProjection) {
             final ParameterProjection<?> parameterProjection = (ParameterProjection<?>) node;
-            return paramVals.get(parameterProjection.index);
+            return cache.paramValues.get(parameterProjection.index);
+        } else if (node instanceof PhiNode) {
+            final PhiNode<?> phiNode = (PhiNode<?>) node;
+            final Phi phi = block.phi(typeOf(phiNode.inputs.get(0).getTypeDescriptor()));
+            for (Node<?> input : phiNode.inputs) {
+                final Value inputValue = valueOf(cache, func, block, (AbstractNode<?>) input);
+                BasicBlock inputBlock = processRegion(cache, func, (RegionNode) input.getPredecessors().get(0));
+                phi.item(inputValue, inputBlock);
+            }
+            return phi.asLocal();
         }
         throw Assert.unsupported();
     }
 
-    private void processNode(final List<Value> paramVals, final FunctionDefinition func, final EndNode<?> node) {
-        final Node<?> completion = node.getCompletion();
-        processNode(paramVals, func, completion);
+    private void processNode(final Cache cache, final FunctionDefinition func, final StartNode node) {
+        cache.basicBlocksByRegion.put(node, func);
+        processSuccessors(cache, func, func, node.getSuccessors());
     }
 
-    private void processNode(final List<Value> paramVals, final FunctionDefinition func, final Node<?> node) {
+    private void processNode(final Cache cache, final FunctionDefinition func, final BasicBlock block, final Node<?> node) {
+        if (cache.visited.putIfAbsent(node, block) != null) {
+            return;
+        }
         if (node instanceof ReturnNode) {
-            processNode(paramVals, func, (ReturnNode<?>) node);
-        } else if (node instanceof ConstantNode) {
-            // no action needed
-        } else if (node instanceof ParameterProjection) {
-            // no action needed
+            processNode(cache, func, block, (ReturnNode<?>) node);
+        } else if (node instanceof IfNode) {
+            processNode(cache, func, block, (IfNode) node);
+        } else if (node instanceof PhiNode) {
+            processNode(cache, func, block, (PhiNode<?>) node);
+        } else if (node instanceof RegionNode) {
+            final BasicBlock dest = processRegion(cache, func, (RegionNode) node);
+            if (dest != null) {
+                block.br(dest);
+            }
+        } else if (node instanceof IOProjection || node instanceof MemoryProjection || node instanceof ConstantNode || node instanceof ParameterProjection) {
+            processSuccessors(cache, func, block, node.getSuccessors());
+        } else if (node instanceof EndNode) {
+            // no operation
+        } else if (node instanceof BinaryNode) {
+            final BinaryNode<?, ?> binaryNode = (BinaryNode<?, ?>) node;
+            if (! cache.nodeValues.containsKey(binaryNode)) {
+                final AbstractNode<?> lhs = (AbstractNode<?>) binaryNode.getLHS();
+                final AbstractNode<?> rhs = (AbstractNode<?>) binaryNode.getRHS();
+
+                final Value value;
+                if (node instanceof AddNode) {
+                    value = block.add(typeOf(lhs.getTypeDescriptor()), valueOf(cache, func, block, lhs), valueOf(cache, func, block, rhs)).asLocal();
+                } else {
+                    throw Assert.unsupported();
+                }
+                cache.nodeValues.put(binaryNode, value);
+            }
         } else {
             throw Assert.unsupported();
         }
     }
 
-    private void processNode(final List<Value> paramVals, final FunctionDefinition func, final ReturnNode<?> node) {
+    private void processSuccessors(final Cache cache, final FunctionDefinition func, final BasicBlock block, final List<? extends Node<?>> successors) {
+        for (Node<?> successor : successors) {
+            processNode(cache, func, block, successor);
+        }
+    }
+
+    private BasicBlock processRegion(final Cache cache, final FunctionDefinition func, final RegionNode node) {
+        if (node.getSuccessors().get(0) instanceof EndNode) {
+            // ignore this fake region!
+            return null;
+        }
+        final Map<ControlNode<?>, BasicBlock> bbr = cache.basicBlocksByRegion;
+        final BasicBlock existing = bbr.get(node);
+        if (existing != null) {
+            // already processed the region contents
+            return existing;
+        }
+        final BasicBlock newBlock = func.createBlock().name("Region" + node.getId());
+        bbr.put(node, newBlock);
+        for (Node<?> successor : node.getSuccessors()) {
+            processNode(cache, func, newBlock, successor);
+        }
+        return newBlock;
+    }
+
+    private void processNode(final Cache cache, final FunctionDefinition func, final BasicBlock block, final PhiNode<?> node) {
+        // a phi! process all inputs recursively
+        final List<Node<?>> inputs = node.inputs;
+
+        for (Node<?> input : inputs) {
+            processNode(cache, func, block, input);
+        }
+    }
+
+    private void processNode(final Cache cache, final FunctionDefinition func, final BasicBlock block, final IfNode ifNode) {
+        final CompareOp op = ifNode.getOp();
+        final IfTrueProjection trueProjection = ifNode.getTrueOut();
+        final IfFalseProjection falseProjection = ifNode.getFalseOut();
+        final RegionNode ifTrueRegion = (RegionNode) trueProjection.getControlSuccessors().get(0);
+        final RegionNode ifFalseRegion = (RegionNode) falseProjection.getControlSuccessors().get(0);
+        final BasicBlock ifTrue = processRegion(cache, func, ifTrueRegion);
+        final BasicBlock ifFalse = processRegion(cache, func, ifFalseRegion);
+        final IntCondition cond;
+        final Value cmpResult;
+        if (ifNode instanceof UnaryIfNode) {
+            final UnaryIfNode unaryIfNode = (UnaryIfNode) ifNode;
+            switch (op) {
+                case NONNULL: cond = IntCondition.ne; break;
+                case NULL: cond = IntCondition.eq; break;
+                default: throw new IllegalStateException("problem");
+            }
+            final AbstractNode<?> test = (AbstractNode<?>) unaryIfNode.getTest();
+            cmpResult = block.icmp(cond, typeOf(test.getTypeDescriptor()), Values.ZERO, valueOf(cache, func, block, test)).asLocal();
+        } else {
+            assert ifNode instanceof BinaryIfNode;
+            final BinaryIfNode<?> binaryIfNode = (BinaryIfNode<?>) ifNode;
+            switch (op) {
+                case EQUAL: cond = IntCondition.eq; break;
+                case NOT_EQUAL: cond = IntCondition.ne; break;
+                case LESS_THAN: cond = IntCondition.slt; break;
+                case LESS_THAN_OR_EQUAL: cond = IntCondition.sle; break;
+                case GREATER_THAN: cond = IntCondition.sgt; break;
+                case GREATER_THAN_OR_EQUAL: cond = IntCondition.sge; break;
+                default: throw new IllegalStateException("problem");
+            }
+            final AbstractNode<?> lhs = (AbstractNode<?>) binaryIfNode.getLHS();
+            final AbstractNode<?> rhs = (AbstractNode<?>) binaryIfNode.getRHS();
+            cmpResult = block.icmp(cond, typeOf(lhs.getTypeDescriptor()), valueOf(cache, func, block, lhs), valueOf(cache, func, block, rhs)).asLocal();
+        }
+        block.br(cmpResult, ifTrue, ifFalse);
+        // TODO: add phi inputs
+    }
+
+    private void processNode(final Cache cache, final FunctionDefinition func, final BasicBlock block, final ReturnNode<?> node) {
         final AbstractNode<?> input = (AbstractNode<?>) node.getInput();
-        processNode(paramVals, func, input);
-        func.ret(typeOf(input.getTypeDescriptor()), processValueNode(paramVals, func, input));
+        block.ret(typeOf(input.getTypeDescriptor()), valueOf(cache, func, block, input));
+    }
+
+    static final class Cache {
+        final List<Value> paramValues = new ArrayList<>();
+        final Map<Node<?>, BasicBlock> visited = new IdentityHashMap<>();
+        final Map<Node<?>, Value> nodeValues = new IdentityHashMap<>();
+        final Map<ControlNode<?>, BasicBlock> basicBlocksByRegion = new IdentityHashMap<>();
     }
 }

@@ -24,6 +24,14 @@ public class BinaryIfNode<V extends QType> extends IfNode {
         rhs.addSuccessor(this);
     }
 
+    public Node<V> getLHS() {
+        return lhs;
+    }
+
+    public Node<V> getRHS() {
+        return rhs;
+    }
+
     public V getLHSValue(Context context) {
         return this.lhs.getValue(context);
     }

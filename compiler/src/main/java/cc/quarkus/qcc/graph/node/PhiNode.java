@@ -61,7 +61,7 @@ public class PhiNode<V extends QType> extends AbstractNode<V> {
         input.addSuccessor(this);
     }
 
-    private final List<Node<?>> inputs = new ArrayList<>();
+    public final List<Node<?>> inputs = new ArrayList<>();
 
     private final PhiLocal local;
 

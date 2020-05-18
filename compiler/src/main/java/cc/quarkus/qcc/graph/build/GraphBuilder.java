@@ -512,7 +512,12 @@ public class GraphBuilder<V extends QType> {
                             ((UnaryIfNode) node).setTest(test);
                             break;
                         }
-                        case IF_ICMPGE: {
+                        case IF_ICMPEQ:
+                        case IF_ICMPNE:
+                        case IF_ICMPGT:
+                        case IF_ICMPLT:
+                        case IF_ICMPGE:
+                        case IF_ICMPLE: {
                             Node<QInt32> rhs = pop(QInt32.class);
                             Node<QInt32> lhs = pop(QInt32.class);
                             node = (IfNode) nodeManager().getControlForBci(bci);

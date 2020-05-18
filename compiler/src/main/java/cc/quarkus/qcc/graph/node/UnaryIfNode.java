@@ -43,6 +43,10 @@ public class UnaryIfNode extends IfNode {
         test.addSuccessor(this);
     }
 
+    public Node<?> getTest() {
+        return test;
+    }
+
     @Override
     public List<? extends Node<?>> getPredecessors() {
         if ( this.test == null ) {
