@@ -10,4 +10,13 @@ public final class ControlToken implements QType {
     private ControlToken() {
 
     }
+
+    @Override
+    public String toString() {
+        if ( this == NO_CONTROL ) {
+            return "<no-control>";
+        }
+        return "<control>";
+    }
 }
+

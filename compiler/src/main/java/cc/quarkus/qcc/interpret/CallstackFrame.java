@@ -6,9 +6,9 @@ import java.util.Map;
 import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.type.QType;
 
-public class StackFrame implements Context {
+public class CallstackFrame implements Context {
 
-    protected StackFrame(InterpreterThread thread) {
+    protected CallstackFrame(InterpreterThread thread) {
         this.thread = thread;
     }
 

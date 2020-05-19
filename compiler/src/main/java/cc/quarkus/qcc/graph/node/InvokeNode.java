@@ -36,6 +36,10 @@ public class InvokeNode<V extends QType> extends AbstractControlNode<InvokeToken
         this.invocationType = invocationType;
     }
 
+    public TypeDescriptor<V> getReturnType() {
+        return this.methodDescriptor.getReturnType();
+    }
+
     @Override
     public InvokeNode<V> setLine(int line) {
         super.setLine(line);

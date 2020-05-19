@@ -1,11 +1,11 @@
 package cc.quarkus.qcc.graph.node;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cc.quarkus.qcc.graph.Graph;
+import cc.quarkus.qcc.graph.build.PhiData;
 import cc.quarkus.qcc.interpret.Context;
 import cc.quarkus.qcc.graph.build.GraphBuilder;
 import cc.quarkus.qcc.graph.build.PhiLocal;
@@ -14,9 +14,9 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 public class PhiNode<V extends QType> extends AbstractNode<V> {
 
-    public PhiNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> outType, PhiLocal local) {
+    public PhiNode(Graph<?> graph, ControlNode<?> control, TypeDescriptor<V> outType, PhiData data) {
         super(graph, control, outType);
-        this.local = local;
+        this.data = data;
         this.id = COUNTER.incrementAndGet();
     }
 
@@ -33,12 +33,14 @@ public class PhiNode<V extends QType> extends AbstractNode<V> {
 
     @Override
     public String label() {
-        if (this.local.getIndex() == GraphBuilder.SLOT_COMPLETION) {
-            return "<phi:" + getId() + "> completion";
-        } else if (this.local.getIndex() == GraphBuilder.SLOT_IO) {
-            return "<phi:" + getId() + "> i/o";
-        } else if (this.local.getIndex() == GraphBuilder.SLOT_MEMORY) {
-            return "<phi:" + getId() + "> memory";
+        if ( this.data instanceof PhiLocal ) {
+            if (((PhiLocal)this.data).getIndex() == GraphBuilder.SLOT_COMPLETION) {
+                return "<phi:" + getId() + "> completion";
+            } else if (((PhiLocal)this.data).getIndex() == GraphBuilder.SLOT_IO) {
+                return "<phi:" + getId() + "> i/o";
+            } else if (((PhiLocal)this.data).getIndex() == GraphBuilder.SLOT_MEMORY) {
+                return "<phi:" + getId() + "> memory";
+            }
         }
         return "<phi:" + getId() + "> " + getTypeDescriptor().label();
     }
@@ -50,7 +52,7 @@ public class PhiNode<V extends QType> extends AbstractNode<V> {
 
     @SuppressWarnings("unchecked")
     public Node<V> getValue(ControlNode<?> discriminator) {
-        return (Node<V>) this.local.getValue(discriminator);
+        return (Node<V>) this.data.getValue(discriminator);
     }
 
     public void addInput(Node<?> input) {
@@ -63,7 +65,7 @@ public class PhiNode<V extends QType> extends AbstractNode<V> {
 
     public final List<Node<?>> inputs = new ArrayList<>();
 
-    private final PhiLocal local;
+    private final PhiData data;
 
     private static final AtomicInteger COUNTER = new AtomicInteger(0);
 

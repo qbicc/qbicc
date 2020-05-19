@@ -10,11 +10,13 @@ import cc.quarkus.qcc.graph.build.GraphBuilder;
 import cc.quarkus.qcc.type.definition.MethodDefinition;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
 import cc.quarkus.qcc.type.universe.Universe;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class GeneralTest {
 
     @Test
+    @Ignore
     public void testIt() throws FileNotFoundException {
         Universe universe = new Universe(new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
         TypeDefinition c = universe.findClass("cc/quarkus/qcc/MyClass");

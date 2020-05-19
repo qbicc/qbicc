@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.graph.build;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.List;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
 import cc.quarkus.qcc.graph.node.Node;
@@ -24,7 +23,7 @@ public class Frame {
         for (int i = 0; i < locals.length; ++i) {
             this.locals[i] = null;
         }
-        this.stack = new ArrayDeque<>(maxStack);
+        this.stack = new AnalysisStack(control, maxStack);
         this.id = control.getId();
     }
 
@@ -55,12 +54,12 @@ public class Frame {
     }
 
     public <T extends QType> Node<T> pop(Class<T> type) {
-        Node<?> val = this.stack.pop();
+        Node<?> val = this.stack.pop(type);
         return checkType(val, type);
     }
 
     public <T extends QType> Node<T> peek(Class<T> type) {
-        Node<?> val = this.stack.peek();
+        Node<?> val = this.stack.peek(type);
         return checkType(val, type);
     }
 
@@ -155,7 +154,7 @@ public class Frame {
             this.stack.addAll(inbound.stack);
         } else {
             this.stack.clear();
-            this.stack.add(thrown);
+            this.stack.push(thrown);
         }
 
         if (this.completion == null && inbound.completion != null) {
@@ -201,6 +200,14 @@ public class Frame {
         }
     }
 
+    public List<PhiStackItem> ensureStackPhis(ControlNode<?> src, List<TypeDescriptor<?>> types, int offset) {
+        return this.stack.ensureStackPhis(src, types, offset);
+    }
+
+    public AnalysisStack stack() {
+        return this.stack;
+    }
+
     public String toString() {
         return "frame-" + this.id;
     }
@@ -219,7 +226,7 @@ public class Frame {
 
     private Local io;
 
-    private Deque<Node<?>> stack;
+    private AnalysisStack stack;
 
     private Local completion;
 }

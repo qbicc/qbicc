@@ -45,13 +45,6 @@ public class BinaryIfNode<V extends QType> extends IfNode {
     public IfToken getValue(Context context) {
         V lhsValue = getLHSValue(context);
         V rhsValue = getRHSValue(context);
-        switch (getOp()) {
-            case EQUAL:
-                return IfToken.of(lhsValue.equals(rhsValue));
-            case NOT_EQUAL:
-                return IfToken.of(lhsValue.equals(rhsValue));
-
-        }
 
         if (lhsValue instanceof Comparable && rhsValue instanceof Comparable) {
             switch (getOp()) {
@@ -63,7 +56,19 @@ public class BinaryIfNode<V extends QType> extends IfNode {
                     return IfToken.of(((Comparable) lhsValue).compareTo(rhsValue) > 0);
                 case GREATER_THAN_OR_EQUAL:
                     return IfToken.of(((Comparable) lhsValue).compareTo(rhsValue) >= 0);
+                case EQUAL:
+                    return IfToken.of(((Comparable) lhsValue).compareTo(rhsValue) == 0);
+                case NOT_EQUAL:
+                    return IfToken.of(((Comparable) lhsValue).compareTo(rhsValue) != 0);
             }
+        }
+
+        switch (getOp()) {
+            case EQUAL:
+                return IfToken.of(lhsValue.equals(rhsValue));
+            case NOT_EQUAL:
+                return IfToken.of(lhsValue.equals(rhsValue));
+
         }
 
         throw new UnsupportedOperationException(lhsValue + " " + getOp() + " " + rhsValue);
