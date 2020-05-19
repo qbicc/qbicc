@@ -22,5 +22,12 @@ public class IfToken implements QType {
         return FALSE;
     }
 
+    @Override
+    public String toString() {
+        return "IfToken{" +
+                "value=" + value +
+                '}';
+    }
+
     private final boolean value;
 }

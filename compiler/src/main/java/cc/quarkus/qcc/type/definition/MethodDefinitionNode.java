@@ -109,20 +109,7 @@ public class MethodDefinitionNode<V extends QType> extends MethodNode implements
 
     @Override
     public void writeGraph(Path path) throws IOException {
-        if (Files.isDirectory(path)) {
-            path = path.resolve(defaultGraphName());
-            path = path.getParent().resolve( path.getFileName() + ".dot");
-        }
-
-        Files.createDirectories(path.getParent());
-
-        try ( DotWriter writer = new DotWriter(path) ) {
-            writer.write(getGraph());
-        }
-    }
-
-    protected String defaultGraphName() {
-        return getTypeDefinition().getName() + "-" + getName() + getDescriptor();
+        getGraph().write(path);
     }
 
     public Graph<V> getGraph() {

@@ -39,4 +39,11 @@ public class QInt32 extends QPrimitive<Integer> implements QIntegral {
         return Integer.compare(value(), o.asInt32().value());
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if ( obj instanceof QInt32) {
+            return value().equals(((QInt32) obj).value());
+        }
+        return false;
+    }
 }

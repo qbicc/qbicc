@@ -3,11 +3,14 @@ package cc.quarkus.qcc.graph.build;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import cc.quarkus.qcc.graph.node.ControlNode;
+import cc.quarkus.qcc.graph.node.Node;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 public class DefUse {
@@ -16,50 +19,109 @@ public class DefUse {
         this.nodeManager = nodeManager;
     }
 
-    public Entry def(ControlNode<?> src, int index, TypeDescriptor<?> type) {
-        if (this.defs.stream().anyMatch(e -> (e.src == src) && (e.index == index))) {
+    public LocalEntry defLocal(ControlNode<?> src, int index, TypeDescriptor<?> type) {
+        if (this.localDefs.stream().anyMatch(e -> (e.src == src) && (e.index == index))) {
             return null;
         }
-        Entry entry = new Entry(src, index, type);
-        this.defs.add(entry);
+        LocalEntry entry = new LocalEntry(src, index, type);
+        this.localDefs.add(entry);
         return entry;
     }
 
-    public void use(ControlNode<?> src, int index, TypeDescriptor<?> type) {
-        //Set<Entry> set = this.uses.computeIfAbsent(src, k -> new HashSet<>());
-        //set.add(new Entry(index, type));
-        this.uses.add(new Entry(src, index, type));
+    public void useLocal(ControlNode<?> src, int index, TypeDescriptor<?> type) {
+        this.localUses.add(new LocalEntry(src, index, type));
     }
 
-    public boolean isAliveAt(ControlNode<?> node, int index) {
-        boolean result = this.uses.stream().anyMatch(e -> e.src == node && e.index == index);
-        return result;
+    public boolean isLocalAliveAt(ControlNode<?> node, int index) {
+        return this.localUses.stream().anyMatch(e -> e.src == node && e.index == index);
     }
 
     public void completePhis() {
-        for (PhiLocal phi : this.phis) {
+        for (PhiData phi : this.phiData) {
             phi.complete(frameManager());
         }
     }
 
+    public void push(ControlNode<?> control, TypeDescriptor<?> type) {
+        StackEntry entry = this.stackEntries.computeIfAbsent(control, StackEntry::new);
+        entry.push(type);
+    }
+
+    public void pop(ControlNode<?> control, TypeDescriptor<?> type) {
+        StackEntry entry = this.stackEntries.computeIfAbsent(control, StackEntry::new);
+        entry.pop(type);
+    }
+
     protected void placePhis() {
-        Deque<Entry> worklist = new ArrayDeque<>(this.defs);
+        Deque<LocalEntry> worklist = new ArrayDeque<>(this.localDefs);
 
         while (!worklist.isEmpty()) {
 
-            Entry entry = worklist.pop();
+            LocalEntry entry = worklist.pop();
 
             Set<ControlNode<?>> df = nodeManager().dominanceFrontier(entry.src);
 
             for (ControlNode<?> dest : df) {
-                if (isAliveAt(dest, entry.index)) {
-                    this.phis.add(frameManager().of(dest).ensurePhi(entry.index, entry.src, entry.type));
+                if (isLocalAliveAt(dest, entry.index)) {
+                    this.phiData.add(frameManager().of(dest).ensurePhi(entry.index, entry.src, entry.type));
 
-                    Entry newEntry = def(dest, entry.index, entry.type);
+                    LocalEntry newEntry = defLocal(dest, entry.index, entry.type);
                     if (newEntry != null) {
                         worklist.add(newEntry);
                     }
                 }
+            }
+        }
+
+        calculateStackHeights();
+        rectifyTails();
+
+        this.stackEntries.forEach((control, entry) -> {
+            List<TypeDescriptor<?>> defs = entry.defvar();
+            Set<ControlNode<?>> df = nodeManager.dominanceFrontier(entry.src);
+            for (ControlNode<?> dest : df) {
+                this.phiData.addAll(frameManager().of(dest).ensureStackPhis(entry.src, defs, this.heights.get(dest) - defs.size()));
+            }
+        });
+    }
+
+    protected void rectifyTails() {
+        this.stackEntries.forEach((control, entry) -> {
+            if (control.getControlSuccessors().size() == 1) {
+                Node<?> next = control.getControlSuccessors().get(0);
+                if (next.getControlPredecessors().size() == 1) {
+                    StackEntry nextEntries = this.stackEntries.get(next);
+                    if ( nextEntries != null ) {
+                        entry.rectify(this.stackEntries.get(next).uevar);
+                    }
+                }
+            }
+        });
+    }
+
+    protected void calculateStackHeights() {
+
+        ControlNode<?> start = nodeManager.getControlForBci(-1);
+        Deque<ControlNode<?>> worklist = new ArrayDeque<>();
+        worklist.add(start);
+
+        for (ControlNode<?> each : nodeManager().getAllControlNodes()) {
+            this.heights.put(each, -1);
+        }
+
+        while (!worklist.isEmpty()) {
+            ControlNode<?> cur = worklist.pop();
+            int curHeight = this.heights.get(cur);
+
+            int inboundHeight = 0;
+            for (ControlNode<?> each : cur.getControlPredecessors()) {
+                inboundHeight = Math.max(this.heights.get(each), inboundHeight);
+            }
+            StackEntry entry = this.stackEntries.get(cur);
+            int newHeight = inboundHeight + (entry == null ? 0 : entry.defvar.size());
+            if (newHeight != curHeight) {
+                this.heights.put(cur, newHeight);
+                worklist.addAll(cur.getControlSuccessors());
             }
         }
     }
@@ -74,14 +136,18 @@ public class DefUse {
 
     private final NodeManager nodeManager;
 
-    private List<Entry> defs = new ArrayList<>();
+    private List<LocalEntry> localDefs = new ArrayList<>();
 
-    private List<Entry> uses = new ArrayList<>();
+    private List<LocalEntry> localUses = new ArrayList<>();
 
-    private Set<PhiLocal> phis = new HashSet<>();
+    private Set<PhiData> phiData = new HashSet<>();
 
-    public static class Entry {
-        Entry(ControlNode<?> src, int index, TypeDescriptor<?> type) {
+    Map<ControlNode<?>, Integer> heights = new HashMap<>();
+
+    private Map<ControlNode<?>, StackEntry> stackEntries = new HashMap<>();
+
+    public static class LocalEntry {
+        LocalEntry(ControlNode<?> src, int index, TypeDescriptor<?> type) {
             this.src = src;
             this.index = index;
             this.type = type;
@@ -101,6 +167,57 @@ public class DefUse {
         final int index;
 
         final TypeDescriptor<?> type;
+    }
+
+    private static class StackEntry {
+        StackEntry(ControlNode<?> src) {
+            this.src = src;
+        }
+
+        public void rectify(List<TypeDescriptor<?>> uevar) {
+            for ( int i = uevar.size() - 1; i >= 0 ; --i) {
+                pop(uevar.get(i).baseType());
+            }
+        }
+
+        void push(TypeDescriptor<?> type) {
+            this.defvar.push(type);
+        }
+
+        void pop(TypeDescriptor<?> type) {
+            if (!this.defvar.isEmpty()) {
+                TypeDescriptor<?> popped = this.defvar.pop();
+                if (type == null) {
+                    return;
+                }
+                assert type == popped : "attempted to pop " + type + " but received " + popped;
+            } else {
+                this.uevar.add(type);
+            }
+        }
+
+        List<TypeDescriptor<?>> uevar() {
+            return this.uevar;
+        }
+
+        List<TypeDescriptor<?>> defvar() {
+            return new ArrayList<>(this.defvar);
+        }
+
+        @Override
+        public String toString() {
+            return "StackEntry{" +
+                    "src=" + src +
+                    ", uevar=" + uevar +
+                    ", defvar=" + defvar +
+                    '}';
+        }
+
+        private final ControlNode<?> src;
+
+        private List<TypeDescriptor<?>> uevar = new ArrayList<>();
+
+        private Deque<TypeDescriptor<?>> defvar = new ArrayDeque<>();
     }
 
 }

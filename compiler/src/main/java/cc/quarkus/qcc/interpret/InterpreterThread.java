@@ -136,14 +136,14 @@ public class InterpreterThread implements Context {
     }
 
     protected void pushContext() {
-        this.callStack.push(new StackFrame(thread()));
+        this.callStack.push(new CallstackFrame(thread()));
     }
 
     protected void popContext() {
         this.callStack.pop();
     }
 
-    protected StackFrame peekContext() {
+    protected CallstackFrame peekContext() {
         return this.callStack.peek();
     }
 
@@ -177,7 +177,7 @@ public class InterpreterThread implements Context {
         return this.heap;
     }
 
-    private Deque<StackFrame> callStack = new ArrayDeque<>();
+    private Deque<CallstackFrame> callStack = new ArrayDeque<>();
 
     private EndToken<?> endToken;
 

@@ -44,13 +44,15 @@ public class FrameManager {
 
         for (ControlNode<?> each : control.getControlPredecessors()) {
             Frame eachFrame = of(each);
-            if ( control instanceof ExceptionProvider) {
-                frame.mergeFrom( eachFrame, ((ExceptionProvider) control).getException());
+            if (control instanceof ExceptionProvider) {
+                frame.mergeFrom(eachFrame, ((ExceptionProvider) control).getException());
             } else {
-                frame.mergeFrom( eachFrame );
+                frame.mergeFrom(eachFrame);
             }
         }
+    }
 
+    protected void mergeOutputs(ControlNode<?> control) {
         for (ControlNode<?> each : control.getControlSuccessors()) {
             Frame eachFrame = of(each);
             if ( control instanceof IOProvider) {
@@ -61,6 +63,7 @@ public class FrameManager {
             }
             if ( each instanceof Projection) {
                 mergeInputs(each);
+                mergeOutputs(each);
             }
         }
     }

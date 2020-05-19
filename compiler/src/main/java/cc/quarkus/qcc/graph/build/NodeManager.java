@@ -126,11 +126,21 @@ public class NodeManager {
             }
             setControl(chain);
         }
+    }
 
+    public void finalizeControlForInstructions(int bci) {
+        List<ControlNode<?>> chain = getControlChainForBci(bci);
+        if ( chain != null ) {
+            mergeOutputs(chain.get(chain.size()-1));
+        }
     }
 
     protected void mergeInputs(ControlNode<?> control) {
         frameManager().mergeInputs(control);
+    }
+
+    protected void mergeOutputs(ControlNode<?> control) {
+        frameManager().mergeOutputs(control);
     }
 
     Set<ControlNode<?>> getAllControlNodes() {

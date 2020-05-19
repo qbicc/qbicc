@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph.build;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,6 +34,7 @@ import cc.quarkus.qcc.graph.node.UnaryIfNode;
 import cc.quarkus.qcc.graph.node.WidenNode;
 import cc.quarkus.qcc.graph.type.IOToken;
 import cc.quarkus.qcc.graph.type.MemoryToken;
+import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.QDouble;
 import cc.quarkus.qcc.type.QFloat;
 import cc.quarkus.qcc.type.QInt32;
@@ -40,14 +42,14 @@ import cc.quarkus.qcc.type.QInt64;
 import cc.quarkus.qcc.type.QType;
 import cc.quarkus.qcc.type.QVoid;
 import cc.quarkus.qcc.type.definition.FieldDefinition;
-import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
 import cc.quarkus.qcc.type.definition.MethodDefinition;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptorParser;
-import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
 import cc.quarkus.qcc.type.descriptor.EphemeralTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptorParser;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptorParser;
 import cc.quarkus.qcc.type.universe.Universe;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.FieldInsnNode;
@@ -157,18 +159,31 @@ public class GraphBuilder<V extends QType> {
                 line = ((LineNumberNode) instr).line;
             }
 
+
             if (instr instanceof JumpInsnNode) {
                 LabelNode dest = ((JumpInsnNode) instr).label;
                 int destIndex = instrList.indexOf(dest);
                 switch (opcode) {
+
                     case IF_ICMPEQ:
                     case IF_ICMPNE:
                     case IF_ICMPGE:
                     case IF_ICMPLE:
                     case IF_ICMPGT:
-                    case IF_ICMPLT:
+                    case IF_ICMPLT: {
+                        defUse.pop(currentControl(), TypeDescriptor.INT32);
+                        defUse.pop(currentControl(), TypeDescriptor.INT32);
+                        BinaryIfNode<?> node = nodeFactory().binaryIfNode(op(opcode));
+                        nodeManager().recordControlForBci(bci, node);
+                        nodeManager().addControlInputForBci(bci + 1, node.getFalseOut());
+                        nodeManager().addControlInputForBci(destIndex, node.getTrueOut());
+                        nodeManager().setControl(node.getFalseOut());
+                        break;
+                    }
                     case IF_ACMPEQ:
                     case IF_ACMPNE: {
+                        defUse.pop(currentControl(), TypeDescriptor.OBJECT);
+                        defUse.pop(currentControl(), TypeDescriptor.OBJECT);
                         BinaryIfNode<?> node = nodeFactory().binaryIfNode(op(opcode));
                         nodeManager().recordControlForBci(bci, node);
                         nodeManager().addControlInputForBci(bci + 1, node.getFalseOut());
@@ -181,9 +196,19 @@ public class GraphBuilder<V extends QType> {
                     case IFGE:
                     case IFLE:
                     case IFGT:
-                    case IFLT:
+                    case IFLT: {
+                        defUse.pop(currentControl(), TypeDescriptor.INT32);
+                        defUse.pop(currentControl(), TypeDescriptor.INT32);
+                        UnaryIfNode node = nodeFactory().unaryIfNode(op(opcode));
+                        nodeManager().recordControlForBci(bci, node);
+                        nodeManager().addControlInputForBci(bci + 1, node.getFalseOut());
+                        nodeManager().addControlInputForBci(destIndex, node.getTrueOut());
+                        nodeManager().setControl(node.getFalseOut());
+                        break;
+                    }
                     case IFNULL:
                     case IFNONNULL: {
+                        defUse.pop(currentControl(), TypeDescriptor.OBJECT);
                         UnaryIfNode node = nodeFactory().unaryIfNode(op(opcode));
                         nodeManager().recordControlForBci(bci, node);
                         nodeManager().addControlInputForBci(bci + 1, node.getFalseOut());
@@ -199,54 +224,106 @@ public class GraphBuilder<V extends QType> {
                 }
             } else {
                 nodeManager().initializeControlForStructure(bci);
+                //System.err.println( this.method + " structure " + bci + " " + Mnemonics.of(opcode) + "     " + currentControl());
                 switch (opcode) {
+                    case ICONST_0:
+                    case ICONST_1:
+                    case ICONST_2:
+                    case ICONST_3:
+                    case ICONST_4:
+                    case ICONST_5:
+                    case ICONST_M1:
+                    case BIPUSH: {
+                        defUse.push(currentControl(), TypeDescriptor.INT32);
+                        break;
+                    }
                     case ASTORE: {
-                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.OBJECT);
+                        defUse.pop(currentControl(), TypeDescriptor.OBJECT);
+                        defUse.defLocal(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.OBJECT);
                         break;
                     }
                     case ISTORE: {
-                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT32);
+                        defUse.pop(currentControl(), TypeDescriptor.INT32);
+                        defUse.defLocal(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT32);
                         break;
                     }
                     case LSTORE: {
-                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT64);
+                        defUse.pop(currentControl(), TypeDescriptor.INT64);
+                        defUse.defLocal(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT64);
                         break;
                     }
                     case FSTORE: {
-                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.FLOAT);
+                        defUse.pop(currentControl(), TypeDescriptor.FLOAT);
+                        defUse.defLocal(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.FLOAT);
                         break;
                     }
                     case DSTORE: {
-                        defUse.def(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.DOUBLE);
+                        defUse.pop(currentControl(), TypeDescriptor.DOUBLE);
+                        defUse.defLocal(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.DOUBLE);
                         break;
                     }
                     case ALOAD: {
-                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.OBJECT);
+                        defUse.push(currentControl(), TypeDescriptor.OBJECT);
+                        defUse.useLocal(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.OBJECT);
                         break;
                     }
                     case ILOAD: {
-                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT32);
+                        defUse.push(currentControl(), TypeDescriptor.INT32);
+                        defUse.useLocal(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT32);
                         break;
                     }
                     case LLOAD: {
-                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT64);
+                        defUse.push(currentControl(), TypeDescriptor.INT64);
+                        defUse.useLocal(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.INT64);
                         break;
                     }
                     case FLOAD: {
-                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.FLOAT);
+                        defUse.push(currentControl(), TypeDescriptor.FLOAT);
+                        defUse.useLocal(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.FLOAT);
                         break;
                     }
                     case DLOAD: {
-                        defUse.use(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.DOUBLE);
+                        defUse.push(currentControl(), TypeDescriptor.DOUBLE);
+                        defUse.useLocal(currentControl(), ((VarInsnNode) instr).var, TypeDescriptor.DOUBLE);
                         break;
                     }
-                    case RETURN:
-                    case IRETURN:
-                    case DRETURN:
-                    case FRETURN:
-                    case LRETURN:
+                    case RETURN: {
+                        defUse.defLocal(currentControl(), SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        getEndRegion().addInput(currentControl());
+                        nodeManager().clearControl();
+                        break;
+                    }
+                    case IRETURN: {
+                        defUse.pop(currentControl(), TypeDescriptor.INT32);
+                        defUse.defLocal(currentControl(), SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        getEndRegion().addInput(currentControl());
+                        nodeManager().clearControl();
+                        break;
+                    }
+                    case DRETURN: {
+                        defUse.pop(currentControl(), TypeDescriptor.DOUBLE);
+                        defUse.defLocal(currentControl(), SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        getEndRegion().addInput(currentControl());
+                        nodeManager().clearControl();
+                        break;
+                    }
+                    case FRETURN: {
+                        defUse.pop(currentControl(), TypeDescriptor.FLOAT);
+                        defUse.defLocal(currentControl(), SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        getEndRegion().addInput(currentControl());
+                        nodeManager().clearControl();
+                        break;
+                    }
+                    case LRETURN: {
+                        defUse.pop(currentControl(), TypeDescriptor.INT64);
+                        defUse.defLocal(currentControl(), SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        getEndRegion().addInput(currentControl());
+                        nodeManager().clearControl();
+                        break;
+                    }
                     case ARETURN: {
-                        defUse.def(currentControl(), SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        defUse.pop(currentControl(), TypeDescriptor.OBJECT);
+                        defUse.defLocal(currentControl(), SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
                         getEndRegion().addInput(currentControl());
                         nodeManager().clearControl();
                         break;
@@ -267,8 +344,14 @@ public class GraphBuilder<V extends QType> {
                         InvokeNode<?> node = new InvokeNode<>(graph(), currentControl(), descriptor, invocationType(opcode)).setLine(line);
                         nodeManager().recordControlForBci(bci, node);
                         nodeManager().addControlInputForBci(bci + 1, node.getNormalControlOut());
-                        defUse.def(node, SLOT_IO, EphemeralTypeDescriptor.IO_TOKEN);
-                        defUse.def(node, SLOT_MEMORY, EphemeralTypeDescriptor.MEMORY_TOKEN);
+
+                        for (TypeDescriptor<?> paramType : descriptor.getParamTypes()) {
+                            defUse.pop(node, paramType);
+                        }
+
+                        defUse.defLocal(node, SLOT_IO, EphemeralTypeDescriptor.IO_TOKEN);
+                        defUse.defLocal(node, SLOT_MEMORY, EphemeralTypeDescriptor.MEMORY_TOKEN);
+
                         nodeManager().setControl(node.getNormalControlOut());
                         List<TryRange> ranges = nodeManager().getCatchesForBci(bci);
                         for (TryRange range : ranges) {
@@ -280,10 +363,23 @@ public class GraphBuilder<V extends QType> {
                         // TODO check for possibility of uncaught avoidance.
                         CatchControlProjection notCaughtProjection = new CatchControlProjection(graph(), node.getThrowControlOut(), node.getExceptionOut(), new CatchMatcher());
                         getEndRegion().addInput(notCaughtProjection);
-                        defUse.def(notCaughtProjection, SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        defUse.defLocal(notCaughtProjection, SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
                         break;
                     }
-
+                    case PUTFIELD: {
+                        TypeDescriptorParser parser = new TypeDescriptorParser(Universe.instance(), ((FieldInsnNode)instr).desc);
+                        TypeDescriptor<?> type = parser.parseType();
+                        defUse.pop(currentControl(), type.baseType());
+                        defUse.pop(currentControl(), TypeDescriptor.OBJECT);
+                        break;
+                    }
+                    case GETFIELD: {
+                        TypeDescriptorParser parser = new TypeDescriptorParser(Universe.instance(), ((FieldInsnNode)instr).desc);
+                        TypeDescriptor<?> type = parser.parseType();
+                        defUse.pop(currentControl(), TypeDescriptor.OBJECT);
+                        defUse.push(currentControl(), type.baseType());
+                        break;
+                    }
                     case ATHROW: {
                         ThrowNode node = new ThrowNode(graph(), currentControl());
                         nodeManager().recordControlForBci(bci, node);
@@ -298,16 +394,16 @@ public class GraphBuilder<V extends QType> {
                         // TODO check for possibility of uncaught avoidance.
                         CatchControlProjection notCaughtProjection = new CatchControlProjection(graph(), node.getThrowControlOut(), node.getExceptionOut(), new CatchMatcher());
                         getEndRegion().addInput(notCaughtProjection);
-                        defUse.def(notCaughtProjection, SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
+                        defUse.defLocal(notCaughtProjection, SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
                         break;
                     }
                 }
             }
         }
 
-        defUse.use(getEndRegion(), SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
-        defUse.use(getEndRegion(), SLOT_IO, EphemeralTypeDescriptor.IO_TOKEN);
-        defUse.use(getEndRegion(), SLOT_MEMORY, EphemeralTypeDescriptor.MEMORY_TOKEN);
+        defUse.useLocal(getEndRegion(), SLOT_COMPLETION, EphemeralTypeDescriptor.COMPLETION_TOKEN);
+        defUse.useLocal(getEndRegion(), SLOT_IO, EphemeralTypeDescriptor.IO_TOKEN);
+        defUse.useLocal(getEndRegion(), SLOT_MEMORY, EphemeralTypeDescriptor.MEMORY_TOKEN);
 
         return defUse;
     }
@@ -469,7 +565,11 @@ public class GraphBuilder<V extends QType> {
         getEnd().setMemory(frameOf(getEndRegion()).memory());
         getEnd().setCompletion(frameOf(getEndRegion()).completion());
 
-
+        try {
+            this.graph.write("target/");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return this.graph;
     }
 
@@ -512,12 +612,12 @@ public class GraphBuilder<V extends QType> {
                             ((UnaryIfNode) node).setTest(test);
                             break;
                         }
-                        case IF_ICMPEQ:
-                        case IF_ICMPNE:
-                        case IF_ICMPGT:
-                        case IF_ICMPLT:
                         case IF_ICMPGE:
-                        case IF_ICMPLE: {
+                        case IF_ICMPGT:
+                        case IF_ICMPLE:
+                        case IF_ICMPLT:
+                        case IF_ICMPNE:
+                        case IF_ICMPEQ: {
                             Node<QInt32> rhs = pop(QInt32.class);
                             Node<QInt32> lhs = pop(QInt32.class);
                             node = (IfNode) nodeManager().getControlForBci(bci);
@@ -710,7 +810,7 @@ public class GraphBuilder<V extends QType> {
                     case INVOKEVIRTUAL: {
                         InvokeNode<?> node = (InvokeNode<?>) currentControl();
 
-                        Class<?> returnType = node.getType();
+                        //Class<?> returnType = node.getType();
 
                         Node<?>[] args = new Node<?>[node.getParamTypes().size()];
 
@@ -728,7 +828,7 @@ public class GraphBuilder<V extends QType> {
                         io(node.getIO());
                         memory(node.getMemory());
 
-                        if (returnType != QVoid.class) {
+                        if (node.getReturnType() != TypeDescriptor.VOID ) {
                             push(node.getResultOut());
                         }
 
@@ -827,6 +927,7 @@ public class GraphBuilder<V extends QType> {
                     }
                 }
             }
+            nodeManager().finalizeControlForInstructions(bci);
         }
     }
 

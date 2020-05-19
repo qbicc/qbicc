@@ -58,4 +58,8 @@ public interface TypeDescriptor<T extends QType> {
     Class<T> type();
     String label();
 
+    default TypeDescriptor<?> baseType() {
+        return this;
+    }
+
 }

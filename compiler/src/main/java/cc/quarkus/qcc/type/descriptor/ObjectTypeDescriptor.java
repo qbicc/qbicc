@@ -11,6 +11,11 @@ public class ObjectTypeDescriptor implements TypeDescriptor<ObjectReference> {
     }
 
     @Override
+    public TypeDescriptor<?> baseType() {
+        return TypeDescriptor.OBJECT;
+    }
+
+    @Override
     public Class<ObjectReference> type() {
         return ObjectReference.class;
     }

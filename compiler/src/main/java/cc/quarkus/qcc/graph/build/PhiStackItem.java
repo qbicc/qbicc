@@ -12,22 +12,20 @@ import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.type.QType;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-public class PhiLocal extends SimpleLocal implements PhiData {
+public class PhiStackItem extends StackItem implements PhiData {
 
-    public PhiLocal(RegionNode control, int index, TypeDescriptor<? extends QType> type) {
-        super(control, index);
-        this.phi = new PhiNode<>(this.control.getGraph(), this.control, type, this);
+    public PhiStackItem(RegionNode control, int position, TypeDescriptor<? extends QType> type) {
+        this.control = control;
+        this.position = position;
         this.type = type;
+        this.phi = new PhiNode<>(this.control.getGraph(), this.control, type, this);
     }
 
     public PhiNode<?> getPhiNode() {
         return this.phi;
     }
 
-    RegionNode getRegion() {
-        return (RegionNode) this.control;
-    }
-
+    @Override
     public <V extends QType> Node<V> load(Class<V> type) {
         if (!this.killed) {
             return TypeUtil.checkType(this.phi, type);
@@ -35,6 +33,7 @@ public class PhiLocal extends SimpleLocal implements PhiData {
         return super.load(type);
     }
 
+    @Override
     public <V extends QType> Node<V> get(Class<V> type) {
         return load(type);
     }
@@ -55,34 +54,44 @@ public class PhiLocal extends SimpleLocal implements PhiData {
         this.inputs.add(control);
     }
 
+    @Override
+    public Node<?> getValue(ControlNode<?> discriminator) {
+        return this.values.get(discriminator);
+    }
+
     public void complete(FrameManager frameManager) {
-        List<ControlNode<?>> discriminators = getRegion().getInputs();
+        List<ControlNode<?>> discriminators = this.control.getInputs();
         for (ControlNode<?> discriminator : discriminators) {
-            Node<?> inbound = frameManager.of(discriminator).get(this.index, this.type.type());
+            Node<?> inbound = frameManager.of(discriminator).stack().get(this.position, this.type.type());
             this.phi.addInput(inbound);
             this.values.put(discriminator, inbound);
         }
     }
 
-    public Node<?> getValue(ControlNode<?> discriminator) {
-        return this.values.get(discriminator);
-    }
-
-    public String toString() {
-        return "PhiLocal: val=" + val + " kill=" + this.killed + " phi=" + this.phi + " inputs=" + this.inputs;
-    }
-
     @Override
-    public Local duplicate() {
-        return this;
+    public String toString() {
+        return "PhiStackItem{" +
+                "type=" + type +
+                ", control=" + control +
+                ", phi=" + phi +
+                ", position=" + position +
+                ", killed=" + killed +
+                ", inputs=" + inputs +
+                ", values=" + values +
+                '}';
     }
 
-    private PhiNode<?> phi;
+    private final TypeDescriptor<? extends QType> type;
 
-    private TypeDescriptor<?> type;
+    private final RegionNode control;
+
+    private final PhiNode<? extends QType> phi;
+
+    private final int position;
+
+    private boolean killed;
 
     private List<ControlNode<?>> inputs = new ArrayList<>();
 
     private Map<ControlNode<?>, Node<?>> values = new HashMap<>();
-
 }

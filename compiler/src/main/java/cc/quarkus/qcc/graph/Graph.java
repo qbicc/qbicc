@@ -1,5 +1,9 @@
 package cc.quarkus.qcc.graph;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -20,6 +24,27 @@ public class Graph<V extends QType> {
         this.start = new StartNode(this);
         this.endRegion = new RegionNode(this);
         this.end = new EndNode<>(this, this.endRegion, this.method.getReturnType());
+    }
+
+    public void write(String path) throws IOException {
+        write(Paths.get(path));
+    }
+
+    public void write(Path path) throws IOException {
+        if (Files.isDirectory(path)) {
+            path = path.resolve(defaultGraphName());
+            path = path.getParent().resolve( path.getFileName() + ".dot");
+        }
+
+        Files.createDirectories(path.getParent());
+
+        try ( DotWriter writer = new DotWriter(path) ) {
+            writer.write(this);
+        }
+    }
+
+    protected String defaultGraphName() {
+        return this.method.getTypeDefinition().getName() + "-" + this.method.getName() + this.method.getDescriptor();
     }
 
     public MethodDefinition<V> getMethod() {
