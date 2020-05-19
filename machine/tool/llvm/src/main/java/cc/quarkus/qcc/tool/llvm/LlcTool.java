@@ -3,14 +3,14 @@ package cc.quarkus.qcc.tool.llvm;
 /**
  *
  */
-public interface OptTool extends LlvmTool {
+public interface LlcTool extends LlvmTool {
     default String getToolName() {
-        return "LLVM Optimizer";
+        return "LLVM Bitcode Compiler";
     }
 
     default String getProgramName() {
-        return "opt";
+        return "llc";
     }
 
-    OptInvoker newInvoker();
+    LlcInvoker newInvoker();
 }

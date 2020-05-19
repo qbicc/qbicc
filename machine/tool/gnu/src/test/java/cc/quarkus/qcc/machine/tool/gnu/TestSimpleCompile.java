@@ -11,6 +11,7 @@ import cc.quarkus.qcc.machine.file.bin.BinaryBuffer;
 import cc.quarkus.qcc.machine.file.elf.ElfHeader;
 import cc.quarkus.qcc.machine.file.elf.ElfSectionHeaderEntry;
 import cc.quarkus.qcc.machine.file.elf.ElfSymbolTableEntry;
+import cc.quarkus.qcc.machine.tool.Tool;
 import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
 import cc.quarkus.qcc.machine.tool.ToolProvider;
 import cc.quarkus.qcc.machine.tool.process.InputSource;
@@ -26,21 +27,22 @@ public class TestSimpleCompile {
     @EnabledOnOs(OS.LINUX)
     public void testSimpleCompile() throws Exception {
         final Path objectFilePath = Files.createTempFile("temp", ".o");
-        final Iterable<GccCompiler> tools = ToolProvider.findAllTools(GccCompiler.class, Platform.HOST_PLATFORM, c -> true,
+        final Iterable<GnuCCompilerImpl> tools = ToolProvider.findAllTools(GnuCCompilerImpl.class, Platform.HOST_PLATFORM, c -> true,
             TestSimpleCompile.class.getClassLoader());
-        final Iterator<GccCompiler> iterator = tools.iterator();
+        final Iterator<GnuCCompilerImpl> iterator = tools.iterator();
         assertTrue(iterator.hasNext());
-        final GccCompiler gccCompiler = iterator.next();
-        final GccInvocationBuilder ib = gccCompiler.invocationBuilder();
+        final GnuCCompilerImpl gccCompiler = iterator.next();
+        final GnuCCompilerInvoker ib = gccCompiler.newCompilerInvoker();
         ib.setOutputPath(objectFilePath);
         ib.setMessageHandler(new ToolMessageHandler() {
-            public void handleMessage(final Level level, final String file, final int line, final int column, final String message) {
+            public void handleMessage(final Tool tool, final Level level, final String file, final int line, final int column, final String message) {
                 if (level == Level.ERROR) {
                     throw new IllegalStateException("Unexpected error: " + message);
                 }
             }
         });
-        InputSource.from("extern int foo; int foo = 0x12345678;").transferTo(ib.build());
+        ib.setSource(InputSource.from("extern int foo; int foo = 0x12345678;"));
+        ib.invoke();
         assertNotNull(objectFilePath);
         final BinaryBuffer buf = BinaryBuffer.openRead(objectFilePath);
         final ElfHeader elfHeader = ElfHeader.forBuffer(buf);

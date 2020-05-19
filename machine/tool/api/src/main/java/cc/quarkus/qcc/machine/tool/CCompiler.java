@@ -3,13 +3,13 @@ package cc.quarkus.qcc.machine.tool;
 /**
  *
  */
-public abstract class CCompiler extends Tool {
-    protected CCompiler() {
-    }
+public interface CCompiler extends Tool {
 
-    public String getToolName() {
+    default String getToolName() {
         return "C Compiler";
     }
 
-    public abstract CompilerInvokerBuilder invocationBuilder();
+    CCompilerInvoker newCompilerInvoker();
+
+    LinkerInvoker newLinkerInvoker();
 }

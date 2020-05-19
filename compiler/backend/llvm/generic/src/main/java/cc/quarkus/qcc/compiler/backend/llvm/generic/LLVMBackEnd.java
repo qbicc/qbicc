@@ -4,7 +4,8 @@ import static cc.quarkus.qcc.machine.llvm.Types.*;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -35,6 +36,7 @@ import cc.quarkus.qcc.graph.node.RegionNode;
 import cc.quarkus.qcc.graph.node.ReturnNode;
 import cc.quarkus.qcc.graph.node.StartNode;
 import cc.quarkus.qcc.graph.node.UnaryIfNode;
+import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.llvm.BasicBlock;
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
@@ -45,6 +47,15 @@ import cc.quarkus.qcc.machine.llvm.Value;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
+import cc.quarkus.qcc.machine.tool.CCompiler;
+import cc.quarkus.qcc.machine.tool.LinkerInvoker;
+import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
+import cc.quarkus.qcc.machine.tool.ToolProvider;
+import cc.quarkus.qcc.machine.tool.process.InputSource;
+import cc.quarkus.qcc.machine.tool.process.OutputDestination;
+import cc.quarkus.qcc.tool.llvm.LlcInvoker;
+import cc.quarkus.qcc.tool.llvm.LlcTool;
+import cc.quarkus.qcc.tool.llvm.LlcToolImpl;
 import cc.quarkus.qcc.type.QInt32;
 import cc.quarkus.qcc.type.QType;
 import cc.quarkus.qcc.type.definition.MethodDefinition;
@@ -71,6 +82,12 @@ public final class LLVMBackEnd implements BackEnd {
                 return Optional.of(List.of("hello.world.Main"));
             }
         };
+
+        // find llc
+        // TODO: get target platform from config
+        final LlcTool llc = ToolProvider.findAllTools(LlcToolImpl.class, Platform.HOST_PLATFORM, t -> true, LLVMBackEnd.class.getClassLoader()).iterator().next();
+        // find C compiler
+        final CCompiler cc = ToolProvider.findAllTools(CCompiler.class, Platform.HOST_PLATFORM, t -> true, LLVMBackEnd.class.getClassLoader()).iterator().next();
         final Optional<List<String>> names = config.entryPointClassNames();
         final ArrayDeque<TypeDefinition> classQueue = new ArrayDeque<>();
         for (String className : names.orElse(List.of())) {
@@ -115,12 +132,31 @@ public final class LLVMBackEnd implements BackEnd {
             final StartNode start = graph.getStart();
             processNode(cache, func, start);
         }
-        try {
-            try (BufferedWriter w = new BufferedWriter(new OutputStreamWriter(System.out))) {
+        // write out the object file
+        final Path objectPath = Path.of("/tmp/build.o");
+        final Path execPath = Path.of("/tmp/a.out");
+        final LlcInvoker llcInv = llc.newInvoker();
+        llcInv.setSource(InputSource.from(rw -> {
+            try (BufferedWriter w = new BufferedWriter(rw)) {
                 module.writeTo(w);
             }
+        }, StandardCharsets.UTF_8));
+        llcInv.setDestination(OutputDestination.of(objectPath));
+        llcInv.setMessageHandler(ToolMessageHandler.REPORTING);
+        try {
+            llcInv.invoke();
         } catch (IOException e) {
-            e.printStackTrace();
+            Context.error(null, "LLVM compilation failed: %s", e);
+            return;
+        }
+        final LinkerInvoker ldInv = cc.newLinkerInvoker();
+        ldInv.setOutputPath(execPath);
+        ldInv.setMessageHandler(ToolMessageHandler.REPORTING);
+        ldInv.addObjectFile(objectPath);
+        try {
+            ldInv.invoke();
+        } catch (IOException e) {
+            Context.error(null, "Linking failed: %s", e);
         }
         return;
     }

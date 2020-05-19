@@ -1,1 +1,1 @@
-cc.quarkus.qcc.machine.tool.gnu.GccToolProvider
+cc.quarkus.qcc.machine.tool.gnu.GnuToolProvider

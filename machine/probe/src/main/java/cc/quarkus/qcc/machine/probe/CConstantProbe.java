@@ -12,11 +12,11 @@ import java.util.function.UnaryOperator;
 import cc.quarkus.qcc.machine.object.ObjectFile;
 import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.tool.CCompiler;
+import cc.quarkus.qcc.machine.tool.CCompilerInvoker;
 import cc.quarkus.qcc.machine.tool.CompilationFailureException;
-import cc.quarkus.qcc.machine.tool.CompilerInvokerBuilder;
+import cc.quarkus.qcc.machine.tool.Tool;
 import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
 import cc.quarkus.qcc.machine.tool.process.InputSource;
-import cc.quarkus.qcc.machine.tool.process.OutputDestination;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -57,7 +57,7 @@ public class CConstantProbe {
     }
 
     public Result runProbe(CCompiler compiler, ObjectFileProvider objectFileProvider) throws IOException {
-        final CompilerInvokerBuilder ib = compiler.invocationBuilder();
+        final CCompilerInvoker ib = compiler.newCompilerInvoker();
         StringBuilder b = new StringBuilder();
         b.append("#include <stddef.h>\n");
         for (String str : preproc) {
@@ -81,15 +81,15 @@ public class CConstantProbe {
         }
         b.append('\n');
         ib.setMessageHandler(new ToolMessageHandler() {
-            public void handleMessage(final Level level, final String file, final int line, final int column, final String message) {
+            public void handleMessage(final Tool tool, final Level level, final String file, final int line, final int column, final String message) {
                 System.out.println(level + ": " + file + ":" + line + " -> " + message);
             }
         });
         final Path path = Files.createTempFile("qcc-probe-", "." + objectFileProvider.getObjectType().objectSuffix());
         ib.setOutputPath(path);
-        OutputDestination od = ib.build();
+        ib.setSource(InputSource.from(b));
         try {
-            InputSource.from(b).transferTo(od);
+            ib.invoke();
         } catch (CompilationFailureException e) {
             // no result
             return null;

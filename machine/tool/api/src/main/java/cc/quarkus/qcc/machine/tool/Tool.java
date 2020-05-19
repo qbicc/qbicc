@@ -7,19 +7,19 @@ import cc.quarkus.qcc.machine.arch.Platform;
 /**
  * An invokable tool which may support specific target environments.
  */
-public abstract class Tool {
-    protected Tool() {
-    }
+public interface Tool {
+    String getToolName();
 
-    public abstract String getToolName();
+    String getImplementationName();
 
-    public abstract String getImplementationName();
+    String getProgramName();
 
-    public abstract String getProgramName();
+    Path getExecutablePath();
 
-    public abstract Path getExecutablePath();
-
-    public boolean supportsPlatform(Platform platform) {
-        return false;
-    }
+    /**
+     * Get the platform that this tool instance is configured for.
+     *
+     * @return the platform (not {@code null})
+     */
+    Platform getPlatform();
 }

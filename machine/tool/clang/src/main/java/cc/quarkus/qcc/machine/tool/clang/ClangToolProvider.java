@@ -19,7 +19,7 @@ public class ClangToolProvider implements ToolProvider {
         if (type.isAssignableFrom(ClangToolProvider.class)) {
             final Path path = ToolUtil.findExecutable("clang");
             if (path != null && Files.isExecutable(path)) {
-                final ClangCompiler clang = new ClangCompiler(path);
+                final ClangCCompilerImpl clang = new ClangCCompilerImpl(path, platform);
                 // todo: test it
                 return List.of(type.cast(clang));
             }
