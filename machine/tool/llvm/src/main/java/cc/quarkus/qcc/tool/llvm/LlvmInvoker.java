@@ -8,6 +8,8 @@ import cc.quarkus.qcc.machine.tool.process.OutputDestination;
  *
  */
 public interface LlvmInvoker extends MessagingToolInvoker {
+    LlvmTool getTool();
+
     void setSource(InputSource source);
 
     InputSource getSource();
