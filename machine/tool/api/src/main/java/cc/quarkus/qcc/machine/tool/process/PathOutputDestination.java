@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 
 final class PathOutputDestination extends OutputDestination {
     private final Path path;
@@ -39,6 +40,16 @@ final class PathOutputDestination extends OutputDestination {
         } else {
             // already set to file
             return Closeables.BLANK_CLOSEABLE;
+        }
+    }
+
+    void chain(final List<Process> processes, final List<ProcessBuilder> processBuilders, final int index) throws IOException {
+        final ProcessBuilder processBuilder = processBuilders.get(index - 1);
+        final Process process = processes.get(index - 1);
+        if (processBuilder.redirectOutput() == ProcessBuilder.Redirect.PIPE) {
+            transferFrom(process.getInputStream());
+        } else {
+            // do nothing (already piped)
         }
     }
 
