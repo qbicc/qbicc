@@ -1,11 +1,9 @@
 package cc.quarkus.qcc.machine.tool;
 
-import java.io.IOException;
-
 /**
  * An exception thrown when a compilation process executes but exits with a non-zero status.
  */
-public class CompilationFailureException extends IOException {
+public class CompilationFailureException extends ToolExecutionFailureException {
     private static final long serialVersionUID = 4471599851611398438L;
 
     /**

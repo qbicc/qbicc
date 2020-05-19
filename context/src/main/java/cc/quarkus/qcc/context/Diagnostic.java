@@ -31,7 +31,7 @@ public final class Diagnostic {
     public String toString() {
         final Location loc = this.location;
         return loc == null ? String.format("%s: %s", level, getFormatted())
-                : String.format("%s: %s: %s", loc, level, getFormatted());
+                : String.format("%s: %s%n%s", level, getFormatted(), loc);
     }
 
     public enum Level {

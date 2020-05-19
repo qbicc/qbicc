@@ -40,7 +40,7 @@ abstract class AbstractGccInvoker implements MessagingToolInvoker {
         return tool;
     }
 
-    static final Pattern DIAG_PATTERN = Pattern.compile("([^:]+):(\\d+):(?:(\\d+):)? (error|warning|note): (.*)(?: \\[-[^]]+])?");
+    static final Pattern DIAG_PATTERN = Pattern.compile("([^:]+):(?:(\\d+):(?:(\\d+):)?)? (?:((?:fatal )?error|warning|note): )?(.*)(?: \\[-[^]]+])?");
 
     void collectError(final Reader reader) throws IOException {
         final ToolMessageHandler handler = getMessageHandler();
@@ -52,13 +52,17 @@ abstract class AbstractGccInvoker implements MessagingToolInvoker {
                 if (matcher.matches()) {
                     String levelStr = matcher.group(4);
                     ToolMessageHandler.Level level;
-                    switch (levelStr) {
-                        case "note": level = ToolMessageHandler.Level.INFO; break;
-                        case "warning": level = ToolMessageHandler.Level.WARNING; break;
-                        default: level = ToolMessageHandler.Level.ERROR; break;
+                    if (levelStr != null) {
+                        switch (levelStr) {
+                            case "note": level = ToolMessageHandler.Level.INFO; break;
+                            case "warning": level = ToolMessageHandler.Level.WARNING; break;
+                            default: level = ToolMessageHandler.Level.ERROR; break;
+                        }
+                    } else {
+                        level = ToolMessageHandler.Level.ERROR;
                     }
                     // don't log potentially misleading line numbers
-                    handler.handleMessage(getTool(), level, matcher.group(1), Integer.parseInt(matcher.group(2)), -1, matcher.group(5));
+                    handler.handleMessage(getTool(), level, matcher.group(1), -1, -1, matcher.group(5));
                 }
             }
         }

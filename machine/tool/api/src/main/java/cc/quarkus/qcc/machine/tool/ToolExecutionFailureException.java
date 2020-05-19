@@ -42,6 +42,6 @@ public class ToolExecutionFailureException extends IOException {
      * @param cause the cause
      */
     public ToolExecutionFailureException(final String msg, final Throwable cause) {
-        super(msg, cause);
+        super(msg + ": " + cause, cause);
     }
 }

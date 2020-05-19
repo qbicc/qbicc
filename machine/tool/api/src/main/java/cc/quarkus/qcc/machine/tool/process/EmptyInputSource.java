@@ -18,11 +18,11 @@ final class EmptyInputSource extends InputSource {
     }
 
     ProcessBuilder.Redirect getInputRedirect() {
-        return ProcessBuilder.Redirect.DISCARD;
+        return ProcessBuilder.Redirect.PIPE;
     }
 
     Closeable provideProcessInput(final Process process, final ProcessBuilder.Redirect inputRedirect) {
-        return Closeables.BLANK_CLOSEABLE;
+        return process.getOutputStream();
     }
 
     InputStream openStream() {
