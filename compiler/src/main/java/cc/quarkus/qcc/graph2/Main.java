@@ -161,36 +161,48 @@ public class Main {
                 ctxt.values.put(value, val);
             } else if (value instanceof PhiValue) {
                 PhiValue phiValue = (PhiValue) value;
-                final Iterator<BasicBlock> iterator = ctxt.knownBlocks.iterator();
-                while (iterator.hasNext()) {
-                    BasicBlock b1 = iterator.next();
-                    Value v1 = phiValue.getValueForBlock(b1);
-                    if (v1 != null) {
-                        // got first value
-                        while (iterator.hasNext()) {
-                            BasicBlock b2 = iterator.next();
-                            Value v2 = phiValue.getValueForBlock(b1);
-                            if (v2 != null && v2 != v1) {
-                                // it's a phi, so we'll just live with it
-                                Phi phi = target.phi(Types.i32);
-                                ctxt.values.put(value, val = phi.asLocal());
-                                phi.item(getValue(ctxt, v1), getBlock(ctxt, b1));
-                                phi.item(getValue(ctxt, v2), getBlock(ctxt, b2));
-                                while (iterator.hasNext()) {
-                                    b2 = iterator.next();
-                                    v2 = phiValue.getValueForBlock(b1);
-                                    if (v2 != null) {
-                                        phi.item(getValue(ctxt, v2), getBlock(ctxt, b2));
-                                    }
-                                }
-                                return val;
-                            }
-                        }
-                        // only one value for phi!
-                        phiValue.replaceWith(v1);
+                if (true) {
+                    final Iterator<BasicBlock> iterator = ctxt.knownBlocks.iterator();
+                    while (iterator.hasNext()) {
+                        BasicBlock b1 = iterator.next();
+                        Value v1 = phiValue.getValueForBlock(b1);
                         val = getValue(ctxt, v1);
-                        return val;
+                        if (v1 != null) {
+                            // got first value
+                            while (iterator.hasNext()) {
+                                BasicBlock b2 = iterator.next();
+                                Value v2 = phiValue.getValueForBlock(b2);
+                                if (v2 != null && v2 != v1) {
+                                    // it's a phi, so we'll just live with it
+                                    Phi phi = target.phi(Types.i32);
+                                    ctxt.values.put(value, val = phi.asLocal());
+                                    phi.item(getValue(ctxt, v1), getBlock(ctxt, b1));
+                                    phi.item(getValue(ctxt, v2), getBlock(ctxt, b2));
+                                    while (iterator.hasNext()) {
+                                        b2 = iterator.next();
+                                        v2 = phiValue.getValueForBlock(b1);
+                                        if (v2 != null) {
+                                            phi.item(getValue(ctxt, v2), getBlock(ctxt, b2));
+                                        }
+                                    }
+                                    return val;
+                                }
+                            }
+                            // only one value for phi!
+                            phiValue.replaceWith(v1);
+                            return val;
+                        }
                     }
+                } else {
+                    Phi phi = target.phi(Types.i32);
+                    ctxt.values.put(value, val = phi.asLocal());
+                    for (BasicBlock knownBlock : ctxt.knownBlocks) {
+                        Value v = phiValue.getValueForBlock(knownBlock);
+                        if (v != null) {
+                            phi.item(getValue(ctxt, v), getBlock(ctxt, knownBlock));
+                        }
+                    }
+                    return val;
                 }
                 // no branches!
                 throw new IllegalStateException();
