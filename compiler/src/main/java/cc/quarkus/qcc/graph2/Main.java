@@ -159,6 +159,10 @@ public class Main {
                     default: throw new IllegalStateException();
                 }
                 ctxt.values.put(value, val);
+            } else if (value instanceof SelectOp) {
+                SelectOp op = (SelectOp) value;
+                val = target.select(Types.i1, getValue(ctxt, op.getCond()), Types.i32, getValue(ctxt, op.getTrueValue()), getValue(ctxt, op.getFalseValue())).asLocal();
+                ctxt.values.put(value, val);
             } else if (value instanceof PhiValue) {
                 PhiValue phiValue = (PhiValue) value;
                 if (true) {

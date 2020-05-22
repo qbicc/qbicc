@@ -344,7 +344,7 @@ public final class GraphBuilder extends MethodVisitor {
             case Opcodes.F_SAME1: {
                 clearStack();
                 assert numStack == 1;
-                if (stack[0] instanceof Double || stack[0] instanceof Long) {
+                if (stack[0] == Opcodes.DOUBLE || stack[0] == Opcodes.LONG) {
                     addFrameStackItem(ItemSize.DOUBLE);
                 } else {
                     addFrameStackItem(ItemSize.SINGLE);
@@ -354,7 +354,7 @@ public final class GraphBuilder extends MethodVisitor {
             case Opcodes.F_APPEND: {
                 clearStack();
                 for (int i = 0; i < numLocal; i++) {
-                    if (local[i] instanceof Double || local[i] instanceof Long) {
+                    if (local[i] == Opcodes.DOUBLE || local[i] == Opcodes.LONG) {
                         addFrameLocal(ItemSize.DOUBLE);
                     } else {
                         addFrameLocal(ItemSize.SINGLE);
@@ -374,14 +374,14 @@ public final class GraphBuilder extends MethodVisitor {
                 clearStack();
                 clearFrameLocals();
                 for (int i = 0; i < numLocal; i++) {
-                    if (local[i] instanceof Double || local[i] instanceof Long) {
+                    if (local[i] == Opcodes.DOUBLE || local[i] == Opcodes.LONG) {
                         addFrameLocal(ItemSize.DOUBLE);
                     } else {
                         addFrameLocal(ItemSize.SINGLE);
                     }
                 }
                 for (int i = 0; i < numStack; i++) {
-                    if (stack[0] instanceof Double || stack[0] instanceof Long) {
+                    if (local[i] == Opcodes.DOUBLE || local[i] == Opcodes.LONG) {
                         addFrameStackItem(ItemSize.DOUBLE);
                     } else {
                         addFrameStackItem(ItemSize.SINGLE);
@@ -437,7 +437,10 @@ public final class GraphBuilder extends MethodVisitor {
                 throw new IllegalStateException("Locals entry type mismatch");
             }
             PhiValue value = (PhiValue) enterState.locals[i];
-            value.setValueForBlock(exitingBlock, exitState.locals[i]);
+            // might be null gaps for big values
+            if (value != null) {
+                value.setValueForBlock(exitingBlock, exitState.locals[i]);
+            }
         }
     }
 
@@ -587,7 +590,14 @@ public final class GraphBuilder extends MethodVisitor {
 
         public void visitLdcInsn(final Object value) {
             gotInstr = true;
-            super.visitLdcInsn(value);
+            if (value instanceof Integer) {
+                push(ItemSize.SINGLE, Value.iconst(((Integer) value).intValue()));
+            } else if (value instanceof Long) {
+                // TODO: fix this
+                push(ItemSize.DOUBLE, Value.iconst((int) ((Long) value).longValue()));
+            } else {
+                throw new IllegalStateException();
+            }
         }
 
         public void visitTableSwitchInsn(final int min, final int max, final Label dflt, final Label... labels) {
@@ -649,9 +659,14 @@ public final class GraphBuilder extends MethodVisitor {
                     visitInsn(Opcodes.ISUB);
                     return;
                 }
-                case Opcodes.ISHL:
-                case Opcodes.ISHR:
-                case Opcodes.IUSHR:
+                case Opcodes.LNEG: {
+                    Value rhs = pop2();
+                    push(ItemSize.DOUBLE, Value.ICONST_0);
+                    push(ItemSize.DOUBLE, rhs);
+                    visitInsn(Opcodes.LSUB);
+                    return;
+                }
+
                 case Opcodes.IMUL:
                 case Opcodes.IAND:
                 case Opcodes.IOR:
@@ -667,9 +682,6 @@ public final class GraphBuilder extends MethodVisitor {
                     push(ItemSize.SINGLE, op);
                     return;
                 }
-                case Opcodes.LSHL:
-                case Opcodes.LSHR:
-                case Opcodes.LUSHR:
                 case Opcodes.LMUL:
                 case Opcodes.LAND:
                 case Opcodes.LOR:
@@ -685,7 +697,64 @@ public final class GraphBuilder extends MethodVisitor {
                     push(ItemSize.DOUBLE, op);
                     return;
                 }
-                case Opcodes.LNEG:
+                case Opcodes.ISHL:
+                case Opcodes.ISHR:
+                case Opcodes.IUSHR:
+                case Opcodes.ISUB: {
+                    NonCommutativeBinaryOpImpl op = new NonCommutativeBinaryOpImpl();
+                    op.setOwner(currentBlock);
+                    op.setKind(NonCommutativeBinaryOp.Kind.fromOpcode(opcode));
+                    op.setLeft(pop());
+                    op.setRight(pop());
+                    push(ItemSize.SINGLE, op);
+                    return;
+                }
+
+                case Opcodes.LSHL:
+                case Opcodes.LSHR:
+                case Opcodes.LUSHR:
+                case Opcodes.LSUB: {
+                    NonCommutativeBinaryOpImpl op = new NonCommutativeBinaryOpImpl();
+                    op.setOwner(currentBlock);
+                    op.setKind(NonCommutativeBinaryOp.Kind.fromOpcode(opcode));
+                    op.setLeft(pop2());
+                    op.setRight(pop2());
+                    push(ItemSize.DOUBLE, op);
+                    return;
+                }
+                case Opcodes.LCMP: {
+                    Value v2 = pop2();
+                    Value v1 = pop2();
+                    NonCommutativeBinaryOpImpl c1 = new NonCommutativeBinaryOpImpl();
+                    c1.setOwner(currentBlock);
+                    c1.setKind(NonCommutativeBinaryOp.Kind.CMP_LT);
+                    c1.setLeft(v1);
+                    c1.setRight(v2);
+                    NonCommutativeBinaryOpImpl c2 = new NonCommutativeBinaryOpImpl();
+                    c2.setOwner(currentBlock);
+                    c2.setKind(NonCommutativeBinaryOp.Kind.CMP_GT);
+                    c2.setLeft(v1);
+                    c2.setRight(v2);
+                    SelectOpImpl op1 = new SelectOpImpl();
+                    op1.setOwner(currentBlock);
+                    op1.setCond(c1);
+                    op1.setTrueValue(Value.iconst(-1));
+                    SelectOpImpl op2 = new SelectOpImpl();
+                    op2.setOwner(currentBlock);
+                    op2.setCond(c2);
+                    op2.setTrueValue(Value.iconst(1));
+                    op2.setFalseValue(Value.iconst(0));
+                    op1.setFalseValue(op2);
+                    push(ItemSize.SINGLE, op1);
+                    return;
+                }
+
+                case Opcodes.IDIV:
+                case Opcodes.IREM:
+
+                case Opcodes.LDIV:
+                case Opcodes.LREM:
+
                 case Opcodes.FNEG:
                 case Opcodes.DNEG:
                 case Opcodes.ACONST_NULL:
@@ -717,16 +786,10 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.DUP_X2:
                 case Opcodes.DUP2_X1:
                 case Opcodes.DUP2_X2:
-                case Opcodes.ISUB:
-                case Opcodes.LSUB:
                 case Opcodes.FSUB:
                 case Opcodes.DSUB:
-                case Opcodes.IDIV:
-                case Opcodes.LDIV:
                 case Opcodes.FDIV:
                 case Opcodes.DDIV:
-                case Opcodes.IREM:
-                case Opcodes.LREM:
                 case Opcodes.FREM:
                 case Opcodes.DREM:
                 case Opcodes.I2L:
@@ -744,7 +807,6 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.I2B:
                 case Opcodes.I2C:
                 case Opcodes.I2S:
-                case Opcodes.LCMP:
                 case Opcodes.FCMPL:
                 case Opcodes.FCMPG:
                 case Opcodes.DCMPL:
