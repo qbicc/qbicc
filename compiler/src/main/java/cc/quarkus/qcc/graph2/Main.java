@@ -54,7 +54,9 @@ public class Main {
                 System.out.println("  node [fontname = \"helvetica\",fontsize=10,ordering=in];");
                 System.out.println("  edge [fontname = \"helvetica\",fontsize=10];");
                 BasicBlockImpl firstBlock = gb.firstBlock;
-                firstBlock.writeToGraph(new HashSet<>(), System.out, firstBlock.getReachableBlocks());
+                HashSet<Node> visited = new HashSet<>();
+                visited.add(firstBlock);
+                firstBlock.writeToGraph(visited, System.out, firstBlock.getReachableBlocks());
                 System.out.println("}");
                 System.out.println("---");
             }
