@@ -26,10 +26,10 @@ abstract class BinaryOpImpl extends ValueImpl implements BinaryOp {
         right = NodeHandle.of(value);
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph) throws IOException {
-        super.writeToGraph(visited, graph);
-        addEdgeTo(visited, graph, left.getTarget(), "lhs", "black", "solid");
-        addEdgeTo(visited, graph, right.getTarget(), "rhs", "black", "solid");
+    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+        super.writeToGraph(visited, graph, knownBlocks);
+        addEdgeTo(visited, graph, left.getTarget(), "lhs", "black", "solid", knownBlocks);
+        addEdgeTo(visited, graph, right.getTarget(), "rhs", "black", "solid", knownBlocks);
         return graph;
     }
 }

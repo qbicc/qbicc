@@ -20,11 +20,11 @@ abstract class InstructionImpl extends NodeImpl implements Instruction {
         this.dependency = NodeHandle.of(dependency);
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph) throws IOException {
-        super.writeToGraph(visited, graph);
+    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+        super.writeToGraph(visited, graph, knownBlocks);
         NodeHandle dependency = this.dependency;
         if (dependency != null) {
-            addEdgeTo(visited, graph, dependency.getTarget(), "depends-on", "black", "solid");
+            addEdgeTo(visited, graph, dependency.getTarget(), "depends-on", "black", "solid", knownBlocks);
         }
         return graph;
     }

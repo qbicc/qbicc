@@ -4,32 +4,44 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import io.smallrye.common.constraint.Assert;
+
 final class PhiValueImpl extends ValueImpl implements PhiValue {
-    // specifically *not* using handles for map keys
-    private Map<BasicBlock, NodeHandle> values = Map.of();
+    private final Key key = new Key();
 
     public Value getValueForBlock(final BasicBlock input) {
-        NodeHandle mapped = values.get(input);
-        return mapped == null ? null : mapped.getTarget();
+        NodeHandle handle = ((BasicBlockImpl) input).outboundValues.get(key);
+        return handle == null ? null : handle.getTarget();
     }
 
     public void setValueForBlock(final BasicBlock input, final Value value) {
-        values = Util.copyMap(values, input, NodeHandle.of(value));
+        Assert.checkNotNullParam("value", value);
+        BasicBlockImpl bbi = (BasicBlockImpl) input;
+        Map<Key, NodeHandle> ov = bbi.outboundValues;
+        if (ov.containsKey(key)) {
+            throw new IllegalStateException("Phi " + this + " already has a value for block " + input);
+        }
+        bbi.outboundValues = Util.copyMap(ov, key, NodeHandle.of(value));
     }
 
     public String getLabelForGraph() {
         return "phi";
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph) throws IOException {
-        super.writeToGraph(visited, graph);
+    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+        super.writeToGraph(visited, graph, knownBlocks);
         int idx = 0;
-        for (BasicBlock bb : values.keySet()) {
-            // this is pretty ugly
-            addEdgeTo(visited, graph, bb, "phi-block#" + idx, "black", "solid");
-            addEdgeTo(visited, graph, values.get(bb).getTarget(), "phi-value#" + idx, "black", "solid");
-            idx ++;
+        for (BasicBlock bb : knownBlocks) {
+            Value val = getValueForBlock(bb);
+            if (val != null) {
+                // this is pretty ugly
+                addEdgeTo(visited, graph, bb, "phi-block#" + idx, "black", "solid", knownBlocks);
+                addEdgeTo(visited, graph, val, "phi-value#" + idx, "black", "solid", knownBlocks);
+                idx ++;
+            }
         }
         return graph;
     }
+
+    static final class Key {}
 }

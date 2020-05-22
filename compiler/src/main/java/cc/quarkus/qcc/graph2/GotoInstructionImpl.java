@@ -28,9 +28,9 @@ final class GotoInstructionImpl extends InstructionImpl implements GotoInstructi
         return "goto";
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph) throws IOException {
-        super.writeToGraph(visited, graph);
-        addEdgeTo(visited, graph, target.getTarget(), "goes-to", "black", "solid");
+    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+        super.writeToGraph(visited, graph, knownBlocks);
+        addEdgeTo(visited, graph, target.getTarget(), "goes-to", "black", "solid", knownBlocks);
         return graph;
     }
 }

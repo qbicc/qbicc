@@ -9,7 +9,7 @@ import java.util.Set;
 public interface Node {
     void replaceWith(Node node);
 
-    Appendable writeToGraph(final Set<Node> visited, Appendable graph) throws IOException;
+    Appendable writeToGraph(final Set<Node> visited, Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException;
 
     String getLabelForGraph();
 

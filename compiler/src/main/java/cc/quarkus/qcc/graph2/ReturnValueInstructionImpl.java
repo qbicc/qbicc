@@ -10,9 +10,9 @@ final class ReturnValueInstructionImpl extends InstructionImpl implements Return
         return "return";
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph) throws IOException {
-        super.writeToGraph(visited, graph);
-        addEdgeTo(visited, graph, retVal.getTarget(), "val", "black", "solid");
+    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+        super.writeToGraph(visited, graph, knownBlocks);
+        addEdgeTo(visited, graph, retVal.getTarget(), "val", "black", "solid", knownBlocks);
         return graph;
     }
 

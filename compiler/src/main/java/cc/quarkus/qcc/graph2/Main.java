@@ -53,7 +53,8 @@ public class Main {
                 System.out.println("  graph [fontname = \"helvetica\",fontsize=10,ordering=in,outputorder=depthfirst,ranksep=1];");
                 System.out.println("  node [fontname = \"helvetica\",fontsize=10,ordering=in];");
                 System.out.println("  edge [fontname = \"helvetica\",fontsize=10];");
-                gb.firstBlock.writeToGraph(new HashSet<>(), System.out);
+                BasicBlockImpl firstBlock = gb.firstBlock;
+                firstBlock.writeToGraph(new HashSet<>(), System.out, firstBlock.getReachableBlocks());
                 System.out.println("}");
                 System.out.println("---");
             }

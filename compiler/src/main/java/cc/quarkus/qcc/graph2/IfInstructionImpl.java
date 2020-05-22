@@ -47,11 +47,11 @@ final class IfInstructionImpl extends InstructionImpl implements IfInstruction {
         return "if";
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph) throws IOException {
-        super.writeToGraph(visited, graph);
-        addEdgeTo(visited, graph, condition.getTarget(), "cond", "blue", "solid");
-        addEdgeTo(visited, graph, trueBranch.getTarget(), "true", "green", "solid");
-        addEdgeTo(visited, graph, falseBranch.getTarget(), "false", "red", "solid");
+    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+        super.writeToGraph(visited, graph, knownBlocks);
+        addEdgeTo(visited, graph, condition.getTarget(), "cond", "blue", "solid", knownBlocks);
+        addEdgeTo(visited, graph, trueBranch.getTarget(), "true", "green", "solid", knownBlocks);
+        addEdgeTo(visited, graph, falseBranch.getTarget(), "false", "red", "solid", knownBlocks);
         return graph;
     }
 }
