@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.machine.llvm.impl;
 
 import java.io.IOException;
+import java.util.Set;
 
 import cc.quarkus.qcc.machine.llvm.AddressNaming;
 import cc.quarkus.qcc.machine.llvm.BasicBlock;

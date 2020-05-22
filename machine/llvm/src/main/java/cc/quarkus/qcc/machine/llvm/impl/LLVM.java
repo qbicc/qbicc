@@ -27,6 +27,8 @@ public final class LLVM {
     public static final Value float64 = new SingleWord("double");
     public static final Value float128 = new SingleWord("fp128");
 
+    public static final Value void_ = new SingleWord("void");
+
     public static final Value ZERO = new IntConstant(0);
 
     public static Value ptrTo(Value type, int addrSpace) {

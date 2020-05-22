@@ -33,23 +33,25 @@ final class PhiImpl extends AbstractYieldingInstruction implements Phi {
     public Phi item(final Value data, final BasicBlock incoming) {
         Assert.checkNotNullParam("data", data);
         Assert.checkNotNullParam("incoming", incoming);
-        lastItem = new Item(lastItem, (AbstractValue) data, (BasicBlockImpl) incoming);
+        lastItem = new Item(lastItem, (AbstractValue) data, incoming instanceof FunctionDefinitionImpl ? ((FunctionDefinitionImpl) incoming).rootBlock : (BasicBlockImpl) incoming);
         return this;
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
         super.appendTo(target);
-        target.append("phi");
-        final Set<FastMathFlag> mathFlags = this.mathFlags;
-        for (FastMathFlag mathFlag : mathFlags) {
-            target.append(' ').append(mathFlag.name());
-        }
-        target.append(' ');
-        type.appendTo(target);
         final Item lastItem = this.lastItem;
         if (lastItem != null) {
+            target.append("phi");
+            final Set<FastMathFlag> mathFlags = this.mathFlags;
+            for (FastMathFlag mathFlag : mathFlags) {
+                target.append(' ').append(mathFlag.name());
+            }
+            target.append(' ');
+            type.appendTo(target);
             target.append(' ');
             lastItem.appendTo(target);
+        } else {
+            target.append("undef");
         }
         return appendTrailer(target);
     }

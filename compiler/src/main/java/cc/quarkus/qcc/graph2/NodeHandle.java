@@ -4,7 +4,8 @@ final class NodeHandle {
     private Object target;
 
     void setTarget(Node target) {
-        this.target = target;
+        //noinspection RedundantCast
+        this.target = (NodeImpl) target;
     }
 
     void setTarget(NodeHandle target) {

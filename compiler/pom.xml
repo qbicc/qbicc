@@ -64,5 +64,10 @@
             <version>${version.easytesting.fest-assert}</version>
             <scope>test</scope>
         </dependency>
+        <!-- THIS IS TEMPORARY - DELETE IT WHEN THE GENERATOR (graph2.Main) IS MOVED TO THE BACKEND -->
+        <dependency>
+            <groupId>cc.quarkus</groupId>
+            <artifactId>qcc-machine-llvm</artifactId>
+        </dependency>
     </dependencies>
 </project>

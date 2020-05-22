@@ -2,9 +2,9 @@ package cc.quarkus.qcc.graph2;
 
 import static java.lang.Math.*;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,49 +14,91 @@ import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
 /**
  *
  */
 public final class GraphBuilder extends MethodVisitor {
     private static final Value[] NO_VALUES = new Value[0];
-    final BasicBlock firstBlock;
-    final ArrayDeque<Value> stack = new ArrayDeque<>();
-    final ArrayList<Value> locals = new ArrayList<>();
+    final BasicBlockImpl firstBlock;
+    ItemSize[] frameLocalMap;
+    ItemSize[] frameStackMap;
+    ItemSize[] localMap;
+    ItemSize[] stackMap;
+    int fsp; // points after the last frame stack element
+    int flp; // points after the last frame local in use
+    Value[] locals;
+    Value[] stack;
+    int sp; // points after the last stack element
+    int lp; // points to after the last local in use
+    // block exit values are whatever
+    final Map<BasicBlock, Capture> blockExits = new HashMap<>();
+    // block enter values are *all* PhiValues bound to PhiInstructions on the entered block
+    final Map<BasicBlock, Capture> blockEnters = new HashMap<>();
+    final Value thisValue;
     final List<ParameterValue> originalParams;
     int pni = 0;
-    BasicBlock currentBlock; // set in initial and gotInst
+    BasicBlockImpl futureBlock;
+    BasicBlockImpl currentBlock;
     Instruction prevInst;
     final Map<Label, NodeHandle> allBlocks = new IdentityHashMap<>();
     final List<Label> pendingLabels = new ArrayList<>();
-    final State initial = new Initial();
-    final State gotInst = new GotInst();
-    final State noBlock = new NoBlock();
-    final State possibleBlock = new PossibleBlock();
-    // basic block enterer state
-    final Map<BasicBlock, Map<NodeHandle, Capture>> enterers = new IdentityHashMap<>();
-    // basic block phis
-    final Map<BasicBlock, Capture> capturedPhis = new IdentityHashMap<>();
+    final State inBlockState = new InBlock();
+    final State futureBlockState = new FutureBlockState();
+    final State mayNeedFrameState = new MayNeedFrameState();
+    final State possibleBlockState = new PossibleBlock();
 
-    public GraphBuilder(int paramCount, int mods) {
+    public GraphBuilder(final int mods, final String name, final String descriptor, final String signature, final String[] exceptions) {
         super(Universe.ASM_VERSION);
         boolean isStatic = (mods & Opcodes.ACC_STATIC) != 0;
+        Type[] argTypes = Type.getArgumentTypes(descriptor);
+        int localsCount = argTypes.length;
         if (! isStatic) {
             // there's a receiver
-            paramCount += 1;
+            localsCount += 1;
         }
-        if (paramCount == 0) {
+        // set up the initial stack maps
+        int initialLocalsSize = localsCount << 1;
+        localMap = new ItemSize[initialLocalsSize];
+        locals = new Value[initialLocalsSize];
+        Value thisValue = null;
+        if (localsCount == 0) {
             originalParams = List.of();
         } else {
-            List<ParameterValue> params = Arrays.asList(new ParameterValue[paramCount]);
-            for (int i = 0; i < paramCount; i ++) {
+            List<ParameterValue> params = Arrays.asList(new ParameterValue[localsCount]);
+            int j = 0;
+            if (! isStatic) {
+                // "this" receiver - todo: ThisValue
                 ParameterValue pv = new ParameterValueImpl();
-                pv.setIndex(i);
+                thisValue = pv;
+                pv.setIndex(j);
+                setLocal(ItemSize.SINGLE, j, pv);
+                j++;
+            }
+            for (int i = 0; i < argTypes.length; i ++) {
+                ParameterValue pv = new ParameterValueImpl();
+                pv.setIndex(j);
+                if (argTypes[i] == Type.LONG_TYPE || argTypes[i] == Type.DOUBLE_TYPE) {
+                    setLocal(ItemSize.DOUBLE, j, pv);
+                    j+= 2;
+                } else {
+                    setLocal(ItemSize.SINGLE, j, pv);
+                    j++;
+                }
                 params.set(i, pv);
             }
             originalParams = params;
-            locals.addAll(params);
         }
+        this.thisValue = thisValue;
+        frameLocalMap = localMap.clone();
+        flp = lp;
+        stackMap = new ItemSize[16];
+        stack = new Value[16];
+        sp = 0;
+        frameStackMap = new ItemSize[16];
+        fsp = 0;
+        // first block cannot be entered, so don't bother adding an enter for it
         firstBlock = new BasicBlockImpl();
     }
 
@@ -66,94 +108,209 @@ public final class GraphBuilder extends MethodVisitor {
     }
 
     public void visitCode() {
-        // TODO: set locals to this & method parameter values
         currentBlock = firstBlock;
-        enter(initial);
+        enter(inBlockState);
+    }
+
+    // stack manipulation
+
+    void clearStack() {
+        Arrays.fill(stack, 0, sp, null);
+        Arrays.fill(stackMap, 0, sp, null);
+        sp = 0;
     }
 
     Value pop2() {
-        Value value = pop();
-        pop();
+        int tos = sp - 1;
+        ItemSize type = stackMap[tos];
+        Value value;
+        if (type == ItemSize.DOUBLE) {
+            value = stack[tos];
+            stack[tos] = null;
+            stackMap[tos] = null;
+            sp = tos;
+        } else {
+            value = stack[tos];
+            stack[tos] = null;
+            stackMap[tos] = null;
+            stack[tos - 1] = null;
+            stackMap[tos - 1] = null;
+            sp = tos - 1;
+        }
         return value;
     }
 
     Value pop() {
-        return stack.removeLast();
+        int tos = sp - 1;
+        ItemSize type = stackMap[tos];
+        Value value;
+        if (type == ItemSize.DOUBLE) {
+            throw new IllegalStateException("Bad pop");
+        }
+        value = stack[tos];
+        stack[tos] = null;
+        stackMap[tos] = null;
+        sp = tos;
+        return value;
+    }
+
+    void ensureStackSize(int size) {
+        int len = stack.length;
+        assert len == stackMap.length;
+        if (len < size) {
+            stack = Arrays.copyOf(stack, len << 1);
+            stackMap = Arrays.copyOf(stackMap, len << 1);
+        }
     }
 
     void dup() {
-        push(peek());
+        ItemSize type = stackMap[sp - 1];
+        if (type == ItemSize.DOUBLE) {
+            throw new IllegalStateException("Bad dup");
+        }
+        push(type, peek());
     }
 
     void dup2() {
-        Value v2 = pop();
-        Value v1 = pop();
-        push(v1);
-        push(v2);
-        push(v1);
-        push(v2);
+        ItemSize type = stackMap[sp - 1];
+        if (type == ItemSize.DOUBLE) {
+            push(type, peek());
+        } else {
+            Value v2 = pop();
+            Value v1 = pop();
+            push(type, v1);
+            push(type, v2);
+            push(type, v1);
+            push(type, v2);
+        }
     }
 
     void swap() {
+        ItemSize type = stackMap[sp - 1];
+        if (type == ItemSize.DOUBLE) {
+            throw new IllegalStateException("Bad swap");
+        }
         Value v2 = pop();
         Value v1 = pop();
-        push(v2);
-        push(v1);
+        push(ItemSize.SINGLE, v2);
+        push(ItemSize.SINGLE, v1);
     }
 
-    void push2(Value value) {
-        push(Value.ICONST_0);
-        push(value);
-    }
-
-    void push(Value value) {
-        stack.addLast(value);
+    void push(ItemSize type, Value value) {
+        int sp = this.sp;
+        ensureStackSize(sp + 1);
+        stack[sp] = value;
+        stackMap[sp] = type;
+        this.sp = sp + 1;
     }
 
     Value peek() {
-        return stack.peekLast();
+        return stack[sp];
     }
 
-    Value peek2() {
-        return peek();
+    // Locals manipulation
+
+    void ensureLocalSize(int size) {
+        int len = localMap.length;
+        assert len == locals.length;
+        if (len < size) {
+            localMap = Arrays.copyOf(localMap, len << 1);
+            locals = Arrays.copyOf(locals, len << 1);
+        }
     }
+
+    void clearLocals() {
+        Arrays.fill(localMap, 0, lp, null);
+        Arrays.fill(locals, 0, lp, null);
+        lp = 0;
+    }
+
+    void setLocal(ItemSize type, int index, Value value) {
+        if (type == ItemSize.DOUBLE) {
+            ensureLocalSize(index + 2);
+            localMap[index + 1] = null;
+            locals[index + 1] = null;
+            lp = max(index + 2, lp);
+        } else {
+            ensureLocalSize(index + 1);
+            lp = max(index + 1, lp);
+        }
+        localMap[index] = type;
+        locals[index] = value;
+    }
+
+    Value getLocal(ItemSize type, int index) {
+        if (index > lp) {
+            throw new IllegalStateException("Invalid local index");
+        }
+        ItemSize curType = localMap[index];
+        if (curType == null) {
+            throw new IllegalStateException("Invalid get local (no value)");
+        }
+        if (type != curType) {
+            throw new IllegalStateException("Bad type for getLocal");
+        }
+        return locals[index];
+    }
+
+    // Frame stack manipulation
+
+    void ensureFrameStackSize(int size) {
+        int len = frameStackMap.length;
+        if (len < size) {
+            frameStackMap = Arrays.copyOf(frameStackMap, len << 1);
+        }
+    }
+
+    void clearFrameStack() {
+        Arrays.fill(frameStackMap, 0, fsp, null);
+        fsp = 0;
+    }
+
+    void addFrameStackItem(ItemSize type) {
+        int fsp = this.fsp;
+        ensureFrameStackSize(fsp);
+        frameStackMap[fsp] = type;
+        this.fsp = fsp + 1;
+    }
+
+    // Frame locals manipulation
+
+    void ensureFrameLocalSize(int size) {
+        int len = frameLocalMap.length;
+        if (len < size) {
+            frameLocalMap = Arrays.copyOf(frameLocalMap, len << 1);
+        }
+    }
+
+    void addFrameLocal(ItemSize type) {
+        int flp = this.flp;
+        ensureFrameLocalSize(flp + 1);
+        frameLocalMap[flp] = type;
+        this.flp = flp + 1;
+    }
+
+    ItemSize removeFrameLocal() {
+        int flp = this.flp;
+        ItemSize old = frameLocalMap[flp - 1];
+        frameLocalMap[flp - 1] = null;
+        this.flp = flp - 1;
+        return old;
+    }
+
+    void clearFrameLocals() {
+        Arrays.fill(frameLocalMap, 0, flp, null);
+        flp = 0;
+    }
+
+    // Capture
 
     Capture capture() {
-        Value[] captureStack = stack.toArray(NO_VALUES);
-        Value[] captureLocals = locals.toArray(NO_VALUES);
-        return new Capture(captureStack, captureLocals);
-    }
-
-    void registerEntererCapture(final BasicBlock currentBlock, final NodeHandle jumpTarget, final Capture capture) {
-        Map<NodeHandle, Capture> inner = enterers.get(currentBlock);
-        if (inner == null) {
-            enterers.put(currentBlock, Map.of(jumpTarget, capture));
-        } else {
-            enterers.put(currentBlock, Util.copyMap(inner, jumpTarget, capture));
-        }
-    }
-
-    void phiAndCapture(final BasicBlock currentBlock) {
-        // create phis for every value on the stack or local table.
-        // do NOT coalesce same values since they might only be the same from certain entry points.
-        int size = stack.size();
-        for (int i = 0; i < size; i ++) {
-            Value item = stack.removeFirst();
-            // this will create some useless phis for long/double, but that's OK, we can delete them later
-            PhiValueImpl phiValue = new PhiValueImpl();
-            phiValue.setValueForBlock(currentBlock, item);
-            stack.addLast(phiValue);
-        }
-        size = locals.size();
-        for (int i = 0; i < size; i ++) {
-            Value value = locals.get(i);
-            if (value != null) {
-                PhiValue phiValue = new PhiValueImpl();
-                phiValue.setValueForBlock(currentBlock, value);
-                locals.set(i, phiValue);
-            }
-        }
-        capturedPhis.put(currentBlock, capture());
+        ItemSize[] captureStackMap = Arrays.copyOf(stackMap, sp);
+        ItemSize[] captureLocalMap = Arrays.copyOf(localMap, lp);
+        Value[] captureStack = Arrays.copyOf(stack, sp);
+        Value[] captureLocals = Arrays.copyOf(locals, lp);
+        return new Capture(captureStackMap, captureLocalMap, captureStack, captureLocals);
     }
 
     NodeHandle getOrMakeBlockHandle(Label label) {
@@ -165,56 +322,180 @@ public final class GraphBuilder extends MethodVisitor {
         return nodeHandle;
     }
 
-    NodeHandle getBlockHandleIfExists(Label label) {
-        return allBlocks.get(label);
-    }
-
     public void visitTryCatchBlock(final Label start, final Label end, final Label handler, final String type) {
         // todo
     }
 
     public void visitLocalVariable(final String name, final String descriptor, final String signature, final Label start, final Label end, final int index) {
-        // todo
     }
 
     public void visitLineNumber(final int line, final Label start) {
         // todo
     }
 
+    public void visitFrame(final int type, final int numLocal, final Object[] local, final int numStack, final Object[] stack) {
+        switch (type) {
+            case Opcodes.F_SAME: {
+                clearStack();
+                return;
+            }
+            case Opcodes.F_SAME1: {
+                clearStack();
+                assert numStack == 1;
+                if (stack[0] instanceof Double || stack[0] instanceof Long) {
+                    addFrameStackItem(ItemSize.DOUBLE);
+                } else {
+                    addFrameStackItem(ItemSize.SINGLE);
+                }
+                return;
+            }
+            case Opcodes.F_APPEND: {
+                clearStack();
+                for (int i = 0; i < numLocal; i++) {
+                    if (local[i] instanceof Double || local[i] instanceof Long) {
+                        addFrameLocal(ItemSize.DOUBLE);
+                    } else {
+                        addFrameLocal(ItemSize.SINGLE);
+                    }
+                }
+                return;
+            }
+            case Opcodes.F_CHOP: {
+                clearStack();
+                for (int i = 0; i < numLocal; i ++) {
+                    // todo: check type
+                    removeFrameLocal();
+                }
+                return;
+            }
+            case Opcodes.F_FULL: {
+                clearStack();
+                clearFrameLocals();
+                for (int i = 0; i < numLocal; i++) {
+                    if (local[i] instanceof Double || local[i] instanceof Long) {
+                        addFrameLocal(ItemSize.DOUBLE);
+                    } else {
+                        addFrameLocal(ItemSize.SINGLE);
+                    }
+                }
+                for (int i = 0; i < numStack; i++) {
+                    if (stack[0] instanceof Double || stack[0] instanceof Long) {
+                        addFrameStackItem(ItemSize.DOUBLE);
+                    } else {
+                        addFrameStackItem(ItemSize.SINGLE);
+                    }
+                }
+                return;
+            }
+            default: {
+                throw new IllegalStateException();
+            }
+        }
+    }
+
     public void visitEnd() {
         // fail if the state is invalid
         super.visitEnd();
-        // now wrap up the phis
-        for (BasicBlock basicBlock : capturedPhis.keySet()) {
-            Capture phiSet = capturedPhis.get(basicBlock);
-            Map<NodeHandle, Capture> captures = enterers.getOrDefault(basicBlock, Map.of());
-            for (Map.Entry<NodeHandle, Capture> entry : captures.entrySet()) {
-                NodeHandle enteringHandle = entry.getKey();
-                BasicBlock enterer = enteringHandle.getTarget();
-                Capture capture = entry.getValue();
-                Value[] phiLocals = phiSet.locals;
-                Value[] captureLocals = capture.locals;
-                for (int i = 0; i < min(phiLocals.length, captureLocals.length); i ++) {
-                    PhiValue phiValue = (PhiValue) phiLocals[i];
-                    phiValue.setValueForBlock(enterer, captureLocals[i]);
-                }
-                Value[] phiStack = phiSet.stack;
-                Value[] captureStack = capture.stack;
-                for (int i = 0; i < min(phiStack.length, captureStack.length); i ++) {
-                    PhiValue phiValue = (PhiValue) phiStack[i];
-                    phiValue.setValueForBlock(enterer, captureStack[i]);
-                }
+        // now wrap up the phis for every block that exits
+        for (Map.Entry<BasicBlock, Capture> i : blockExits.entrySet()) {
+            BasicBlock exitingBlock = i.getKey();
+            TerminalInstruction ti = exitingBlock.getTerminalInstruction();
+            if (ti instanceof GotoInstruction) {
+                wirePhis(exitingBlock, ((GotoInstruction) ti).getTarget());
+            } else if (ti instanceof IfInstruction) {
+                IfInstruction ifTi = (IfInstruction) ti;
+                wirePhis(exitingBlock, ifTi.getTrueBranch());
+                wirePhis(exitingBlock, ifTi.getFalseBranch());
             }
+        }
+    }
+
+    private void wirePhis(final BasicBlock exitingBlock, final BasicBlock enteringBlock) {
+        Capture exitState = blockExits.get(exitingBlock);
+        Capture enterState = blockEnters.get(enteringBlock);
+        // first check & map stack
+        int stackSize = enterState.stack.length;
+        if (exitState.stack.length != stackSize) {
+            throw new IllegalStateException("Stack length mismatch");
+        }
+        for (int i = 0; i < stackSize; i ++) {
+            if (enterState.stackMap[i] != exitState.stackMap[i]) {
+                throw new IllegalStateException("Stack entry type mismatch");
+            }
+            PhiValue value = (PhiValue) enterState.stack[i];
+            value.setValueForBlock(exitingBlock, exitState.stack[i]);
+        }
+        // now locals
+        int localSize = enterState.locals.length;
+        if (exitState.locals.length < localSize) {
+            throw new IllegalStateException("Local vars mismatch");
+        }
+        for (int i = 0; i < localSize; i ++) {
+            if (enterState.localsMap[i] != exitState.localsMap[i]) {
+                throw new IllegalStateException("Locals entry type mismatch");
+            }
+            PhiValue value = (PhiValue) enterState.locals[i];
+            value.setValueForBlock(exitingBlock, exitState.locals[i]);
         }
     }
 
     void enter(State state) {
         State old = (State) this.mv;
+        if (old == state) {
+            return;
+        }
         if (old != null) {
             old.handleExit(state);
         }
         this.mv = state;
         state.handleEntry(old);
+    }
+
+    void propagateCurrentStackAndLocals() {
+        assert futureBlock == null && currentBlock != null;
+        for (int i = 0; i < sp; i ++) {
+            ItemSize type = stackMap[i];
+            PhiValueImpl pv = new PhiValueImpl();
+            stack[i] = pv;
+            PhiInstructionImpl pi = new PhiInstructionImpl(pv);
+            pi.setDependency(prevInst);
+            prevInst = pi;
+        }
+        for (int i = 0; i < lp; i ++) {
+            if (locals[i] != null) {
+                PhiValueImpl pv = new PhiValueImpl();
+                locals[i] = pv;
+                PhiInstructionImpl pi = new PhiInstructionImpl(pv);
+                pi.setDependency(prevInst);
+                prevInst = pi;
+            }
+        }
+        blockEnters.putIfAbsent(currentBlock, capture());
+    }
+
+    void propagateFrameStackAndLocals() {
+        assert futureBlock == null && currentBlock != null;
+        clearStack();
+        clearLocals();
+        for (int i = 0; i < fsp; i ++) {
+            ItemSize type = frameStackMap[i];
+            PhiValueImpl pv = new PhiValueImpl();
+            push(type, pv);
+            PhiInstructionImpl pi = new PhiInstructionImpl(pv);
+            pi.setDependency(prevInst);
+            prevInst = pi;
+        }
+        for (int i = 0; i < flp; i ++) {
+            ItemSize type = frameLocalMap[i];
+            if (type != null) {
+                PhiValueImpl pv = new PhiValueImpl();
+                setLocal(type, i, pv);
+                PhiInstructionImpl pi = new PhiInstructionImpl(pv);
+                pi.setDependency(prevInst);
+                prevInst = pi;
+            }
+        }
+        blockEnters.putIfAbsent(currentBlock, capture());
     }
 
     MethodVisitor outer() {
@@ -289,95 +570,55 @@ public final class GraphBuilder extends MethodVisitor {
         }
     }
 
-    final class Initial extends State {
-        Initial() {
-        }
+    final class InBlock extends State {
+        boolean gotInstr;
 
-        public void visitInsn(final int opcode) {
-            enter(gotInst);
-            outer().visitInsn(opcode);
-        }
-
-        public void visitIntInsn(final int opcode, final int operand) {
-            enter(gotInst);
-            outer().visitIntInsn(opcode, operand);
-        }
-
-        public void visitVarInsn(final int opcode, final int var) {
-            enter(gotInst);
-            outer().visitVarInsn(opcode, var);
+        InBlock() {
         }
 
         public void visitTypeInsn(final int opcode, final String type) {
-            enter(gotInst);
-            outer().visitTypeInsn(opcode, type);
+            gotInstr = true;
+            super.visitTypeInsn(opcode, type);
         }
 
         public void visitFieldInsn(final int opcode, final String owner, final String name, final String descriptor) {
-            enter(gotInst);
-            outer().visitFieldInsn(opcode, owner, name, descriptor);
-        }
-
-        public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
-            enter(gotInst);
-            outer().visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+            gotInstr = true;
+            super.visitFieldInsn(opcode, owner, name, descriptor);
         }
 
         public void visitInvokeDynamicInsn(final String name, final String descriptor, final Handle bootstrapMethodHandle, final Object... bootstrapMethodArguments) {
-            enter(gotInst);
-            outer().visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
-        }
-
-        public void visitJumpInsn(final int opcode, final Label label) {
-            enter(gotInst);
-            outer().visitJumpInsn(opcode, label);
+            gotInstr = true;
+            super.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
         }
 
         public void visitLdcInsn(final Object value) {
-            enter(gotInst);
-            outer().visitLdcInsn(value);
-        }
-
-        public void visitIincInsn(final int var, final int increment) {
-            enter(gotInst);
-            outer().visitIincInsn(var, increment);
+            gotInstr = true;
+            super.visitLdcInsn(value);
         }
 
         public void visitTableSwitchInsn(final int min, final int max, final Label dflt, final Label... labels) {
-            enter(gotInst);
-            outer().visitTableSwitchInsn(min, max, dflt, labels);
+            gotInstr = true;
+            super.visitTableSwitchInsn(min, max, dflt, labels);
         }
 
         public void visitLookupSwitchInsn(final Label dflt, final int[] keys, final Label[] labels) {
-            enter(gotInst);
-            outer().visitLookupSwitchInsn(dflt, keys, labels);
+            gotInstr = true;
+            super.visitLookupSwitchInsn(dflt, keys, labels);
         }
 
         public void visitMultiANewArrayInsn(final String descriptor, final int numDimensions) {
-            enter(gotInst);
-            outer().visitMultiANewArrayInsn(descriptor, numDimensions);
-        }
-
-        public void visitLabel(final Label label) {
-            NodeHandle handle = allBlocks.get(label);
-            if (handle == null) {
-                allBlocks.put(label, NodeHandle.of(currentBlock));
-            } else {
-                handle.setTarget(currentBlock);
-            }
-        }
-    }
-    final class GotInst extends State {
-        GotInst() {
+            gotInstr = true;
+            super.visitMultiANewArrayInsn(descriptor, numDimensions);
         }
 
         public void visitInsn(final int opcode) {
+            gotInstr = true;
             switch (opcode) {
                 case Opcodes.NOP: {
                     return;
                 }
                 case Opcodes.ICONST_0: {
-                    push(Value.ICONST_0);
+                    push(ItemSize.SINGLE, Value.ICONST_0);
                     return;
                 }
                 case Opcodes.ICONST_1:
@@ -385,7 +626,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.ICONST_3:
                 case Opcodes.ICONST_4:
                 case Opcodes.ICONST_5: {
-                    push(Value.iconst(opcode - Opcodes.ICONST_0));
+                    push(ItemSize.SINGLE, Value.iconst(opcode - Opcodes.ICONST_0));
                     return;
                 }
                 case Opcodes.POP: {
@@ -409,7 +650,7 @@ public final class GraphBuilder extends MethodVisitor {
                     return;
                 }
                 case Opcodes.INEG: {
-                    push(Value.ICONST_0);
+                    push(ItemSize.SINGLE, Value.ICONST_0);
                     swap();
                     visitInsn(Opcodes.ISUB);
                     return;
@@ -428,7 +669,7 @@ public final class GraphBuilder extends MethodVisitor {
                     op.setKind(CommutativeBinaryOp.Kind.fromOpcode(opcode));
                     op.setLeft(pop());
                     op.setRight(pop());
-                    push(op);
+                    push(ItemSize.SINGLE, op);
                     return;
                 }
                 case Opcodes.LSHL:
@@ -445,7 +686,7 @@ public final class GraphBuilder extends MethodVisitor {
                     op.setKind(CommutativeBinaryOp.Kind.fromOpcode(opcode));
                     op.setLeft(pop2());
                     op.setRight(pop2());
-                    push2(op);
+                    push(ItemSize.DOUBLE, op);
                     return;
                 }
                 case Opcodes.LNEG:
@@ -522,10 +763,11 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.DRETURN: {
                     Value retVal = pop2();
                     ReturnValueInstructionImpl insn = new ReturnValueInstructionImpl();
+                    insn.setDependency(prevInst);
                     insn.setReturnValue(retVal);
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
                     currentBlock.setTerminalInstruction(insn);
-                    enter(noBlock);
+                    enter(possibleBlockState);
                     return;
                 }
                 case Opcodes.IRETURN:
@@ -533,17 +775,20 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.ARETURN: {
                     Value retVal = pop();
                     ReturnValueInstructionImpl insn = new ReturnValueInstructionImpl();
+                    insn.setDependency(prevInst);
                     insn.setReturnValue(retVal);
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
                     currentBlock.setTerminalInstruction(insn);
-                    enter(noBlock);
+                    enter(possibleBlockState);
                     return;
                 }
                 case Opcodes.RETURN: {
                     ReturnInstructionImpl insn = new ReturnInstructionImpl();
+                    insn.setDependency(prevInst);
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
                     currentBlock.setTerminalInstruction(insn);
-                    enter(noBlock);
+                    prevInst = null;
+                    enter(possibleBlockState);
                     return;
                 }
                 default: {
@@ -553,17 +798,16 @@ public final class GraphBuilder extends MethodVisitor {
         }
 
         public void visitJumpInsn(final int opcode, final Label label) {
+            gotInstr = true;
             switch (opcode) {
                 case Opcodes.GOTO: {
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
                     NodeHandle jumpTarget = getOrMakeBlockHandle(label);
-                    registerEntererCapture(currentBlock, jumpTarget, capture());
                     GotoInstructionImpl goto_ = new GotoInstructionImpl();
-                    //todo: jumpTarget is unresolved, push it for phi analysis
                     goto_.setTarget(jumpTarget);
                     goto_.setDependency(prevInst);
                     currentBlock.setTerminalInstruction(goto_);
-                    enter(noBlock);
+                    enter(possibleBlockState);
                     return;
                 }
                 case Opcodes.IFEQ:
@@ -613,38 +857,37 @@ public final class GraphBuilder extends MethodVisitor {
         }
 
         public void visitIincInsn(final int var, final int increment) {
+            gotInstr = true;
             CommutativeBinaryOpImpl op = new CommutativeBinaryOpImpl();
             op.setKind(CommutativeBinaryOp.Kind.ADD);
-            op.setLeft(locals.get(var));
-            op.setRight(Value.iconst(1));
-            locals.set(var, op);
+            op.setLeft(getLocal(ItemSize.SINGLE, var));
+            op.setRight(Value.iconst(increment));
+            setLocal(ItemSize.SINGLE, var, op);
         }
 
         void handleIfInsn(Value cond, Label label) {
             BasicBlock currentBlock = GraphBuilder.this.currentBlock;
             NodeHandle jumpTarget = getOrMakeBlockHandle(label);
             IfInstructionImpl if_ = new IfInstructionImpl();
-            if_.setCondition(cond);
-            if_.setTrueBranch(jumpTarget);
-            BasicBlockImpl newBlock = new BasicBlockImpl();
-            if_.setFalseBranch(newBlock);
-            Capture capture = capture();
-            registerEntererCapture(currentBlock, jumpTarget, capture);
             currentBlock.setTerminalInstruction(if_);
-            phiAndCapture(newBlock);
-            GraphBuilder.this.currentBlock = newBlock;
-            enter(initial);
+            if_.setDependency(prevInst);
+            if_.setCondition(cond);
+            if_.setFalseBranch(jumpTarget);
+            enter(mayNeedFrameState);
+            if_.setTrueBranch(futureBlock);
         }
 
         public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
+            gotInstr = true;
             //  todo
         }
 
         public void visitIntInsn(final int opcode, final int operand) {
+            gotInstr = true;
             switch (opcode) {
                 case Opcodes.BIPUSH:
                 case Opcodes.SIPUSH: {
-                    push(Value.iconst(operand));
+                    push(ItemSize.SINGLE, Value.iconst(operand));
                     return;
                 }
                 case Opcodes.NEWARRAY: {
@@ -657,71 +900,236 @@ public final class GraphBuilder extends MethodVisitor {
         }
 
         public void visitVarInsn(final int opcode, final int var) {
+            gotInstr = true;
             switch (opcode) {
                 case Opcodes.ILOAD:
                 case Opcodes.ALOAD: {
-                    push(locals.get(var));
+                    push(ItemSize.SINGLE, getLocal(ItemSize.SINGLE, var));
                     return;
                 }
                 case Opcodes.DLOAD:
                 case Opcodes.LLOAD: {
-                    push2(locals.get(var));
+                    push(ItemSize.DOUBLE, getLocal(ItemSize.DOUBLE, var));
                     return;
                 }
                 case Opcodes.ISTORE:
                 case Opcodes.ASTORE: {
-                    while (locals.size() <= var) {
-                        locals.add(null);
-                    }
-                    locals.set(var, pop());
+                    setLocal(ItemSize.SINGLE, var, pop());
                     return;
                 }
                 case Opcodes.DSTORE:
                 case Opcodes.LSTORE: {
-                    while (locals.size() <= var) {
-                        locals.add(null);
-                    }
-                    locals.set(var, pop2());
+                    setLocal(ItemSize.DOUBLE, var, pop2());
                     return;
                 }
             }
         }
 
         public void visitLabel(final Label label) {
-            // something enters at this point, so we need to start up a new block
-            BasicBlockImpl newBlock = new BasicBlockImpl();
-            NodeHandle blockHandle = getBlockHandleIfExists(label);
-            if (blockHandle == null) {
-                blockHandle = newBlock.getHandle();
-                allBlocks.put(label, blockHandle);
+            if (gotInstr) {
+                // treat it like a goto
+                BasicBlock currentBlock = GraphBuilder.this.currentBlock;
+                GotoInstructionImpl goto_ = new GotoInstructionImpl();
+                currentBlock.setTerminalInstruction(goto_);
+                goto_.setDependency(prevInst);
+                enter(futureBlockState);
+                assert futureBlock != null;
+                goto_.setTarget(futureBlock);
+                outer().visitLabel(label);
             } else {
-                blockHandle.setTarget(newBlock);
+                NodeHandle handle = allBlocks.get(label);
+                if (handle == null) {
+                    allBlocks.put(label, NodeHandle.of(currentBlock));
+                } else {
+                    handle.setTarget(currentBlock);
+                }
             }
+        }
+
+        void handleExit(final State next) {
+            // exit the current block, capturing state
             BasicBlock currentBlock = GraphBuilder.this.currentBlock;
-            // terminate it
-            GotoInstructionImpl goto_ = new GotoInstructionImpl();
-            goto_.setTarget(blockHandle);
-            goto_.setDependency(prevInst);
-            currentBlock.setTerminalInstruction(goto_);
-            phiAndCapture(currentBlock);
-            GraphBuilder.this.currentBlock = newBlock;
-            enter(initial);
+            assert currentBlock != null;
+            Capture capture = capture();
+            if (blockExits.putIfAbsent(currentBlock, capture) != null) {
+                throw new IllegalStateException("Block exited twice");
+            }
+            GraphBuilder.this.currentBlock = null;
+            prevInst = null;
+            // the next state decides whether to clear locals/stack or use that info to build the enter state
+        }
+
+        void handleEntry(final State previous) {
+            assert previous == futureBlockState || previous == mayNeedFrameState;
+            assert currentBlock != null;
+            gotInstr = false;
+            // the locals/stack are already set up as well
+        }
+
+        public void visitFrame(final int type, final int numLocal, final Object[] local, final int numStack, final Object[] stack) {
+            // abandon this block, and get a new frame state to use
+            enter(futureBlockState);
+            outer().visitFrame(type, numLocal, local, numStack, stack);
+        }
+    }
+
+    abstract class EnterBlockOnInsnState extends State {
+        EnterBlockOnInsnState() {
+        }
+
+        public void visitInsn(final int opcode) {
+            enter(inBlockState);
+            outer().visitInsn(opcode);
+        }
+
+        public void visitIntInsn(final int opcode, final int operand) {
+            enter(inBlockState);
+            outer().visitIntInsn(opcode, operand);
+        }
+
+        public void visitVarInsn(final int opcode, final int var) {
+            enter(inBlockState);
+            outer().visitVarInsn(opcode, var);
+        }
+
+        public void visitTypeInsn(final int opcode, final String type) {
+            enter(inBlockState);
+            outer().visitTypeInsn(opcode, type);
+        }
+
+        public void visitFieldInsn(final int opcode, final String owner, final String name, final String descriptor) {
+            enter(inBlockState);
+            outer().visitFieldInsn(opcode, owner, name, descriptor);
+        }
+
+        public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
+            enter(inBlockState);
+            outer().visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+        }
+
+        public void visitInvokeDynamicInsn(final String name, final String descriptor, final Handle bootstrapMethodHandle, final Object... bootstrapMethodArguments) {
+            enter(inBlockState);
+            outer().visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
+        }
+
+        public void visitJumpInsn(final int opcode, final Label label) {
+            enter(inBlockState);
+            outer().visitJumpInsn(opcode, label);
+        }
+
+        public void visitLdcInsn(final Object value) {
+            enter(inBlockState);
+            outer().visitLdcInsn(value);
+        }
+
+        public void visitIincInsn(final int var, final int increment) {
+            enter(inBlockState);
+            outer().visitIincInsn(var, increment);
+        }
+
+        public void visitTableSwitchInsn(final int min, final int max, final Label dflt, final Label... labels) {
+            enter(inBlockState);
+            outer().visitTableSwitchInsn(min, max, dflt, labels);
+        }
+
+        public void visitLookupSwitchInsn(final Label dflt, final int[] keys, final Label[] labels) {
+            enter(inBlockState);
+            outer().visitLookupSwitchInsn(dflt, keys, labels);
+        }
+
+        public void visitMultiANewArrayInsn(final String descriptor, final int numDimensions) {
+            enter(inBlockState);
+            outer().visitMultiANewArrayInsn(descriptor, numDimensions);
         }
 
     }
 
+    final class MayNeedFrameState extends EnterBlockOnInsnState {
+        MayNeedFrameState() {
+        }
+
+        void handleEntry(final State previous) {
+            assert previous == inBlockState && futureBlock == null;
+            futureBlock = new BasicBlockImpl();
+        }
+
+        void handleExit(final State next) {
+            if (next == inBlockState) {
+                currentBlock = futureBlock;
+                futureBlock = null;
+                // we never got a frame, so that means we have to set up stack & locals from the current stack & locals
+                propagateCurrentStackAndLocals();
+            } else {
+                assert next == futureBlockState;
+                clearLocals();
+                clearStack();
+            }
+        }
+
+        public void visitLabel(final Label label) {
+            NodeHandle handle = allBlocks.get(label);
+            if (handle == null) {
+                allBlocks.put(label, futureBlock.getHandle());
+            } else {
+                handle.setTarget(futureBlock);
+            }
+        }
+
+        public void visitFrame(final int type, final int numLocal, final Object[] local, final int numStack, final Object[] stack) {
+            clearStack();
+            clearLocals();
+            enter(futureBlockState);
+            outer().visitFrame(type, numLocal, local, numStack, stack);
+        }
+    }
+
+    final class FutureBlockState extends EnterBlockOnInsnState {
+        FutureBlockState() {
+        }
+
+        void handleEntry(final State previous) {
+            assert previous == inBlockState && futureBlock == null
+                || previous == mayNeedFrameState && futureBlock != null
+                || previous == possibleBlockState && futureBlock != null;
+            if (futureBlock == null) {
+                futureBlock = new BasicBlockImpl();
+            }
+        }
+
+        void handleExit(final State next) {
+            assert next == inBlockState;
+            currentBlock = futureBlock;
+            futureBlock = null;
+            // set up the stack & locals from the frame state
+            propagateFrameStackAndLocals();
+        }
+
+        public void visitLabel(final Label label) {
+            NodeHandle handle = allBlocks.get(label);
+            if (handle == null) {
+                allBlocks.put(label, futureBlock.getHandle());
+            } else {
+                handle.setTarget(futureBlock);
+            }
+        }
+
+
+    }
+
     final class NoBlock extends State {
+
         NoBlock() {
         }
 
         void handleEntry(final State previous) {
             currentBlock = null;
+            prevInst = null;
         }
 
         public void visitLabel(final Label label) {
             // a new block begins
             pendingLabels.add(label);
-            enter(possibleBlock);
+            enter(possibleBlockState);
         }
 
         public void visitEnd() {
@@ -730,20 +1138,29 @@ public final class GraphBuilder extends MethodVisitor {
         }
     }
 
-    final class PossibleBlock extends State {
+    final class PossibleBlock extends EnterBlockOnInsnState {
         PossibleBlock() {
+        }
+
+        void handleEntry(final State previous) {
+            assert previous == inBlockState;
+            assert pendingLabels.isEmpty();
         }
 
         public void visitLabel(final Label label) {
             pendingLabels.add(label);
         }
 
+        public void visitFrame(final int type, final int numLocal, final Object[] local, final int numStack, final Object[] stack) {
+            enter(futureBlockState);
+            outer().visitFrame(type, numLocal, local, numStack, stack);
+        }
+
         void handleExit(final State next) {
-            assert next == gotInst;
             // a new block begins
             BasicBlockImpl newBlock = new BasicBlockImpl();
             for (Label label : pendingLabels) {
-                NodeHandle blockHandle = getBlockHandleIfExists(label);
+                NodeHandle blockHandle = allBlocks.get(label);
                 if (blockHandle == null) {
                     blockHandle = newBlock.getHandle();
                     allBlocks.put(label, blockHandle);
@@ -751,74 +1168,19 @@ public final class GraphBuilder extends MethodVisitor {
                     blockHandle.setTarget(newBlock);
                 }
             }
-            currentBlock = newBlock;
-            phiAndCapture(newBlock);
+            assert prevInst == null;
+            if (next == futureBlockState) {
+                futureBlock = newBlock;
+                // got a frame directive
+                clearStack();
+                clearLocals();
+            } else {
+                assert next == inBlockState;
+                // we have to set up the frame manually
+                currentBlock = newBlock;
+                propagateCurrentStackAndLocals();
+            }
             pendingLabels.clear();
-        }
-
-        public void visitInsn(final int opcode) {
-            enter(gotInst);
-            outer().visitInsn(opcode);
-        }
-
-        public void visitIntInsn(final int opcode, final int operand) {
-            enter(gotInst);
-            outer().visitIntInsn(opcode, operand);
-        }
-
-        public void visitVarInsn(final int opcode, final int var) {
-            enter(gotInst);
-            outer().visitVarInsn(opcode, var);
-        }
-
-        public void visitTypeInsn(final int opcode, final String type) {
-            enter(gotInst);
-            outer().visitTypeInsn(opcode, type);
-        }
-
-        public void visitFieldInsn(final int opcode, final String owner, final String name, final String descriptor) {
-            enter(gotInst);
-            outer().visitFieldInsn(opcode, owner, name, descriptor);
-        }
-
-        public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
-            enter(gotInst);
-            outer().visitMethodInsn(opcode, owner, name, descriptor, isInterface);
-        }
-
-        public void visitInvokeDynamicInsn(final String name, final String descriptor, final Handle bootstrapMethodHandle, final Object... bootstrapMethodArguments) {
-            enter(gotInst);
-            outer().visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
-        }
-
-        public void visitJumpInsn(final int opcode, final Label label) {
-            enter(gotInst);
-            outer().visitJumpInsn(opcode, label);
-        }
-
-        public void visitLdcInsn(final Object value) {
-            enter(gotInst);
-            outer().visitLdcInsn(value);
-        }
-
-        public void visitIincInsn(final int var, final int increment) {
-            enter(gotInst);
-            outer().visitIincInsn(var, increment);
-        }
-
-        public void visitTableSwitchInsn(final int min, final int max, final Label dflt, final Label... labels) {
-            enter(gotInst);
-            outer().visitTableSwitchInsn(min, max, dflt, labels);
-        }
-
-        public void visitLookupSwitchInsn(final Label dflt, final int[] keys, final Label[] labels) {
-            enter(gotInst);
-            outer().visitLookupSwitchInsn(dflt, keys, labels);
-        }
-
-        public void visitMultiANewArrayInsn(final String descriptor, final int numDimensions) {
-            enter(gotInst);
-            outer().visitMultiANewArrayInsn(descriptor, numDimensions);
         }
 
         public void visitEnd() {
@@ -830,10 +1192,19 @@ public final class GraphBuilder extends MethodVisitor {
     static final class Capture {
         final Value[] stack;
         final Value[] locals;
+        final ItemSize[] stackMap;
+        final ItemSize[] localsMap;
 
-        Capture(final Value[] stack, final Value[] locals) {
+        Capture(final ItemSize[] stackMap, final ItemSize[] localsMap, final Value[] stack, final Value[] locals) {
+            this.stackMap = stackMap;
+            this.localsMap = localsMap;
             this.stack = stack;
             this.locals = locals;
         }
+    }
+
+    enum ItemSize {
+        SINGLE,
+        DOUBLE,
     }
 }

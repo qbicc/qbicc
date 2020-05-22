@@ -21,6 +21,8 @@ public final class Types {
     public static final Value float64 = LLVM.float64;
     public static final Value float128 = LLVM.float128;
 
+    public static final Value void_ = LLVM.void_;
+
     public static Value ptrTo(Value type) {
         return LLVM.ptrTo(type, 0);
     }

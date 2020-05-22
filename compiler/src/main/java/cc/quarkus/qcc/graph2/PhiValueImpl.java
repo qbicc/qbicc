@@ -9,7 +9,8 @@ final class PhiValueImpl extends ValueImpl implements PhiValue {
     private Map<BasicBlock, NodeHandle> values = Map.of();
 
     public Value getValueForBlock(final BasicBlock input) {
-        return values.get(input).getTarget();
+        NodeHandle mapped = values.get(input);
+        return mapped == null ? null : mapped.getTarget();
     }
 
     public void setValueForBlock(final BasicBlock input, final Value value) {
@@ -18,10 +19,6 @@ final class PhiValueImpl extends ValueImpl implements PhiValue {
 
     public String getLabelForGraph() {
         return "phi";
-    }
-
-    public Iterable<BasicBlock> getBlocks() {
-        return values.keySet();
     }
 
     public Appendable writeToGraph(final Set<Node> visited, final Appendable graph) throws IOException {

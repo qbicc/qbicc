@@ -10,6 +10,10 @@ final class IntConstantValueImpl extends ValueImpl {
         this.value = value;
     }
 
+    int getValue() {
+        return value;
+    }
+
     public String getLabelForGraph() {
         return "Int:" + value;
     }

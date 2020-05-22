@@ -1,14 +1,14 @@
 package cc.quarkus.qcc.machine.llvm;
 
+import cc.quarkus.qcc.machine.llvm.op.Assignment;
 import cc.quarkus.qcc.machine.llvm.op.AtomicRmwInstruction;
 import cc.quarkus.qcc.machine.llvm.op.Binary;
+import cc.quarkus.qcc.machine.llvm.op.Branch;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.ExactBinary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
-import cc.quarkus.qcc.machine.llvm.op.Assignment;
-import cc.quarkus.qcc.machine.llvm.op.Branch;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.machine.llvm.op.Return;

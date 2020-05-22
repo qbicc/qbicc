@@ -12,12 +12,8 @@ abstract class InstructionImpl extends NodeImpl implements Instruction {
         return 0;
     }
 
-    public boolean hasDependency() {
-        return dependency != null;
-    }
-
     public Instruction getDependency() {
-        return dependency.getTarget();
+        return dependency == null ? null : dependency.getTarget();
     }
 
     public void setDependency(final Instruction dependency) {

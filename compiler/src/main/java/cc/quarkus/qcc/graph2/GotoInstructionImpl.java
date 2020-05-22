@@ -9,6 +9,9 @@ import java.util.Set;
 final class GotoInstructionImpl extends InstructionImpl implements GotoInstruction {
     NodeHandle target;
 
+    GotoInstructionImpl() {
+    }
+
     public BasicBlock getTarget() {
         return target.getTarget();
     }

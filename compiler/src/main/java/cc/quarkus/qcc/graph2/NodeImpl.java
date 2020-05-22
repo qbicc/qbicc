@@ -115,4 +115,12 @@ abstract class NodeImpl implements Node {
         return myHandle;
     }
 
+    NodeHandle getHandleIfExists() {
+        return myHandle;
+    }
+
+    void setHandle(NodeHandle newHandle) {
+        assert myHandle == null;
+        myHandle = newHandle;
+    }
 }
