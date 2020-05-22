@@ -287,8 +287,10 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         if (! terminated) {
             throw new IllegalStateException("Basic block not terminated");
         }
-        String name = this.name;
-        if (name != null) {
+        if (this != func.rootBlock) {
+            if (name == null) {
+                func.assignName(this);
+            }
             target.append(name).append(':').append(System.lineSeparator());
         }
         for (List<AbstractEmittable> list : List.of(phis, items)) {
