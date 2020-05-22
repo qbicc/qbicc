@@ -58,6 +58,8 @@ public final class GraphBuilder extends MethodVisitor {
             // there's a receiver
             localsCount += 1;
         }
+        // first block cannot be entered, so don't bother adding an enter for it
+        firstBlock = new BasicBlockImpl();
         // set up the initial stack maps
         int initialLocalsSize = localsCount << 1;
         localMap = new ItemSize[initialLocalsSize];
@@ -71,6 +73,7 @@ public final class GraphBuilder extends MethodVisitor {
             if (! isStatic) {
                 // "this" receiver - todo: ThisValue
                 ParameterValue pv = new ParameterValueImpl();
+                pv.setOwner(firstBlock);
                 thisValue = pv;
                 pv.setIndex(j);
                 setLocal(ItemSize.SINGLE, j, pv);
@@ -78,6 +81,7 @@ public final class GraphBuilder extends MethodVisitor {
             }
             for (int i = 0; i < argTypes.length; i ++) {
                 ParameterValue pv = new ParameterValueImpl();
+                pv.setOwner(firstBlock);
                 pv.setIndex(j);
                 if (argTypes[i] == Type.LONG_TYPE || argTypes[i] == Type.DOUBLE_TYPE) {
                     setLocal(ItemSize.DOUBLE, j, pv);
@@ -98,8 +102,6 @@ public final class GraphBuilder extends MethodVisitor {
         sp = 0;
         frameStackMap = new ItemSize[16];
         fsp = 0;
-        // first block cannot be entered, so don't bother adding an enter for it
-        firstBlock = new BasicBlockImpl();
     }
 
     public void visitParameter(final String name, final int access) {
@@ -456,18 +458,14 @@ public final class GraphBuilder extends MethodVisitor {
         for (int i = 0; i < sp; i ++) {
             ItemSize type = stackMap[i];
             PhiValueImpl pv = new PhiValueImpl();
+            pv.setOwner(currentBlock);
             stack[i] = pv;
-            PhiInstructionImpl pi = new PhiInstructionImpl(pv);
-            pi.setDependency(prevInst);
-            prevInst = pi;
         }
         for (int i = 0; i < lp; i ++) {
             if (locals[i] != null) {
                 PhiValueImpl pv = new PhiValueImpl();
+                pv.setOwner(currentBlock);
                 locals[i] = pv;
-                PhiInstructionImpl pi = new PhiInstructionImpl(pv);
-                pi.setDependency(prevInst);
-                prevInst = pi;
             }
         }
         blockEnters.putIfAbsent(currentBlock, capture());
@@ -480,19 +478,15 @@ public final class GraphBuilder extends MethodVisitor {
         for (int i = 0; i < fsp; i ++) {
             ItemSize type = frameStackMap[i];
             PhiValueImpl pv = new PhiValueImpl();
+            pv.setOwner(currentBlock);
             push(type, pv);
-            PhiInstructionImpl pi = new PhiInstructionImpl(pv);
-            pi.setDependency(prevInst);
-            prevInst = pi;
         }
         for (int i = 0; i < flp; i ++) {
             ItemSize type = frameLocalMap[i];
             if (type != null) {
                 PhiValueImpl pv = new PhiValueImpl();
+                pv.setOwner(currentBlock);
                 setLocal(type, i, pv);
-                PhiInstructionImpl pi = new PhiInstructionImpl(pv);
-                pi.setDependency(prevInst);
-                prevInst = pi;
             }
         }
         blockEnters.putIfAbsent(currentBlock, capture());
@@ -666,6 +660,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.FMUL:
                 case Opcodes.FADD: {
                     CommutativeBinaryOpImpl op = new CommutativeBinaryOpImpl();
+                    op.setOwner(currentBlock);
                     op.setKind(CommutativeBinaryOp.Kind.fromOpcode(opcode));
                     op.setLeft(pop());
                     op.setRight(pop());
@@ -683,6 +678,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.DMUL:
                 case Opcodes.DADD: {
                     CommutativeBinaryOpImpl op = new CommutativeBinaryOpImpl();
+                    op.setOwner(currentBlock);
                     op.setKind(CommutativeBinaryOp.Kind.fromOpcode(opcode));
                     op.setLeft(pop2());
                     op.setRight(pop2());
@@ -813,6 +809,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IFEQ:
                 case Opcodes.IFNE: {
                     CommutativeBinaryOp op = new CommutativeBinaryOpImpl();
+                    op.setOwner(currentBlock);
                     op.setKind(CommutativeBinaryOp.Kind.fromOpcode(opcode));
                     op.setRight(Value.ICONST_0);
                     op.setLeft(pop());
@@ -824,6 +821,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IFLE:
                 case Opcodes.IFGE: {
                     NonCommutativeBinaryOp op = new NonCommutativeBinaryOpImpl();
+                    op.setOwner(currentBlock);
                     op.setKind(NonCommutativeBinaryOp.Kind.fromOpcode(opcode));
                     op.setRight(Value.ICONST_0);
                     op.setLeft(pop());
@@ -833,6 +831,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IF_ICMPEQ:
                 case Opcodes.IF_ICMPNE: {
                     CommutativeBinaryOp op = new CommutativeBinaryOpImpl();
+                    op.setOwner(currentBlock);
                     op.setKind(CommutativeBinaryOp.Kind.fromOpcode(opcode));
                     op.setRight(pop());
                     op.setLeft(pop());
@@ -844,6 +843,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IF_ICMPGE:
                 case Opcodes.IF_ICMPGT: {
                     NonCommutativeBinaryOp op = new NonCommutativeBinaryOpImpl();
+                    op.setOwner(currentBlock);
                     op.setKind(NonCommutativeBinaryOp.Kind.fromOpcode(opcode));
                     op.setRight(pop());
                     op.setLeft(pop());
@@ -859,6 +859,7 @@ public final class GraphBuilder extends MethodVisitor {
         public void visitIincInsn(final int var, final int increment) {
             gotInstr = true;
             CommutativeBinaryOpImpl op = new CommutativeBinaryOpImpl();
+            op.setOwner(currentBlock);
             op.setKind(CommutativeBinaryOp.Kind.ADD);
             op.setLeft(getLocal(ItemSize.SINGLE, var));
             op.setRight(Value.iconst(increment));

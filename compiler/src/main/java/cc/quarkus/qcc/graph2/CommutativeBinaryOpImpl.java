@@ -6,6 +6,9 @@ package cc.quarkus.qcc.graph2;
 final class CommutativeBinaryOpImpl extends BinaryOpImpl implements CommutativeBinaryOp {
     Kind kind;
 
+    CommutativeBinaryOpImpl() {
+    }
+
     public Kind getKind() {
         return kind;
     }

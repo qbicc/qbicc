@@ -3,11 +3,14 @@ package cc.quarkus.qcc.graph2;
 import java.io.IOException;
 import java.util.Set;
 
+import io.smallrye.common.constraint.Assert;
+
 abstract class NodeImpl implements Node {
     private NodeHandle myHandle;
     private int id = hashCode();
 
     public void replaceWith(final Node other) {
+        Assert.checkNotNullParam("other", other);
         // all uses of this node are replaced with other
         NodeHandle myHandle = this.myHandle;
         if (myHandle == null) {

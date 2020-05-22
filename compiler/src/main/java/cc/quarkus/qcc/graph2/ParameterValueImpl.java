@@ -3,9 +3,12 @@ package cc.quarkus.qcc.graph2;
 /**
  *
  */
-final class ParameterValueImpl extends ValueImpl implements ParameterValue {
+final class ParameterValueImpl extends OwnedValueImpl implements ParameterValue {
     int index = -1;
     String name;
+
+    ParameterValueImpl() {
+    }
 
     public int getIndex() {
         return index;

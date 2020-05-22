@@ -3,6 +3,9 @@ package cc.quarkus.qcc.graph2;
 final class NodeHandle {
     private Object target;
 
+    NodeHandle() {
+    }
+
     void setTarget(Node target) {
         //noinspection RedundantCast
         this.target = (NodeImpl) target;
@@ -24,7 +27,13 @@ final class NodeHandle {
 
     NodeHandle lastHandle() {
         Object target = this.target;
-        return target instanceof Node ? this : ((NodeHandle) target).lastHandle();
+        if (target instanceof NodeHandle) {
+            return ((NodeHandle) target).lastHandle();
+        } else if (target == null || target instanceof NodeImpl) {
+            return this;
+        } else {
+            throw new IllegalStateException();
+        }
     }
 
     // helper

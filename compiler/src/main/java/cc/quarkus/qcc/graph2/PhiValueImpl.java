@@ -6,8 +6,11 @@ import java.util.Set;
 
 import io.smallrye.common.constraint.Assert;
 
-final class PhiValueImpl extends ValueImpl implements PhiValue {
+final class PhiValueImpl extends OwnedValueImpl implements PhiValue {
     private final Key key = new Key();
+
+    PhiValueImpl() {
+    }
 
     public Value getValueForBlock(final BasicBlock input) {
         NodeHandle handle = ((BasicBlockImpl) input).outboundValues.get(key);

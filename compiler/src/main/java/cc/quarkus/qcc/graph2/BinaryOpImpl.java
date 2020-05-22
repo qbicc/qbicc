@@ -6,7 +6,7 @@ import java.util.Set;
 /**
  *
  */
-abstract class BinaryOpImpl extends ValueImpl implements BinaryOp {
+abstract class BinaryOpImpl extends OwnedValueImpl implements BinaryOp {
     NodeHandle left;
     NodeHandle right;
 
