@@ -27,6 +27,18 @@ public interface CommutativeBinaryOp extends BinaryOp {
                 case Opcodes.IADD: {
                     return ADD;
                 }
+                case Opcodes.LAND:
+                case Opcodes.IAND: {
+                    return AND;
+                }
+                case Opcodes.LOR:
+                case Opcodes.IOR: {
+                    return OR;
+                }
+                case Opcodes.LXOR:
+                case Opcodes.IXOR: {
+                    return XOR;
+                }
                 case Opcodes.IFEQ:
                 case Opcodes.IF_ACMPEQ:
                 case Opcodes.IF_ICMPEQ: {
