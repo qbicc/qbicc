@@ -11,6 +11,8 @@ public class Test {
                 return 14 + blah;
             } else {
                 foo = foo + 10;
+                foo = 11 + foo;
+                foo = 99 + foo & blah;
             }
         }
         return foo;
