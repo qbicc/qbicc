@@ -10,6 +10,9 @@ public interface NonCommutativeBinaryOp extends BinaryOp {
     void setKind(Kind kind);
 
     enum Kind {
+        UNSIGNED_SHR,
+        SHR,
+        SHL,
         SUB,
         DIV,
         MOD,
@@ -21,6 +24,18 @@ public interface NonCommutativeBinaryOp extends BinaryOp {
 
         public static Kind fromOpcode(final int opcode) {
             switch (opcode) {
+                case Opcodes.IUSHR:
+                case Opcodes.LUSHR: {
+                    return UNSIGNED_SHR;
+                }
+                case Opcodes.ISHR:
+                case Opcodes.LSHR: {
+                    return SHR;
+                }
+                case Opcodes.ISHL:
+                case Opcodes.LSHL: {
+                    return SHL;
+                }
                 case Opcodes.IFLT:
                 case Opcodes.IF_ICMPLT: {
                     return CMP_LT;
