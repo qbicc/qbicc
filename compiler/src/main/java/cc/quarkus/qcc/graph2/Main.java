@@ -170,7 +170,6 @@ public class Main {
                     while (iterator.hasNext()) {
                         BasicBlock b1 = iterator.next();
                         Value v1 = phiValue.getValueForBlock(b1);
-                        val = getValue(ctxt, v1);
                         if (v1 != null) {
                             // got first value
                             while (iterator.hasNext()) {
@@ -184,7 +183,7 @@ public class Main {
                                     phi.item(getValue(ctxt, v2), getBlock(ctxt, b2));
                                     while (iterator.hasNext()) {
                                         b2 = iterator.next();
-                                        v2 = phiValue.getValueForBlock(b1);
+                                        v2 = phiValue.getValueForBlock(b2);
                                         if (v2 != null) {
                                             phi.item(getValue(ctxt, v2), getBlock(ctxt, b2));
                                         }
@@ -194,7 +193,7 @@ public class Main {
                             }
                             // only one value for phi!
                             phiValue.replaceWith(v1);
-                            return val;
+                            return getValue(ctxt, v1);
                         }
                     }
                 } else {
