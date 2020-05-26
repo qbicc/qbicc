@@ -6,12 +6,10 @@ import java.util.Set;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicReference;
 
-import cc.quarkus.qcc.interpret.InterpreterThread;
-import cc.quarkus.qcc.type.QType;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.ObjectReference;
-import cc.quarkus.qcc.type.universe.Universe;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.universe.Universe;
 
 public class LazyTypeDefinition implements TypeDefinition {
     public LazyTypeDefinition(Universe universe, String name, boolean resolve) {
@@ -81,38 +79,28 @@ public class LazyTypeDefinition implements TypeDefinition {
     }
 
     @Override
-    public <V extends QType> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
+    public <V> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
         return getDelegate().findMethod(methodDescriptor);
     }
 
     @Override
-    public <V extends QType> FieldDefinition<V> findField(String name) {
+    public <V> FieldDefinition<V> findField(String name) {
         return getDelegate().findField(name);
     }
 
     @Override
-    public <V extends QType> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
+    public <V> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
         getDelegate().putField(field, objRef, val);
     }
 
     @Override
-    public <V extends QType> V getStatic(FieldDefinition<V> field) {
+    public <V> V getStatic(FieldDefinition<V> field) {
         return getDelegate().getStatic(field);
     }
 
     @Override
-    public <V extends QType> V getField(FieldDefinition<V> field, ObjectReference objRef) {
+    public <V> V getField(FieldDefinition<V> field, ObjectReference objRef) {
         return getDelegate().getField(field, objRef);
-    }
-
-    @Override
-    public ObjectReference newInstance(InterpreterThread thread, QType... arguments) {
-        return getDelegate().newInstance(thread, arguments);
-    }
-
-    @Override
-    public ObjectReference newInstance(InterpreterThread thread, List<QType> arguments) {
-        return getDelegate().newInstance(thread, arguments);
     }
 
     @Override

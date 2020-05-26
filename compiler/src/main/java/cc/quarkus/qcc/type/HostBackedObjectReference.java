@@ -19,11 +19,6 @@ public class HostBackedObjectReference<T> extends ObjectReference {
     }
 
     @Override
-    public boolean isNull() {
-        return this.val == null;
-    }
-
-    @Override
     public String toString() {
         if ( this.val == null ) {
             return "objref:null";

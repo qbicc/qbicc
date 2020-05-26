@@ -1,26 +1,16 @@
 package cc.quarkus.qcc.type.definition;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
-import cc.quarkus.qcc.graph.DotWriter;
-import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.interpret.InterpreterThread;
-import cc.quarkus.qcc.graph.build.GraphBuilder;
-import cc.quarkus.qcc.interpret.CallResult;
-import cc.quarkus.qcc.type.QType;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.universe.Universe;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.universe.Universe;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
-public class MethodDefinitionNode<V extends QType> extends MethodNode implements MethodDefinition<V> {
+public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinition<V> {
 
     //public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, String descriptor, String signature, String[] exceptions) {
     public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, MethodDescriptor<V> methodDescriptor, String signature, String[] exceptions) {
@@ -98,31 +88,6 @@ public class MethodDefinitionNode<V extends QType> extends MethodNode implements
     }
 
     @Override
-    public CallResult<V> call(InterpreterThread thread, QType... arguments) {
-        return thread.execute(getGraph(), arguments);
-    }
-
-    @Override
-    public CallResult<V> call(InterpreterThread thread, List<QType> arguments) {
-        return thread.execute(getGraph(), arguments);
-    }
-
-    @Override
-    public void writeGraph(Path path) throws IOException {
-        getGraph().write(path);
-    }
-
-    public Graph<V> getGraph() {
-        return this.graph.updateAndGet( (prev)->{
-            if ( prev != null ) {
-                return prev;
-            }
-            GraphBuilder<V> parser = new GraphBuilder<>(this);
-            return parser.build();
-        });
-    }
-
-    @Override
     public String toString() {
         return this.typeDefinition + " " + this.name + this.desc;
     }
@@ -131,5 +96,4 @@ public class MethodDefinitionNode<V extends QType> extends MethodNode implements
 
     private final TypeDefinitionNode typeDefinition;
 
-    private final AtomicReference<Graph<V>> graph = new AtomicReference<>();
 }

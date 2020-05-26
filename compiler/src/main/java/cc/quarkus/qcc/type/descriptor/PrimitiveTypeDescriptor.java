@@ -1,16 +1,14 @@
 package cc.quarkus.qcc.type.descriptor;
 
-import cc.quarkus.qcc.type.QType;
+public class PrimitiveTypeDescriptor<T> implements TypeDescriptor<T> {
 
-public class PrimitiveTypeDescriptor<QTYPE extends QType> implements TypeDescriptor<QTYPE> {
-
-    PrimitiveTypeDescriptor(Class<QTYPE> javaType, String label) {
+    PrimitiveTypeDescriptor(Class<T> javaType, String label) {
         this.type = javaType;
         this.label = label;
     }
 
     @Override
-    public Class<QTYPE> type() {
+    public Class<T> type() {
         return this.type;
     }
 
@@ -24,6 +22,6 @@ public class PrimitiveTypeDescriptor<QTYPE extends QType> implements TypeDescrip
         return label();
     }
 
-    private final Class<QTYPE> type;
+    private final Class<T> type;
     private final String label;
 }
