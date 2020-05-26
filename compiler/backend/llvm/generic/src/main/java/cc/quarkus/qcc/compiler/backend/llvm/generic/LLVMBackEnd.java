@@ -15,27 +15,6 @@ import java.util.Optional;
 
 import cc.quarkus.qcc.compiler.backend.api.BackEnd;
 import cc.quarkus.qcc.context.Context;
-import cc.quarkus.qcc.graph.Graph;
-import cc.quarkus.qcc.graph.node.AbstractNode;
-import cc.quarkus.qcc.graph.node.AddNode;
-import cc.quarkus.qcc.graph.node.BinaryIfNode;
-import cc.quarkus.qcc.graph.node.BinaryNode;
-import cc.quarkus.qcc.graph.node.CompareOp;
-import cc.quarkus.qcc.graph.node.ConstantNode;
-import cc.quarkus.qcc.graph.node.ControlNode;
-import cc.quarkus.qcc.graph.node.EndNode;
-import cc.quarkus.qcc.graph.node.IOProjection;
-import cc.quarkus.qcc.graph.node.IfFalseProjection;
-import cc.quarkus.qcc.graph.node.IfNode;
-import cc.quarkus.qcc.graph.node.IfTrueProjection;
-import cc.quarkus.qcc.graph.node.MemoryProjection;
-import cc.quarkus.qcc.graph.node.Node;
-import cc.quarkus.qcc.graph.node.ParameterProjection;
-import cc.quarkus.qcc.graph.node.PhiNode;
-import cc.quarkus.qcc.graph.node.RegionNode;
-import cc.quarkus.qcc.graph.node.ReturnNode;
-import cc.quarkus.qcc.graph.node.StartNode;
-import cc.quarkus.qcc.graph.node.UnaryIfNode;
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.llvm.BasicBlock;
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
@@ -56,8 +35,6 @@ import cc.quarkus.qcc.machine.tool.process.OutputDestination;
 import cc.quarkus.qcc.tool.llvm.LlcInvoker;
 import cc.quarkus.qcc.tool.llvm.LlcTool;
 import cc.quarkus.qcc.tool.llvm.LlcToolImpl;
-import cc.quarkus.qcc.type.QInt32;
-import cc.quarkus.qcc.type.QType;
 import cc.quarkus.qcc.type.definition.MethodDefinition;
 import cc.quarkus.qcc.type.definition.MethodDefinitionNode;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
@@ -118,11 +95,14 @@ public final class LLVMBackEnd implements BackEnd {
             final FunctionDefinition func = module.define(node.name).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL).returns(typeOf(node.getReturnType()));
             int idx = 0;
             final List<TypeDescriptor<?>> paramTypes = node.getParamTypes();
+            /*
             final Cache cache = new Cache();
             final List<Value> paramVals = cache.paramValues;
             for (TypeDescriptor<?> paramType : paramTypes) {
                 paramVals.add(func.param(typeOf(paramType)).name("p" + idx++).asValue());
             }
+             */
+            /*
             final Graph<?> graph = node.getGraph();
             try {
                 node.writeGraph("/tmp/graph.dot");
@@ -131,6 +111,7 @@ public final class LLVMBackEnd implements BackEnd {
             }
             final StartNode start = graph.getStart();
             processNode(cache, func, start);
+             */
         }
         // write out the object file
         final Path objectPath = Path.of("/tmp/build.o");
@@ -174,6 +155,7 @@ public final class LLVMBackEnd implements BackEnd {
         }
     }
 
+    /*
     private Value valueOf(final Cache cache, final FunctionDefinition func, final BasicBlock block, final AbstractNode<?> node) {
         Value value = cache.nodeValues.get(node);
         if (value != null) {
@@ -202,12 +184,16 @@ public final class LLVMBackEnd implements BackEnd {
         }
         throw Assert.unsupported();
     }
+     */
 
+    /*
     private void processNode(final Cache cache, final FunctionDefinition func, final StartNode node) {
         cache.basicBlocksByRegion.put(node, func);
         processSuccessors(cache, func, func, node.getSuccessors());
     }
+     */
 
+    /*
     private void processNode(final Cache cache, final FunctionDefinition func, final BasicBlock block, final Node<?> node) {
         if (cache.visited.putIfAbsent(node, block) != null) {
             return;
@@ -245,13 +231,17 @@ public final class LLVMBackEnd implements BackEnd {
             throw Assert.unsupported();
         }
     }
+     */
 
+    /*
     private void processSuccessors(final Cache cache, final FunctionDefinition func, final BasicBlock block, final List<? extends Node<?>> successors) {
         for (Node<?> successor : successors) {
             processNode(cache, func, block, successor);
         }
     }
+     */
 
+    /*
     private BasicBlock processRegion(final Cache cache, final FunctionDefinition func, final RegionNode node) {
         if (node.getSuccessors().get(0) instanceof EndNode) {
             // ignore this fake region!
@@ -270,7 +260,9 @@ public final class LLVMBackEnd implements BackEnd {
         }
         return newBlock;
     }
+     */
 
+    /*
     private void processNode(final Cache cache, final FunctionDefinition func, final BasicBlock block, final PhiNode<?> node) {
         // a phi! process all inputs recursively
         final List<Node<?>> inputs = node.inputs;
@@ -279,7 +271,9 @@ public final class LLVMBackEnd implements BackEnd {
             processNode(cache, func, block, input);
         }
     }
+     */
 
+    /*
     private void processNode(final Cache cache, final FunctionDefinition func, final BasicBlock block, final IfNode ifNode) {
         final CompareOp op = ifNode.getOp();
         final IfTrueProjection trueProjection = ifNode.getTrueOut();
@@ -318,16 +312,21 @@ public final class LLVMBackEnd implements BackEnd {
         block.br(cmpResult, ifTrue, ifFalse);
         // TODO: add phi inputs
     }
+     */
 
+    /*
     private void processNode(final Cache cache, final FunctionDefinition func, final BasicBlock block, final ReturnNode<?> node) {
         final AbstractNode<?> input = (AbstractNode<?>) node.getInput();
         block.ret(typeOf(input.getTypeDescriptor()), valueOf(cache, func, block, input));
     }
+     */
 
+    /*
     static final class Cache {
         final List<Value> paramValues = new ArrayList<>();
         final Map<Node<?>, BasicBlock> visited = new IdentityHashMap<>();
         final Map<Node<?>, Value> nodeValues = new IdentityHashMap<>();
         final Map<ControlNode<?>, BasicBlock> basicBlocksByRegion = new IdentityHashMap<>();
     }
+     */
 }

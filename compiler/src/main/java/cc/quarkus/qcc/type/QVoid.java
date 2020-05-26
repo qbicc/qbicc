@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type;
 
-public class QVoid implements QType {
+public class QVoid {
 
     public static final QVoid VOID = new QVoid();
 

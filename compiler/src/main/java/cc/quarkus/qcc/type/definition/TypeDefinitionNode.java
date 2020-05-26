@@ -1,21 +1,16 @@
 package cc.quarkus.qcc.type.definition;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import cc.quarkus.qcc.interpret.InterpreterThread;
-import cc.quarkus.qcc.interpret.CallResult;
-import cc.quarkus.qcc.type.QType;
+import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptorParser;
-import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptorParser;
 import cc.quarkus.qcc.type.universe.Universe;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
@@ -132,11 +127,11 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <V extends QType> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
+    public <V> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
         return (MethodDefinition<V>) findMethod(methodDescriptor.getName(), methodDescriptor.getDescriptor());
     }
 
-    public MethodDefinition<?> findMethod(String name, List<QType> actualParameters) {
+    public MethodDefinition<?> findMethod(String name, List<Object> actualParameters) {
         List<MethodDefinition<?>> candidates = new ArrayList<>();
         for (MethodNode each : this.methods) {
             MethodDefinition<?> method = (MethodDefinition<?>) each;
@@ -163,7 +158,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <V extends QType> FieldDefinition<V> findField(String name) {
+    public <V> FieldDefinition<V> findField(String name) {
         for (FieldNode field : this.fields) {
             if ( field.name.equals(name)) {
                 return (FieldDefinition<V>) field;
@@ -175,47 +170,23 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <V extends QType> V getStatic(FieldDefinition<V> field) {
-        return (V) ((FieldDefinitionNode<V>)field).qvalue;
+    public <V> V getStatic(FieldDefinition<V> field) {
+        return (V) ((FieldDefinitionNode<V>)field).value;
     }
 
     @Override
-    public <V extends QType> V getField(FieldDefinition<V> field, ObjectReference objRef) {
+    public <V> V getField(FieldDefinition<V> field, ObjectReference objRef) {
         return objRef.getFieldValue(field);
     }
 
     @Override
-    public <V extends QType> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
+    public <V> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
         objRef.setFieldValue(field, val);
     }
 
     @Override
     public TypeDescriptor<ObjectReference> getTypeDescriptor() {
         return TypeDescriptor.of(this);
-    }
-
-    @Override
-    public ObjectReference newInstance(InterpreterThread thread, QType... ctorArguments) {
-        List<QType> invocationArgs = new ArrayList<>();
-        ObjectReference objRef = thread.heap().newObject(this);
-        invocationArgs.add(objRef);
-        invocationArgs.addAll(Arrays.asList(ctorArguments));
-        MethodDefinition<?> m = findMethod("<init>", invocationArgs);
-        try {
-            m.writeGraph("target/");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        CallResult<?> result = m.call(thread, invocationArgs);
-        if ( result.getReturnValue() != null ) {
-            return objRef;
-        }
-        throw new RuntimeException( "Unable to instantiate");
-    }
-
-    @Override
-    public ObjectReference newInstance(InterpreterThread thread, List<QType> arguments) {
-        return newInstance(thread, arguments.toArray(new QType[0]));
     }
 
     @Override

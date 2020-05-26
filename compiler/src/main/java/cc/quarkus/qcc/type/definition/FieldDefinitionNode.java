@@ -1,12 +1,11 @@
 package cc.quarkus.qcc.type.definition;
 
 import cc.quarkus.qcc.type.ObjectReference;
-import cc.quarkus.qcc.type.QType;
 import cc.quarkus.qcc.type.universe.Universe;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import org.objectweb.asm.tree.FieldNode;
 
-public class FieldDefinitionNode<V extends QType> extends FieldNode implements FieldDefinition<V> {
+public class FieldDefinitionNode<V> extends FieldNode implements FieldDefinition<V> {
 
     public FieldDefinitionNode(TypeDefinition typeDefinition,
                                TypeDescriptor<V> type,
@@ -18,7 +17,6 @@ public class FieldDefinitionNode<V extends QType> extends FieldNode implements F
         super(Universe.ASM_VERSION, access, name, descriptor, signature, value);
         this.typeDefinition = typeDefinition;
         this.type = type;
-        this.qvalue = QType.of(value);
     }
 
     @Override
@@ -53,5 +51,4 @@ public class FieldDefinitionNode<V extends QType> extends FieldNode implements F
 
     private final TypeDefinition typeDefinition;
     private final TypeDescriptor<V> type;
-    public final QType qvalue;
 }

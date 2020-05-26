@@ -1,19 +1,12 @@
 package cc.quarkus.qcc.type.definition;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
-import cc.quarkus.qcc.interpret.InterpreterThread;
-import cc.quarkus.qcc.interpret.SimpleInterpreterHeap;
-import cc.quarkus.qcc.interpret.CallResult;
-import cc.quarkus.qcc.type.QType;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
-public interface MethodDefinition<V extends QType> extends MethodDescriptor<V> {
+public interface MethodDefinition<V> extends MethodDescriptor<V> {
 
     InsnList getInstructions();
 
@@ -27,21 +20,4 @@ public interface MethodDefinition<V extends QType> extends MethodDescriptor<V> {
 
     TypeDefinition getTypeDefinition();
 
-    default CallResult<V> call(QType... arguments) {
-        return call(new InterpreterThread(new SimpleInterpreterHeap()), arguments);
-    }
-
-    default CallResult<V> call(List<QType> arguments) {
-        return call(new InterpreterThread(new SimpleInterpreterHeap()), arguments);
-    }
-
-    CallResult<V> call(InterpreterThread thread, QType... arguments);
-
-    CallResult<V> call(InterpreterThread thread, List<QType> arguments);
-
-    default void writeGraph(String path) throws IOException {
-        writeGraph(Paths.get(path));
-    }
-
-    void writeGraph(Path path) throws IOException;
 }
