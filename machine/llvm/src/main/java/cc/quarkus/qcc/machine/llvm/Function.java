@@ -28,6 +28,8 @@ public interface Function extends Metable {
 
     Function comment(String comment);
 
+    Value asGlobal();
+
     interface Parameter {
         /**
          * Start the next parameter.

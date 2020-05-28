@@ -9,7 +9,6 @@ import cc.quarkus.qcc.machine.llvm.SignExtension;
 import cc.quarkus.qcc.machine.llvm.TailType;
 import cc.quarkus.qcc.machine.llvm.Value;
 import cc.quarkus.qcc.machine.llvm.op.Call;
-import cc.quarkus.qcc.machine.llvm.op.YieldingInstruction;
 import io.smallrye.common.constraint.Assert;
 
 final class CallImpl extends AbstractYieldingInstruction implements Call {

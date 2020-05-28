@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.machine.llvm.impl;
 
 import java.io.IOException;
-import java.util.Set;
 
 import cc.quarkus.qcc.machine.llvm.AddressNaming;
 import cc.quarkus.qcc.machine.llvm.BasicBlock;
@@ -270,6 +269,10 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
 
     public Call call(final Value type, final Value function) {
         return rootBlock.call(type, function);
+    }
+
+    public Call invoke(final Value type, final Value function, final BasicBlock normal, final BasicBlock unwind) {
+        return rootBlock.invoke(type, function, normal, unwind);
     }
 
     public Load load(final Value type, final Value pointeeType, final Value pointer) {

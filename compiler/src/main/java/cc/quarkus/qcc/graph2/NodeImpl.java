@@ -47,6 +47,9 @@ abstract class NodeImpl implements Node {
     }
 
     Appendable addEdgeTo(Set<Node> visited, Appendable graph, Node target, String label, String color, String style, Set<BasicBlock> knownBlocks) throws IOException {
+        if (target == null) {
+            return graph;
+        }
         graph.append(Integer.toString(getIdForGraph()));
         graph.append(" -> ");
         graph.append(Integer.toString(target.getIdForGraph()));

@@ -18,11 +18,17 @@ public interface Heap<Oop extends object> {
 
     ptr<?> ptr(Oop pinned);
 
-    size_t sizeOf(Oop obj);
+    size_t sizeOfObject(Oop oop);
 
     Oop allocate(size_t size);
 
-    Oop loadOopFromObj(Oop obj, ptrdiff_t offset);
+    Oop readOopField(Oop oop, ptrdiff_t offset) throws NullPointerException;
+    long readLongField(Oop oop, ptrdiff_t offset) throws NullPointerException;
+    int readIntField(Oop oop, ptrdiff_t offset) throws NullPointerException;
+    short readShortField(Oop oop, ptrdiff_t offset) throws NullPointerException;
+    byte readByteField(Oop oop, ptrdiff_t offset) throws NullPointerException;
+    char readCharField(Oop oop, ptrdiff_t offset) throws NullPointerException;
+    boolean readBooleanField(Oop oop, ptrdiff_t offset) throws NullPointerException;
 
     void onThreadAttach();
     void onThreadDetach();

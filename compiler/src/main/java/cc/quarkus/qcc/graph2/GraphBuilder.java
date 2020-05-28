@@ -20,7 +20,6 @@ import org.objectweb.asm.Type;
  *
  */
 public final class GraphBuilder extends MethodVisitor {
-    private static final Value[] NO_VALUES = new Value[0];
     final BasicBlockImpl firstBlock;
     ItemSize[] frameLocalMap;
     ItemSize[] frameStackMap;
@@ -41,7 +40,7 @@ public final class GraphBuilder extends MethodVisitor {
     int pni = 0;
     BasicBlockImpl futureBlock;
     BasicBlockImpl currentBlock;
-    Instruction prevInst;
+    MemoryState memoryState;
     final Map<Label, NodeHandle> allBlocks = new IdentityHashMap<>();
     final List<Label> pendingLabels = new ArrayList<>();
     final State inBlockState = new InBlock();
@@ -401,11 +400,11 @@ public final class GraphBuilder extends MethodVisitor {
         // now wrap up the phis for every block that exits
         for (Map.Entry<BasicBlock, Capture> i : blockExits.entrySet()) {
             BasicBlock exitingBlock = i.getKey();
-            TerminalInstruction ti = exitingBlock.getTerminalInstruction();
-            if (ti instanceof GotoInstruction) {
-                wirePhis(exitingBlock, ((GotoInstruction) ti).getTarget());
-            } else if (ti instanceof IfInstruction) {
-                IfInstruction ifTi = (IfInstruction) ti;
+            Terminator ti = exitingBlock.getTerminator();
+            if (ti instanceof Goto) {
+                wirePhis(exitingBlock, ((Goto) ti).getNextBlock());
+            } else if (ti instanceof If) {
+                If ifTi = (If) ti;
                 wirePhis(exitingBlock, ifTi.getTrueBranch());
                 wirePhis(exitingBlock, ifTi.getFalseBranch());
             }
@@ -580,7 +579,47 @@ public final class GraphBuilder extends MethodVisitor {
 
         public void visitFieldInsn(final int opcode, final String owner, final String name, final String descriptor) {
             gotInstr = true;
-            super.visitFieldInsn(opcode, owner, name, descriptor);
+            switch (opcode) {
+                case Opcodes.GETSTATIC: {
+                    FieldReadValue read = new StaticFieldReadValueImpl();
+                    read.setMemoryDependency(memoryState);
+                    // todo: set descriptor
+                    memoryState = read;
+                    // todo: size from field
+                    push(ItemSize.SINGLE, read);
+                    break;
+                }
+                case Opcodes.GETFIELD: {
+                    InstanceFieldReadValue read = new InstanceFieldReadValueImpl();
+                    read.setInstance(pop());
+                    read.setMemoryDependency(memoryState);
+                    // todo: set descriptor
+                    memoryState = read;
+                    // todo: size from field
+                    push(ItemSize.SINGLE, read);
+                    break;
+                }
+                case Opcodes.PUTSTATIC: {
+                    // todo: get pop type from field descriptor
+                    Value value = stackMap[sp - 1] == ItemSize.DOUBLE ? pop2() : pop();
+                    FieldWrite write = new StaticFieldWriteImpl();
+                    write.setWriteValue(value);
+                    write.setMemoryDependency(memoryState);
+                    memoryState = write;
+                    break;
+                }
+                case Opcodes.PUTFIELD: {
+                    Value value = stackMap[sp - 1] == ItemSize.DOUBLE ? pop2() : pop();
+                    InstanceFieldWrite write = new InstanceFieldWriteImpl();
+                    write.setWriteValue(value);
+                    write.setMemoryDependency(memoryState);
+                    memoryState = write;
+                    break;
+                }
+                default: {
+                    super.visitFieldInsn(opcode, owner, name, descriptor);
+                }
+            }
         }
 
         public void visitInvokeDynamicInsn(final String name, final String descriptor, final Handle bootstrapMethodHandle, final Object... bootstrapMethodArguments) {
@@ -674,11 +713,11 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IADD:
                 case Opcodes.FMUL:
                 case Opcodes.FADD: {
-                    CommutativeBinaryOpImpl op = new CommutativeBinaryOpImpl();
+                    CommutativeBinaryValueImpl op = new CommutativeBinaryValueImpl();
                     op.setOwner(currentBlock);
-                    op.setKind(CommutativeBinaryOp.Kind.fromOpcode(opcode));
-                    op.setLeft(pop());
-                    op.setRight(pop());
+                    op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
+                    op.setLeftInput(pop());
+                    op.setRightInput(pop());
                     push(ItemSize.SINGLE, op);
                     return;
                 }
@@ -689,11 +728,11 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.LADD:
                 case Opcodes.DMUL:
                 case Opcodes.DADD: {
-                    CommutativeBinaryOpImpl op = new CommutativeBinaryOpImpl();
+                    CommutativeBinaryValueImpl op = new CommutativeBinaryValueImpl();
                     op.setOwner(currentBlock);
-                    op.setKind(CommutativeBinaryOp.Kind.fromOpcode(opcode));
-                    op.setLeft(pop2());
-                    op.setRight(pop2());
+                    op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
+                    op.setLeftInput(pop2());
+                    op.setRightInput(pop2());
                     push(ItemSize.DOUBLE, op);
                     return;
                 }
@@ -701,11 +740,11 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.ISHR:
                 case Opcodes.IUSHR:
                 case Opcodes.ISUB: {
-                    NonCommutativeBinaryOpImpl op = new NonCommutativeBinaryOpImpl();
+                    NonCommutativeBinaryValueImpl op = new NonCommutativeBinaryValueImpl();
                     op.setOwner(currentBlock);
-                    op.setKind(NonCommutativeBinaryOp.Kind.fromOpcode(opcode));
-                    op.setLeft(pop());
-                    op.setRight(pop());
+                    op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
+                    op.setLeftInput(pop());
+                    op.setRightInput(pop());
                     push(ItemSize.SINGLE, op);
                     return;
                 }
@@ -714,32 +753,32 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.LSHR:
                 case Opcodes.LUSHR:
                 case Opcodes.LSUB: {
-                    NonCommutativeBinaryOpImpl op = new NonCommutativeBinaryOpImpl();
+                    NonCommutativeBinaryValueImpl op = new NonCommutativeBinaryValueImpl();
                     op.setOwner(currentBlock);
-                    op.setKind(NonCommutativeBinaryOp.Kind.fromOpcode(opcode));
-                    op.setLeft(pop2());
-                    op.setRight(pop2());
+                    op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
+                    op.setLeftInput(pop2());
+                    op.setRightInput(pop2());
                     push(ItemSize.DOUBLE, op);
                     return;
                 }
                 case Opcodes.LCMP: {
                     Value v2 = pop2();
                     Value v1 = pop2();
-                    NonCommutativeBinaryOpImpl c1 = new NonCommutativeBinaryOpImpl();
+                    NonCommutativeBinaryValueImpl c1 = new NonCommutativeBinaryValueImpl();
                     c1.setOwner(currentBlock);
-                    c1.setKind(NonCommutativeBinaryOp.Kind.CMP_LT);
-                    c1.setLeft(v1);
-                    c1.setRight(v2);
-                    NonCommutativeBinaryOpImpl c2 = new NonCommutativeBinaryOpImpl();
+                    c1.setKind(NonCommutativeBinaryValue.Kind.CMP_LT);
+                    c1.setLeftInput(v1);
+                    c1.setRightInput(v2);
+                    NonCommutativeBinaryValueImpl c2 = new NonCommutativeBinaryValueImpl();
                     c2.setOwner(currentBlock);
-                    c2.setKind(NonCommutativeBinaryOp.Kind.CMP_GT);
-                    c2.setLeft(v1);
-                    c2.setRight(v2);
-                    SelectOpImpl op1 = new SelectOpImpl();
+                    c2.setKind(NonCommutativeBinaryValue.Kind.CMP_GT);
+                    c2.setLeftInput(v1);
+                    c2.setRightInput(v2);
+                    IfValueImpl op1 = new IfValueImpl();
                     op1.setOwner(currentBlock);
                     op1.setCond(c1);
                     op1.setTrueValue(Value.iconst(-1));
-                    SelectOpImpl op2 = new SelectOpImpl();
+                    IfValueImpl op2 = new IfValueImpl();
                     op2.setOwner(currentBlock);
                     op2.setCond(c2);
                     op2.setTrueValue(Value.iconst(1));
@@ -820,11 +859,11 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.LRETURN:
                 case Opcodes.DRETURN: {
                     Value retVal = pop2();
-                    ReturnValueInstructionImpl insn = new ReturnValueInstructionImpl();
-                    insn.setDependency(prevInst);
+                    ValueReturnImpl insn = new ValueReturnImpl();
+                    insn.setMemoryDependency(memoryState);
                     insn.setReturnValue(retVal);
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
-                    currentBlock.setTerminalInstruction(insn);
+                    currentBlock.setTerminator(insn);
                     enter(possibleBlockState);
                     return;
                 }
@@ -832,20 +871,19 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.FRETURN:
                 case Opcodes.ARETURN: {
                     Value retVal = pop();
-                    ReturnValueInstructionImpl insn = new ReturnValueInstructionImpl();
-                    insn.setDependency(prevInst);
+                    ValueReturnImpl insn = new ValueReturnImpl();
+                    insn.setMemoryDependency(memoryState);
                     insn.setReturnValue(retVal);
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
-                    currentBlock.setTerminalInstruction(insn);
+                    currentBlock.setTerminator(insn);
                     enter(possibleBlockState);
                     return;
                 }
                 case Opcodes.RETURN: {
-                    ReturnInstructionImpl insn = new ReturnInstructionImpl();
-                    insn.setDependency(prevInst);
+                    ReturnImpl insn = new ReturnImpl();
+                    insn.setMemoryDependency(memoryState);
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
-                    currentBlock.setTerminalInstruction(insn);
-                    prevInst = null;
+                    currentBlock.setTerminator(insn);
                     enter(possibleBlockState);
                     return;
                 }
@@ -861,20 +899,20 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.GOTO: {
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
                     NodeHandle jumpTarget = getOrMakeBlockHandle(label);
-                    GotoInstructionImpl goto_ = new GotoInstructionImpl();
+                    GotoImpl goto_ = new GotoImpl();
                     goto_.setTarget(jumpTarget);
-                    goto_.setDependency(prevInst);
-                    currentBlock.setTerminalInstruction(goto_);
+                    goto_.setMemoryDependency(memoryState);
+                    currentBlock.setTerminator(goto_);
                     enter(possibleBlockState);
                     return;
                 }
                 case Opcodes.IFEQ:
                 case Opcodes.IFNE: {
-                    CommutativeBinaryOp op = new CommutativeBinaryOpImpl();
+                    CommutativeBinaryValue op = new CommutativeBinaryValueImpl();
                     op.setOwner(currentBlock);
-                    op.setKind(CommutativeBinaryOp.Kind.fromOpcode(opcode));
-                    op.setRight(Value.ICONST_0);
-                    op.setLeft(pop());
+                    op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
+                    op.setRightInput(Value.ICONST_0);
+                    op.setLeftInput(pop());
                     handleIfInsn(op, label);
                     return;
                 }
@@ -882,21 +920,21 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IFGT:
                 case Opcodes.IFLE:
                 case Opcodes.IFGE: {
-                    NonCommutativeBinaryOp op = new NonCommutativeBinaryOpImpl();
+                    NonCommutativeBinaryValue op = new NonCommutativeBinaryValueImpl();
                     op.setOwner(currentBlock);
-                    op.setKind(NonCommutativeBinaryOp.Kind.fromOpcode(opcode));
-                    op.setRight(Value.ICONST_0);
-                    op.setLeft(pop());
+                    op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
+                    op.setRightInput(Value.ICONST_0);
+                    op.setLeftInput(pop());
                     handleIfInsn(op, label);
                     return;
                 }
                 case Opcodes.IF_ICMPEQ:
                 case Opcodes.IF_ICMPNE: {
-                    CommutativeBinaryOp op = new CommutativeBinaryOpImpl();
+                    CommutativeBinaryValue op = new CommutativeBinaryValueImpl();
                     op.setOwner(currentBlock);
-                    op.setKind(CommutativeBinaryOp.Kind.fromOpcode(opcode));
-                    op.setRight(pop());
-                    op.setLeft(pop());
+                    op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
+                    op.setRightInput(pop());
+                    op.setLeftInput(pop());
                     handleIfInsn(op, label);
                     return;
                 }
@@ -904,11 +942,11 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IF_ICMPLT:
                 case Opcodes.IF_ICMPGE:
                 case Opcodes.IF_ICMPGT: {
-                    NonCommutativeBinaryOp op = new NonCommutativeBinaryOpImpl();
+                    NonCommutativeBinaryValue op = new NonCommutativeBinaryValueImpl();
                     op.setOwner(currentBlock);
-                    op.setKind(NonCommutativeBinaryOp.Kind.fromOpcode(opcode));
-                    op.setRight(pop());
-                    op.setLeft(pop());
+                    op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
+                    op.setRightInput(pop());
+                    op.setLeftInput(pop());
                     handleIfInsn(op, label);
                     return;
                 }
@@ -920,20 +958,20 @@ public final class GraphBuilder extends MethodVisitor {
 
         public void visitIincInsn(final int var, final int increment) {
             gotInstr = true;
-            CommutativeBinaryOpImpl op = new CommutativeBinaryOpImpl();
+            CommutativeBinaryValueImpl op = new CommutativeBinaryValueImpl();
             op.setOwner(currentBlock);
-            op.setKind(CommutativeBinaryOp.Kind.ADD);
-            op.setLeft(getLocal(ItemSize.SINGLE, var));
-            op.setRight(Value.iconst(increment));
+            op.setKind(CommutativeBinaryValue.Kind.ADD);
+            op.setLeftInput(getLocal(ItemSize.SINGLE, var));
+            op.setRightInput(Value.iconst(increment));
             setLocal(ItemSize.SINGLE, var, op);
         }
 
         void handleIfInsn(Value cond, Label label) {
             BasicBlock currentBlock = GraphBuilder.this.currentBlock;
             NodeHandle jumpTarget = getOrMakeBlockHandle(label);
-            IfInstructionImpl if_ = new IfInstructionImpl();
-            currentBlock.setTerminalInstruction(if_);
-            if_.setDependency(prevInst);
+            IfImpl if_ = new IfImpl();
+            currentBlock.setTerminator(if_);
+            if_.setMemoryDependency(memoryState);
             if_.setCondition(cond);
             if_.setFalseBranch(jumpTarget);
             enter(mayNeedFrameState);
@@ -992,12 +1030,12 @@ public final class GraphBuilder extends MethodVisitor {
             if (gotInstr) {
                 // treat it like a goto
                 BasicBlock currentBlock = GraphBuilder.this.currentBlock;
-                GotoInstructionImpl goto_ = new GotoInstructionImpl();
-                currentBlock.setTerminalInstruction(goto_);
-                goto_.setDependency(prevInst);
+                GotoImpl goto_ = new GotoImpl();
+                currentBlock.setTerminator(goto_);
+                goto_.setMemoryDependency(memoryState);
                 enter(futureBlockState);
                 assert futureBlock != null;
-                goto_.setTarget(futureBlock);
+                goto_.setNextBlock(futureBlock);
                 outer().visitLabel(label);
             } else {
                 NodeHandle handle = allBlocks.get(label);
@@ -1018,7 +1056,7 @@ public final class GraphBuilder extends MethodVisitor {
                 throw new IllegalStateException("Block exited twice");
             }
             GraphBuilder.this.currentBlock = null;
-            prevInst = null;
+            memoryState = null;
             // the next state decides whether to clear locals/stack or use that info to build the enter state
         }
 
@@ -1186,7 +1224,7 @@ public final class GraphBuilder extends MethodVisitor {
 
         void handleEntry(final State previous) {
             currentBlock = null;
-            prevInst = null;
+            memoryState = null;
         }
 
         public void visitLabel(final Label label) {
@@ -1231,7 +1269,7 @@ public final class GraphBuilder extends MethodVisitor {
                     blockHandle.setTarget(newBlock);
                 }
             }
-            assert prevInst == null;
+            assert memoryState == null;
             if (next == futureBlockState) {
                 futureBlock = newBlock;
                 // got a frame directive

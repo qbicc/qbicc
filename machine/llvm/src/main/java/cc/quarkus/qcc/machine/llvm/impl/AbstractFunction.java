@@ -97,6 +97,10 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         return this;
     }
 
+    public Value asGlobal() {
+        return new NamedGlobalValueOf(this.name);
+    }
+
     ///////////////////
     // Private API
     ///////////////////

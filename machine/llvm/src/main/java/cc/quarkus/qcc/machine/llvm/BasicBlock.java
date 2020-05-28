@@ -76,6 +76,8 @@ public interface BasicBlock extends Value {
 
     Call call(Value type, Value function);
 
+    Call invoke(Value type, Value function, BasicBlock normal, BasicBlock unwind);
+
     Load load(Value type, Value pointeeType, Value pointer);
 
     Store store(Value type, Value value, Value pointeeType, Value pointer);

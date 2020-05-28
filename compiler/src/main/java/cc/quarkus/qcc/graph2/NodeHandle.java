@@ -20,11 +20,6 @@ final class NodeHandle {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    <N extends Node> N getTarget() {
-        return (N) lastHandle().target;
-    }
-
     NodeHandle lastHandle() {
         Object target = this.target;
         if (target instanceof NodeHandle) {
@@ -39,6 +34,11 @@ final class NodeHandle {
     // helper
     static NodeHandle of(Node node) {
         return node == null ? null : ((NodeImpl) node).getHandle().lastHandle();
+    }
+
+    @SuppressWarnings("unchecked")
+    static <N extends Node> N getTargetOf(NodeHandle handle) {
+        return handle == null ? null : (N) handle.lastHandle().target;
     }
 
     public String toString() {

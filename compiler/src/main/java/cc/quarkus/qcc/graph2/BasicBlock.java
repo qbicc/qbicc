@@ -6,8 +6,8 @@ import java.util.Set;
  *
  */
 public interface BasicBlock extends Node {
-    TerminalInstruction getTerminalInstruction();
-    void setTerminalInstruction(TerminalInstruction terminalInstruction);
+    Terminator getTerminator();
+    void setTerminator(Terminator terminator);
 
-    Set<BasicBlock> getReachableBlocks();
+    Set<BasicBlock> calculateReachableBlocks();
 }

@@ -13,15 +13,15 @@ final class BasicBlockImpl extends NodeImpl implements BasicBlock {
     Map<PhiValueImpl.Key, NodeHandle> outboundValues = Map.of();
     NodeHandle terminalInstruction;
 
-    public TerminalInstruction getTerminalInstruction() {
-        return terminalInstruction.getTarget();
+    public Terminator getTerminator() {
+        return NodeHandle.getTargetOf(terminalInstruction);
     }
 
-    public void setTerminalInstruction(final TerminalInstruction terminalInstruction) {
-        this.terminalInstruction = NodeHandle.of(terminalInstruction);
+    public void setTerminator(final Terminator terminator) {
+        this.terminalInstruction = NodeHandle.of(terminator);
     }
 
-    public Set<BasicBlock> getReachableBlocks() {
+    public Set<BasicBlock> calculateReachableBlocks() {
         Set<BasicBlock> set = new LinkedHashSet<>();
         findReachable(set);
         return set;
@@ -29,13 +29,13 @@ final class BasicBlockImpl extends NodeImpl implements BasicBlock {
 
     private void findReachable(final Set<BasicBlock> set) {
         if (set.add(this)) {
-            TerminalInstruction ti = terminalInstruction.getTarget();
-            if (ti instanceof IfInstruction) {
-                IfInstruction ifTi = (IfInstruction) ti;
+            Terminator ti = NodeHandle.getTargetOf(terminalInstruction);
+            if (ti instanceof If) {
+                If ifTi = (If) ti;
                 ((BasicBlockImpl)ifTi.getTrueBranch()).findReachable(set);
                 ((BasicBlockImpl)ifTi.getFalseBranch()).findReachable(set);
-            } else if (ti instanceof GotoInstruction) {
-                ((BasicBlockImpl)((GotoInstruction) ti).getTarget()).findReachable(set);
+            } else if (ti instanceof Goto) {
+                ((BasicBlockImpl)((Goto) ti).getNextBlock()).findReachable(set);
             }
         }
     }
@@ -44,7 +44,7 @@ final class BasicBlockImpl extends NodeImpl implements BasicBlock {
     public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         // now write the edge to the terminal instruction
-        addEdgeTo(visited, graph, terminalInstruction.getTarget(), "terminates-with", "black", "solid", knownBlocks);
+        addEdgeTo(visited, graph, NodeHandle.getTargetOf(terminalInstruction), "terminates-with", "black", "solid", knownBlocks);
         return graph;
     }
 
