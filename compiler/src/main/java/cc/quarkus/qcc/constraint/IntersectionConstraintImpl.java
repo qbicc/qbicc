@@ -2,9 +2,9 @@ package cc.quarkus.qcc.constraint;
 
 import static cc.quarkus.qcc.constraint.Constraint.Satisfaction.*;
 
-class IntersectionConstraintImpl extends AbstractConstraint {
+class IntersectionConstraintImpl extends AbstractConstraint implements IntersectionConstraint {
 
-    public IntersectionConstraintImpl(Constraint c1, Constraint c2) {
+    public IntersectionConstraintImpl(AbstractConstraint c1, AbstractConstraint c2) {
         this.c1 = c1;
         this.c2 = c2;
     }
@@ -25,7 +25,7 @@ class IntersectionConstraintImpl extends AbstractConstraint {
     }
 
     @Override
-    public Satisfaction satisfies(SatisfactionContext context, RelationConstraint other) {
+    public Satisfaction satisfies(SatisfactionContext context, RelationConstraintImpl other) {
         Satisfaction s1 = this.c1.satisfies(context, other);
         if ( s1 == NO ) {
             return NO;
@@ -51,6 +51,6 @@ class IntersectionConstraintImpl extends AbstractConstraint {
                 '}';
     }
 
-    private final Constraint c1;
-    private final Constraint c2;
+    private final AbstractConstraint c1;
+    private final AbstractConstraint c2;
 }

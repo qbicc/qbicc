@@ -74,11 +74,11 @@ class RelationConstraintImpl extends AbstractConstraint implements RelationConst
                 return isSatisfiedBy(otherValue);
             }
         }
-        return other.satisfies(context, this);
+        return ((AbstractConstraint)other).satisfies(context, this);
     }
 
     @Override
-    public Satisfaction satisfies(SatisfactionContext context, RelationConstraint other) {
+    public Satisfaction satisfies(SatisfactionContext context, RelationConstraintImpl other) {
         if ( context.isSeen(this, other)) {
             return NO;
         }
@@ -105,7 +105,7 @@ class RelationConstraintImpl extends AbstractConstraint implements RelationConst
                 return NOT_APPLICABLE;
             }
             context.seen(this, other);
-            return next.satisfies(context, other);
+            return ((AbstractConstraint)next).satisfies(context, other);
         }
 
         switch (this.op) {
