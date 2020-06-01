@@ -67,6 +67,6 @@ public interface Constraint {
      * @return YES if this constraint satisfies, the other, else NOT_APPLICABLE,
      * or maybe NO.
      */
-    Satisfaction satisfies(SatisfactionContext context, RelationConstraint other);
+    //Satisfaction satisfies(SatisfactionContext context, RelationConstraint other);
 }
 
