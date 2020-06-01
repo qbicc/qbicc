@@ -47,11 +47,10 @@ final class IfImpl extends TerminatorImpl implements If {
         return "if";
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(condition), "cond", "blue", "solid", knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(trueBranch), "true", "green", "solid", knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(falseBranch), "false", "red", "solid", knownBlocks);
-        return graph;
     }
 }

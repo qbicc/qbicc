@@ -24,14 +24,14 @@ final class PhiValueImpl extends ProgramNodeImpl implements PhiValue {
         if (ov.containsKey(key)) {
             throw new IllegalStateException("Phi " + this + " already has a value for block " + input);
         }
-        bbi.outboundValues = Util.copyMap(ov, key, NodeHandle.of(value));
+        bbi.outboundValues = Util.mapWithEntry(ov, key, NodeHandle.of(value));
     }
 
     public String getLabelForGraph() {
         return "phi";
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         int idx = 0;
         for (BasicBlock bb : knownBlocks) {
@@ -43,7 +43,6 @@ final class PhiValueImpl extends ProgramNodeImpl implements PhiValue {
                 idx ++;
             }
         }
-        return graph;
     }
 
     static final class Key {}

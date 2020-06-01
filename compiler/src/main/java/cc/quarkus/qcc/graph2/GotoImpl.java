@@ -28,9 +28,8 @@ final class GotoImpl extends TerminatorImpl implements Goto {
         return "goto";
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(target), "goes-to", "black", "solid", knownBlocks);
-        return graph;
     }
 }

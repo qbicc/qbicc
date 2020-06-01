@@ -22,6 +22,9 @@ public final class Values {
     public static native boolean isConstant(double val);
     public static native boolean isConstant(boolean val);
 
+    public static native boolean isAlwaysTrue(boolean expr);
+    public static native boolean isAlwaysFalse(boolean expr);
+
     public static native <T> boolean compareAndSwapVolatile(T expr, T expect, T update);
     public static native boolean compareAndSwapVolatile(int expr, int expect, int update);
     public static native boolean compareAndSwapVolatile(long expr, long expect, long update);

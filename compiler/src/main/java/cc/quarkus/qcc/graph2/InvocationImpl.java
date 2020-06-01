@@ -35,12 +35,11 @@ class InvocationImpl extends MemoryStateImpl implements Invocation {
         arguments[index] = argument;
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         for (int i = 0; i < arguments.length; i++) {
             addEdgeTo(visited, graph, arguments[i], "argument[" + i + "]", "black", "solid", knownBlocks);
         }
-        return graph;
     }
 
     public String getLabelForGraph() {

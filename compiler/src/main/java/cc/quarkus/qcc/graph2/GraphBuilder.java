@@ -115,10 +115,24 @@ public final class GraphBuilder extends MethodVisitor {
 
     // stack manipulation
 
+    ItemSize topOfStackItemSize() {
+        return stackMap[sp - 1];
+    }
+
     void clearStack() {
         Arrays.fill(stack, 0, sp, null);
         Arrays.fill(stackMap, 0, sp, null);
         sp = 0;
+    }
+
+    Value popSmart() {
+        int tos = sp - 1;
+        ItemSize type = stackMap[tos];
+        Value value = stack[tos];
+        stack[tos] = null;
+        stackMap[tos] = null;
+        sp = tos;
+        return value;
     }
 
     Value pop2() {
@@ -641,12 +655,28 @@ public final class GraphBuilder extends MethodVisitor {
 
         public void visitTableSwitchInsn(final int min, final int max, final Label dflt, final Label... labels) {
             gotInstr = true;
-            super.visitTableSwitchInsn(min, max, dflt, labels);
+            BasicBlock currentBlock = GraphBuilder.this.currentBlock;
+            SwitchImpl switch_ = new SwitchImpl();
+            switch_.setDefaultTarget(getOrMakeBlockHandle(dflt));
+            for (int i = 0; i < labels.length; i ++) {
+                switch_.setTargetForValue(min + i, getOrMakeBlockHandle(labels[i]));
+            }
+            switch_.setMemoryDependency(memoryState);
+            currentBlock.setTerminator(switch_);
+            enter(possibleBlockState);
         }
 
         public void visitLookupSwitchInsn(final Label dflt, final int[] keys, final Label[] labels) {
             gotInstr = true;
-            super.visitLookupSwitchInsn(dflt, keys, labels);
+            BasicBlock currentBlock = GraphBuilder.this.currentBlock;
+            SwitchImpl switch_ = new SwitchImpl();
+            switch_.setDefaultTarget(getOrMakeBlockHandle(dflt));
+            for (int i = 0; i < keys.length; i ++) {
+                switch_.setTargetForValue(keys[i], getOrMakeBlockHandle(labels[i]));
+            }
+            switch_.setMemoryDependency(memoryState);
+            currentBlock.setTerminator(switch_);
+            enter(possibleBlockState);
         }
 
         public void visitMultiANewArrayInsn(final String descriptor, final int numDimensions) {
@@ -672,6 +702,29 @@ public final class GraphBuilder extends MethodVisitor {
                     push(ItemSize.SINGLE, Value.iconst(opcode - Opcodes.ICONST_0));
                     return;
                 }
+                case Opcodes.ICONST_M1: {
+                    push(ItemSize.SINGLE, Value.iconst(-1));
+                    return;
+                }
+                case Opcodes.LCONST_0:
+                case Opcodes.LCONST_1: {
+                    push(ItemSize.DOUBLE, Value.lconst(opcode - Opcodes.LCONST_0));
+                    break;
+                }
+                case Opcodes.FCONST_0:
+                case Opcodes.FCONST_1:
+                case Opcodes.FCONST_2: {
+                    // todo: cache
+                    push(ItemSize.SINGLE, CastValue.create(Value.iconst(opcode - Opcodes.FCONST_0), cc.quarkus.qcc.graph2.Type.F32));
+                    break;
+                }
+                case Opcodes.DCONST_0:
+                case Opcodes.DCONST_1: {
+                    // todo: cache
+                    push(ItemSize.DOUBLE, CastValue.create(Value.iconst(opcode - Opcodes.DCONST_0), cc.quarkus.qcc.graph2.Type.F64));
+                    break;
+                }
+
                 case Opcodes.POP: {
                     pop();
                     return;
@@ -700,7 +753,7 @@ public final class GraphBuilder extends MethodVisitor {
                 }
                 case Opcodes.LNEG: {
                     Value rhs = pop2();
-                    push(ItemSize.DOUBLE, Value.ICONST_0);
+                    push(ItemSize.DOUBLE, Value.LCONST_0);
                     push(ItemSize.DOUBLE, rhs);
                     visitInsn(Opcodes.LSUB);
                     return;
@@ -712,15 +765,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IXOR:
                 case Opcodes.IADD:
                 case Opcodes.FMUL:
-                case Opcodes.FADD: {
-                    CommutativeBinaryValueImpl op = new CommutativeBinaryValueImpl();
-                    op.setOwner(currentBlock);
-                    op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
-                    op.setLeftInput(pop());
-                    op.setRightInput(pop());
-                    push(ItemSize.SINGLE, op);
-                    return;
-                }
+                case Opcodes.FADD:
                 case Opcodes.LMUL:
                 case Opcodes.LAND:
                 case Opcodes.LOR:
@@ -728,37 +773,30 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.LADD:
                 case Opcodes.DMUL:
                 case Opcodes.DADD: {
+                    ItemSize itemSize = topOfStackItemSize();
                     CommutativeBinaryValueImpl op = new CommutativeBinaryValueImpl();
                     op.setOwner(currentBlock);
                     op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
-                    op.setLeftInput(pop2());
-                    op.setRightInput(pop2());
-                    push(ItemSize.DOUBLE, op);
+                    op.setLeftInput(popSmart());
+                    op.setRightInput(popSmart());
+                    push(itemSize, op);
                     return;
                 }
                 case Opcodes.ISHL:
                 case Opcodes.ISHR:
                 case Opcodes.IUSHR:
-                case Opcodes.ISUB: {
-                    NonCommutativeBinaryValueImpl op = new NonCommutativeBinaryValueImpl();
-                    op.setOwner(currentBlock);
-                    op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
-                    op.setLeftInput(pop());
-                    op.setRightInput(pop());
-                    push(ItemSize.SINGLE, op);
-                    return;
-                }
-
+                case Opcodes.ISUB:
                 case Opcodes.LSHL:
                 case Opcodes.LSHR:
                 case Opcodes.LUSHR:
                 case Opcodes.LSUB: {
+                    ItemSize itemSize = topOfStackItemSize();
                     NonCommutativeBinaryValueImpl op = new NonCommutativeBinaryValueImpl();
                     op.setOwner(currentBlock);
                     op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
-                    op.setLeftInput(pop2());
-                    op.setRightInput(pop2());
-                    push(ItemSize.DOUBLE, op);
+                    op.setLeftInput(popSmart());
+                    op.setRightInput(popSmart());
+                    push(itemSize, op);
                     return;
                 }
                 case Opcodes.LCMP: {
@@ -788,8 +826,65 @@ public final class GraphBuilder extends MethodVisitor {
                     return;
                 }
 
+                case Opcodes.FCMPL:
+                case Opcodes.DCMPL: {
+                    // todo: fix up NaN semantics
+                    Value v2 = popSmart();
+                    Value v1 = popSmart();
+                    NonCommutativeBinaryValueImpl c1 = new NonCommutativeBinaryValueImpl();
+                    c1.setOwner(currentBlock);
+                    c1.setKind(NonCommutativeBinaryValue.Kind.CMP_LT);
+                    c1.setLeftInput(v1);
+                    c1.setRightInput(v2);
+                    NonCommutativeBinaryValueImpl c2 = new NonCommutativeBinaryValueImpl();
+                    c2.setOwner(currentBlock);
+                    c2.setKind(NonCommutativeBinaryValue.Kind.CMP_GT);
+                    c2.setLeftInput(v1);
+                    c2.setRightInput(v2);
+                    IfValueImpl op1 = new IfValueImpl();
+                    op1.setOwner(currentBlock);
+                    op1.setCond(c1);
+                    op1.setTrueValue(Value.iconst(-1));
+                    IfValueImpl op2 = new IfValueImpl();
+                    op2.setOwner(currentBlock);
+                    op2.setCond(c2);
+                    op2.setTrueValue(Value.iconst(1));
+                    op2.setFalseValue(Value.iconst(0));
+                    op1.setFalseValue(op2);
+                    push(ItemSize.SINGLE, op1);
+                }
+                case Opcodes.FCMPG:
+                case Opcodes.DCMPG: {
+                    // todo: fix up NaN semantics
+                    Value v2 = popSmart();
+                    Value v1 = popSmart();
+                    NonCommutativeBinaryValueImpl c1 = new NonCommutativeBinaryValueImpl();
+                    c1.setOwner(currentBlock);
+                    c1.setKind(NonCommutativeBinaryValue.Kind.CMP_LT);
+                    c1.setLeftInput(v1);
+                    c1.setRightInput(v2);
+                    NonCommutativeBinaryValueImpl c2 = new NonCommutativeBinaryValueImpl();
+                    c2.setOwner(currentBlock);
+                    c2.setKind(NonCommutativeBinaryValue.Kind.CMP_GT);
+                    c2.setLeftInput(v1);
+                    c2.setRightInput(v2);
+                    IfValueImpl op1 = new IfValueImpl();
+                    op1.setOwner(currentBlock);
+                    op1.setCond(c1);
+                    op1.setTrueValue(Value.iconst(-1));
+                    IfValueImpl op2 = new IfValueImpl();
+                    op2.setOwner(currentBlock);
+                    op2.setCond(c2);
+                    op2.setTrueValue(Value.iconst(1));
+                    op2.setFalseValue(Value.iconst(0));
+                    op1.setFalseValue(op2);
+                    push(ItemSize.SINGLE, op1);
+                }
+
                 case Opcodes.IDIV:
-                case Opcodes.IREM:
+                case Opcodes.IREM: {
+
+                }
 
                 case Opcodes.LDIV:
                 case Opcodes.LREM:
@@ -797,14 +892,6 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.FNEG:
                 case Opcodes.DNEG:
                 case Opcodes.ACONST_NULL:
-                case Opcodes.ICONST_M1:
-                case Opcodes.LCONST_0:
-                case Opcodes.LCONST_1:
-                case Opcodes.FCONST_0:
-                case Opcodes.FCONST_1:
-                case Opcodes.FCONST_2:
-                case Opcodes.DCONST_0:
-                case Opcodes.DCONST_1:
                 case Opcodes.IALOAD:
                 case Opcodes.LALOAD:
                 case Opcodes.FALOAD:
@@ -846,10 +933,6 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.I2B:
                 case Opcodes.I2C:
                 case Opcodes.I2S:
-                case Opcodes.FCMPL:
-                case Opcodes.FCMPG:
-                case Opcodes.DCMPL:
-                case Opcodes.DCMPG:
                 case Opcodes.ARRAYLENGTH:
                 case Opcodes.ATHROW:
                 case Opcodes.MONITORENTER:

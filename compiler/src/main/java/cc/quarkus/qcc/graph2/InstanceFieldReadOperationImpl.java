@@ -17,9 +17,8 @@ public abstract class InstanceFieldReadOperationImpl extends FieldOperationImpl 
         instance = NodeHandle.of(value);
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         addEdgeTo(visited, graph, getInstance(), "instance", "black", "dotted", knownBlocks);
-        return graph;
     }
 }

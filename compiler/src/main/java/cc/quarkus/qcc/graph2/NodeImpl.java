@@ -21,7 +21,7 @@ abstract class NodeImpl implements Node {
         this.myHandle = null;
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         // write just the node
         graph.append(Integer.toString(getIdForGraph()));
         graph.append(' ');
@@ -43,12 +43,11 @@ abstract class NodeImpl implements Node {
         graph.append('"');
         graph.append(']');
         graph.append(System.lineSeparator());
-        return graph;
-    }
+}
 
-    Appendable addEdgeTo(Set<Node> visited, Appendable graph, Node target, String label, String color, String style, Set<BasicBlock> knownBlocks) throws IOException {
+    void addEdgeTo(Set<Node> visited, Appendable graph, Node target, String label, String color, String style, Set<BasicBlock> knownBlocks) throws IOException {
         if (target == null) {
-            return graph;
+            return;
         }
         graph.append(Integer.toString(getIdForGraph()));
         graph.append(" -> ");
@@ -96,7 +95,6 @@ abstract class NodeImpl implements Node {
         if (visited.add(target)) {
             target.writeToGraph(visited, graph, knownBlocks);
         }
-        return graph;
     }
 
     String getShape() {

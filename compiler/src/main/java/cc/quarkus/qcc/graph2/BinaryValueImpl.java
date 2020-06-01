@@ -26,10 +26,9 @@ abstract class BinaryValueImpl extends ProgramNodeImpl implements BinaryValue {
         right = NodeHandle.of(value);
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(left), "left-input", "black", "solid", knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(right), "right-input", "black", "solid", knownBlocks);
-        return graph;
     }
 }

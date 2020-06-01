@@ -14,9 +14,8 @@ abstract class MemoryStateImpl extends ProgramNodeImpl implements MemoryState {
         memoryDependency = NodeHandle.of(memoryState);
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(memoryDependency), "depends-on", "purple", "dotted", knownBlocks);
-        return graph;
     }
 }

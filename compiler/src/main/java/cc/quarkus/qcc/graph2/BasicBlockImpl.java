@@ -34,19 +34,30 @@ final class BasicBlockImpl extends NodeImpl implements BasicBlock {
                 If ifTi = (If) ti;
                 ((BasicBlockImpl)ifTi.getTrueBranch()).findReachable(set);
                 ((BasicBlockImpl)ifTi.getFalseBranch()).findReachable(set);
-            } else if (ti instanceof Goto) {
+            }
+            if (ti instanceof Goto) {
                 ((BasicBlockImpl)((Goto) ti).getNextBlock()).findReachable(set);
+            }
+            if (ti instanceof Try) {
+                ((BasicBlockImpl)((Try) ti).getCatchHandler()).findReachable(set);
+            }
+            if (ti instanceof Switch) {
+                Switch sw = (Switch) ti;
+                ((BasicBlockImpl) sw.getDefaultTarget()).findReachable(set);
+                int cnt = sw.getNumberOfValues();
+                for (int i = 0; i < cnt; i ++) {
+                    ((BasicBlockImpl) sw.getTargetForValue(sw.getValue(i))).findReachable(set);
+                }
             }
         }
     }
 
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         // now write the edge to the terminal instruction
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(terminalInstruction), "terminates-with", "black", "solid", knownBlocks);
-        return graph;
-    }
+}
 
     public String getLabelForGraph() {
         return "bblock";

@@ -10,10 +10,9 @@ final class ValueReturnImpl extends TerminatorImpl implements ValueReturn {
         return "return";
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(retVal), "val", "black", "solid", knownBlocks);
-        return graph;
     }
 
     public Value getReturnValue() {

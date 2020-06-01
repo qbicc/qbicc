@@ -23,9 +23,8 @@ abstract class ProgramNodeImpl extends NodeImpl implements ProgramNode {
         this.owner = NodeHandle.of(owner);
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         addEdgeTo(visited, graph, getOwner(), "owned-by", "brown", "dotted", knownBlocks);
-        return graph;
     }
 }

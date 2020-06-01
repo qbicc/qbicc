@@ -32,12 +32,11 @@ final class IfValueImpl extends ProgramNodeImpl implements IfValue {
         ifFalse = NodeHandle.of(value);
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(cond), "condition", "black", "solid", knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(ifTrue), "if-true", "green", "solid", knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(ifFalse), "if-false", "red", "solid", knownBlocks);
-        return graph;
     }
 
     public String getLabelForGraph() {

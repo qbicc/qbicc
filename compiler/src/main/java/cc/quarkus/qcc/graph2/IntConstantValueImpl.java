@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.graph2;
 
 /**
- *
+ * TEMPORARY
  */
 final class IntConstantValueImpl extends ValueImpl {
     private final int value;

@@ -14,10 +14,9 @@ class InstanceFieldWriteImpl extends InstanceFieldReadOperationImpl implements I
         writeValue = NodeHandle.of(value);
     }
 
-    public Appendable writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
+    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         addEdgeTo(visited, graph, this, "write-value", "black", "solid", knownBlocks);
-        return graph;
     }
 
     public String getLabelForGraph() {
