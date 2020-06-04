@@ -2,6 +2,7 @@ package cc.quarkus.qcc.type.definition;
 
 import java.util.List;
 
+import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.TryCatchBlockNode;
@@ -9,6 +10,8 @@ import org.objectweb.asm.tree.TryCatchBlockNode;
 public interface MethodDefinition<V> extends MethodDescriptor<V> {
 
     InsnList getInstructions();
+
+    BasicBlock getBasicBlock();
 
     List<TryCatchBlockNode> getTryCatchBlocks();
 

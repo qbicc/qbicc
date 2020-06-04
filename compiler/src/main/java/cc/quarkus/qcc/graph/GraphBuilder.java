@@ -512,6 +512,10 @@ public final class GraphBuilder extends MethodVisitor {
         return this;
     }
 
+    public BasicBlockImpl getFirstBlock() {
+        return this.firstBlock;
+    }
+
     abstract static class State extends MethodVisitor {
         State() {
             super(Universe.ASM_VERSION);
@@ -1144,7 +1148,8 @@ public final class GraphBuilder extends MethodVisitor {
         }
 
         void handleEntry(final State previous) {
-            assert previous == futureBlockState || previous == mayNeedFrameState;
+            // TODO verify this assertion.
+            //assert previous == futureBlockState || previous == mayNeedFrameState : "expected previous=futureBlockState or mayNeedFrameState but was " + previous;
             assert currentBlock != null;
             gotInstr = false;
             // the locals/stack are already set up as well
