@@ -860,6 +860,7 @@ public final class GraphBuilder extends MethodVisitor {
                     op2.setFalseValue(Value.iconst(0));
                     op1.setFalseValue(op2);
                     push(ItemSize.SINGLE, op1);
+                    return;
                 }
                 case Opcodes.FCMPG:
                 case Opcodes.DCMPG: {
@@ -887,6 +888,16 @@ public final class GraphBuilder extends MethodVisitor {
                     op2.setFalseValue(Value.iconst(0));
                     op1.setFalseValue(op2);
                     push(ItemSize.SINGLE, op1);
+                    return;
+                }
+
+                case Opcodes.ARRAYLENGTH: {
+                    Value v = pop();
+                    UnaryValueImpl uv = new UnaryValueImpl();
+                    uv.setKind(UnaryValue.Kind.LENGTH_OF);
+                    uv.setInput(v);
+                    push(ItemSize.SINGLE, uv);
+                    return;
                 }
 
                 case Opcodes.IDIV:
@@ -941,7 +952,6 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.I2B:
                 case Opcodes.I2C:
                 case Opcodes.I2S:
-                case Opcodes.ARRAYLENGTH:
                 case Opcodes.ATHROW:
                 case Opcodes.MONITORENTER:
                 case Opcodes.MONITOREXIT: {
