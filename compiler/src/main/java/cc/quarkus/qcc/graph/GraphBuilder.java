@@ -797,6 +797,8 @@ public final class GraphBuilder extends MethodVisitor {
                     push(itemSize, op);
                     return;
                 }
+                case Opcodes.FSUB:
+                case Opcodes.DSUB:
                 case Opcodes.ISHL:
                 case Opcodes.ISHR:
                 case Opcodes.IUSHR:
@@ -946,8 +948,6 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.DUP_X2:
                 case Opcodes.DUP2_X1:
                 case Opcodes.DUP2_X2:
-                case Opcodes.FSUB:
-                case Opcodes.DSUB:
                 case Opcodes.FDIV:
                 case Opcodes.DDIV:
                 case Opcodes.FREM:
