@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  *
  */
-final class CastValueImpl extends ValueProgramNodeImpl implements CastValue {
+class CastValueImpl extends ValueProgramNodeImpl implements CastValue {
     NodeHandle input;
     NodeHandle targetType;
 
