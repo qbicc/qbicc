@@ -17,10 +17,10 @@ public class UniverseTest {
     @Test
     public void testMethod() {
 
-        Universe universe = new Universe(new ClassLoaderClassFinder( Thread.currentThread().getContextClassLoader()));
+        Universe universe = new Universe(new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
         TypeDefinition cls = universe.findClass("cc/quarkus/qcc/type/UniverseTest");
         MethodDefinition<?> method = cls.findMethod("add", "(II)I");
 
-        assertThat( method.getEntryBlock()).isNotNull();
+        assertThat(method.getGraph()).isNotNull();
     }
 }

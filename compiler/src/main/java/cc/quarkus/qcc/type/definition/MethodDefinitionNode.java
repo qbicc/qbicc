@@ -22,14 +22,14 @@ public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinit
     }
 
     @Override
-    public BasicBlock getEntryBlock() {
-        return this.block.updateAndGet((prev) -> {
+    public MethodGraph getGraph() {
+        return this.graph.updateAndGet((prev) -> {
             if (prev != null) {
                 return prev;
             }
             GraphBuilder builder = new GraphBuilder(this.access, this.name, this.desc, this.signature, this.exceptions.toArray(new String[0]));
             accept(builder);
-            return builder.getEntryBlock();
+            return new MethodGraphImpl(builder.getParameters(), builder.getEntryBlock());
         });
     }
 
@@ -106,6 +106,6 @@ public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinit
 
     private final TypeDefinitionNode typeDefinition;
 
-    private AtomicReference<BasicBlock> block = new AtomicReference<>();
+    private AtomicReference<MethodGraph> graph = new AtomicReference<>();
 
 }
