@@ -11,7 +11,7 @@ public interface MethodDefinition<V> extends MethodDescriptor<V> {
 
     InsnList getInstructions();
 
-    BasicBlock getBasicBlock();
+    BasicBlock getEntryBlock();
 
     List<TryCatchBlockNode> getTryCatchBlocks();
 
