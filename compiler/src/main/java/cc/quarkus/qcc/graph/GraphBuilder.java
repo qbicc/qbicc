@@ -126,8 +126,15 @@ public final class GraphBuilder extends MethodVisitor {
     }
 
     Value popSmart() {
+        return pop(topOfStackItemSize());
+    }
+
+    Value pop(ItemSize expectType) {
         int tos = sp - 1;
         ItemSize type = stackMap[tos];
+        if (type != expectType) {
+            throw new IllegalStateException("Bad pop");
+        }
         Value value = stack[tos];
         stack[tos] = null;
         stackMap[tos] = null;
@@ -899,6 +906,16 @@ public final class GraphBuilder extends MethodVisitor {
                     push(ItemSize.SINGLE, uv);
                     return;
                 }
+                case Opcodes.FNEG:
+                case Opcodes.DNEG: {
+                    ItemSize tt = topOfStackItemSize();
+                    Value v = pop(tt);
+                    UnaryValueImpl uv = new UnaryValueImpl();
+                    uv.setKind(UnaryValue.Kind.NEGATE);
+                    uv.setInput(v);
+                    push(tt, uv);
+                    return;
+                }
 
                 case Opcodes.IDIV:
                 case Opcodes.IREM: {
@@ -908,8 +925,6 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.LDIV:
                 case Opcodes.LREM:
 
-                case Opcodes.FNEG:
-                case Opcodes.DNEG:
                 case Opcodes.ACONST_NULL:
                 case Opcodes.IALOAD:
                 case Opcodes.LALOAD:
