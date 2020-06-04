@@ -512,7 +512,7 @@ public final class GraphBuilder extends MethodVisitor {
         return this;
     }
 
-    public BasicBlockImpl getFirstBlock() {
+    public BasicBlock getEntryBlock() {
         return this.firstBlock;
     }
 
