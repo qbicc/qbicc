@@ -11,6 +11,8 @@ public interface UnaryValue extends Value, ProgramNode {
 
     enum Kind {
         NEGATE,
+        LENGTH_OF,
+        SIZE_OF,
         ;
     }
 }
