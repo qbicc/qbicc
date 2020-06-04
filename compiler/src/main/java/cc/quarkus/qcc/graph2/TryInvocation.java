@@ -1,8 +1,0 @@
-package cc.quarkus.qcc.graph2;
-
-/**
- * An invocation within a try block which may throw an exception (possibly a {@code NullPointerException} if
- * it is an instance invocation and the receiver is {@code null}).
- */
-public interface TryInvocation extends Try, Invocation, Goto {
-}
