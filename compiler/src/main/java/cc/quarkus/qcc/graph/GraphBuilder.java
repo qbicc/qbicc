@@ -516,6 +516,10 @@ public final class GraphBuilder extends MethodVisitor {
         return this.firstBlock;
     }
 
+    public List<ParameterValue> getParameters() {
+        return this.originalParams;
+    }
+
     abstract static class State extends MethodVisitor {
         State() {
             super(Universe.ASM_VERSION);
