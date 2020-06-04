@@ -21,6 +21,6 @@ public class UniverseTest {
         TypeDefinition cls = universe.findClass("cc/quarkus/qcc/type/UniverseTest");
         MethodDefinition<?> method = cls.findMethod("add", "(II)I");
 
-        assertThat( method.getBasicBlock()).isNotNull();
+        assertThat( method.getEntryBlock()).isNotNull();
     }
 }
