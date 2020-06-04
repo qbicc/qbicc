@@ -1,7 +1,10 @@
 package cc.quarkus.qcc.type.definition;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.GraphBuilder;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.universe.Universe;
@@ -12,15 +15,22 @@ import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinition<V> {
 
-    //public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, String descriptor, String signature, String[] exceptions) {
     public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, MethodDescriptor<V> methodDescriptor, String signature, String[] exceptions) {
         super(Universe.ASM_VERSION, access, name, methodDescriptor.getDescriptor(), signature, exceptions);
         this.typeDefinition = typeDefinition;
-
-        //MethodDescriptorParser parser = new MethodDescriptorParser(typeDefinition.getUniverse(), typeDefinition, name, descriptor, isStatic());
         this.methodDescriptor = methodDescriptor;
-        //this.signature = signature;
+    }
 
+    @Override
+    public BasicBlock getBasicBlock() {
+        return this.block.updateAndGet((prev) -> {
+            if (prev != null) {
+                return prev;
+            }
+            GraphBuilder builder = new GraphBuilder(this.access, this.name, this.desc, this.signature, this.exceptions.toArray(new String[0]));
+            accept(builder);
+            return builder.getFirstBlock();
+        });
     }
 
     public MethodNode getMethodNode() {
@@ -74,12 +84,12 @@ public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinit
 
     @Override
     public boolean isStatic() {
-        return ( getMethodNode().access & Opcodes.ACC_STATIC ) != 0;
+        return (getMethodNode().access & Opcodes.ACC_STATIC) != 0;
     }
 
     @Override
     public boolean isSynchronized() {
-        return ( getMethodNode().access & Opcodes.ACC_SYNCHRONIZED ) != 0;
+        return (getMethodNode().access & Opcodes.ACC_SYNCHRONIZED) != 0;
     }
 
     @Override
@@ -95,5 +105,7 @@ public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinit
     private final MethodDescriptor<V> methodDescriptor;
 
     private final TypeDefinitionNode typeDefinition;
+
+    private AtomicReference<BasicBlock> block = new AtomicReference<>();
 
 }
