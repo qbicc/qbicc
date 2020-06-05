@@ -481,12 +481,14 @@ public final class GraphBuilder extends MethodVisitor {
         for (int i = 0; i < sp; i ++) {
             ItemSize type = stackMap[i];
             PhiValueImpl pv = new PhiValueImpl();
+            pv.setType(stack[i].getType());
             pv.setOwner(currentBlock);
             stack[i] = pv;
         }
         for (int i = 0; i < lp; i ++) {
             if (locals[i] != null) {
                 PhiValueImpl pv = new PhiValueImpl();
+                pv.setType(locals[i].getType());
                 pv.setOwner(currentBlock);
                 locals[i] = pv;
             }
@@ -501,6 +503,7 @@ public final class GraphBuilder extends MethodVisitor {
         for (int i = 0; i < fsp; i ++) {
             ItemSize type = frameStackMap[i];
             PhiValueImpl pv = new PhiValueImpl();
+            // todo: pv.setType(???)
             pv.setOwner(currentBlock);
             push(type, pv);
         }
@@ -508,6 +511,7 @@ public final class GraphBuilder extends MethodVisitor {
             ItemSize type = frameLocalMap[i];
             if (type != null) {
                 PhiValueImpl pv = new PhiValueImpl();
+                // todo: pv.setType(???)
                 pv.setOwner(currentBlock);
                 setLocal(type, i, pv);
             }
@@ -659,10 +663,15 @@ public final class GraphBuilder extends MethodVisitor {
         public void visitLdcInsn(final Object value) {
             gotInstr = true;
             if (value instanceof Integer) {
-                push(ItemSize.SINGLE, Value.iconst(((Integer) value).intValue()));
+                push(ItemSize.SINGLE, Value.const_(((Integer) value).intValue()));
             } else if (value instanceof Long) {
-                // TODO: fix this
-                push(ItemSize.DOUBLE, Value.iconst((int) ((Long) value).longValue()));
+                push(ItemSize.DOUBLE, Value.const_(((Long) value).longValue()));
+            } else if (value instanceof Float) {
+                push(ItemSize.SINGLE, Value.const_(((Float) value).floatValue()));
+            } else if (value instanceof Double) {
+                push(ItemSize.SINGLE, Value.const_(((Double) value).doubleValue()));
+            } else if (value instanceof String) {
+                push(ItemSize.SINGLE, Value.const_((String) value));
             } else {
                 throw new IllegalStateException();
             }
@@ -714,29 +723,29 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.ICONST_3:
                 case Opcodes.ICONST_4:
                 case Opcodes.ICONST_5: {
-                    push(ItemSize.SINGLE, Value.iconst(opcode - Opcodes.ICONST_0));
+                    push(ItemSize.SINGLE, Value.const_(opcode - Opcodes.ICONST_0));
                     return;
                 }
                 case Opcodes.ICONST_M1: {
-                    push(ItemSize.SINGLE, Value.iconst(-1));
+                    push(ItemSize.SINGLE, Value.const_(-1));
                     return;
                 }
                 case Opcodes.LCONST_0:
                 case Opcodes.LCONST_1: {
-                    push(ItemSize.DOUBLE, Value.lconst(opcode - Opcodes.LCONST_0));
+                    push(ItemSize.DOUBLE, Value.const_(opcode - Opcodes.LCONST_0));
                     break;
                 }
                 case Opcodes.FCONST_0:
                 case Opcodes.FCONST_1:
                 case Opcodes.FCONST_2: {
                     // todo: cache
-                    push(ItemSize.SINGLE, CastValue.create(Value.iconst(opcode - Opcodes.FCONST_0), cc.quarkus.qcc.graph.Type.F32));
+                    push(ItemSize.SINGLE, CastValue.create(Value.const_(opcode - Opcodes.FCONST_0), cc.quarkus.qcc.graph.Type.F32));
                     break;
                 }
                 case Opcodes.DCONST_0:
                 case Opcodes.DCONST_1: {
                     // todo: cache
-                    push(ItemSize.DOUBLE, CastValue.create(Value.iconst(opcode - Opcodes.DCONST_0), cc.quarkus.qcc.graph.Type.F64));
+                    push(ItemSize.DOUBLE, CastValue.create(Value.const_(opcode - Opcodes.DCONST_0), cc.quarkus.qcc.graph.Type.F64));
                     break;
                 }
 
@@ -760,6 +769,90 @@ public final class GraphBuilder extends MethodVisitor {
                     swap();
                     return;
                 }
+                case Opcodes.DUP_X1: {
+                    Value v1 = pop();
+                    Value v2 = pop();
+                    push(ItemSize.SINGLE, v1);
+                    push(ItemSize.SINGLE, v2);
+                    push(ItemSize.SINGLE, v1);
+                    return;
+                }
+                case Opcodes.DUP_X2: {
+                    Value v1 = pop();
+                    Value v2 = pop();
+                    Value v3 = pop();
+                    push(ItemSize.SINGLE, v1);
+                    push(ItemSize.SINGLE, v3);
+                    push(ItemSize.SINGLE, v2);
+                    push(ItemSize.SINGLE, v1);
+                    return;
+                }
+                case Opcodes.DUP2_X1: {
+                    if (topOfStackItemSize() == ItemSize.SINGLE) {
+                        // form 1
+                        Value v1 = pop();
+                        Value v2 = pop();
+                        Value v3 = pop();
+                        push(ItemSize.SINGLE, v2);
+                        push(ItemSize.SINGLE, v1);
+                        push(ItemSize.SINGLE, v3);
+                        push(ItemSize.SINGLE, v2);
+                        push(ItemSize.SINGLE, v1);
+                    } else {
+                        // form 2
+                        Value v1 = pop2();
+                        Value v2 = pop2();
+                        push(ItemSize.DOUBLE, v1);
+                        push(ItemSize.DOUBLE, v2);
+                        push(ItemSize.DOUBLE, v1);
+                    }
+                    return;
+                }
+                case Opcodes.DUP2_X2: {
+                    if (topOfStackItemSize() == ItemSize.SINGLE) {
+                        Value v1 = pop();
+                        Value v2 = pop();
+                        Value v3;
+                        if (topOfStackItemSize() == ItemSize.SINGLE) {
+                            // form 1
+                            v3 = pop();
+                            Value v4 = pop();
+                            push(ItemSize.SINGLE, v2);
+                            push(ItemSize.SINGLE, v1);
+                            push(ItemSize.SINGLE, v4);
+                            push(ItemSize.SINGLE, v3);
+                        } else {
+                            // form 3
+                            v3 = pop2();
+                            push(ItemSize.SINGLE, v2);
+                            push(ItemSize.SINGLE, v1);
+                            push(ItemSize.DOUBLE, v3);
+                        }
+                        // form 1 or 3
+                        push(ItemSize.SINGLE, v2);
+                        push(ItemSize.SINGLE, v1);
+                    } else {
+                        Value v1 = pop2();
+                        Value v2;
+                        if (topOfStackItemSize() == ItemSize.SINGLE) {
+                            // form 2
+                            v2 = pop();
+                            Value v3 = pop();
+                            push(ItemSize.DOUBLE, v1);
+                            push(ItemSize.SINGLE, v2);
+                            push(ItemSize.SINGLE, v3);
+                        } else {
+                            // form 4
+                            v2 = pop2();
+                            push(ItemSize.DOUBLE, v1);
+                            push(ItemSize.DOUBLE, v2);
+                        }
+                        // form 2 or 4
+                        push(ItemSize.DOUBLE, v1);
+                    }
+                    return;
+                }
+
                 case Opcodes.INEG: {
                     push(ItemSize.SINGLE, Value.ICONST_0);
                     swap();
@@ -832,12 +925,12 @@ public final class GraphBuilder extends MethodVisitor {
                     IfValueImpl op1 = new IfValueImpl();
                     op1.setOwner(currentBlock);
                     op1.setCond(c1);
-                    op1.setTrueValue(Value.iconst(-1));
+                    op1.setTrueValue(Value.const_(-1));
                     IfValueImpl op2 = new IfValueImpl();
                     op2.setOwner(currentBlock);
                     op2.setCond(c2);
-                    op2.setTrueValue(Value.iconst(1));
-                    op2.setFalseValue(Value.iconst(0));
+                    op2.setTrueValue(Value.const_(1));
+                    op2.setFalseValue(Value.const_(0));
                     op1.setFalseValue(op2);
                     push(ItemSize.SINGLE, op1);
                     return;
@@ -861,12 +954,12 @@ public final class GraphBuilder extends MethodVisitor {
                     IfValueImpl op1 = new IfValueImpl();
                     op1.setOwner(currentBlock);
                     op1.setCond(c1);
-                    op1.setTrueValue(Value.iconst(-1));
+                    op1.setTrueValue(Value.const_(-1));
                     IfValueImpl op2 = new IfValueImpl();
                     op2.setOwner(currentBlock);
                     op2.setCond(c2);
-                    op2.setTrueValue(Value.iconst(1));
-                    op2.setFalseValue(Value.iconst(0));
+                    op2.setTrueValue(Value.const_(1));
+                    op2.setFalseValue(Value.const_(0));
                     op1.setFalseValue(op2);
                     push(ItemSize.SINGLE, op1);
                     return;
@@ -889,12 +982,12 @@ public final class GraphBuilder extends MethodVisitor {
                     IfValueImpl op1 = new IfValueImpl();
                     op1.setOwner(currentBlock);
                     op1.setCond(c1);
-                    op1.setTrueValue(Value.iconst(-1));
+                    op1.setTrueValue(Value.const_(-1));
                     IfValueImpl op2 = new IfValueImpl();
                     op2.setOwner(currentBlock);
                     op2.setCond(c2);
-                    op2.setTrueValue(Value.iconst(1));
-                    op2.setFalseValue(Value.iconst(0));
+                    op2.setTrueValue(Value.const_(1));
+                    op2.setFalseValue(Value.const_(0));
                     op1.setFalseValue(op2);
                     push(ItemSize.SINGLE, op1);
                     return;
@@ -916,6 +1009,61 @@ public final class GraphBuilder extends MethodVisitor {
                     uv.setKind(UnaryValue.Kind.NEGATE);
                     uv.setInput(v);
                     push(tt, uv);
+                    return;
+                }
+
+                case Opcodes.I2L: {
+                    push(ItemSize.DOUBLE, WordCastValue.create(pop(), WordCastValue.Kind.SIGN_EXTEND, cc.quarkus.qcc.graph.Type.S64));
+                    return;
+                }
+                case Opcodes.L2I: {
+                    push(ItemSize.SINGLE, WordCastValue.create(pop2(), WordCastValue.Kind.TRUNCATE, cc.quarkus.qcc.graph.Type.S32));
+                    return;
+                }
+                case Opcodes.I2B: {
+                    push(ItemSize.SINGLE, WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, cc.quarkus.qcc.graph.Type.S8));
+                    return;
+                }
+                case Opcodes.I2C: {
+                    push(ItemSize.SINGLE, WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, cc.quarkus.qcc.graph.Type.U16));
+                    return;
+                }
+                case Opcodes.I2S: {
+                    push(ItemSize.SINGLE, WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, cc.quarkus.qcc.graph.Type.S16));
+                    return;
+                }
+                case Opcodes.I2F: {
+                    push(ItemSize.SINGLE, WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.F32));
+                    return;
+                }
+                case Opcodes.I2D:
+                case Opcodes.F2D: {
+                    push(ItemSize.DOUBLE, WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.F64));
+                    return;
+                }
+                case Opcodes.L2F:
+                case Opcodes.D2F: {
+                    push(ItemSize.SINGLE, WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.F32));
+                    return;
+                }
+                case Opcodes.L2D: {
+                    push(ItemSize.DOUBLE, WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.F64));
+                    return;
+                }
+                case Opcodes.F2I: {
+                    push(ItemSize.SINGLE, WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.S32));
+                    return;
+                }
+                case Opcodes.F2L: {
+                    push(ItemSize.DOUBLE, WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.S64));
+                    return;
+                }
+                case Opcodes.D2I: {
+                    push(ItemSize.SINGLE, WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.S32));
+                    return;
+                }
+                case Opcodes.D2L: {
+                    push(ItemSize.DOUBLE, WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.S64));
                     return;
                 }
 
@@ -944,29 +1092,10 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.BASTORE:
                 case Opcodes.CASTORE:
                 case Opcodes.SASTORE:
-                case Opcodes.DUP_X1:
-                case Opcodes.DUP_X2:
-                case Opcodes.DUP2_X1:
-                case Opcodes.DUP2_X2:
                 case Opcodes.FDIV:
                 case Opcodes.DDIV:
                 case Opcodes.FREM:
                 case Opcodes.DREM:
-                case Opcodes.I2L:
-                case Opcodes.I2F:
-                case Opcodes.I2D:
-                case Opcodes.L2I:
-                case Opcodes.L2F:
-                case Opcodes.L2D:
-                case Opcodes.F2I:
-                case Opcodes.F2L:
-                case Opcodes.F2D:
-                case Opcodes.D2I:
-                case Opcodes.D2L:
-                case Opcodes.D2F:
-                case Opcodes.I2B:
-                case Opcodes.I2C:
-                case Opcodes.I2S:
                 case Opcodes.ATHROW:
                 case Opcodes.MONITORENTER:
                 case Opcodes.MONITOREXIT: {
@@ -1078,7 +1207,7 @@ public final class GraphBuilder extends MethodVisitor {
             op.setOwner(currentBlock);
             op.setKind(CommutativeBinaryValue.Kind.ADD);
             op.setLeftInput(getLocal(ItemSize.SINGLE, var));
-            op.setRightInput(Value.iconst(increment));
+            op.setRightInput(Value.const_(increment));
             setLocal(ItemSize.SINGLE, var, op);
         }
 
@@ -1104,7 +1233,7 @@ public final class GraphBuilder extends MethodVisitor {
             switch (opcode) {
                 case Opcodes.BIPUSH:
                 case Opcodes.SIPUSH: {
-                    push(ItemSize.SINGLE, Value.iconst(operand));
+                    push(ItemSize.SINGLE, Value.const_(operand));
                     return;
                 }
                 case Opcodes.NEWARRAY: {

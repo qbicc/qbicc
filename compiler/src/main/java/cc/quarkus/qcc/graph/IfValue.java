@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.constraint.Constraint;
+
 /**
  *
  */
@@ -13,5 +15,10 @@ public interface IfValue extends ProgramNode, Value {
 
     default Type getType() {
         return getTrueValue().getType();
+    }
+
+    default Constraint getConstraint() {
+        // todo: cache?
+        return getTrueValue().getConstraint().union(getFalseValue().getConstraint());
     }
 }

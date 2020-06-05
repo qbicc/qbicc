@@ -9,6 +9,20 @@ public interface NonCommutativeBinaryValue extends BinaryValue {
     Kind getKind();
     void setKind(Kind kind);
 
+    default Type getType() {
+        switch (getKind()) {
+            case CMP_LT:
+            case CMP_GT:
+            case CMP_LE:
+            case CMP_GE: {
+                return Type.BOOL;
+            }
+            default: {
+                return getLeftInput().getType();
+            }
+        }
+    }
+
     enum Kind {
         UNSIGNED_SHR,
         SHR,

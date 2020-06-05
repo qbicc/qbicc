@@ -6,11 +6,14 @@ import cc.quarkus.qcc.constraint.Constraint;
  *
  */
 public interface Type extends Node {
+
     int getParameterCount();
 
     String getParameterName(int index) throws IndexOutOfBoundsException;
 
     Constraint getParameterConstraint(int index) throws IndexOutOfBoundsException;
+
+    WordType BOOL = new BooleanTypeImpl();
 
     SignedIntegerType S8 = new SignedInteger8TypeImpl();
     SignedIntegerType S16 = new SignedInteger16TypeImpl();
@@ -23,6 +26,8 @@ public interface Type extends Node {
 
     FloatType F32 = new Float32Type();
     FloatType F64 = new Float64Type();
+
+    StringLiteralType STRING = new StringLiteralTypeImpl();
 
     default boolean isZero(long value) {
         return value == 0;
