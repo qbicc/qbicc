@@ -9,6 +9,18 @@ public interface CommutativeBinaryValue extends BinaryValue {
     Kind getKind();
     void setKind(Kind kind);
 
+    default Type getType() {
+        switch (getKind()) {
+            case CMP_EQ:
+            case CMP_NE: {
+                return Type.BOOL;
+            }
+            default: {
+                return getLeftInput().getType();
+            }
+        }
+    }
+
     enum Kind {
         ADD,
         MULTIPLY,
