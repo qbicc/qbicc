@@ -15,11 +15,11 @@ class CastValueImpl extends ValueProgramNodeImpl implements CastValue {
         input = NodeHandle.of(value);
     }
 
-    public Type getTargetType() {
+    public Type getType() {
         return NodeHandle.getTargetOf(targetType);
     }
 
-    public void setTargetType(final Type targetType) {
+    public void setType(final Type targetType) {
         this.targetType = NodeHandle.of(targetType);
     }
 

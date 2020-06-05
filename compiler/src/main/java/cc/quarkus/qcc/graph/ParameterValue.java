@@ -8,4 +8,5 @@ public interface ParameterValue extends ProgramNode, Value {
     void setIndex(int idx);
     String getName();
     void setName(String name);
+    void setType(Type type);
 }

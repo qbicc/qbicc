@@ -10,4 +10,8 @@ public interface IfValue extends ProgramNode, Value {
     void setTrueValue(Value value);
     Value getFalseValue();
     void setFalseValue(Value value);
+
+    default Type getType() {
+        return getTrueValue().getType();
+    }
 }

@@ -262,8 +262,8 @@ public class Main {
             } else {
                 throw new IllegalStateException();
             }
-        } else if (value instanceof IntConstantValueImpl) {
-            ctxt.values.put(value, val = LLVM.intConstant(((IntConstantValueImpl) value).getValue()));
+        } else if (value instanceof ConstantValue32) {
+            ctxt.values.put(value, val = LLVM.intConstant(((ConstantValue32) value).getValue()));
         } else {
             throw new IllegalStateException();
         }

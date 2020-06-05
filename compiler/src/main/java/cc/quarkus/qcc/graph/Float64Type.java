@@ -12,7 +12,7 @@ final class Float64Type implements FloatType {
     private final Constraint constraint;
 
     Float64Type() {
-        constraint = Constraint.greaterThanOrEqualTo(new LongConstantValueImpl(Double.doubleToLongBits(Double.MIN_VALUE), this)).union(Constraint.lessThanOrEqualTo(new LongConstantValueImpl(Double.doubleToLongBits(Double.MAX_VALUE), this)));
+        constraint = Constraint.greaterThanOrEqualTo(new ConstantValue64(Double.doubleToLongBits(Double.MIN_VALUE), this)).union(Constraint.lessThanOrEqualTo(new ConstantValue64(Double.doubleToLongBits(Double.MAX_VALUE), this)));
     }
 
     public int getSize() {
@@ -20,7 +20,7 @@ final class Float64Type implements FloatType {
     }
 
     public ConstantValue bitCast(final ConstantValue other) {
-        Type otherType = other.getConstantType();
+        Type otherType = other.getType();
         if (otherType instanceof WordType) {
             WordType otherWordType = (WordType) otherType;
             if (getSize() == otherWordType.getSize()) {

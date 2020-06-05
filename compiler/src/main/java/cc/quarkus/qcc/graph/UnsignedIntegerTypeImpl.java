@@ -16,11 +16,11 @@ abstract class UnsignedIntegerTypeImpl implements UnsignedIntegerType {
     }
 
     UnsignedIntegerTypeImpl(final long minValue, final long maxValue) {
-        constraint = Constraint.greaterThanOrEqualTo(new LongConstantValueImpl(minValue, this)).intersect(Constraint.lessThanOrEqualTo(new LongConstantValueImpl(maxValue, this)));
+        constraint = Constraint.greaterThanOrEqualTo(new ConstantValue64(minValue, this)).intersect(Constraint.lessThanOrEqualTo(new ConstantValue64(maxValue, this)));
     }
 
     public ConstantValue bitCast(final ConstantValue other) {
-        Type otherType = other.getConstantType();
+        Type otherType = other.getType();
         if (otherType instanceof WordType) {
             WordType otherWordType = (WordType) otherType;
             if (getSize() == otherWordType.getSize()) {

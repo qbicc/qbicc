@@ -7,7 +7,6 @@ import io.smallrye.common.constraint.Assert;
  *
  */
 public interface ConstantValue extends Value {
-    Type getConstantType();
 
     default Constraint getConstraint() {
         // todo: move to impl; make constant

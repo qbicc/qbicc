@@ -4,6 +4,7 @@ package cc.quarkus.qcc.graph;
  *
  */
 final class ParameterValueImpl extends ValueProgramNodeImpl implements ParameterValue {
+    NodeHandle type;
     int index = -1;
     String name;
 
@@ -24,6 +25,14 @@ final class ParameterValueImpl extends ValueProgramNodeImpl implements Parameter
 
     public void setName(final String name) {
         this.name = name;
+    }
+
+    public void setType(final Type type) {
+        this.type = NodeHandle.of(type);
+    }
+
+    public Type getType() {
+        return NodeHandle.getTargetOf(type);
     }
 
     public String getLabelForGraph() {

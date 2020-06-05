@@ -16,7 +16,7 @@ public interface WordCastValue extends CastValue {
     static WordCastValue create(Value value, Type targetType) {
         WordCastValueImpl i = new WordCastValueImpl();
         i.setInput(value);
-        i.setTargetType(targetType);
+        i.setType(targetType);
         return i;
     }
 }

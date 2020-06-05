@@ -8,6 +8,7 @@ import io.smallrye.common.constraint.Assert;
 
 final class PhiValueImpl extends ValueProgramNodeImpl implements PhiValue {
     private final Key key = new Key();
+    private NodeHandle type;
 
     PhiValueImpl() {
     }
@@ -25,6 +26,14 @@ final class PhiValueImpl extends ValueProgramNodeImpl implements PhiValue {
             throw new IllegalStateException("Phi " + this + " already has a value for block " + input);
         }
         bbi.outboundValues = Util.mapWithEntry(ov, key, NodeHandle.of(value));
+    }
+
+    public Type getType() {
+        return NodeHandle.getTargetOf(type);
+    }
+
+    public void setType(final Type type) {
+        this.type = NodeHandle.of(type);
     }
 
     public String getLabelForGraph() {

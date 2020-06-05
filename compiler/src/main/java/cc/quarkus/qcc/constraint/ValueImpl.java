@@ -5,6 +5,7 @@ import java.util.Set;
 
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
 
 public class ValueImpl implements Value {
@@ -34,6 +35,10 @@ public class ValueImpl implements Value {
     private final String label;
 
     private Constraint constraint;
+
+    public Type getType() {
+        return null;
+    }
 
     public void replaceWith(final Node node) {
 

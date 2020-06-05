@@ -1,13 +1,10 @@
 package cc.quarkus.qcc.graph;
 
-/**
- * TEMPORARY
- */
-final class LongConstantValueImpl extends ValueImpl implements ConstantValue {
+final class ConstantValue64 extends ValueImpl implements ConstantValue {
     private final long value;
     private final Type type;
 
-    LongConstantValueImpl(final long value, final Type type) {
+    ConstantValue64(final long value, final Type type) {
         this.value = value;
         this.type = type;
     }
@@ -20,7 +17,7 @@ final class LongConstantValueImpl extends ValueImpl implements ConstantValue {
         return "Long:" + value;
     }
 
-    public Type getConstantType() {
+    public Type getType() {
         return type;
     }
 
@@ -65,11 +62,11 @@ final class LongConstantValueImpl extends ValueImpl implements ConstantValue {
     }
 
     public ConstantValue withTypeRaw(final Type type) {
-        return new LongConstantValueImpl(value, type);
+        return new ConstantValue64(value, type);
     }
 
     public int compareTo(final ConstantValue other) throws IllegalArgumentException {
-        if (other.getConstantType() != type) {
+        if (other.getType() != type) {
             throw new IllegalArgumentException("Type mismatch");
         }
         if (type instanceof ComparableWordType) {

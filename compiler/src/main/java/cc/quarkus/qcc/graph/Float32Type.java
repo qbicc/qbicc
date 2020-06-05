@@ -12,7 +12,7 @@ final class Float32Type implements FloatType {
     private final Constraint constraint;
 
     Float32Type() {
-        constraint = Constraint.greaterThanOrEqualTo(new IntConstantValueImpl(Float.floatToIntBits(Float.MIN_VALUE), this)).union(Constraint.lessThanOrEqualTo(new IntConstantValueImpl(Float.floatToIntBits(Float.MAX_VALUE), this)));
+        constraint = Constraint.greaterThanOrEqualTo(new ConstantValue32(Float.floatToIntBits(Float.MIN_VALUE), this)).union(Constraint.lessThanOrEqualTo(new ConstantValue32(Float.floatToIntBits(Float.MAX_VALUE), this)));
     }
 
     public int getSize() {
@@ -20,7 +20,7 @@ final class Float32Type implements FloatType {
     }
 
     public ConstantValue bitCast(final ConstantValue other) {
-        Type otherType = other.getConstantType();
+        Type otherType = other.getType();
         if (otherType instanceof WordType) {
             WordType otherWordType = (WordType) otherType;
             if (getSize() == otherWordType.getSize()) {

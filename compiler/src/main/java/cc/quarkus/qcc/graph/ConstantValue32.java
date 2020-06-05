@@ -1,13 +1,10 @@
 package cc.quarkus.qcc.graph;
 
-/**
- * TEMPORARY
- */
-final class IntConstantValueImpl extends ValueImpl implements ConstantValue {
+final class ConstantValue32 extends ValueImpl implements ConstantValue {
     private final int value;
     private final Type type;
 
-    IntConstantValueImpl(final int value, final Type type) {
+    ConstantValue32(final int value, final Type type) {
         this.value = value;
         this.type = type;
     }
@@ -20,7 +17,7 @@ final class IntConstantValueImpl extends ValueImpl implements ConstantValue {
         return "Int:" + value;
     }
 
-    public Type getConstantType() {
+    public Type getType() {
         return type;
     }
 
@@ -65,11 +62,11 @@ final class IntConstantValueImpl extends ValueImpl implements ConstantValue {
     }
 
     public ConstantValue withTypeRaw(final Type type) {
-        return new IntConstantValueImpl(value, type);
+        return new ConstantValue32(value, type);
     }
 
     public int compareTo(final ConstantValue other) throws IllegalArgumentException {
-        if (other.getConstantType() != type) {
+        if (other.getType() != type) {
             throw new IllegalArgumentException("Type mismatch");
         }
         if (type instanceof ComparableWordType) {

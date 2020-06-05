@@ -8,4 +8,8 @@ public interface BinaryValue extends Value, ProgramNode {
     void setLeftInput(Value value);
     Value getRightInput();
     void setRightInput(Value value);
+
+    default Type getType() {
+        return getLeftInput().getType();
+    }
 }
