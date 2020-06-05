@@ -6,7 +6,7 @@ import java.util.Set;
 /**
  *
  */
-abstract class BinaryValueImpl extends ProgramNodeImpl implements BinaryValue {
+abstract class BinaryValueImpl extends ValueProgramNodeImpl implements BinaryValue {
     NodeHandle left;
     NodeHandle right;
 

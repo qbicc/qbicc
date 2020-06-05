@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.io.IOException;
 import java.util.Set;
 
-final class IfValueImpl extends ProgramNodeImpl implements IfValue {
+final class IfValueImpl extends ValueProgramNodeImpl implements IfValue {
     NodeHandle cond;
     NodeHandle ifTrue;
     NodeHandle ifFalse;

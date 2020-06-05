@@ -6,7 +6,7 @@ import java.util.Set;
 /**
  *
  */
-public abstract class InstanceFieldReadOperationImpl extends FieldOperationImpl {
+public abstract class InstanceFieldOperationImpl extends FieldOperationImpl {
     NodeHandle instance;
 
     public Value getInstance() {

@@ -3,6 +3,8 @@ package cc.quarkus.qcc.constraint;
 import static cc.quarkus.qcc.constraint.Constraint.Satisfaction.*;
 import static cc.quarkus.qcc.constraint.RelationConstraint.Op.*;
 
+import cc.quarkus.qcc.graph.Value;
+
 class RelationConstraintImpl extends AbstractConstraint implements RelationConstraint {
 
     RelationConstraintImpl(Op op, Value value) {

@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.io.IOException;
 import java.util.Set;
 
-class InstanceFieldWriteImpl extends InstanceFieldReadOperationImpl implements InstanceFieldWrite {
+class InstanceFieldWriteImpl extends InstanceFieldOperationImpl implements InstanceFieldWrite {
     NodeHandle writeValue;
 
     public Value getWriteValue() {
