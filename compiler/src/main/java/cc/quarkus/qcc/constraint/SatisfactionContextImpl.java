@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import cc.quarkus.qcc.graph.Value;
+
 class SatisfactionContextImpl implements SatisfactionContext {
 
     SatisfactionContextImpl(Value target) {

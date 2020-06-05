@@ -6,7 +6,7 @@ import java.util.Set;
 
 import io.smallrye.common.constraint.Assert;
 
-final class PhiValueImpl extends ProgramNodeImpl implements PhiValue {
+final class PhiValueImpl extends ValueProgramNodeImpl implements PhiValue {
     private final Key key = new Key();
 
     PhiValueImpl() {

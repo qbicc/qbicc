@@ -2,6 +2,8 @@ package cc.quarkus.qcc.constraint;
 
 import java.util.Map;
 
+import cc.quarkus.qcc.graph.Value;
+
 public interface SatisfactionContext {
     Value getTarget();
     Value getBinding(SymbolicValue symbol);
