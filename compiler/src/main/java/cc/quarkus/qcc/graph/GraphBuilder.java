@@ -607,7 +607,15 @@ public final class GraphBuilder extends MethodVisitor {
 
         public void visitTypeInsn(final int opcode, final String type) {
             gotInstr = true;
-            super.visitTypeInsn(opcode, type);
+            switch (opcode) {
+                case Opcodes.NEW:
+                case Opcodes.ANEWARRAY:
+                case Opcodes.CHECKCAST:
+                case Opcodes.INSTANCEOF:
+                default: {
+                    super.visitTypeInsn(opcode, type);
+                }
+            }
         }
 
         public void visitFieldInsn(final int opcode, final String owner, final String name, final String descriptor) {
