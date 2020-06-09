@@ -49,6 +49,7 @@ public class JavaFrontEnd implements FrontEnd {
                 throw new ClassNotFoundException(name);
             }
         });
+        Universe.setRootUniverse(universe);
         return universe;
     }
 }

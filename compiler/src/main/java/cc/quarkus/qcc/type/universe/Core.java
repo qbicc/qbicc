@@ -3,7 +3,6 @@ package cc.quarkus.qcc.type.universe;
 import java.util.concurrent.atomic.AtomicReference;
 
 import cc.quarkus.qcc.type.definition.TypeDefinition;
-import cc.quarkus.qcc.type.universe.Universe;
 
 public class Core {
 
@@ -14,15 +13,15 @@ public class Core {
             static final AtomicReference<TypeDefinition> _String = new AtomicReference<>();
 
             public static TypeDefinition Object() {
-                return Universe.instance().findClass("java/lang/Object");
+                return Universe.rootUniverse().findClass("java/lang/Object");
             }
 
             public static TypeDefinition Throwable() {
-                return Universe.instance().findClass("java/lang/Throwable");
+                return Universe.rootUniverse().findClass("java/lang/Throwable");
             }
 
             public static TypeDefinition String() {
-                return Universe.instance().findClass("java/lang/String");
+                return Universe.rootUniverse().findClass("java/lang/String");
             }
         }
     }

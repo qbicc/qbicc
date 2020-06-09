@@ -69,5 +69,9 @@
             <groupId>cc.quarkus</groupId>
             <artifactId>qcc-machine-llvm</artifactId>
         </dependency>
+        <dependency>
+            <groupId>cc.quarkus</groupId>
+            <artifactId>qcc-context</artifactId>
+        </dependency>
     </dependencies>
 </project>

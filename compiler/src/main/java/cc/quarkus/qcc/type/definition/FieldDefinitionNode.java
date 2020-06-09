@@ -30,7 +30,7 @@ public class FieldDefinitionNode<V> extends FieldNode implements FieldDefinition
             synchronized (this) {
                 type = this.type;
                 if (type == null) {
-                    TypeDescriptorParser parser = new TypeDescriptorParser(Universe.instance(), desc);
+                    TypeDescriptorParser parser = new TypeDescriptorParser(Universe.rootUniverse(), desc);
                     this.type = type = parser.parseType();
                 }
             }
