@@ -2,9 +2,10 @@ package cc.quarkus.qcc.type.descriptor;
 
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
 
-public interface MethodDescriptor<V> {
+public interface MethodDescriptor {
 
     String getDescriptor();
 
@@ -14,7 +15,7 @@ public interface MethodDescriptor<V> {
 
     boolean isStatic();
 
-    List<TypeDescriptor<?>> getParamTypes();
+    List<Type> getParamTypes();
 
-    TypeDescriptor<V> getReturnType();
+    Type getReturnType();
 }

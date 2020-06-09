@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph;
 
 import static java.lang.Math.*;
+import static org.objectweb.asm.Type.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,27 +11,26 @@ import java.util.List;
 import java.util.Map;
 
 import cc.quarkus.qcc.type.universe.Universe;
+import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
+import org.objectweb.asm.TypePath;
 
 /**
  *
  */
 public final class GraphBuilder extends MethodVisitor {
     final BasicBlockImpl firstBlock;
-    ItemSize[] frameLocalMap;
-    ItemSize[] frameStackMap;
-    ItemSize[] localMap;
-    ItemSize[] stackMap;
+    Type[] frameStackTypes;
     int fsp; // points after the last frame stack element
+    Type[] frameLocalTypes;
     int flp; // points after the last frame local in use
     Value[] locals;
+    int lp; // points to after the last local in use
     Value[] stack;
     int sp; // points after the last stack element
-    int lp; // points to after the last local in use
     // block exit values are whatever
     final Map<BasicBlock, Capture> blockExits = new HashMap<>();
     // block enter values are *all* PhiValues bound to PhiInstructions on the entered block
@@ -45,13 +45,13 @@ public final class GraphBuilder extends MethodVisitor {
     final List<Label> pendingLabels = new ArrayList<>();
     final State inBlockState = new InBlock();
     final State futureBlockState = new FutureBlockState();
-    final State mayNeedFrameState = new MayNeedFrameState();
     final State possibleBlockState = new PossibleBlock();
+    int line;
 
     public GraphBuilder(final int mods, final String name, final String descriptor, final String signature, final String[] exceptions) {
         super(Universe.ASM_VERSION);
         boolean isStatic = (mods & Opcodes.ACC_STATIC) != 0;
-        Type[] argTypes = Type.getArgumentTypes(descriptor);
+        org.objectweb.asm.Type[] argTypes = getArgumentTypes(descriptor);
         int localsCount = argTypes.length;
         if (! isStatic) {
             // there's a receiver
@@ -61,9 +61,10 @@ public final class GraphBuilder extends MethodVisitor {
         firstBlock = new BasicBlockImpl();
         // set up the initial stack maps
         int initialLocalsSize = localsCount << 1;
-        localMap = new ItemSize[initialLocalsSize];
         locals = new Value[initialLocalsSize];
+        frameLocalTypes = new Type[16];
         Value thisValue = null;
+        Type thisType = Type.classNamed(name);
         if (localsCount == 0) {
             originalParams = List.of();
         } else {
@@ -73,34 +74,53 @@ public final class GraphBuilder extends MethodVisitor {
                 // "this" receiver - todo: ThisValue
                 ParameterValue pv = new ParameterValueImpl();
                 pv.setOwner(firstBlock);
+                pv.setType(thisType);
                 thisValue = pv;
                 pv.setIndex(j);
-                setLocal(ItemSize.SINGLE, j, pv);
+                setLocal(j, pv);
+                addFrameLocal(pv.getType());
                 j++;
             }
             for (int i = 0; i < argTypes.length; i ++) {
                 ParameterValue pv = new ParameterValueImpl();
                 pv.setOwner(firstBlock);
+                pv.setType(typeOfAsmType(argTypes[i]));
                 pv.setIndex(j);
-                if (argTypes[i] == Type.LONG_TYPE || argTypes[i] == Type.DOUBLE_TYPE) {
-                    setLocal(ItemSize.DOUBLE, j, pv);
+                if (argTypes[i] == LONG_TYPE || argTypes[i] == DOUBLE_TYPE) {
+                    setLocal(j, pv);
                     j+= 2;
                 } else {
-                    setLocal(ItemSize.SINGLE, j, pv);
+                    setLocal(j, pv);
                     j++;
                 }
+                addFrameLocal(pv.getType());
                 params.set(i, pv);
             }
             originalParams = params;
         }
         this.thisValue = thisValue;
-        frameLocalMap = localMap.clone();
         flp = lp;
-        stackMap = new ItemSize[16];
+        frameStackTypes = new Type[16];
         stack = new Value[16];
         sp = 0;
-        frameStackMap = new ItemSize[16];
         fsp = 0;
+    }
+
+    private Type typeOfAsmType(final org.objectweb.asm.Type asmType) {
+        switch (asmType.getSort()) {
+            case org.objectweb.asm.Type.BOOLEAN: return Type.BOOL;
+            case org.objectweb.asm.Type.BYTE: return Type.S8;
+            case org.objectweb.asm.Type.SHORT: return Type.S16;
+            case org.objectweb.asm.Type.INT: return Type.S32;
+            case org.objectweb.asm.Type.LONG: return Type.S64;
+            case org.objectweb.asm.Type.CHAR: return Type.U16;
+            case org.objectweb.asm.Type.FLOAT: return Type.F32;
+            case org.objectweb.asm.Type.DOUBLE: return Type.F64;
+            case org.objectweb.asm.Type.VOID: /* TODO void is not a type */ return Type.VOID;
+            case org.objectweb.asm.Type.ARRAY: return Type.arrayOf(typeOfAsmType(asmType.getElementType())); // todo cache
+            case org.objectweb.asm.Type.OBJECT: return Type.classNamed(asmType.getDescriptor()); // todo cache
+            default: throw new IllegalStateException();
+        }
     }
 
     public void visitParameter(final String name, final int access) {
@@ -115,48 +135,43 @@ public final class GraphBuilder extends MethodVisitor {
 
     // stack manipulation
 
-    ItemSize topOfStackItemSize() {
-        return stackMap[sp - 1];
+    Type topOfStackType() {
+        return peek().getType();
     }
 
     void clearStack() {
         Arrays.fill(stack, 0, sp, null);
-        Arrays.fill(stackMap, 0, sp, null);
         sp = 0;
     }
 
     Value popSmart() {
-        return pop(topOfStackItemSize());
+        return pop(topOfStackType().isClass2Type());
     }
 
-    Value pop(ItemSize expectType) {
+    Value pop(boolean wide) {
         int tos = sp - 1;
-        ItemSize type = stackMap[tos];
-        if (type != expectType) {
+        Value value = stack[tos];
+        Type type = value.getType();
+        if (type.isClass2Type() != wide) {
             throw new IllegalStateException("Bad pop");
         }
-        Value value = stack[tos];
         stack[tos] = null;
-        stackMap[tos] = null;
         sp = tos;
         return value;
     }
 
     Value pop2() {
         int tos = sp - 1;
-        ItemSize type = stackMap[tos];
+        Type type = topOfStackType();
         Value value;
-        if (type == ItemSize.DOUBLE) {
+        if (type.isClass2Type()) {
             value = stack[tos];
             stack[tos] = null;
-            stackMap[tos] = null;
             sp = tos;
         } else {
             value = stack[tos];
             stack[tos] = null;
-            stackMap[tos] = null;
             stack[tos - 1] = null;
-            stackMap[tos - 1] = null;
             sp = tos - 1;
         }
         return value;
@@ -164,175 +179,161 @@ public final class GraphBuilder extends MethodVisitor {
 
     Value pop() {
         int tos = sp - 1;
-        ItemSize type = stackMap[tos];
+        Type type = topOfStackType();
         Value value;
-        if (type == ItemSize.DOUBLE) {
+        if (type.isClass2Type()) {
             throw new IllegalStateException("Bad pop");
         }
         value = stack[tos];
         stack[tos] = null;
-        stackMap[tos] = null;
         sp = tos;
         return value;
     }
 
     void ensureStackSize(int size) {
         int len = stack.length;
-        assert len == stackMap.length;
         if (len < size) {
             stack = Arrays.copyOf(stack, len << 1);
-            stackMap = Arrays.copyOf(stackMap, len << 1);
         }
     }
 
     void dup() {
-        ItemSize type = stackMap[sp - 1];
-        if (type == ItemSize.DOUBLE) {
+        Type type = topOfStackType();
+        if (type.isClass2Type()) {
             throw new IllegalStateException("Bad dup");
         }
-        push(type, peek());
+        push(peek());
     }
 
     void dup2() {
-        ItemSize type = stackMap[sp - 1];
-        if (type == ItemSize.DOUBLE) {
-            push(type, peek());
+        Type type = topOfStackType();
+        if (type.isClass2Type()) {
+            push(peek());
         } else {
             Value v2 = pop();
             Value v1 = pop();
-            push(type, v1);
-            push(type, v2);
-            push(type, v1);
-            push(type, v2);
+            push(v1);
+            push(v2);
+            push(v1);
+            push(v2);
         }
     }
 
     void swap() {
-        ItemSize type = stackMap[sp - 1];
-        if (type == ItemSize.DOUBLE) {
+        Type type = topOfStackType();
+        if (type.isClass2Type()) {
             throw new IllegalStateException("Bad swap");
         }
         Value v2 = pop();
         Value v1 = pop();
-        push(ItemSize.SINGLE, v2);
-        push(ItemSize.SINGLE, v1);
+        push(v2);
+        push(v1);
     }
 
-    void push(ItemSize type, Value value) {
+    void push(Value value) {
         int sp = this.sp;
         ensureStackSize(sp + 1);
         stack[sp] = value;
-        stackMap[sp] = type;
         this.sp = sp + 1;
     }
 
     Value peek() {
-        return stack[sp];
+        return stack[sp - 1];
     }
 
     // Locals manipulation
 
     void ensureLocalSize(int size) {
-        int len = localMap.length;
-        assert len == locals.length;
+        int len = locals.length;
         if (len < size) {
-            localMap = Arrays.copyOf(localMap, len << 1);
             locals = Arrays.copyOf(locals, len << 1);
         }
     }
 
     void clearLocals() {
-        Arrays.fill(localMap, 0, lp, null);
         Arrays.fill(locals, 0, lp, null);
         lp = 0;
     }
 
-    void setLocal(ItemSize type, int index, Value value) {
-        if (type == ItemSize.DOUBLE) {
+    void setLocal(int index, Value value) {
+        if (value.getType().isClass2Type()) {
             ensureLocalSize(index + 2);
-            localMap[index + 1] = null;
             locals[index + 1] = null;
             lp = max(index + 2, lp);
         } else {
             ensureLocalSize(index + 1);
             lp = max(index + 1, lp);
         }
-        localMap[index] = type;
         locals[index] = value;
     }
 
-    Value getLocal(ItemSize type, int index) {
+    Value getLocal(int index) {
         if (index > lp) {
             throw new IllegalStateException("Invalid local index");
         }
-        ItemSize curType = localMap[index];
-        if (curType == null) {
+        Value value = locals[index];
+        if (value == null) {
             throw new IllegalStateException("Invalid get local (no value)");
         }
-        if (type != curType) {
-            throw new IllegalStateException("Bad type for getLocal");
-        }
-        return locals[index];
+        return value;
     }
 
     // Frame stack manipulation
 
     void ensureFrameStackSize(int size) {
-        int len = frameStackMap.length;
+        int len = frameStackTypes.length;
         if (len < size) {
-            frameStackMap = Arrays.copyOf(frameStackMap, len << 1);
+            frameStackTypes = Arrays.copyOf(frameStackTypes, len << 1);
         }
     }
 
     void clearFrameStack() {
-        Arrays.fill(frameStackMap, 0, fsp, null);
+        Arrays.fill(frameStackTypes, 0, fsp, null);
         fsp = 0;
     }
 
-    void addFrameStackItem(ItemSize type) {
+    void addFrameStackItem(Type type) {
         int fsp = this.fsp;
-        ensureFrameStackSize(fsp);
-        frameStackMap[fsp] = type;
+        ensureFrameStackSize(fsp + 1);
+        frameStackTypes[fsp] = type;
         this.fsp = fsp + 1;
     }
 
     // Frame locals manipulation
 
     void ensureFrameLocalSize(int size) {
-        int len = frameLocalMap.length;
+        int len = frameLocalTypes.length;
         if (len < size) {
-            frameLocalMap = Arrays.copyOf(frameLocalMap, len << 1);
+            frameLocalTypes = Arrays.copyOf(frameLocalTypes, len << 1);
         }
     }
 
-    void addFrameLocal(ItemSize type) {
+    void addFrameLocal(Type type) {
         int flp = this.flp;
         ensureFrameLocalSize(flp + 1);
-        frameLocalMap[flp] = type;
+        frameLocalTypes[flp] = type;
         this.flp = flp + 1;
     }
 
-    ItemSize removeFrameLocal() {
+    Type removeFrameLocal() {
         int flp = this.flp;
-        ItemSize old = frameLocalMap[flp - 1];
-        frameLocalMap[flp - 1] = null;
+        Type old = frameLocalTypes[flp - 1];
+        frameLocalTypes[flp - 1] = null;
         this.flp = flp - 1;
         return old;
     }
 
     void clearFrameLocals() {
-        Arrays.fill(frameLocalMap, 0, flp, null);
+        Arrays.fill(frameLocalTypes, 0, flp, null);
         flp = 0;
     }
 
     // Capture
 
     Capture capture() {
-        ItemSize[] captureStackMap = Arrays.copyOf(stackMap, sp);
-        ItemSize[] captureLocalMap = Arrays.copyOf(localMap, lp);
         Value[] captureStack = Arrays.copyOf(stack, sp);
         Value[] captureLocals = Arrays.copyOf(locals, lp);
-        return new Capture(captureStackMap, captureLocalMap, captureStack, captureLocals);
+        return new Capture(captureStack, captureLocals);
     }
 
     NodeHandle getOrMakeBlockHandle(Label label) {
@@ -352,7 +353,35 @@ public final class GraphBuilder extends MethodVisitor {
     }
 
     public void visitLineNumber(final int line, final Label start) {
-        // todo
+        // todo: need to efficiently map label to line and ensure things happen in the correct order
+        this.line = line;
+    }
+
+    Type typeOfFrameObject(Object o) {
+        if (o == Opcodes.INTEGER) {
+            return Type.S32;
+        } else if (o == Opcodes.LONG) {
+            return Type.S64;
+        } else if (o == Opcodes.FLOAT) {
+            return Type.F32;
+        } else if (o == Opcodes.DOUBLE) {
+            return Type.F64;
+        } else if (o == Opcodes.NULL) {
+            // todo
+            throw new IllegalStateException();
+        } else if (o == Opcodes.UNINITIALIZED_THIS) {
+            // todo: self type
+            throw new IllegalStateException();
+        } else if (o instanceof Label) {
+            // todo: map labelled new instructions to their output types
+            throw new IllegalStateException();
+        } else if (o instanceof String) {
+            // regular reference type
+            // todo: get the Type based on the current class loader
+            return Type.classNamed((String) o);
+        } else {
+            throw new IllegalStateException();
+        }
     }
 
     public void visitFrame(final int type, final int numLocal, final Object[] local, final int numStack, final Object[] stack) {
@@ -364,21 +393,13 @@ public final class GraphBuilder extends MethodVisitor {
             case Opcodes.F_SAME1: {
                 clearStack();
                 assert numStack == 1;
-                if (stack[0] == Opcodes.DOUBLE || stack[0] == Opcodes.LONG) {
-                    addFrameStackItem(ItemSize.DOUBLE);
-                } else {
-                    addFrameStackItem(ItemSize.SINGLE);
-                }
+                addFrameStackItem(typeOfFrameObject(stack[0]));
                 return;
             }
             case Opcodes.F_APPEND: {
                 clearStack();
                 for (int i = 0; i < numLocal; i++) {
-                    if (local[i] == Opcodes.DOUBLE || local[i] == Opcodes.LONG) {
-                        addFrameLocal(ItemSize.DOUBLE);
-                    } else {
-                        addFrameLocal(ItemSize.SINGLE);
-                    }
+                    addFrameLocal(typeOfFrameObject(local[i]));
                 }
                 return;
             }
@@ -394,18 +415,10 @@ public final class GraphBuilder extends MethodVisitor {
                 clearStack();
                 clearFrameLocals();
                 for (int i = 0; i < numLocal; i++) {
-                    if (local[i] == Opcodes.DOUBLE || local[i] == Opcodes.LONG) {
-                        addFrameLocal(ItemSize.DOUBLE);
-                    } else {
-                        addFrameLocal(ItemSize.SINGLE);
-                    }
+                    addFrameLocal(typeOfFrameObject(local[i]));
                 }
                 for (int i = 0; i < numStack; i++) {
-                    if (local[i] == Opcodes.DOUBLE || local[i] == Opcodes.LONG) {
-                        addFrameStackItem(ItemSize.DOUBLE);
-                    } else {
-                        addFrameStackItem(ItemSize.SINGLE);
-                    }
+                    addFrameStackItem(typeOfFrameObject(stack[i]));
                 }
                 return;
             }
@@ -441,9 +454,6 @@ public final class GraphBuilder extends MethodVisitor {
             throw new IllegalStateException("Stack length mismatch");
         }
         for (int i = 0; i < stackSize; i ++) {
-            if (enterState.stackMap[i] != exitState.stackMap[i]) {
-                throw new IllegalStateException("Stack entry type mismatch");
-            }
             PhiValue value = (PhiValue) enterState.stack[i];
             value.setValueForBlock(exitingBlock, exitState.stack[i]);
         }
@@ -453,9 +463,6 @@ public final class GraphBuilder extends MethodVisitor {
             throw new IllegalStateException("Local vars mismatch");
         }
         for (int i = 0; i < localSize; i ++) {
-            if (enterState.localsMap[i] != exitState.localsMap[i]) {
-                throw new IllegalStateException("Locals entry type mismatch");
-            }
             PhiValue value = (PhiValue) enterState.locals[i];
             // might be null gaps for big values
             if (value != null) {
@@ -479,7 +486,6 @@ public final class GraphBuilder extends MethodVisitor {
     void propagateCurrentStackAndLocals() {
         assert futureBlock == null && currentBlock != null;
         for (int i = 0; i < sp; i ++) {
-            ItemSize type = stackMap[i];
             PhiValueImpl pv = new PhiValueImpl();
             pv.setType(stack[i].getType());
             pv.setOwner(currentBlock);
@@ -498,22 +504,20 @@ public final class GraphBuilder extends MethodVisitor {
 
     void propagateFrameStackAndLocals() {
         assert futureBlock == null && currentBlock != null;
-        clearStack();
-        clearLocals();
         for (int i = 0; i < fsp; i ++) {
-            ItemSize type = frameStackMap[i];
+            Type type = frameStackTypes[i];
             PhiValueImpl pv = new PhiValueImpl();
-            // todo: pv.setType(???)
+            pv.setType(type);
             pv.setOwner(currentBlock);
-            push(type, pv);
+            push(pv);
         }
         for (int i = 0; i < flp; i ++) {
-            ItemSize type = frameLocalMap[i];
+            Type type = frameLocalTypes[i];
             if (type != null) {
                 PhiValueImpl pv = new PhiValueImpl();
-                // todo: pv.setType(???)
+                pv.setType(type);
                 pv.setOwner(currentBlock);
-                setLocal(type, i, pv);
+                setLocal(i, pv);
             }
         }
         blockEnters.putIfAbsent(currentBlock, capture());
@@ -624,36 +628,40 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.GETSTATIC: {
                     FieldReadValue read = new StaticFieldReadValueImpl();
                     read.setMemoryDependency(memoryState);
+                    read.setSourceLine(line);
                     // todo: set descriptor
                     memoryState = read;
                     // todo: size from field
-                    push(ItemSize.SINGLE, read);
+                    push(read);
                     break;
                 }
                 case Opcodes.GETFIELD: {
                     InstanceFieldReadValue read = new InstanceFieldReadValueImpl();
                     read.setInstance(pop());
                     read.setMemoryDependency(memoryState);
+                    read.setSourceLine(line);
                     // todo: set descriptor
                     memoryState = read;
                     // todo: size from field
-                    push(ItemSize.SINGLE, read);
+                    push(read);
                     break;
                 }
                 case Opcodes.PUTSTATIC: {
                     // todo: get pop type from field descriptor
-                    Value value = stackMap[sp - 1] == ItemSize.DOUBLE ? pop2() : pop();
+                    Value value = popSmart();
                     FieldWrite write = new StaticFieldWriteImpl();
                     write.setWriteValue(value);
                     write.setMemoryDependency(memoryState);
+                    write.setSourceLine(line);
                     memoryState = write;
                     break;
                 }
                 case Opcodes.PUTFIELD: {
-                    Value value = stackMap[sp - 1] == ItemSize.DOUBLE ? pop2() : pop();
+                    Value value = popSmart();
                     InstanceFieldWrite write = new InstanceFieldWriteImpl();
                     write.setWriteValue(value);
                     write.setMemoryDependency(memoryState);
+                    write.setSourceLine(line);
                     memoryState = write;
                     break;
                 }
@@ -671,15 +679,15 @@ public final class GraphBuilder extends MethodVisitor {
         public void visitLdcInsn(final Object value) {
             gotInstr = true;
             if (value instanceof Integer) {
-                push(ItemSize.SINGLE, Value.const_(((Integer) value).intValue()));
+                push(Value.const_(((Integer) value).intValue()));
             } else if (value instanceof Long) {
-                push(ItemSize.DOUBLE, Value.const_(((Long) value).longValue()));
+                push(Value.const_(((Long) value).longValue()));
             } else if (value instanceof Float) {
-                push(ItemSize.SINGLE, Value.const_(((Float) value).floatValue()));
+                push(Value.const_(((Float) value).floatValue()));
             } else if (value instanceof Double) {
-                push(ItemSize.SINGLE, Value.const_(((Double) value).doubleValue()));
+                push(Value.const_(((Double) value).doubleValue()));
             } else if (value instanceof String) {
-                push(ItemSize.SINGLE, Value.const_((String) value));
+                push(Value.const_((String) value));
             } else {
                 throw new IllegalStateException();
             }
@@ -689,6 +697,7 @@ public final class GraphBuilder extends MethodVisitor {
             gotInstr = true;
             BasicBlock currentBlock = GraphBuilder.this.currentBlock;
             SwitchImpl switch_ = new SwitchImpl();
+            switch_.setSourceLine(line);
             switch_.setDefaultTarget(getOrMakeBlockHandle(dflt));
             for (int i = 0; i < labels.length; i ++) {
                 switch_.setTargetForValue(min + i, getOrMakeBlockHandle(labels[i]));
@@ -702,6 +711,7 @@ public final class GraphBuilder extends MethodVisitor {
             gotInstr = true;
             BasicBlock currentBlock = GraphBuilder.this.currentBlock;
             SwitchImpl switch_ = new SwitchImpl();
+            switch_.setSourceLine(line);
             switch_.setDefaultTarget(getOrMakeBlockHandle(dflt));
             for (int i = 0; i < keys.length; i ++) {
                 switch_.setTargetForValue(keys[i], getOrMakeBlockHandle(labels[i]));
@@ -723,7 +733,7 @@ public final class GraphBuilder extends MethodVisitor {
                     return;
                 }
                 case Opcodes.ICONST_0: {
-                    push(ItemSize.SINGLE, Value.ICONST_0);
+                    push(Value.ICONST_0);
                     return;
                 }
                 case Opcodes.ICONST_1:
@@ -731,29 +741,29 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.ICONST_3:
                 case Opcodes.ICONST_4:
                 case Opcodes.ICONST_5: {
-                    push(ItemSize.SINGLE, Value.const_(opcode - Opcodes.ICONST_0));
+                    push(Value.const_(opcode - Opcodes.ICONST_0));
                     return;
                 }
                 case Opcodes.ICONST_M1: {
-                    push(ItemSize.SINGLE, Value.const_(-1));
+                    push(Value.const_(-1));
                     return;
                 }
                 case Opcodes.LCONST_0:
                 case Opcodes.LCONST_1: {
-                    push(ItemSize.DOUBLE, Value.const_(opcode - Opcodes.LCONST_0));
+                    push(Value.const_(opcode - Opcodes.LCONST_0));
                     break;
                 }
                 case Opcodes.FCONST_0:
                 case Opcodes.FCONST_1:
                 case Opcodes.FCONST_2: {
                     // todo: cache
-                    push(ItemSize.SINGLE, CastValue.create(Value.const_(opcode - Opcodes.FCONST_0), cc.quarkus.qcc.graph.Type.F32));
+                    push(CastValue.create(Value.const_(opcode - Opcodes.FCONST_0), Type.F32));
                     break;
                 }
                 case Opcodes.DCONST_0:
                 case Opcodes.DCONST_1: {
                     // todo: cache
-                    push(ItemSize.DOUBLE, CastValue.create(Value.const_(opcode - Opcodes.DCONST_0), cc.quarkus.qcc.graph.Type.F64));
+                    push(CastValue.create(Value.const_(opcode - Opcodes.DCONST_0), Type.F64));
                     break;
                 }
 
@@ -780,97 +790,96 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.DUP_X1: {
                     Value v1 = pop();
                     Value v2 = pop();
-                    push(ItemSize.SINGLE, v1);
-                    push(ItemSize.SINGLE, v2);
-                    push(ItemSize.SINGLE, v1);
+                    push(v1);
+                    push(v2);
+                    push(v1);
                     return;
                 }
                 case Opcodes.DUP_X2: {
                     Value v1 = pop();
                     Value v2 = pop();
                     Value v3 = pop();
-                    push(ItemSize.SINGLE, v1);
-                    push(ItemSize.SINGLE, v3);
-                    push(ItemSize.SINGLE, v2);
-                    push(ItemSize.SINGLE, v1);
+                    push(v1);
+                    push(v3);
+                    push(v2);
+                    push(v1);
                     return;
                 }
                 case Opcodes.DUP2_X1: {
-                    if (topOfStackItemSize() == ItemSize.SINGLE) {
+                    if (! topOfStackType().isClass2Type()) {
                         // form 1
                         Value v1 = pop();
                         Value v2 = pop();
                         Value v3 = pop();
-                        push(ItemSize.SINGLE, v2);
-                        push(ItemSize.SINGLE, v1);
-                        push(ItemSize.SINGLE, v3);
-                        push(ItemSize.SINGLE, v2);
-                        push(ItemSize.SINGLE, v1);
+                        push(v2);
+                        push(v1);
+                        push(v3);
+                        push(v2);
+                        push(v1);
                     } else {
                         // form 2
                         Value v1 = pop2();
                         Value v2 = pop2();
-                        push(ItemSize.DOUBLE, v1);
-                        push(ItemSize.DOUBLE, v2);
-                        push(ItemSize.DOUBLE, v1);
+                        push(v1);
+                        push(v2);
+                        push(v1);
                     }
                     return;
                 }
                 case Opcodes.DUP2_X2: {
-                    if (topOfStackItemSize() == ItemSize.SINGLE) {
+                    if (! topOfStackType().isClass2Type()) {
                         Value v1 = pop();
                         Value v2 = pop();
                         Value v3;
-                        if (topOfStackItemSize() == ItemSize.SINGLE) {
+                        if (! topOfStackType().isClass2Type()) {
                             // form 1
                             v3 = pop();
                             Value v4 = pop();
-                            push(ItemSize.SINGLE, v2);
-                            push(ItemSize.SINGLE, v1);
-                            push(ItemSize.SINGLE, v4);
-                            push(ItemSize.SINGLE, v3);
+                            push(v2);
+                            push(v1);
+                            push(v4);
                         } else {
                             // form 3
                             v3 = pop2();
-                            push(ItemSize.SINGLE, v2);
-                            push(ItemSize.SINGLE, v1);
-                            push(ItemSize.DOUBLE, v3);
+                            push(v2);
+                            push(v1);
                         }
                         // form 1 or 3
-                        push(ItemSize.SINGLE, v2);
-                        push(ItemSize.SINGLE, v1);
+                        push(v3);
+                        push(v2);
+                        push(v1);
                     } else {
                         Value v1 = pop2();
                         Value v2;
-                        if (topOfStackItemSize() == ItemSize.SINGLE) {
+                        if (! topOfStackType().isClass2Type()) {
                             // form 2
                             v2 = pop();
                             Value v3 = pop();
-                            push(ItemSize.DOUBLE, v1);
-                            push(ItemSize.SINGLE, v2);
-                            push(ItemSize.SINGLE, v3);
+                            push(v1);
+                            push(v2);
+                            push(v3);
                         } else {
                             // form 4
                             v2 = pop2();
-                            push(ItemSize.DOUBLE, v1);
-                            push(ItemSize.DOUBLE, v2);
+                            push(v1);
+                            push(v2);
                         }
                         // form 2 or 4
-                        push(ItemSize.DOUBLE, v1);
+                        push(v1);
                     }
                     return;
                 }
 
                 case Opcodes.INEG: {
-                    push(ItemSize.SINGLE, Value.ICONST_0);
+                    push(Value.ICONST_0);
                     swap();
                     visitInsn(Opcodes.ISUB);
                     return;
                 }
                 case Opcodes.LNEG: {
                     Value rhs = pop2();
-                    push(ItemSize.DOUBLE, Value.LCONST_0);
-                    push(ItemSize.DOUBLE, rhs);
+                    push(Value.LCONST_0);
+                    push(rhs);
                     visitInsn(Opcodes.LSUB);
                     return;
                 }
@@ -889,13 +898,13 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.LADD:
                 case Opcodes.DMUL:
                 case Opcodes.DADD: {
-                    ItemSize itemSize = topOfStackItemSize();
                     CommutativeBinaryValueImpl op = new CommutativeBinaryValueImpl();
+                    op.setSourceLine(line);
                     op.setOwner(currentBlock);
                     op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
                     op.setLeftInput(popSmart());
                     op.setRightInput(popSmart());
-                    push(itemSize, op);
+                    push(op);
                     return;
                 }
                 case Opcodes.FSUB:
@@ -908,39 +917,43 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.LSHR:
                 case Opcodes.LUSHR:
                 case Opcodes.LSUB: {
-                    ItemSize itemSize = topOfStackItemSize();
                     NonCommutativeBinaryValueImpl op = new NonCommutativeBinaryValueImpl();
+                    op.setSourceLine(line);
                     op.setOwner(currentBlock);
                     op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
                     op.setLeftInput(popSmart());
                     op.setRightInput(popSmart());
-                    push(itemSize, op);
+                    push(op);
                     return;
                 }
                 case Opcodes.LCMP: {
                     Value v2 = pop2();
                     Value v1 = pop2();
                     NonCommutativeBinaryValueImpl c1 = new NonCommutativeBinaryValueImpl();
+                    c1.setSourceLine(line);
                     c1.setOwner(currentBlock);
                     c1.setKind(NonCommutativeBinaryValue.Kind.CMP_LT);
                     c1.setLeftInput(v1);
                     c1.setRightInput(v2);
                     NonCommutativeBinaryValueImpl c2 = new NonCommutativeBinaryValueImpl();
+                    c2.setSourceLine(line);
                     c2.setOwner(currentBlock);
                     c2.setKind(NonCommutativeBinaryValue.Kind.CMP_GT);
                     c2.setLeftInput(v1);
                     c2.setRightInput(v2);
                     IfValueImpl op1 = new IfValueImpl();
+                    op1.setSourceLine(line);
                     op1.setOwner(currentBlock);
                     op1.setCond(c1);
                     op1.setTrueValue(Value.const_(-1));
                     IfValueImpl op2 = new IfValueImpl();
+                    op2.setSourceLine(line);
                     op2.setOwner(currentBlock);
                     op2.setCond(c2);
                     op2.setTrueValue(Value.const_(1));
                     op2.setFalseValue(Value.const_(0));
                     op1.setFalseValue(op2);
-                    push(ItemSize.SINGLE, op1);
+                    push(op1);
                     return;
                 }
 
@@ -950,26 +963,30 @@ public final class GraphBuilder extends MethodVisitor {
                     Value v2 = popSmart();
                     Value v1 = popSmart();
                     NonCommutativeBinaryValueImpl c1 = new NonCommutativeBinaryValueImpl();
+                    c1.setSourceLine(line);
                     c1.setOwner(currentBlock);
                     c1.setKind(NonCommutativeBinaryValue.Kind.CMP_LT);
                     c1.setLeftInput(v1);
                     c1.setRightInput(v2);
                     NonCommutativeBinaryValueImpl c2 = new NonCommutativeBinaryValueImpl();
+                    c2.setSourceLine(line);
                     c2.setOwner(currentBlock);
                     c2.setKind(NonCommutativeBinaryValue.Kind.CMP_GT);
                     c2.setLeftInput(v1);
                     c2.setRightInput(v2);
                     IfValueImpl op1 = new IfValueImpl();
+                    op1.setSourceLine(line);
                     op1.setOwner(currentBlock);
                     op1.setCond(c1);
                     op1.setTrueValue(Value.const_(-1));
                     IfValueImpl op2 = new IfValueImpl();
+                    op2.setSourceLine(line);
                     op2.setOwner(currentBlock);
                     op2.setCond(c2);
                     op2.setTrueValue(Value.const_(1));
                     op2.setFalseValue(Value.const_(0));
                     op1.setFalseValue(op2);
-                    push(ItemSize.SINGLE, op1);
+                    push(op1);
                     return;
                 }
                 case Opcodes.FCMPG:
@@ -978,100 +995,105 @@ public final class GraphBuilder extends MethodVisitor {
                     Value v2 = popSmart();
                     Value v1 = popSmart();
                     NonCommutativeBinaryValueImpl c1 = new NonCommutativeBinaryValueImpl();
+                    c1.setSourceLine(line);
                     c1.setOwner(currentBlock);
                     c1.setKind(NonCommutativeBinaryValue.Kind.CMP_LT);
                     c1.setLeftInput(v1);
                     c1.setRightInput(v2);
                     NonCommutativeBinaryValueImpl c2 = new NonCommutativeBinaryValueImpl();
+                    c2.setSourceLine(line);
                     c2.setOwner(currentBlock);
                     c2.setKind(NonCommutativeBinaryValue.Kind.CMP_GT);
                     c2.setLeftInput(v1);
                     c2.setRightInput(v2);
                     IfValueImpl op1 = new IfValueImpl();
+                    op1.setSourceLine(line);
                     op1.setOwner(currentBlock);
                     op1.setCond(c1);
                     op1.setTrueValue(Value.const_(-1));
                     IfValueImpl op2 = new IfValueImpl();
+                    op2.setSourceLine(line);
                     op2.setOwner(currentBlock);
                     op2.setCond(c2);
                     op2.setTrueValue(Value.const_(1));
                     op2.setFalseValue(Value.const_(0));
                     op1.setFalseValue(op2);
-                    push(ItemSize.SINGLE, op1);
+                    push(op1);
                     return;
                 }
 
                 case Opcodes.ARRAYLENGTH: {
                     Value v = pop();
                     UnaryValueImpl uv = new UnaryValueImpl();
+                    uv.setSourceLine(line);
                     uv.setKind(UnaryValue.Kind.LENGTH_OF);
                     uv.setInput(v);
-                    push(ItemSize.SINGLE, uv);
+                    push(uv);
                     return;
                 }
                 case Opcodes.FNEG:
                 case Opcodes.DNEG: {
-                    ItemSize tt = topOfStackItemSize();
-                    Value v = pop(tt);
+                    Value v = popSmart();
                     UnaryValueImpl uv = new UnaryValueImpl();
+                    uv.setSourceLine(line);
                     uv.setKind(UnaryValue.Kind.NEGATE);
                     uv.setInput(v);
-                    push(tt, uv);
+                    push(uv);
                     return;
                 }
 
                 case Opcodes.I2L: {
-                    push(ItemSize.DOUBLE, WordCastValue.create(pop(), WordCastValue.Kind.SIGN_EXTEND, cc.quarkus.qcc.graph.Type.S64));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.SIGN_EXTEND, Type.S64, line));
                     return;
                 }
                 case Opcodes.L2I: {
-                    push(ItemSize.SINGLE, WordCastValue.create(pop2(), WordCastValue.Kind.TRUNCATE, cc.quarkus.qcc.graph.Type.S32));
+                    push(WordCastValue.create(pop2(), WordCastValue.Kind.TRUNCATE, Type.S32, line));
                     return;
                 }
                 case Opcodes.I2B: {
-                    push(ItemSize.SINGLE, WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, cc.quarkus.qcc.graph.Type.S8));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, Type.S8, line));
                     return;
                 }
                 case Opcodes.I2C: {
-                    push(ItemSize.SINGLE, WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, cc.quarkus.qcc.graph.Type.U16));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, Type.U16, line));
                     return;
                 }
                 case Opcodes.I2S: {
-                    push(ItemSize.SINGLE, WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, cc.quarkus.qcc.graph.Type.S16));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, Type.S16, line));
                     return;
                 }
                 case Opcodes.I2F: {
-                    push(ItemSize.SINGLE, WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.F32));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, Type.F32, line));
                     return;
                 }
                 case Opcodes.I2D:
                 case Opcodes.F2D: {
-                    push(ItemSize.DOUBLE, WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.F64));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, Type.F64, line));
                     return;
                 }
                 case Opcodes.L2F:
                 case Opcodes.D2F: {
-                    push(ItemSize.SINGLE, WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.F32));
+                    push(WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, Type.F32, line));
                     return;
                 }
                 case Opcodes.L2D: {
-                    push(ItemSize.DOUBLE, WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.F64));
+                    push(WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, Type.F64, line));
                     return;
                 }
                 case Opcodes.F2I: {
-                    push(ItemSize.SINGLE, WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.S32));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, Type.S32, line));
                     return;
                 }
                 case Opcodes.F2L: {
-                    push(ItemSize.DOUBLE, WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.S64));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, Type.S64, line));
                     return;
                 }
                 case Opcodes.D2I: {
-                    push(ItemSize.SINGLE, WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.S32));
+                    push(WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, Type.S32, line));
                     return;
                 }
                 case Opcodes.D2L: {
-                    push(ItemSize.DOUBLE, WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, cc.quarkus.qcc.graph.Type.S64));
+                    push(WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, Type.S64, line));
                     return;
                 }
 
@@ -1113,6 +1135,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.DRETURN: {
                     Value retVal = pop2();
                     ValueReturnImpl insn = new ValueReturnImpl();
+                    insn.setSourceLine(line);
                     insn.setMemoryDependency(memoryState);
                     insn.setReturnValue(retVal);
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
@@ -1125,6 +1148,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.ARETURN: {
                     Value retVal = pop();
                     ValueReturnImpl insn = new ValueReturnImpl();
+                    insn.setSourceLine(line);
                     insn.setMemoryDependency(memoryState);
                     insn.setReturnValue(retVal);
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
@@ -1134,6 +1158,7 @@ public final class GraphBuilder extends MethodVisitor {
                 }
                 case Opcodes.RETURN: {
                     ReturnImpl insn = new ReturnImpl();
+                    insn.setSourceLine(line);
                     insn.setMemoryDependency(memoryState);
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
                     currentBlock.setTerminator(insn);
@@ -1153,6 +1178,7 @@ public final class GraphBuilder extends MethodVisitor {
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
                     NodeHandle jumpTarget = getOrMakeBlockHandle(label);
                     GotoImpl goto_ = new GotoImpl();
+                    goto_.setSourceLine(line);
                     goto_.setTarget(jumpTarget);
                     goto_.setMemoryDependency(memoryState);
                     currentBlock.setTerminator(goto_);
@@ -1162,6 +1188,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IFEQ:
                 case Opcodes.IFNE: {
                     CommutativeBinaryValue op = new CommutativeBinaryValueImpl();
+                    op.setSourceLine(line);
                     op.setOwner(currentBlock);
                     op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
                     op.setRightInput(Value.ICONST_0);
@@ -1174,6 +1201,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IFLE:
                 case Opcodes.IFGE: {
                     NonCommutativeBinaryValue op = new NonCommutativeBinaryValueImpl();
+                    op.setSourceLine(line);
                     op.setOwner(currentBlock);
                     op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
                     op.setRightInput(Value.ICONST_0);
@@ -1184,6 +1212,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IF_ICMPEQ:
                 case Opcodes.IF_ICMPNE: {
                     CommutativeBinaryValue op = new CommutativeBinaryValueImpl();
+                    op.setSourceLine(line);
                     op.setOwner(currentBlock);
                     op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
                     op.setRightInput(pop());
@@ -1196,6 +1225,7 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.IF_ICMPGE:
                 case Opcodes.IF_ICMPGT: {
                     NonCommutativeBinaryValue op = new NonCommutativeBinaryValueImpl();
+                    op.setSourceLine(line);
                     op.setOwner(currentBlock);
                     op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
                     op.setRightInput(pop());
@@ -1212,22 +1242,24 @@ public final class GraphBuilder extends MethodVisitor {
         public void visitIincInsn(final int var, final int increment) {
             gotInstr = true;
             CommutativeBinaryValueImpl op = new CommutativeBinaryValueImpl();
+            op.setSourceLine(line);
             op.setOwner(currentBlock);
             op.setKind(CommutativeBinaryValue.Kind.ADD);
-            op.setLeftInput(getLocal(ItemSize.SINGLE, var));
+            op.setLeftInput(getLocal(var));
             op.setRightInput(Value.const_(increment));
-            setLocal(ItemSize.SINGLE, var, op);
+            setLocal(var, op);
         }
 
         void handleIfInsn(Value cond, Label label) {
             BasicBlock currentBlock = GraphBuilder.this.currentBlock;
             NodeHandle jumpTarget = getOrMakeBlockHandle(label);
             IfImpl if_ = new IfImpl();
+            if_.setSourceLine(line);
             currentBlock.setTerminator(if_);
             if_.setMemoryDependency(memoryState);
             if_.setCondition(cond);
             if_.setFalseBranch(jumpTarget);
-            enter(mayNeedFrameState);
+            enter(futureBlockState);
             if_.setTrueBranch(futureBlock);
         }
 
@@ -1241,7 +1273,7 @@ public final class GraphBuilder extends MethodVisitor {
             switch (opcode) {
                 case Opcodes.BIPUSH:
                 case Opcodes.SIPUSH: {
-                    push(ItemSize.SINGLE, Value.const_(operand));
+                    push(Value.const_(operand));
                     return;
                 }
                 case Opcodes.NEWARRAY: {
@@ -1257,23 +1289,20 @@ public final class GraphBuilder extends MethodVisitor {
             gotInstr = true;
             switch (opcode) {
                 case Opcodes.ILOAD:
-                case Opcodes.ALOAD: {
-                    push(ItemSize.SINGLE, getLocal(ItemSize.SINGLE, var));
-                    return;
-                }
+                case Opcodes.ALOAD:
                 case Opcodes.DLOAD:
                 case Opcodes.LLOAD: {
-                    push(ItemSize.DOUBLE, getLocal(ItemSize.DOUBLE, var));
+                    push(getLocal(var));
                     return;
                 }
                 case Opcodes.ISTORE:
                 case Opcodes.ASTORE: {
-                    setLocal(ItemSize.SINGLE, var, pop());
+                    setLocal(var, pop());
                     return;
                 }
                 case Opcodes.DSTORE:
                 case Opcodes.LSTORE: {
-                    setLocal(ItemSize.DOUBLE, var, pop2());
+                    setLocal(var, pop2());
                     return;
                 }
             }
@@ -1284,6 +1313,7 @@ public final class GraphBuilder extends MethodVisitor {
                 // treat it like a goto
                 BasicBlock currentBlock = GraphBuilder.this.currentBlock;
                 GotoImpl goto_ = new GotoImpl();
+                goto_.setSourceLine(line);
                 currentBlock.setTerminator(goto_);
                 goto_.setMemoryDependency(memoryState);
                 enter(futureBlockState);
@@ -1302,23 +1332,31 @@ public final class GraphBuilder extends MethodVisitor {
 
         void handleExit(final State next) {
             // exit the current block, capturing state
-            BasicBlock currentBlock = GraphBuilder.this.currentBlock;
             assert currentBlock != null;
-            Capture capture = capture();
-            if (blockExits.putIfAbsent(currentBlock, capture) != null) {
-                throw new IllegalStateException("Block exited twice");
+            if (next == possibleBlockState) {
+                // exiting the block with no subsequent instruction
+                Capture capture = capture();
+                if (blockExits.putIfAbsent(currentBlock, capture) != null) {
+                    throw new IllegalStateException("Block exited twice");
+                }
+                currentBlock = null;
             }
-            GraphBuilder.this.currentBlock = null;
             memoryState = null;
             // the next state decides whether to clear locals/stack or use that info to build the enter state
         }
 
         void handleEntry(final State previous) {
-            // TODO verify this assertion.
-            //assert previous == futureBlockState || previous == mayNeedFrameState : "expected previous=futureBlockState or mayNeedFrameState but was " + previous;
             assert currentBlock != null;
             gotInstr = false;
             // the locals/stack are already set up as well
+        }
+
+        public void visitTryCatchBlock(final Label start, final Label end, final Label handler, final String type) {
+            super.visitTryCatchBlock(start, end, handler, type);
+        }
+
+        public AnnotationVisitor visitTryCatchAnnotation(final int typeRef, final TypePath typePath, final String descriptor, final boolean visible) {
+            return super.visitTryCatchAnnotation(typeRef, typePath, descriptor, visible);
         }
 
         public void visitFrame(final int type, final int numLocal, final Object[] local, final int numStack, final Object[] stack) {
@@ -1399,53 +1437,16 @@ public final class GraphBuilder extends MethodVisitor {
 
     }
 
-    final class MayNeedFrameState extends EnterBlockOnInsnState {
-        MayNeedFrameState() {
-        }
-
-        void handleEntry(final State previous) {
-            assert previous == inBlockState && futureBlock == null;
-            futureBlock = new BasicBlockImpl();
-        }
-
-        void handleExit(final State next) {
-            if (next == inBlockState) {
-                currentBlock = futureBlock;
-                futureBlock = null;
-                // we never got a frame, so that means we have to set up stack & locals from the current stack & locals
-                propagateCurrentStackAndLocals();
-            } else {
-                assert next == futureBlockState;
-                clearLocals();
-                clearStack();
-            }
-        }
-
-        public void visitLabel(final Label label) {
-            NodeHandle handle = allBlocks.get(label);
-            if (handle == null) {
-                allBlocks.put(label, futureBlock.getHandle());
-            } else {
-                handle.setTarget(futureBlock);
-            }
-        }
-
-        public void visitFrame(final int type, final int numLocal, final Object[] local, final int numStack, final Object[] stack) {
-            clearStack();
-            clearLocals();
-            enter(futureBlockState);
-            outer().visitFrame(type, numLocal, local, numStack, stack);
-        }
-    }
-
+    /**
+     * In this state the control flow has come from a previous instruction, and the new block might
+     * also be a jump target.
+     */
     final class FutureBlockState extends EnterBlockOnInsnState {
         FutureBlockState() {
         }
 
         void handleEntry(final State previous) {
-            assert previous == inBlockState && futureBlock == null
-                || previous == mayNeedFrameState && futureBlock != null
-                || previous == possibleBlockState && futureBlock != null;
+            assert previous == inBlockState && currentBlock != null;
             if (futureBlock == null) {
                 futureBlock = new BasicBlockImpl();
             }
@@ -1453,10 +1454,14 @@ public final class GraphBuilder extends MethodVisitor {
 
         void handleExit(final State next) {
             assert next == inBlockState;
+            // capture exit state
+            Capture capture = capture();
+            if (blockExits.putIfAbsent(currentBlock, capture) != null) {
+                throw new IllegalStateException("Block exited twice");
+            }
             currentBlock = futureBlock;
             futureBlock = null;
-            // set up the stack & locals from the frame state
-            propagateFrameStackAndLocals();
+            propagateCurrentStackAndLocals();
         }
 
         public void visitLabel(final Label label) {
@@ -1466,30 +1471,6 @@ public final class GraphBuilder extends MethodVisitor {
             } else {
                 handle.setTarget(futureBlock);
             }
-        }
-
-
-    }
-
-    final class NoBlock extends State {
-
-        NoBlock() {
-        }
-
-        void handleEntry(final State previous) {
-            currentBlock = null;
-            memoryState = null;
-        }
-
-        public void visitLabel(final Label label) {
-            // a new block begins
-            pendingLabels.add(label);
-            enter(possibleBlockState);
-        }
-
-        public void visitEnd() {
-            // OK
-            return;
         }
     }
 
@@ -1500,15 +1481,12 @@ public final class GraphBuilder extends MethodVisitor {
         void handleEntry(final State previous) {
             assert previous == inBlockState;
             assert pendingLabels.isEmpty();
+            clearStack();
+            clearLocals();
         }
 
         public void visitLabel(final Label label) {
             pendingLabels.add(label);
-        }
-
-        public void visitFrame(final int type, final int numLocal, final Object[] local, final int numStack, final Object[] stack) {
-            enter(futureBlockState);
-            outer().visitFrame(type, numLocal, local, numStack, stack);
         }
 
         void handleExit(final State next) {
@@ -1524,17 +1502,10 @@ public final class GraphBuilder extends MethodVisitor {
                 }
             }
             assert memoryState == null;
-            if (next == futureBlockState) {
-                futureBlock = newBlock;
-                // got a frame directive
-                clearStack();
-                clearLocals();
-            } else {
-                assert next == inBlockState;
-                // we have to set up the frame manually
-                currentBlock = newBlock;
-                propagateCurrentStackAndLocals();
-            }
+            assert next == inBlockState;
+            currentBlock = newBlock;
+            // we have to set up the locals from the frame
+            propagateFrameStackAndLocals();
             pendingLabels.clear();
         }
 
@@ -1547,19 +1518,10 @@ public final class GraphBuilder extends MethodVisitor {
     static final class Capture {
         final Value[] stack;
         final Value[] locals;
-        final ItemSize[] stackMap;
-        final ItemSize[] localsMap;
 
-        Capture(final ItemSize[] stackMap, final ItemSize[] localsMap, final Value[] stack, final Value[] locals) {
-            this.stackMap = stackMap;
-            this.localsMap = localsMap;
+        Capture(final Value[] stack, final Value[] locals) {
             this.stack = stack;
             this.locals = locals;
         }
-    }
-
-    enum ItemSize {
-        SINGLE,
-        DOUBLE,
     }
 }

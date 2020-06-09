@@ -46,4 +46,8 @@ public final class LLVM {
     public static Value intConstant(int val) {
         return new IntConstant(val);
     }
+
+    public static Value intConstant(long val) {
+        return new LongConstant(val);
+    }
 }

@@ -7,6 +7,17 @@ import cc.quarkus.qcc.constraint.Constraint;
  */
 public interface Type extends Node {
 
+    // TODO: Void isn't really a type...
+    VoidType VOID = new VoidTypeImpl();
+
+    static ArrayType arrayOf(Type elementType) {
+        return new ArrayTypeImpl(elementType);
+    }
+
+    static ClassType classNamed(String name) {
+        return new ClassTypeImpl(name);
+    }
+
     int getParameterCount();
 
     String getParameterName(int index) throws IndexOutOfBoundsException;
@@ -28,6 +39,10 @@ public interface Type extends Node {
     FloatType F64 = new Float64Type();
 
     StringLiteralType STRING = new StringLiteralTypeImpl();
+
+    default boolean isClass2Type() {
+        return false;
+    }
 
     default boolean isZero(long value) {
         return value == 0;

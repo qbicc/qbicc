@@ -1,14 +1,11 @@
 package cc.quarkus.qcc.graph;
 
-import java.io.IOException;
-import java.util.Set;
-
 import cc.quarkus.qcc.constraint.Constraint;
 
 /**
  *
  */
-abstract class SignedIntegerTypeImpl implements SignedIntegerType {
+abstract class SignedIntegerTypeImpl extends NodeImpl implements SignedIntegerType {
     private final Constraint constraint;
 
     SignedIntegerTypeImpl(final int minValue, final int maxValue) {
@@ -52,17 +49,5 @@ abstract class SignedIntegerTypeImpl implements SignedIntegerType {
 
     public void replaceWith(final Node node) {
         throw new UnsupportedOperationException("Cannot replace core word types");
-    }
-
-    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
-
-    }
-
-    public int getIdForGraph() {
-        return 0;
-    }
-
-    public void setIdForGraph(final int id) {
-
     }
 }

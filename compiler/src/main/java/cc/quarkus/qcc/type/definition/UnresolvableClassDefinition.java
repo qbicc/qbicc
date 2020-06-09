@@ -3,9 +3,9 @@ package cc.quarkus.qcc.type.definition;
 import java.util.List;
 import java.util.Set;
 
+import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 public class UnresolvableClassDefinition implements TypeDefinition {
 
@@ -23,7 +23,7 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     }
 
     @Override
-    public <V> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
+    public <V> MethodDefinition<V> findMethod(MethodDescriptor methodDescriptor) {
         return throwUnresolved();
     }
 
@@ -47,8 +47,7 @@ public class UnresolvableClassDefinition implements TypeDefinition {
         throwUnresolved();
     }
 
-    @Override
-    public TypeDescriptor<ObjectReference> getTypeDescriptor() {
+    public ClassType getType() {
         return throwUnresolved();
     }
 

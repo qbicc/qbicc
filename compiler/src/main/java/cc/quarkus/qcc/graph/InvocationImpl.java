@@ -7,14 +7,14 @@ import java.util.Set;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 class InvocationImpl extends MemoryStateImpl implements Invocation {
-    MethodDescriptor<?> invocationTarget;
+    MethodDescriptor invocationTarget;
     Value[] arguments = Value.NO_VALUES;
 
-    public MethodDescriptor<?> getInvocationTarget() {
+    public MethodDescriptor getInvocationTarget() {
         return invocationTarget;
     }
 
-    public void setInvocationTarget(final MethodDescriptor<?> descriptor) {
+    public void setInvocationTarget(final MethodDescriptor descriptor) {
         this.invocationTarget = descriptor;
         setArgumentCount(descriptor.getParamTypes().size());
     }

@@ -15,6 +15,10 @@ final class Float64Type implements FloatType {
         constraint = Constraint.greaterThanOrEqualTo(new ConstantValue64(Double.doubleToLongBits(Double.MIN_VALUE), this)).union(Constraint.lessThanOrEqualTo(new ConstantValue64(Double.doubleToLongBits(Double.MAX_VALUE), this)));
     }
 
+    public boolean isClass2Type() {
+        return true;
+    }
+
     public int getSize() {
         return 8;
     }

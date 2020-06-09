@@ -12,7 +12,6 @@ import cc.quarkus.qcc.type.definition.LazyTypeDefinition;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
 import cc.quarkus.qcc.type.definition.TypeDefinitionNode;
 import cc.quarkus.qcc.type.definition.UnresolvableClassDefinition;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 
@@ -36,36 +35,16 @@ public class Universe {
         INSTANCE.set(this);
     }
 
-    public TypeDescriptor<?> findType(String name) {
-        if ( name.equals("void")) {
-            //return PrimitiveTypeDef.VOID;
-            return TypeDescriptor.VOID;
-        } else if ( name.equals("byte")) {
-            return TypeDescriptor.INT8;
-        } else if ( name.equals("char")) {
-            return TypeDescriptor.CHAR;
-        } else if ( name.equals("short")) {
-            return TypeDescriptor.INT16;
-        } else if ( name.equals("int")) {
-            return TypeDescriptor.INT32;
-        } else if ( name.equals("long")) {
-            return TypeDescriptor.INT64;
-        } else if ( name.equals("boolean")) {
-            return TypeDescriptor.BOOLEAN;
-        } else if ( name.equals("float")) {
-            return TypeDescriptor.FLOAT;
-        } else if ( name.equals("double")) {
-            return TypeDescriptor.DOUBLE;
-        }
-        return TypeDescriptor.of( findClass(name) );
-    }
-
     public TypeDefinition findClass(String name) {
         return findClass(name, false);
     }
 
     public TypeDefinition findClass(String name, boolean resolve) {
-        return this.objectTypes.computeIfAbsent(name, (k) -> new LazyTypeDefinition(this, name, resolve));
+        TypeDefinition typeDefinition = this.objectTypes.computeIfAbsent(name, (k) -> new LazyTypeDefinition(this, name));
+        if (resolve && typeDefinition instanceof LazyTypeDefinition) {
+            ((LazyTypeDefinition) typeDefinition).getDelegate();
+        }
+        return typeDefinition;
     }
 
     public TypeDefinition defineClass(String name, ByteBuffer buffer) {

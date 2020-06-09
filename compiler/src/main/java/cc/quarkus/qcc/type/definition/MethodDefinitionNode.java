@@ -3,10 +3,9 @@ package cc.quarkus.qcc.type.definition;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.GraphBuilder;
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.universe.Universe;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.InsnList;
@@ -15,7 +14,7 @@ import org.objectweb.asm.tree.TryCatchBlockNode;
 
 public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinition<V> {
 
-    public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, MethodDescriptor<V> methodDescriptor, String signature, String[] exceptions) {
+    public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, MethodDescriptor methodDescriptor, String signature, String[] exceptions) {
         super(Universe.ASM_VERSION, access, name, methodDescriptor.getDescriptor(), signature, exceptions);
         this.typeDefinition = typeDefinition;
         this.methodDescriptor = methodDescriptor;
@@ -63,12 +62,12 @@ public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinit
     }
 
     @Override
-    public List<TypeDescriptor<?>> getParamTypes() {
+    public List<Type> getParamTypes() {
         return this.methodDescriptor.getParamTypes();
     }
 
     @Override
-    public TypeDescriptor<V> getReturnType() {
+    public Type getReturnType() {
         return this.methodDescriptor.getReturnType();
     }
 
@@ -102,7 +101,7 @@ public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinit
         return this.typeDefinition + " " + this.name + this.desc;
     }
 
-    private final MethodDescriptor<V> methodDescriptor;
+    private final MethodDescriptor methodDescriptor;
 
     private final TypeDefinitionNode typeDefinition;
 

@@ -20,6 +20,9 @@ final class PhiValueImpl extends ValueProgramNodeImpl implements PhiValue {
 
     public void setValueForBlock(final BasicBlock input, final Value value) {
         Assert.checkNotNullParam("value", value);
+        if (value.getType() != getType()) {
+            throw new IllegalStateException("Phi type mismatch");
+        }
         BasicBlockImpl bbi = (BasicBlockImpl) input;
         Map<Key, NodeHandle> ov = bbi.outboundValues;
         if (ov.containsKey(key)) {

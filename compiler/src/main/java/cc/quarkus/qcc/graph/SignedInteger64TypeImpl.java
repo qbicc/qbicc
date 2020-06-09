@@ -8,6 +8,10 @@ final class SignedInteger64TypeImpl extends SignedIntegerTypeImpl {
         super(Long.MIN_VALUE, Long.MAX_VALUE);
     }
 
+    public boolean isClass2Type() {
+        return true;
+    }
+
     public int getSize() {
         return 8;
     }

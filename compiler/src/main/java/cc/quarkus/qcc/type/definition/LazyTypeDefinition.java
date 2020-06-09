@@ -1,41 +1,42 @@
 package cc.quarkus.qcc.type.definition;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.graph.ClassType;
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.universe.Universe;
 
 public class LazyTypeDefinition implements TypeDefinition {
-    public LazyTypeDefinition(Universe universe, String name, boolean resolve) {
+    public LazyTypeDefinition(Universe universe, String name) {
         this.universe = universe;
         this.name = name;
-        if ( resolve ) {
-            getResolver();
+    }
+
+    public TypeDefinition getDelegate() {
+        TypeDefinition delegate = this.delegate;
+        if (delegate == null) {
+            synchronized (this) {
+                delegate = this.delegate;
+                if (delegate == null) {
+                    try {
+                        delegate = resolve();
+                    } catch (IOException | ClassNotFoundException e) {
+                        delegate = new UnresolvableClassDefinition(name);
+                    }
+                    this.delegate = delegate;
+                }
+            }
         }
+        return delegate;
     }
 
-    private ForkJoinTask<TypeDefinition> getResolver() {
-        return this.resolver.updateAndGet( (prev)->{
-            if ( prev != null ) {
-                return prev;
-            }
-            return this.universe.getPool().submit( ()-> this.universe.defineClass(name, ByteBuffer.wrap(universe.getClassFinder().findClass(name).readAllBytes())));
-        });
-    }
-
-    private TypeDefinition getDelegate() {
-        return this.delegate.updateAndGet( (prev)->{
-            if ( prev != null ) {
-                return prev;
-            }
-            return getResolver().join();
-        });
+    private TypeDefinition resolve() throws IOException, ClassNotFoundException {
+        return this.universe.defineClass(name, ByteBuffer.wrap(universe.getClassFinder().findClass(name).readAllBytes()));
     }
 
     @Override
@@ -63,9 +64,19 @@ public class LazyTypeDefinition implements TypeDefinition {
         return getDelegate().isAssignableFrom(other);
     }
 
+
     @Override
-    public TypeDescriptor<ObjectReference> getTypeDescriptor() {
-        return getDelegate().getTypeDescriptor();
+    public ClassType getType() {
+        ClassType cachedType = this.cachedType;
+        if (cachedType == null) {
+            synchronized (this) {
+                cachedType = this.cachedType;
+                if (cachedType == null) {
+                    this.cachedType = cachedType = Type.classNamed(name);
+                }
+            }
+        }
+        return cachedType;
     }
 
     @Override
@@ -79,7 +90,7 @@ public class LazyTypeDefinition implements TypeDefinition {
     }
 
     @Override
-    public <V> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
+    public <V> MethodDefinition<V> findMethod(MethodDescriptor methodDescriptor) {
         return getDelegate().findMethod(methodDescriptor);
     }
 
@@ -116,7 +127,6 @@ public class LazyTypeDefinition implements TypeDefinition {
     private final Universe universe;
 
     private final String name;
-    private AtomicReference<ForkJoinTask<TypeDefinition>> resolver = new AtomicReference<>();
-    private AtomicReference<TypeDefinition> delegate = new AtomicReference<>();
-
+    private volatile TypeDefinition delegate;
+    private volatile ClassType cachedType;
 }

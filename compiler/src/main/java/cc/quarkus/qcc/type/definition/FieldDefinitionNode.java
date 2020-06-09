@@ -1,14 +1,14 @@
 package cc.quarkus.qcc.type.definition;
 
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptorParser;
 import cc.quarkus.qcc.type.universe.Universe;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import org.objectweb.asm.tree.FieldNode;
 
 public class FieldDefinitionNode<V> extends FieldNode implements FieldDefinition<V> {
 
     public FieldDefinitionNode(TypeDefinition typeDefinition,
-                               TypeDescriptor<V> type,
                                final int access,
                                final String name,
                                final String descriptor,
@@ -16,7 +16,6 @@ public class FieldDefinitionNode<V> extends FieldNode implements FieldDefinition
                                final Object value) {
         super(Universe.ASM_VERSION, access, name, descriptor, signature, value);
         this.typeDefinition = typeDefinition;
-        this.type = type;
     }
 
     @Override
@@ -25,8 +24,18 @@ public class FieldDefinitionNode<V> extends FieldNode implements FieldDefinition
     }
 
     @Override
-    public TypeDescriptor<V> getTypeDescriptor() {
-        return this.type;
+    public Type getTypeDescriptor() {
+        Type type = this.type;
+        if (type == null) {
+            synchronized (this) {
+                type = this.type;
+                if (type == null) {
+                    TypeDescriptorParser parser = new TypeDescriptorParser(Universe.instance(), desc);
+                    this.type = type = parser.parseType();
+                }
+            }
+        }
+        return type;
     }
 
     @Override
@@ -50,5 +59,5 @@ public class FieldDefinitionNode<V> extends FieldNode implements FieldDefinition
     }
 
     private final TypeDefinition typeDefinition;
-    private final TypeDescriptor<V> type;
+    private volatile Type type;
 }

@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.type.descriptor;
 
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.universe.Universe;
 
 public class TypeDescriptorParser {
@@ -30,40 +31,40 @@ public class TypeDescriptorParser {
         return c;
     }
 
-    public TypeDescriptor<?> parseType() {
+    public Type parseType() {
         while ( la() != (char) -1 ) {
             switch ( la() ) {
                 case 'Z':
                     consume();
-                    return TypeDescriptor.BOOLEAN;
+                    return Type.BOOL;
                 case 'B':
                     consume();
-                    return TypeDescriptor.INT8;
+                    return Type.S8;
                 case 'C':
                     consume();
-                    return TypeDescriptor.CHAR;
+                    return Type.U16;
                 case 'S':
                     consume();
-                    return TypeDescriptor.INT16;
+                    return Type.S16;
                 case 'I':
                     consume();
-                    return TypeDescriptor.INT32;
+                    return Type.S32;
                 case 'J':
                     consume();
-                    return TypeDescriptor.INT64;
+                    return Type.S64;
                 case 'F':
                     consume();
-                    return TypeDescriptor.FLOAT;
+                    return Type.F32;
                 case 'D':
                     consume();
-                    return TypeDescriptor.DOUBLE;
+                    return Type.F64;
                 case 'V':
-                    return TypeDescriptor.VOID;
+                    return Type.VOID;
                 case 'L':
                     return parseClass();
                 case '[':
                     consume();
-                    return parseType().array(1);
+                    return Type.arrayOf(parseType());
                 default:
                     throw new RuntimeException("Unable to parse: " + this.descriptor + " at " + this.cur );
             }
@@ -71,7 +72,7 @@ public class TypeDescriptorParser {
         throw new RuntimeException("Unable to parse: " + this.descriptor + " at " + this.cur );
     }
 
-    protected TypeDescriptor<?> parseClass() {
+    protected Type parseClass() {
         consume(); // L
         StringBuilder name = new StringBuilder();
         LOOP:
@@ -84,7 +85,9 @@ public class TypeDescriptorParser {
                     name.append(consume());
             }
         }
-        return TypeDescriptor.of(this.universe.findClass(name.toString()));
+        // TODO: cache
+        // TODO: the Type depends on the class loader
+        return universe.findClass(name.toString()).getType();
     }
 
     private final Universe universe;

@@ -5,11 +5,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import cc.quarkus.qcc.graph.ClassType;
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptorParser;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptorParser;
 import cc.quarkus.qcc.type.universe.Universe;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Opcodes;
@@ -18,6 +18,8 @@ import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
 public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
+
+    volatile ClassType cachedType;
 
     public TypeDefinitionNode(Universe universe) {
         super(Universe.ASM_VERSION);
@@ -29,12 +31,12 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         super.visit(version, access, name, signature, superName, interfaces);
         // eagerly resolver super
         if ( superName != null ) {
-            this.universe.findClass(superName, true);
+            this.universe.findClass(superName, false);
         }
         // eagerly resolver interfaces
         if (interfaces != null ) {
             for (String each : interfaces) {
-                this.universe.findClass(each, true);
+                this.universe.findClass(each, false);
             }
         }
     }
@@ -42,7 +44,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     @Override
     public MethodDefinitionNode<?> visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
         MethodDescriptorParser parser = new MethodDescriptorParser(getUniverse(), this, name, descriptor, (access & Opcodes.ACC_STATIC) != 0);
-        MethodDescriptor<?> methodDescriptor = parser.parseMethodDescriptor();
+        MethodDescriptor methodDescriptor = parser.parseMethodDescriptor();
         MethodDefinitionNode<?> visitor = new MethodDefinitionNode<>(this, access, name, methodDescriptor, signature, exceptions);
         this.methods.add(visitor);
         return visitor;
@@ -50,9 +52,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
 
     @Override
     public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-        TypeDescriptorParser parser = new TypeDescriptorParser(Universe.instance(), descriptor);
-        TypeDescriptor<?> type = parser.parseType();
-        FieldDefinitionNode<?> visitor = new FieldDefinitionNode<>(this, type, access, name, descriptor, signature, value);
+        FieldDefinitionNode<?> visitor = new FieldDefinitionNode<>(this, access, name, descriptor, signature, value);
         this.fields.add(visitor);
         return visitor;
     }
@@ -127,7 +127,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <V> MethodDefinition<V> findMethod(MethodDescriptor<V> methodDescriptor) {
+    public <V> MethodDefinition<V> findMethod(MethodDescriptor methodDescriptor) {
         return (MethodDefinition<V>) findMethod(methodDescriptor.getName(), methodDescriptor.getDescriptor());
     }
 
@@ -185,8 +185,17 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     }
 
     @Override
-    public TypeDescriptor<ObjectReference> getTypeDescriptor() {
-        return TypeDescriptor.of(this);
+    public ClassType getType() {
+        ClassType cachedType = this.cachedType;
+        if (cachedType == null) {
+            synchronized (this) {
+                cachedType = this.cachedType;
+                if (cachedType == null) {
+                    this.cachedType = cachedType = Type.classNamed(name);
+                }
+            }
+        }
+        return cachedType;
     }
 
     @Override

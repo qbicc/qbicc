@@ -2,11 +2,12 @@ package cc.quarkus.qcc.type.descriptor;
 
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
 
 public class MethodDescriptorImpl implements MethodDescriptor {
 
-    MethodDescriptorImpl(TypeDefinition owner, String name, List<TypeDescriptor<?>> paramTypes, TypeDescriptor<?> returnType, String descriptor, boolean isStatic) {
+    MethodDescriptorImpl(TypeDefinition owner, String name, List<Type> paramTypes, Type returnType, String descriptor, boolean isStatic) {
         this.owner = owner;
         this.name = name;
         this.paramTypes = paramTypes;
@@ -31,12 +32,12 @@ public class MethodDescriptorImpl implements MethodDescriptor {
     }
 
     @Override
-    public List<TypeDescriptor<?>> getParamTypes() {
+    public List<Type> getParamTypes() {
         return this.paramTypes;
     }
 
     @Override
-    public TypeDescriptor<?> getReturnType() {
+    public Type getReturnType() {
         return this.returnType;
     }
 
@@ -57,9 +58,9 @@ public class MethodDescriptorImpl implements MethodDescriptor {
                 '}';
     }
 
-    private final List<TypeDescriptor<?>> paramTypes;
+    private final List<Type> paramTypes;
 
-    private final TypeDescriptor<?> returnType;
+    private final Type returnType;
 
     private final TypeDefinition owner;
 

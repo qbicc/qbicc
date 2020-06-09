@@ -3,6 +3,7 @@ package cc.quarkus.qcc.type.descriptor;
 import java.util.ArrayList;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
 import cc.quarkus.qcc.type.universe.Universe;
 
@@ -21,16 +22,17 @@ public class MethodDescriptorParser extends TypeDescriptorParser {
         }
         consume(); // (
 
-        List<TypeDescriptor<?>> parameters = parseParameters();
-        TypeDescriptor<?> returnType = parseType();
+        List<Type> parameters = parseParameters();
+        Type returnType = parseType();
         return new MethodDescriptorImpl(this.owner, this.name, parameters, returnType, descriptor, isStatic);
     }
 
-    public List<TypeDescriptor<?>> parseParameters() {
-        List<TypeDescriptor<?>> result = new ArrayList<>();
+    public List<Type> parseParameters() {
+        List<Type> result = new ArrayList<>();
 
         if ( ! this.isStatic ) {
-            result.add(TypeDescriptor.of(this.owner));
+            // receiver
+            result.add(this.owner.getType());
         }
 
         LOOP:
