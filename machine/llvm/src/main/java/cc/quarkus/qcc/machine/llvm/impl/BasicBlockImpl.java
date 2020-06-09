@@ -87,7 +87,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("ifTrue", ifTrue);
         Assert.checkNotNullParam("ifFalse", ifFalse);
         checkTerminated();
-        ConditionalBranchImpl res = add(new ConditionalBranchImpl((AbstractValue) cond, (BasicBlockImpl) ifTrue, (BasicBlockImpl) ifFalse));
+        ConditionalBranchImpl res = new ConditionalBranchImpl((AbstractValue) cond, (BasicBlockImpl) ifTrue, (BasicBlockImpl) ifFalse);
         terminator = res;
         return res;
     }
@@ -95,20 +95,19 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
     public Return ret() {
         checkTerminated();
         terminator = VoidReturn.INSTANCE;
-        return add(VoidReturn.INSTANCE);
+        return VoidReturn.INSTANCE;
     }
 
     public Return ret(final Value type, final Value val) {
         checkTerminated();
         ValueReturn valueReturn = new ValueReturn((AbstractValue) type, (AbstractValue) val);
         terminator = valueReturn;
-        return add(valueReturn);
+        return valueReturn;
     }
 
     public void unreachable() {
         checkTerminated();
         terminator = Unreachable.INSTANCE;
-        add(Unreachable.INSTANCE);
     }
 
     public Call invoke(final Value type, final Value function, final BasicBlock normal, final BasicBlock unwind) {
@@ -119,7 +118,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         checkTerminated();
         InvokeImpl invoke = new InvokeImpl(this, (AbstractValue) type, (AbstractValue) function, (BasicBlockImpl) normal, (BasicBlockImpl) unwind);
         terminator = invoke;
-        return add(invoke);
+        return invoke;
     }
 
     // starters
@@ -272,7 +271,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         if (prev != null) {
             prev.appendAsBlockTo(target);
         }
-        if (phis.isEmpty() && items.isEmpty()) {
+        if (phis.isEmpty() && items.isEmpty() && terminator == null) {
             // no block;
             return target;
         }
@@ -292,6 +291,9 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
                 target.append(System.lineSeparator());
             }
         }
+        target.append("  ");
+        terminator.appendTo(target);
+        target.append(System.lineSeparator());
         return target;
     }
 

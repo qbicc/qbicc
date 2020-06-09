@@ -9,7 +9,7 @@ import io.smallrye.common.constraint.Assert;
 /**
  *
  */
-final class BooleanTypeImpl implements WordType {
+final class BooleanTypeImpl implements BooleanType {
     final ConstantValue false_ = new ConstantValue32(0, this);
     final ConstantValue true_ = new ConstantValue32(1, this);
     private final Constraint constraint = Constraint.greaterThanOrEqualTo(false_).intersect(Constraint.lessThanOrEqualTo(true_));

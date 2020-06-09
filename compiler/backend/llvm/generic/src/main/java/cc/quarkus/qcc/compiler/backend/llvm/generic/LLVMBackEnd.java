@@ -4,6 +4,7 @@ import static cc.quarkus.qcc.machine.llvm.Types.*;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -18,6 +19,7 @@ import java.util.Set;
 import cc.quarkus.qcc.compiler.backend.api.BackEnd;
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.BooleanType;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.CommutativeBinaryValue;
 import cc.quarkus.qcc.graph.ConstantValue;
@@ -126,12 +128,24 @@ public final class LLVMBackEnd implements BackEnd {
             final List<Type> paramTypes = node.getParamTypes();
             MethodGraph graph = node.getGraph();
             BasicBlock entryBlock = graph.getEntryBlock();
-            final Cache cache = new Cache(func, module, entryBlock.calculateReachableBlocks());
+            Set<BasicBlock> reachableBlocks = entryBlock.calculateReachableBlocks();
+            final Cache cache = new Cache(func, module, reachableBlocks);
             func.returns(typeOf(cache, node.getReturnType()));
             final List<ParameterValue> paramVals = graph.getParameters();
             for (ParameterValue pv : paramVals) {
                 cache.values.put(pv, func.param(typeOf(cache, pv.getType())).name("p" + idx++).asValue());
             }
+            cache.blocks.put(entryBlock, func);
+            // write the terminal instructions
+            for (BasicBlock bb : reachableBlocks) {
+                addTermInst(cache, bb.getTerminator(), getBlock(cache, bb));
+            }
+        }
+        // XXX print it to screen
+        try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out))) {
+            module.writeTo(bw);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         // write out the object file
         final Path objectPath = Path.of("/tmp/build.o");
@@ -167,7 +181,9 @@ public final class LLVMBackEnd implements BackEnd {
         if (res != null) {
             return res;
         }
-        if (type instanceof IntegerType) {
+        if (type instanceof BooleanType) {
+            res = i1;
+        } else if (type instanceof IntegerType) {
             int bytes = ((IntegerType) type).getSize();
             if (bytes == 1) {
                 res = i8;
@@ -207,9 +223,11 @@ public final class LLVMBackEnd implements BackEnd {
             target.ret();
         } else if (inst instanceof TryInvocationValue) {
             TryInvocationValue tiv = (TryInvocationValue) inst;
+            throw new IllegalStateException();
 
         } else if (inst instanceof TryInvocation) {
             TryInvocation ti = (TryInvocation) inst;
+            throw new IllegalStateException();
 
         } else if (inst instanceof TryInstanceFieldWrite) {
             TryInstanceFieldWrite w = (TryInstanceFieldWrite) inst;
@@ -277,41 +295,45 @@ public final class LLVMBackEnd implements BackEnd {
         if (val != null) {
             return val;
         }
-        Value type = typeOf(cache, value.getType());
+        Value outputType = typeOf(cache, value.getType());
         if (value instanceof ProgramNode) {
             BasicBlock owner = ((ProgramNode) value).getOwner();
             final cc.quarkus.qcc.machine.llvm.BasicBlock target = getBlock(cache, owner);
             if (value instanceof CommutativeBinaryValue) {
                 CommutativeBinaryValue op = (CommutativeBinaryValue) value;
+                Value inputType = typeOf(cache, op.getLeftInput().getType());
                 switch (op.getKind()) {
-                    case ADD: val = target.add(type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case AND: val = target.and(type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case OR: val = target.or(type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case XOR: val = target.xor(type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case MULTIPLY: val = target.mul(type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case CMP_EQ: val = target.icmp(IntCondition.eq, type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case CMP_NE: val = target.icmp(IntCondition.ne, type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case ADD: val = target.add(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case AND: val = target.and(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case OR: val = target.or(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case XOR: val = target.xor(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case MULTIPLY: val = target.mul(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case CMP_EQ: val = target.icmp(IntCondition.eq, inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case CMP_NE: val = target.icmp(IntCondition.ne, inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
                     default: throw new IllegalStateException();
                 }
                 cache.values.put(value, val);
             } else if (value instanceof NonCommutativeBinaryValue) {
                 NonCommutativeBinaryValue op = (NonCommutativeBinaryValue) value;
+                Value inputType = typeOf(cache, op.getLeftInput().getType());
                 switch (op.getKind()) {
-                    case SUB: val = target.sub(type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case DIV: val = target.sdiv(type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case MOD: val = target.srem(type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case CMP_LT: val = target.icmp(IntCondition.slt, type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case CMP_LE: val = target.icmp(IntCondition.sle, type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case CMP_GT: val = target.icmp(IntCondition.sgt, type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
-                    case CMP_GE: val = target.icmp(IntCondition.sge, type, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case SUB: val = target.sub(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case DIV: val = target.sdiv(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case MOD: val = target.srem(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case CMP_LT: val = target.icmp(IntCondition.slt, inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case CMP_LE: val = target.icmp(IntCondition.sle, inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case CMP_GT: val = target.icmp(IntCondition.sgt, inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
+                    case CMP_GE: val = target.icmp(IntCondition.sge, inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
                     default: throw new IllegalStateException();
                 }
                 cache.values.put(value, val);
             } else if (value instanceof FieldReadValue) {
-
+                throw new IllegalStateException();
             } else if (value instanceof IfValue) {
                 IfValue op = (IfValue) value;
-                val = target.select(Types.i1, getValue(cache, op.getCond()), type, getValue(cache, op.getTrueValue()), getValue(cache, op.getFalseValue())).asLocal();
+                cc.quarkus.qcc.graph.Value trueValue = op.getTrueValue();
+                Value inputType = typeOf(cache, trueValue.getType());
+                val = target.select(Types.i1, getValue(cache, op.getCond()), inputType, getValue(cache, trueValue), getValue(cache, op.getFalseValue())).asLocal();
                 cache.values.put(value, val);
             } else if (value instanceof PhiValue) {
                 PhiValue phiValue = (PhiValue) value;
@@ -327,7 +349,7 @@ public final class LLVMBackEnd implements BackEnd {
                                 cc.quarkus.qcc.graph.Value v2 = phiValue.getValueForBlock(b2);
                                 if (v2 != null && v2 != v1) {
                                     // it's a phi, so we'll just live with it
-                                    Phi phi = target.phi(type);
+                                    Phi phi = target.phi(outputType);
                                     cache.values.put(value, val = phi.asLocal());
                                     phi.item(getValue(cache, v1), getBlock(cache, b1));
                                     phi.item(getValue(cache, v2), getBlock(cache, b2));
@@ -347,7 +369,7 @@ public final class LLVMBackEnd implements BackEnd {
                         }
                     }
                 } else {
-                    Phi phi = target.phi(type);
+                    Phi phi = target.phi(outputType);
                     cache.values.put(value, val = phi.asLocal());
                     for (BasicBlock knownBlock : cache.knownBlocks) {
                         cc.quarkus.qcc.graph.Value v = phiValue.getValueForBlock(knownBlock);
@@ -363,11 +385,17 @@ public final class LLVMBackEnd implements BackEnd {
                 throw new IllegalStateException();
             }
         } else if (value instanceof ConstantValue) {
-            if (type instanceof IntegerType) {
-                if (((IntegerType) type).getSize() > 4) {
+            if (value.getType() instanceof IntegerType) {
+                if (((IntegerType) value.getType()).getSize() > 4) {
                     cache.values.put(value, val = LLVM.intConstant(((ConstantValue) value).longValue()));
                 } else {
                     cache.values.put(value, val = LLVM.intConstant(((ConstantValue) value).intValue()));
+                }
+            } else if (value.getType() instanceof BooleanType) {
+                if (((ConstantValue) value).isFalse()) {
+                    cache.values.put(value, val = Values.FALSE);
+                } else {
+                    cache.values.put(value, val = Values.TRUE);
                 }
             } else {
                 throw new IllegalStateException();

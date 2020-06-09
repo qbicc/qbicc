@@ -31,6 +31,9 @@ public final class LLVM {
 
     public static final Value ZERO = new IntConstant(0);
 
+    public static final Value FALSE = new SingleWord("false");
+    public static final Value TRUE = new SingleWord("true");
+
     public static Value ptrTo(Value type, int addrSpace) {
         return new PointerTo((AbstractValue) type, addrSpace);
     }
