@@ -10,6 +10,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
+import cc.quarkus.qcc.type.definition.TypeDefinition;
 import cc.quarkus.qcc.type.universe.Universe;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Handle;
@@ -23,6 +24,7 @@ import org.objectweb.asm.TypePath;
  */
 public final class GraphBuilder extends MethodVisitor {
     final BasicBlockImpl firstBlock;
+    final Universe universe;
     Type[] frameStackTypes;
     int fsp; // points after the last frame stack element
     Type[] frameLocalTypes;
@@ -48,8 +50,9 @@ public final class GraphBuilder extends MethodVisitor {
     final State possibleBlockState = new PossibleBlock();
     int line;
 
-    public GraphBuilder(final int mods, final String name, final String descriptor, final String signature, final String[] exceptions) {
+    public GraphBuilder(final int mods, final String name, final String descriptor, final String signature, final String[] exceptions, final Universe universe) {
         super(Universe.ASM_VERSION);
+        this.universe = universe;
         boolean isStatic = (mods & Opcodes.ACC_STATIC) != 0;
         org.objectweb.asm.Type[] argTypes = getArgumentTypes(descriptor);
         int localsCount = argTypes.length;
@@ -118,7 +121,7 @@ public final class GraphBuilder extends MethodVisitor {
             case org.objectweb.asm.Type.DOUBLE: return Type.F64;
             case org.objectweb.asm.Type.VOID: /* TODO void is not a type */ return Type.VOID;
             case org.objectweb.asm.Type.ARRAY: return Type.arrayOf(typeOfAsmType(asmType.getElementType())); // todo cache
-            case org.objectweb.asm.Type.OBJECT: return Type.classNamed(asmType.getDescriptor()); // todo cache
+            case org.objectweb.asm.Type.OBJECT: return universe.findClass(asmType.getInternalName()).getType();
             default: throw new IllegalStateException();
         }
     }
@@ -377,8 +380,7 @@ public final class GraphBuilder extends MethodVisitor {
             throw new IllegalStateException();
         } else if (o instanceof String) {
             // regular reference type
-            // todo: get the Type based on the current class loader
-            return Type.classNamed((String) o);
+            return universe.findClass((String) o).getType();
         } else {
             throw new IllegalStateException();
         }
@@ -1265,7 +1267,8 @@ public final class GraphBuilder extends MethodVisitor {
 
         public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
             gotInstr = true;
-            //  todo
+            TypeDefinition def = universe.findClass(owner);
+
         }
 
         public void visitIntInsn(final int opcode, final int operand) {
