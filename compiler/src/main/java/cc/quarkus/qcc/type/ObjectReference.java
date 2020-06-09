@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import cc.quarkus.qcc.type.definition.FieldDefinition;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
 import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.universe.Core;
 
 public class ObjectReference {
@@ -15,14 +14,6 @@ public class ObjectReference {
 
     public ObjectReference(TypeDefinition typeDefinition) {
         this.typeDefinition = typeDefinition;
-    }
-
-    public TypeDefinition getTypeDefinition() {
-        return this.typeDefinition;
-    }
-
-    public TypeDescriptor<ObjectReference> getTypeDescriptor() {
-        return TypeDescriptor.of(getTypeDefinition());
     }
 
     public <V> V getField(FieldDescriptor<V> field) {

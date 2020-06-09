@@ -3,10 +3,9 @@ package cc.quarkus.qcc.type.universe;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.context.AttachmentKey;
+import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.spi.ClassFinder;
 import cc.quarkus.qcc.type.definition.LazyTypeDefinition;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
@@ -19,20 +18,20 @@ public class Universe {
 
     public static final int ASM_VERSION = Opcodes.ASM7;
 
-    private static final AtomicReference<Universe> INSTANCE = new AtomicReference<>();
+    private static final AttachmentKey<Universe> key = new AttachmentKey<>();
 
-    public static Universe instance() {
-        return INSTANCE.get();
+    public static Universe rootUniverse() {
+        return Context.requireCurrent().getAttachment(key);
+    }
+
+    public static void setRootUniverse(Universe u) {
+        if (Context.requireCurrent().putAttachmentIfAbsent(key, u) != null) {
+            throw new IllegalStateException("Root universe already attached to context");
+        }
     }
 
     public Universe(ClassFinder classFinder) {
-        this(classFinder, ForkJoinPool.commonPool());
-    }
-
-    public Universe(ClassFinder classFinder, ForkJoinPool pool) {
         this.classFinder = classFinder;
-        this.pool = pool;
-        INSTANCE.set(this);
     }
 
     public TypeDefinition findClass(String name) {
@@ -48,7 +47,7 @@ public class Universe {
     }
 
     public TypeDefinition defineClass(String name, ByteBuffer buffer) {
-        ClassReader reader = null;
+        ClassReader reader;
         try {
             reader = new ClassReader(new ByteBufferInputStream(buffer));
         } catch (IOException e) {
@@ -59,21 +58,11 @@ public class Universe {
         return node;
     }
 
-    public void await(long timeout, TimeUnit unit) {
-        this.pool.awaitQuiescence(timeout, unit);
-    }
-
     public ClassFinder getClassFinder() {
         return this.classFinder;
     }
 
-    public ForkJoinPool getPool() {
-        return this.pool;
-    }
-
     private final ClassFinder classFinder;
-
-    private final ForkJoinPool pool;
 
     private final ConcurrentHashMap<String, TypeDefinition> objectTypes = new ConcurrentHashMap<>();
 
