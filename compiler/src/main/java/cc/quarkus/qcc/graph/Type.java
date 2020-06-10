@@ -51,4 +51,5 @@ public interface Type extends Node {
     default boolean isZero(int value) {
         return value == 0;
     }
+
 }

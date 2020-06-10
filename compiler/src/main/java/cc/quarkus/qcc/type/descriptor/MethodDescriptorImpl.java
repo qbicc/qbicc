@@ -2,6 +2,8 @@ package cc.quarkus.qcc.type.descriptor;
 
 import java.util.List;
 
+import cc.quarkus.qcc.graph.ArrayType;
+import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
 
@@ -45,6 +47,26 @@ public class MethodDescriptorImpl implements MethodDescriptor {
     public String getDescriptor() {
         return this.descriptor;
     }
+
+    @Override
+    public boolean matches(MethodDescriptor other) {
+        if ( ! this.name.equals(other.getName() ) ) {
+            return false;
+        }
+        if ( this.paramTypes.size() != other.getParamTypes().size()) {
+            return false;
+        }
+
+        int len = this.paramTypes.size();
+        for ( int i = 0 ; i < len ; ++i ) {
+            if ( this.paramTypes.get(i) != other.getParamTypes().get(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
 
     @Override
     public String toString() {

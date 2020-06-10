@@ -31,4 +31,11 @@ final class ClassTypeImpl extends NodeImpl implements ClassType {
     public String getLabelForGraph() {
         return "class[" + className + "]";
     }
+
+    @Override
+    public String toString() {
+        return "ClassTypeImpl{" +
+                "className='" + className + '\'' +
+                '}';
+    }
 }
