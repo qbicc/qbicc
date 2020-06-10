@@ -5,7 +5,6 @@ package cc.quarkus.qcc.graph;
  */
 public interface InvocationValue extends Invocation, Value {
     default Type getType() {
-        // TODO: get type from return type of method descriptor
-        return Type.S32;
+        return getInvocationTarget().getReturnType();
     }
 }
