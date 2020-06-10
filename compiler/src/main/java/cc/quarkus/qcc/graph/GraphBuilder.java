@@ -10,8 +10,11 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
+import cc.quarkus.qcc.type.definition.MethodDefinition;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.definition.TypeDefinitionNode;
 import cc.quarkus.qcc.type.universe.Universe;
+import io.smallrye.common.constraint.Assert;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
@@ -50,7 +53,7 @@ public final class GraphBuilder extends MethodVisitor {
     final State possibleBlockState = new PossibleBlock();
     int line;
 
-    public GraphBuilder(final int mods, final String name, final String descriptor, final String signature, final String[] exceptions, final Universe universe) {
+    public GraphBuilder(final int mods, final String name, final String descriptor, final String signature, final String[] exceptions, final TypeDefinition typeDefinition, final Universe universe) {
         super(Universe.ASM_VERSION);
         this.universe = universe;
         boolean isStatic = (mods & Opcodes.ACC_STATIC) != 0;
@@ -67,7 +70,7 @@ public final class GraphBuilder extends MethodVisitor {
         locals = new Value[initialLocalsSize];
         frameLocalTypes = new Type[16];
         Value thisValue = null;
-        Type thisType = Type.classNamed(name);
+        Type thisType = typeDefinition.getType();
         if (localsCount == 0) {
             originalParams = List.of();
         } else {
@@ -1268,7 +1271,62 @@ public final class GraphBuilder extends MethodVisitor {
         public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
             gotInstr = true;
             TypeDefinition def = universe.findClass(owner);
-
+            org.objectweb.asm.Type[] types = getArgumentTypes(descriptor);
+            Type[] actualTypes;
+            int i;
+            int length = types.length;
+            int actualLength;
+            if (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESPECIAL || opcode == Opcodes.INVOKEINTERFACE) {
+                actualLength = length + 1;
+                // add receiver
+                actualTypes = new Type[actualLength];
+                actualTypes[0] = def.getType();
+                i = 1;
+            } else {
+                actualLength = length;
+                actualTypes = new Type[actualLength];
+                i = 0;
+            }
+            for (int j = 0; j < length; j++, i++) {
+                actualTypes[i] = typeOfAsmType(types[j]);
+            }
+            // todo: findMethod doesn't work correctly; also consider isInterface
+            MethodDefinition<?> methodDef = def.findMethod(name, descriptor);
+            Type returnType = typeOfAsmType(getReturnType(descriptor));
+            Invocation val;
+            if (returnType == Type.VOID) {
+                if (false /* try in progress */) {
+                    val = new TryInvocationImpl();
+                } else {
+                    // no try
+                    val = new InvocationImpl();
+                }
+            } else {
+                if (false /* try in progress */) {
+                    val = new TryInvokeValueInstructionImpl();
+                } else {
+                    // no try
+                    val = new InvocationValueImpl();
+                }
+            }
+            val.setInvocationTarget(methodDef);
+            val.setSourceLine(line);
+            val.setOwner(currentBlock);
+            val.setArgumentCount(actualLength);
+            for (int k = actualLength; k > 0; k --) {
+                val.setArgument(k - 1, popSmart());
+            }
+            val.setMemoryDependency(memoryState);
+            if (val instanceof Value) {
+                push((Value) val);
+            }
+            memoryState = val;
+            if (val instanceof Terminator) {
+                Terminator terminator = (Terminator) val;
+                currentBlock.setTerminator(terminator);
+                enter(futureBlockState);
+                ((Goto) val).setNextBlock(futureBlock);
+            }
         }
 
         public void visitIntInsn(final int opcode, final int operand) {

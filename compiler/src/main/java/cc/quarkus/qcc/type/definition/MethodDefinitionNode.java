@@ -27,7 +27,7 @@ public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinit
             if (prev != null) {
                 return prev;
             }
-            GraphBuilder builder = new GraphBuilder(this.access, this.name, this.desc, this.signature, this.exceptions.toArray(new String[0]), typeDefinition.getUniverse());
+            GraphBuilder builder = new GraphBuilder(this.access, this.name, this.desc, this.signature, this.exceptions.toArray(new String[0]), typeDefinition, typeDefinition.getUniverse());
             accept(builder);
             return new MethodGraphImpl(builder.getParameters(), builder.getEntryBlock());
         });
