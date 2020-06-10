@@ -18,4 +18,6 @@ public interface MethodDescriptor {
     List<Type> getParamTypes();
 
     Type getReturnType();
+
+    boolean matches(MethodDescriptor other);
 }

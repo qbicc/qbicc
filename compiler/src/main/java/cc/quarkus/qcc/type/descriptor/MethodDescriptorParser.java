@@ -30,10 +30,10 @@ public class MethodDescriptorParser extends TypeDescriptorParser {
     public List<Type> parseParameters() {
         List<Type> result = new ArrayList<>();
 
-        if ( ! this.isStatic ) {
+        //if ( ! this.isStatic ) {
             // receiver
-            result.add(this.owner.getType());
-        }
+            //result.add(this.owner.getType());
+        //}
 
         LOOP:
         while ( la() != (char) -1) {

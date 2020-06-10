@@ -18,8 +18,14 @@ public interface MethodDefinition<V> extends MethodDescriptor {
 
     int getMaxStack();
 
+    boolean isPublic();
+    boolean isPrivate();
     boolean isSynchronized();
+    boolean isVarargs();
+    boolean isNative();
 
     TypeDefinition getTypeDefinition();
+
+
 
 }

@@ -3,6 +3,7 @@ package cc.quarkus.qcc.type.definition;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import cc.quarkus.qcc.constraint.RelationConstraint;
 import cc.quarkus.qcc.graph.GraphBuilder;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -72,6 +73,11 @@ public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinit
     }
 
     @Override
+    public boolean matches(MethodDescriptor other) {
+        return this.methodDescriptor.matches(other);
+    }
+
+    @Override
     public TypeDefinition getOwner() {
         return this.typeDefinition;
     }
@@ -89,6 +95,26 @@ public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinit
     @Override
     public boolean isSynchronized() {
         return (getMethodNode().access & Opcodes.ACC_SYNCHRONIZED) != 0;
+    }
+
+    @Override
+    public boolean isNative() {
+        return (getMethodNode().access & Opcodes.ACC_NATIVE ) != 0;
+    }
+
+    @Override
+    public boolean isVarargs() {
+        return (getMethodNode().access & Opcodes.ACC_VARARGS) != 0;
+    }
+
+    @Override
+    public boolean isPublic() {
+        return (getMethodNode().access & Opcodes.ACC_PUBLIC) != 0;
+    }
+
+    @Override
+    public boolean isPrivate() {
+        return (getMethodNode().access & Opcodes.ACC_PRIVATE) != 0;
     }
 
     @Override

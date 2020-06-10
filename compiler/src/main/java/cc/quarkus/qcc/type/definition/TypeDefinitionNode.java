@@ -1,15 +1,16 @@
 package cc.quarkus.qcc.type.definition;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+import cc.quarkus.qcc.graph.ArrayType;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptorParser;
+import cc.quarkus.qcc.type.universe.Core;
 import cc.quarkus.qcc.type.universe.Universe;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Opcodes;
@@ -39,6 +40,10 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
                 this.universe.findClass(each, false);
             }
         }
+    }
+
+    public boolean isInterface() {
+        return ( Opcodes.ACC_INTERFACE & this.access ) != 0;
     }
 
     @Override
@@ -106,10 +111,10 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     }
 
     @Override
-    public Set<MethodDefinition<?>> getMethods() {
+    public List<MethodDefinition<?>> getMethods() {
         return this.methods.stream()
                 .map(e -> (MethodDefinition<?>) e)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -131,29 +136,140 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         return (MethodDefinition<V>) findMethod(methodDescriptor.getName(), methodDescriptor.getDescriptor());
     }
 
-    public MethodDefinition<?> findMethod(String name, List<Object> actualParameters) {
-        List<MethodDefinition<?>> candidates = new ArrayList<>();
-        for (MethodNode each : this.methods) {
-            MethodDefinition<?> method = (MethodDefinition<?>) each;
-            if ( ! method.getName().equals(name)) {
-                continue;
+    @Override
+    public MethodDefinition<?> resolveMethod(MethodDescriptor methodDescriptor) {
+        // JVMS 5.4.4.3
+
+        // 1. If C is an interface, method resolution throws an IncompatibleClassChangeError.
+        if ( isInterface() ) {
+            throw new IncompatibleClassChangeError(this.name + " is an interface");
+        }
+
+        // 2. Otherwise, method resolution attempts to locate the referenced method in C and its superclasses:
+
+        // 2.a If C declares exactly one method with the name specified by the method
+        // reference, and the declaration is a signature polymorphic method (§2.9.3),
+        // then method lookup succeeds. All the class names mentioned in the descriptor
+        // are resolved (§5.4.3.1).
+        //
+        // The resolved method is the signature polymorphic method declaration. It is
+        // not necessary for C to declare a method with the descriptor specified by the method reference.
+        if ( isMethodHandleOrVarHandle() ) {
+            List<MethodDefinition<?>> candidates = getMethods().stream().filter(e -> e.getName().equals(methodDescriptor.getName())).collect(Collectors.toList());
+            if ( candidates.size() == 1) {
+                MethodDefinition<?> candidate = candidates.get(0);
+                if ( candidate.isVarargs() && candidate.isNative() ) {
+                    if ( candidate.getParamTypes().size() == 1 ) {
+                        Type theType = candidate.getParamTypes().get(0);
+                        if ( theType instanceof ArrayType ) {
+                            Type elementType = ((ArrayType) theType).getElementType();
+                            if ( elementType instanceof ClassType ) {
+                                if ( ((ClassType)elementType).getClassName().equals( "java/lang/Object") ) {
+                                    return candidate;
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            if ( method.getParamTypes().size() != actualParameters.size() ) {
-                continue;
+        }
+
+        // 2.b Otherwise, if C declares a method with the name and descriptor specified by
+        // the method reference, method lookup succeeds.
+        Optional<MethodDefinition<?>> candidate = getMethods().stream()
+                .filter(methodDescriptor::matches)
+                .findFirst();
+
+        if ( candidate.isPresent() ) {
+            return candidate.get();
+        }
+
+        // 2.c Otherwise, if C has a superclass, step 2 of method resolution is recursively
+        // invoked on the direct superclass of C.
+
+        if ( getSuperclass() != null ) {
+            MethodDefinition<?> superCandidate = getSuperclass().resolveMethod(methodDescriptor);
+            if ( superCandidate != null ) {
+                return superCandidate;
             }
-            candidates.add(method);
         }
 
-        if ( candidates.isEmpty() ) {
-            throw new RuntimeException("Unresolved method " + name + " " + actualParameters);
+        for (TypeDefinition each : getInterfaces()) {
+            MethodDefinition<?> interfaceCandidate = each.resolveInterfaceMethod(methodDescriptor);
         }
 
-        // TODO check arg types and winnow down to exact best match.
+        return null;
+    }
 
-        if ( candidates.size() == 1 ) {
-            return candidates.get(0);
+    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor) {
+        return resolveInterfaceMethod(methodDescriptor, false);
+    }
+
+    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
+        // 5.4.3.4. Interface Method Resolution
+
+        // 1. If C is not an interface, interface method resolution throws an IncompatibleClassChangeError.
+        if ( ! isInterface() ) {
+            throw new IncompatibleClassChangeError(getName() + " is not an interface");
         }
-        throw new RuntimeException("Unresolved method " + name + " " + actualParameters);
+
+        // 2. Otherwise, if C declares a method with the name and descriptor specified
+        // by the interface method reference, method lookup succeeds.
+
+        Optional<MethodDefinition<?>> candidate = getMethods().stream()
+                .filter(methodDescriptor::matches)
+                .findFirst();
+        if (candidate.isPresent() ) {
+            MethodDefinition<?> method = candidate.get();
+
+            if ( ! searchingSuper ) {
+                return method;
+            }
+
+            if ( ! method.isPrivate() && ! method.isStatic() ) {
+                return method;
+            }
+        }
+
+        // 3. Otherwise, if the class Object declares a method with the name and descriptor
+        // specified by the interface method reference, which has its ACC_PUBLIC flag set
+        // and does not have its ACC_STATIC flag set, method lookup succeeds.
+
+        MethodDefinition<?> objectCandidate = Core.java.lang.Object().resolveMethod(methodDescriptor);
+        if ( objectCandidate != null ) {
+            if ( objectCandidate.isPublic() && ! objectCandidate.isStatic()) {
+                return objectCandidate;
+            }
+        }
+
+        // 4. Otherwise, if the maximally-specific superinterface methods (§5.4.3.3) of C
+        // for the name and descriptor specified by the method reference include exactly
+        // one method that does not have its ACC_ABSTRACT flag set, then this method is
+        // chosen and method lookup succeeds.
+
+        for (TypeDefinition each : getInterfaces()) {
+            MethodDefinition<?> superCandidate = getSuperclass().resolveInterfaceMethod(methodDescriptor);
+            if ( superCandidate != null ) {
+                return superCandidate;
+            }
+        }
+
+        // 5. Otherwise, if any superinterface of C declares a method with the name and descriptor
+        // specified by the method reference that has neither its ACC_PRIVATE flag nor its ACC_STATIC
+        // flag set, one of these is arbitrarily chosen and method lookup succeeds.
+
+        for (TypeDefinition each : getInterfaces()) {
+            MethodDefinition<?> interfaceCandidate = each.resolveInterfaceMethod(methodDescriptor, true);
+            if ( interfaceCandidate != null ) {
+                return interfaceCandidate;
+            }
+        }
+
+        return null;
+    }
+
+    protected boolean isMethodHandleOrVarHandle() {
+        return this.name.equals("java/lang/invoke/MethodHandle") || this.name.equals("java/lang/invoke/VarHandle");
     }
 
     @SuppressWarnings("unchecked")

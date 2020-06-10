@@ -28,6 +28,21 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     }
 
     @Override
+    public MethodDefinition<?> resolveMethod(MethodDescriptor methodDescriptor) {
+        return throwUnresolved();
+    }
+
+    @Override
+    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor) {
+        return throwUnresolved();
+    }
+
+    @Override
+    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
+        return throwUnresolved();
+    }
+
+    @Override
     public <V> FieldDefinition<V> findField(String name) {
         return throwUnresolved();
     }
@@ -77,7 +92,7 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     }
 
     @Override
-    public Set<MethodDefinition<?>> getMethods() {
+    public List<MethodDefinition<?>> getMethods() {
         return throwUnresolved();
     }
 

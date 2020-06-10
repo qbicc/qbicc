@@ -80,7 +80,7 @@ public class LazyTypeDefinition implements TypeDefinition {
     }
 
     @Override
-    public Set<MethodDefinition<?>> getMethods() {
+    public List<MethodDefinition<?>> getMethods() {
         return getDelegate().getMethods();
     }
 
@@ -92,6 +92,21 @@ public class LazyTypeDefinition implements TypeDefinition {
     @Override
     public <V> MethodDefinition<V> findMethod(MethodDescriptor methodDescriptor) {
         return getDelegate().findMethod(methodDescriptor);
+    }
+
+    @Override
+    public MethodDefinition<?> resolveMethod(MethodDescriptor methodDescriptor) {
+        return getDelegate().resolveMethod(methodDescriptor);
+    }
+
+    @Override
+    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor) {
+        return getDelegate().resolveInterfaceMethod(methodDescriptor);
+    }
+
+    @Override
+    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
+        return getDelegate().resolveInterfaceMethod(methodDescriptor, searchingSuper);
     }
 
     @Override
