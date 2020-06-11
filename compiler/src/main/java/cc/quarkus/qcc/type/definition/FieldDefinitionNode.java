@@ -24,7 +24,7 @@ public class FieldDefinitionNode<V> extends FieldNode implements FieldDefinition
     }
 
     @Override
-    public Type getTypeDescriptor() {
+    public Type getType() {
         Type type = this.type;
         if (type == null) {
             synchronized (this) {

@@ -5,6 +5,7 @@ import java.util.Set;
 
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 public class UnresolvableClassDefinition implements TypeDefinition {
@@ -39,6 +40,16 @@ public class UnresolvableClassDefinition implements TypeDefinition {
 
     @Override
     public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
+        return throwUnresolved();
+    }
+
+    @Override
+    public List<FieldDefinition<?>> getFields() {
+        return throwUnresolved();
+    }
+
+    @Override
+    public <V> FieldDefinition<V> resolveField(FieldDescriptor fieldDescriptor) {
         return throwUnresolved();
     }
 
