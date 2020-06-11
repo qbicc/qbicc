@@ -6,7 +6,7 @@ import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
-public interface MethodDefinition<V> extends MethodDescriptor {
+public interface MethodDefinition extends MethodDescriptor {
 
     InsnList getInstructions();
 

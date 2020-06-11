@@ -58,7 +58,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
 
     @Override
     public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-        FieldDefinitionNode<?> visitor = new FieldDefinitionNode<>(this, access, name, descriptor, signature, value);
+        FieldDefinitionNode visitor = new FieldDefinitionNode(this, access, name, descriptor, signature, value);
         this.fields.add(visitor);
         return visitor;
     }
@@ -112,17 +112,17 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     }
 
     @Override
-    public List<MethodDefinition<?>> getMethods() {
+    public List<MethodDefinition> getMethods() {
         return this.methods.stream()
-                .map(e -> (MethodDefinition<?>) e)
+                .map(e -> (MethodDefinition) e)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public MethodDefinition<?> findMethod(String name, String desc) {
+    public MethodDefinition findMethod(String name, String desc) {
         for (MethodNode each : this.methods) {
-            if (each.name.equals(name) && each.desc.equals(desc)) {
-                return (MethodDefinition<?>) each;
+            if ( each.name.equals(name) && each.desc.equals(desc)) {
+                return (MethodDefinition) each;
             }
         }
         if (getSuperclass() == null) {
@@ -131,25 +131,24 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         return getSuperclass().findMethod(name, desc);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <V> MethodDefinition<V> findMethod(MethodDescriptor methodDescriptor) {
-        return (MethodDefinition<V>) findMethod(methodDescriptor.getName(), methodDescriptor.getDescriptor());
+    public MethodDefinition findMethod(MethodDescriptor methodDescriptor) {
+        return findMethod(methodDescriptor.getName(), methodDescriptor.getDescriptor());
     }
 
     @Override
-    public List<FieldDefinition<?>> getFields() {
-        return this.fields.stream().map(e -> (FieldDefinition<?>) e).collect(Collectors.toList());
+    public List<FieldDefinition> getFields() {
+        return this.fields.stream().map(e -> (FieldDefinition) e).collect(Collectors.toList());
     }
 
     @Override
-    public FieldDefinition<?> resolveField(FieldDescriptor fieldDescriptor) {
+    public FieldDefinition resolveField(FieldDescriptor fieldDescriptor) {
         // JVMS 5.4.3.2. Field Resolution
 
         // 1. If C declares a field with the name and descriptor specified by the field reference,
         // field lookup succeeds. The declared field is the result of the field lookup.
 
-        for (FieldDefinition<?> field : getFields()) {
+        for (FieldDefinition field : getFields()) {
             if ( field.getName().equals(fieldDescriptor.getName()) && field.getType() == fieldDescriptor.getType() ) {
                 return field;
             }
@@ -159,7 +158,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         // of the specified class or interface C.
 
         for (TypeDefinition each : getInterfaces()) {
-            FieldDefinition<?> candidate = each.resolveField(fieldDescriptor);
+            FieldDefinition candidate = each.resolveField(fieldDescriptor);
             if ( candidate != null ) {
                 return candidate;
             }
@@ -168,7 +167,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         // 3. Otherwise, if C has a superclass S, field lookup is applied recursively to S.
 
         if ( getSuperclass() != null ) {
-            FieldDefinition<?> candidate = getSuperclass().resolveField(fieldDescriptor);
+            FieldDefinition candidate = getSuperclass().resolveField(fieldDescriptor);
             if ( candidate != null ) {
                 return candidate;
             }
@@ -178,7 +177,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
     }
 
     @Override
-    public MethodDefinition<?> resolveMethod(MethodDescriptor methodDescriptor) {
+    public MethodDefinition resolveMethod(MethodDescriptor methodDescriptor) {
         // JVMS 5.4.4.3
 
         // 1. If C is an interface, method resolution throws an IncompatibleClassChangeError.
@@ -195,12 +194,12 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         //
         // The resolved method is the signature polymorphic method declaration. It is
         // not necessary for C to declare a method with the descriptor specified by the method reference.
-        if (isMethodHandleOrVarHandle()) {
-            List<MethodDefinition<?>> candidates = getMethods().stream().filter(e -> e.getName().equals(methodDescriptor.getName())).collect(Collectors.toList());
-            if (candidates.size() == 1) {
-                MethodDefinition<?> candidate = candidates.get(0);
-                if (candidate.isVarargs() && candidate.isNative()) {
-                    if (candidate.getParamTypes().size() == 1) {
+        if ( isMethodHandleOrVarHandle() ) {
+            List<MethodDefinition> candidates = getMethods().stream().filter(e -> e.getName().equals(methodDescriptor.getName())).collect(Collectors.toList());
+            if ( candidates.size() == 1) {
+                MethodDefinition candidate = candidates.get(0);
+                if ( candidate.isVarargs() && candidate.isNative() ) {
+                    if ( candidate.getParamTypes().size() == 1 ) {
                         Type theType = candidate.getParamTypes().get(0);
                         if (theType instanceof ArrayType) {
                             Type elementType = ((ArrayType) theType).getElementType();
@@ -217,7 +216,7 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
 
         // 2.b Otherwise, if C declares a method with the name and descriptor specified by
         // the method reference, method lookup succeeds.
-        Optional<MethodDefinition<?>> candidate = getMethods().stream()
+        Optional<MethodDefinition> candidate = getMethods().stream()
                 .filter(methodDescriptor::matches)
                 .findFirst();
 
@@ -228,25 +227,25 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         // 2.c Otherwise, if C has a superclass, step 2 of method resolution is recursively
         // invoked on the direct superclass of C.
 
-        if (getSuperclass() != null) {
-            MethodDefinition<?> superCandidate = getSuperclass().resolveMethod(methodDescriptor);
-            if (superCandidate != null) {
+        if ( getSuperclass() != null ) {
+            MethodDefinition superCandidate = getSuperclass().resolveMethod(methodDescriptor);
+            if ( superCandidate != null ) {
                 return superCandidate;
             }
         }
 
         for (TypeDefinition each : getInterfaces()) {
-            MethodDefinition<?> interfaceCandidate = each.resolveInterfaceMethod(methodDescriptor);
+            MethodDefinition interfaceCandidate = each.resolveInterfaceMethod(methodDescriptor);
         }
 
         return null;
     }
 
-    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor) {
+    public MethodDefinition resolveInterfaceMethod(MethodDescriptor methodDescriptor) {
         return resolveInterfaceMethod(methodDescriptor, false);
     }
 
-    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
+    public MethodDefinition resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
         // 5.4.3.4. Interface Method Resolution
 
         // 1. If C is not an interface, interface method resolution throws an IncompatibleClassChangeError.
@@ -257,11 +256,11 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         // 2. Otherwise, if C declares a method with the name and descriptor specified
         // by the interface method reference, method lookup succeeds.
 
-        Optional<MethodDefinition<?>> candidate = getMethods().stream()
+        Optional<MethodDefinition> candidate = getMethods().stream()
                 .filter(methodDescriptor::matches)
                 .findFirst();
-        if (candidate.isPresent()) {
-            MethodDefinition<?> method = candidate.get();
+        if (candidate.isPresent() ) {
+            MethodDefinition method = candidate.get();
 
             if (!searchingSuper) {
                 return method;
@@ -276,9 +275,9 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         // specified by the interface method reference, which has its ACC_PUBLIC flag set
         // and does not have its ACC_STATIC flag set, method lookup succeeds.
 
-        MethodDefinition<?> objectCandidate = Core.java.lang.Object().resolveMethod(methodDescriptor);
-        if (objectCandidate != null) {
-            if (objectCandidate.isPublic() && !objectCandidate.isStatic()) {
+        MethodDefinition objectCandidate = Core.java.lang.Object().resolveMethod(methodDescriptor);
+        if ( objectCandidate != null ) {
+            if ( objectCandidate.isPublic() && ! objectCandidate.isStatic()) {
                 return objectCandidate;
             }
         }
@@ -289,8 +288,8 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         // chosen and method lookup succeeds.
 
         for (TypeDefinition each : getInterfaces()) {
-            MethodDefinition<?> superCandidate = getSuperclass().resolveInterfaceMethod(methodDescriptor);
-            if (superCandidate != null) {
+            MethodDefinition superCandidate = getSuperclass().resolveInterfaceMethod(methodDescriptor);
+            if ( superCandidate != null ) {
                 return superCandidate;
             }
         }
@@ -300,8 +299,8 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         // flag set, one of these is arbitrarily chosen and method lookup succeeds.
 
         for (TypeDefinition each : getInterfaces()) {
-            MethodDefinition<?> interfaceCandidate = each.resolveInterfaceMethod(methodDescriptor, true);
-            if (interfaceCandidate != null) {
+            MethodDefinition interfaceCandidate = each.resolveInterfaceMethod(methodDescriptor, true);
+            if ( interfaceCandidate != null ) {
                 return interfaceCandidate;
             }
         }
@@ -313,31 +312,29 @@ public class TypeDefinitionNode extends ClassNode implements TypeDefinition {
         return this.name.equals("java/lang/invoke/MethodHandle") || this.name.equals("java/lang/invoke/VarHandle");
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <V> FieldDefinition<V> findField(String name) {
+    public FieldDefinition findField(String name) {
         for (FieldNode field : this.fields) {
-            if (field.name.equals(name)) {
-                return (FieldDefinition<V>) field;
+            if ( field.name.equals(name)) {
+                return (FieldDefinition) field;
             }
         }
 
         throw new RuntimeException("Unresolved field " + name);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <V> V getStatic(FieldDefinition<V> field) {
-        return (V) ((FieldDefinitionNode<V>) field).value;
+    public Object getStatic(FieldDefinition field) {
+        return ((FieldDefinitionNode)field).value;
     }
 
     @Override
-    public <V> V getField(FieldDefinition<V> field, ObjectReference objRef) {
+    public Object getField(FieldDefinition field, ObjectReference objRef) {
         return objRef.getFieldValue(field);
     }
 
     @Override
-    public <V> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
+    public void putField(FieldDefinition field, ObjectReference objRef, Object val) {
         objRef.setFieldValue(field, val);
     }
 

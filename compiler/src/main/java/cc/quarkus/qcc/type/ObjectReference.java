@@ -16,24 +16,15 @@ public class ObjectReference {
         this.typeDefinition = typeDefinition;
     }
 
-    public <V> V getField(FieldDescriptor field) {
-        return (V) this.typeDefinition.resolveField(field).get(this);
-    }
-
-    public <V> void putField(FieldDescriptor field, V val) {
-        this.typeDefinition.resolveField(field).put(this, val);
-    }
-
-    @SuppressWarnings("unchecked")
-    public <V> V getFieldValue(FieldDefinition<V> field) {
+    public Object getFieldValue(FieldDefinition field) {
         Object v = this.fields.get(field);
         if ( v == null ) {
             v = NULL;
         }
-        return (V) v;
+        return v;
     }
 
-    public <V> void setFieldValue(FieldDefinition<V> field, V val) {
+    public void setFieldValue(FieldDefinition field, Object val) {
         //System.err.println( "setFieldValue: " +field + " = " + val);
         if ( val == null ) {
             this.fields.put(field, NULL);

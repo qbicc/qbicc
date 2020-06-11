@@ -20,7 +20,7 @@ public class UniverseTest {
     public void testMethod() {
         Universe universe = new Universe(new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
         TypeDefinition cls = universe.findClass("cc/quarkus/qcc/type/UniverseTest");
-        MethodDefinition<?> method = cls.findMethod("add", "(II)I");
+        MethodDefinition method = cls.findMethod("add", "(II)I");
         assertThat(method.getGraph()).isNotNull();
     }
 
@@ -32,7 +32,7 @@ public class UniverseTest {
         MethodDescriptorParser parser = new MethodDescriptorParser(universe, obj, "equals", "(Ljava/lang/Object;)Z", false);
         MethodDescriptor desc = parser.parseMethodDescriptor();
 
-        MethodDefinition<?> method = myClass.resolveMethod(desc);
+        MethodDefinition method = myClass.resolveMethod(desc);
         assertThat(method.getOwner().getName()).isEqualTo(myClass.getName());
 
         TypeDefinition myOtherClass = universe.findClass("cc/quarkus/qcc/type/MyOtherClass");
