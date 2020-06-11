@@ -51,7 +51,7 @@ public class Universe {
         try {
             reader = new ClassReader(new ByteBufferInputStream(buffer));
         } catch (IOException e) {
-            return new UnresolvableClassDefinition(name);
+            return new UnresolvableClassDefinition(name, this);
         }
         TypeDefinitionNode node = new TypeDefinitionNode(this);
         reader.accept(node, 0);

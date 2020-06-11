@@ -27,7 +27,7 @@ public class LazyTypeDefinition implements TypeDefinition {
                     try {
                         delegate = resolve();
                     } catch (IOException | ClassNotFoundException e) {
-                        delegate = new UnresolvableClassDefinition(name);
+                        delegate = new UnresolvableClassDefinition(name, universe);
                     }
                     this.delegate = delegate;
                 }
@@ -38,6 +38,11 @@ public class LazyTypeDefinition implements TypeDefinition {
 
     private TypeDefinition resolve() throws IOException, ClassNotFoundException {
         return this.universe.defineClass(name, ByteBuffer.wrap(universe.getClassFinder().findClass(name).readAllBytes()));
+    }
+
+    @Override
+    public Universe getUniverse() {
+        return this.universe;
     }
 
     @Override
