@@ -113,7 +113,7 @@ public final class Context {
         return (T) attachments.computeIfPresent(key, (k, v) -> function.apply((T) v));
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({ "unchecked" })
     public <T> T computeAttachment(AttachmentKey<T> key, final Function<T, T> function) {
         Assert.checkNotNullParam("key", key);
         return (T) attachments.compute(key, (k, v) -> function.apply((T) v));

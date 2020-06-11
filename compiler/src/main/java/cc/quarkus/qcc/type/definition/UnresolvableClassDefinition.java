@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
 import java.util.List;
-import java.util.Set;
 
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.type.ObjectReference;
@@ -16,72 +15,72 @@ public class UnresolvableClassDefinition implements TypeDefinition {
         this.universe = universe;
     }
 
-    protected <R> R throwUnresolved() {
+    protected RuntimeException unresolved() {
         throw new RuntimeException("Class " + this.name + " is unresolved");
     }
 
     @Override
-    public MethodDefinition<?> findMethod(String name, String desc) {
-        return throwUnresolved();
+    public MethodDefinition findMethod(String name, String desc) {
+        throw unresolved();
     }
 
     @Override
-    public <V> MethodDefinition<V> findMethod(MethodDescriptor methodDescriptor) {
-        return throwUnresolved();
+    public MethodDefinition findMethod(MethodDescriptor methodDescriptor) {
+        throw unresolved();
     }
 
     @Override
-    public MethodDefinition<?> resolveMethod(MethodDescriptor methodDescriptor) {
-        return throwUnresolved();
+    public MethodDefinition resolveMethod(MethodDescriptor methodDescriptor) {
+        throw unresolved();
     }
 
     @Override
-    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor) {
-        return throwUnresolved();
+    public MethodDefinition resolveInterfaceMethod(MethodDescriptor methodDescriptor) {
+        throw unresolved();
     }
 
     @Override
-    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
-        return throwUnresolved();
+    public MethodDefinition resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
+        throw unresolved();
     }
 
     @Override
-    public List<FieldDefinition<?>> getFields() {
-        return throwUnresolved();
+    public List<FieldDefinition> getFields() {
+        throw unresolved();
     }
 
     @Override
-    public <V> FieldDefinition<V> resolveField(FieldDescriptor fieldDescriptor) {
-        return throwUnresolved();
+    public FieldDefinition resolveField(FieldDescriptor fieldDescriptor) {
+        throw unresolved();
     }
 
     @Override
-    public <V> FieldDefinition<V> findField(String name) {
-        return throwUnresolved();
+    public FieldDefinition findField(String name) {
+        throw unresolved();
     }
 
     @Override
-    public <V> V getStatic(FieldDefinition<V> field) {
-        return throwUnresolved();
+    public Object getStatic(FieldDefinition field) {
+        throw unresolved();
     }
 
     @Override
-    public <V> V getField(FieldDefinition<V> field, ObjectReference objRef) {
-        return throwUnresolved();
+    public Object getField(FieldDefinition field, ObjectReference objRef) {
+        throw unresolved();
     }
 
     @Override
-    public <V> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
-        throwUnresolved();
+    public void putField(FieldDefinition field, ObjectReference objRef, Object val) {
+        throw unresolved();
     }
 
     public ClassType getType() {
-        return throwUnresolved();
+        throw unresolved();
     }
 
     @Override
     public boolean isAssignableFrom(TypeDefinition other) {
-        return throwUnresolved();
+        throw unresolved();
     }
 
     @Override
@@ -91,7 +90,7 @@ public class UnresolvableClassDefinition implements TypeDefinition {
 
     @Override
     public int getAccess() {
-        return throwUnresolved();
+        throw unresolved();
     }
 
     @Override
@@ -101,17 +100,17 @@ public class UnresolvableClassDefinition implements TypeDefinition {
 
     @Override
     public TypeDefinition getSuperclass() {
-        return throwUnresolved();
+        throw unresolved();
     }
 
     @Override
     public List<TypeDefinition> getInterfaces() {
-        return throwUnresolved();
+        throw unresolved();
     }
 
     @Override
-    public List<MethodDefinition<?>> getMethods() {
-        return throwUnresolved();
+    public List<MethodDefinition> getMethods() {
+        throw unresolved();
     }
 
     private final String name;

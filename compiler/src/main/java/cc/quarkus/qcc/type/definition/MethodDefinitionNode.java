@@ -13,7 +13,7 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TryCatchBlockNode;
 
-public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinition<V> {
+public class MethodDefinitionNode<V> extends MethodNode implements MethodDefinition {
 
     public MethodDefinitionNode(TypeDefinitionNode typeDefinition, int access, String name, MethodDescriptor methodDescriptor, String signature, String[] exceptions) {
         super(Universe.ASM_VERSION, access, name, methodDescriptor.getDescriptor(), signature, exceptions);

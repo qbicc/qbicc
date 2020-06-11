@@ -1,12 +1,11 @@
 package cc.quarkus.qcc.type.definition;
 
 import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptorParser;
 import cc.quarkus.qcc.type.universe.Universe;
 import org.objectweb.asm.tree.FieldNode;
 
-public class FieldDefinitionNode<V> extends FieldNode implements FieldDefinition<V> {
+public class FieldDefinitionNode extends FieldNode implements FieldDefinition {
 
     public FieldDefinitionNode(TypeDefinition typeDefinition,
                                final int access,
@@ -41,16 +40,6 @@ public class FieldDefinitionNode<V> extends FieldNode implements FieldDefinition
     @Override
     public String getName() {
         return this.name;
-    }
-
-    @Override
-    public V get(ObjectReference objRef) {
-        return this.typeDefinition.getField(this, objRef);
-    }
-
-    @Override
-    public void put(ObjectReference objRef, V val) {
-        this.typeDefinition.putField(this, objRef, val);
     }
 
     @Override

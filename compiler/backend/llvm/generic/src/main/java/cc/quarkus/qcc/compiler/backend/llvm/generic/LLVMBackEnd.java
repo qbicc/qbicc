@@ -107,7 +107,7 @@ public final class LLVMBackEnd implements BackEnd {
         final ArrayDeque<MethodDefinitionNode<?>> methodQueue = new ArrayDeque<>();
         while (! classQueue.isEmpty()) {
             final TypeDefinition def = classQueue.removeFirst();
-            for (MethodDefinition<?> method : def.getMethods()) {
+            for (MethodDefinition method : def.getMethods()) {
                 // hate this
                 MethodDefinitionNode<?> node = (MethodDefinitionNode<?>) method;
                 final List<AnnotationNode> visibleAnnotations = node.visibleAnnotations;

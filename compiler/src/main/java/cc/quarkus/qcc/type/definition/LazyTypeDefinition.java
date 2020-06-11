@@ -3,7 +3,6 @@ package cc.quarkus.qcc.type.definition;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Set;
 
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.Type;
@@ -86,62 +85,62 @@ public class LazyTypeDefinition implements TypeDefinition {
     }
 
     @Override
-    public List<MethodDefinition<?>> getMethods() {
+    public List<MethodDefinition> getMethods() {
         return getDelegate().getMethods();
     }
 
     @Override
-    public MethodDefinition<?> findMethod(String name, String desc) {
+    public MethodDefinition findMethod(String name, String desc) {
         return getDelegate().findMethod(name, desc);
     }
 
     @Override
-    public <V> MethodDefinition<V> findMethod(MethodDescriptor methodDescriptor) {
+    public MethodDefinition findMethod(MethodDescriptor methodDescriptor) {
         return getDelegate().findMethod(methodDescriptor);
     }
 
     @Override
-    public MethodDefinition<?> resolveMethod(MethodDescriptor methodDescriptor) {
+    public MethodDefinition resolveMethod(MethodDescriptor methodDescriptor) {
         return getDelegate().resolveMethod(methodDescriptor);
     }
 
     @Override
-    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor) {
+    public MethodDefinition resolveInterfaceMethod(MethodDescriptor methodDescriptor) {
         return getDelegate().resolveInterfaceMethod(methodDescriptor);
     }
 
     @Override
-    public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
+    public MethodDefinition resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
         return getDelegate().resolveInterfaceMethod(methodDescriptor, searchingSuper);
     }
 
     @Override
-    public List<FieldDefinition<?>> getFields() {
+    public List<FieldDefinition> getFields() {
         return getDelegate().getFields();
     }
 
     @Override
-    public <V> FieldDefinition<V> resolveField(FieldDescriptor fieldDescriptor) {
+    public FieldDefinition resolveField(FieldDescriptor fieldDescriptor) {
         return getDelegate().resolveField(fieldDescriptor);
     }
 
     @Override
-    public <V> FieldDefinition<V> findField(String name) {
+    public FieldDefinition findField(String name) {
         return getDelegate().findField(name);
     }
 
     @Override
-    public <V> void putField(FieldDefinition<V> field, ObjectReference objRef, V val) {
+    public void putField(FieldDefinition field, ObjectReference objRef, Object val) {
         getDelegate().putField(field, objRef, val);
     }
 
     @Override
-    public <V> V getStatic(FieldDefinition<V> field) {
+    public Object getStatic(FieldDefinition field) {
         return getDelegate().getStatic(field);
     }
 
     @Override
-    public <V> V getField(FieldDefinition<V> field, ObjectReference objRef) {
+    public Object getField(FieldDefinition field, ObjectReference objRef) {
         return getDelegate().getField(field, objRef);
     }
 

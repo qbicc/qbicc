@@ -12,9 +12,7 @@ import java.util.Map;
 
 import cc.quarkus.qcc.type.definition.MethodDefinition;
 import cc.quarkus.qcc.type.definition.TypeDefinition;
-import cc.quarkus.qcc.type.definition.TypeDefinitionNode;
 import cc.quarkus.qcc.type.universe.Universe;
-import io.smallrye.common.constraint.Assert;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
@@ -1291,7 +1289,7 @@ public final class GraphBuilder extends MethodVisitor {
                 actualTypes[i] = typeOfAsmType(types[j]);
             }
             // todo: findMethod doesn't work correctly; also consider isInterface
-            MethodDefinition<?> methodDef = def.findMethod(name, descriptor);
+            MethodDefinition methodDef = def.findMethod(name, descriptor);
             Type returnType = typeOfAsmType(getReturnType(descriptor));
             Invocation val;
             if (returnType == Type.VOID) {
