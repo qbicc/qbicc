@@ -7,11 +7,13 @@ import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.universe.Universe;
 
 public class UnresolvableClassDefinition implements TypeDefinition {
 
-    public UnresolvableClassDefinition(String name) {
+    public UnresolvableClassDefinition(String name, final Universe universe) {
         this.name = name;
+        this.universe = universe;
     }
 
     protected <R> R throwUnresolved() {
@@ -83,6 +85,11 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     }
 
     @Override
+    public Universe getUniverse() {
+        return universe;
+    }
+
+    @Override
     public int getAccess() {
         return throwUnresolved();
     }
@@ -108,4 +115,5 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     }
 
     private final String name;
+    private final Universe universe;
 }

@@ -7,8 +7,11 @@ import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.universe.Universe;
 
 public interface TypeDefinition {
+    Universe getUniverse();
+
     int getAccess();
 
     String getName();
