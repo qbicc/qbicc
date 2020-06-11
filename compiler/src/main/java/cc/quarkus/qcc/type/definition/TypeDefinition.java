@@ -5,6 +5,7 @@ import java.util.Set;
 
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 public interface TypeDefinition {
@@ -24,6 +25,10 @@ public interface TypeDefinition {
     MethodDefinition<?> resolveMethod(MethodDescriptor methodDescriptor);
     MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor);
     MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper);
+
+    List<FieldDefinition<?>> getFields();
+
+    <V> FieldDefinition<V> resolveField(FieldDescriptor fieldDescriptor);
 
     <V> FieldDefinition<V> findField(String name);
 

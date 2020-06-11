@@ -8,6 +8,7 @@ import java.util.Set;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.ObjectReference;
+import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.universe.Universe;
 
@@ -107,6 +108,16 @@ public class LazyTypeDefinition implements TypeDefinition {
     @Override
     public MethodDefinition<?> resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
         return getDelegate().resolveInterfaceMethod(methodDescriptor, searchingSuper);
+    }
+
+    @Override
+    public List<FieldDefinition<?>> getFields() {
+        return getDelegate().getFields();
+    }
+
+    @Override
+    public <V> FieldDefinition<V> resolveField(FieldDescriptor fieldDescriptor) {
+        return getDelegate().resolveField(fieldDescriptor);
     }
 
     @Override

@@ -16,12 +16,12 @@ public class ObjectReference {
         this.typeDefinition = typeDefinition;
     }
 
-    public <V> V getField(FieldDescriptor<V> field) {
-        return field.get(this);
+    public <V> V getField(FieldDescriptor field) {
+        return (V) this.typeDefinition.resolveField(field).get(this);
     }
 
-    public <V> void putField(FieldDescriptor<V> field, V val) {
-        field.put(this, val);
+    public <V> void putField(FieldDescriptor field, V val) {
+        this.typeDefinition.resolveField(field).put(this, val);
     }
 
     @SuppressWarnings("unchecked")
@@ -51,5 +51,5 @@ public class ObjectReference {
     }
 
     private final TypeDefinition typeDefinition;
-    private final Map<FieldDescriptor<?>, Object> fields = new ConcurrentHashMap<>();
+    private final Map<FieldDescriptor, Object> fields = new ConcurrentHashMap<>();
 }
