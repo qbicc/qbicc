@@ -6,10 +6,10 @@ import java.nio.ByteBuffer;
 /**
  *
  */
-final class ByteBufferInputStream extends InputStream {
+public final class ByteBufferInputStream extends InputStream {
     private final ByteBuffer buf;
 
-    ByteBufferInputStream(final ByteBuffer buf) {
+    public ByteBufferInputStream(final ByteBuffer buf) {
         this.buf = buf;
     }
 

@@ -5,7 +5,7 @@ import java.util.List;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import cc.quarkus.qcc.type.universe.Universe;
 
 public interface TypeDefinition {
@@ -22,25 +22,25 @@ public interface TypeDefinition {
     List<MethodDefinition> getMethods();
 
     MethodDefinition findMethod(String name, String desc);
-    MethodDefinition findMethod(MethodDescriptor methodDescriptor);
+    MethodDefinition findMethod(MethodIdentifier methodDescriptor);
 
-    MethodDefinition resolveMethod(MethodDescriptor methodDescriptor);
-    MethodDefinition resolveInterfaceMethod(MethodDescriptor methodDescriptor);
-    MethodDefinition resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper);
+    MethodDefinition resolveMethod(MethodIdentifier methodDescriptor);
+    MethodDefinition resolveInterfaceMethod(MethodIdentifier methodDescriptor);
+    MethodDefinition resolveInterfaceMethod(MethodIdentifier methodDescriptor, boolean searchingSuper);
 
-    List<FieldDefinition> getFields();
+    List<ResolvedFieldDefinition> getFields();
 
-    FieldDefinition resolveField(FieldDescriptor fieldDescriptor);
+    ResolvedFieldDefinition resolveField(FieldDescriptor fieldDescriptor);
 
-    FieldDefinition findField(String name);
+    ResolvedFieldDefinition findField(String name);
 
     boolean isAssignableFrom(TypeDefinition other);
 
-    Object getStatic(FieldDefinition field);
+    Object getStatic(ResolvedFieldDefinition field);
 
-    Object getField(FieldDefinition field, ObjectReference objRef);
+    Object getField(ResolvedFieldDefinition field, ObjectReference objRef);
 
-    void putField(FieldDefinition field, ObjectReference objRef, Object val);
+    void putField(ResolvedFieldDefinition field, ObjectReference objRef, Object val);
 
     ClassType getType();
 }

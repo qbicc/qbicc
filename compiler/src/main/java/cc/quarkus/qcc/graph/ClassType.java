@@ -7,4 +7,19 @@ package cc.quarkus.qcc.graph;
 public interface ClassType extends Type {
     // todo: compact package and class names
     String getClassName();
+
+    ClassType getSuperClass();
+
+    int getInterfaceCount();
+
+    InterfaceType getInterface(int index) throws IndexOutOfBoundsException;
+
+    boolean isAssignableFrom(ClassType other);
+
+    /**
+     * Get the type that is an array class of this type.
+     *
+     * @return the type that is an array of this type
+     */
+    ArrayClassType getArrayType();
 }

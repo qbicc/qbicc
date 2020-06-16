@@ -1,12 +1,11 @@
 package cc.quarkus.qcc.type;
 
 import cc.quarkus.qcc.type.definition.TypeDefinition;
-import cc.quarkus.qcc.type.universe.Core;
 
 public class HostBackedObjectReference<T> extends ObjectReference {
 
     public static HostBackedObjectReference<String> newString(String val) {
-        return new HostBackedObjectReference<>(Core.java.lang.String(), val);
+        throw new UnsupportedOperationException("return new HostBackedObjectReference<>(Core.java.lang.String(), val);");
     }
 
     HostBackedObjectReference(TypeDefinition typeDefinition, T val) {

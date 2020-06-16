@@ -5,7 +5,7 @@ import java.util.List;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.type.ObjectReference;
 import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import cc.quarkus.qcc.type.universe.Universe;
 
 public class UnresolvableClassDefinition implements TypeDefinition {
@@ -25,52 +25,52 @@ public class UnresolvableClassDefinition implements TypeDefinition {
     }
 
     @Override
-    public MethodDefinition findMethod(MethodDescriptor methodDescriptor) {
+    public MethodDefinition findMethod(MethodIdentifier methodDescriptor) {
         throw unresolved();
     }
 
     @Override
-    public MethodDefinition resolveMethod(MethodDescriptor methodDescriptor) {
+    public MethodDefinition resolveMethod(MethodIdentifier methodDescriptor) {
         throw unresolved();
     }
 
     @Override
-    public MethodDefinition resolveInterfaceMethod(MethodDescriptor methodDescriptor) {
+    public MethodDefinition resolveInterfaceMethod(MethodIdentifier methodDescriptor) {
         throw unresolved();
     }
 
     @Override
-    public MethodDefinition resolveInterfaceMethod(MethodDescriptor methodDescriptor, boolean searchingSuper) {
+    public MethodDefinition resolveInterfaceMethod(MethodIdentifier methodDescriptor, boolean searchingSuper) {
         throw unresolved();
     }
 
     @Override
-    public List<FieldDefinition> getFields() {
+    public List<ResolvedFieldDefinition> getFields() {
         throw unresolved();
     }
 
     @Override
-    public FieldDefinition resolveField(FieldDescriptor fieldDescriptor) {
+    public ResolvedFieldDefinition resolveField(FieldDescriptor fieldDescriptor) {
         throw unresolved();
     }
 
     @Override
-    public FieldDefinition findField(String name) {
+    public ResolvedFieldDefinition findField(String name) {
         throw unresolved();
     }
 
     @Override
-    public Object getStatic(FieldDefinition field) {
+    public Object getStatic(ResolvedFieldDefinition field) {
         throw unresolved();
     }
 
     @Override
-    public Object getField(FieldDefinition field, ObjectReference objRef) {
+    public Object getField(ResolvedFieldDefinition field, ObjectReference objRef) {
         throw unresolved();
     }
 
     @Override
-    public void putField(FieldDefinition field, ObjectReference objRef, Object val) {
+    public void putField(ResolvedFieldDefinition field, ObjectReference objRef, Object val) {
         throw unresolved();
     }
 

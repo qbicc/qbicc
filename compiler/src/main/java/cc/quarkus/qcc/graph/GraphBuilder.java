@@ -10,8 +10,11 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
-import cc.quarkus.qcc.type.definition.MethodDefinition;
-import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
+import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
+import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
+import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
 import cc.quarkus.qcc.type.universe.Universe;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Handle;
@@ -51,9 +54,9 @@ public final class GraphBuilder extends MethodVisitor {
     final State possibleBlockState = new PossibleBlock();
     int line;
 
-    public GraphBuilder(final int mods, final String name, final String descriptor, final String signature, final String[] exceptions, final TypeDefinition typeDefinition, final Universe universe) {
+    public GraphBuilder(final int mods, final String name, final String descriptor, final ResolvedTypeDefinition typeDefinition) {
         super(Universe.ASM_VERSION);
-        this.universe = universe;
+        this.universe = typeDefinition.getDefiningClassLoader();
         boolean isStatic = (mods & Opcodes.ACC_STATIC) != 0;
         org.objectweb.asm.Type[] argTypes = getArgumentTypes(descriptor);
         int localsCount = argTypes.length;
@@ -68,7 +71,7 @@ public final class GraphBuilder extends MethodVisitor {
         locals = new Value[initialLocalsSize];
         frameLocalTypes = new Type[16];
         Value thisValue = null;
-        Type thisType = typeDefinition.getType();
+        Type thisType = typeDefinition.getClassType();
         if (localsCount == 0) {
             originalParams = List.of();
         } else {
@@ -122,7 +125,7 @@ public final class GraphBuilder extends MethodVisitor {
             case org.objectweb.asm.Type.DOUBLE: return Type.F64;
             case org.objectweb.asm.Type.VOID: /* TODO void is not a type */ return Type.VOID;
             case org.objectweb.asm.Type.ARRAY: return Type.arrayOf(typeOfAsmType(asmType.getElementType())); // todo cache
-            case org.objectweb.asm.Type.OBJECT: return universe.findClass(asmType.getInternalName()).getType();
+            case org.objectweb.asm.Type.OBJECT: return universe.findClass(asmType.getInternalName()).verify().getClassType();
             default: throw new IllegalStateException();
         }
     }
@@ -381,7 +384,7 @@ public final class GraphBuilder extends MethodVisitor {
             throw new IllegalStateException();
         } else if (o instanceof String) {
             // regular reference type
-            return universe.findClass((String) o).getType();
+            return universe.findClass((String) o).verify().getClassType();
         } else {
             throw new IllegalStateException();
         }
@@ -1268,7 +1271,7 @@ public final class GraphBuilder extends MethodVisitor {
 
         public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
             gotInstr = true;
-            TypeDefinition def = universe.findClass(owner);
+            DefinedTypeDefinition def = universe.findClass(owner);
             org.objectweb.asm.Type[] types = getArgumentTypes(descriptor);
             Type[] actualTypes;
             int i;
@@ -1278,7 +1281,7 @@ public final class GraphBuilder extends MethodVisitor {
                 actualLength = length + 1;
                 // add receiver
                 actualTypes = new Type[actualLength];
-                actualTypes[0] = def.getType();
+                actualTypes[0] = def.verify().getClassType();
                 i = 1;
             } else {
                 actualLength = length;
@@ -1288,9 +1291,14 @@ public final class GraphBuilder extends MethodVisitor {
             for (int j = 0; j < length; j++, i++) {
                 actualTypes[i] = typeOfAsmType(types[j]);
             }
-            // todo: findMethod doesn't work correctly; also consider isInterface
-            MethodDefinition methodDef = def.findMethod(name, descriptor);
+            ResolvedMethodDefinition methodDef;
             Type returnType = typeOfAsmType(getReturnType(descriptor));
+            MethodIdentifier identifier = MethodIdentifier.of(name, MethodTypeDescriptor.of(returnType, actualTypes));
+            if (isInterface) {
+                methodDef = def.verify().resolve().resolveMethod(identifier);
+            } else {
+                methodDef = def.verify().resolve().resolveInterfaceMethod(identifier);
+            }
             Invocation val;
             if (returnType == Type.VOID) {
                 if (false /* try in progress */) {
@@ -1307,7 +1315,9 @@ public final class GraphBuilder extends MethodVisitor {
                     val = new InvocationValueImpl();
                 }
             }
-            val.setInvocationTarget(methodDef);
+            val.setMethodOwner(def.verify().getClassType());
+            // use the resolved method identifier
+            val.setInvocationTarget(methodDef.getMethodIdentifier());
             val.setSourceLine(line);
             val.setOwner(currentBlock);
             val.setArgumentCount(actualLength);

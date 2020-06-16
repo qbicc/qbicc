@@ -6,14 +6,12 @@ import io.smallrye.common.constraint.Assert;
 /**
  *
  */
-final class ClassTypeImpl extends AbstractClassTypeImpl implements ClassType {
+final class InterfaceTypeImpl extends AbstractClassTypeImpl implements InterfaceType {
     private final String className;
-    private final ClassType superClass;
     private final InterfaceType[] interfaces;
 
-    ClassTypeImpl(final String className, final ClassType superClass, final InterfaceType[] interfaces) {
+    InterfaceTypeImpl(final String className, final InterfaceType[] interfaces) {
         this.className = className;
-        this.superClass = superClass;
         this.interfaces = interfaces;
     }
 
@@ -22,7 +20,7 @@ final class ClassTypeImpl extends AbstractClassTypeImpl implements ClassType {
     }
 
     public ClassType getSuperClass() {
-        return superClass;
+        return null;
     }
 
     public int getInterfaceCount() {
@@ -59,12 +57,12 @@ final class ClassTypeImpl extends AbstractClassTypeImpl implements ClassType {
     }
 
     public String getLabelForGraph() {
-        return "class[" + className + "]";
+        return "interface[" + className + "]";
     }
 
     @Override
     public String toString() {
-        return "ClassTypeImpl{" +
+        return "InterfaceTypeImpl{" +
                 "className='" + className + '\'' +
                 '}';
     }
