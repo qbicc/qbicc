@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
+import io.smallrye.common.constraint.Assert;
 
 /**
  *
@@ -14,8 +15,17 @@ public interface Type extends Node {
         return new ArrayTypeImpl(elementType);
     }
 
+    @Deprecated
     static ClassType classNamed(String name) {
-        return new ClassTypeImpl(name);
+        throw Assert.unsupported();
+    }
+
+    static ClassType classType(String name, ClassType superType, InterfaceType... interfaceTypes) {
+        return new ClassTypeImpl(name, superType, interfaceTypes.length == 0 ? InterfaceType.NO_INTERFACES : interfaceTypes.clone());
+    }
+
+    static InterfaceType interfaceType(String name, InterfaceType... interfaceTypes) {
+        return new InterfaceTypeImpl(name, interfaceTypes.length == 0 ? InterfaceType.NO_INTERFACES : interfaceTypes.clone());
     }
 
     int getParameterCount();
@@ -39,6 +49,24 @@ public interface Type extends Node {
     FloatType F64 = new Float64Type();
 
     StringLiteralType STRING = new StringLiteralTypeImpl();
+
+    // java.lang.Object
+
+    ClassType JAVA_LANG_OBJECT = classType("java/lang/Object", null, InterfaceType.NO_INTERFACES);
+
+    // primitive array types
+
+    ArrayClassType JAVA_BYTE_ARRAY = new ArrayClassTypeImpl(S8);
+    ArrayClassType JAVA_SHORT_ARRAY = new ArrayClassTypeImpl(S16);
+    ArrayClassType JAVA_INT_ARRAY = new ArrayClassTypeImpl(S32);
+    ArrayClassType JAVA_LONG_ARRAY = new ArrayClassTypeImpl(S64);
+
+    ArrayClassType JAVA_CHAR_ARRAY = new ArrayClassTypeImpl(U16);
+
+    ArrayClassType JAVA_FLOAT_ARRAY = new ArrayClassTypeImpl(F32);
+    ArrayClassType JAVA_DOUBLE_ARRAY = new ArrayClassTypeImpl(F64);
+
+    ArrayClassType JAVA_BOOLEAN_ARRAY = new ArrayClassTypeImpl(BOOL);
 
     default boolean isClass2Type() {
         return false;

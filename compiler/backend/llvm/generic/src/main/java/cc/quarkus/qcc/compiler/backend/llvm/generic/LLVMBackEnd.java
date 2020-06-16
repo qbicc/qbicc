@@ -68,14 +68,13 @@ import cc.quarkus.qcc.machine.tool.process.OutputDestination;
 import cc.quarkus.qcc.tool.llvm.LlcInvoker;
 import cc.quarkus.qcc.tool.llvm.LlcTool;
 import cc.quarkus.qcc.tool.llvm.LlcToolImpl;
-import cc.quarkus.qcc.type.definition.MethodDefinition;
-import cc.quarkus.qcc.type.definition.MethodDefinitionNode;
-import cc.quarkus.qcc.type.definition.MethodGraph;
-import cc.quarkus.qcc.type.definition.TypeDefinition;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.definition.ResolvedMethodBody;
+import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
+import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
+import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
+import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
 import cc.quarkus.qcc.type.universe.Universe;
 import io.smallrye.common.constraint.Assert;
-import org.objectweb.asm.tree.AnnotationNode;
 
 public final class LLVMBackEnd implements BackEnd {
     public LLVMBackEnd() {}
@@ -100,31 +99,24 @@ public final class LLVMBackEnd implements BackEnd {
         // find C compiler
         final CCompiler cc = ToolProvider.findAllTools(CCompiler.class, Platform.HOST_PLATFORM, t -> true, LLVMBackEnd.class.getClassLoader()).iterator().next();
         final Optional<List<String>> names = config.entryPointClassNames();
-        final ArrayDeque<TypeDefinition> classQueue = new ArrayDeque<>();
+        final ArrayDeque<ResolvedTypeDefinition> classQueue = new ArrayDeque<>();
         for (String className : names.orElse(List.of())) {
-            classQueue.addLast(universe.findClass(className));
+            classQueue.addLast(universe.findClass(className).verify().resolve());
         }
-        final ArrayDeque<MethodDefinitionNode<?>> methodQueue = new ArrayDeque<>();
+        final ArrayDeque<ResolvedMethodDefinition> methodQueue = new ArrayDeque<>();
         while (! classQueue.isEmpty()) {
-            final TypeDefinition def = classQueue.removeFirst();
-            for (MethodDefinition method : def.getMethods()) {
-                // hate this
-                MethodDefinitionNode<?> node = (MethodDefinitionNode<?>) method;
-                final List<AnnotationNode> visibleAnnotations = node.visibleAnnotations;
-                // ASM is terrible
-                if (visibleAnnotations != null) {
-                    for (AnnotationNode visibleAnnotation : visibleAnnotations) {
-                        if (visibleAnnotation.desc.equals("Lcc/quarkus/c_native/api/CNative$extern;")) {
-                            // emit method, but this isn't really the way we're going to do it at all
-                            methodQueue.addLast(node);
-                        }
-                    }
-                }
+            final ResolvedTypeDefinition def = classQueue.removeFirst();
+            int methodCount = def.getMethodCount();
+            for (int i = 0; i < methodCount; i ++) {
+                ResolvedMethodDefinition method = def.getMethodDefinition(i);
+                ResolvedMethodBody resolved = method.getMethodBody().verify().resolve();
+                // XXX decide when/how to add the entry point method(s)
+                // XXX for now we'll just add them all!
+                methodQueue.addLast(method);
             }
         }
         final Module module = LLVM.newModule();
-        final Map<MethodDescriptor, FunctionDefinition> functions = new HashMap<>();
-        ProgramContext pc = new ProgramContext(module, functions, methodQueue);
+        ProgramContext pc = new ProgramContext(module, methodQueue);
         // now just emit the methods raw
         while (! methodQueue.isEmpty()) {
             compileMethod(pc, methodQueue.removeFirst());
@@ -164,26 +156,34 @@ public final class LLVMBackEnd implements BackEnd {
         return;
     }
 
-    FunctionDefinition getMethod(final ProgramContext pc, final MethodDescriptor desc) {
-        Map<MethodDescriptor, FunctionDefinition> fn = pc.functions;
-        FunctionDefinition def = fn.get(desc);
+    FunctionDefinition getMethod(final ProgramContext pc, final ClassType ownerType, final MethodIdentifier identifier) {
+        Map<MethodIdentifier, FunctionDefinition> typeMap = pc.functionsByType.computeIfAbsent(ownerType, t -> new HashMap<>());
+        FunctionDefinition def = typeMap.get(identifier);
         if (def != null) {
             return def;
         }
         StringBuilder b = new StringBuilder();
-        String name = desc.getName();
-        String descriptor = desc.getDescriptor();
-        TypeDefinition owner = desc.getOwner();
-        String ownerName = owner.getName();
         b.append(".exact.");
-        mangle(ownerName, b);
+        mangle(ownerType.getClassName(), b);
         b.append(".");
-        mangle(name, b);
+        mangle(identifier.getName(), b);
         b.append(".");
-        mangle(descriptor, b);
+        mangle(identifier, b);
         def = pc.module.define(b.toString());
-        fn.put(desc, def);
+        typeMap.put(identifier, def);
         return def;
+    }
+
+    void mangle(MethodTypeDescriptor desc, StringBuilder b) {
+        mangle("(", b);
+        int parameterCount = desc.getParameterCount();
+        for (int i = 0; i < parameterCount; i ++) {
+            // todo: not quite right...
+            mangle(desc.getParameterType(i).toString(), b);
+            b.append('_');
+        }
+        // todo: not quite right...
+        mangle(desc.getReturnType().toString(), b);
     }
 
     void mangle(String str, StringBuilder b) {
@@ -225,18 +225,16 @@ public final class LLVMBackEnd implements BackEnd {
         }
     }
 
-    void compileMethod(final ProgramContext pc, final MethodDefinitionNode<?> node) {
-        ArrayDeque<MethodDefinitionNode<?>> mq = pc.methodQueue;
+    void compileMethod(final ProgramContext pc, final ResolvedMethodDefinition definition) {
+        ArrayDeque<ResolvedMethodDefinition> mq = pc.methodQueue;
         Module module = pc.module;
-        Map<MethodDescriptor, FunctionDefinition> functions = pc.functions;
-        final FunctionDefinition func = getMethod(pc, node).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL);
+        final FunctionDefinition func = getMethod(pc, definition.getEnclosingTypeDefinition().verify().getClassType(), definition.getMethodIdentifier()).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL);
         int idx = 0;
-        final List<Type> paramTypes = node.getParamTypes();
-        MethodGraph graph = node.getGraph();
+        ResolvedMethodBody graph = definition.getMethodBody().verify().resolve();
         BasicBlock entryBlock = graph.getEntryBlock();
         Set<BasicBlock> reachableBlocks = entryBlock.calculateReachableBlocks();
         final MethodContext cache = new MethodContext(pc, func, reachableBlocks);
-        func.returns(typeOf(pc, node.getReturnType()));
+        func.returns(typeOf(pc, definition.getReturnType()));
         final List<ParameterValue> paramVals = graph.getParameters();
         for (ParameterValue pv : paramVals) {
             cache.values.put(pv, func.param(typeOf(pc, pv.getType())).name("p" + idx++).asValue());
@@ -466,7 +464,7 @@ public final class LLVMBackEnd implements BackEnd {
             } else if (value instanceof InvocationValue) {
                 InvocationValue inv = (InvocationValue) value;
                 Type returnType = inv.getInvocationTarget().getReturnType();
-                Call call = target.call(typeOf(cache.prog, returnType), getFunctionOf(cache, inv.getInvocationTarget()));
+                Call call = target.call(typeOf(cache.prog, returnType), getFunctionOf(cache, inv.getMethodOwner(), inv.getInvocationTarget()));
                 int cnt = inv.getArgumentCount();
                 for (int i = 0; i < cnt; i ++) {
                     cc.quarkus.qcc.graph.Value arg = inv.getArgument(i);
@@ -498,8 +496,8 @@ public final class LLVMBackEnd implements BackEnd {
         return val;
     }
 
-    private Value getFunctionOf(final MethodContext cache, final MethodDescriptor invocationTarget) {
-        return getMethod(cache.prog, invocationTarget).asGlobal();
+    private Value getFunctionOf(final MethodContext cache, final ClassType owner, final MethodIdentifier invocationTarget) {
+        return getMethod(cache.prog, owner, invocationTarget).asGlobal();
     }
 
     private static cc.quarkus.qcc.machine.llvm.BasicBlock getBlock(final MethodContext cache, final BasicBlock bb) {
@@ -513,13 +511,12 @@ public final class LLVMBackEnd implements BackEnd {
 
     static final class ProgramContext {
         final Module module;
-        final Map<MethodDescriptor, FunctionDefinition> functions;
-        final ArrayDeque<MethodDefinitionNode<?>> methodQueue;
-        final Map<cc.quarkus.qcc.graph.Type, cc.quarkus.qcc.machine.llvm.Value> types = new HashMap<>();
+        final Map<Type, Map<MethodIdentifier, FunctionDefinition>> functionsByType = new HashMap<>();
+        final ArrayDeque<ResolvedMethodDefinition> methodQueue;
+        final Map<Type, cc.quarkus.qcc.machine.llvm.Value> types = new HashMap<>();
 
-        ProgramContext(final Module module, final Map<MethodDescriptor, FunctionDefinition> functions, final ArrayDeque<MethodDefinitionNode<?>> methodQueue) {
+        ProgramContext(final Module module, final ArrayDeque<ResolvedMethodDefinition> methodQueue) {
             this.module = module;
-            this.functions = functions;
             this.methodQueue = methodQueue;
         }
     }

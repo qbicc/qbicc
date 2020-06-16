@@ -4,19 +4,28 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Set;
 
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 
 class InvocationImpl extends MemoryStateImpl implements Invocation {
-    MethodDescriptor invocationTarget;
+    ClassType owner;
+    MethodIdentifier invocationTarget;
     Value[] arguments = Value.NO_VALUES;
 
-    public MethodDescriptor getInvocationTarget() {
+    public ClassType getMethodOwner() {
+        return owner;
+    }
+
+    public void setMethodOwner(final ClassType owner) {
+        this.owner = owner;
+    }
+
+    public MethodIdentifier getInvocationTarget() {
         return invocationTarget;
     }
 
-    public void setInvocationTarget(final MethodDescriptor descriptor) {
+    public void setInvocationTarget(final MethodIdentifier descriptor) {
         this.invocationTarget = descriptor;
-        setArgumentCount(descriptor.getParamTypes().size());
+        setArgumentCount(descriptor.getParameterCount());
     }
 
     public int getArgumentCount() {
