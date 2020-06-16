@@ -122,7 +122,7 @@ public final class GraphBuilder extends MethodVisitor {
             case org.objectweb.asm.Type.DOUBLE: return Type.F64;
             case org.objectweb.asm.Type.VOID: /* TODO void is not a type */ return Type.VOID;
             case org.objectweb.asm.Type.ARRAY: return Type.arrayOf(typeOfAsmType(asmType.getElementType())); // todo cache
-            case org.objectweb.asm.Type.OBJECT: return universe.findClass(asmType.getInternalName()).getType();
+            case org.objectweb.asm.Type.OBJECT: return universe.findClass(asmType.getInternalName()).verify().getClassType();
             default: throw new IllegalStateException();
         }
     }
