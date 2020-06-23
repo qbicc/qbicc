@@ -1,17 +1,16 @@
-package cc.quarkus.qcc.compiler.backend.api;
+package cc.quarkus.qcc.compiler.native_image.api;
 
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 
-import cc.quarkus.qcc.type.universe.Universe;
 import io.smallrye.common.constraint.Assert;
 
 /**
  * A back end for the compiler, which consumes a compiled universe and emits something.
  */
-public interface BackEnd {
+public interface NativeImageGeneratorFactory {
     /**
      * The name of the back end.  The name is used to match the requested back end with the actual instance.
      *
@@ -20,11 +19,11 @@ public interface BackEnd {
     String getName();
 
     /**
-     * Produce something from a compiled universe.
+     * Create a new native image generator.
      *
-     * @param universe the compiled universe (must not be {@code null})
+     * @return the new native image generator
      */
-    void compile(Universe universe);
+    NativeImageGenerator createGenerator();
 
     /**
      * Find the named back end.
@@ -33,17 +32,17 @@ public interface BackEnd {
      * @param classLoader the class loader (must not be {@code null})
      * @return the back end (not {@code null})
      */
-    static BackEnd getInstance(String name, ClassLoader classLoader) {
+    static NativeImageGeneratorFactory getInstance(String name, ClassLoader classLoader) {
         Assert.checkNotNullParam("name", name);
         Assert.checkNotNullParam("classLoader", classLoader);
-        final ServiceLoader<BackEnd> serviceLoader = ServiceLoader.load(BackEnd.class, classLoader);
-        final Iterator<BackEnd> iterator = serviceLoader.iterator();
+        final ServiceLoader<NativeImageGeneratorFactory> serviceLoader = ServiceLoader.load(NativeImageGeneratorFactory.class, classLoader);
+        final Iterator<NativeImageGeneratorFactory> iterator = serviceLoader.iterator();
         for (;;) {
             try {
                 if (! iterator.hasNext()) {
                     break;
                 }
-                final BackEnd backEnd = iterator.next();
+                final NativeImageGeneratorFactory backEnd = iterator.next();
                 if (Objects.equals(backEnd.getName(), name)) {
                     return backEnd;
                 }

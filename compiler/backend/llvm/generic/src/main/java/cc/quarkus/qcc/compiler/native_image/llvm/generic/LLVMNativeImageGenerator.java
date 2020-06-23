@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.compiler.backend.llvm.generic;
+package cc.quarkus.qcc.compiler.native_image.llvm.generic;
 
 import static cc.quarkus.qcc.machine.llvm.Types.*;
 
@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import cc.quarkus.qcc.compiler.backend.api.BackEnd;
+import cc.quarkus.qcc.compiler.native_image.api.NativeImageGenerator;
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BooleanType;
@@ -68,26 +68,26 @@ import cc.quarkus.qcc.machine.tool.process.OutputDestination;
 import cc.quarkus.qcc.tool.llvm.LlcInvoker;
 import cc.quarkus.qcc.tool.llvm.LlcTool;
 import cc.quarkus.qcc.tool.llvm.LlcToolImpl;
+import cc.quarkus.qcc.type.definition.DefinedMethodDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedMethodBody;
 import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
-import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
-import cc.quarkus.qcc.type.universe.Universe;
 import io.smallrye.common.constraint.Assert;
 
-public final class LLVMBackEnd implements BackEnd {
-    public LLVMBackEnd() {}
+final class LLVMNativeImageGenerator implements NativeImageGenerator {
+    private final Module module = Module.newModule();
+    private final Map<Type, Map<MethodIdentifier, FunctionDefinition>> functionsByType = new HashMap<>();
+    private final ArrayDeque<ResolvedMethodDefinition> methodQueue = new ArrayDeque<>();
+    private final Map<Type, cc.quarkus.qcc.machine.llvm.Value> types = new HashMap<>();
+    private final LlcTool llc;
+    private final CCompiler cc;
 
-    public String getName() {
-        return "llvm-generic";
-    }
-
-    public void compile(final Universe universe) {
+    LLVMNativeImageGenerator() {
         // fail fast if there's no context
-        final Context context = Context.requireCurrent();
+        Context.requireCurrent();
         // todo: get config from context
-        LLVMBackEndConfig config = new LLVMBackEndConfig() {
+        LLVMNativeImageGeneratorConfig config = new LLVMNativeImageGeneratorConfig() {
             public Optional<List<String>> entryPointClassNames() {
                 return Optional.of(List.of("hello.world.Main"));
             }
@@ -95,31 +95,19 @@ public final class LLVMBackEnd implements BackEnd {
 
         // find llc
         // TODO: get target platform from config
-        final LlcTool llc = ToolProvider.findAllTools(LlcToolImpl.class, Platform.HOST_PLATFORM, t -> true, LLVMBackEnd.class.getClassLoader()).iterator().next();
+        llc = ToolProvider.findAllTools(LlcToolImpl.class, Platform.HOST_PLATFORM, t -> true, LLVMNativeImageGeneratorFactory.class.getClassLoader()).iterator().next();
         // find C compiler
-        final CCompiler cc = ToolProvider.findAllTools(CCompiler.class, Platform.HOST_PLATFORM, t -> true, LLVMBackEnd.class.getClassLoader()).iterator().next();
-        final Optional<List<String>> names = config.entryPointClassNames();
-        final ArrayDeque<ResolvedTypeDefinition> classQueue = new ArrayDeque<>();
-        for (String className : names.orElse(List.of())) {
-            classQueue.addLast(universe.findClass(className).verify().resolve());
-        }
-        final ArrayDeque<ResolvedMethodDefinition> methodQueue = new ArrayDeque<>();
-        while (! classQueue.isEmpty()) {
-            final ResolvedTypeDefinition def = classQueue.removeFirst();
-            int methodCount = def.getMethodCount();
-            for (int i = 0; i < methodCount; i ++) {
-                ResolvedMethodDefinition method = def.getMethodDefinition(i);
-                ResolvedMethodBody resolved = method.getMethodBody().verify().resolve();
-                // XXX decide when/how to add the entry point method(s)
-                // XXX for now we'll just add them all!
-                methodQueue.addLast(method);
-            }
-        }
-        final Module module = LLVM.newModule();
-        ProgramContext pc = new ProgramContext(module, methodQueue);
-        // now just emit the methods raw
+        cc = ToolProvider.findAllTools(CCompiler.class, Platform.HOST_PLATFORM, t -> true, LLVMNativeImageGeneratorFactory.class.getClassLoader()).iterator().next();
+    }
+
+    public void addEntryPoint(final DefinedMethodDefinition methodDefinition) {
+        methodQueue.addLast(methodDefinition.resolve());
+    }
+
+    public void compile() {
+        final Module module = this.module;
         while (! methodQueue.isEmpty()) {
-            compileMethod(pc, methodQueue.removeFirst());
+            compileMethod(methodQueue.removeFirst());
         }
         // XXX print it to screen
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out))) {
@@ -156,8 +144,8 @@ public final class LLVMBackEnd implements BackEnd {
         return;
     }
 
-    FunctionDefinition getMethod(final ProgramContext pc, final ClassType ownerType, final MethodIdentifier identifier) {
-        Map<MethodIdentifier, FunctionDefinition> typeMap = pc.functionsByType.computeIfAbsent(ownerType, t -> new HashMap<>());
+    FunctionDefinition getMethod(final ClassType ownerType, final MethodIdentifier identifier) {
+        Map<MethodIdentifier, FunctionDefinition> typeMap = functionsByType.computeIfAbsent(ownerType, t -> new HashMap<>());
         FunctionDefinition def = typeMap.get(identifier);
         if (def != null) {
             return def;
@@ -169,7 +157,7 @@ public final class LLVMBackEnd implements BackEnd {
         mangle(identifier.getName(), b);
         b.append(".");
         mangle(identifier, b);
-        def = pc.module.define(b.toString());
+        def = module.define(b.toString());
         typeMap.put(identifier, def);
         return def;
     }
@@ -225,19 +213,19 @@ public final class LLVMBackEnd implements BackEnd {
         }
     }
 
-    void compileMethod(final ProgramContext pc, final ResolvedMethodDefinition definition) {
-        ArrayDeque<ResolvedMethodDefinition> mq = pc.methodQueue;
-        Module module = pc.module;
-        final FunctionDefinition func = getMethod(pc, definition.getEnclosingTypeDefinition().verify().getClassType(), definition.getMethodIdentifier()).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL);
+    void compileMethod(final ResolvedMethodDefinition definition) {
+        ArrayDeque<ResolvedMethodDefinition> mq = methodQueue;
+        Module module = this.module;
+        final FunctionDefinition func = getMethod(definition.getEnclosingTypeDefinition().verify().getClassType(), definition.getMethodIdentifier()).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL);
         int idx = 0;
         ResolvedMethodBody graph = definition.getMethodBody().verify().resolve();
         BasicBlock entryBlock = graph.getEntryBlock();
         Set<BasicBlock> reachableBlocks = entryBlock.calculateReachableBlocks();
-        final MethodContext cache = new MethodContext(pc, func, reachableBlocks);
-        func.returns(typeOf(pc, definition.getReturnType()));
+        final MethodContext cache = new MethodContext(func, reachableBlocks);
+        func.returns(typeOf(definition.getReturnType()));
         final List<ParameterValue> paramVals = graph.getParameters();
         for (ParameterValue pv : paramVals) {
-            cache.values.put(pv, func.param(typeOf(pc, pv.getType())).name("p" + idx++).asValue());
+            cache.values.put(pv, func.param(typeOf(pv.getType())).name("p" + idx++).asValue());
         }
         cache.blocks.put(entryBlock, func);
         // write the terminal instructions
@@ -246,8 +234,8 @@ public final class LLVMBackEnd implements BackEnd {
         }
     }
 
-    private Value typeOf(final ProgramContext pc, final Type type) {
-        Value res = pc.types.get(type);
+    private Value typeOf(final Type type) {
+        Value res = types.get(type);
         if (res != null) {
             return res;
         }
@@ -281,7 +269,7 @@ public final class LLVMBackEnd implements BackEnd {
         } else {
             throw new IllegalStateException();
         }
-        pc.types.put(type, res);
+        types.put(type, res);
         return res;
     }
 
@@ -292,7 +280,7 @@ public final class LLVMBackEnd implements BackEnd {
         }
         if (inst instanceof ValueReturn) {
             cc.quarkus.qcc.graph.Value rv = ((ValueReturn) inst).getReturnValue();
-            target.ret(typeOf(cache.prog, rv.getType()), getValue(cache, rv));
+            target.ret(typeOf(rv.getType()), getValue(cache, rv));
         } else if (inst instanceof Return) {
             target.ret();
         } else if (inst instanceof TryInvocationValue) {
@@ -308,7 +296,7 @@ public final class LLVMBackEnd implements BackEnd {
             BasicBlock jmpTarget = w.getNextBlock();
             cc.quarkus.qcc.machine.llvm.BasicBlock bbTarget = getBlock(cache, jmpTarget);
             cc.quarkus.qcc.machine.llvm.BasicBlock unwindTarget = null; // getCatchBlock(ctxt, w.getCatchHandler());
-            cc.quarkus.qcc.machine.llvm.Value setFieldFn = cache.prog.module.declare(".trySetInstanceField.fieldDeclHere").asGlobal();
+            cc.quarkus.qcc.machine.llvm.Value setFieldFn = module.declare(".trySetInstanceField.fieldDeclHere").asGlobal();
             // todo get type from w.getFieldDescriptor()
             target.invoke(Types.i32, setFieldFn, bbTarget, unwindTarget).arg(Types.i32, getValue(cache, w.getInstance())).arg(Types.i32, getValue(cache, w.getWriteValue()));
         } else if (inst instanceof TryInstanceFieldReadValue) {
@@ -317,7 +305,7 @@ public final class LLVMBackEnd implements BackEnd {
             BasicBlock jmpTarget = rv.getNextBlock();
             cc.quarkus.qcc.machine.llvm.BasicBlock bbTarget = getBlock(cache, jmpTarget);
             cc.quarkus.qcc.machine.llvm.BasicBlock unwindTarget = null; // getCatchBlock(ctxt, rv.getCatchHandler());
-            cc.quarkus.qcc.machine.llvm.Value getFieldFn = cache.prog.module.declare(".tryGetInstanceField.fieldDeclHere").asGlobal();
+            cc.quarkus.qcc.machine.llvm.Value getFieldFn = module.declare(".tryGetInstanceField.fieldDeclHere").asGlobal();
             // todo get type from rv.getFieldDescriptor()
             target.invoke(Types.i32, getFieldFn, bbTarget, unwindTarget).arg(Types.i32, getValue(cache, rv.getInstance()));
         } else if (inst instanceof TryThrow) {
@@ -325,7 +313,7 @@ public final class LLVMBackEnd implements BackEnd {
             target.br(getBlock(cache, t.getCatchHandler()));
         } else if (inst instanceof Throw) {
             Throw t = (Throw) inst;
-            cc.quarkus.qcc.machine.llvm.Value doThrowFn = cache.prog.module.declare(".throw").asGlobal();
+            cc.quarkus.qcc.machine.llvm.Value doThrowFn = module.declare(".throw").asGlobal();
             target.call(Types.i32, doThrowFn).arg(Types.i32, getValue(cache, t.getThrownValue()));
         } else if (inst instanceof Goto) {
             BasicBlock jmpTarget = ((Goto) inst).getNextBlock();
@@ -375,13 +363,13 @@ public final class LLVMBackEnd implements BackEnd {
                 process(cache, memoryDependency);
             }
         }
-        Value outputType = typeOf(cache.prog, value.getType());
+        Value outputType = typeOf(value.getType());
         if (value instanceof ProgramNode) {
             BasicBlock owner = ((ProgramNode) value).getOwner();
             final cc.quarkus.qcc.machine.llvm.BasicBlock target = getBlock(cache, owner);
             if (value instanceof CommutativeBinaryValue) {
                 CommutativeBinaryValue op = (CommutativeBinaryValue) value;
-                Value inputType = typeOf(cache.prog, op.getLeftInput().getType());
+                Value inputType = typeOf(op.getLeftInput().getType());
                 switch (op.getKind()) {
                     case ADD: val = target.add(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
                     case AND: val = target.and(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
@@ -395,7 +383,7 @@ public final class LLVMBackEnd implements BackEnd {
                 cache.values.put(value, val);
             } else if (value instanceof NonCommutativeBinaryValue) {
                 NonCommutativeBinaryValue op = (NonCommutativeBinaryValue) value;
-                Value inputType = typeOf(cache.prog, op.getLeftInput().getType());
+                Value inputType = typeOf(op.getLeftInput().getType());
                 switch (op.getKind()) {
                     case SUB: val = target.sub(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
                     case DIV: val = target.sdiv(inputType, getValue(cache, op.getLeftInput()), getValue(cache, op.getRightInput())).asLocal(); break;
@@ -412,7 +400,7 @@ public final class LLVMBackEnd implements BackEnd {
             } else if (value instanceof IfValue) {
                 IfValue op = (IfValue) value;
                 cc.quarkus.qcc.graph.Value trueValue = op.getTrueValue();
-                Value inputType = typeOf(cache.prog, trueValue.getType());
+                Value inputType = typeOf(trueValue.getType());
                 val = target.select(Types.i1, getValue(cache, op.getCond()), inputType, getValue(cache, trueValue), getValue(cache, op.getFalseValue())).asLocal();
                 cache.values.put(value, val);
             } else if (value instanceof PhiValue) {
@@ -464,11 +452,11 @@ public final class LLVMBackEnd implements BackEnd {
             } else if (value instanceof InvocationValue) {
                 InvocationValue inv = (InvocationValue) value;
                 Type returnType = inv.getInvocationTarget().getReturnType();
-                Call call = target.call(typeOf(cache.prog, returnType), getFunctionOf(cache, inv.getMethodOwner(), inv.getInvocationTarget()));
+                Call call = target.call(typeOf(returnType), getFunctionOf(cache, inv.getMethodOwner(), inv.getInvocationTarget()));
                 int cnt = inv.getArgumentCount();
                 for (int i = 0; i < cnt; i ++) {
                     cc.quarkus.qcc.graph.Value arg = inv.getArgument(i);
-                    call.arg(typeOf(cache.prog, arg.getType()), getValue(cache, arg));
+                    call.arg(typeOf(arg.getType()), getValue(cache, arg));
                 }
                 val = call.asLocal();
             } else {
@@ -497,7 +485,7 @@ public final class LLVMBackEnd implements BackEnd {
     }
 
     private Value getFunctionOf(final MethodContext cache, final ClassType owner, final MethodIdentifier invocationTarget) {
-        return getMethod(cache.prog, owner, invocationTarget).asGlobal();
+        return getMethod(owner, invocationTarget).asGlobal();
     }
 
     private static cc.quarkus.qcc.machine.llvm.BasicBlock getBlock(final MethodContext cache, final BasicBlock bb) {
@@ -509,28 +497,14 @@ public final class LLVMBackEnd implements BackEnd {
         return target;
     }
 
-    static final class ProgramContext {
-        final Module module;
-        final Map<Type, Map<MethodIdentifier, FunctionDefinition>> functionsByType = new HashMap<>();
-        final ArrayDeque<ResolvedMethodDefinition> methodQueue;
-        final Map<Type, cc.quarkus.qcc.machine.llvm.Value> types = new HashMap<>();
-
-        ProgramContext(final Module module, final ArrayDeque<ResolvedMethodDefinition> methodQueue) {
-            this.module = module;
-            this.methodQueue = methodQueue;
-        }
-    }
-
     static final class MethodContext {
-        final ProgramContext prog;
         final FunctionDefinition def;
         final Map<cc.quarkus.qcc.graph.Value, cc.quarkus.qcc.machine.llvm.Value> values = new HashMap<>();
         final Map<cc.quarkus.qcc.graph.BasicBlock, cc.quarkus.qcc.machine.llvm.BasicBlock> blocks = new HashMap<>();
         final Set<cc.quarkus.qcc.graph.BasicBlock> processed = new HashSet<>();
         final Set<cc.quarkus.qcc.graph.BasicBlock> knownBlocks;
 
-        MethodContext(final ProgramContext prog, final FunctionDefinition def, final Set<BasicBlock> knownBlocks) {
-            this.prog = prog;
+        MethodContext(final FunctionDefinition def, final Set<BasicBlock> knownBlocks) {
             this.def = def;
             this.knownBlocks = knownBlocks;
         }
