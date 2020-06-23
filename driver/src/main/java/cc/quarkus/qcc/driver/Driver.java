@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.driver;
 
-import cc.quarkus.qcc.compiler.backend.api.BackEnd;
-import cc.quarkus.qcc.compiler.frontend.api.FrontEnd;
+import cc.quarkus.qcc.compiler.native_image.api.NativeImageGenerator;
+import cc.quarkus.qcc.compiler.native_image.api.NativeImageGeneratorFactory;
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.type.universe.Universe;
 import io.smallrye.common.constraint.Assert;
@@ -26,7 +26,7 @@ public class Driver {
         Boolean result = context.run(() -> {
             // todo: map args to configurations
             DriverConfig driverConfig = new DriverConfig() {
-                public String backEnd() {
+                public String nativeImageGenerator() {
                     return "llvm-generic";
                 }
 
@@ -36,15 +36,14 @@ public class Driver {
             };
 
             final ClassLoader classLoader = Main.class.getClassLoader();
-            final FrontEnd frontEnd = FrontEnd.getInstance(driverConfig.frontEnd(), classLoader);
-            final BackEnd backEnd = BackEnd.getInstance(driverConfig.backEnd(), classLoader);
-            // now do the first stage of compilation
-            final Universe universe = frontEnd.compile();
-            if (context.errors() != 0) {
-                return Boolean.FALSE;
-            }
-            // that was easy; now run it through the back end
-            backEnd.compile(universe);
+            // initialize the JVM
+            // todo: initialize the JVM
+            Universe bootstrapLoader = new Universe(null);
+            Universe.setRootUniverse(bootstrapLoader);
+            // load the native image generator
+            final NativeImageGeneratorFactory generatorFactory = NativeImageGeneratorFactory.getInstance(driverConfig.nativeImageGenerator(), classLoader);
+            NativeImageGenerator generator = generatorFactory.createGenerator();
+            generator.compile();
             return Boolean.valueOf(context.errors() == 0);
         });
         return result.booleanValue();
