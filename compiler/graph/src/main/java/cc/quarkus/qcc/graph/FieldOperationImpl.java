@@ -4,15 +4,24 @@ package cc.quarkus.qcc.graph;
  *
  */
 public abstract class FieldOperationImpl extends MemoryStateImpl implements FieldOperation {
-    Object fieldDescriptor;
+    ClassType owner;
+    String fieldName;
     FieldOperation.Mode mode = FieldOperation.Mode.DETECT;
 
-    public Object getFieldDescriptor() {
-        return fieldDescriptor;
+    public ClassType getFieldOwner() {
+        return owner;
     }
 
-    public void setFieldDescriptor(final Object fieldDescriptor) {
-        this.fieldDescriptor = fieldDescriptor;
+    public void setFieldOwner(final ClassType fieldOwner) {
+        this.owner = fieldOwner;
+    }
+
+    public String getFieldName() {
+        return fieldName;
+    }
+
+    public void setFieldName(final String fieldName) {
+        this.fieldName = fieldName;
     }
 
     public FieldOperation.Mode getMode() {

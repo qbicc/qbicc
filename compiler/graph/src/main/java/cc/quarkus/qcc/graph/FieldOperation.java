@@ -4,9 +4,13 @@ package cc.quarkus.qcc.graph;
  * An operation on a field.
  */
 public interface FieldOperation extends MemoryState {
-    Object getFieldDescriptor();
+    ClassType getFieldOwner();
 
-    void setFieldDescriptor(Object fieldDescriptor);
+    void setFieldOwner(ClassType fieldOwner);
+
+    String getFieldName();
+
+    void setFieldName(String fieldName);
 
     Mode getMode();
 
