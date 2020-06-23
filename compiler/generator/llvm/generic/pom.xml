@@ -6,11 +6,11 @@
 
     <parent>
         <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-compiler-backend-llvm-parent</artifactId>
+        <artifactId>qcc-compiler-generator-llvm-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-compiler-backend-llvm-generic</artifactId>
+    <artifactId>qcc-compiler-generator-llvm-generic</artifactId>
 
     <dependencies>
         <dependency>
@@ -19,7 +19,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-compiler-backend-api</artifactId>
+            <artifactId>qcc-compiler-generator-api</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

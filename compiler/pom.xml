@@ -16,6 +16,6 @@
 
     <modules>
         <module>graph</module>
-        <module>backend</module>
+        <module>generator</module>
     </modules>
 </project>
