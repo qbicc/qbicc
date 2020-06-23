@@ -28,7 +28,6 @@
     <modules>
         <module>compiler</module>
         <module>compiler/backend</module> <!-- TODO: temporary -->
-        <module>compiler/frontend</module> <!-- TODO: temporary -->
         <module>context</module>
         <module>driver</module>
         <module>machine</module>
@@ -187,16 +186,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>qcc-compiler-backend-llvm-generic</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-compiler-frontend-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-compiler-frontend-java</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
