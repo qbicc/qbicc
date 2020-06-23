@@ -1103,6 +1103,45 @@ public final class GraphBuilder extends MethodVisitor {
                     return;
                 }
 
+                case Opcodes.IALOAD:
+                case Opcodes.LALOAD:
+                case Opcodes.FALOAD:
+                case Opcodes.DALOAD:
+                case Opcodes.AALOAD:
+                case Opcodes.BALOAD:
+                case Opcodes.CALOAD:
+                case Opcodes.SALOAD: {
+                    ArrayElementReadValueImpl value = new ArrayElementReadValueImpl();
+                    value.setMemoryDependency(memoryState);
+                    memoryState = value;
+                    value.setIndex(pop());
+                    value.setInstance(pop());
+                    value.setOwner(currentBlock);
+                    // todo: double-check array element type against array type...
+                    push(value);
+                    return;
+                }
+
+
+                case Opcodes.IASTORE:
+                case Opcodes.LASTORE:
+                case Opcodes.FASTORE:
+                case Opcodes.DASTORE:
+                case Opcodes.AASTORE:
+                case Opcodes.BASTORE:
+                case Opcodes.CASTORE:
+                case Opcodes.SASTORE: {
+                    ArrayElementWriteImpl write = new ArrayElementWriteImpl();
+                    write.setMemoryDependency(memoryState);
+                    memoryState = write;
+                    // todo: double-check array element type against array type...
+                    write.setWriteValue(pop());
+                    write.setIndex(pop());
+                    write.setInstance(pop());
+                    write.setOwner(currentBlock);
+                    return;
+                }
+
                 case Opcodes.IDIV:
                 case Opcodes.IREM: {
 
@@ -1112,22 +1151,6 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.LREM:
 
                 case Opcodes.ACONST_NULL:
-                case Opcodes.IALOAD:
-                case Opcodes.LALOAD:
-                case Opcodes.FALOAD:
-                case Opcodes.DALOAD:
-                case Opcodes.AALOAD:
-                case Opcodes.BALOAD:
-                case Opcodes.CALOAD:
-                case Opcodes.SALOAD:
-                case Opcodes.IASTORE:
-                case Opcodes.LASTORE:
-                case Opcodes.FASTORE:
-                case Opcodes.DASTORE:
-                case Opcodes.AASTORE:
-                case Opcodes.BASTORE:
-                case Opcodes.CASTORE:
-                case Opcodes.SASTORE:
                 case Opcodes.FDIV:
                 case Opcodes.DDIV:
                 case Opcodes.FREM:
