@@ -10,7 +10,7 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-compiler-backend-parent</artifactId>
+    <artifactId>qcc-compiler-generator-parent</artifactId>
 
     <packaging>pom</packaging>
 

@@ -179,12 +179,12 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-compiler-backend-api</artifactId>
+                <artifactId>qcc-compiler-generator-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-compiler-backend-llvm-generic</artifactId>
+                <artifactId>qcc-compiler-generator-llvm-generic</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
