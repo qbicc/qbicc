@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
@@ -53,6 +55,10 @@ public final class GraphBuilder extends MethodVisitor {
     final State futureBlockState = new FutureBlockState();
     final State possibleBlockState = new PossibleBlock();
     int line;
+    Map<Label, List<TryState>> tryStarts = new HashMap<>();
+    Map<Label, List<TryState>> tryStops = new HashMap<>();
+    Set<TryState> activeTry = new TreeSet<>();
+    int catchIndex = 0;
 
     public GraphBuilder(final int mods, final String name, final String descriptor, final ResolvedTypeDefinition typeDefinition) {
         super(Universe.ASM_VERSION);
@@ -352,10 +358,6 @@ public final class GraphBuilder extends MethodVisitor {
         return nodeHandle;
     }
 
-    public void visitTryCatchBlock(final Label start, final Label end, final Label handler, final String type) {
-        // todo
-    }
-
     public void visitLocalVariable(final String name, final String descriptor, final String signature, final Label start, final Label end, final int index) {
     }
 
@@ -432,6 +434,69 @@ public final class GraphBuilder extends MethodVisitor {
                 throw new IllegalStateException();
             }
         }
+    }
+
+
+    interface TryState extends Comparable<TryState> {
+        ClassType getExceptionType();
+
+        NodeHandle getCatchHandler();
+
+        int getIndex();
+
+        void enter();
+
+        void exit();
+    }
+
+    public void visitLabel(final Label label) {
+        List<TryState> states = tryStarts.remove(label);
+        if (states != null) {
+            for (TryState state : states) {
+                state.enter();
+            }
+        }
+        states = tryStops.remove(label);
+        if (states != null) {
+            for (TryState state : states) {
+                state.exit();
+            }
+        }
+        super.visitLabel(label);
+    }
+
+    public void visitTryCatchBlock(final Label start, final Label end, final Label handler, final String type) {
+        NodeHandle catchHandle = getOrMakeBlockHandle(handler);
+        DefinedTypeDefinition exceptionTypeClass = type == null ? universe.findClass("java/lang/Throwable") : universe.findClass(type);
+        // todo: verifier: ensure that exceptionTypeClass extends Throwable
+        ClassType exceptionType = exceptionTypeClass.verify().getClassType();
+        final int index = catchIndex ++;
+        tryStarts.computeIfAbsent(start, x -> new ArrayList<>()).add(new TryState() {
+            public ClassType getExceptionType() {
+                return exceptionType;
+            }
+
+            public NodeHandle getCatchHandler() {
+                return catchHandle;
+            }
+
+            public int compareTo(final TryState o) {
+                return Integer.compare(getIndex(), o.getIndex());
+            }
+
+            public int getIndex() {
+                return index;
+            }
+
+            public void enter() {
+                tryStops.computeIfAbsent(end, x -> new ArrayList<>()).add(this);
+                activeTry.add(this);
+            }
+
+            public void exit() {
+                activeTry.remove(this);
+            }
+        });
     }
 
     public void visitEnd() {
@@ -1312,14 +1377,14 @@ public final class GraphBuilder extends MethodVisitor {
             Invocation val;
             if (opcode == Opcodes.INVOKESTATIC) {
                 if (returnType == Type.VOID) {
-                    if (false /* try in progress */) {
+                    if (! activeTry.isEmpty()) {
                         val = new TryInvocationImpl();
                     } else {
                         // no try
                         val = new InvocationImpl();
                     }
                 } else {
-                    if (false /* try in progress */) {
+                    if (! activeTry.isEmpty()) {
                         val = new TryInvocationValueImpl();
                     } else {
                         // no try
@@ -1328,14 +1393,14 @@ public final class GraphBuilder extends MethodVisitor {
                 }
             } else {
                 if (returnType == Type.VOID) {
-                    if (false /* try in progress */) {
+                    if (! activeTry.isEmpty()) {
                         val = new TryInstanceInvocationImpl();
                     } else {
                         // no try
                         val = new InstanceInvocationImpl();
                     }
                 } else {
-                    if (false /* try in progress */) {
+                    if (! activeTry.isEmpty()) {
                         val = new TryInstanceInvocationValueImpl();
                     } else {
                         // no try
@@ -1449,10 +1514,6 @@ public final class GraphBuilder extends MethodVisitor {
             assert currentBlock != null;
             gotInstr = false;
             // the locals/stack are already set up as well
-        }
-
-        public void visitTryCatchBlock(final Label start, final Label end, final Label handler, final String type) {
-            super.visitTryCatchBlock(start, end, handler, type);
         }
 
         public AnnotationVisitor visitTryCatchAnnotation(final int typeRef, final TypePath typePath, final String descriptor, final boolean visible) {
