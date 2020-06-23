@@ -1309,7 +1309,7 @@ public final class GraphBuilder extends MethodVisitor {
                 }
             } else {
                 if (false /* try in progress */) {
-                    val = new TryInvokeValueInstructionImpl();
+                    val = new TryInvocationValueImpl();
                 } else {
                     // no try
                     val = new InvocationValueImpl();

@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 
 /**
- * A method invocation.  Instance invocations must pass the receiver as the first argument.
+ * A method invocation.
  */
 public interface Invocation extends MemoryState {
     ClassType getMethodOwner();

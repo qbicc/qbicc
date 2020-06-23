@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
 
-final class InvocationValueImpl extends InvocationImpl implements InvocationValue {
+class InvocationValueImpl extends InvocationImpl implements InvocationValue {
     Constraint cons;
 
     public Constraint getConstraint() {
