@@ -40,8 +40,6 @@ import cc.quarkus.qcc.graph.ProgramNode;
 import cc.quarkus.qcc.graph.Return;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.Throw;
-import cc.quarkus.qcc.graph.TryInstanceFieldReadValue;
-import cc.quarkus.qcc.graph.TryInstanceFieldWrite;
 import cc.quarkus.qcc.graph.TryInvocation;
 import cc.quarkus.qcc.graph.TryInvocationValue;
 import cc.quarkus.qcc.graph.TryThrow;
@@ -291,23 +289,6 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             TryInvocation ti = (TryInvocation) inst;
             throw new IllegalStateException();
 
-        } else if (inst instanceof TryInstanceFieldWrite) {
-            TryInstanceFieldWrite w = (TryInstanceFieldWrite) inst;
-            BasicBlock jmpTarget = w.getNextBlock();
-            cc.quarkus.qcc.machine.llvm.BasicBlock bbTarget = getBlock(cache, jmpTarget);
-            cc.quarkus.qcc.machine.llvm.BasicBlock unwindTarget = null; // getCatchBlock(ctxt, w.getCatchHandler());
-            cc.quarkus.qcc.machine.llvm.Value setFieldFn = module.declare(".trySetInstanceField.fieldDeclHere").asGlobal();
-            // todo get type from w.getFieldDescriptor()
-            target.invoke(Types.i32, setFieldFn, bbTarget, unwindTarget).arg(Types.i32, getValue(cache, w.getInstance())).arg(Types.i32, getValue(cache, w.getWriteValue()));
-        } else if (inst instanceof TryInstanceFieldReadValue) {
-            TryInstanceFieldReadValue rv = (TryInstanceFieldReadValue) inst;
-
-            BasicBlock jmpTarget = rv.getNextBlock();
-            cc.quarkus.qcc.machine.llvm.BasicBlock bbTarget = getBlock(cache, jmpTarget);
-            cc.quarkus.qcc.machine.llvm.BasicBlock unwindTarget = null; // getCatchBlock(ctxt, rv.getCatchHandler());
-            cc.quarkus.qcc.machine.llvm.Value getFieldFn = module.declare(".tryGetInstanceField.fieldDeclHere").asGlobal();
-            // todo get type from rv.getFieldDescriptor()
-            target.invoke(Types.i32, getFieldFn, bbTarget, unwindTarget).arg(Types.i32, getValue(cache, rv.getInstance()));
         } else if (inst instanceof TryThrow) {
             TryThrow t = (TryThrow) inst;
             target.br(getBlock(cache, t.getCatchHandler()));
