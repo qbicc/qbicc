@@ -27,7 +27,6 @@
 
     <modules>
         <module>compiler</module>
-        <module>compiler/backend</module> <!-- TODO: temporary -->
         <module>context</module>
         <module>driver</module>
         <module>machine</module>
