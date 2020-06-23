@@ -1273,23 +1273,10 @@ public final class GraphBuilder extends MethodVisitor {
             gotInstr = true;
             DefinedTypeDefinition def = universe.findClass(owner);
             org.objectweb.asm.Type[] types = getArgumentTypes(descriptor);
-            Type[] actualTypes;
-            int i;
             int length = types.length;
-            int actualLength;
-            if (opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKESPECIAL || opcode == Opcodes.INVOKEINTERFACE) {
-                actualLength = length + 1;
-                // add receiver
-                actualTypes = new Type[actualLength];
-                actualTypes[0] = def.verify().getClassType();
-                i = 1;
-            } else {
-                actualLength = length;
-                actualTypes = new Type[actualLength];
-                i = 0;
-            }
-            for (int j = 0; j < length; j++, i++) {
-                actualTypes[i] = typeOfAsmType(types[j]);
+            Type[] actualTypes = new Type[length];
+            for (int i = 0; i < length; i++) {
+                actualTypes[i] = typeOfAsmType(types[i]);
             }
             ResolvedMethodDefinition methodDef;
             Type returnType = typeOfAsmType(getReturnType(descriptor));
@@ -1300,19 +1287,37 @@ public final class GraphBuilder extends MethodVisitor {
                 methodDef = def.verify().resolve().resolveInterfaceMethod(identifier);
             }
             Invocation val;
-            if (returnType == Type.VOID) {
-                if (false /* try in progress */) {
-                    val = new TryInvocationImpl();
+            if (opcode == Opcodes.INVOKESTATIC) {
+                if (returnType == Type.VOID) {
+                    if (false /* try in progress */) {
+                        val = new TryInvocationImpl();
+                    } else {
+                        // no try
+                        val = new InvocationImpl();
+                    }
                 } else {
-                    // no try
-                    val = new InvocationImpl();
+                    if (false /* try in progress */) {
+                        val = new TryInvocationValueImpl();
+                    } else {
+                        // no try
+                        val = new InvocationValueImpl();
+                    }
                 }
             } else {
-                if (false /* try in progress */) {
-                    val = new TryInvocationValueImpl();
+                if (returnType == Type.VOID) {
+                    if (false /* try in progress */) {
+                        val = new TryInstanceInvocationImpl();
+                    } else {
+                        // no try
+                        val = new InstanceInvocationImpl();
+                    }
                 } else {
-                    // no try
-                    val = new InvocationValueImpl();
+                    if (false /* try in progress */) {
+                        val = new TryInstanceInvocationValueImpl();
+                    } else {
+                        // no try
+                        val = new InstanceInvocationValueImpl();
+                    }
                 }
             }
             val.setMethodOwner(def.verify().getClassType());
@@ -1320,9 +1325,12 @@ public final class GraphBuilder extends MethodVisitor {
             val.setInvocationTarget(methodDef.getMethodIdentifier());
             val.setSourceLine(line);
             val.setOwner(currentBlock);
-            val.setArgumentCount(actualLength);
-            for (int k = actualLength; k > 0; k --) {
+            val.setArgumentCount(length);
+            for (int k = length; k > 0; k --) {
                 val.setArgument(k - 1, popSmart());
+            }
+            if (val instanceof InstanceOperation) {
+                ((InstanceOperation) val).setInstance(pop());
             }
             val.setMemoryDependency(memoryState);
             if (val instanceof Value) {
