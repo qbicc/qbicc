@@ -42,7 +42,7 @@ public final class ToolUtil {
     public static Path findExecutable(String name) {
         for (Path path : OS_PATH) {
             final Path exec = path.resolve(name);
-            if (Files.exists(exec)) {
+            if (Files.isRegularFile(exec) && Files.isReadable(exec) && Files.isExecutable(exec)) {
                 return exec;
             }
         }
