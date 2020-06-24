@@ -7,4 +7,10 @@ package cc.quarkus.qcc.graph;
 public interface Throw extends Terminator {
     Value getThrownValue();
     void setThrownValue(Value thrown);
+
+    static Throw create(Value value) {
+        ThrowImpl throw_ = new ThrowImpl();
+        throw_.setThrownValue(value);
+        return throw_;
+    }
 }

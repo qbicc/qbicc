@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.NavigableSet;
 import java.util.TreeSet;
 
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -57,7 +57,8 @@ public final class GraphBuilder extends MethodVisitor {
     int line;
     Map<Label, List<TryState>> tryStarts = new HashMap<>();
     Map<Label, List<TryState>> tryStops = new HashMap<>();
-    Set<TryState> activeTry = new TreeSet<>();
+    NavigableSet<TryState> activeTry = new TreeSet<>();
+    Map<NavigableSet<TryState>, CatchInfo> catchBlocks = new HashMap<>();
     int catchIndex = 0;
 
     public GraphBuilder(final int mods, final String name, final String descriptor, final ResolvedTypeDefinition typeDefinition) {
@@ -499,6 +500,45 @@ public final class GraphBuilder extends MethodVisitor {
         });
     }
 
+    BasicBlock getCatchHandler() {
+        return getCatchHandler(activeTry);
+    }
+
+    BasicBlock getCatchHandler(NavigableSet<TryState> activeTrySet) {
+        CatchInfo catchInfo = catchBlocks.get(activeTrySet);
+        if (catchInfo == null) {
+            // build catch block
+            Capture capture = capture();
+            BasicBlock catch_ = new BasicBlockImpl();
+            PhiValue exceptionPhi = new PhiValueImpl();
+            int localCnt = capture.locals.length;
+            Value[] phiLocals = new Value[localCnt];
+            for (int i = 0; i < localCnt; i ++) {
+                phiLocals[i] = new PhiValueImpl();
+            }
+            capture = new Capture(new Value[] { exceptionPhi }, phiLocals);
+            // we don't change any state
+            blockEnters.put(catch_, capture);
+            blockExits.put(catch_, capture);
+            exceptionPhi.setType(universe.findClass("java/lang/Throwable").verify().getClassType());
+            if (activeTrySet.isEmpty()) {
+                // rethrow
+                catch_.setTerminator(Throw.create(exceptionPhi));
+            } else {
+                TryState first = activeTrySet.first();
+                // check one and continue
+                IfImpl if_ = new IfImpl();
+                if_.setCondition(InstanceOfValue.create(exceptionPhi, first.getExceptionType()));
+                if_.setTrueBranch(first.getCatchHandler());
+                if_.setFalseBranch(getCatchHandler(activeTrySet.tailSet(first, false)));
+                catch_.setTerminator(if_);
+            }
+            catchInfo = new CatchInfo(catch_, exceptionPhi);
+            catchBlocks.put(activeTrySet, catchInfo);
+        }
+        return catchInfo.target;
+    }
+
     public void visitEnd() {
         // fail if the state is invalid
         super.visitEnd();
@@ -508,10 +548,15 @@ public final class GraphBuilder extends MethodVisitor {
             Terminator ti = exitingBlock.getTerminator();
             if (ti instanceof Goto) {
                 wirePhis(exitingBlock, ((Goto) ti).getNextBlock());
-            } else if (ti instanceof If) {
+            }
+            if (ti instanceof If) {
                 If ifTi = (If) ti;
                 wirePhis(exitingBlock, ifTi.getTrueBranch());
                 wirePhis(exitingBlock, ifTi.getFalseBranch());
+            }
+            if (ti instanceof Try) {
+                Try try_ = (Try) ti;
+                wirePhis(exitingBlock, try_.getCatchHandler());
             }
         }
     }
@@ -1425,6 +1470,9 @@ public final class GraphBuilder extends MethodVisitor {
                 push((Value) val);
             }
             memoryState = val;
+            if (val instanceof Try) {
+                ((Try) val).setCatchHandler(getCatchHandler());
+            }
             if (val instanceof Terminator) {
                 Terminator terminator = (Terminator) val;
                 currentBlock.setTerminator(terminator);
@@ -1683,6 +1731,16 @@ public final class GraphBuilder extends MethodVisitor {
         Capture(final Value[] stack, final Value[] locals) {
             this.stack = stack;
             this.locals = locals;
+        }
+    }
+
+    static final class CatchInfo {
+        final BasicBlock target;
+        final PhiValue phiValue;
+
+        CatchInfo(final BasicBlock target, final PhiValue phiValue) {
+            this.target = target;
+            this.phiValue = phiValue;
         }
     }
 }
