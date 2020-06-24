@@ -727,11 +727,16 @@ public final class GraphBuilder extends MethodVisitor {
 
         public void visitTypeInsn(final int opcode, final String type) {
             gotInstr = true;
+            ClassType classType = (ClassType) universe.parseSingleDescriptor(type);
             switch (opcode) {
+                case Opcodes.INSTANCEOF: {
+                    Value instance = pop(false);
+                    push(InstanceOfValue.create(instance, classType));
+                    return;
+                }
                 case Opcodes.NEW:
                 case Opcodes.ANEWARRAY:
                 case Opcodes.CHECKCAST:
-                case Opcodes.INSTANCEOF:
                 default: {
                     super.visitTypeInsn(opcode, type);
                 }
