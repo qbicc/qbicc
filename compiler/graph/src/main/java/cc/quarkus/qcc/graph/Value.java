@@ -5,6 +5,8 @@ import java.nio.charset.StandardCharsets;
 import cc.quarkus.qcc.constraint.Constraint;
 
 public interface Value extends Node {
+    ConstantValue NULL = new ConstantValueEmpty(Type.NULL_TYPE);
+
     Constraint getConstraint();
 
     Type getType();

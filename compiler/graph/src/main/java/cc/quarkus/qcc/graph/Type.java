@@ -11,6 +11,8 @@ public interface Type extends Node {
     // TODO: Void isn't really a type...
     VoidType VOID = new VoidTypeImpl();
 
+    NullType NULL_TYPE = new NullTypeImpl();
+
     static ArrayType arrayOf(Type elementType) {
         return new ArrayTypeImpl(elementType);
     }

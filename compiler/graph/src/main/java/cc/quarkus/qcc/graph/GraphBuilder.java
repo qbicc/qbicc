@@ -882,6 +882,10 @@ public final class GraphBuilder extends MethodVisitor {
                     push(CastValue.create(Value.const_(opcode - Opcodes.DCONST_0), Type.F64));
                     break;
                 }
+                case Opcodes.ACONST_NULL: {
+                    push(Value.NULL);
+                    break;
+                }
 
                 case Opcodes.POP: {
                     pop();
@@ -1260,7 +1264,6 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.LDIV:
                 case Opcodes.LREM:
 
-                case Opcodes.ACONST_NULL:
                 case Opcodes.FDIV:
                 case Opcodes.DDIV:
                 case Opcodes.FREM:
