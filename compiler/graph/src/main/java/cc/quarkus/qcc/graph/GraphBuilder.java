@@ -734,9 +734,23 @@ public final class GraphBuilder extends MethodVisitor {
                     push(InstanceOfValue.create(instance, classType));
                     return;
                 }
-                case Opcodes.NEW:
-                case Opcodes.ANEWARRAY:
-                case Opcodes.CHECKCAST:
+                case Opcodes.NEW: {
+                    NewValue value = NewValue.create(classType);
+                    value.setMemoryDependency(memoryState);
+                    memoryState = value;
+                    push(value);
+                    return;
+                }
+                case Opcodes.ANEWARRAY: {
+                    NewArrayValue value = NewArrayValue.create(classType.getArrayType(), pop(false));
+                    value.setMemoryDependency(memoryState);
+                    memoryState = value;
+                    push(value);
+                    return;
+                }
+                case Opcodes.CHECKCAST: {
+                    // todo: simplify basic block connections
+                }
                 default: {
                     super.visitTypeInsn(opcode, type);
                 }
