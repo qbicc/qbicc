@@ -50,4 +50,9 @@ public interface Value extends Node {
         // todo: cache
         return new ConstantValueBig(bytes, type);
     }
+
+    static ConstantValue const_(ClassType classType) {
+        // todo: cache
+        return new ClassLiteralValue(classType);
+    }
 }

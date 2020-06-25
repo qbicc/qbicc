@@ -3,11 +3,11 @@ package cc.quarkus.qcc.graph;
 import cc.quarkus.qcc.constraint.Constraint;
 
 /**
- * A type representing a string literal, before it is promoted to an object.
+ * A type representing a class literal, before it is promoted to an object.
  */
-public interface StringLiteralType extends Type {
+public interface ClassLiteralType extends Type {
     default boolean isAssignableFrom(Type otherType) {
-        return otherType instanceof StringLiteralType;
+        return otherType instanceof ClassLiteralType;
     }
 
     default int getParameterCount() {

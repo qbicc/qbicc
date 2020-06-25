@@ -54,6 +54,8 @@ public interface Type extends Node {
 
     StringLiteralType STRING = new StringLiteralTypeImpl();
 
+    ClassLiteralType CLASS = new ClassLiteralTypeImpl();
+
     // java.lang.Object
 
     ClassType JAVA_LANG_OBJECT = classType("java/lang/Object", null, InterfaceType.NO_INTERFACES);

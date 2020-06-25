@@ -823,6 +823,13 @@ public final class GraphBuilder extends MethodVisitor {
                 push(Value.const_(((Double) value).doubleValue()));
             } else if (value instanceof String) {
                 push(Value.const_((String) value));
+            } else if (value instanceof org.objectweb.asm.Type) {
+                int sort = ((org.objectweb.asm.Type) value).getSort();
+                if (sort == org.objectweb.asm.Type.OBJECT || sort == org.objectweb.asm.Type.ARRAY) {
+                    push(Value.const_((ClassType) typeOfAsmType((org.objectweb.asm.Type) value)));
+                } else {
+                    throw new IllegalStateException();
+                }
             } else {
                 throw new IllegalStateException();
             }
