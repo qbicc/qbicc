@@ -12,11 +12,7 @@ public interface InterfaceType extends ClassType {
         return null;
     }
 
-    default boolean isAssignableFrom(ClassType other) {
-        return other instanceof InterfaceType && isAssignableFrom((InterfaceType) other);
-    }
-
-    default boolean isAssignableFrom(InterfaceType other) {
+    default boolean isSuperTypeOf(ClassType other) {
         Assert.checkNotNullParam("other", other);
 
         if (this == other) {

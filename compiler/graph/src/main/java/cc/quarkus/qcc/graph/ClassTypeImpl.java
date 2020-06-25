@@ -33,7 +33,7 @@ final class ClassTypeImpl extends AbstractClassTypeImpl implements ClassType {
         return interfaces[index];
     }
 
-    public boolean isAssignableFrom(final ClassType other) {
+    public boolean isSuperTypeOf(final ClassType other) {
         Assert.checkNotNullParam("other", other);
 
         if (this == Type.JAVA_LANG_OBJECT) {

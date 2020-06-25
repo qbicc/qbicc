@@ -6,6 +6,10 @@ import cc.quarkus.qcc.constraint.Constraint;
  *
  */
 public interface StringLiteralType extends Type {
+    default boolean isAssignableFrom(Type otherType) {
+        return otherType instanceof StringLiteralType;
+    }
+
     default int getParameterCount() {
         return 0;
     }

@@ -30,6 +30,8 @@ public interface Type extends Node {
         return new InterfaceTypeImpl(name, interfaceTypes.length == 0 ? InterfaceType.NO_INTERFACES : interfaceTypes.clone());
     }
 
+    boolean isAssignableFrom(Type otherType);
+
     int getParameterCount();
 
     String getParameterName(int index) throws IndexOutOfBoundsException;

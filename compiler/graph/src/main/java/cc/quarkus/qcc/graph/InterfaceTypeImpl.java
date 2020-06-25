@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
-import io.smallrye.common.constraint.Assert;
 
 /**
  *
@@ -29,19 +28,6 @@ final class InterfaceTypeImpl extends AbstractClassTypeImpl implements Interface
 
     public InterfaceType getInterface(final int index) throws IndexOutOfBoundsException {
         return interfaces[index];
-    }
-
-    public boolean isAssignableFrom(final ClassType other) {
-        Assert.checkNotNullParam("other", other);
-
-        if (this == Type.JAVA_LANG_OBJECT) {
-            // all objects are assignable to JLO
-            return true;
-        }
-
-        ClassType superClass = other.getSuperClass();
-
-        return other == this || superClass != null && isAssignableFrom(superClass);
     }
 
     public int getParameterCount() {

@@ -10,4 +10,8 @@ public interface PointerType<T extends Type> extends WordType {
      * @return the pointee type
      */
     T getPointeeType();
+
+    default boolean isAssignableFrom(Type otherType) {
+        return otherType instanceof PointerType && getPointeeType().equals(((PointerType<?>) otherType).getPointeeType());
+    }
 }

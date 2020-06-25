@@ -4,6 +4,10 @@ package cc.quarkus.qcc.graph;
  *
  */
 public interface FloatType extends NumericType {
+    default boolean isAssignableFrom(Type otherType) {
+        return otherType instanceof FloatType && ((FloatType) otherType).getSize() == getSize();
+    }
+
     // todo: are these tests meaningful and/or correct for FP types?
 
     default boolean isZero(long value) {

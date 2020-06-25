@@ -10,11 +10,19 @@ public interface ClassType extends Type {
 
     ClassType getSuperClass();
 
+    default boolean hasSuperClass() {
+        return getSuperClass() != null;
+    }
+
     int getInterfaceCount();
 
     InterfaceType getInterface(int index) throws IndexOutOfBoundsException;
 
-    boolean isAssignableFrom(ClassType other);
+    boolean isSuperTypeOf(ClassType other);
+
+    default boolean isAssignableFrom(ClassType otherType) {
+        return otherType == this || otherType instanceof EitherType && ((EitherType) otherType).bothAreAssignableTo(this);
+    }
 
     /**
      * Get the type that is an array class of this type.
@@ -22,4 +30,20 @@ public interface ClassType extends Type {
      * @return the type that is an array of this type
      */
     ArrayClassType getArrayType();
+
+    static ClassType highest(ClassType t1, ClassType t2) {
+        if (t1.isSuperTypeOf(t2)) {
+            return t1;
+        } else if (t2.isSuperTypeOf(t1)) {
+            return t2;
+        } else {
+            assert t1.hasSuperClass() && t2.hasSuperClass();
+            return highest(t2, t1.getSuperClass());
+        }
+    }
+
+    default boolean isAssignableFrom(Type otherType) {
+        return otherType instanceof ClassType && isAssignableFrom((ClassType) otherType)
+            || otherType instanceof EitherType && ((EitherType) otherType).bothAreAssignableTo(this);
+    }
 }
