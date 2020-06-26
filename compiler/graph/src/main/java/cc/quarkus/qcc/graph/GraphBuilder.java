@@ -29,6 +29,7 @@ import org.objectweb.asm.TypePath;
  *
  */
 public final class GraphBuilder extends MethodVisitor {
+    final GraphFactory graphFactory;
     final BasicBlockImpl firstBlock;
     final Universe universe;
     Type[] frameStackTypes;
@@ -63,6 +64,7 @@ public final class GraphBuilder extends MethodVisitor {
 
     public GraphBuilder(final int mods, final String name, final String descriptor, final ResolvedTypeDefinition typeDefinition) {
         super(Universe.ASM_VERSION);
+        graphFactory = GraphFactory.BASIC_FACTORY;
         this.universe = typeDefinition.getDefiningClassLoader();
         boolean isStatic = (mods & Opcodes.ACC_STATIC) != 0;
         org.objectweb.asm.Type[] argTypes = getArgumentTypes(descriptor);
@@ -527,10 +529,11 @@ public final class GraphBuilder extends MethodVisitor {
             } else {
                 TryState first = activeTrySet.first();
                 // check one and continue
-                IfImpl if_ = new IfImpl();
-                if_.setCondition(InstanceOfValue.create(exceptionPhi, first.getExceptionType()));
-                if_.setTrueBranch(first.getCatchHandler());
-                if_.setFalseBranch(getCatchHandler(activeTrySet.tailSet(first, false)));
+                Terminator if_ = graphFactory.if_(memoryState,
+                    graphFactory.instanceOf(exceptionPhi, first.getExceptionType()),
+                    first.getCatchHandler(),
+                    NodeHandle.of(getCatchHandler(activeTrySet.tailSet(first, false)))
+                );
                 catch_.setTerminator(if_);
             }
             catchInfo = new CatchInfo(catch_, exceptionPhi);
@@ -730,26 +733,40 @@ public final class GraphBuilder extends MethodVisitor {
             ClassType classType = (ClassType) universe.parseSingleDescriptor(type);
             switch (opcode) {
                 case Opcodes.INSTANCEOF: {
-                    Value instance = pop(false);
-                    push(InstanceOfValue.create(instance, classType));
+                    Value value = pop(false);
+                    Value isNull = graphFactory.binaryOperation(CommutativeBinaryValue.Kind.CMP_EQ, value, Value.NULL);
+                    Value isInstance = graphFactory.if_(isNull, Value.FALSE, graphFactory.instanceOf(value, classType));
+                    push(isInstance);
                     return;
                 }
                 case Opcodes.NEW: {
-                    NewValue value = NewValue.create(classType);
-                    value.setMemoryDependency(memoryState);
-                    memoryState = value;
-                    push(value);
+                    GraphFactory.MemoryStateValue value = graphFactory.new_(memoryState, classType);
+                    memoryState = value.getMemoryState();
+                    push(value.getValue());
                     return;
                 }
                 case Opcodes.ANEWARRAY: {
-                    NewArrayValue value = NewArrayValue.create(classType.getArrayType(), pop(false));
-                    value.setMemoryDependency(memoryState);
-                    memoryState = value;
-                    push(value);
+                    GraphFactory.MemoryStateValue value = graphFactory.newArray(memoryState, classType.getArrayType(), pop(false));
+                    memoryState = value.getMemoryState();
+                    push(value.getValue());
                     return;
                 }
                 case Opcodes.CHECKCAST: {
-                    // todo: simplify basic block connections
+                    Value value = pop(false);
+                    Value isNull = graphFactory.binaryOperation(CommutativeBinaryValue.Kind.CMP_EQ, value, Value.NULL);
+                    Value isOk = graphFactory.if_(isNull, Value.TRUE, graphFactory.instanceOf(value, classType));
+                    NodeHandle continueHandle = new NodeHandle();
+                    // make a little basic block to handle the class cast exception throw
+                    ClassType cce = universe.findClass("java/lang/ClassCastException").verify().getClassType();
+                    GraphFactory.MemoryStateValue newCce = graphFactory.new_(null, cce);
+                    MemoryState tmpState = graphFactory.invokeInstanceMethod(newCce.getMemoryState(), newCce.getValue(), cce, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
+                    BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newCce.getValue()));
+                    // if the cast failed, jump to the fail block
+                    Terminator terminator = graphFactory.if_(memoryState, isOk, continueHandle, NodeHandle.of(throwBlock));
+                    currentBlock.setTerminator(terminator);
+                    enter(futureBlockState);
+                    continueHandle.setTarget(futureBlock);
+                    return;
                 }
                 default: {
                     super.visitTypeInsn(opcode, type);

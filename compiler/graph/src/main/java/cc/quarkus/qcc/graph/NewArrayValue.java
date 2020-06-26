@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  * A {@code new} allocation operation for arrays.
  */
-public interface NewArrayValue extends Value, MemoryState {
+public interface NewArrayValue extends Value, MemoryState, GraphFactory.MemoryStateValue {
     ArrayClassType getType();
 
     void setType(ArrayClassType type);
@@ -17,5 +17,13 @@ public interface NewArrayValue extends Value, MemoryState {
         value.setType(classType);
         value.setSize(size);
         return value;
+    }
+
+    default Value getValue() {
+        return this;
+    }
+
+    default MemoryState getMemoryState() {
+        return this;
     }
 }

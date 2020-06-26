@@ -40,11 +40,11 @@ public interface GraphFactory {
 
     Value castOperation(WordCastValue.Kind kind, Value value, WordType toType);
 
-    Value new_(ClassType type);
-
-    Value newArray(ArrayType type, Value size);
-
     // memory
+
+    MemoryStateValue new_(MemoryState input, ClassType type);
+
+    MemoryStateValue newArray(MemoryState input, ArrayType type, Value size);
 
     MemoryStateValue pointerLoad(MemoryState input, Value pointer, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
 
@@ -156,14 +156,16 @@ public interface GraphFactory {
             return castValue;
         }
 
-        public Value new_(final ClassType type) {
+        public MemoryStateValue new_(final MemoryState input, final ClassType type) {
             NewValueImpl value = new NewValueImpl();
+            value.setMemoryDependency(input);
             value.setType(type);
             return value;
         }
 
-        public Value newArray(final ArrayType type, final Value size) {
+        public MemoryStateValue newArray(final MemoryState input, final ArrayType type, final Value size) {
             NewArrayValueImpl value = new NewArrayValueImpl();
+            value.setMemoryDependency(input);
             value.setType((ArrayClassType) type); // todo
             value.setSize(size);
             return value;
