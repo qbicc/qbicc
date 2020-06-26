@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  *
  */
-public interface WordType extends Type {
+public interface WordType extends NativeObjectType {
     /**
      * Get the size of this type, in bytes.
      *

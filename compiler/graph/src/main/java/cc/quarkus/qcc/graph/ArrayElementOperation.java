@@ -8,27 +8,7 @@ public interface ArrayElementOperation extends MemoryState, InstanceOperation {
 
     void setIndex(Value value);
 
-    Mode getMode();
+    JavaAccessMode getMode();
 
-    void setMode(Mode mode);
-
-    enum Mode {
-        /**
-         * Detect access mode from field declaration.
-         */
-        DETECT,
-        /**
-         * Plain (opaque) access.
-         */
-        PLAIN,
-        /**
-         * Ordered access.
-         */
-        ORDERED,
-        /**
-         * Volatile access.
-         */
-        VOLATILE,
-        ;
-    }
+    void setMode(JavaAccessMode mode);
 }

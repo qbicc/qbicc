@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph;
 
-final class ThrowImpl extends TerminatorImpl implements Throw {
+class ThrowImpl extends TerminatorImpl implements Throw {
     NodeHandle thrownValue;
 
     public Value getThrownValue() {

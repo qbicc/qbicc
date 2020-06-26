@@ -20,7 +20,7 @@ final class GotoImpl extends TerminatorImpl implements Goto {
         target = NodeHandle.of(branch);
     }
 
-    void setTarget(final NodeHandle target) {
+    void setNextBlock(final NodeHandle target) {
         this.target = target;
     }
 

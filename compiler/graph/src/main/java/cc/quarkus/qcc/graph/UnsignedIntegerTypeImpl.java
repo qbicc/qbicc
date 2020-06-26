@@ -5,7 +5,7 @@ import cc.quarkus.qcc.constraint.Constraint;
 /**
  *
  */
-abstract class UnsignedIntegerTypeImpl extends NodeImpl implements UnsignedIntegerType {
+abstract class UnsignedIntegerTypeImpl extends NativeObjectTypeImpl implements UnsignedIntegerType {
     private final Constraint constraint;
 
     UnsignedIntegerTypeImpl(final int minValue, final int maxValue) {

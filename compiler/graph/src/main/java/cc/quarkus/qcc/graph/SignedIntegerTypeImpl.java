@@ -5,7 +5,7 @@ import cc.quarkus.qcc.constraint.Constraint;
 /**
  *
  */
-abstract class SignedIntegerTypeImpl extends NodeImpl implements SignedIntegerType {
+abstract class SignedIntegerTypeImpl extends NativeObjectTypeImpl implements SignedIntegerType {
     private final Constraint constraint;
 
     SignedIntegerTypeImpl(final int minValue, final int maxValue) {

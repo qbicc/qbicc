@@ -6,7 +6,7 @@ package cc.quarkus.qcc.graph;
 public abstract class FieldOperationImpl extends MemoryStateImpl implements FieldOperation {
     ClassType owner;
     String fieldName;
-    FieldOperation.Mode mode = FieldOperation.Mode.DETECT;
+    JavaAccessMode mode = JavaAccessMode.DETECT;
 
     public ClassType getFieldOwner() {
         return owner;
@@ -24,11 +24,11 @@ public abstract class FieldOperationImpl extends MemoryStateImpl implements Fiel
         this.fieldName = fieldName;
     }
 
-    public FieldOperation.Mode getMode() {
+    public JavaAccessMode getMode() {
         return mode;
     }
 
-    public void setMode(final FieldOperation.Mode mode) {
+    public void setMode(final JavaAccessMode mode) {
         this.mode = mode;
     }
 }

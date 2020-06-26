@@ -1,15 +1,11 @@
 package cc.quarkus.qcc.graph;
 
-import java.io.IOException;
-import java.util.Set;
-
 import cc.quarkus.qcc.constraint.Constraint;
-import io.smallrye.common.constraint.Assert;
 
 /**
  *
  */
-final class BooleanTypeImpl implements BooleanType {
+final class BooleanTypeImpl extends NativeObjectTypeImpl implements BooleanType {
     final ConstantValue false_ = new ConstantValue32(0, this);
     final ConstantValue true_ = new ConstantValue32(1, this);
     private final Constraint constraint = Constraint.greaterThanOrEqualTo(false_).intersect(Constraint.lessThanOrEqualTo(true_));
@@ -41,23 +37,7 @@ final class BooleanTypeImpl implements BooleanType {
         throw new IndexOutOfBoundsException(index);
     }
 
-    public void replaceWith(final Node node) {
-        throw Assert.unsupported();
-    }
-
-    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
-
-    }
-
     public String getLabelForGraph() {
         return "boolean";
-    }
-
-    public int getIdForGraph() {
-        return 0;
-    }
-
-    public void setIdForGraph(final int id) {
-
     }
 }

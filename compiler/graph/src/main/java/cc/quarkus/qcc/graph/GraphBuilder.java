@@ -1209,37 +1209,37 @@ public final class GraphBuilder extends MethodVisitor {
                     return;
                 }
                 case Opcodes.I2F: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, Type.F32, line));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.BIT_CAST, Type.F32, line));
                     return;
                 }
                 case Opcodes.I2D:
                 case Opcodes.F2D: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, Type.F64, line));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.BIT_CAST, Type.F64, line));
                     return;
                 }
                 case Opcodes.L2F:
                 case Opcodes.D2F: {
-                    push(WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, Type.F32, line));
+                    push(WordCastValue.create(pop2(), WordCastValue.Kind.BIT_CAST, Type.F32, line));
                     return;
                 }
                 case Opcodes.L2D: {
-                    push(WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, Type.F64, line));
+                    push(WordCastValue.create(pop2(), WordCastValue.Kind.BIT_CAST, Type.F64, line));
                     return;
                 }
                 case Opcodes.F2I: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, Type.S32, line));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.BIT_CAST, Type.S32, line));
                     return;
                 }
                 case Opcodes.F2L: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.VALUE_CONVERT, Type.S64, line));
+                    push(WordCastValue.create(pop(), WordCastValue.Kind.BIT_CAST, Type.S64, line));
                     return;
                 }
                 case Opcodes.D2I: {
-                    push(WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, Type.S32, line));
+                    push(WordCastValue.create(pop2(), WordCastValue.Kind.BIT_CAST, Type.S32, line));
                     return;
                 }
                 case Opcodes.D2L: {
-                    push(WordCastValue.create(pop2(), WordCastValue.Kind.VALUE_CONVERT, Type.S64, line));
+                    push(WordCastValue.create(pop2(), WordCastValue.Kind.BIT_CAST, Type.S64, line));
                     return;
                 }
 
@@ -1347,7 +1347,7 @@ public final class GraphBuilder extends MethodVisitor {
                     NodeHandle jumpTarget = getOrMakeBlockHandle(label);
                     GotoImpl goto_ = new GotoImpl();
                     goto_.setSourceLine(line);
-                    goto_.setTarget(jumpTarget);
+                    goto_.setNextBlock(jumpTarget);
                     goto_.setMemoryDependency(memoryState);
                     currentBlock.setTerminator(goto_);
                     enter(possibleBlockState);
