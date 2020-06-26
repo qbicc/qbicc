@@ -28,7 +28,7 @@ import org.objectweb.asm.TypePath;
 /**
  *
  */
-public final class GraphBuilder extends MethodVisitor {
+public final class BytecodeParser extends MethodVisitor {
     final GraphFactory graphFactory;
     final BasicBlockImpl firstBlock;
     final Universe universe;
@@ -62,7 +62,7 @@ public final class GraphBuilder extends MethodVisitor {
     Map<NavigableSet<TryState>, CatchInfo> catchBlocks = new HashMap<>();
     int catchIndex = 0;
 
-    public GraphBuilder(final int mods, final String name, final String descriptor, final ResolvedTypeDefinition typeDefinition) {
+    public BytecodeParser(final int mods, final String name, final String descriptor, final ResolvedTypeDefinition typeDefinition) {
         super(Universe.ASM_VERSION);
         graphFactory = GraphFactory.BASIC_FACTORY;
         this.universe = typeDefinition.getDefiningClassLoader();
@@ -854,7 +854,7 @@ public final class GraphBuilder extends MethodVisitor {
 
         public void visitTableSwitchInsn(final int min, final int max, final Label dflt, final Label... labels) {
             gotInstr = true;
-            BasicBlock currentBlock = GraphBuilder.this.currentBlock;
+            BasicBlock currentBlock = BytecodeParser.this.currentBlock;
             SwitchImpl switch_ = new SwitchImpl();
             switch_.setSourceLine(line);
             switch_.setDefaultTarget(getOrMakeBlockHandle(dflt));
@@ -868,7 +868,7 @@ public final class GraphBuilder extends MethodVisitor {
 
         public void visitLookupSwitchInsn(final Label dflt, final int[] keys, final Label[] labels) {
             gotInstr = true;
-            BasicBlock currentBlock = GraphBuilder.this.currentBlock;
+            BasicBlock currentBlock = BytecodeParser.this.currentBlock;
             SwitchImpl switch_ = new SwitchImpl();
             switch_.setSourceLine(line);
             switch_.setDefaultTarget(getOrMakeBlockHandle(dflt));
@@ -1248,7 +1248,7 @@ public final class GraphBuilder extends MethodVisitor {
             gotInstr = true;
             switch (opcode) {
                 case Opcodes.GOTO: {
-                    BasicBlock currentBlock = GraphBuilder.this.currentBlock;
+                    BasicBlock currentBlock = BytecodeParser.this.currentBlock;
                     NodeHandle jumpTarget = getOrMakeBlockHandle(label);
                     currentBlock.setTerminator(graphFactory.goto_(memoryState, jumpTarget));
                     enter(possibleBlockState);
@@ -1290,7 +1290,7 @@ public final class GraphBuilder extends MethodVisitor {
         }
 
         void handleIfInsn(Value cond, Label label) {
-            BasicBlock currentBlock = GraphBuilder.this.currentBlock;
+            BasicBlock currentBlock = BytecodeParser.this.currentBlock;
             NodeHandle falseTarget = new NodeHandle();
             currentBlock.setTerminator(graphFactory.if_(memoryState, cond, getOrMakeBlockHandle(label), falseTarget));
             enter(futureBlockState);
@@ -1402,7 +1402,7 @@ public final class GraphBuilder extends MethodVisitor {
         public void visitLabel(final Label label) {
             if (gotInstr) {
                 // treat it like a goto
-                BasicBlock currentBlock = GraphBuilder.this.currentBlock;
+                BasicBlock currentBlock = BytecodeParser.this.currentBlock;
                 NodeHandle target = new NodeHandle();
                 currentBlock.setTerminator(graphFactory.goto_(memoryState, target));
                 enter(futureBlockState);
