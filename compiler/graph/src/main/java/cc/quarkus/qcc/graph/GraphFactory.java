@@ -2,7 +2,6 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
-import cc.quarkus.qcc.type.descriptor.FieldDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 
 /**
@@ -48,17 +47,17 @@ public interface GraphFactory {
 
     MemoryStateValue pointerLoad(MemoryState input, Value pointer, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
 
-    MemoryStateValue readInstanceField(MemoryState input, Value instance, ClassType owner, FieldDescriptor desc, JavaAccessMode mode);
+    MemoryStateValue readInstanceField(MemoryState input, Value instance, ClassType owner, String name, JavaAccessMode mode);
 
-    MemoryStateValue readStaticField(MemoryState input, ClassType owner, FieldDescriptor desc, JavaAccessMode mode);
+    MemoryStateValue readStaticField(MemoryState input, ClassType owner, String name, JavaAccessMode mode);
 
     MemoryStateValue readArrayValue(MemoryState input, Value array, Value index, JavaAccessMode mode);
 
     MemoryState pointerStore(MemoryState input, Value pointer, Value value, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
 
-    MemoryState writeInstanceField(MemoryState input, Value instance, ClassType owner, FieldDescriptor desc, Value value, JavaAccessMode mode);
+    MemoryState writeInstanceField(MemoryState input, Value instance, ClassType owner, String name, Value value, JavaAccessMode mode);
 
-    MemoryState writeStaticField(MemoryState input, ClassType owner, FieldDescriptor desc, Value value, JavaAccessMode mode);
+    MemoryState writeStaticField(MemoryState input, ClassType owner, String name, Value value, JavaAccessMode mode);
 
     MemoryState writeArrayValue(MemoryState input, Value array, Value index, Value value, JavaAccessMode mode);
 
@@ -175,21 +174,21 @@ public interface GraphFactory {
             throw new UnsupportedOperationException("Pointers");
         }
 
-        public MemoryStateValue readInstanceField(final MemoryState input, final Value instance, final ClassType owner, final FieldDescriptor desc, final JavaAccessMode mode) {
+        public MemoryStateValue readInstanceField(final MemoryState input, final Value instance, final ClassType owner, final String name, final JavaAccessMode mode) {
             InstanceFieldReadValueImpl value = new InstanceFieldReadValueImpl();
             value.setMemoryDependency(input);
             value.setInstance(instance);
             value.setFieldOwner(owner);
-            value.setFieldName(desc.getName()); // todo: square this up?
+            value.setFieldName(name);
             value.setMode(mode);
             return value;
         }
 
-        public MemoryStateValue readStaticField(final MemoryState input, final ClassType owner, final FieldDescriptor desc, final JavaAccessMode mode) {
+        public MemoryStateValue readStaticField(final MemoryState input, final ClassType owner, final String name, final JavaAccessMode mode) {
             StaticFieldReadValueImpl value = new StaticFieldReadValueImpl();
             value.setMemoryDependency(input);
             value.setFieldOwner(owner);
-            value.setFieldName(desc.getName()); // todo: square this up?
+            value.setFieldName(name);
             value.setMode(mode);
             return value;
         }
@@ -207,22 +206,22 @@ public interface GraphFactory {
             throw new UnsupportedOperationException("Pointers");
         }
 
-        public MemoryState writeInstanceField(final MemoryState input, final Value instance, final ClassType owner, final FieldDescriptor desc, final Value value, final JavaAccessMode mode) {
+        public MemoryState writeInstanceField(final MemoryState input, final Value instance, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
             InstanceFieldWriteImpl op = new InstanceFieldWriteImpl();
             op.setMemoryDependency(input);
             op.setInstance(instance);
             op.setFieldOwner(owner);
-            op.setFieldName(desc.getName()); // todo?
+            op.setFieldName(name);
             op.setWriteValue(value);
             op.setMode(mode);
             return op;
         }
 
-        public MemoryState writeStaticField(final MemoryState input, final ClassType owner, final FieldDescriptor desc, final Value value, final JavaAccessMode mode) {
+        public MemoryState writeStaticField(final MemoryState input, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
             StaticFieldWriteImpl op = new StaticFieldWriteImpl();
             op.setMemoryDependency(input);
             op.setFieldOwner(owner);
-            op.setFieldName(desc.getName()); // todo?
+            op.setFieldName(name);
             op.setWriteValue(value);
             op.setMode(mode);
             return op;

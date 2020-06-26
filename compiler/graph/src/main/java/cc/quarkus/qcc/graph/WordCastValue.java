@@ -11,7 +11,14 @@ public interface WordCastValue extends CastValue {
         TRUNCATE,
         ZERO_EXTEND,
         SIGN_EXTEND,
+        /**
+         * Bit-for-bit cast.
+         */
         BIT_CAST,
+        /**
+         * Type-specific value conversion.
+         */
+        VALUE_CONVERT,
     }
 
     static WordCastValue create(Value value, Kind kind, Type targetType, int line) {

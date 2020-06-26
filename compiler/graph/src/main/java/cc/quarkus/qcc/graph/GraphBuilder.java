@@ -774,47 +774,47 @@ public final class GraphBuilder extends MethodVisitor {
             }
         }
 
+        void nullCheck(Value value) {
+            Value isNull = graphFactory.binaryOperation(CommutativeBinaryValue.Kind.CMP_EQ, value, Value.NULL);
+            ClassType npe = universe.findClass("java/lang/NullPointerException").verify().getClassType();
+            GraphFactory.MemoryStateValue newNpe = graphFactory.new_(null, npe);
+            MemoryState tmpState = graphFactory.invokeInstanceMethod(newNpe.getMemoryState(), newNpe.getValue(), npe, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
+            BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newNpe.getValue()));
+            NodeHandle continueHandle = new NodeHandle();
+            Terminator terminator = graphFactory.if_(memoryState, isNull, NodeHandle.of(throwBlock), continueHandle);
+            currentBlock.setTerminator(terminator);
+            enter(futureBlockState);
+            continueHandle.setTarget(futureBlock);
+            enter(inBlockState);
+        }
+
         public void visitFieldInsn(final int opcode, final String owner, final String name, final String descriptor) {
             gotInstr = true;
+            ClassType ownerType = universe.findClass(owner).verify().getClassType();
+            Type parsedDescriptor = universe.parseSingleDescriptor(descriptor);
+            // todo: check type...
             switch (opcode) {
                 case Opcodes.GETSTATIC: {
-                    FieldReadValue read = new StaticFieldReadValueImpl();
-                    read.setMemoryDependency(memoryState);
-                    read.setSourceLine(line);
-                    // todo: set descriptor
-                    memoryState = read;
-                    // todo: size from field
-                    push(read);
+                    GraphFactory.MemoryStateValue memoryStateValue = graphFactory.readStaticField(memoryState, ownerType, name, JavaAccessMode.DETECT);
+                    memoryState = memoryStateValue.getMemoryState();
+                    push(memoryStateValue.getValue());
                     break;
                 }
                 case Opcodes.GETFIELD: {
-                    InstanceFieldReadValue read = new InstanceFieldReadValueImpl();
-                    read.setInstance(pop());
-                    read.setMemoryDependency(memoryState);
-                    read.setSourceLine(line);
-                    // todo: set descriptor
-                    memoryState = read;
-                    // todo: size from field
-                    push(read);
+                    GraphFactory.MemoryStateValue memoryStateValue = graphFactory.readInstanceField(memoryState, pop(), ownerType, name, JavaAccessMode.DETECT);
+                    memoryState = memoryStateValue.getMemoryState();
+                    push(memoryStateValue.getValue());
                     break;
                 }
                 case Opcodes.PUTSTATIC: {
-                    // todo: get pop type from field descriptor
-                    Value value = popSmart();
-                    FieldWrite write = new StaticFieldWriteImpl();
-                    write.setWriteValue(value);
-                    write.setMemoryDependency(memoryState);
-                    write.setSourceLine(line);
-                    memoryState = write;
+                    Value value = pop(parsedDescriptor.isClass2Type());
+                    memoryState = graphFactory.writeStaticField(memoryState, ownerType, name, value, JavaAccessMode.DETECT);
                     break;
                 }
                 case Opcodes.PUTFIELD: {
-                    Value value = popSmart();
-                    InstanceFieldWrite write = new InstanceFieldWriteImpl();
-                    write.setWriteValue(value);
-                    write.setMemoryDependency(memoryState);
-                    write.setSourceLine(line);
-                    memoryState = write;
+                    Value instance = pop();
+                    Value value = pop(parsedDescriptor.isClass2Type());
+                    memoryState = graphFactory.writeInstanceField(memoryState, instance, ownerType, name, value, JavaAccessMode.DETECT);
                     break;
                 }
                 default: {
@@ -1061,15 +1061,13 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.LADD:
                 case Opcodes.DMUL:
                 case Opcodes.DADD: {
-                    CommutativeBinaryValueImpl op = new CommutativeBinaryValueImpl();
-                    op.setSourceLine(line);
-                    op.setOwner(currentBlock);
-                    op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
-                    op.setLeftInput(popSmart());
-                    op.setRightInput(popSmart());
-                    push(op);
+                    push(graphFactory.binaryOperation(CommutativeBinaryValue.Kind.fromOpcode(opcode), popSmart(), popSmart()));
                     return;
                 }
+                case Opcodes.FDIV:
+                case Opcodes.DDIV:
+                case Opcodes.FREM:
+                case Opcodes.DREM:
                 case Opcodes.FSUB:
                 case Opcodes.DSUB:
                 case Opcodes.ISHL:
@@ -1080,183 +1078,99 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.LSHR:
                 case Opcodes.LUSHR:
                 case Opcodes.LSUB: {
-                    NonCommutativeBinaryValueImpl op = new NonCommutativeBinaryValueImpl();
-                    op.setSourceLine(line);
-                    op.setOwner(currentBlock);
-                    op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
-                    op.setLeftInput(popSmart());
-                    op.setRightInput(popSmart());
-                    push(op);
+                    push(graphFactory.binaryOperation(NonCommutativeBinaryValue.Kind.fromOpcode(opcode), popSmart(), popSmart()));
                     return;
                 }
                 case Opcodes.LCMP: {
                     Value v2 = pop2();
                     Value v1 = pop2();
-                    NonCommutativeBinaryValueImpl c1 = new NonCommutativeBinaryValueImpl();
-                    c1.setSourceLine(line);
-                    c1.setOwner(currentBlock);
-                    c1.setKind(NonCommutativeBinaryValue.Kind.CMP_LT);
-                    c1.setLeftInput(v1);
-                    c1.setRightInput(v2);
-                    NonCommutativeBinaryValueImpl c2 = new NonCommutativeBinaryValueImpl();
-                    c2.setSourceLine(line);
-                    c2.setOwner(currentBlock);
-                    c2.setKind(NonCommutativeBinaryValue.Kind.CMP_GT);
-                    c2.setLeftInput(v1);
-                    c2.setRightInput(v2);
-                    IfValueImpl op1 = new IfValueImpl();
-                    op1.setSourceLine(line);
-                    op1.setOwner(currentBlock);
-                    op1.setCond(c1);
-                    op1.setTrueValue(Value.const_(-1));
-                    IfValueImpl op2 = new IfValueImpl();
-                    op2.setSourceLine(line);
-                    op2.setOwner(currentBlock);
-                    op2.setCond(c2);
-                    op2.setTrueValue(Value.const_(1));
-                    op2.setFalseValue(Value.const_(0));
-                    op1.setFalseValue(op2);
-                    push(op1);
+                    Value lt = graphFactory.binaryOperation(NonCommutativeBinaryValue.Kind.CMP_LT, v1, v2);
+                    Value gt = graphFactory.binaryOperation(NonCommutativeBinaryValue.Kind.CMP_GT, v1, v2);
+                    push(graphFactory.if_(lt, Value.const_(-1), graphFactory.if_(gt, Value.const_(1), Value.const_(0))));
                     return;
                 }
 
                 case Opcodes.FCMPL:
                 case Opcodes.DCMPL: {
-                    // todo: fix up NaN semantics
                     Value v2 = popSmart();
                     Value v1 = popSmart();
-                    NonCommutativeBinaryValueImpl c1 = new NonCommutativeBinaryValueImpl();
-                    c1.setSourceLine(line);
-                    c1.setOwner(currentBlock);
-                    c1.setKind(NonCommutativeBinaryValue.Kind.CMP_LT);
-                    c1.setLeftInput(v1);
-                    c1.setRightInput(v2);
-                    NonCommutativeBinaryValueImpl c2 = new NonCommutativeBinaryValueImpl();
-                    c2.setSourceLine(line);
-                    c2.setOwner(currentBlock);
-                    c2.setKind(NonCommutativeBinaryValue.Kind.CMP_GT);
-                    c2.setLeftInput(v1);
-                    c2.setRightInput(v2);
-                    IfValueImpl op1 = new IfValueImpl();
-                    op1.setSourceLine(line);
-                    op1.setOwner(currentBlock);
-                    op1.setCond(c1);
-                    op1.setTrueValue(Value.const_(-1));
-                    IfValueImpl op2 = new IfValueImpl();
-                    op2.setSourceLine(line);
-                    op2.setOwner(currentBlock);
-                    op2.setCond(c2);
-                    op2.setTrueValue(Value.const_(1));
-                    op2.setFalseValue(Value.const_(0));
-                    op1.setFalseValue(op2);
-                    push(op1);
+                    Value lt = graphFactory.binaryOperation(NonCommutativeBinaryValue.Kind.CMP_LT, v1, v2);
+                    Value gt = graphFactory.binaryOperation(NonCommutativeBinaryValue.Kind.CMP_GT, v1, v2);
+                    push(graphFactory.if_(lt, Value.const_(-1), graphFactory.if_(gt, Value.const_(1), Value.const_(0))));
                     return;
                 }
                 case Opcodes.FCMPG:
                 case Opcodes.DCMPG: {
-                    // todo: fix up NaN semantics
                     Value v2 = popSmart();
                     Value v1 = popSmart();
-                    NonCommutativeBinaryValueImpl c1 = new NonCommutativeBinaryValueImpl();
-                    c1.setSourceLine(line);
-                    c1.setOwner(currentBlock);
-                    c1.setKind(NonCommutativeBinaryValue.Kind.CMP_GT);
-                    c1.setLeftInput(v1);
-                    c1.setRightInput(v2);
-                    NonCommutativeBinaryValueImpl c2 = new NonCommutativeBinaryValueImpl();
-                    c2.setSourceLine(line);
-                    c2.setOwner(currentBlock);
-                    c2.setKind(NonCommutativeBinaryValue.Kind.CMP_LT);
-                    c2.setLeftInput(v1);
-                    c2.setRightInput(v2);
-                    IfValueImpl op1 = new IfValueImpl();
-                    op1.setSourceLine(line);
-                    op1.setOwner(currentBlock);
-                    op1.setCond(c1);
-                    op1.setTrueValue(Value.const_(1));
-                    IfValueImpl op2 = new IfValueImpl();
-                    op2.setSourceLine(line);
-                    op2.setOwner(currentBlock);
-                    op2.setCond(c2);
-                    op2.setTrueValue(Value.const_(-1));
-                    op2.setFalseValue(Value.const_(0));
-                    op1.setFalseValue(op2);
-                    push(op1);
+                    Value lt = graphFactory.binaryOperation(NonCommutativeBinaryValue.Kind.CMP_LT, v1, v2);
+                    Value gt = graphFactory.binaryOperation(NonCommutativeBinaryValue.Kind.CMP_GT, v1, v2);
+                    push(graphFactory.if_(gt, Value.const_(1), graphFactory.if_(lt, Value.const_(-1), Value.const_(0))));
                     return;
                 }
 
                 case Opcodes.ARRAYLENGTH: {
-                    Value v = pop();
-                    UnaryValueImpl uv = new UnaryValueImpl();
-                    uv.setSourceLine(line);
-                    uv.setKind(UnaryValue.Kind.LENGTH_OF);
-                    uv.setInput(v);
-                    push(uv);
+                    push(graphFactory.unaryOperation(UnaryValue.Kind.LENGTH_OF, pop()));
                     return;
                 }
                 case Opcodes.FNEG:
                 case Opcodes.DNEG: {
-                    Value v = popSmart();
-                    UnaryValueImpl uv = new UnaryValueImpl();
-                    uv.setSourceLine(line);
-                    uv.setKind(UnaryValue.Kind.NEGATE);
-                    uv.setInput(v);
-                    push(uv);
+                    push(graphFactory.unaryOperation(UnaryValue.Kind.NEGATE, pop()));
                     return;
                 }
 
                 case Opcodes.I2L: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.SIGN_EXTEND, Type.S64, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.SIGN_EXTEND, pop(), Type.S64));
                     return;
                 }
                 case Opcodes.L2I: {
-                    push(WordCastValue.create(pop2(), WordCastValue.Kind.TRUNCATE, Type.S32, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.TRUNCATE, pop2(), Type.S32));
                     return;
                 }
                 case Opcodes.I2B: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, Type.S8, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.TRUNCATE, pop(), Type.S8));
                     return;
                 }
                 case Opcodes.I2C: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, Type.U16, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.TRUNCATE, pop(), Type.U16));
                     return;
                 }
                 case Opcodes.I2S: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.TRUNCATE, Type.S16, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.TRUNCATE, pop(), Type.S16));
                     return;
                 }
                 case Opcodes.I2F: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.BIT_CAST, Type.F32, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.VALUE_CONVERT, pop(), Type.F32));
                     return;
                 }
                 case Opcodes.I2D:
                 case Opcodes.F2D: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.BIT_CAST, Type.F64, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.VALUE_CONVERT, pop(), Type.F64));
                     return;
                 }
                 case Opcodes.L2F:
                 case Opcodes.D2F: {
-                    push(WordCastValue.create(pop2(), WordCastValue.Kind.BIT_CAST, Type.F32, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.VALUE_CONVERT, pop2(), Type.F32));
                     return;
                 }
                 case Opcodes.L2D: {
-                    push(WordCastValue.create(pop2(), WordCastValue.Kind.BIT_CAST, Type.F64, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.VALUE_CONVERT, pop2(), Type.F64));
                     return;
                 }
                 case Opcodes.F2I: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.BIT_CAST, Type.S32, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.VALUE_CONVERT, pop(), Type.S32));
                     return;
                 }
                 case Opcodes.F2L: {
-                    push(WordCastValue.create(pop(), WordCastValue.Kind.BIT_CAST, Type.S64, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.VALUE_CONVERT, pop(), Type.S64));
                     return;
                 }
                 case Opcodes.D2I: {
-                    push(WordCastValue.create(pop2(), WordCastValue.Kind.BIT_CAST, Type.S32, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.VALUE_CONVERT, pop2(), Type.S32));
                     return;
                 }
                 case Opcodes.D2L: {
-                    push(WordCastValue.create(pop2(), WordCastValue.Kind.BIT_CAST, Type.S64, line));
+                    push(graphFactory.castOperation(WordCastValue.Kind.VALUE_CONVERT, pop2(), Type.S64));
                     return;
                 }
 
@@ -1268,14 +1182,10 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.BALOAD:
                 case Opcodes.CALOAD:
                 case Opcodes.SALOAD: {
-                    ArrayElementReadValueImpl value = new ArrayElementReadValueImpl();
-                    value.setMemoryDependency(memoryState);
-                    memoryState = value;
-                    value.setIndex(pop());
-                    value.setInstance(pop());
-                    value.setOwner(currentBlock);
-                    // todo: double-check array element type against array type...
-                    push(value);
+                    // todo: add bounds check
+                    GraphFactory.MemoryStateValue memoryStateValue = graphFactory.readArrayValue(memoryState, pop(), pop(), JavaAccessMode.PLAIN);
+                    memoryState = memoryStateValue.getMemoryState();
+                    push(memoryStateValue.getValue());
                     return;
                 }
 
@@ -1288,65 +1198,43 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.BASTORE:
                 case Opcodes.CASTORE:
                 case Opcodes.SASTORE: {
-                    ArrayElementWriteImpl write = new ArrayElementWriteImpl();
-                    write.setMemoryDependency(memoryState);
-                    memoryState = write;
-                    // todo: double-check array element type against array type...
-                    write.setWriteValue(pop());
-                    write.setIndex(pop());
-                    write.setInstance(pop());
-                    write.setOwner(currentBlock);
+                    // todo: add bounds check
+                    memoryState = graphFactory.writeArrayValue(memoryState, pop(), pop(), popSmart(), JavaAccessMode.PLAIN);
                     return;
                 }
 
                 case Opcodes.IDIV:
-                case Opcodes.IREM: {
-
+                case Opcodes.IREM:
+                case Opcodes.LDIV:
+                case Opcodes.LREM: {
+                    Value dividend = popSmart();
+                    Value divisor = popSmart();
+                    // todo: add zero check
+                    push(graphFactory.binaryOperation(NonCommutativeBinaryValue.Kind.fromOpcode(opcode), dividend, divisor));
+                    return;
                 }
 
-                case Opcodes.LDIV:
-                case Opcodes.LREM:
-
-                case Opcodes.FDIV:
-                case Opcodes.DDIV:
-                case Opcodes.FREM:
-                case Opcodes.DREM:
-                case Opcodes.ATHROW:
+                case Opcodes.ATHROW: {
+                    // todo: graph factory that tracks try/catch
+                    currentBlock.setTerminator(graphFactory.throw_(memoryState, pop()));
+                    enter(possibleBlockState);
+                    return;
+                }
                 case Opcodes.MONITORENTER:
                 case Opcodes.MONITOREXIT: {
                     throw new UnsupportedOperationException();
                 }
                 case Opcodes.LRETURN:
-                case Opcodes.DRETURN: {
-                    Value retVal = pop2();
-                    ValueReturnImpl insn = new ValueReturnImpl();
-                    insn.setSourceLine(line);
-                    insn.setMemoryDependency(memoryState);
-                    insn.setReturnValue(retVal);
-                    BasicBlock currentBlock = GraphBuilder.this.currentBlock;
-                    currentBlock.setTerminator(insn);
-                    enter(possibleBlockState);
-                    return;
-                }
+                case Opcodes.DRETURN:
                 case Opcodes.IRETURN:
                 case Opcodes.FRETURN:
                 case Opcodes.ARETURN: {
-                    Value retVal = pop();
-                    ValueReturnImpl insn = new ValueReturnImpl();
-                    insn.setSourceLine(line);
-                    insn.setMemoryDependency(memoryState);
-                    insn.setReturnValue(retVal);
-                    BasicBlock currentBlock = GraphBuilder.this.currentBlock;
-                    currentBlock.setTerminator(insn);
+                    currentBlock.setTerminator(graphFactory.return_(memoryState, popSmart()));
                     enter(possibleBlockState);
                     return;
                 }
                 case Opcodes.RETURN: {
-                    ReturnImpl insn = new ReturnImpl();
-                    insn.setSourceLine(line);
-                    insn.setMemoryDependency(memoryState);
-                    BasicBlock currentBlock = GraphBuilder.this.currentBlock;
-                    currentBlock.setTerminator(insn);
+                    currentBlock.setTerminator(graphFactory.return_(memoryState));
                     enter(possibleBlockState);
                     return;
                 }
@@ -1362,60 +1250,32 @@ public final class GraphBuilder extends MethodVisitor {
                 case Opcodes.GOTO: {
                     BasicBlock currentBlock = GraphBuilder.this.currentBlock;
                     NodeHandle jumpTarget = getOrMakeBlockHandle(label);
-                    GotoImpl goto_ = new GotoImpl();
-                    goto_.setSourceLine(line);
-                    goto_.setNextBlock(jumpTarget);
-                    goto_.setMemoryDependency(memoryState);
-                    currentBlock.setTerminator(goto_);
+                    currentBlock.setTerminator(graphFactory.goto_(memoryState, jumpTarget));
                     enter(possibleBlockState);
                     return;
                 }
                 case Opcodes.IFEQ:
                 case Opcodes.IFNE: {
-                    CommutativeBinaryValue op = new CommutativeBinaryValueImpl();
-                    op.setSourceLine(line);
-                    op.setOwner(currentBlock);
-                    op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
-                    op.setRightInput(Value.ICONST_0);
-                    op.setLeftInput(pop());
-                    handleIfInsn(op, label);
+                    handleIfInsn(graphFactory.binaryOperation(CommutativeBinaryValue.Kind.fromOpcode(opcode), pop(), Value.ICONST_0), label);
                     return;
                 }
                 case Opcodes.IFLT:
                 case Opcodes.IFGT:
                 case Opcodes.IFLE:
                 case Opcodes.IFGE: {
-                    NonCommutativeBinaryValue op = new NonCommutativeBinaryValueImpl();
-                    op.setSourceLine(line);
-                    op.setOwner(currentBlock);
-                    op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
-                    op.setRightInput(Value.ICONST_0);
-                    op.setLeftInput(pop());
-                    handleIfInsn(op, label);
+                    handleIfInsn(graphFactory.binaryOperation(NonCommutativeBinaryValue.Kind.fromOpcode(opcode), pop(), Value.ICONST_0), label);
                     return;
                 }
                 case Opcodes.IF_ICMPEQ:
                 case Opcodes.IF_ICMPNE: {
-                    CommutativeBinaryValue op = new CommutativeBinaryValueImpl();
-                    op.setSourceLine(line);
-                    op.setOwner(currentBlock);
-                    op.setKind(CommutativeBinaryValue.Kind.fromOpcode(opcode));
-                    op.setRightInput(pop());
-                    op.setLeftInput(pop());
-                    handleIfInsn(op, label);
+                    handleIfInsn(graphFactory.binaryOperation(CommutativeBinaryValue.Kind.fromOpcode(opcode), pop(), pop()), label);
                     return;
                 }
                 case Opcodes.IF_ICMPLE:
                 case Opcodes.IF_ICMPLT:
                 case Opcodes.IF_ICMPGE:
                 case Opcodes.IF_ICMPGT: {
-                    NonCommutativeBinaryValue op = new NonCommutativeBinaryValueImpl();
-                    op.setSourceLine(line);
-                    op.setOwner(currentBlock);
-                    op.setKind(NonCommutativeBinaryValue.Kind.fromOpcode(opcode));
-                    op.setRightInput(pop());
-                    op.setLeftInput(pop());
-                    handleIfInsn(op, label);
+                    handleIfInsn(graphFactory.binaryOperation(NonCommutativeBinaryValue.Kind.fromOpcode(opcode), pop(), pop()), label);
                     return;
                 }
                 default: {
@@ -1426,26 +1286,15 @@ public final class GraphBuilder extends MethodVisitor {
 
         public void visitIincInsn(final int var, final int increment) {
             gotInstr = true;
-            CommutativeBinaryValueImpl op = new CommutativeBinaryValueImpl();
-            op.setSourceLine(line);
-            op.setOwner(currentBlock);
-            op.setKind(CommutativeBinaryValue.Kind.ADD);
-            op.setLeftInput(getLocal(var));
-            op.setRightInput(Value.const_(increment));
-            setLocal(var, op);
+            setLocal(var, graphFactory.binaryOperation(CommutativeBinaryValue.Kind.ADD, getLocal(var), Value.const_(increment)));
         }
 
         void handleIfInsn(Value cond, Label label) {
             BasicBlock currentBlock = GraphBuilder.this.currentBlock;
-            NodeHandle jumpTarget = getOrMakeBlockHandle(label);
-            IfImpl if_ = new IfImpl();
-            if_.setSourceLine(line);
-            currentBlock.setTerminator(if_);
-            if_.setMemoryDependency(memoryState);
-            if_.setCondition(cond);
-            if_.setFalseBranch(jumpTarget);
+            NodeHandle falseTarget = new NodeHandle();
+            currentBlock.setTerminator(graphFactory.if_(memoryState, cond, getOrMakeBlockHandle(label), falseTarget));
             enter(futureBlockState);
-            if_.setTrueBranch(futureBlock);
+            falseTarget.setTarget(futureBlock);
         }
 
         public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
@@ -1465,65 +1314,48 @@ public final class GraphBuilder extends MethodVisitor {
             } else {
                 methodDef = def.verify().resolve().resolveInterfaceMethod(identifier);
             }
-            Invocation val;
+            MethodIdentifier resolved = methodDef.getMethodIdentifier();
+            ClassType ownerType = def.verify().getClassType();
+            List<Value> arguments;
+            if (length == 0) {
+                arguments = List.of();
+            } else if (length == 1) {
+                arguments = List.of(popSmart());
+            } else if (length == 2) {
+                Value v1 = popSmart();
+                Value v0 = popSmart();
+                arguments = List.of(v0, v1);
+            } else if (length == 3) {
+                Value v2 = popSmart();
+                Value v1 = popSmart();
+                Value v0 = popSmart();
+                arguments = List.of(v0, v1, v2);
+            } else {
+                // just assume lots of arguments
+                Value[] args = new Value[length];
+                for (int k = length; k > 0; k --) {
+                    args[k - 1] = popSmart();
+                }
+                arguments = List.of(args);
+            }
+            // todo: catch tracking graph factory
             if (opcode == Opcodes.INVOKESTATIC) {
                 if (returnType == Type.VOID) {
-                    if (! activeTry.isEmpty()) {
-                        val = new TryInvocationImpl();
-                    } else {
-                        // no try
-                        val = new InvocationImpl();
-                    }
+                    memoryState = graphFactory.invokeMethod(memoryState, ownerType, resolved, arguments);
                 } else {
-                    if (! activeTry.isEmpty()) {
-                        val = new TryInvocationValueImpl();
-                    } else {
-                        // no try
-                        val = new InvocationValueImpl();
-                    }
+                    GraphFactory.MemoryStateValue res = graphFactory.invokeValueMethod(memoryState, ownerType, resolved, arguments);
+                    memoryState = res.getMemoryState();
+                    push(res.getValue());
                 }
             } else {
+                Value receiver = pop();
                 if (returnType == Type.VOID) {
-                    if (! activeTry.isEmpty()) {
-                        val = new TryInstanceInvocationImpl();
-                    } else {
-                        // no try
-                        val = new InstanceInvocationImpl();
-                    }
+                    memoryState = graphFactory.invokeInstanceMethod(memoryState, receiver, ownerType, resolved, arguments);
                 } else {
-                    if (! activeTry.isEmpty()) {
-                        val = new TryInstanceInvocationValueImpl();
-                    } else {
-                        // no try
-                        val = new InstanceInvocationValueImpl();
-                    }
+                    GraphFactory.MemoryStateValue res = graphFactory.invokeInstanceValueMethod(memoryState, receiver, ownerType, resolved, arguments);
+                    memoryState = res.getMemoryState();
+                    push(res.getValue());
                 }
-            }
-            val.setMethodOwner(def.verify().getClassType());
-            // use the resolved method identifier
-            val.setInvocationTarget(methodDef.getMethodIdentifier());
-            val.setSourceLine(line);
-            val.setOwner(currentBlock);
-            val.setArgumentCount(length);
-            for (int k = length; k > 0; k --) {
-                val.setArgument(k - 1, popSmart());
-            }
-            if (val instanceof InstanceOperation) {
-                ((InstanceOperation) val).setInstance(pop());
-            }
-            val.setMemoryDependency(memoryState);
-            if (val instanceof Value) {
-                push((Value) val);
-            }
-            memoryState = val;
-            if (val instanceof Try) {
-                ((Try) val).setCatchHandler(getCatchHandler());
-            }
-            if (val instanceof Terminator) {
-                Terminator terminator = (Terminator) val;
-                currentBlock.setTerminator(terminator);
-                enter(futureBlockState);
-                ((Goto) val).setNextBlock(futureBlock);
             }
         }
 
@@ -1571,13 +1403,10 @@ public final class GraphBuilder extends MethodVisitor {
             if (gotInstr) {
                 // treat it like a goto
                 BasicBlock currentBlock = GraphBuilder.this.currentBlock;
-                GotoImpl goto_ = new GotoImpl();
-                goto_.setSourceLine(line);
-                currentBlock.setTerminator(goto_);
-                goto_.setMemoryDependency(memoryState);
+                NodeHandle target = new NodeHandle();
+                currentBlock.setTerminator(graphFactory.goto_(memoryState, target));
                 enter(futureBlockState);
-                assert futureBlock != null;
-                goto_.setNextBlock(futureBlock);
+                target.setTarget(futureBlock);
                 outer().visitLabel(label);
             } else {
                 NodeHandle handle = allBlocks.get(label);
