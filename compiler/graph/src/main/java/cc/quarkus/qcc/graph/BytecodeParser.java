@@ -29,7 +29,7 @@ import org.objectweb.asm.TypePath;
  *
  */
 public final class BytecodeParser extends MethodVisitor {
-    final GraphFactory graphFactory;
+    final LineNumberGraphFactory graphFactory;
     final BasicBlockImpl firstBlock;
     final Universe universe;
     Type[] frameStackTypes;
@@ -55,7 +55,6 @@ public final class BytecodeParser extends MethodVisitor {
     final State inBlockState = new InBlock();
     final State futureBlockState = new FutureBlockState();
     final State possibleBlockState = new PossibleBlock();
-    int line;
     Map<Label, List<TryState>> tryStarts = new HashMap<>();
     Map<Label, List<TryState>> tryStops = new HashMap<>();
     NavigableSet<TryState> activeTry = new TreeSet<>();
@@ -64,7 +63,7 @@ public final class BytecodeParser extends MethodVisitor {
 
     public BytecodeParser(final int mods, final String name, final String descriptor, final ResolvedTypeDefinition typeDefinition) {
         super(Universe.ASM_VERSION);
-        graphFactory = GraphFactory.BASIC_FACTORY;
+        graphFactory = new LineNumberGraphFactory(GraphFactory.BASIC_FACTORY);
         this.universe = typeDefinition.getDefiningClassLoader();
         boolean isStatic = (mods & Opcodes.ACC_STATIC) != 0;
         org.objectweb.asm.Type[] argTypes = getArgumentTypes(descriptor);
@@ -366,7 +365,7 @@ public final class BytecodeParser extends MethodVisitor {
 
     public void visitLineNumber(final int line, final Label start) {
         // todo: need to efficiently map label to line and ensure things happen in the correct order
-        this.line = line;
+        graphFactory.setLineNumber(line);
     }
 
     Type typeOfFrameObject(Object o) {
@@ -856,7 +855,6 @@ public final class BytecodeParser extends MethodVisitor {
             gotInstr = true;
             BasicBlock currentBlock = BytecodeParser.this.currentBlock;
             SwitchImpl switch_ = new SwitchImpl();
-            switch_.setSourceLine(line);
             switch_.setDefaultTarget(getOrMakeBlockHandle(dflt));
             for (int i = 0; i < labels.length; i ++) {
                 switch_.setTargetForValue(min + i, getOrMakeBlockHandle(labels[i]));
@@ -870,7 +868,6 @@ public final class BytecodeParser extends MethodVisitor {
             gotInstr = true;
             BasicBlock currentBlock = BytecodeParser.this.currentBlock;
             SwitchImpl switch_ = new SwitchImpl();
-            switch_.setSourceLine(line);
             switch_.setDefaultTarget(getOrMakeBlockHandle(dflt));
             for (int i = 0; i < keys.length; i ++) {
                 switch_.setTargetForValue(keys[i], getOrMakeBlockHandle(labels[i]));
