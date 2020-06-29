@@ -854,26 +854,25 @@ public final class BytecodeParser extends MethodVisitor {
         public void visitTableSwitchInsn(final int min, final int max, final Label dflt, final Label... labels) {
             gotInstr = true;
             BasicBlock currentBlock = BytecodeParser.this.currentBlock;
-            SwitchImpl switch_ = new SwitchImpl();
-            switch_.setDefaultTarget(getOrMakeBlockHandle(dflt));
-            for (int i = 0; i < labels.length; i ++) {
-                switch_.setTargetForValue(min + i, getOrMakeBlockHandle(labels[i]));
+            int length = max - min;
+            int[] keys = new int[length];
+            NodeHandle[] targets = new NodeHandle[length];
+            for (int i = 0; i < length; i ++) {
+                keys[i] = min + i;
+                targets[i] = getOrMakeBlockHandle(labels[i]);
             }
-            switch_.setMemoryDependency(memoryState);
-            currentBlock.setTerminator(switch_);
+            currentBlock.setTerminator(graphFactory.switch_(memoryState, pop(), keys, targets, getOrMakeBlockHandle(dflt)));
             enter(possibleBlockState);
         }
 
         public void visitLookupSwitchInsn(final Label dflt, final int[] keys, final Label[] labels) {
             gotInstr = true;
             BasicBlock currentBlock = BytecodeParser.this.currentBlock;
-            SwitchImpl switch_ = new SwitchImpl();
-            switch_.setDefaultTarget(getOrMakeBlockHandle(dflt));
+            NodeHandle[] targets = new NodeHandle[labels.length];
             for (int i = 0; i < keys.length; i ++) {
-                switch_.setTargetForValue(keys[i], getOrMakeBlockHandle(labels[i]));
+                targets[i] = getOrMakeBlockHandle(labels[i]);
             }
-            switch_.setMemoryDependency(memoryState);
-            currentBlock.setTerminator(switch_);
+            currentBlock.setTerminator(graphFactory.switch_(memoryState, pop(), keys, targets, getOrMakeBlockHandle(dflt)));
             enter(possibleBlockState);
         }
 

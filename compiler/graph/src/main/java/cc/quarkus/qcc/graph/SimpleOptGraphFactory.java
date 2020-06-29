@@ -285,6 +285,10 @@ public class SimpleOptGraphFactory implements GraphFactory {
         return getDelegate().throw_(input, value);
     }
 
+    public Terminator switch_(final MemoryState input, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
+        return getDelegate().switch_(input, value, checkValues, targets, defaultTarget);
+    }
+
     public Terminator tryInvokeMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
         return getDelegate().tryInvokeMethod(input, owner, method, arguments, returnTarget, catchTarget);
     }

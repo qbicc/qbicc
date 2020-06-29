@@ -138,6 +138,10 @@ public class LineNumberGraphFactory implements GraphFactory {
         return withLineNumber(delegate.throw_(input, value));
     }
 
+    public Terminator switch_(final MemoryState input, final Value value, final int[] keys, final NodeHandle[] targets, final NodeHandle defaultTarget) {
+        return withLineNumber(delegate.switch_(input, value, keys, targets, defaultTarget));
+    }
+
     public Terminator tryInvokeMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
         return withLineNumber(delegate.tryInvokeMethod(input, owner, method, arguments, returnTarget, catchTarget));
     }

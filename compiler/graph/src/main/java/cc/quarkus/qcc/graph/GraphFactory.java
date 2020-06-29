@@ -85,6 +85,8 @@ public interface GraphFactory {
 
     Terminator throw_(MemoryState input, Value value);
 
+    Terminator switch_(MemoryState input, Value value, int[] checkValues, NodeHandle[] targets, NodeHandle defaultTarget);
+
     // control flow + try
 
     Terminator tryInvokeMethod(MemoryState input, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
@@ -328,6 +330,20 @@ public interface GraphFactory {
             ThrowImpl op = new ThrowImpl();
             op.setMemoryDependency(input);
             op.setThrownValue(value);
+            return op;
+        }
+
+        public Terminator switch_(final MemoryState input, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
+            SwitchImpl op = new SwitchImpl();
+            op.setMemoryDependency(input);
+            op.setDefaultTarget(defaultTarget);
+            int length = checkValues.length;
+            if (targets.length != length) {
+                throw new IllegalArgumentException("Target values length does not match check values length");
+            }
+            for (int i = 0; i < length; i ++) {
+                op.setTargetForValue(checkValues[i], targets[i]);
+            }
             return op;
         }
 
