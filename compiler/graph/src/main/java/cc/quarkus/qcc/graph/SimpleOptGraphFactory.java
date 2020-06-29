@@ -26,6 +26,10 @@ public class SimpleOptGraphFactory implements GraphFactory {
         }
     }
 
+    public PhiValue phi(final Type type, final BasicBlock basicBlock) {
+        return getDelegate().phi(type, basicBlock);
+    }
+
     public Value binaryOperation(final CommutativeBinaryValue.Kind kind, final Value v1, final Value v2) {
         switch (kind) {
             case ADD: {

@@ -511,11 +511,11 @@ public final class BytecodeParser extends MethodVisitor {
             // build catch block
             Capture capture = capture();
             BasicBlock catch_ = new BasicBlockImpl();
-            PhiValue exceptionPhi = new PhiValueImpl();
+            PhiValue exceptionPhi = new PhiValueImpl(currentBlock);
             int localCnt = capture.locals.length;
             Value[] phiLocals = new Value[localCnt];
             for (int i = 0; i < localCnt; i ++) {
-                phiLocals[i] = new PhiValueImpl();
+                phiLocals[i] = new PhiValueImpl(currentBlock);
             }
             capture = new Capture(new Value[] { exceptionPhi }, phiLocals);
             // we don't change any state
@@ -604,17 +604,11 @@ public final class BytecodeParser extends MethodVisitor {
     void propagateCurrentStackAndLocals() {
         assert futureBlock == null && currentBlock != null;
         for (int i = 0; i < sp; i ++) {
-            PhiValueImpl pv = new PhiValueImpl();
-            pv.setType(stack[i].getType());
-            pv.setOwner(currentBlock);
-            stack[i] = pv;
+            stack[i] = graphFactory.phi(stack[i].getType(), currentBlock);
         }
         for (int i = 0; i < lp; i ++) {
             if (locals[i] != null) {
-                PhiValueImpl pv = new PhiValueImpl();
-                pv.setType(locals[i].getType());
-                pv.setOwner(currentBlock);
-                locals[i] = pv;
+                locals[i] = graphFactory.phi(locals[i].getType(), currentBlock);
             }
         }
         blockEnters.putIfAbsent(currentBlock, capture());
@@ -624,18 +618,12 @@ public final class BytecodeParser extends MethodVisitor {
         assert futureBlock == null && currentBlock != null;
         for (int i = 0; i < fsp; i ++) {
             Type type = frameStackTypes[i];
-            PhiValueImpl pv = new PhiValueImpl();
-            pv.setType(type);
-            pv.setOwner(currentBlock);
-            push(pv);
+            push(graphFactory.phi(type, currentBlock));
         }
         for (int i = 0; i < flp; i ++) {
             Type type = frameLocalTypes[i];
             if (type != null) {
-                PhiValueImpl pv = new PhiValueImpl();
-                pv.setType(type);
-                pv.setOwner(currentBlock);
-                setLocal(i, pv);
+                setLocal(i, graphFactory.phi(type, currentBlock));
             }
         }
         blockEnters.putIfAbsent(currentBlock, capture());

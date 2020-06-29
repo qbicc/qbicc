@@ -30,6 +30,10 @@ public class LineNumberGraphFactory implements GraphFactory {
         this.lineNumber = lineNumber;
     }
 
+    public PhiValue phi(final Type type, final BasicBlock basicBlock) {
+        return withLineNumber(delegate.phi(type, basicBlock));
+    }
+
     public Value if_(final Value condition, final Value trueValue, final Value falseValue) {
         return withLineNumber(delegate.if_(condition, trueValue, falseValue));
     }

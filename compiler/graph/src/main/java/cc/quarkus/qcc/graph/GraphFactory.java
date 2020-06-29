@@ -17,6 +17,10 @@ public interface GraphFactory {
 
     // values
 
+    // phi
+
+    PhiValue phi(final Type type, BasicBlock basicBlock);
+
     // ternary
 
     Value if_(Value condition, Value trueValue, Value falseValue);
@@ -128,6 +132,12 @@ public interface GraphFactory {
             value.setKind(kind);
             value.setInput(v);
             return value;
+        }
+
+        public PhiValue phi(final Type type, final BasicBlock basicBlock) {
+            PhiValueImpl phiValue = new PhiValueImpl(basicBlock);
+            phiValue.setType(type);
+            return phiValue;
         }
 
         public Value if_(final Value condition, final Value trueValue, final Value falseValue) {

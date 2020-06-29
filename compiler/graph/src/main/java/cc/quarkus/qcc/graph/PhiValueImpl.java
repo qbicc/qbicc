@@ -4,13 +4,20 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import cc.quarkus.qcc.constraint.Constraint;
 import io.smallrye.common.constraint.Assert;
 
-final class PhiValueImpl extends ValueProgramNodeImpl implements PhiValue {
+final class PhiValueImpl extends ValueImpl implements PhiValue {
     private final Key key = new Key();
+    private final NodeHandle basicBlock;
     private NodeHandle type;
 
-    PhiValueImpl() {
+    PhiValueImpl(final NodeHandle basicBlock) {
+        this.basicBlock = basicBlock;
+    }
+
+    PhiValueImpl(final BasicBlock basicBlock) {
+        this(NodeHandle.of(basicBlock));
     }
 
     public Value getValueForBlock(final BasicBlock input) {
@@ -55,6 +62,18 @@ final class PhiValueImpl extends ValueProgramNodeImpl implements PhiValue {
                 idx ++;
             }
         }
+    }
+
+    public BasicBlock getBasicBlock() {
+        return NodeHandle.getTargetOf(basicBlock);
+    }
+
+    public Constraint getConstraint() {
+        return null;
+    }
+
+    public void setConstraint(final Constraint constraint) {
+
     }
 
     static final class Key {}
