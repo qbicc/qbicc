@@ -45,6 +45,10 @@ final class ConstantValue32 extends ValueImpl implements ConstantValue {
         return type.isZero(value);
     }
 
+    public boolean isOne() {
+        return type.isOne(value);
+    }
+
     public boolean isNegative() {
         return type instanceof ComparableWordType && ((ComparableWordType) type).isNegative(value);
     }

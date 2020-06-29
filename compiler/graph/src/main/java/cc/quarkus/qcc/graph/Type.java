@@ -86,4 +86,32 @@ public interface Type extends Node {
         return value == 0;
     }
 
+    default boolean isOne(int value) {
+        return value == 1;
+    }
+
+    default boolean isOne(long value) {
+        return value == 1;
+    }
+
+    default boolean isOne(byte[] value) {
+        if (value[0] != 1) {
+            return false;
+        }
+        for (int i = 1; i < value.length; i ++) {
+            if (value[i] != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Get the zero value for this type.
+     *
+     * @return the zero value for this type
+     */
+    default Value zero() {
+        return Value.const_(0).withTypeRaw(this);
+    }
 }

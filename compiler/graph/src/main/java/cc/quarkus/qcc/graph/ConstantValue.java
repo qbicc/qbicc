@@ -37,6 +37,13 @@ public interface ConstantValue extends Value {
 
     boolean isZero();
 
+    /**
+     * Determine if the value is exactly equal to one, used for some optimizations.
+     *
+     * @return {@code true} if the value is one
+     */
+    boolean isOne();
+
     // these are all helpful aliases for readability
 
     default boolean booleanValue() {

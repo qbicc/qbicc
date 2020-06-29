@@ -39,6 +39,10 @@ final class ConstantValueEmpty extends ValueImpl implements ConstantValue {
         return true;
     }
 
+    public boolean isOne() {
+        return false;
+    }
+
     public boolean isNegative() {
         return false;
     }

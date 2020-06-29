@@ -46,4 +46,8 @@ public interface ClassType extends Type {
         return otherType instanceof ClassType && isAssignableFrom((ClassType) otherType)
             || otherType instanceof EitherType && ((EitherType) otherType).bothAreAssignableTo(this);
     }
+
+    default Value zero() {
+        throw new UnsupportedOperationException();
+    }
 }

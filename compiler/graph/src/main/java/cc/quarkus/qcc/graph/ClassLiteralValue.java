@@ -35,6 +35,10 @@ final class ClassLiteralValue extends ValueImpl implements ConstantValue {
         return false;
     }
 
+    public boolean isOne() {
+        return false;
+    }
+
     public boolean isNegative() {
         return false;
     }

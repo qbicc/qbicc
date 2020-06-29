@@ -18,6 +18,22 @@ public interface FloatType extends NumericType {
         return isNotNegative(value) && isNotPositive(value);
     }
 
+    default boolean isOne(int value) {
+        return Float.intBitsToFloat(value) == 1.0f;
+    }
+
+    default boolean isOne(long value) {
+        return Double.longBitsToDouble(value) == 1.0;
+    }
+
+    default boolean isOne(byte[] value) {
+        throw new UnsupportedOperationException();
+    }
+
+    default Value zero() {
+        return Value.const_(0.0f).withTypeRaw(this);
+    }
+
     default boolean isNegative(final long value) {
         return Double.longBitsToDouble(value) < -0.0;
     }

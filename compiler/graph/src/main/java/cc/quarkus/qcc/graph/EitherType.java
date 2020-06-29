@@ -21,6 +21,10 @@ public interface EitherType extends Type {
         return equals(otherType) || getFirstType().isAssignableFrom(otherType) || getSecondType().isAssignableFrom(otherType);
     }
 
+    default Value zero() {
+        return getFirstType().zero();
+    }
+
     default boolean bothAreAssignableTo(Type otherType) {
         return otherType.isAssignableFrom(getFirstType()) && otherType.isAssignableFrom(getSecondType());
     }

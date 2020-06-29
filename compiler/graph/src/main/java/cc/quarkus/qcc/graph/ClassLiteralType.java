@@ -21,4 +21,8 @@ public interface ClassLiteralType extends Type {
     default Constraint getParameterConstraint(int index) throws IndexOutOfBoundsException {
         throw new IndexOutOfBoundsException(index);
     }
+
+    default Value zero() {
+        throw new UnsupportedOperationException();
+    }
 }

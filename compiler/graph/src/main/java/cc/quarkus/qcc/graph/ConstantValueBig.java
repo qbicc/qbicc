@@ -54,6 +54,10 @@ final class ConstantValueBig extends ValueImpl implements ConstantValue {
         return true;
     }
 
+    public boolean isOne() {
+        return type.isOne(value);
+    }
+
     public boolean isNegative() {
         throw Assert.unsupported();
     }

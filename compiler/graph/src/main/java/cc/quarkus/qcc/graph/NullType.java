@@ -7,4 +7,8 @@ public interface NullType extends Type {
     default boolean isAssignableFrom(Type otherType) {
         return otherType instanceof NullType;
     }
+
+    default Value zero() {
+        return Value.NULL;
+    }
 }
