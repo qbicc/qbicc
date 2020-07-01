@@ -40,7 +40,19 @@ public final class ToolUtil {
     }
 
     public static Path findExecutable(String name) {
-        for (Path path : OS_PATH) {
+        return findExecutableOnPath(name, OS_PATH);
+    }
+
+    public static Path findExecutable(String name, List<Path> extraPaths) {
+        Path found = findExecutableOnPath(name, OS_PATH);
+        if (found == null) {
+            found = findExecutableOnPath(name, extraPaths);
+        }
+        return found;
+    }
+
+    public static Path findExecutableOnPath(String name, List<Path> paths) {
+        for (Path path : paths) {
             final Path exec = path.resolve(name);
             if (Files.isRegularFile(exec) && Files.isReadable(exec) && Files.isExecutable(exec)) {
                 return exec;

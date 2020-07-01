@@ -14,9 +14,12 @@ import cc.quarkus.qcc.machine.tool.ToolUtil;
  */
 public final class LlvmToolProvider implements ToolProvider {
 
+    // Mac OS hides LLVM here if you install it with brew
+    static final List<Path> EXTRA_PATH = List.of(Path.of("/usr/local/opt/llvm/bin"));
+
     public <T extends Tool> Iterable<T> findTools(final Class<T> type, final Platform platform) {
         if (type.isAssignableFrom(LlcToolImpl.class)) {
-            final Path path = ToolUtil.findExecutable("llc");
+            final Path path = ToolUtil.findExecutable("llc", EXTRA_PATH);
             if (path != null && Files.isExecutable(path)) {
                 // TODO: test it
                 return List.of(type.cast(new LlcToolImpl(path, platform)));
@@ -24,7 +27,7 @@ public final class LlvmToolProvider implements ToolProvider {
                 return List.of();
             }
         } else if (type.isAssignableFrom(OptToolImpl.class)) {
-            final Path path = ToolUtil.findExecutable("opt");
+            final Path path = ToolUtil.findExecutable("opt", EXTRA_PATH);
             if (path != null && Files.isExecutable(path)) {
                 // TODO: test it
                 return List.of(type.cast(new OptToolImpl(path, platform)));
