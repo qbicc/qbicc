@@ -16,6 +16,7 @@ import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.machine.llvm.op.Return;
 import cc.quarkus.qcc.machine.llvm.op.Select;
 import cc.quarkus.qcc.machine.llvm.op.Store;
+import cc.quarkus.qcc.machine.llvm.op.YieldingInstruction;
 
 /**
  *
@@ -89,6 +90,26 @@ public interface BasicBlock extends Value {
     Binary urem(Value type, Value arg1, Value arg2);
 
     Binary srem(Value type, Value arg1, Value arg2);
+
+    YieldingInstruction trunc(Value type, Value value, Value toType);
+
+    YieldingInstruction ftrunc(Value type, Value value, Value toType);
+
+    YieldingInstruction fpext(Value type, Value value, Value toType);
+
+    YieldingInstruction sext(Value type, Value value, Value toType);
+
+    YieldingInstruction zext(Value type, Value value, Value toType);
+
+    YieldingInstruction bitcast(Value type, Value value, Value toType);
+
+    YieldingInstruction fptosi(Value type, Value value, Value toType);
+
+    YieldingInstruction fptoui(Value type, Value value, Value toType);
+
+    YieldingInstruction sitofp(Value type, Value value, Value toType);
+
+    YieldingInstruction uitofp(Value type, Value value, Value toType);
 
     Call call(Value type, Value function);
 

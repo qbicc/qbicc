@@ -29,6 +29,7 @@ import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.machine.llvm.op.Return;
 import cc.quarkus.qcc.machine.llvm.op.Select;
 import cc.quarkus.qcc.machine.llvm.op.Store;
+import cc.quarkus.qcc.machine.llvm.op.YieldingInstruction;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -296,6 +297,46 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
 
     public Binary srem(final Value type, final Value arg1, final Value arg2) {
         return rootBlock.srem(type, arg1, arg2);
+    }
+
+    public YieldingInstruction trunc(final Value type, final Value value, final Value toType) {
+        return rootBlock.trunc(type, value, toType);
+    }
+
+    public YieldingInstruction ftrunc(final Value type, final Value value, final Value toType) {
+        return rootBlock.ftrunc(type, value, toType);
+    }
+
+    public YieldingInstruction fpext(final Value type, final Value value, final Value toType) {
+        return rootBlock.fpext(type, value, toType);
+    }
+
+    public YieldingInstruction sext(final Value type, final Value value, final Value toType) {
+        return rootBlock.sext(type, value, toType);
+    }
+
+    public YieldingInstruction zext(final Value type, final Value value, final Value toType) {
+        return rootBlock.zext(type, value, toType);
+    }
+
+    public YieldingInstruction bitcast(final Value type, final Value value, final Value toType) {
+        return rootBlock.bitcast(type, value, toType);
+    }
+
+    public YieldingInstruction fptosi(final Value type, final Value value, final Value toType) {
+        return rootBlock.fptosi(type, value, toType);
+    }
+
+    public YieldingInstruction fptoui(final Value type, final Value value, final Value toType) {
+        return rootBlock.fptoui(type, value, toType);
+    }
+
+    public YieldingInstruction sitofp(final Value type, final Value value, final Value toType) {
+        return rootBlock.sitofp(type, value, toType);
+    }
+
+    public YieldingInstruction uitofp(final Value type, final Value value, final Value toType) {
+        return rootBlock.uitofp(type, value, toType);
     }
 
     public Call call(final Value type, final Value function) {

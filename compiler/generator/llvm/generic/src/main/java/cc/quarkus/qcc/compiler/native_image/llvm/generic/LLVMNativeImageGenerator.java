@@ -46,6 +46,7 @@ import cc.quarkus.qcc.graph.TryThrow;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.UnaryValue;
 import cc.quarkus.qcc.graph.ValueReturn;
+import cc.quarkus.qcc.graph.WordCastValue;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
@@ -381,6 +382,31 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                         case NEGATE: val = isFloating(javaInputType) ?
                                            target.fneg(inputType, llvmInput).asLocal() :
                                            target.sub(inputType, Values.ZERO, llvmInput).asLocal(); break;
+                        default: throw new IllegalStateException();
+                    }
+                } else if (value instanceof WordCastValue) {
+                    WordCastValue op = (WordCastValue) value;
+                    Type javaInputType = op.getInput().getType();
+                    Type javaOutputType = op.getType();
+                    Value inputType = typeOf(javaInputType);
+                    Value llvmInput = cache.values.get(op.getInput());
+                    switch (op.getKind()) {
+                        case TRUNCATE: val = isFloating(javaInputType) ?
+                                             target.ftrunc(inputType, llvmInput, outputType).asLocal() :
+                                             target.trunc(inputType, llvmInput, outputType).asLocal(); break;
+                        case EXTEND: val = isFloating(javaInputType) ?
+                                           target.fpext(inputType, llvmInput, outputType).asLocal() :
+                                           isSigned(javaInputType) ?
+                                           target.sext(inputType, llvmInput, outputType).asLocal() :
+                                           target.zext(inputType, llvmInput, outputType).asLocal(); break;
+                        case BIT_CAST: val = target.bitcast(inputType, llvmInput, outputType).asLocal(); break;
+                        case VALUE_CONVERT: val = isFloating(javaInputType) ?
+                                                  isSigned(javaOutputType) ?
+                                                  target.fptosi(inputType, llvmInput, outputType).asLocal() :
+                                                  target.fptoui(inputType, llvmInput, outputType).asLocal() :
+                                                  isSigned(javaInputType) ?
+                                                  target.sitofp(inputType, llvmInput, outputType).asLocal() :
+                                                  target.uitofp(inputType, llvmInput, outputType).asLocal(); break;
                         default: throw new IllegalStateException();
                     }
                 } else if (value instanceof FieldReadValue) {

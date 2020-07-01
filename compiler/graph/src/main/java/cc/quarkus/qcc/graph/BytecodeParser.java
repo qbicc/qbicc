@@ -1104,7 +1104,7 @@ public final class BytecodeParser extends MethodVisitor {
                 }
 
                 case Opcodes.I2L: {
-                    push(graphFactory.castOperation(WordCastValue.Kind.SIGN_EXTEND, pop(), Type.S64));
+                    push(graphFactory.castOperation(WordCastValue.Kind.EXTEND, pop(), Type.S64));
                     return;
                 }
                 case Opcodes.L2I: {

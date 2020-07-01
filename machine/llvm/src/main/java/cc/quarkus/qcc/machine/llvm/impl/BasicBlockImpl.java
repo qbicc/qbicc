@@ -25,6 +25,7 @@ import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.machine.llvm.op.Return;
 import cc.quarkus.qcc.machine.llvm.op.Select;
 import cc.quarkus.qcc.machine.llvm.op.Store;
+import cc.quarkus.qcc.machine.llvm.op.YieldingInstruction;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -281,6 +282,76 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new SRemImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
+    }
+
+    public YieldingInstruction trunc(final Value type, final Value value, final Value toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new TruncImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
+    public YieldingInstruction ftrunc(final Value type, final Value value, final Value toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new FTruncImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
+    public YieldingInstruction fpext(final Value type, final Value value, final Value toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new FPExtImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
+    public YieldingInstruction sext(final Value type, final Value value, final Value toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new SExtImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
+    public YieldingInstruction zext(final Value type, final Value value, final Value toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new ZExtImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
+    public YieldingInstruction bitcast(final Value type, final Value value, final Value toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new BitCastImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
+    public YieldingInstruction fptosi(final Value type, final Value value, final Value toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new FPToSI(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
+    public YieldingInstruction fptoui(final Value type, final Value value, final Value toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new FPToUI(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
+    public YieldingInstruction sitofp(final Value type, final Value value, final Value toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new SIToFP(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
+    public YieldingInstruction uitofp(final Value type, final Value value, final Value toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new UIToFP(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
     public Call call(final Value type, final Value function) {
