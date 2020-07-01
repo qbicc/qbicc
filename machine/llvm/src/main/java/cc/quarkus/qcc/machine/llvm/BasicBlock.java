@@ -6,6 +6,8 @@ import cc.quarkus.qcc.machine.llvm.op.Binary;
 import cc.quarkus.qcc.machine.llvm.op.Branch;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.ExactBinary;
+import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
+import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
@@ -61,6 +63,20 @@ public interface BasicBlock extends Value {
     ExactBinary lshr(Value type, Value arg1, Value arg2);
 
     ExactBinary ashr(Value type, Value arg1, Value arg2);
+
+    FastMathBinary fcmp(FloatCondition cond, Value type, Value arg1, Value arg2);
+
+    FastMathBinary fadd(Value type, Value arg1, Value arg2);
+
+    FastMathBinary fsub(Value type, Value arg1, Value arg2);
+
+    FastMathBinary fmul(Value type, Value arg1, Value arg2);
+
+    FastMathBinary fdiv(Value type, Value arg1, Value arg2);
+
+    FastMathBinary frem(Value type, Value arg1, Value arg2);
+
+    FastMathUnary fneg(Value type, Value arg);
 
     Binary icmp(IntCondition cond, Value type, Value arg1, Value arg2);
 

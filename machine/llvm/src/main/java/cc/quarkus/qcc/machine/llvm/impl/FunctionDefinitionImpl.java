@@ -6,6 +6,7 @@ import cc.quarkus.qcc.machine.llvm.AddressNaming;
 import cc.quarkus.qcc.machine.llvm.BasicBlock;
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
 import cc.quarkus.qcc.machine.llvm.DllStorageClass;
+import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.Linkage;
@@ -18,6 +19,8 @@ import cc.quarkus.qcc.machine.llvm.op.Binary;
 import cc.quarkus.qcc.machine.llvm.op.Branch;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.ExactBinary;
+import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
+import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
@@ -241,6 +244,34 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
 
     public ExactBinary ashr(final Value type, final Value arg1, final Value arg2) {
         return rootBlock.ashr(type, arg1, arg2);
+    }
+
+    public FastMathBinary fmul(final Value type, final Value arg1, final Value arg2) {
+        return rootBlock.fmul(type, arg1, arg2);
+    }
+
+    public FastMathBinary fcmp(final FloatCondition cond, final Value type, final Value arg1, final Value arg2) {
+        return rootBlock.fcmp(cond, type, arg1, arg2);
+    }
+
+    public FastMathBinary fadd(final Value type, final Value arg1, final Value arg2) {
+        return rootBlock.fadd(type, arg1, arg2);
+    }
+
+    public FastMathBinary fsub(final Value type, final Value arg1, final Value arg2) {
+        return rootBlock.fsub(type, arg1, arg2);
+    }
+
+    public FastMathBinary fdiv(final Value type, final Value arg1, final Value arg2) {
+        return rootBlock.fdiv(type, arg1, arg2);
+    }
+
+    public FastMathBinary frem(final Value type, final Value arg1, final Value arg2) {
+        return rootBlock.frem(type, arg1, arg2);
+    }
+
+    public FastMathUnary fneg(final Value type, final Value arg) {
+        return rootBlock.fneg(type, arg);
     }
 
     public Binary icmp(final IntCondition cond, final Value type, final Value arg1, final Value arg2) {

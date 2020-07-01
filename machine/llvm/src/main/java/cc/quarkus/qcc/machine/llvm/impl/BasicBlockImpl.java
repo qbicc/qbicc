@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import cc.quarkus.qcc.machine.llvm.BasicBlock;
+import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.Value;
@@ -14,6 +15,8 @@ import cc.quarkus.qcc.machine.llvm.op.Binary;
 import cc.quarkus.qcc.machine.llvm.op.Branch;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.ExactBinary;
+import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
+import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
@@ -186,6 +189,55 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new AshrImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
+    }
+
+    public FastMathBinary fmul(final Value type, final Value arg1, final Value arg2) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("arg1", arg1);
+        Assert.checkNotNullParam("arg2", arg2);
+        return add(new FMulImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
+    }
+
+    public FastMathBinary fcmp(final FloatCondition cond, final Value type, final Value arg1, final Value arg2) {
+        Assert.checkNotNullParam("cond", cond);
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("arg1", arg1);
+        Assert.checkNotNullParam("arg2", arg2);
+        return add(new FCmpImpl(this, cond, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
+    }
+
+    public FastMathBinary fadd(final Value type, final Value arg1, final Value arg2) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("arg1", arg1);
+        Assert.checkNotNullParam("arg2", arg2);
+        return add(new FAddImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
+    }
+
+    public FastMathBinary fsub(final Value type, final Value arg1, final Value arg2) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("arg1", arg1);
+        Assert.checkNotNullParam("arg2", arg2);
+        return add(new FSubImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
+    }
+
+    public FastMathBinary fdiv(final Value type, final Value arg1, final Value arg2) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("arg1", arg1);
+        Assert.checkNotNullParam("arg2", arg2);
+        return add(new FDivImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
+    }
+
+    public FastMathBinary frem(final Value type, final Value arg1, final Value arg2) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("arg1", arg1);
+        Assert.checkNotNullParam("arg2", arg2);
+        return add(new FRemImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
+    }
+
+    public FastMathUnary fneg(final Value type, final Value arg) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("arg", arg);
+        return add(new FNegImpl(this, (AbstractValue) type, (AbstractValue) arg));
     }
 
     public Binary icmp(final IntCondition cond, final Value type, final Value arg1, final Value arg2) {

@@ -44,10 +44,12 @@ import cc.quarkus.qcc.graph.TryInvocation;
 import cc.quarkus.qcc.graph.TryInvocationValue;
 import cc.quarkus.qcc.graph.TryThrow;
 import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.graph.UnaryValue;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
+import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.Linkage;
@@ -318,47 +320,80 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                     if (binOp instanceof CommutativeBinaryValue) {
                         CommutativeBinaryValue op = (CommutativeBinaryValue) binOp;
                         switch (op.getKind()) {
-                            case ADD: val = target.add(inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case ADD: val = isFloating(javaInputType) ?
+                                            target.fadd(inputType, llvmLeft, llvmRight).asLocal() :
+                                            target.add(inputType, llvmLeft, llvmRight).asLocal(); break;
                             case AND: val = target.and(inputType, llvmLeft, llvmRight).asLocal(); break;
                             case OR: val = target.or(inputType, llvmLeft, llvmRight).asLocal(); break;
                             case XOR: val = target.xor(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case MULTIPLY: val = target.mul(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_EQ: val = target.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_NE: val = target.icmp(IntCondition.ne, inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case MULTIPLY: val = isFloating(javaInputType) ?
+                                                 target.fmul(inputType, llvmLeft, llvmRight).asLocal() :
+                                                 target.mul(inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case CMP_EQ: val = isFloating(javaInputType) ?
+                                               target.fcmp(FloatCondition.oeq, inputType, llvmLeft, llvmRight).asLocal() :
+                                               target.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case CMP_NE: val = isFloating(javaInputType) ?
+                                               target.fcmp(FloatCondition.one, inputType, llvmLeft, llvmRight).asLocal() :
+                                               target.icmp(IntCondition.ne, inputType, llvmLeft, llvmRight).asLocal(); break;
                             default: throw new IllegalStateException();
                         }
                     } else {
                         assert binOp instanceof NonCommutativeBinaryValue;
                         NonCommutativeBinaryValue op = (NonCommutativeBinaryValue) binOp;
                         switch (op.getKind()) {
-                            case SUB: val = target.sub(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case DIV: val = isSigned(javaInputType) ?
+                            case UNSIGNED_SHR: val = target.lshr(inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case SHR: val = target.ashr(inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case SHL: val = target.shl(inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case SUB: val = isFloating(javaInputType) ?
+                                            target.fsub(inputType, llvmLeft, llvmRight).asLocal() :
+                                            target.sub(inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case DIV: val = isFloating(javaInputType) ?
+                                            target.fdiv(inputType, llvmLeft, llvmRight).asLocal() :
+                                            isSigned(javaInputType) ?
                                             target.sdiv(inputType, llvmLeft, llvmRight).asLocal() :
                                             target.udiv(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case MOD: val = isSigned(javaInputType) ?
+                            case MOD: val = isFloating(javaInputType) ?
+                                            target.frem(inputType, llvmLeft, llvmRight).asLocal() :
+                                            isSigned(javaInputType) ?
                                             target.srem(inputType, llvmLeft, llvmRight).asLocal() :
                                             target.urem(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_LT: val = target.icmp(isSigned(javaInputType) ? IntCondition.slt : IntCondition.ult, inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_LE: val = target.icmp(isSigned(javaInputType) ? IntCondition.sle : IntCondition.ule, inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_GT: val = target.icmp(isSigned(javaInputType) ? IntCondition.sgt : IntCondition.ugt, inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_GE: val = target.icmp(isSigned(javaInputType) ? IntCondition.sge : IntCondition.uge, inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case CMP_LT: val = isFloating(javaInputType) ?
+                                               target.fcmp(FloatCondition.olt, inputType, llvmLeft, llvmRight).asLocal() :
+                                               target.icmp(isSigned(javaInputType) ? IntCondition.slt : IntCondition.ult, inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case CMP_LE: val = isFloating(javaInputType) ?
+                                               target.fcmp(FloatCondition.ole, inputType, llvmLeft, llvmRight).asLocal() :
+                                               target.icmp(isSigned(javaInputType) ? IntCondition.sle : IntCondition.ule, inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case CMP_GT: val = isFloating(javaInputType) ?
+                                               target.fcmp(FloatCondition.ogt, inputType, llvmLeft, llvmRight).asLocal() :
+                                               target.icmp(isSigned(javaInputType) ? IntCondition.sgt : IntCondition.ugt, inputType, llvmLeft, llvmRight).asLocal(); break;
+                            case CMP_GE: val = isFloating(javaInputType) ?
+                                               target.fcmp(FloatCondition.oge, inputType, llvmLeft, llvmRight).asLocal() :
+                                               target.icmp(isSigned(javaInputType) ? IntCondition.sge : IntCondition.uge, inputType, llvmLeft, llvmRight).asLocal(); break;
                             default: throw new IllegalStateException();
                         }
                     }
-                    cache.values.put(value, val);
-                }
-                if (value instanceof FieldReadValue) {
+                } else if (value instanceof UnaryValue) {
+                    UnaryValue op = (UnaryValue) value;
+                    Type javaInputType = op.getInput().getType();
+                    Value inputType = typeOf(javaInputType);
+                    Value llvmInput = cache.values.get(op.getInput());
+                    switch (op.getKind()) {
+                        case NEGATE: val = isFloating(javaInputType) ?
+                                           target.fneg(inputType, llvmInput).asLocal() :
+                                           target.sub(inputType, Values.ZERO, llvmInput).asLocal(); break;
+                        default: throw new IllegalStateException();
+                    }
+                } else if (value instanceof FieldReadValue) {
                     throw new IllegalStateException();
                 } else if (value instanceof IfValue) {
                     IfValue op = (IfValue) value;
                     cc.quarkus.qcc.graph.Value trueValue = op.getTrueValue();
                     Value inputType = typeOf(trueValue.getType());
                     val = target.select(typeOf(op.getCond().getType()), cache.values.get(op.getCond()), inputType, cache.values.get(trueValue), cache.values.get(op.getFalseValue())).asLocal();
-                    cache.values.put(value, val);
                 } else if (value instanceof PhiValue) {
                     PhiValue phiValue = (PhiValue) value;
                     Phi phi = target.phi(outputType);
-                    cache.values.put(value, val = phi.asLocal());
+                    val = phi.asLocal();
                     for (BasicBlock knownBlock : cache.knownBlocks) {
                         cc.quarkus.qcc.graph.Value v = phiValue.getValueForBlock(knownBlock);
                         if (v != null) {
