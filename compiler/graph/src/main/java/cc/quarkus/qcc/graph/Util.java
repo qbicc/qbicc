@@ -148,4 +148,8 @@ final class Util {
         elements[size] = newVal;
         return List.of(elements);
     }
+
+    static <T> T throwIndexOutOfBounds(final int index) {
+        throw new IndexOutOfBoundsException(index);
+    }
 }

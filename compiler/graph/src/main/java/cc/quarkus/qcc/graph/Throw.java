@@ -8,6 +8,14 @@ public interface Throw extends Terminator {
     Value getThrownValue();
     void setThrownValue(Value thrown);
 
+    default int getValueDependencyCount() {
+        return 1;
+    }
+
+    default Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return index == 0 ? getThrownValue() : Util.throwIndexOutOfBounds(index);
+    }
+
     static Throw create(Value value) {
         ThrowImpl throw_ = new ThrowImpl();
         throw_.setThrownValue(value);

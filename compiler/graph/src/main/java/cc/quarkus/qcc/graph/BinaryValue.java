@@ -12,4 +12,12 @@ public interface BinaryValue extends Value, ProgramNode {
     default Type getType() {
         return getLeftInput().getType();
     }
+
+    default int getValueDependencyCount() {
+        return 2;
+    }
+
+    default Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return index == 0 ? getLeftInput() : index == 1 ? getRightInput() : Util.throwIndexOutOfBounds(index);
+    }
 }

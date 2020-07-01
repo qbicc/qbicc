@@ -21,4 +21,12 @@ public interface Invocation extends MemoryState {
     void setArgumentCount(int newCount);
     Value getArgument(int index);
     void setArgument(int index, Value argument);
+
+    default int getValueDependencyCount() {
+        return getArgumentCount();
+    }
+
+    default Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return getArgument(index);
+    }
 }

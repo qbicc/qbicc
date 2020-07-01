@@ -26,4 +26,12 @@ public interface NewArrayValue extends Value, MemoryState, GraphFactory.MemorySt
     default MemoryState getMemoryState() {
         return this;
     }
+
+    default int getValueDependencyCount() {
+        return 1;
+    }
+
+    default Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return index == 0 ? getSize() : Util.throwIndexOutOfBounds(index);
+    }
 }

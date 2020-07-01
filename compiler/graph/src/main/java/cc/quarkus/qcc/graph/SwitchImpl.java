@@ -12,6 +12,15 @@ final class SwitchImpl extends TerminatorImpl implements Switch {
     int numValues = 0;
     int[] values = new int[5];
     NodeHandle[] targets = new NodeHandle[5];
+    NodeHandle switchValue;
+
+    public Value getSwitchValue() {
+        return NodeHandle.getTargetOf(switchValue);
+    }
+
+    public void setSwitchValue(final Value value) {
+        switchValue = NodeHandle.of(value);
+    }
 
     public BasicBlock getDefaultTarget() {
         return NodeHandle.getTargetOf(defaultTarget);

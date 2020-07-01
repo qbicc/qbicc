@@ -16,4 +16,13 @@ public interface Node {
     int getIdForGraph();
 
     void setIdForGraph(int id);
+
+    default int getValueDependencyCount() {
+        return 0;
+    }
+
+    default Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        throw new IndexOutOfBoundsException(index);
+    }
+
 }

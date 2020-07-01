@@ -28,4 +28,12 @@ public interface UnaryValue extends Value, ProgramNode {
         ADDRESS_OF,
         ;
     }
+
+    default int getValueDependencyCount() {
+        return 1;
+    }
+
+    default Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return index == 0 ? getInput() : Util.throwIndexOutOfBounds(index);
+    }
 }

@@ -21,4 +21,12 @@ public interface IfValue extends ProgramNode, Value {
         // todo: cache?
         return getTrueValue().getConstraint().union(getFalseValue().getConstraint());
     }
+
+    default int getValueDependencyCount() {
+        return 3;
+    }
+
+    default Value getValueDependency(int index) throws IndexOutOfBoundsException {
+        return index == 0 ? getCond() : index == 1 ? getTrueValue() : index == 2 ? getFalseValue() : Util.throwIndexOutOfBounds(index);
+    }
 }
