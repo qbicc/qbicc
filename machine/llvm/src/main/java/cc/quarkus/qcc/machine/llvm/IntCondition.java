@@ -10,6 +10,8 @@ public enum IntCondition {
     uge,
     sgt,
     sge,
+    ult,
+    ule,
     slt,
     sle,
     ;
