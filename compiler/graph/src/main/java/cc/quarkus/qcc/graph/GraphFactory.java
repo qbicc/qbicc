@@ -71,11 +71,11 @@ public interface GraphFactory {
 
     MemoryState invokeMethod(MemoryState input, ClassType owner, MethodIdentifier method, List<Value> arguments);
 
-    MemoryState invokeInstanceMethod(MemoryState input, Value instance, ClassType owner, MethodIdentifier method, List<Value> arguments);
+    MemoryState invokeInstanceMethod(MemoryState input, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments);
 
     MemoryStateValue invokeValueMethod(MemoryState input, ClassType owner, MethodIdentifier method, List<Value> arguments);
 
-    MemoryStateValue invokeInstanceValueMethod(MemoryState input, Value instance, ClassType owner, MethodIdentifier method, List<Value> arguments);
+    MemoryStateValue invokeInstanceValueMethod(MemoryState input, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments);
 
     // control flow
 
@@ -95,11 +95,11 @@ public interface GraphFactory {
 
     Terminator tryInvokeMethod(MemoryState input, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
 
-    Terminator tryInvokeInstanceMethod(MemoryState input, Value instance, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
+    Terminator tryInvokeInstanceMethod(MemoryState input, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
 
     TerminatorValue tryInvokeValueMethod(MemoryState input, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
 
-    TerminatorValue tryInvokeInstanceValueMethod(MemoryState input, Value instance, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
+    TerminatorValue tryInvokeInstanceValueMethod(MemoryState input, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
 
     Terminator tryThrow(MemoryState input, Value value, NodeHandle catchTarget);
 
@@ -266,7 +266,7 @@ public interface GraphFactory {
             return op;
         }
 
-        public MemoryState invokeInstanceMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        public MemoryState invokeInstanceMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
             InstanceInvocationImpl op = new InstanceInvocationImpl();
             op.setMemoryDependency(input);
             op.setArgumentCount(arguments.size());
@@ -277,6 +277,7 @@ public interface GraphFactory {
             op.setMethodOwner(owner);
             op.setInvocationTarget(method);
             op.setInstance(instance);
+            op.setKind(kind);
             return op;
         }
 
@@ -293,7 +294,7 @@ public interface GraphFactory {
             return value;
         }
 
-        public MemoryStateValue invokeInstanceValueMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        public MemoryStateValue invokeInstanceValueMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
             InstanceInvocationValueImpl value = new InstanceInvocationValueImpl();
             value.setMemoryDependency(input);
             value.setArgumentCount(arguments.size());
@@ -304,6 +305,7 @@ public interface GraphFactory {
             value.setMethodOwner(owner);
             value.setInvocationTarget(method);
             value.setInstance(instance);
+            value.setKind(kind);
             return value;
         }
 
@@ -372,7 +374,7 @@ public interface GraphFactory {
             return op;
         }
 
-        public Terminator tryInvokeInstanceMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        public Terminator tryInvokeInstanceMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
             TryInstanceInvocationImpl op = new TryInstanceInvocationImpl();
             op.setMemoryDependency(input);
             op.setArgumentCount(arguments.size());
@@ -385,6 +387,7 @@ public interface GraphFactory {
             op.setInstance(instance);
             op.setCatchHandler(catchTarget);
             op.setNextBlock(returnTarget);
+            op.setKind(kind);
             return op;
         }
 
@@ -403,7 +406,7 @@ public interface GraphFactory {
             return value;
         }
 
-        public TerminatorValue tryInvokeInstanceValueMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        public TerminatorValue tryInvokeInstanceValueMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
             TryInstanceInvocationValueImpl value = new TryInstanceInvocationValueImpl();
             value.setMemoryDependency(input);
             value.setArgumentCount(arguments.size());
@@ -416,6 +419,7 @@ public interface GraphFactory {
             value.setInstance(instance);
             value.setCatchHandler(catchTarget);
             value.setNextBlock(returnTarget);
+            value.setKind(kind);
             return value;
         }
 

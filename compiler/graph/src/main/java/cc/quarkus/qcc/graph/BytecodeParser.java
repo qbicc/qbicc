@@ -746,7 +746,7 @@ public final class BytecodeParser extends MethodVisitor {
                     // make a little basic block to handle the class cast exception throw
                     ClassType cce = universe.findClass("java/lang/ClassCastException").verify().getClassType();
                     GraphFactory.MemoryStateValue newCce = graphFactory.new_(null, cce);
-                    MemoryState tmpState = graphFactory.invokeInstanceMethod(newCce.getMemoryState(), newCce.getValue(), cce, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
+                    MemoryState tmpState = graphFactory.invokeInstanceMethod(newCce.getMemoryState(), newCce.getValue(), InstanceInvocation.Kind.EXACT, cce, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
                     BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newCce.getValue()));
                     // if the cast failed, jump to the fail block
                     Terminator terminator = graphFactory.if_(memoryState, isOk, continueHandle, NodeHandle.of(throwBlock));
@@ -765,7 +765,7 @@ public final class BytecodeParser extends MethodVisitor {
             Value isNull = graphFactory.binaryOperation(CommutativeBinaryValue.Kind.CMP_EQ, value, Value.NULL);
             ClassType npe = universe.findClass("java/lang/NullPointerException").verify().getClassType();
             GraphFactory.MemoryStateValue newNpe = graphFactory.new_(null, npe);
-            MemoryState tmpState = graphFactory.invokeInstanceMethod(newNpe.getMemoryState(), newNpe.getValue(), npe, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
+            MemoryState tmpState = graphFactory.invokeInstanceMethod(newNpe.getMemoryState(), newNpe.getValue(), InstanceInvocation.Kind.EXACT, npe, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
             BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newNpe.getValue()));
             NodeHandle continueHandle = new NodeHandle();
             Terminator terminator = graphFactory.if_(memoryState, isNull, NodeHandle.of(throwBlock), continueHandle);
@@ -1333,10 +1333,17 @@ public final class BytecodeParser extends MethodVisitor {
                 }
             } else {
                 Value receiver = pop();
+                final InstanceInvocation.Kind kind;
+                switch (opcode) {
+                    case Opcodes.INVOKESPECIAL: kind = InstanceInvocation.Kind.EXACT; break;
+                    case Opcodes.INVOKEVIRTUAL: kind = InstanceInvocation.Kind.VIRTUAL; break;
+                    case Opcodes.INVOKEINTERFACE: kind = InstanceInvocation.Kind.INTERFACE; break;
+                    default: throw new IllegalStateException();
+                }
                 if (returnType == Type.VOID) {
-                    memoryState = graphFactory.invokeInstanceMethod(memoryState, receiver, ownerType, resolved, arguments);
+                    memoryState = graphFactory.invokeInstanceMethod(memoryState, receiver, kind, ownerType, resolved, arguments);
                 } else {
-                    GraphFactory.MemoryStateValue res = graphFactory.invokeInstanceValueMethod(memoryState, receiver, ownerType, resolved, arguments);
+                    GraphFactory.MemoryStateValue res = graphFactory.invokeInstanceValueMethod(memoryState, receiver, kind, ownerType, resolved, arguments);
                     memoryState = res.getMemoryState();
                     push(res.getValue());
                 }

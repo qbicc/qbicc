@@ -254,16 +254,16 @@ public class SimpleOptGraphFactory implements GraphFactory {
         return getDelegate().invokeMethod(input, owner, method, arguments);
     }
 
-    public MemoryState invokeInstanceMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeInstanceMethod(input, instance, owner, method, arguments);
+    public MemoryState invokeInstanceMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return getDelegate().invokeInstanceMethod(input, instance, kind, owner, method, arguments);
     }
 
     public MemoryStateValue invokeValueMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
         return getDelegate().invokeValueMethod(input, owner, method, arguments);
     }
 
-    public MemoryStateValue invokeInstanceValueMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeInstanceValueMethod(input, instance, owner, method, arguments);
+    public MemoryStateValue invokeInstanceValueMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return getDelegate().invokeInstanceValueMethod(input, instance, kind, owner, method, arguments);
     }
 
     public Terminator goto_(final MemoryState input, final NodeHandle targetHandle) {
@@ -297,16 +297,16 @@ public class SimpleOptGraphFactory implements GraphFactory {
         return getDelegate().tryInvokeMethod(input, owner, method, arguments, returnTarget, catchTarget);
     }
 
-    public Terminator tryInvokeInstanceMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return getDelegate().tryInvokeInstanceMethod(input, instance, owner, method, arguments, returnTarget, catchTarget);
+    public Terminator tryInvokeInstanceMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        return getDelegate().tryInvokeInstanceMethod(input, instance, kind, owner, method, arguments, returnTarget, catchTarget);
     }
 
     public TerminatorValue tryInvokeValueMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
         return getDelegate().tryInvokeValueMethod(input, owner, method, arguments, returnTarget, catchTarget);
     }
 
-    public TerminatorValue tryInvokeInstanceValueMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return getDelegate().tryInvokeInstanceValueMethod(input, instance, owner, method, arguments, returnTarget, catchTarget);
+    public TerminatorValue tryInvokeInstanceValueMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        return getDelegate().tryInvokeInstanceValueMethod(input, instance, kind, owner, method, arguments, returnTarget, catchTarget);
     }
 
     public Terminator tryThrow(final MemoryState input, final Value value, final NodeHandle catchTarget) {

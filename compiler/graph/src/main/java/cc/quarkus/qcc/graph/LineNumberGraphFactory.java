@@ -110,16 +110,16 @@ public class LineNumberGraphFactory implements GraphFactory {
         return withLineNumber(delegate.invokeMethod(input, owner, method, arguments));
     }
 
-    public MemoryState invokeInstanceMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return withLineNumber(delegate.invokeInstanceMethod(input, instance, owner, method, arguments));
+    public MemoryState invokeInstanceMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return withLineNumber(delegate.invokeInstanceMethod(input, instance, kind, owner, method, arguments));
     }
 
     public MemoryStateValue invokeValueMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
         return withLineNumber(delegate.invokeValueMethod(input, owner, method, arguments));
     }
 
-    public MemoryStateValue invokeInstanceValueMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return withLineNumber(delegate.invokeInstanceValueMethod(input, instance, owner, method, arguments));
+    public MemoryStateValue invokeInstanceValueMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return withLineNumber(delegate.invokeInstanceValueMethod(input, instance, kind, owner, method, arguments));
     }
 
     public Terminator goto_(final MemoryState input, final NodeHandle targetHandle) {
@@ -150,16 +150,16 @@ public class LineNumberGraphFactory implements GraphFactory {
         return withLineNumber(delegate.tryInvokeMethod(input, owner, method, arguments, returnTarget, catchTarget));
     }
 
-    public Terminator tryInvokeInstanceMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return withLineNumber(delegate.tryInvokeInstanceMethod(input, instance, owner, method, arguments, returnTarget, catchTarget));
+    public Terminator tryInvokeInstanceMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        return withLineNumber(delegate.tryInvokeInstanceMethod(input, instance, kind, owner, method, arguments, returnTarget, catchTarget));
     }
 
     public TerminatorValue tryInvokeValueMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
         return withLineNumber(delegate.tryInvokeValueMethod(input, owner, method, arguments, returnTarget, catchTarget));
     }
 
-    public TerminatorValue tryInvokeInstanceValueMethod(final MemoryState input, final Value instance, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return withLineNumber(delegate.tryInvokeInstanceValueMethod(input, instance, owner, method, arguments, returnTarget, catchTarget));
+    public TerminatorValue tryInvokeInstanceValueMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        return withLineNumber(delegate.tryInvokeInstanceValueMethod(input, instance, kind, owner, method, arguments, returnTarget, catchTarget));
     }
 
     public Terminator tryThrow(final MemoryState input, final Value value, final NodeHandle catchTarget) {
