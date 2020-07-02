@@ -12,4 +12,10 @@
 
     <artifactId>qcc-metaprogram-ctypes</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>cc.quarkus</groupId>
+            <artifactId>qcc-compiler</artifactId>
+        </dependency>
+    </dependencies>
 </project>
