@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph;
 
-final class InstanceOfValueImpl extends ValueProgramNodeImpl implements InstanceOfValue {
+final class InstanceOfValueImpl extends ValueImpl implements InstanceOfValue {
     ClassType instanceType;
     NodeHandle instance;
 

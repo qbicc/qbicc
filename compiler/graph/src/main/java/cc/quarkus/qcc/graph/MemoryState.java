@@ -5,5 +5,5 @@ package cc.quarkus.qcc.graph;
  * over both program order and happens-before order.  Optimization stages may perform some allowed reordering
  * before the backend emits the final program.
  */
-public interface MemoryState extends ProgramNode, MemoryStateDependent {
+public interface MemoryState extends Node, MemoryStateDependent {
 }

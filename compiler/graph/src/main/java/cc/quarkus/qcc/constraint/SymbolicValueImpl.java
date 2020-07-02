@@ -47,4 +47,12 @@ public class SymbolicValueImpl implements SymbolicValue {
     public void setIdForGraph(final int id) {
 
     }
+
+    public int getSourceLine() {
+        return 0;
+    }
+
+    public void setSourceLine(final int sourceLine) {
+
+    }
 }

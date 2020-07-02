@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.io.IOException;
 import java.util.Set;
 
-abstract class MemoryStateImpl extends ProgramNodeImpl implements MemoryState {
+abstract class MemoryStateImpl extends NodeImpl implements MemoryState {
     private NodeHandle memoryDependency;
 
     public MemoryState getMemoryDependency() {

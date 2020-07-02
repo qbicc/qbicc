@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.io.IOException;
 import java.util.Set;
 
-final class UnaryValueImpl extends ValueProgramNodeImpl implements UnaryValue {
+final class UnaryValueImpl extends ValueImpl implements UnaryValue {
     NodeHandle input;
     Kind kind;
 

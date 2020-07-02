@@ -8,6 +8,7 @@ import io.smallrye.common.constraint.Assert;
 abstract class NodeImpl implements Node {
     private NodeHandle myHandle;
     private int id = hashCode();
+    private int sourceLine;
 
     public void replaceWith(final Node other) {
         Assert.checkNotNullParam("other", other);
@@ -19,6 +20,14 @@ abstract class NodeImpl implements Node {
         }
         myHandle.setTarget(NodeHandle.of(other));
         this.myHandle = null;
+    }
+
+    public int getSourceLine() {
+        return sourceLine;
+    }
+
+    public void setSourceLine(final int sourceLine) {
+        this.sourceLine = sourceLine;
     }
 
     public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {

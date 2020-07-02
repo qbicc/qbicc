@@ -16,8 +16,8 @@ public class LineNumberGraphFactory implements GraphFactory {
     }
 
     private <N> N withLineNumber(N orig) {
-        if (orig instanceof ProgramNode && lineNumber != 0) {
-            ((ProgramNode) orig).setSourceLine(lineNumber);
+        if (orig instanceof Node && lineNumber != 0) {
+            ((Node) orig).setSourceLine(lineNumber);
         }
         return orig;
     }

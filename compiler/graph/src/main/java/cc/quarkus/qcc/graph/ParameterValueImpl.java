@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  *
  */
-final class ParameterValueImpl extends ValueProgramNodeImpl implements ParameterValue {
+final class ParameterValueImpl extends ValueImpl implements ParameterValue {
     NodeHandle type;
     int index = -1;
     String name;

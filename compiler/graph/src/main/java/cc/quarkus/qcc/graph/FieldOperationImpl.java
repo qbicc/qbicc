@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  *
  */
-public abstract class FieldOperationImpl extends MemoryStateImpl implements FieldOperation {
+abstract class FieldOperationImpl extends MemoryStateImpl implements FieldOperation {
     ClassType owner;
     String fieldName;
     JavaAccessMode mode = JavaAccessMode.DETECT;

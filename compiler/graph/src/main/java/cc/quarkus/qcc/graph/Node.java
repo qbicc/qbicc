@@ -17,6 +17,10 @@ public interface Node {
 
     void setIdForGraph(int id);
 
+    int getSourceLine();
+
+    void setSourceLine(int sourceLine);
+
     default int getValueDependencyCount() {
         return 0;
     }

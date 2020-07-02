@@ -88,7 +88,6 @@ public final class BytecodeParser extends MethodVisitor {
             if (! isStatic) {
                 // "this" receiver - todo: ThisValue
                 ParameterValue pv = new ParameterValueImpl();
-                pv.setOwner(firstBlock);
                 pv.setType(thisType);
                 thisValue = pv;
                 pv.setIndex(j);
@@ -98,7 +97,6 @@ public final class BytecodeParser extends MethodVisitor {
             }
             for (int i = 0; i < argTypes.length; i ++) {
                 ParameterValue pv = new ParameterValueImpl();
-                pv.setOwner(firstBlock);
                 pv.setType(typeOfAsmType(argTypes[i]));
                 pv.setIndex(j);
                 if (argTypes[i] == LONG_TYPE || argTypes[i] == DOUBLE_TYPE) {

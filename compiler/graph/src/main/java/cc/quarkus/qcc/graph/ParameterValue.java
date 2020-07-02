@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  *
  */
-public interface ParameterValue extends ProgramNode, Value {
+public interface ParameterValue extends Value {
     int getIndex();
     void setIndex(int idx);
     String getName();

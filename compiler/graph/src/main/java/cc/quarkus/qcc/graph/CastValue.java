@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  *
  */
-public interface CastValue extends Value, ProgramNode {
+public interface CastValue extends Value {
     Value getInput();
     void setInput(Value value);
 

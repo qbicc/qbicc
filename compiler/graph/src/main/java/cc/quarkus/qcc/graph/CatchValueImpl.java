@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  *
  */
-final class CatchValueImpl extends ValueProgramNodeImpl {
+final class CatchValueImpl extends ValueImpl {
     public String getLabelForGraph() {
         return "catch value";
     }

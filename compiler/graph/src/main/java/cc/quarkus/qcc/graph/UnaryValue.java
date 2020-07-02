@@ -5,7 +5,7 @@ import io.smallrye.common.constraint.Assert;
 /**
  *
  */
-public interface UnaryValue extends Value, ProgramNode {
+public interface UnaryValue extends Value {
     Value getInput();
     void setInput(Value input);
     Kind getKind();

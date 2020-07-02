@@ -17,11 +17,6 @@ class TryInvocationImpl extends InvocationImpl implements TryInvocation {
         return NodeHandle.getTargetOf(catchHandler);
     }
 
-    public void setOwner(final BasicBlock owner) {
-        catchValue.setOwner(owner);
-        super.setOwner(owner);
-    }
-
     public void setCatchHandler(final BasicBlock catchHandler) {
         this.catchHandler = NodeHandle.of(catchHandler);
     }

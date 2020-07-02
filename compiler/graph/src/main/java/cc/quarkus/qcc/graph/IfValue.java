@@ -5,7 +5,7 @@ import cc.quarkus.qcc.constraint.Constraint;
 /**
  *
  */
-public interface IfValue extends ProgramNode, Value {
+public interface IfValue extends Value {
     Value getCond();
     void setCond(Value cond);
     Value getTrueValue();

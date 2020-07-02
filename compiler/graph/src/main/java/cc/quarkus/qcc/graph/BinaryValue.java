@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  *
  */
-public interface BinaryValue extends Value, ProgramNode {
+public interface BinaryValue extends Value {
     Value getLeftInput();
     void setLeftInput(Value value);
     Value getRightInput();
