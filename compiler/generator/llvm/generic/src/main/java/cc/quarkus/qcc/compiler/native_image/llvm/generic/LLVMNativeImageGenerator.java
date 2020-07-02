@@ -22,6 +22,7 @@ import cc.quarkus.qcc.graph.BinaryValue;
 import cc.quarkus.qcc.graph.BooleanType;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.CommutativeBinaryValue;
+import cc.quarkus.qcc.graph.ConstantValue;
 import cc.quarkus.qcc.graph.FieldReadValue;
 import cc.quarkus.qcc.graph.FieldWrite;
 import cc.quarkus.qcc.graph.FloatType;
@@ -277,7 +278,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             if (node instanceof Terminator) {
                 if (node instanceof ValueReturn) {
                     cc.quarkus.qcc.graph.Value rv = ((ValueReturn) node).getReturnValue();
-                    target.ret(typeOf(rv.getType()), cache.values.get(rv));
+                    target.ret(typeOf(rv.getType()), getValue(cache, rv));
                 } else if (node instanceof Return) {
                     target.ret();
                 } else if (node instanceof TryInvocationValue) {
@@ -292,7 +293,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 } else if (node instanceof Throw) {
                     Throw t = (Throw) node;
                     cc.quarkus.qcc.machine.llvm.Value doThrowFn = module.declare(".throw").asGlobal();
-                    target.call(void_, doThrowFn).arg(Types.i32, cache.values.get(t.getThrownValue()));
+                    target.call(void_, doThrowFn).arg(Types.i32, getValue(cache, t.getThrownValue()));
                 } else if (node instanceof Goto) {
                     BasicBlock jmpTarget = ((Goto) node).getNextBlock();
                     target.br(getBlock(cache, jmpTarget));
@@ -303,7 +304,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                     BasicBlock fb = ifInst.getFalseBranch();
                     cc.quarkus.qcc.machine.llvm.BasicBlock tTarget = getBlock(cache, tb);
                     cc.quarkus.qcc.machine.llvm.BasicBlock fTarget = getBlock(cache, fb);
-                    cc.quarkus.qcc.machine.llvm.Value condVal = cache.values.get(cond);
+                    cc.quarkus.qcc.machine.llvm.Value condVal = getValue(cache, cond);
                     target.br(condVal, tTarget, fTarget);
                 } else {
                     throw new IllegalStateException();
@@ -316,8 +317,8 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                     BinaryValue binOp = (BinaryValue) value;
                     Type javaInputType = binOp.getLeftInput().getType();
                     Value inputType = typeOf(javaInputType);
-                    Value llvmLeft = cache.values.get(binOp.getLeftInput());
-                    Value llvmRight = cache.values.get(binOp.getRightInput());
+                    Value llvmLeft = getValue(cache, binOp.getLeftInput());
+                    Value llvmRight = getValue(cache, binOp.getRightInput());
                     if (binOp instanceof CommutativeBinaryValue) {
                         CommutativeBinaryValue op = (CommutativeBinaryValue) binOp;
                         switch (op.getKind()) {
@@ -377,7 +378,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                     UnaryValue op = (UnaryValue) value;
                     Type javaInputType = op.getInput().getType();
                     Value inputType = typeOf(javaInputType);
-                    Value llvmInput = cache.values.get(op.getInput());
+                    Value llvmInput = getValue(cache, op.getInput());
                     switch (op.getKind()) {
                         case NEGATE: val = isFloating(javaInputType) ?
                                            target.fneg(inputType, llvmInput).asLocal() :
@@ -389,7 +390,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                     Type javaInputType = op.getInput().getType();
                     Type javaOutputType = op.getType();
                     Value inputType = typeOf(javaInputType);
-                    Value llvmInput = cache.values.get(op.getInput());
+                    Value llvmInput = getValue(cache, op.getInput());
                     switch (op.getKind()) {
                         case TRUNCATE: val = isFloating(javaInputType) ?
                                              target.ftrunc(inputType, llvmInput, outputType).asLocal() :
@@ -415,7 +416,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                     IfValue op = (IfValue) value;
                     cc.quarkus.qcc.graph.Value trueValue = op.getTrueValue();
                     Value inputType = typeOf(trueValue.getType());
-                    val = target.select(typeOf(op.getCond().getType()), cache.values.get(op.getCond()), inputType, cache.values.get(trueValue), cache.values.get(op.getFalseValue())).asLocal();
+                    val = target.select(typeOf(op.getCond().getType()), getValue(cache, op.getCond()), inputType, getValue(cache, trueValue), getValue(cache, op.getFalseValue())).asLocal();
                 } else if (value instanceof PhiValue) {
                     PhiValue phiValue = (PhiValue) value;
                     Phi phi = target.phi(outputType);
@@ -423,7 +424,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                     for (BasicBlock knownBlock : cache.knownBlocks) {
                         cc.quarkus.qcc.graph.Value v = phiValue.getValueForBlock(knownBlock);
                         if (v != null) {
-                            phi.item(cache.values.get(v), getBlock(cache, knownBlock));
+                            phi.item(getValue(cache, v), getBlock(cache, knownBlock));
                         }
                     }
                 } else if (value instanceof InvocationValue) {
@@ -433,7 +434,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                     int cnt = inv.getArgumentCount();
                     for (int i = 0; i < cnt; i ++) {
                         cc.quarkus.qcc.graph.Value arg = inv.getArgument(i);
-                        call.arg(typeOf(arg.getType()), cache.values.get(arg));
+                        call.arg(typeOf(arg.getType()), getValue(cache, arg));
                     }
                     val = call.asLocal();
                 } else {
@@ -444,17 +445,31 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 MemoryState memoryState = (MemoryState) node;
                 if (memoryState instanceof InstanceFieldWrite) {
                     InstanceFieldWrite ifw = (InstanceFieldWrite) memoryState;
-                    target.store(Types.i32, cache.values.get(ifw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
+                    target.store(Types.i32, getValue(cache, ifw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
                 } else if (memoryState instanceof FieldWrite) {
                     // static
                     FieldWrite sfw = (FieldWrite) memoryState;
-                    target.store(Types.i32, cache.values.get(sfw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
+                    target.store(Types.i32, getValue(cache, sfw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
                 } else {
                     throw new IllegalStateException();
                 }
             } else {
                 throw new IllegalStateException();
             }
+        }
+    }
+
+    private Value getValue(final MethodContext cache, final cc.quarkus.qcc.graph.Value input) {
+        if (input instanceof ConstantValue) {
+            if (input.getType() instanceof IntegerType) {
+                // todo: 128 bit integer types, handle signedness
+                return Values.intConstant(((ConstantValue) input).longValue());
+            } else {
+                // todo: floating point constants
+                throw new IllegalStateException();
+            }
+        } else {
+            return cache.values.get(input);
         }
     }
 

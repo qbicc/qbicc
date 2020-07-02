@@ -15,4 +15,8 @@ public final class Values {
     public static Value intConstant(int val) {
         return LLVM.intConstant(val);
     }
+
+    public static Value intConstant(long val) {
+        return LLVM.intConstant(val);
+    }
 }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.ConstantValue;
 import cc.quarkus.qcc.graph.MemoryState;
 import cc.quarkus.qcc.graph.MemoryStateDependent;
 import cc.quarkus.qcc.graph.Node;
@@ -93,6 +94,9 @@ public interface Schedule {
         if (node instanceof PinnedNode) {
             // pinned to a block; always select that block.
             selected = blockInfos.get(((PinnedNode) node).getBasicBlock());
+        } else if (node instanceof ConstantValue) {
+            // always considered available; do not schedule
+            return root;
         } else {
             selected = root;
             int cnt = node.getValueDependencyCount();
