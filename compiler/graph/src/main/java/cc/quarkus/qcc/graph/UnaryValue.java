@@ -14,9 +14,7 @@ public interface UnaryValue extends Value {
     default Type getType() {
         switch (getKind()) {
             case LENGTH_OF: return Type.S32;
-            case SIZE_OF: return Type.U64;
             case NEGATE: return getInput().getType();
-            case ADDRESS_OF: return ((NativeObjectType) getInput().getType()).getPointerType();
             default: throw Assert.impossibleSwitchCase(getKind());
         }
     }
@@ -24,8 +22,6 @@ public interface UnaryValue extends Value {
     enum Kind {
         NEGATE,
         LENGTH_OF,
-        SIZE_OF,
-        ADDRESS_OF,
         ;
     }
 

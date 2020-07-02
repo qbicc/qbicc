@@ -12,6 +12,6 @@ public interface PointerType extends WordType {
     NativeObjectType getPointeeType();
 
     default boolean isAssignableFrom(Type otherType) {
-        return otherType instanceof PointerType && getPointeeType().equals(((PointerType) otherType).getPointeeType());
+        return otherType instanceof PointerType && getSize() == ((PointerType) otherType).getSize() && getPointeeType().equals(((PointerType) otherType).getPointeeType());
     }
 }

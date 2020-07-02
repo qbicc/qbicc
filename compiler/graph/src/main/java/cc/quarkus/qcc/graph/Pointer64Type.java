@@ -2,10 +2,10 @@ package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
 
-final class PointerTypeImpl extends NativeObjectTypeImpl implements PointerType {
+final class Pointer64Type extends NativeObjectTypeImpl implements PointerType {
     private final NativeObjectType pointeeType;
 
-    PointerTypeImpl(final NativeObjectType pointeeType) {
+    Pointer64Type(final NativeObjectType pointeeType) {
         this.pointeeType = pointeeType;
     }
 
@@ -14,7 +14,7 @@ final class PointerTypeImpl extends NativeObjectTypeImpl implements PointerType 
     }
 
     public int getSize() {
-        throw new UnsupportedOperationException("Depends on platform...");
+        return 8;
     }
 
     public ConstantValue bitCast(final ConstantValue other) {
@@ -23,12 +23,7 @@ final class PointerTypeImpl extends NativeObjectTypeImpl implements PointerType 
             WordType wordType = (WordType) otherType;
             int size = wordType.getSize();
             if (size >= getSize()) {
-                if (getSize() == 4) {
-                    return new ConstantValue32(other.intValue(), this);
-                } else {
-                    assert getSize() == 8;
-                    return new ConstantValue64(other.longValue(), this);
-                }
+                return new ConstantValue64(other.longValue(), this);
             }
         }
         throw new UnsupportedOperationException("Invalid cast operation");
@@ -47,6 +42,6 @@ final class PointerTypeImpl extends NativeObjectTypeImpl implements PointerType 
     }
 
     public String getLabelForGraph() {
-        return "pointer";
+        return "pointer64";
     }
 }

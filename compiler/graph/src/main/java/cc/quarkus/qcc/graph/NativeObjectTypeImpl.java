@@ -9,7 +9,7 @@ abstract class NativeObjectTypeImpl extends NodeImpl implements NativeObjectType
             synchronized (this) {
                 pointerType = this.pointerType;
                 if (pointerType == null) {
-                    this.pointerType = pointerType = new PointerTypeImpl(this);
+                    this.pointerType = pointerType = new Pointer64Type(this);
                 }
             }
         }
