@@ -35,6 +35,8 @@ public interface GraphFactory {
 
     Value unaryOperation(UnaryValue.Kind kind, Value v);
 
+    Value lengthOfArray(Value array);
+
     // typed
 
     Value instanceOf(Value v, ClassType type);
@@ -131,6 +133,12 @@ public interface GraphFactory {
             UnaryValueImpl value = new UnaryValueImpl();
             value.setKind(kind);
             value.setInput(v);
+            return value;
+        }
+
+        public Value lengthOfArray(final Value array) {
+            ArrayLengthValueImpl value = new ArrayLengthValueImpl();
+            value.setInstance(array);
             return value;
         }
 

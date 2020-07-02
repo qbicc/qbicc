@@ -1092,7 +1092,7 @@ public final class BytecodeParser extends MethodVisitor {
                 }
 
                 case Opcodes.ARRAYLENGTH: {
-                    push(graphFactory.unaryOperation(UnaryValue.Kind.LENGTH_OF, pop()));
+                    push(graphFactory.lengthOfArray(pop()));
                     return;
                 }
                 case Opcodes.FNEG:

@@ -172,6 +172,10 @@ public class SimpleOptGraphFactory implements GraphFactory {
         return getDelegate().unaryOperation(kind, v);
     }
 
+    public Value lengthOfArray(final Value array) {
+        return getDelegate().lengthOfArray(array);
+    }
+
     public Value instanceOf(final Value v, final ClassType type) {
         Type inType = v.getType();
         if (inType instanceof ReferenceType) {

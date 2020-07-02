@@ -50,6 +50,10 @@ public class LineNumberGraphFactory implements GraphFactory {
         return withLineNumber(delegate.unaryOperation(kind, v));
     }
 
+    public Value lengthOfArray(final Value array) {
+        return withLineNumber(delegate.lengthOfArray(array));
+    }
+
     public Value instanceOf(final Value v, final ClassType type) {
         return withLineNumber(delegate.instanceOf(v, type));
     }

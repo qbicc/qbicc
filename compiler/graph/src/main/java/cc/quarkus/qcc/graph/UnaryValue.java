@@ -1,9 +1,7 @@
 package cc.quarkus.qcc.graph;
 
-import io.smallrye.common.constraint.Assert;
-
 /**
- *
+ * Unary operations.
  */
 public interface UnaryValue extends Value {
     Value getInput();
@@ -12,16 +10,11 @@ public interface UnaryValue extends Value {
     void setKind(Kind kind);
 
     default Type getType() {
-        switch (getKind()) {
-            case LENGTH_OF: return Type.S32;
-            case NEGATE: return getInput().getType();
-            default: throw Assert.impossibleSwitchCase(getKind());
-        }
+        return getInput().getType();
     }
 
     enum Kind {
         NEGATE,
-        LENGTH_OF,
         ;
     }
 
