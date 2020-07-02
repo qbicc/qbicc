@@ -9,12 +9,6 @@ import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
  */
 public interface GraphFactory {
 
-    // delegation
-
-    default GraphFactory getDelegate() {
-        throw new IllegalStateException("No delegate");
-    }
-
     // values
 
     // phi
