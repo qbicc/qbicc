@@ -7,9 +7,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.Set;
 import java.util.TreeSet;
 
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -558,6 +560,63 @@ public final class BytecodeParser extends MethodVisitor {
             if (ti instanceof Try) {
                 Try try_ = (Try) ti;
                 wirePhis(exitingBlock, try_.getCatchHandler());
+            }
+        }
+        // finally, optimize away any phis whose inputs are all the same value
+        // todo: in the next incarnation, keep entry items as non-phi until there is more than one value
+        for (Map.Entry<BasicBlock, Capture> entry : blockEnters.entrySet()) {
+            BasicBlock entered = entry.getKey();
+            Capture phiCapture = entry.getValue();
+            fixPhis(entered, blockExits.keySet(), phiCapture.locals);
+            fixPhis(entered, blockExits.keySet(), phiCapture.stack);
+            fixPhis(entered, blockExits.keySet(), phiCapture.memoryState);
+        }
+    }
+
+    private void fixPhis(final BasicBlock entered, final Set<BasicBlock> exits, final Value[] values) {
+        outer: for (Value value : values) {
+            if (value instanceof PhiValue) {
+                PhiValue phiValue = (PhiValue) value;
+                final Iterator<BasicBlock> iterator = exits.iterator();
+                while (iterator.hasNext()) {
+                    final BasicBlock exit1 = iterator.next();
+                    Value value1 = phiValue.getValueForBlock(exit1);
+                    if (value1 != null) {
+                        while (iterator.hasNext()) {
+                            BasicBlock exit2 = iterator.next();
+                            Value value2 = phiValue.getValueForBlock(exit2);
+                            if (value2 != value1) {
+                                // keep it as a phi
+                                continue outer;
+                            }
+                        }
+                        // there's only one value; replace it
+                        phiValue.replaceWith(value1);
+                    }
+                }
+            }
+        }
+    }
+
+    private void fixPhis(final BasicBlock entered, final Set<BasicBlock> exits, final MemoryState memoryState) {
+        if (memoryState instanceof PhiMemoryState) {
+            PhiMemoryState phiMemoryState = (PhiMemoryState) memoryState;
+            final Iterator<BasicBlock> iterator = exits.iterator();
+            while (iterator.hasNext()) {
+                final BasicBlock exit1 = iterator.next();
+                MemoryState ms1 = phiMemoryState.getMemoryStateForBlock(exit1);
+                if (ms1 != null) {
+                    while (iterator.hasNext()) {
+                        BasicBlock exit2 = iterator.next();
+                        MemoryState ms2 = phiMemoryState.getMemoryStateForBlock(exit2);
+                        if (ms2 != ms1) {
+                            // keep it as a phi
+                            return;
+                        }
+                    }
+                    // there's only one value; replace it
+                    phiMemoryState.replaceWith(ms1);
+                }
             }
         }
     }
