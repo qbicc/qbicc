@@ -1,24 +1,25 @@
 package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
+import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
 /**
  *
  */
 final class ClassTypeImpl extends AbstractClassTypeImpl implements ClassType {
-    private final String className;
+    private final VerifiedTypeDefinition definition;
     private final ClassType superClass;
     private final InterfaceType[] interfaces;
 
-    ClassTypeImpl(final String className, final ClassType superClass, final InterfaceType[] interfaces) {
-        this.className = className;
+    ClassTypeImpl(final VerifiedTypeDefinition definition, final ClassType superClass, final InterfaceType[] interfaces) {
+        this.definition = definition;
         this.superClass = superClass;
         this.interfaces = interfaces;
     }
 
     public String getClassName() {
-        return className;
+        return definition.getName();
     }
 
     public ClassType getSuperClass() {
@@ -29,6 +30,10 @@ final class ClassTypeImpl extends AbstractClassTypeImpl implements ClassType {
         return interfaces.length;
     }
 
+    public VerifiedTypeDefinition getDefinition() {
+        return definition;
+    }
+
     public InterfaceType getInterface(final int index) throws IndexOutOfBoundsException {
         return interfaces[index];
     }
@@ -36,7 +41,7 @@ final class ClassTypeImpl extends AbstractClassTypeImpl implements ClassType {
     public boolean isSuperTypeOf(final ClassType other) {
         Assert.checkNotNullParam("other", other);
 
-        if (this == Type.JAVA_LANG_OBJECT) {
+        if (superClass == null) {
             // all objects are assignable to JLO
             return true;
         }
@@ -59,13 +64,13 @@ final class ClassTypeImpl extends AbstractClassTypeImpl implements ClassType {
     }
 
     public String getLabelForGraph() {
-        return "class[" + className + "]";
+        return "class[" + getClassName() + "]";
     }
 
     @Override
     public String toString() {
         return "ClassTypeImpl{" +
-                "className='" + className + '\'' +
+                "className='" + getClassName() + '\'' +
                 '}';
     }
 }

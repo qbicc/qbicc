@@ -37,9 +37,9 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
             interfaceTypes[i] = (InterfaceType) classType;
         }
         if (isInterface()) {
-            classType = Type.interfaceType(delegate.getName(), interfaceTypes);
+            classType = Type.interfaceType(this, interfaceTypes);
         } else {
-            classType = Type.classType(delegate.getName(), superType == null ? null : superType.getClassType(), interfaceTypes);
+            classType = Type.classType(this, superType == null ? null : superType.getClassType(), interfaceTypes);
         }
         // -----------------------------------
         // ↓↓↓ delete once we can drop asm ↓↓↓

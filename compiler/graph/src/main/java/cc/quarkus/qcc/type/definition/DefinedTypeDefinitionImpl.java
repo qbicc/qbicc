@@ -353,6 +353,6 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     // internal
 
     ByteBuffer getClassBytes() {
-        return classBytes;
+        return classBytes.duplicate();
     }
 }

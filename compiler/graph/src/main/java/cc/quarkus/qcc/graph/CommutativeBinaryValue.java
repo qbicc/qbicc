@@ -52,14 +52,22 @@ public interface CommutativeBinaryValue extends BinaryValue {
                     return XOR;
                 }
                 case Opcodes.IFEQ:
+                case Opcodes.IFNULL:
                 case Opcodes.IF_ACMPEQ:
                 case Opcodes.IF_ICMPEQ: {
                     return CMP_EQ;
                 }
                 case Opcodes.IFNE:
+                case Opcodes.IFNONNULL:
                 case Opcodes.IF_ACMPNE:
                 case Opcodes.IF_ICMPNE: {
                     return CMP_NE;
+                }
+                case Opcodes.IMUL:
+                case Opcodes.LMUL:
+                case Opcodes.FMUL:
+                case Opcodes.DMUL: {
+                    return MULTIPLY;
                 }
                 default: {
                     throw new IllegalStateException();

@@ -1,21 +1,22 @@
 package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
+import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 
 /**
  *
  */
 final class InterfaceTypeImpl extends AbstractClassTypeImpl implements InterfaceType {
-    private final String className;
+    private final VerifiedTypeDefinition definition;
     private final InterfaceType[] interfaces;
 
-    InterfaceTypeImpl(final String className, final InterfaceType[] interfaces) {
-        this.className = className;
+    InterfaceTypeImpl(VerifiedTypeDefinition definition, final InterfaceType[] interfaces) {
+        this.definition = definition;
         this.interfaces = interfaces;
     }
 
     public String getClassName() {
-        return className;
+        return definition.getName();
     }
 
     public ClassType getSuperClass() {
@@ -24,6 +25,10 @@ final class InterfaceTypeImpl extends AbstractClassTypeImpl implements Interface
 
     public int getInterfaceCount() {
         return interfaces.length;
+    }
+
+    public VerifiedTypeDefinition getDefinition() {
+        return definition;
     }
 
     public InterfaceType getInterface(final int index) throws IndexOutOfBoundsException {
@@ -43,13 +48,13 @@ final class InterfaceTypeImpl extends AbstractClassTypeImpl implements Interface
     }
 
     public String getLabelForGraph() {
-        return "interface[" + className + "]";
+        return "interface[" + getClassName() + "]";
     }
 
     @Override
     public String toString() {
         return "InterfaceTypeImpl{" +
-                "className='" + className + '\'' +
+                "className='" + getClassName() + '\'' +
                 '}';
     }
 }

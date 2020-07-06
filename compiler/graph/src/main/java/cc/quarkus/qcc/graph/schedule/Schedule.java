@@ -1,48 +1,29 @@
 package cc.quarkus.qcc.graph.schedule;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.ConstantValue;
 import cc.quarkus.qcc.graph.MemoryState;
-import cc.quarkus.qcc.graph.MemoryStateDependent;
 import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.PinnedNode;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.Value;
+import io.smallrye.common.constraint.Assert;
 
 /**
  * A linear schedule for basic block instructions.
  */
 public interface Schedule {
     /**
-     * Get the basic block that this schedule belongs to.
+     * Get the basic block for the given node.
      *
-     * @return the basic block
+     * @param node the node to look up (must not be {@code null})
+     * @return the basic block for the node, or {@code null} if the node is not scheduled
      */
-    BasicBlock getBasicBlock();
-
-    /**
-     * Get the instruction list for this schedule.  The list will not be empty.  Each node in the list
-     * implements {@link Value} or {@link MemoryStateDependent}.  Each {@code Value} in the list appears before any
-     * of its usages.
-     * <p>
-     * The final node in the list implements {@link Terminator}.  Every non-final node in the list which implements
-     * {@link MemoryStateDependent} also implements {@link MemoryState}.
-     *
-     * @return the instruction list (not {@code null})
-     */
-    List<Node> getInstructions();
-
-    /**
-     * Get the schedule for the given successor block.  The block must be a direct successor to this schedule's block.
-     *
-     * @return the schedule
-     * @throws IllegalArgumentException if the block is not a successor to this schedule's block
-     */
-    Schedule getSuccessorSchedule(BasicBlock successor) throws IllegalArgumentException;
+    BasicBlock getBlockForNode(Node node);
 
     /**
      * Create a schedule for the method whose entry block is the given block.
@@ -75,7 +56,15 @@ public interface Schedule {
         // now, use the dominator depths to calculate the simplest possible schedule.
         Map<Node, BlockInfo> scheduledNodes = new HashMap<>();
         scheduleEarly(root, blockInfos, scheduledNodes, entryBlock);
-        return root.createSchedules(blockInfos);
+        Map<Node, BasicBlock> finalMapping = new HashMap<>(scheduledNodes.size());
+        for (Map.Entry<Node, BlockInfo> entry : scheduledNodes.entrySet()) {
+            finalMapping.put(entry.getKey(), entry.getValue().block);
+        }
+        return new Schedule() {
+            public BasicBlock getBlockForNode(final Node node) {
+                return finalMapping.get(Assert.checkNotNullParam("node", node));
+            }
+        };
     }
 
     private static void scheduleEarly(BlockInfo root, Map<BasicBlock, BlockInfo> blockInfos, Map<Node, BlockInfo> scheduledNodes, BasicBlock block) {
@@ -89,38 +78,59 @@ public interface Schedule {
         }
     }
 
+    private static BlockInfo scheduleDependenciesEarly(BlockInfo root, Map<BasicBlock, BlockInfo> blockInfos, Map<Node, BlockInfo> scheduledNodes, Node node) {
+        BlockInfo selected = root;
+        int cnt = node.getValueDependencyCount();
+        for (int i = 0; i < cnt; i ++) {
+            Value valueDependency = node.getValueDependency(i);
+            BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, valueDependency);
+            if (candidate.domDepth > selected.domDepth) {
+                selected = candidate;
+            }
+        }
+        if (node instanceof MemoryState) {
+            MemoryState memoryState = (MemoryState) node;
+            MemoryState dependency = memoryState.getMemoryDependency();
+            if (dependency != null) {
+                BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, dependency);
+                if (candidate.domDepth > selected.domDepth) {
+                    selected = candidate;
+                }
+            }
+        }
+        return selected;
+    }
+
     private static BlockInfo scheduleEarly(BlockInfo root, Map<BasicBlock, BlockInfo> blockInfos, Map<Node, BlockInfo> scheduledNodes, Node node) {
+        assert node != null;
         BlockInfo selected;
         if (node instanceof PinnedNode) {
             // pinned to a block; always select that block.
-            selected = blockInfos.get(((PinnedNode) node).getBasicBlock());
+            BasicBlock basicBlock = ((PinnedNode) node).getBasicBlock();
+            selected = blockInfos.get(basicBlock);
+            scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
+            if (node instanceof PhiValue) {
+                // make sure phi entries were scheduled
+                PhiValue phiValue = (PhiValue) node;
+                for (BasicBlock block : blockInfos.keySet()) {
+                    Value value = phiValue.getValueForBlock(block);
+                    if (value != null) {
+                        scheduleEarly(root, blockInfos, scheduledNodes, value);
+                    }
+                }
+            }
         } else if (node instanceof ConstantValue) {
             // always considered available; do not schedule
             return root;
         } else {
             selected = scheduledNodes.get(node);
+            BlockInfo candidate = scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
             if (selected == null) {
-                selected = root;
-                int cnt = node.getValueDependencyCount();
-                for (int i = 0; i < cnt; i ++) {
-                    BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, node.getValueDependency(i));
-                    if (candidate.domDepth > selected.domDepth) {
-                        selected = candidate;
-                    }
-                }
-                if (node instanceof MemoryStateDependent) {
-                    MemoryState dependency = ((MemoryStateDependent) node).getMemoryDependency();
-                    if (dependency != null) {
-                        BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, dependency);
-                        if (candidate.domDepth > selected.domDepth) {
-                            selected = candidate;
-                        }
-                    }
-                }
+                selected = candidate;
             }
         }
         // all dependencies have been scheduled
-        selected.scheduledInstructions.add(node);
+        scheduledNodes.put(node, selected);
         return selected;
     }
 }

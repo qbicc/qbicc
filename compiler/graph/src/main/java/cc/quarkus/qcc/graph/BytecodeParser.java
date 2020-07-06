@@ -398,24 +398,24 @@ public final class BytecodeParser extends MethodVisitor {
     public void visitFrame(final int type, final int numLocal, final Object[] local, final int numStack, final Object[] stack) {
         switch (type) {
             case Opcodes.F_SAME: {
-                clearStack();
+                clearFrameStack();
                 return;
             }
             case Opcodes.F_SAME1: {
-                clearStack();
+                clearFrameStack();
                 assert numStack == 1;
                 addFrameStackItem(typeOfFrameObject(stack[0]));
                 return;
             }
             case Opcodes.F_APPEND: {
-                clearStack();
+                clearFrameStack();
                 for (int i = 0; i < numLocal; i++) {
                     addFrameLocal(typeOfFrameObject(local[i]));
                 }
                 return;
             }
             case Opcodes.F_CHOP: {
-                clearStack();
+                clearFrameStack();
                 for (int i = 0; i < numLocal; i ++) {
                     // todo: check type
                     removeFrameLocal();
@@ -423,7 +423,7 @@ public final class BytecodeParser extends MethodVisitor {
                 return;
             }
             case Opcodes.F_FULL: {
-                clearStack();
+                clearFrameStack();
                 clearFrameLocals();
                 for (int i = 0; i < numLocal; i++) {
                     addFrameLocal(typeOfFrameObject(local[i]));
@@ -525,7 +525,7 @@ public final class BytecodeParser extends MethodVisitor {
             blockExits.put(catch_, capture);
             if (activeTrySet.isEmpty()) {
                 // rethrow
-                catch_.setTerminator(Throw.create(exceptionPhi));
+                catch_.setTerminator(graphFactory.throw_(memoryState, exceptionPhi));
             } else {
                 TryState first = activeTrySet.first();
                 // check one and continue
@@ -534,6 +534,7 @@ public final class BytecodeParser extends MethodVisitor {
                     first.getCatchHandler(),
                     NodeHandle.of(getCatchHandler(activeTrySet.tailSet(first, false)))
                 );
+                memoryState = if_;
                 catch_.setTerminator(if_);
             }
             catchInfo = new CatchInfo(catch_, exceptionPhi);
@@ -813,6 +814,7 @@ public final class BytecodeParser extends MethodVisitor {
                     BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newCce.getValue()));
                     // if the cast failed, jump to the fail block
                     Terminator terminator = graphFactory.if_(memoryState, isOk, continueHandle, NodeHandle.of(throwBlock));
+                    memoryState = terminator;
                     currentBlock.setTerminator(terminator);
                     enter(futureBlockState);
                     continueHandle.setTarget(futureBlock);
@@ -832,6 +834,7 @@ public final class BytecodeParser extends MethodVisitor {
             BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newNpe.getValue()));
             NodeHandle continueHandle = new NodeHandle();
             Terminator terminator = graphFactory.if_(memoryState, isNull, NodeHandle.of(throwBlock), continueHandle);
+            memoryState = terminator;
             currentBlock.setTerminator(terminator);
             enter(futureBlockState);
             continueHandle.setTarget(futureBlock);
@@ -1269,7 +1272,9 @@ public final class BytecodeParser extends MethodVisitor {
                 }
                 case Opcodes.MONITORENTER:
                 case Opcodes.MONITOREXIT: {
-                    throw new UnsupportedOperationException();
+                    // TODO: implement montiors
+                    pop();
+                    return;
                 }
                 case Opcodes.LRETURN:
                 case Opcodes.DRETURN:
@@ -1297,7 +1302,9 @@ public final class BytecodeParser extends MethodVisitor {
                 case Opcodes.GOTO: {
                     BasicBlock currentBlock = BytecodeParser.this.currentBlock;
                     NodeHandle jumpTarget = getOrMakeBlockHandle(label);
-                    currentBlock.setTerminator(graphFactory.goto_(memoryState, jumpTarget));
+                    Terminator goto_ = graphFactory.goto_(memoryState, jumpTarget);
+                    memoryState = goto_;
+                    currentBlock.setTerminator(goto_);
                     enter(possibleBlockState);
                     return;
                 }
@@ -1325,6 +1332,11 @@ public final class BytecodeParser extends MethodVisitor {
                     handleIfInsn(graphFactory.binaryOperation(NonCommutativeBinaryValue.Kind.fromOpcode(opcode), pop(), pop()), label);
                     return;
                 }
+                case Opcodes.IFNULL:
+                case Opcodes.IFNONNULL: {
+                    handleIfInsn(graphFactory.binaryOperation(CommutativeBinaryValue.Kind.fromOpcode(opcode), pop(), Value.NULL), label);
+                    return;
+                }
                 default: {
                     throw new IllegalStateException();
                 }
@@ -1339,7 +1351,9 @@ public final class BytecodeParser extends MethodVisitor {
         void handleIfInsn(Value cond, Label label) {
             BasicBlock currentBlock = BytecodeParser.this.currentBlock;
             NodeHandle falseTarget = new NodeHandle();
-            currentBlock.setTerminator(graphFactory.if_(memoryState, cond, getOrMakeBlockHandle(label), falseTarget));
+            Terminator if_ = graphFactory.if_(memoryState, cond, getOrMakeBlockHandle(label), falseTarget);
+            currentBlock.setTerminator(if_);
+            memoryState = if_;
             enter(futureBlockState);
             falseTarget.setTarget(futureBlock);
         }
@@ -1458,7 +1472,9 @@ public final class BytecodeParser extends MethodVisitor {
                 // treat it like a goto
                 BasicBlock currentBlock = BytecodeParser.this.currentBlock;
                 NodeHandle target = new NodeHandle();
-                currentBlock.setTerminator(graphFactory.goto_(memoryState, target));
+                Terminator goto_ = graphFactory.goto_(memoryState, target);
+                currentBlock.setTerminator(goto_);
+                memoryState = goto_;
                 enter(futureBlockState);
                 target.setTarget(futureBlock);
                 outer().visitLabel(label);

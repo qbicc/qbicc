@@ -5,8 +5,7 @@ package cc.quarkus.qcc.graph;
  */
 public interface FieldReadValue extends Value, FieldOperation, GraphFactory.MemoryStateValue {
     default Type getType() {
-        // TODO: get type from field descriptor
-        return Type.S32;
+        return getFieldOwner().getDefinition().resolve().findField(getFieldName()).getType();
     }
 
     default Value getValue() {

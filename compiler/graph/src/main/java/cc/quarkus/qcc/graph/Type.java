@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
+import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -22,12 +23,12 @@ public interface Type extends Node {
         throw Assert.unsupported();
     }
 
-    static ClassType classType(String name, ClassType superType, InterfaceType... interfaceTypes) {
-        return new ClassTypeImpl(name, superType, interfaceTypes.length == 0 ? InterfaceType.NO_INTERFACES : interfaceTypes.clone());
+    static ClassType classType(VerifiedTypeDefinition definition, ClassType superType, InterfaceType... interfaceTypes) {
+        return new ClassTypeImpl(definition, superType, interfaceTypes.length == 0 ? InterfaceType.NO_INTERFACES : interfaceTypes.clone());
     }
 
-    static InterfaceType interfaceType(String name, InterfaceType... interfaceTypes) {
-        return new InterfaceTypeImpl(name, interfaceTypes.length == 0 ? InterfaceType.NO_INTERFACES : interfaceTypes.clone());
+    static InterfaceType interfaceType(VerifiedTypeDefinition definition, InterfaceType... interfaceTypes) {
+        return new InterfaceTypeImpl(definition, interfaceTypes.length == 0 ? InterfaceType.NO_INTERFACES : interfaceTypes.clone());
     }
 
     boolean isAssignableFrom(Type otherType);
@@ -55,10 +56,6 @@ public interface Type extends Node {
     StringLiteralType STRING = new StringLiteralTypeImpl();
 
     ClassLiteralType CLASS = new ClassLiteralTypeImpl();
-
-    // java.lang.Object
-
-    ClassType JAVA_LANG_OBJECT = classType("java/lang/Object", null, InterfaceType.NO_INTERFACES);
 
     // primitive array types
 

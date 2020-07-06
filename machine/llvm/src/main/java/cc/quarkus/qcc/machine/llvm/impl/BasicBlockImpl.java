@@ -103,6 +103,8 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
     }
 
     public Return ret(final Value type, final Value val) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("val", val);
         checkTerminated();
         ValueReturn valueReturn = new ValueReturn((AbstractValue) type, (AbstractValue) val);
         terminator = valueReturn;

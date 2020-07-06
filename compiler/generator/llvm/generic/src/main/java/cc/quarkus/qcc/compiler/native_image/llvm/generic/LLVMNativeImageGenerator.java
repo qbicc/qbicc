@@ -37,6 +37,7 @@ import cc.quarkus.qcc.graph.MemoryState;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NonCommutativeBinaryValue;
 import cc.quarkus.qcc.graph.ParameterValue;
+import cc.quarkus.qcc.graph.PhiMemoryState;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Return;
 import cc.quarkus.qcc.graph.SignedIntegerType;
@@ -48,6 +49,7 @@ import cc.quarkus.qcc.graph.TryThrow;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.UnaryValue;
 import cc.quarkus.qcc.graph.ValueReturn;
+import cc.quarkus.qcc.graph.VoidType;
 import cc.quarkus.qcc.graph.WordCastValue;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.arch.Platform;
@@ -224,15 +226,17 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         ResolvedMethodBody graph = definition.getMethodBody().verify().resolve();
         BasicBlock entryBlock = graph.getEntryBlock();
         Set<BasicBlock> reachableBlocks = entryBlock.calculateReachableBlocks();
-        final MethodContext cache = new MethodContext(func, reachableBlocks);
+        final MethodContext cache = new MethodContext(definition, func, reachableBlocks);
         func.returns(typeOf(definition.getReturnType()));
         final List<ParameterValue> paramVals = graph.getParameters();
         for (ParameterValue pv : paramVals) {
             cache.values.put(pv, func.param(typeOf(pv.getType())).name("p" + idx++).asValue());
         }
         cache.blocks.put(entryBlock, func);
-        Schedule rootSchedule = Schedule.forMethod(entryBlock);
-        build(cache, rootSchedule, getBlock(cache, entryBlock));
+        Schedule schedule = Schedule.forMethod(entryBlock);
+        for (BasicBlock block : reachableBlocks) {
+            build(cache, schedule, block.getTerminator());
+        }
     }
 
     private Value typeOf(final Type type) {
@@ -240,7 +244,9 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         if (res != null) {
             return res;
         }
-        if (type instanceof BooleanType) {
+        if (type instanceof VoidType) {
+            res = void_;
+        } else if (type instanceof BooleanType) {
             res = i1;
         } else if (type instanceof IntegerType) {
             int bytes = ((IntegerType) type).getSize();
@@ -274,198 +280,214 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         return res;
     }
 
-    private void build(final MethodContext cache, final Schedule schedule, final cc.quarkus.qcc.machine.llvm.BasicBlock target) {
-        for (Node node : schedule.getInstructions()) {
-            if (node instanceof Terminator) {
-                if (node instanceof ValueReturn) {
-                    cc.quarkus.qcc.graph.Value rv = ((ValueReturn) node).getReturnValue();
-                    target.ret(typeOf(rv.getType()), getValue(cache, rv));
-                } else if (node instanceof Return) {
-                    target.ret();
-                } else if (node instanceof TryInvocationValue) {
-                    TryInvocationValue tiv = (TryInvocationValue) node;
-                    throw new IllegalStateException();
-                } else if (node instanceof TryInvocation) {
-                    TryInvocation ti = (TryInvocation) node;
-                    throw new IllegalStateException();
-                } else if (node instanceof TryThrow) {
-                    TryThrow t = (TryThrow) node;
-                    target.br(getBlock(cache, t.getCatchHandler()));
-                } else if (node instanceof Throw) {
-                    Throw t = (Throw) node;
-                    cc.quarkus.qcc.machine.llvm.Value doThrowFn = module.declare(".throw").asGlobal();
-                    target.call(void_, doThrowFn).arg(Types.i32, getValue(cache, t.getThrownValue()));
-                } else if (node instanceof Goto) {
-                    BasicBlock jmpTarget = ((Goto) node).getNextBlock();
-                    target.br(getBlock(cache, jmpTarget));
-                } else if (node instanceof If) {
-                    If ifInst = (If) node;
-                    cc.quarkus.qcc.graph.Value cond = ifInst.getCondition();
-                    BasicBlock tb = ifInst.getTrueBranch();
-                    BasicBlock fb = ifInst.getFalseBranch();
-                    cc.quarkus.qcc.machine.llvm.BasicBlock tTarget = getBlock(cache, tb);
-                    cc.quarkus.qcc.machine.llvm.BasicBlock fTarget = getBlock(cache, fb);
-                    cc.quarkus.qcc.machine.llvm.Value condVal = getValue(cache, cond);
-                    target.br(condVal, tTarget, fTarget);
-                } else {
-                    throw new IllegalStateException();
-                }
-            } else if (node instanceof cc.quarkus.qcc.graph.Value) {
-                cc.quarkus.qcc.graph.Value value = (cc.quarkus.qcc.graph.Value) node;
-                cc.quarkus.qcc.machine.llvm.Value val;
-                Value outputType = typeOf(value.getType());
-                if (value instanceof BinaryValue) {
-                    BinaryValue binOp = (BinaryValue) value;
-                    Type javaInputType = binOp.getLeftInput().getType();
-                    Value inputType = typeOf(javaInputType);
-                    Value llvmLeft = getValue(cache, binOp.getLeftInput());
-                    Value llvmRight = getValue(cache, binOp.getRightInput());
-                    if (binOp instanceof CommutativeBinaryValue) {
-                        CommutativeBinaryValue op = (CommutativeBinaryValue) binOp;
-                        switch (op.getKind()) {
-                            case ADD: val = isFloating(javaInputType) ?
-                                            target.fadd(inputType, llvmLeft, llvmRight).asLocal() :
-                                            target.add(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case AND: val = target.and(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case OR: val = target.or(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case XOR: val = target.xor(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case MULTIPLY: val = isFloating(javaInputType) ?
-                                                 target.fmul(inputType, llvmLeft, llvmRight).asLocal() :
-                                                 target.mul(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_EQ: val = isFloating(javaInputType) ?
-                                               target.fcmp(FloatCondition.oeq, inputType, llvmLeft, llvmRight).asLocal() :
-                                               target.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_NE: val = isFloating(javaInputType) ?
-                                               target.fcmp(FloatCondition.one, inputType, llvmLeft, llvmRight).asLocal() :
-                                               target.icmp(IntCondition.ne, inputType, llvmLeft, llvmRight).asLocal(); break;
-                            default: throw new IllegalStateException();
-                        }
-                    } else {
-                        assert binOp instanceof NonCommutativeBinaryValue;
-                        NonCommutativeBinaryValue op = (NonCommutativeBinaryValue) binOp;
-                        switch (op.getKind()) {
-                            case UNSIGNED_SHR: val = target.lshr(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case SHR: val = target.ashr(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case SHL: val = target.shl(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case SUB: val = isFloating(javaInputType) ?
-                                            target.fsub(inputType, llvmLeft, llvmRight).asLocal() :
-                                            target.sub(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case DIV: val = isFloating(javaInputType) ?
-                                            target.fdiv(inputType, llvmLeft, llvmRight).asLocal() :
-                                            isSigned(javaInputType) ?
-                                            target.sdiv(inputType, llvmLeft, llvmRight).asLocal() :
-                                            target.udiv(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case MOD: val = isFloating(javaInputType) ?
-                                            target.frem(inputType, llvmLeft, llvmRight).asLocal() :
-                                            isSigned(javaInputType) ?
-                                            target.srem(inputType, llvmLeft, llvmRight).asLocal() :
-                                            target.urem(inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_LT: val = isFloating(javaInputType) ?
-                                               target.fcmp(FloatCondition.olt, inputType, llvmLeft, llvmRight).asLocal() :
-                                               target.icmp(isSigned(javaInputType) ? IntCondition.slt : IntCondition.ult, inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_LE: val = isFloating(javaInputType) ?
-                                               target.fcmp(FloatCondition.ole, inputType, llvmLeft, llvmRight).asLocal() :
-                                               target.icmp(isSigned(javaInputType) ? IntCondition.sle : IntCondition.ule, inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_GT: val = isFloating(javaInputType) ?
-                                               target.fcmp(FloatCondition.ogt, inputType, llvmLeft, llvmRight).asLocal() :
-                                               target.icmp(isSigned(javaInputType) ? IntCondition.sgt : IntCondition.ugt, inputType, llvmLeft, llvmRight).asLocal(); break;
-                            case CMP_GE: val = isFloating(javaInputType) ?
-                                               target.fcmp(FloatCondition.oge, inputType, llvmLeft, llvmRight).asLocal() :
-                                               target.icmp(isSigned(javaInputType) ? IntCondition.sge : IntCondition.uge, inputType, llvmLeft, llvmRight).asLocal(); break;
-                            default: throw new IllegalStateException();
-                        }
-                    }
-                } else if (value instanceof UnaryValue) {
-                    UnaryValue op = (UnaryValue) value;
-                    Type javaInputType = op.getInput().getType();
-                    Value inputType = typeOf(javaInputType);
-                    Value llvmInput = getValue(cache, op.getInput());
-                    switch (op.getKind()) {
-                        case NEGATE: val = isFloating(javaInputType) ?
-                                           target.fneg(inputType, llvmInput).asLocal() :
-                                           target.sub(inputType, Values.ZERO, llvmInput).asLocal(); break;
-                        default: throw new IllegalStateException();
-                    }
-                } else if (value instanceof WordCastValue) {
-                    WordCastValue op = (WordCastValue) value;
-                    Type javaInputType = op.getInput().getType();
-                    Type javaOutputType = op.getType();
-                    Value inputType = typeOf(javaInputType);
-                    Value llvmInput = getValue(cache, op.getInput());
-                    switch (op.getKind()) {
-                        case TRUNCATE: val = isFloating(javaInputType) ?
-                                             target.ftrunc(inputType, llvmInput, outputType).asLocal() :
-                                             target.trunc(inputType, llvmInput, outputType).asLocal(); break;
-                        case EXTEND: val = isFloating(javaInputType) ?
-                                           target.fpext(inputType, llvmInput, outputType).asLocal() :
-                                           isSigned(javaInputType) ?
-                                           target.sext(inputType, llvmInput, outputType).asLocal() :
-                                           target.zext(inputType, llvmInput, outputType).asLocal(); break;
-                        case BIT_CAST: val = target.bitcast(inputType, llvmInput, outputType).asLocal(); break;
-                        case VALUE_CONVERT: val = isFloating(javaInputType) ?
-                                                  isSigned(javaOutputType) ?
-                                                  target.fptosi(inputType, llvmInput, outputType).asLocal() :
-                                                  target.fptoui(inputType, llvmInput, outputType).asLocal() :
-                                                  isSigned(javaInputType) ?
-                                                  target.sitofp(inputType, llvmInput, outputType).asLocal() :
-                                                  target.uitofp(inputType, llvmInput, outputType).asLocal(); break;
-                        default: throw new IllegalStateException();
-                    }
-                } else if (value instanceof FieldReadValue) {
-                    throw new IllegalStateException();
-                } else if (value instanceof IfValue) {
-                    IfValue op = (IfValue) value;
-                    cc.quarkus.qcc.graph.Value trueValue = op.getTrueValue();
-                    Value inputType = typeOf(trueValue.getType());
-                    val = target.select(typeOf(op.getCond().getType()), getValue(cache, op.getCond()), inputType, getValue(cache, trueValue), getValue(cache, op.getFalseValue())).asLocal();
-                } else if (value instanceof PhiValue) {
-                    PhiValue phiValue = (PhiValue) value;
-                    Phi phi = target.phi(outputType);
-                    val = phi.asLocal();
-                    for (BasicBlock knownBlock : cache.knownBlocks) {
-                        cc.quarkus.qcc.graph.Value v = phiValue.getValueForBlock(knownBlock);
-                        if (v != null) {
-                            phi.item(getValue(cache, v), getBlock(cache, knownBlock));
-                        }
-                    }
-                } else if (value instanceof InvocationValue) {
-                    InvocationValue inv = (InvocationValue) value;
-                    Type returnType = inv.getInvocationTarget().getReturnType();
-                    Call call = target.call(typeOf(returnType), getFunctionOf(cache, inv.getMethodOwner(), inv.getInvocationTarget()));
-                    int cnt = inv.getArgumentCount();
-                    for (int i = 0; i < cnt; i ++) {
-                        cc.quarkus.qcc.graph.Value arg = inv.getArgument(i);
-                        call.arg(typeOf(arg.getType()), getValue(cache, arg));
-                    }
-                    val = call.asLocal();
-                } else {
-                    throw new IllegalStateException();
-                }
-                cache.values.put(value, val);
-            } else if (node instanceof MemoryState) {
-                MemoryState memoryState = (MemoryState) node;
-                if (memoryState instanceof InstanceFieldWrite) {
-                    InstanceFieldWrite ifw = (InstanceFieldWrite) memoryState;
-                    target.store(Types.i32, getValue(cache, ifw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
-                } else if (memoryState instanceof FieldWrite) {
-                    // static
-                    FieldWrite sfw = (FieldWrite) memoryState;
-                    target.store(Types.i32, getValue(cache, sfw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
-                } else if (memoryState instanceof InitialMemoryState) {
-                    // no action
-                } else {
-                    throw new IllegalStateException();
-                }
+    private void build(final MethodContext cache, final Schedule schedule, final Node node) {
+        if (node == null) {
+            return;
+        }
+        if (! cache.built.add(node)) {
+            // already built this one
+            return;
+        }
+        // first build dependencies
+        if (node instanceof cc.quarkus.qcc.graph.MemoryState) {
+            MemoryState memoryState = (MemoryState) node;
+            MemoryState dependency = memoryState.getMemoryDependency();
+            build(cache, schedule, dependency);
+        }
+        int depCnt = node.getValueDependencyCount();
+        for (int i = 0; i < depCnt; i ++) {
+            build(cache, schedule, node.getValueDependency(i));
+        }
+        // all dependencies are now in the cache
+        final cc.quarkus.qcc.machine.llvm.BasicBlock target = getBlock(cache, schedule, schedule.getBlockForNode(node));
+        if (node instanceof Terminator) {
+            if (node instanceof ValueReturn) {
+                cc.quarkus.qcc.graph.Value rv = ((ValueReturn) node).getReturnValue();
+                target.ret(typeOf(rv.getType()), getValue(cache, rv));
+            } else if (node instanceof Return) {
+                target.ret();
+            } else if (node instanceof TryInvocationValue) {
+                TryInvocationValue tiv = (TryInvocationValue) node;
+                throw new IllegalStateException();
+            } else if (node instanceof TryInvocation) {
+                TryInvocation ti = (TryInvocation) node;
+                throw new IllegalStateException();
+            } else if (node instanceof TryThrow) {
+                TryThrow t = (TryThrow) node;
+                target.br(getBlock(cache, schedule, t.getCatchHandler()));
+            } else if (node instanceof Throw) {
+                Throw t = (Throw) node;
+                cc.quarkus.qcc.machine.llvm.Value doThrowFn = module.declare(".throw").asGlobal();
+                target.call(void_, doThrowFn).arg(Types.i32, getValue(cache, t.getThrownValue()));
+            } else if (node instanceof Goto) {
+                BasicBlock jmpTarget = ((Goto) node).getNextBlock();
+                target.br(getBlock(cache, schedule, jmpTarget));
+            } else if (node instanceof If) {
+                If ifInst = (If) node;
+                cc.quarkus.qcc.graph.Value cond = ifInst.getCondition();
+                BasicBlock tb = ifInst.getTrueBranch();
+                BasicBlock fb = ifInst.getFalseBranch();
+                cc.quarkus.qcc.machine.llvm.BasicBlock tTarget = getBlock(cache, schedule, tb);
+                cc.quarkus.qcc.machine.llvm.BasicBlock fTarget = getBlock(cache, schedule, fb);
+                cc.quarkus.qcc.machine.llvm.Value condVal = getValue(cache, cond);
+                target.br(condVal, tTarget, fTarget);
             } else {
                 throw new IllegalStateException();
             }
-        }
-        // build successor schedules for this method
-        BasicBlock basicBlock = schedule.getBasicBlock();
-        int cnt = basicBlock.getSuccessorCount();
-        for (int i = 0; i < cnt; i ++) {
-            BasicBlock newBlock = basicBlock.getSuccessor(i);
-            build(cache, schedule.getSuccessorSchedule(newBlock), getBlock(cache, newBlock));
+        } else if (node instanceof cc.quarkus.qcc.graph.Value) {
+            cc.quarkus.qcc.graph.Value value = (cc.quarkus.qcc.graph.Value) node;
+            cc.quarkus.qcc.machine.llvm.Value val;
+            Value outputType = typeOf(value.getType());
+            if (value instanceof BinaryValue) {
+                BinaryValue binOp = (BinaryValue) value;
+                Type javaInputType = binOp.getLeftInput().getType();
+                Value inputType = typeOf(javaInputType);
+                Value llvmLeft = getValue(cache, binOp.getLeftInput());
+                Value llvmRight = getValue(cache, binOp.getRightInput());
+                if (binOp instanceof CommutativeBinaryValue) {
+                    CommutativeBinaryValue op = (CommutativeBinaryValue) binOp;
+                    switch (op.getKind()) {
+                        case ADD: val = isFloating(javaInputType) ?
+                                        target.fadd(inputType, llvmLeft, llvmRight).asLocal() :
+                                        target.add(inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case AND: val = target.and(inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case OR: val = target.or(inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case XOR: val = target.xor(inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case MULTIPLY: val = isFloating(javaInputType) ?
+                                             target.fmul(inputType, llvmLeft, llvmRight).asLocal() :
+                                             target.mul(inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case CMP_EQ: val = isFloating(javaInputType) ?
+                                           target.fcmp(FloatCondition.oeq, inputType, llvmLeft, llvmRight).asLocal() :
+                                           target.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case CMP_NE: val = isFloating(javaInputType) ?
+                                           target.fcmp(FloatCondition.one, inputType, llvmLeft, llvmRight).asLocal() :
+                                           target.icmp(IntCondition.ne, inputType, llvmLeft, llvmRight).asLocal(); break;
+                        default: throw new IllegalStateException();
+                    }
+                } else {
+                    assert binOp instanceof NonCommutativeBinaryValue;
+                    NonCommutativeBinaryValue op = (NonCommutativeBinaryValue) binOp;
+                    switch (op.getKind()) {
+                        case UNSIGNED_SHR: val = target.lshr(inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case SHR: val = target.ashr(inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case SHL: val = target.shl(inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case SUB: val = isFloating(javaInputType) ?
+                                        target.fsub(inputType, llvmLeft, llvmRight).asLocal() :
+                                        target.sub(inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case DIV: val = isFloating(javaInputType) ?
+                                        target.fdiv(inputType, llvmLeft, llvmRight).asLocal() :
+                                        isSigned(javaInputType) ?
+                                        target.sdiv(inputType, llvmLeft, llvmRight).asLocal() :
+                                        target.udiv(inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case MOD: val = isFloating(javaInputType) ?
+                                        target.frem(inputType, llvmLeft, llvmRight).asLocal() :
+                                        isSigned(javaInputType) ?
+                                        target.srem(inputType, llvmLeft, llvmRight).asLocal() :
+                                        target.urem(inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case CMP_LT: val = isFloating(javaInputType) ?
+                                           target.fcmp(FloatCondition.olt, inputType, llvmLeft, llvmRight).asLocal() :
+                                           target.icmp(isSigned(javaInputType) ? IntCondition.slt : IntCondition.ult, inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case CMP_LE: val = isFloating(javaInputType) ?
+                                           target.fcmp(FloatCondition.ole, inputType, llvmLeft, llvmRight).asLocal() :
+                                           target.icmp(isSigned(javaInputType) ? IntCondition.sle : IntCondition.ule, inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case CMP_GT: val = isFloating(javaInputType) ?
+                                           target.fcmp(FloatCondition.ogt, inputType, llvmLeft, llvmRight).asLocal() :
+                                           target.icmp(isSigned(javaInputType) ? IntCondition.sgt : IntCondition.ugt, inputType, llvmLeft, llvmRight).asLocal(); break;
+                        case CMP_GE: val = isFloating(javaInputType) ?
+                                           target.fcmp(FloatCondition.oge, inputType, llvmLeft, llvmRight).asLocal() :
+                                           target.icmp(isSigned(javaInputType) ? IntCondition.sge : IntCondition.uge, inputType, llvmLeft, llvmRight).asLocal(); break;
+                        default: throw new IllegalStateException();
+                    }
+                }
+            } else if (value instanceof UnaryValue) {
+                UnaryValue op = (UnaryValue) value;
+                Type javaInputType = op.getInput().getType();
+                Value inputType = typeOf(javaInputType);
+                Value llvmInput = getValue(cache, op.getInput());
+                switch (op.getKind()) {
+                    case NEGATE: val = isFloating(javaInputType) ?
+                                       target.fneg(inputType, llvmInput).asLocal() :
+                                       target.sub(inputType, Values.ZERO, llvmInput).asLocal(); break;
+                    default: throw new IllegalStateException();
+                }
+            } else if (value instanceof WordCastValue) {
+                WordCastValue op = (WordCastValue) value;
+                Type javaInputType = op.getInput().getType();
+                Type javaOutputType = op.getType();
+                Value inputType = typeOf(javaInputType);
+                Value llvmInput = getValue(cache, op.getInput());
+                switch (op.getKind()) {
+                    case TRUNCATE: val = isFloating(javaInputType) ?
+                                         target.ftrunc(inputType, llvmInput, outputType).asLocal() :
+                                         target.trunc(inputType, llvmInput, outputType).asLocal(); break;
+                    case EXTEND: val = isFloating(javaInputType) ?
+                                       target.fpext(inputType, llvmInput, outputType).asLocal() :
+                                       isSigned(javaInputType) ?
+                                       target.sext(inputType, llvmInput, outputType).asLocal() :
+                                       target.zext(inputType, llvmInput, outputType).asLocal(); break;
+                    case BIT_CAST: val = target.bitcast(inputType, llvmInput, outputType).asLocal(); break;
+                    case VALUE_CONVERT: val = isFloating(javaInputType) ?
+                                              isSigned(javaOutputType) ?
+                                              target.fptosi(inputType, llvmInput, outputType).asLocal() :
+                                              target.fptoui(inputType, llvmInput, outputType).asLocal() :
+                                              isSigned(javaInputType) ?
+                                              target.sitofp(inputType, llvmInput, outputType).asLocal() :
+                                              target.uitofp(inputType, llvmInput, outputType).asLocal(); break;
+                    default: throw new IllegalStateException();
+                }
+            } else if (value instanceof FieldReadValue) {
+                throw new IllegalStateException();
+            } else if (value instanceof IfValue) {
+                IfValue op = (IfValue) value;
+                cc.quarkus.qcc.graph.Value trueValue = op.getTrueValue();
+                Value inputType = typeOf(trueValue.getType());
+                val = target.select(typeOf(op.getCond().getType()), getValue(cache, op.getCond()), inputType, getValue(cache, trueValue), getValue(cache, op.getFalseValue())).asLocal();
+            } else if (value instanceof PhiValue) {
+                PhiValue phiValue = (PhiValue) value;
+                Phi phi = target.phi(outputType);
+                val = phi.asLocal();
+                for (BasicBlock knownBlock : cache.knownBlocks) {
+                    cc.quarkus.qcc.graph.Value v = phiValue.getValueForBlock(knownBlock);
+                    build(cache, schedule, v);
+                    if (v != null) {
+                        phi.item(getValue(cache, v), getBlock(cache, schedule, knownBlock));
+                    }
+                }
+            } else if (value instanceof InvocationValue) {
+                InvocationValue inv = (InvocationValue) value;
+                Type returnType = inv.getInvocationTarget().getReturnType();
+                Call call = target.call(typeOf(returnType), getFunctionOf(cache, inv.getMethodOwner(), inv.getInvocationTarget()));
+                int cnt = inv.getArgumentCount();
+                for (int i = 0; i < cnt; i++) {
+                    cc.quarkus.qcc.graph.Value arg = inv.getArgument(i);
+                    call.arg(typeOf(arg.getType()), getValue(cache, arg));
+                }
+                val = call.asLocal();
+            } else if (value instanceof ParameterValue || value instanceof ConstantValue) {
+                // already cached
+                return;
+            } else {
+                throw new IllegalStateException();
+            }
+            cache.values.put(value, val);
+        } else if (node instanceof MemoryState) {
+            MemoryState memoryState = (MemoryState) node;
+            if (memoryState instanceof InstanceFieldWrite) {
+                InstanceFieldWrite ifw = (InstanceFieldWrite) memoryState;
+                target.store(Types.i32, getValue(cache, ifw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
+            } else if (memoryState instanceof FieldWrite) {
+                // static
+                FieldWrite sfw = (FieldWrite) memoryState;
+                target.store(Types.i32, getValue(cache, sfw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
+            } else if (memoryState instanceof InitialMemoryState) {
+                // no action
+            } else if (memoryState instanceof PhiMemoryState) {
+                // no action
+            } else {
+                throw new IllegalStateException();
+            }
+        } else {
+            throw new IllegalStateException();
         }
     }
 
@@ -479,7 +501,11 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 throw new IllegalStateException();
             }
         } else {
-            return cache.values.get(input);
+            Value value = cache.values.get(input);
+            if (value == null) {
+                throw new IllegalStateException("No value for input " + input);
+            }
+            return value;
         }
     }
 
@@ -492,10 +518,12 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
     }
 
     private Value getFunctionOf(final MethodContext cache, final ClassType owner, final MethodIdentifier invocationTarget) {
+        final ResolvedMethodDefinition resolved = owner.getDefinition().resolve().resolveMethod(invocationTarget);
+        compileMethod(resolved);
         return getMethod(owner, invocationTarget).asGlobal();
     }
 
-    private static cc.quarkus.qcc.machine.llvm.BasicBlock getBlock(final MethodContext cache, final BasicBlock bb) {
+    private cc.quarkus.qcc.machine.llvm.BasicBlock getBlock(final MethodContext cache, final Schedule schedule, final BasicBlock bb) {
         cc.quarkus.qcc.machine.llvm.BasicBlock target = cache.blocks.get(bb);
         if (target == null) {
             target = cache.def.createBlock();
@@ -505,13 +533,16 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
     }
 
     static final class MethodContext {
+        final ResolvedMethodDefinition currentMethod;
         final FunctionDefinition def;
         final Map<cc.quarkus.qcc.graph.Value, cc.quarkus.qcc.machine.llvm.Value> values = new HashMap<>();
         final Map<cc.quarkus.qcc.graph.BasicBlock, cc.quarkus.qcc.machine.llvm.BasicBlock> blocks = new HashMap<>();
         final Set<cc.quarkus.qcc.graph.BasicBlock> processed = new HashSet<>();
         final Set<cc.quarkus.qcc.graph.BasicBlock> knownBlocks;
+        final Set<Node> built = new HashSet<>();
 
-        MethodContext(final FunctionDefinition def, final Set<BasicBlock> knownBlocks) {
+        MethodContext(final ResolvedMethodDefinition currentMethod, final FunctionDefinition def, final Set<BasicBlock> knownBlocks) {
+            this.currentMethod = currentMethod;
             this.def = def;
             this.knownBlocks = knownBlocks;
         }
