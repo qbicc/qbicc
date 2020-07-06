@@ -509,17 +509,16 @@ public final class BytecodeParser extends MethodVisitor {
             // build catch block
             Capture capture = capture();
             BasicBlock catch_ = new BasicBlockImpl();
-            PhiValue exceptionPhi = new PhiValueImpl(currentBlock);
+            PhiValue exceptionPhi = graphFactory.phi(universe.findClass("java/lang/Throwable").verify().getClassType(), currentBlock);
             int localCnt = capture.locals.length;
             Value[] phiLocals = new Value[localCnt];
             for (int i = 0; i < localCnt; i ++) {
-                phiLocals[i] = new PhiValueImpl(currentBlock);
+                phiLocals[i] = graphFactory.phi(capture.locals[i].getType(), currentBlock);
             }
             capture = new Capture(new Value[] { exceptionPhi }, phiLocals);
             // we don't change any state
             blockEnters.put(catch_, capture);
             blockExits.put(catch_, capture);
-            exceptionPhi.setType(universe.findClass("java/lang/Throwable").verify().getClassType());
             if (activeTrySet.isEmpty()) {
                 // rethrow
                 catch_.setTerminator(Throw.create(exceptionPhi));
