@@ -13,7 +13,7 @@ public interface GraphFactory {
 
     // phi
 
-    PhiValue phi(final Type type, BasicBlock basicBlock);
+    PhiValue phi(Type type, BasicBlock basicBlock);
 
     // ternary
 
@@ -40,6 +40,10 @@ public interface GraphFactory {
     Value castOperation(WordCastValue.Kind kind, Value value, WordType toType);
 
     // memory
+
+    MemoryState initialMemoryState();
+
+    PhiMemoryState phiMemory(BasicBlock basicBlock);
 
     MemoryStateValue new_(MemoryState input, ClassType type);
 
@@ -167,6 +171,14 @@ public interface GraphFactory {
             castValue.setInput(value);
             castValue.setType(toType);
             return castValue;
+        }
+
+        public MemoryState initialMemoryState() {
+            return new InitialMemoryStateImpl();
+        }
+
+        public PhiMemoryState phiMemory(final BasicBlock basicBlock) {
+            return new PhiMemoryStateImpl(basicBlock);
         }
 
         public MemoryStateValue new_(final MemoryState input, final ClassType type) {

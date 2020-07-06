@@ -117,6 +117,7 @@ public final class BytecodeParser extends MethodVisitor {
         stack = new Value[16];
         sp = 0;
         fsp = 0;
+        memoryState = graphFactory.initialMemoryState();
     }
 
     private Type typeOfAsmType(final org.objectweb.asm.Type asmType) {
@@ -346,7 +347,7 @@ public final class BytecodeParser extends MethodVisitor {
     Capture capture() {
         Value[] captureStack = Arrays.copyOf(stack, sp);
         Value[] captureLocals = Arrays.copyOf(locals, lp);
-        return new Capture(captureStack, captureLocals);
+        return new Capture(captureStack, captureLocals, memoryState);
     }
 
     NodeHandle getOrMakeBlockHandle(Label label) {
@@ -515,7 +516,8 @@ public final class BytecodeParser extends MethodVisitor {
             for (int i = 0; i < localCnt; i ++) {
                 phiLocals[i] = graphFactory.phi(capture.locals[i].getType(), currentBlock);
             }
-            capture = new Capture(new Value[] { exceptionPhi }, phiLocals);
+            PhiMemoryState phiMemoryState = graphFactory.phiMemory(currentBlock);
+            capture = new Capture(new Value[] { exceptionPhi }, phiLocals, phiMemoryState);
             // we don't change any state
             blockEnters.put(catch_, capture);
             blockExits.put(catch_, capture);
@@ -584,6 +586,9 @@ public final class BytecodeParser extends MethodVisitor {
                 value.setValueForBlock(exitingBlock, exitState.locals[i]);
             }
         }
+        // finally memory
+        PhiMemoryState memoryState = (PhiMemoryState) enterState.memoryState;
+        memoryState.setMemoryStateForBlock(exitingBlock, exitState.memoryState);
     }
 
     void enter(State state) {
@@ -608,6 +613,7 @@ public final class BytecodeParser extends MethodVisitor {
                 locals[i] = graphFactory.phi(locals[i].getType(), currentBlock);
             }
         }
+        memoryState = graphFactory.phiMemory(currentBlock);
         blockEnters.putIfAbsent(currentBlock, capture());
     }
 
@@ -623,6 +629,7 @@ public final class BytecodeParser extends MethodVisitor {
                 setLocal(i, graphFactory.phi(type, currentBlock));
             }
         }
+        memoryState = graphFactory.phiMemory(currentBlock);
         blockEnters.putIfAbsent(currentBlock, capture());
     }
 
@@ -1417,7 +1424,6 @@ public final class BytecodeParser extends MethodVisitor {
                 }
                 currentBlock = null;
             }
-            memoryState = null;
             // the next state decides whether to clear locals/stack or use that info to build the enter state
         }
 
@@ -1573,7 +1579,6 @@ public final class BytecodeParser extends MethodVisitor {
                     blockHandle.setTarget(newBlock);
                 }
             }
-            assert memoryState == null;
             assert next == inBlockState;
             currentBlock = newBlock;
             // we have to set up the locals from the frame
@@ -1590,10 +1595,12 @@ public final class BytecodeParser extends MethodVisitor {
     static final class Capture {
         final Value[] stack;
         final Value[] locals;
+        final MemoryState memoryState;
 
-        Capture(final Value[] stack, final Value[] locals) {
+        Capture(final Value[] stack, final Value[] locals, final MemoryState memoryState) {
             this.stack = stack;
             this.locals = locals;
+            this.memoryState = memoryState;
         }
     }
 

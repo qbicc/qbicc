@@ -11,6 +11,7 @@ import java.util.Set;
 final class BasicBlockImpl extends NodeImpl implements BasicBlock {
     // used by phi nodes
     Map<PhiValueImpl.Key, NodeHandle> outboundValues = Map.of();
+    Map<PhiMemoryStateImpl.Key, NodeHandle> outboundMemoryStates = Map.of();
     NodeHandle terminalInstruction;
 
     public Terminator getTerminator() {

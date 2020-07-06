@@ -61,8 +61,16 @@ public class LineNumberGraphFactory extends DelegatingGraphFactory {
         return withLineNumber(getDelegate().reinterpretCast(v, type));
     }
 
+    public PhiMemoryState phiMemory(final BasicBlock basicBlock) {
+        return withLineNumber(getDelegate().phiMemory(basicBlock));
+    }
+
     public Value castOperation(final WordCastValue.Kind kind, final Value value, final WordType toType) {
         return withLineNumber(getDelegate().castOperation(kind, value, toType));
+    }
+
+    public MemoryState initialMemoryState() {
+        return withLineNumber(getDelegate().initialMemoryState());
     }
 
     public MemoryStateValue new_(final MemoryState input, final ClassType type) {

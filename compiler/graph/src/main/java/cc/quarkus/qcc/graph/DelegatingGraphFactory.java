@@ -55,6 +55,14 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().castOperation(kind, value, toType);
     }
 
+    public MemoryState initialMemoryState() {
+        return getDelegate().initialMemoryState();
+    }
+
+    public PhiMemoryState phiMemory(final BasicBlock basicBlock) {
+        return getDelegate().phiMemory(basicBlock);
+    }
+
     public MemoryStateValue new_(final MemoryState input, final ClassType type) {
         return getDelegate().new_(input, type);
     }
