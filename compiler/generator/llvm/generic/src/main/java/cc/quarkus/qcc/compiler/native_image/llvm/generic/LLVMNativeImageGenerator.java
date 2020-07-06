@@ -29,6 +29,7 @@ import cc.quarkus.qcc.graph.FloatType;
 import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.IfValue;
+import cc.quarkus.qcc.graph.InitialMemoryState;
 import cc.quarkus.qcc.graph.InstanceFieldWrite;
 import cc.quarkus.qcc.graph.IntegerType;
 import cc.quarkus.qcc.graph.InvocationValue;
@@ -309,7 +310,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 } else {
                     throw new IllegalStateException();
                 }
-            } else if (node instanceof Value) {
+            } else if (node instanceof cc.quarkus.qcc.graph.Value) {
                 cc.quarkus.qcc.graph.Value value = (cc.quarkus.qcc.graph.Value) node;
                 cc.quarkus.qcc.machine.llvm.Value val;
                 Value outputType = typeOf(value.getType());
@@ -450,12 +451,21 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                     // static
                     FieldWrite sfw = (FieldWrite) memoryState;
                     target.store(Types.i32, getValue(cache, sfw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
+                } else if (memoryState instanceof InitialMemoryState) {
+                    // no action
                 } else {
                     throw new IllegalStateException();
                 }
             } else {
                 throw new IllegalStateException();
             }
+        }
+        // build successor schedules for this method
+        BasicBlock basicBlock = schedule.getBasicBlock();
+        int cnt = basicBlock.getSuccessorCount();
+        for (int i = 0; i < cnt; i ++) {
+            BasicBlock newBlock = basicBlock.getSuccessor(i);
+            build(cache, schedule.getSuccessorSchedule(newBlock), getBlock(cache, newBlock));
         }
     }
 

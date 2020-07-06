@@ -262,7 +262,7 @@ public final class BytecodeParser extends MethodVisitor {
     void ensureLocalSize(int size) {
         int len = locals.length;
         if (len < size) {
-            locals = Arrays.copyOf(locals, len << 1);
+            locals = Arrays.copyOf(locals, size << 1);
         }
     }
 
@@ -1356,7 +1356,7 @@ public final class BytecodeParser extends MethodVisitor {
             ResolvedMethodDefinition methodDef;
             Type returnType = typeOfAsmType(getReturnType(descriptor));
             MethodIdentifier identifier = MethodIdentifier.of(name, MethodTypeDescriptor.of(returnType, actualTypes));
-            if (isInterface) {
+            if (opcode != Opcodes.INVOKEINTERFACE) {
                 methodDef = def.verify().resolve().resolveMethod(identifier);
             } else {
                 methodDef = def.verify().resolve().resolveInterfaceMethod(identifier);

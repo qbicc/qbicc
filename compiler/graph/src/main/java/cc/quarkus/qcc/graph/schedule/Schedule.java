@@ -98,18 +98,24 @@ public interface Schedule {
             // always considered available; do not schedule
             return root;
         } else {
-            selected = root;
-            int cnt = node.getValueDependencyCount();
-            for (int i = 0; i < cnt; i ++) {
-                BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, node.getValueDependency(i));
-                if (candidate.domDepth > selected.domDepth) {
-                    selected = candidate;
+            selected = scheduledNodes.get(node);
+            if (selected == null) {
+                selected = root;
+                int cnt = node.getValueDependencyCount();
+                for (int i = 0; i < cnt; i ++) {
+                    BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, node.getValueDependency(i));
+                    if (candidate.domDepth > selected.domDepth) {
+                        selected = candidate;
+                    }
                 }
-            }
-            if (node instanceof MemoryStateDependent) {
-                BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, ((MemoryStateDependent) node).getMemoryDependency());
-                if (candidate.domDepth > selected.domDepth) {
-                    selected = candidate;
+                if (node instanceof MemoryStateDependent) {
+                    MemoryState dependency = ((MemoryStateDependent) node).getMemoryDependency();
+                    if (dependency != null) {
+                        BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, dependency);
+                        if (candidate.domDepth > selected.domDepth) {
+                            selected = candidate;
+                        }
+                    }
                 }
             }
         }

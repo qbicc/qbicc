@@ -184,9 +184,10 @@ final class DominatorFinder {
     void main(final BlockInfo[] allBlocks) {
         BitSet[] bucket = new BitSet[graphSize];
         // step 1
-        for (int v = 1; v < graphSize; v ++) {
+        for (int v = 0; v < graphSize; v ++) {
             pred[v] = new BitSet();
             bucket[v] = new BitSet();
+            succ[v] = new BitSet();
             semi[v] = 0;
         }
         n = 0;
