@@ -5,6 +5,10 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
 
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGenerator;
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGeneratorFactory;
@@ -20,6 +24,23 @@ import io.smallrye.common.constraint.Assert;
  */
 public class Driver {
 
+    /*
+        Reachability (Run Time)
+
+        A class is reachable when any instance of that class can exist at run time.  This can happen only
+        when either its constructor is reachable at run time, or when an instance of that class
+        is reachable via the heap from an entry point.  The existence of a variable of a class type
+        is not sufficient to cause the class to be reachable (the variable could be null-only) - there
+        must be an actual value.
+
+        A non-virtual method is reachable only when it can be directly called by another reachable method.
+
+        A virtual method is reachable when it (or a method that the virtual method overrides) can be called
+        by a reachable method and when its class is reachable.
+
+        A static field is reachable when it can be accessed by a reachable method.
+     */
+
     private final Context context;
 
     private Driver(final Context context) {
@@ -33,6 +54,8 @@ public class Driver {
      */
     public boolean execute() {
         Boolean result = context.run(() -> {
+            final ClassLoader classLoader = Main.class.getClassLoader();
+
             // todo: map args to configurations
             DriverConfig driverConfig = new DriverConfig() {
                 public String nativeImageGenerator() {
@@ -43,18 +66,50 @@ public class Driver {
                     return "java";
                 }
             };
+            // ▪ Load and initialize plugins
+            List<Plugin> allPlugins = Plugin.findAllPlugins(List.of(classLoader), Set.of());
+            List<GraphFactoryPlugin> graphFactoryPlugins = new ArrayList<>();
+            for (Plugin plugin : allPlugins) {
+                graphFactoryPlugins.addAll(plugin.getGraphFactoryPlugins());
+            }
+            graphFactoryPlugins.sort(Comparator.comparingInt(GraphFactoryPlugin::getPriority).thenComparing(a -> a.getClass().getName()));
+            
 
-            final ClassLoader classLoader = Main.class.getClassLoader();
-            // initialize the JVM
-            // todo: initialize the JVM
+            // ▫ Additive section ▫ Classes may be loaded and initialized
+            // ▪ set up bootstrap class dictionary
             Universe bootstrapLoader = new Universe(null);
             Universe.setRootUniverse(bootstrapLoader);
+            // ▪ pre-load bootstrap classes
+            defineInitialClass(bootstrapLoader, "java/lang/Object");
+            defineInitialClass(bootstrapLoader, "java/lang/Class");
+            defineInitialClass(bootstrapLoader, "java/lang/ClassLoader");
+            // XXX others
+            // ▪ initialize the JVM
+            // XXX
+            // ▪ initialize bootstrap classes
+            // XXX
+            // ▪ instantiate bootstrap class loader with dictionary
+            // XXX
+            // ▪ instantiate JDK class loaders with dictionaries
+            // XXX
+            // ▪ instantiate agent class loader(s)
+            // XXX
+            // ▪ initialize agent(s)
+            // XXX
+            // ▪ instantiate application class loader(s)
+            // XXX
+            // ▪ trace execution from entry points and collect reachable classes
+            //   (initializing along the way)
+
+
+            // ▪ terminate JVM and wait for all JVM threads to exit
+
+
+
             // load the native image generator
             final NativeImageGeneratorFactory generatorFactory = NativeImageGeneratorFactory.getInstance(driverConfig.nativeImageGenerator(), classLoader);
             NativeImageGenerator generator = generatorFactory.createGenerator();
             // ↓↓↓↓↓↓ TODO: temporary ↓↓↓↓↓↓
-            defineInitialClass(bootstrapLoader, "java/lang/Object");
-            defineInitialClass(bootstrapLoader, "java/lang/Class");
             defineInitialClass(bootstrapLoader, "java/io/Serializable");
             defineInitialClass(bootstrapLoader, "java/lang/reflect/GenericDeclaration");
             defineInitialClass(bootstrapLoader, "java/lang/reflect/AnnotatedElement");

@@ -8,6 +8,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -64,6 +65,8 @@ import cc.quarkus.qcc.machine.llvm.Value;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
+import cc.quarkus.qcc.machine.object.ObjectFile;
+import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.tool.CCompiler;
 import cc.quarkus.qcc.machine.tool.LinkerInvoker;
 import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
@@ -87,6 +90,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
     private final Map<Type, cc.quarkus.qcc.machine.llvm.Value> types = new HashMap<>();
     private final LlcTool llc;
     private final CCompiler cc;
+    private final ObjectFileProvider objProvider;
 
     LLVMNativeImageGenerator() {
         // fail fast if there's no context
@@ -99,10 +103,13 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         };
 
         // find llc
+        // TODO: use class loader from context
+        ClassLoader classLoader = LLVMNativeImageGenerator.class.getClassLoader();
         // TODO: get target platform from config
-        llc = ToolProvider.findAllTools(LlcToolImpl.class, Platform.HOST_PLATFORM, t -> true, LLVMNativeImageGeneratorFactory.class.getClassLoader()).iterator().next();
+        llc = ToolProvider.findAllTools(LlcToolImpl.class, Platform.HOST_PLATFORM, t -> true, classLoader).iterator().next();
         // find C compiler
-        cc = ToolProvider.findAllTools(CCompiler.class, Platform.HOST_PLATFORM, t -> true, LLVMNativeImageGeneratorFactory.class.getClassLoader()).iterator().next();
+        cc = ToolProvider.findAllTools(CCompiler.class, Platform.HOST_PLATFORM, t -> true, classLoader).iterator().next();
+        objProvider = ObjectFileProvider.findProvider(Platform.HOST_PLATFORM.getObjectType(), classLoader).orElseThrow();
     }
 
     public void addEntryPoint(final DefinedMethodDefinition methodDefinition) {
@@ -110,6 +117,15 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
     }
 
     public void compile() {
+        // ▪ compile class and interface mapping
+
+        // ▪ establish object layouts
+
+        // ▪ collection for object files
+        List<Path> objects = new ArrayList<>();
+        // ▪ write out the native image object code
+        ProgramWriter programWriter = new ProgramWriter();
+        // XXX move this writing code to program writer
         final Module module = this.module;
         while (! methodQueue.isEmpty()) {
             compileMethod(methodQueue.removeFirst());
@@ -120,16 +136,15 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        // write out the object file
-        final Path objectPath = Path.of("/tmp/build.o");
-        final Path execPath = Path.of("/tmp/a.out");
+        final Path programPath = Path.of("/tmp/build.o");
+        objects.add(programPath);
         final LlcInvoker llcInv = llc.newInvoker();
         llcInv.setSource(InputSource.from(rw -> {
             try (BufferedWriter w = new BufferedWriter(rw)) {
                 module.writeTo(w);
             }
         }, StandardCharsets.UTF_8));
-        llcInv.setDestination(OutputDestination.of(objectPath));
+        llcInv.setDestination(OutputDestination.of(programPath));
         llcInv.setMessageHandler(ToolMessageHandler.REPORTING);
         try {
             llcInv.invoke();
@@ -137,10 +152,26 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             Context.error(null, "LLVM compilation failed: %s", e);
             return;
         }
+        // ▪ analyze the written object file
+        try (ObjectFile program = objProvider.openObjectFile(programPath)) {
+
+        } catch (IOException e) {
+            Context.error(null, "Failed to read object file \"%s\": %s", programPath, e);
+            return;
+        }
+        // XXX
+        // ▪ write reachable part of stored heap to object file
+        // XXX
+        // ▪ write IP-to-program mapping to object file
+        // XXX
+        // ▪ write GC stack maps to object file
+        // XXX
+        // ▪ link it all together
+        final Path execPath = Path.of("/tmp/a.out");
         final LinkerInvoker ldInv = cc.newLinkerInvoker();
         ldInv.setOutputPath(execPath);
         ldInv.setMessageHandler(ToolMessageHandler.REPORTING);
-        ldInv.addObjectFile(objectPath);
+        ldInv.addObjectFiles(objects);
         try {
             ldInv.invoke();
         } catch (IOException e) {
