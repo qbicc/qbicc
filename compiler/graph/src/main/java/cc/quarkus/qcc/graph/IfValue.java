@@ -6,7 +6,7 @@ import cc.quarkus.qcc.constraint.Constraint;
  *
  */
 public interface IfValue extends Value {
-    Value getCond();
+    Value getCondition();
     void setCond(Value cond);
     Value getTrueValue();
     void setTrueValue(Value value);
@@ -27,6 +27,6 @@ public interface IfValue extends Value {
     }
 
     default Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return index == 0 ? getCond() : index == 1 ? getTrueValue() : index == 2 ? getFalseValue() : Util.throwIndexOutOfBounds(index);
+        return index == 0 ? getCondition() : index == 1 ? getTrueValue() : index == 2 ? getFalseValue() : Util.throwIndexOutOfBounds(index);
     }
 }

@@ -8,12 +8,6 @@ public interface NewValue extends Value, MemoryState, GraphFactory.MemoryStateVa
 
     void setType(ClassType type);
 
-    static NewValue create(ClassType classType) {
-        NewValueImpl value = new NewValueImpl();
-        value.setType(classType);
-        return value;
-    }
-
     default Value getValue() {
         return this;
     }

@@ -17,12 +17,4 @@ public interface CastValue extends Value {
     default Value getValueDependency(int index) throws IndexOutOfBoundsException {
         return index == 0 ? getInput() : Util.throwIndexOutOfBounds(index);
     }
-
-    static CastValue create(Value value, Type targetType) {
-
-        CastValueImpl i = new CastValueImpl();
-        i.setInput(value);
-        i.setType(targetType);
-        return i;
-    }
 }

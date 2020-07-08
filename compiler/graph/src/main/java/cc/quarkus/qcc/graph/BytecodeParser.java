@@ -965,14 +965,14 @@ public final class BytecodeParser extends MethodVisitor {
                 case Opcodes.FCONST_0:
                 case Opcodes.FCONST_1:
                 case Opcodes.FCONST_2: {
-                    // todo: cache
-                    push(CastValue.create(Value.const_(opcode - Opcodes.FCONST_0), Type.F32));
+                    // todo: fix type
+                    push(Value.const_(opcode - Opcodes.FCONST_0));
                     break;
                 }
                 case Opcodes.DCONST_0:
                 case Opcodes.DCONST_1: {
-                    // todo: cache
-                    push(CastValue.create(Value.const_(opcode - Opcodes.DCONST_0), Type.F64));
+                    // todo: fix type
+                    push(Value.const_(opcode - Opcodes.DCONST_0));
                     break;
                 }
                 case Opcodes.ACONST_NULL: {

@@ -12,13 +12,6 @@ public interface NewArrayValue extends Value, MemoryState, GraphFactory.MemorySt
 
     void setSize(Value size);
 
-    static NewArrayValue create(ArrayClassType classType, Value size) {
-        NewArrayValueImpl value = new NewArrayValueImpl();
-        value.setType(classType);
-        value.setSize(size);
-        return value;
-    }
-
     default Value getValue() {
         return this;
     }

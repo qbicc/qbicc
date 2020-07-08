@@ -472,7 +472,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 IfValue op = (IfValue) value;
                 cc.quarkus.qcc.graph.Value trueValue = op.getTrueValue();
                 Value inputType = typeOf(trueValue.getType());
-                val = target.select(typeOf(op.getCond().getType()), getValue(cache, op.getCond()), inputType, getValue(cache, trueValue), getValue(cache, op.getFalseValue())).asLocal();
+                val = target.select(typeOf(op.getCondition().getType()), getValue(cache, op.getCondition()), inputType, getValue(cache, trueValue), getValue(cache, op.getFalseValue())).asLocal();
             } else if (value instanceof PhiValue) {
                 PhiValue phiValue = (PhiValue) value;
                 Phi phi = target.phi(outputType);

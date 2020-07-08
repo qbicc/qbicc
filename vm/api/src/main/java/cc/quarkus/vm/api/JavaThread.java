@@ -42,14 +42,6 @@ public interface JavaThread extends AutoCloseable {
 
     // todo: callStatic<Primitive>, callStaticObject, callInstance*, callInstanceExact*
 
-    JavaField lookupStaticField(JavaClass type, String name);
-
-    JavaField lookupInstanceField(JavaClass type, String name);
-
-    // todo: get/put fields
-
-    JavaObject newString(String str);
-
     // todo: arrays
 
     JavaVM getVM();

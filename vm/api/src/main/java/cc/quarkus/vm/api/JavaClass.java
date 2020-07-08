@@ -1,6 +1,6 @@
 package cc.quarkus.vm.api;
 
-import cc.quarkus.qcc.type.definition.TypeDefinition;
+import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 
 /**
  *
@@ -14,5 +14,5 @@ public interface JavaClass extends JavaObject {
         return this;
     }
 
-    TypeDefinition getTypeDefinition();
+    VerifiedTypeDefinition getTypeDefinition();
 }

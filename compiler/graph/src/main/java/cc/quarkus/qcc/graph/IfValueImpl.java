@@ -8,7 +8,7 @@ final class IfValueImpl extends ValueImpl implements IfValue {
     NodeHandle ifTrue;
     NodeHandle ifFalse;
 
-    public Value getCond() {
+    public Value getCondition() {
         return NodeHandle.getTargetOf(cond);
     }
 

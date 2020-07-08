@@ -29,13 +29,4 @@ public interface WordCastValue extends CastValue {
          */
         VALUE_CONVERT,
     }
-
-    static WordCastValue create(Value value, Kind kind, Type targetType, int line) {
-        WordCastValueImpl i = new WordCastValueImpl();
-        i.setSourceLine(line);
-        i.setInput(value);
-        i.setKind(kind);
-        i.setType(targetType);
-        return i;
-    }
 }

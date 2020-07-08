@@ -73,7 +73,7 @@ public class Driver {
                 graphFactoryPlugins.addAll(plugin.getGraphFactoryPlugins());
             }
             graphFactoryPlugins.sort(Comparator.comparingInt(GraphFactoryPlugin::getPriority).thenComparing(a -> a.getClass().getName()));
-            
+
 
             // ▫ Additive section ▫ Classes may be loaded and initialized
             // ▪ set up bootstrap class dictionary

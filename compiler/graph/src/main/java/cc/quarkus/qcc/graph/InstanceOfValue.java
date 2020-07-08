@@ -11,11 +11,4 @@ public interface InstanceOfValue extends InstanceOperation, Value {
     ClassType getInstanceType();
 
     void setInstanceType(ClassType classType);
-
-    static InstanceOfValue create(Value instance, ClassType type) {
-        InstanceOfValueImpl instanceOfValue = new InstanceOfValueImpl();
-        instanceOfValue.setInstance(instance);
-        instanceOfValue.setInstanceType(type);
-        return instanceOfValue;
-    }
 }

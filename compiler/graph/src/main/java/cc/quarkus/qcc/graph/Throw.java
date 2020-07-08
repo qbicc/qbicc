@@ -15,10 +15,4 @@ public interface Throw extends Terminator {
     default Value getValueDependency(int index) throws IndexOutOfBoundsException {
         return index == 0 ? getThrownValue() : Util.throwIndexOutOfBounds(index);
     }
-
-    static Throw create(Value value) {
-        ThrowImpl throw_ = new ThrowImpl();
-        throw_.setThrownValue(value);
-        return throw_;
-    }
 }
