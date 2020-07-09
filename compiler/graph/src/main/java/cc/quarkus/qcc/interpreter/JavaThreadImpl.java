@@ -1,4 +1,4 @@
-package cc.quarkus.vm.implementation;
+package cc.quarkus.qcc.interpreter;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -41,12 +41,6 @@ import cc.quarkus.qcc.type.definition.ResolvedMethodBody;
 import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import cc.quarkus.qcc.type.universe.Universe;
-import cc.quarkus.vm.api.JavaClass;
-import cc.quarkus.vm.api.JavaConstructor;
-import cc.quarkus.vm.api.JavaMethod;
-import cc.quarkus.vm.api.JavaObject;
-import cc.quarkus.vm.api.JavaThread;
-import cc.quarkus.vm.api.JavaVM;
 
 final class JavaThreadImpl implements JavaThread {
     final JavaVMImpl vm;

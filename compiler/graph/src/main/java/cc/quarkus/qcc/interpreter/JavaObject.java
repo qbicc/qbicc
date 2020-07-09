@@ -1,4 +1,4 @@
-package cc.quarkus.vm.api;
+package cc.quarkus.qcc.interpreter;
 
 /**
  * A Java object handle.

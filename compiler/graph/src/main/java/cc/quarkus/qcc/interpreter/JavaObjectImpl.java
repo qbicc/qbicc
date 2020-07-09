@@ -1,7 +1,4 @@
-package cc.quarkus.vm.implementation;
-
-import cc.quarkus.vm.api.JavaClass;
-import cc.quarkus.vm.api.JavaObject;
+package cc.quarkus.qcc.interpreter;
 
 class JavaObjectImpl implements JavaObject {
     final JavaClassImpl class_;

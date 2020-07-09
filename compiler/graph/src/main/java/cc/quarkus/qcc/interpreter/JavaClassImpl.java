@@ -1,7 +1,6 @@
-package cc.quarkus.vm.implementation;
+package cc.quarkus.qcc.interpreter;
 
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
-import cc.quarkus.vm.api.JavaClass;
 
 final class JavaClassImpl extends JavaObjectImpl implements JavaClass {
     final VerifiedTypeDefinition definition;

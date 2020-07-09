@@ -1,9 +1,8 @@
-package cc.quarkus.vm.implementation;
+package cc.quarkus.qcc.interpreter;
 
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
-import cc.quarkus.vm.api.JavaObject;
 
 final class FieldContainer {
     private final VerifiedTypeDefinition type;

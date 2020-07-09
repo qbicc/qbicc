@@ -1,4 +1,4 @@
-package cc.quarkus.vm.implementation;
+package cc.quarkus.qcc.interpreter;
 
 import static java.lang.Math.*;
 
@@ -16,10 +16,6 @@ import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import cc.quarkus.qcc.type.universe.Universe;
-import cc.quarkus.vm.api.JavaObject;
-import cc.quarkus.vm.api.JavaThread;
-import cc.quarkus.vm.api.JavaVM;
-import cc.quarkus.vm.api.Signal;
 
 final class JavaVMImpl implements JavaVM {
     private boolean exited;

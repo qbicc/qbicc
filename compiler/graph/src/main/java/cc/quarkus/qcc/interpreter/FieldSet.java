@@ -1,4 +1,4 @@
-package cc.quarkus.vm.implementation;
+package cc.quarkus.qcc.interpreter;
 
 import java.util.ArrayList;
 import java.util.Arrays;

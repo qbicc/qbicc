@@ -1,6 +1,4 @@
-package cc.quarkus.vm.implementation;
-
-import cc.quarkus.vm.api.JavaObject;
+package cc.quarkus.qcc.interpreter;
 
 @SuppressWarnings("serial")
 final class Thrown extends RuntimeException {

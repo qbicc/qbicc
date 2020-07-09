@@ -1,4 +1,4 @@
-package cc.quarkus.vm.api;
+package cc.quarkus.qcc.interpreter;
 
 /**
  * A primitive class (or {@code void}).
