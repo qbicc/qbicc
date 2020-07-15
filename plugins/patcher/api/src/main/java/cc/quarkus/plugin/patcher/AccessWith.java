@@ -1,4 +1,4 @@
-package cc.quarkus.api;
+package cc.quarkus.plugin.patcher;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;

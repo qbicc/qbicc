@@ -6,20 +6,30 @@
 
     <parent>
         <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-native-parent</artifactId>
+        <artifactId>qcc-plugin-patcher-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-native-api</artifactId>
+    <artifactId>qcc-plugin-patcher-plugin</artifactId>
+
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-runtime-api</artifactId>
+            <artifactId>qcc-compiler</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-driver</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>qcc-plugin-patcher-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.jboss</groupId>
+            <artifactId>jandex</artifactId>
+        </dependency>
     </dependencies>
+
 </project>

@@ -1,4 +1,4 @@
-package cc.quarkus.api;
+package cc.quarkus.plugin.patcher;
 
 /**
  * A replacement accessor for some field. The implemented accessor method should match the type of the field.

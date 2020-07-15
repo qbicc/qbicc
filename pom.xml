@@ -217,6 +217,20 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- plugins -->
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-plugin-patcher-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-plugin-patcher-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- external -->
 
             <dependency>

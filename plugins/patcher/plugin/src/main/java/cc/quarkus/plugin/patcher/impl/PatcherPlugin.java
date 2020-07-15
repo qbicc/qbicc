@@ -1,4 +1,4 @@
-package cc.quarkus.plugin.patcher;
+package cc.quarkus.plugin.patcher.impl;
 
 import java.util.List;
 
@@ -17,6 +17,8 @@ public class PatcherPlugin implements Plugin {
     public List<GraphFactoryPlugin> getGraphFactoryPlugins() {
         return List.of(GRAPH_PLUGIN);
     }
+
+    // todo: register a jandex hook of some sort...
 
     private static final GraphFactoryPlugin GRAPH_PLUGIN = new GraphFactoryPlugin() {
         public int getPriority() {
