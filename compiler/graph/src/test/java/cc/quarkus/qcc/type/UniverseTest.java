@@ -1,18 +1,26 @@
 package cc.quarkus.qcc.type;
 
+import static cc.quarkus.qcc.TestUtil.defineInitialClass;
+import static cc.quarkus.qcc.TestUtil.initialize;
 import static org.fest.assertions.api.Assertions.*;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
+import cc.quarkus.qcc.TestUtil;
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.finders.ClassLoaderClassFinder;
 import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.interpreter.Prototype;
+import cc.quarkus.qcc.interpreter.PrototypeGenerator;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
 import cc.quarkus.qcc.type.universe.Universe;
+import org.fest.assertions.error.ShouldNotBeNull;
 import org.junit.Test;
 
 public class UniverseTest {
@@ -38,22 +46,6 @@ public class UniverseTest {
             ResolvedMethodDefinition method = cls.verify().resolve().resolveMethod(MethodIdentifier.of("add", MethodTypeDescriptor.of(Type.S32, Type.S32, Type.S32)));
             assertThat(method.hasMethodBody());
         });
-    }
-
-    static void initialize(final Universe universe) throws IOException, ClassNotFoundException {
-        defineInitialClass(universe, "java/lang/Object");
-        defineInitialClass(universe, "java/lang/Class");
-        defineInitialClass(universe, "java/io/Serializable");
-        defineInitialClass(universe, "java/lang/reflect/GenericDeclaration");
-        defineInitialClass(universe, "java/lang/reflect/AnnotatedElement");
-        defineInitialClass(universe, "java/lang/reflect/Type");
-        defineInitialClass(universe, "java/lang/String");
-        defineInitialClass(universe, "java/lang/Comparable");
-        defineInitialClass(universe, "java/lang/CharSequence");
-    }
-
-    private static void defineInitialClass(Universe universe, String className) throws IOException, ClassNotFoundException {
-        universe.defineClass(className, ByteBuffer.wrap(universe.getClassFinder().findClass(className).readAllBytes()));
     }
 
     @Test
