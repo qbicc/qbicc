@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
 
@@ -69,6 +70,9 @@ final class ClangCCompilerInvokerImpl extends AbstractClangInvoker implements Cl
     }
 
     void addArguments(final List<String> cmd) {
+        Platform platform = getTool().getPlatform();
+        cmd.add("-target");
+        cmd.add(platform.getCpu().toString() + "-" + platform.getOs().toString() + "-" + platform.getAbi().toString());
         Collections.addAll(cmd, "-std=gnu11", "-f" + "input-charset=UTF-8", "-pipe");
         for (Path includePath : includePaths) {
             cmd.add("-I" + includePath.toString());

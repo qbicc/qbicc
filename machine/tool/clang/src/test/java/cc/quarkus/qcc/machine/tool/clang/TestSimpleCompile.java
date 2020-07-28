@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.tool.gnu;
+package cc.quarkus.qcc.machine.tool.clang;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.*;
@@ -27,12 +27,12 @@ public class TestSimpleCompile {
         Platform plaf = Platform.HOST_PLATFORM;
         Optional<ObjectFileProvider> of = ObjectFileProvider.findProvider(plaf.getObjectType(), getClass().getClassLoader());
         assumeTrue(of.isPresent());
-        final Iterable<GnuCCompilerImpl> tools = ToolProvider.findAllTools(GnuCCompilerImpl.class, Platform.HOST_PLATFORM, c -> true,
+        final Iterable<ClangCCompilerImpl> tools = ToolProvider.findAllTools(ClangCCompilerImpl.class, plaf, c -> true,
             TestSimpleCompile.class.getClassLoader());
-        final Iterator<GnuCCompilerImpl> iterator = tools.iterator();
+        final Iterator<ClangCCompilerImpl> iterator = tools.iterator();
         assumeTrue(iterator.hasNext());
-        final GnuCCompilerImpl gccCompiler = iterator.next();
-        final GnuCCompilerInvoker ib = gccCompiler.newCompilerInvoker();
+        final ClangCCompilerImpl gccCompiler = iterator.next();
+        final ClangCCompilerInvoker ib = gccCompiler.newCompilerInvoker();
         ib.setOutputPath(objectFilePath);
         ib.setMessageHandler(new ToolMessageHandler() {
             public void handleMessage(final Tool tool, final Level level, final String file, final int line, final int column, final String message) {

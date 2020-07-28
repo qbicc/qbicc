@@ -44,4 +44,10 @@ public interface DefinedFieldDefinition {
     default boolean isVolatile() {
         return hasAllModifiersOf(ClassFile.ACC_VOLATILE);
     }
+
+    interface Builder {
+        void setModifiers(int modifiers);
+
+        DefinedFieldDefinition build();
+    }
 }

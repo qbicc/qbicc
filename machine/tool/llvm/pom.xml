@@ -17,5 +17,9 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qcc-machine-tool-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.smallrye.common</groupId>
+            <artifactId>smallrye-common-version</artifactId>
+        </dependency>
     </dependencies>
 </project>

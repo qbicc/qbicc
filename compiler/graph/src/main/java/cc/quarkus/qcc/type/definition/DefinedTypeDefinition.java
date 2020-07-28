@@ -73,4 +73,19 @@ public interface DefinedTypeDefinition {
     int getMethodCount();
 
     DefinedMethodDefinition getMethodDefinition(int index) throws IndexOutOfBoundsException;
+
+    interface Builder {
+        void setSuperClassName(String name);
+
+        void addInterfaceName(String name);
+
+        void setDefiningClassLoader(Universe universe);
+
+        // XXX XXX XXX
+        DefinedFieldDefinition.Builder addField(String name);
+
+        DefinedMethodDefinition.Builder addMethod(String name);
+
+        DefinedTypeDefinition build();
+    }
 }

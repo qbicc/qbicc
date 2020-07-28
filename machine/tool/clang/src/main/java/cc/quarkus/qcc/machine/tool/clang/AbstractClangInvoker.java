@@ -36,7 +36,7 @@ abstract class AbstractClangInvoker implements MessagingToolInvoker {
         return messageHandler;
     }
 
-    public ClangCCompiler getTool() {
+    public ClangCCompilerImpl getTool() {
         return tool;
     }
 

@@ -36,7 +36,7 @@ abstract class AbstractGccInvoker implements MessagingToolInvoker {
         return messageHandler;
     }
 
-    public GnuCCompiler getTool() {
+    public GnuCCompilerImpl getTool() {
         return tool;
     }
 

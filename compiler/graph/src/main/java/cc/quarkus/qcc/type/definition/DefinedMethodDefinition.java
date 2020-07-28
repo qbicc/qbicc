@@ -59,4 +59,11 @@ public interface DefinedMethodDefinition {
     boolean hasMethodBody();
 
     DefinedMethodBody getMethodBody();
+
+    interface Builder {
+
+        void addParameter(String name);
+
+        DefinedMethodDefinition build();
+    }
 }
