@@ -1,5 +1,11 @@
 package cc.quarkus.qcc.interpreter;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+
+import cc.quarkus.qcc.type.universe.Universe;
+
 /**
  * A virtual machine.
  */
@@ -35,4 +41,18 @@ public interface JavaVM extends AutoCloseable {
      * Kill the VM, terminating all in-progress threads and releasing all heap objects.
      */
     void close();
+
+    /**
+     * Create a new virtual machine.  A list of bootstrap module JARs must be given in order to set up
+     * the core system classes.
+     *
+     *
+     * @param bootstrapLoader the bootstrap loader universe to use (must not be {@code null})
+     * @param bootstrapModulePath the bootstrap module path (must not be {@code null})
+     * @return a new virtual machine
+     */
+    static JavaVM create(Universe bootstrapLoader, List<Path> bootstrapModulePath) {
+        return new JavaVMImpl(bootstrapLoader, bootstrapModulePath);
+    }
+
 }

@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.spi.ClassFinder;
 import cc.quarkus.qcc.type.definition.DefineFailedException;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.LinkageException;
@@ -28,8 +27,7 @@ public class Universe {
         }
     }
 
-    public Universe(ClassFinder classFinder) {
-        this.classFinder = classFinder;
+    public Universe() {
     }
 
     public DefinedTypeDefinition findClass(String name) throws LinkageException {
@@ -52,10 +50,6 @@ public class Universe {
             throw new DefineFailedException("Duplicated class named " + name);
         }
         return def;
-    }
-
-    public ClassFinder getClassFinder() {
-        return this.classFinder;
     }
 
     public boolean replaceTypeDefinition(final String name, final DefinedTypeDefinition oldVal, final DefinedTypeDefinition newVal) {
@@ -105,8 +99,6 @@ public class Universe {
                 throw new RuntimeException("Unable to parse: " + descriptor + " at " + idx );
         }
     }
-
-    private final ClassFinder classFinder;
 
     private final ConcurrentHashMap<String, DefinedTypeDefinition> objectTypes = new ConcurrentHashMap<>();
 }

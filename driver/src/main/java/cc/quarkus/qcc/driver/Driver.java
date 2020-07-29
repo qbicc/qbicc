@@ -14,6 +14,7 @@ import cc.quarkus.qcc.compiler.native_image.api.NativeImageGenerator;
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGeneratorFactory;
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
 import cc.quarkus.qcc.type.universe.Universe;
@@ -56,14 +57,16 @@ public class Driver {
         Boolean result = context.run(() -> {
             final ClassLoader classLoader = Main.class.getClassLoader();
 
+            // todo: this is just temporary... sorry :(
+            Path javaBase = Path.of(System.getProperty("user.home"), ".m2/repository/cc/quarkus/qcc/openjdk/java.base/11.0.8+8-1.0/java.base-11.0.8+8-1.0-linux.jar");
             // todo: map args to configurations
             DriverConfig driverConfig = new DriverConfig() {
                 public String nativeImageGenerator() {
                     return "llvm-generic";
                 }
 
-                public String frontEnd() {
-                    return "java";
+                public List<Path> bootstrapModules() {
+                    return List.of(javaBase);
                 }
             };
             // ▪ Load and initialize plugins
@@ -77,14 +80,10 @@ public class Driver {
 
             // ▫ Additive section ▫ Classes may be loaded and initialized
             // ▪ set up bootstrap class dictionary
-            Universe bootstrapLoader = new Universe(null);
+            Universe bootstrapLoader = new Universe();
             Universe.setRootUniverse(bootstrapLoader);
-            // ▪ pre-load bootstrap classes
-            defineInitialClass(bootstrapLoader, "java/lang/Object");
-            defineInitialClass(bootstrapLoader, "java/lang/Class");
-            defineInitialClass(bootstrapLoader, "java/lang/ClassLoader");
-            // XXX others
             // ▪ initialize the JVM
+            JavaVM javaVM = JavaVM.create(bootstrapLoader, driverConfig.bootstrapModules());
             // XXX
             // ▪ initialize bootstrap classes
             // XXX

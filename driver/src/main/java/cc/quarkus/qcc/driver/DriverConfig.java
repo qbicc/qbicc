@@ -1,11 +1,13 @@
 package cc.quarkus.qcc.driver;
 
+import java.nio.file.Path;
+import java.util.List;
+
 /**
  * The driver configuration.
  */
 public interface DriverConfig {
-    String nativeImageGenerator();
+    String nativeImageGenerator(); // todo: replace with Platform detection
 
-    // for now only Java
-    String frontEnd();
+    List<Path> bootstrapModules();
 }

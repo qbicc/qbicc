@@ -31,10 +31,12 @@ public final class ClassFile {
     public static final int ACC_PROTECTED = 1 << 2;
     public static final int ACC_STATIC = 1 << 3;
     public static final int ACC_FINAL = 1 << 4;
+    public static final int ACC_OPEN = 1 << 4; // same as ACC_FINAL
     public static final int ACC_SYNCHRONIZED = 1 << 5;
     public static final int ACC_SUPER = 1 << 5; // same as ACC_SYNCHRONIZED
     public static final int ACC_BRIDGE = 1 << 6;
     public static final int ACC_VOLATILE = 1 << 6; // same as ACC_BRIDGE
+    public static final int ACC_STATIC_PHASE = 1 << 6; // same as ACC_BRIDGE
     public static final int ACC_VARARGS = 1 << 7;
     public static final int ACC_TRANSIENT = 1 << 7; // same as ACC_VARARGS
     public static final int ACC_NATIVE = 1 << 8;
@@ -45,6 +47,7 @@ public final class ClassFile {
     public static final int ACC_ANNOTATION = 1 << 13;
     public static final int ACC_ENUM = 1 << 14;
     public static final int ACC_MODULE = 1 << 15;
+    public static final int ACC_MANDATED = 1 << 15; // same as ACC_MODULE
 
     public static String getClassName(ByteBuffer classFile, int cpEntryNumber, final int[] cpOffsets, StringBuilder scratch) {
         if (cpEntryNumber == 0) {
@@ -55,6 +58,14 @@ public final class ClassFile {
         }
         int strEntry = classFile.getShort(cpOffsets[cpEntryNumber] + 1) & 0xffff;
         return getUtf8Entry(classFile, cpOffsets[strEntry], scratch);
+    }
+
+    public static String getUtf8Entry(ByteBuffer classFile, int cpEntryOffset, String[] strCache, StringBuilder scratch) {
+        String str = strCache[cpEntryOffset];
+        if (str == null) {
+            str = strCache[cpEntryOffset] = getUtf8Entry(classFile, cpEntryOffset, scratch);
+        }
+        return str;
     }
 
     public static String getUtf8Entry(ByteBuffer classFile, int cpEntryOffset, StringBuilder scratch) {

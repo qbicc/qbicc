@@ -21,12 +21,16 @@ public class UniverseTest {
         return l + r;
     }
 
+    // this holder prevents the test from failing
+    static class Holder {
+        static final ClassLoaderClassFinder classFinder = new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader());
+    }
+
     @Test
     public void testMethod() throws Exception {
         Context context = new Context(false);
         context.run(() -> {
-            ClassLoaderClassFinder classFinder = new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader());
-            Universe universe = new Universe(classFinder);
+            Universe universe = new Universe();
             Universe.setRootUniverse(universe);
             // todo: remove once we have proper JVM init
             initialize(universe);
@@ -40,7 +44,7 @@ public class UniverseTest {
         });
     }
 
-    static void initialize(final Universe universe) throws IOException, ClassNotFoundException {
+    static void initialize(final Universe universe) throws IOException {
         defineInitialClass(universe, "java/lang/Object");
         defineInitialClass(universe, "java/lang/Class");
         defineInitialClass(universe, "java/io/Serializable");
@@ -52,15 +56,15 @@ public class UniverseTest {
         defineInitialClass(universe, "java/lang/CharSequence");
     }
 
-    private static void defineInitialClass(Universe universe, String className) throws IOException, ClassNotFoundException {
-        universe.defineClass(className, ByteBuffer.wrap(universe.getClassFinder().findClass(className).readAllBytes()));
+    private static void defineInitialClass(Universe universe, String className) throws IOException {
+        universe.defineClass(className, ByteBuffer.wrap(Holder.classFinder.findClass(className).readAllBytes()));
     }
 
     @Test
     public void testResolveMethod() throws Exception {
         Context context = new Context(false);
         context.run(() -> {
-            Universe universe = new Universe(new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader()));
+            Universe universe = new Universe();
             Universe.setRootUniverse(universe);
             initialize(universe);
             //
