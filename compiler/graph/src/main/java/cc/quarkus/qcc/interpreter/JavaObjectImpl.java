@@ -6,7 +6,7 @@ class JavaObjectImpl implements JavaObject {
 
     JavaObjectImpl(final JavaClassImpl class_) {
         this.class_ = class_;
-        fields = new FieldContainer(class_.definition, class_.instanceFields);
+        fields = new FieldContainerImpl(class_.definition, class_.instanceFields);
     }
 
     JavaObjectImpl(final FieldContainer fieldContainer) {
