@@ -4,19 +4,15 @@ import cc.quarkus.qcc.graph.BooleanType;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.FloatType;
 import cc.quarkus.qcc.graph.IntegerType;
-import cc.quarkus.qcc.graph.PointerType;
-import cc.quarkus.qcc.graph.ReferenceType;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.WordType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
-import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import static cc.quarkus.qcc.interpreter.CodegenUtils.arrayOf;
 import static cc.quarkus.qcc.interpreter.CodegenUtils.ci;
@@ -24,6 +20,7 @@ import static cc.quarkus.qcc.interpreter.CodegenUtils.p;
 
 public class PrototypeGenerator {
     private static Map<DefinedTypeDefinition, Prototype> prototypes = new HashMap<>();
+    private static ClassDefiningClassLoader cdcl = new ClassDefiningClassLoader();
 
     public static Prototype getPrototype(DefinedTypeDefinition definition) {
         return prototypes.computeIfAbsent(definition, PrototypeGenerator::generate);
@@ -34,20 +31,22 @@ public class PrototypeGenerator {
         ClassType classType = verified.getClassType();
         String className = classType.getClassName();
 
+        // prepend qcc so they're isolated from containing VM
+        className = "qcc/" + className;
+
         ClassType superType = classType.getSuperClass();
         String superName;
 
         if (superType == null) {
             superName = "java/lang/Object";
         } else {
-            superName = superType.getClassName();
-
             Prototype superProto = generate(superType.getDefinition());
+            superName = superProto.getClassName();
         }
 
         ClassWriter proto = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 
-        proto.visit(Opcodes.V9, verified.getModifiers(), p(className), null, p(superName), arrayOf(p(JavaObject.class)));
+        proto.visit(Opcodes.V9, verified.getModifiers(), p(className), null, p(superName), arrayOf(p(FieldContainer.class)));
 
         verified.eachField(
                 (field) -> proto.visitField(
@@ -60,7 +59,62 @@ public class PrototypeGenerator {
 
         byte[] bytecode = proto.toByteArray();
 
-        return () -> bytecode;
+        return new PrototypeImpl(classType, className, bytecode, cdcl);
+    }
+
+    private static class ClassDefiningClassLoader extends ClassLoader {
+        public Class<?> defineAndResolveClass(String name, byte[] b, int off, int len) {
+            Class<?> cls = super.defineClass(name, b, off, len);
+            resolveClass(cls);
+            return cls;
+        }
+    }
+
+    public static class PrototypeImpl implements Prototype {
+        private final ClassType classType;
+        private final String className;
+        private final byte[] bytecode;
+        private final ClassDefiningClassLoader cdcl;
+        private final Class<? extends FieldContainer>  cls;
+
+        PrototypeImpl(ClassType classType, String className, byte[] bytecode, ClassDefiningClassLoader cdcl) {
+            this.classType = classType;
+            this.className = className;
+            this.bytecode = bytecode;
+            this.cdcl = cdcl;
+
+            this.cls = initializeClass(cdcl, className, bytecode);
+        }
+
+        private static Class<? extends FieldContainer> initializeClass(ClassDefiningClassLoader cdcl, String name, byte[] bytecode) {
+            Class<?> cls = cdcl.defineAndResolveClass(name.replaceAll("/", "."), bytecode, 0, bytecode.length);
+
+            return (Class<FieldContainer>) cls;
+        }
+
+        @Override
+        public byte[] getBytecode() {
+            return bytecode;
+        }
+
+        @Override
+        public String getClassName() {
+            return className;
+        }
+
+        @Override
+        public Class<? extends FieldContainer> getPrototypeClass() {
+            return cls;
+        }
+
+        @Override
+        public FieldContainer construct() {
+            try {
+                return cls.getDeclaredConstructor().newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException("BUG: could not instantiate", e);
+            }
+        }
     }
 
     private static Class javaTypeFromFieldType(Type type) {

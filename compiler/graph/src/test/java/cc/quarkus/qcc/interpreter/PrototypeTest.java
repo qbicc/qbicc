@@ -4,8 +4,8 @@ import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.finders.ClassLoaderClassFinder;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.universe.Universe;
+import io.smallrye.common.function.ExceptionConsumer;
 import org.fest.assertions.core.Condition;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -17,22 +17,9 @@ import static cc.quarkus.qcc.interpreter.CodegenUtils.p;
 import static org.fest.assertions.api.Assertions.assertThat;
 
 public class PrototypeTest {
-    Universe universe;
-
-    @Before
-    public void before() throws Exception {
-        ClassLoaderClassFinder classFinder = new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader());
-        Universe universe = new Universe(classFinder);
-        Universe.setRootUniverse(universe);
-
-        initialize(universe);
-    }
-
     @Test
     public void testPrototype() throws Exception {
-        Context context = new Context(false);
-
-        context.run(() -> {
+        inUniverse((universe) -> {
             String classWithFields = p(ClassWithFields.class);
 
             defineInitialClass(universe, classWithFields);
@@ -41,21 +28,35 @@ public class PrototypeTest {
 
             Prototype proto = PrototypeGenerator.getPrototype(myClass);
 
-            byte[] bytecode = proto.getBytecode();
-
-            Class protoClass = new TestClassLoader().defineClass(classWithFields.replace('/', '.'), bytecode);
+            Class protoClass = proto.getPrototypeClass();
 
             Arrays.stream(ClassWithFields.class.getDeclaredFields()).forEach((field) -> {
                 Field protoField = getDeclaredField(protoClass, field.getName());
 
                 assertThat(protoField).isNotNull();
-                assertThat(protoField.getType()).is(equivalent(field.getType()));
+                assertThat(protoField.getType()).is(sizeEquivalent(field.getType()));
                 assertThat(protoField.getModifiers()).isEqualTo(field.getModifiers());
             });
+
+            FieldContainer protoObject = proto.construct();
         });
     }
 
-    private static Condition<Class<?>> equivalent(Class<?> expected) {
+    private static void inUniverse(ExceptionConsumer<Universe, Exception> runner) throws Exception {
+        Context context = new Context(false);
+
+        context.run(() -> {
+            ClassLoaderClassFinder classFinder = new ClassLoaderClassFinder(Thread.currentThread().getContextClassLoader());
+            Universe universe = new Universe(classFinder);
+            Universe.setRootUniverse(universe);
+
+            initialize(universe);
+
+            runner.accept(universe);
+        });
+    }
+
+    private static Condition<Class<?>> sizeEquivalent(Class<?> expected) {
         return new Condition<>() {
             @Override
             public boolean matches(Class<?> actual) {
@@ -86,13 +87,5 @@ public class PrototypeTest {
     @SuppressWarnings("unchecked")
     private static <T extends Throwable> void throwsUnchecked(final Throwable e) throws T {
         throw (T) e;
-    }
-
-    private static class TestClassLoader extends ClassLoader {
-        public Class defineClass(String name, byte[] bytecode) {
-            Class cls = super.defineClass(name, bytecode, 0, bytecode.length);
-            super.resolveClass(cls);
-            return cls;
-        }
     }
 }
