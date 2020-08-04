@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.type.universe.Universe;
-
 /**
  *
  */
@@ -16,7 +14,7 @@ final class VerificationFailedDefinitionImpl implements DefinedTypeDefinition {
         this.cause = cause;
     }
 
-    public Universe getDefiningClassLoader() {
+    public Dictionary getDefiningClassLoader() {
         return delegate.getDefiningClassLoader();
     }
 

@@ -40,7 +40,7 @@ import cc.quarkus.qcc.type.definition.ResolvedFieldDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedMethodBody;
 import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
-import cc.quarkus.qcc.type.universe.Universe;
+import cc.quarkus.qcc.type.definition.Dictionary;
 
 final class JavaThreadImpl implements JavaThread {
     final JavaVMImpl vm;
@@ -104,7 +104,7 @@ final class JavaThreadImpl implements JavaThread {
     }
 
     public JavaClass defineClass(final String name, final JavaObject classLoader, final ByteBuffer bytes) {
-        Universe dictionary = vm.getDictionaryFor(classLoader);
+        Dictionary dictionary = vm.getDictionaryFor(classLoader);
         VerifiedTypeDefinition def = dictionary.defineClass(name, bytes).verify();
         JavaClassImpl javaClass = new JavaClassImpl(vm, def);
         vm.registerJavaClassOf(def.getClassType(), javaClass);

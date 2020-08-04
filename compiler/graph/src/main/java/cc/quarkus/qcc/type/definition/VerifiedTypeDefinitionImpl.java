@@ -3,8 +3,6 @@ package cc.quarkus.qcc.type.definition;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.InterfaceType;
 import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.type.universe.ByteBufferInputStream;
-import cc.quarkus.qcc.type.universe.Universe;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.ClassNode;
@@ -45,7 +43,7 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
         // ↓↓↓ delete once we can drop asm ↓↓↓
         int methodCount = getMethodCount();
         MethodNode[] nodes = new MethodNode[methodCount];
-        ClassNode classNode = new ClassNode(Universe.ASM_VERSION) {
+        ClassNode classNode = new ClassNode(Dictionary.ASM_VERSION) {
             int idx = 0; // hopefully we visit in the same order
             public MethodVisitor visitMethod(final int access, final String name, final String descriptor, final String signature, final String[] exceptions) {
                 MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
@@ -65,7 +63,7 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
 
     // delegates
 
-    public Universe getDefiningClassLoader() {
+    public Dictionary getDefiningClassLoader() {
         return delegate.getDefiningClassLoader();
     }
 

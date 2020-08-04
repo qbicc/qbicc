@@ -25,7 +25,7 @@ import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
-import cc.quarkus.qcc.type.universe.Universe;
+import cc.quarkus.qcc.type.definition.Dictionary;
 
 final class JavaVMImpl implements JavaVM {
     private boolean exited;
@@ -37,12 +37,12 @@ final class JavaVMImpl implements JavaVM {
     private final Set<JavaThread> threads = ConcurrentHashMap.newKeySet();
     private static final ThreadLocal<JavaThread> attachedThread = new ThreadLocal<>();
     private final JavaClassImpl classClass;
-    private final ConcurrentMap<JavaObject, Universe> classLoaderLoaders = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Universe, JavaObject> loaderClassLoaders = new ConcurrentHashMap<>();
+    private final ConcurrentMap<JavaObject, Dictionary> classLoaderLoaders = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Dictionary, JavaObject> loaderClassLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<ClassType, JavaClassImpl> loadedClasses = new ConcurrentHashMap<>();
     private final Map<String, BootModule> bootstrapModules;
 
-    JavaVMImpl(final Universe bootstrapLoader, final List<Path> bootstrapModulePath) {
+    JavaVMImpl(final Dictionary bootstrapLoader, final List<Path> bootstrapModulePath) {
         Map<String, BootModule> bootstrapModules = new HashMap<>();
         for (Path path : bootstrapModulePath) {
             // open all bootstrap JARs (MR bootstrap JARs not supported)
@@ -106,7 +106,7 @@ final class JavaVMImpl implements JavaVM {
         return buffer;
     }
 
-    private static DefinedTypeDefinition defineBootClass(final Universe bootstrapLoader, final JarFile javaBase, String name) throws IOException {
+    private static DefinedTypeDefinition defineBootClass(final Dictionary bootstrapLoader, final JarFile javaBase, String name) throws IOException {
         ByteBuffer bytes = getJarEntryBuffer(javaBase, name + ".class");
         if (bytes == null) {
             throw new IllegalArgumentException("Initial class finder cannot find bootstrap class \"" + name + "\"");
@@ -211,15 +211,15 @@ final class JavaVMImpl implements JavaVM {
         return classClass;
     }
 
-    Universe getDictionaryFor(final JavaObject classLoader) {
-        Universe dictionary = classLoaderLoaders.get(classLoader);
+    Dictionary getDictionaryFor(final JavaObject classLoader) {
+        Dictionary dictionary = classLoaderLoaders.get(classLoader);
         if (dictionary == null) {
             throw new IllegalStateException("Class loader object is unknown");
         }
         return dictionary;
     }
 
-    JavaObject getClassLoaderFor(final Universe dictionary) {
+    JavaObject getClassLoaderFor(final Dictionary dictionary) {
         JavaObject classLoader = loaderClassLoaders.get(dictionary);
         if (classLoader == null) {
             throw new IllegalStateException("Class loader object is unknown");
@@ -237,7 +237,7 @@ final class JavaVMImpl implements JavaVM {
         }
     }
 
-    void registerDictionaryFor(final JavaObject classLoader, final Universe dictionary) {
+    void registerDictionaryFor(final JavaObject classLoader, final Dictionary dictionary) {
         if (classLoaderLoaders.putIfAbsent(classLoader, dictionary) != null) {
             throw new IllegalStateException("Class loader already registered");
         }

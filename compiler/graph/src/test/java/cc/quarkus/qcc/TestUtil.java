@@ -1,28 +1,28 @@
 package cc.quarkus.qcc;
 
-import cc.quarkus.qcc.type.universe.Universe;
+import cc.quarkus.qcc.type.definition.Dictionary;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 public class TestUtil {
-    public static void initialize(final Universe universe) throws IOException {
-        defineInitialClass(universe, "java/lang/Object");
-        defineInitialClass(universe, "java/lang/Class");
-        defineInitialClass(universe, "java/io/Serializable");
-        defineInitialClass(universe, "java/lang/reflect/GenericDeclaration");
-        defineInitialClass(universe, "java/lang/reflect/AnnotatedElement");
-        defineInitialClass(universe, "java/lang/reflect/Type");
-        defineInitialClass(universe, "java/lang/String");
-        defineInitialClass(universe, "java/lang/Comparable");
-        defineInitialClass(universe, "java/lang/CharSequence");
+    public static void initialize(final Dictionary dictionary) throws IOException {
+        defineInitialClass(dictionary, "java/lang/Object");
+        defineInitialClass(dictionary, "java/lang/Class");
+        defineInitialClass(dictionary, "java/io/Serializable");
+        defineInitialClass(dictionary, "java/lang/reflect/GenericDeclaration");
+        defineInitialClass(dictionary, "java/lang/reflect/AnnotatedElement");
+        defineInitialClass(dictionary, "java/lang/reflect/Type");
+        defineInitialClass(dictionary, "java/lang/String");
+        defineInitialClass(dictionary, "java/lang/Comparable");
+        defineInitialClass(dictionary, "java/lang/CharSequence");
     }
 
-    public static void defineInitialClass(Universe universe, String className) throws IOException {
+    public static void defineInitialClass(Dictionary dictionary, String className) throws IOException {
         // temporary hackery...
         try (InputStream is = TestUtil.class.getClassLoader().getResourceAsStream(className + ".class")) {
-            universe.defineClass(className, ByteBuffer.wrap(is.readAllBytes()));
+            dictionary.defineClass(className, ByteBuffer.wrap(is.readAllBytes()));
         }
     }
 }

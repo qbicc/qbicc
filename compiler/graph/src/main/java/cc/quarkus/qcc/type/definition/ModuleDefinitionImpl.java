@@ -3,8 +3,6 @@ package cc.quarkus.qcc.type.definition;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import cc.quarkus.qcc.type.universe.Universe;
-
 final class ModuleDefinitionImpl implements ModuleDefinition {
     final String name;
     final String version;
@@ -27,7 +25,7 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
     private static final String[][] NO_STRING_ARRAYS = new String[0][];
     private static final int[] NO_INTS = new int[0];
 
-    ModuleDefinitionImpl(final Universe universe, final ByteBuffer orig) {
+    ModuleDefinitionImpl(final Dictionary dictionary, final ByteBuffer orig) {
         // this part could probably be factored into a common method of some sort
         if (orig.order() != ByteOrder.BIG_ENDIAN) {
             throw new DefineFailedException("Wrong byte buffer order");

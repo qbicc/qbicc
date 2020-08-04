@@ -2,7 +2,7 @@ package cc.quarkus.qcc.interpreter;
 
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.universe.Universe;
+import cc.quarkus.qcc.type.definition.Dictionary;
 import io.smallrye.common.function.ExceptionConsumer;
 import org.fest.assertions.core.Condition;
 import org.junit.Ignore;
@@ -20,12 +20,12 @@ public class PrototypeTest {
     @Test
     @Ignore("test is failing")
     public void testPrototype() throws Exception {
-        inUniverse((universe) -> {
+        withRootDictionary((dictionary) -> {
             String classWithFields = p(ClassWithFields.class);
 
-            defineInitialClass(universe, classWithFields);
+            defineInitialClass(dictionary, classWithFields);
 
-            DefinedTypeDefinition myClass = universe.findClass(classWithFields);
+            DefinedTypeDefinition myClass = dictionary.findClass(classWithFields);
 
             Prototype proto = PrototypeGenerator.getPrototype(myClass);
 
@@ -43,16 +43,16 @@ public class PrototypeTest {
         });
     }
 
-    private static void inUniverse(ExceptionConsumer<Universe, Exception> runner) throws Exception {
+    private static void withRootDictionary(ExceptionConsumer<Dictionary, Exception> runner) throws Exception {
         Context context = new Context(false);
 
         context.run(() -> {
-            Universe universe = new Universe();
-            Universe.setRootUniverse(universe);
+            Dictionary dictionary = new Dictionary();
+            Dictionary.setRootDictionary(dictionary);
 
-            initialize(universe);
+            initialize(dictionary);
 
-            runner.accept(universe);
+            runner.accept(dictionary);
         });
     }
 

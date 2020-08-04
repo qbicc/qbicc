@@ -8,7 +8,7 @@ import java.util.ServiceLoader;
 import io.smallrye.common.constraint.Assert;
 
 /**
- * A back end for the compiler, which consumes a compiled universe and emits something.
+ * A back end for the compiler.
  */
 public interface NativeImageGeneratorFactory {
     /**

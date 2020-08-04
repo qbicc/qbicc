@@ -3,7 +3,6 @@ package cc.quarkus.qcc.type.definition;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
-import cc.quarkus.qcc.type.universe.Universe;
 
 final class InitializedTypeDefinitionImpl implements InitializedTypeDefinition {
     private final PreparedTypeDefinitionImpl delegate;
@@ -28,7 +27,7 @@ final class InitializedTypeDefinitionImpl implements InitializedTypeDefinition {
         return delegate.isArray();
     }
 
-    public Universe getDefiningClassLoader() {
+    public Dictionary getDefiningClassLoader() {
         return delegate.getDefiningClassLoader();
     }
 

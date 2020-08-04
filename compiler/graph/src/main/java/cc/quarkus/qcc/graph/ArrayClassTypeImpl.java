@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
-import cc.quarkus.qcc.type.universe.Universe;
+import cc.quarkus.qcc.type.definition.Dictionary;
 
 final class ArrayClassTypeImpl extends AbstractClassTypeImpl implements ArrayClassType {
     private final Type elementType;
@@ -10,7 +10,7 @@ final class ArrayClassTypeImpl extends AbstractClassTypeImpl implements ArrayCla
 
     ArrayClassTypeImpl(final Type elementType) {
         this.elementType = elementType;
-        superClass = Universe.rootUniverse().findClass("java/lang/Object").verify().getClassType();
+        superClass = Dictionary.rootDictionary().findClass("java/lang/Object").verify().getClassType();
     }
 
     public Type getElementType() {

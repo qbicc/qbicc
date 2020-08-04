@@ -3,13 +3,11 @@ package cc.quarkus.qcc.type.definition;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import cc.quarkus.qcc.type.universe.Universe;
-
 /**
  *
  */
 final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
-    private final Universe definingLoader;
+    private final Dictionary definingLoader;
     private final String name;
     private final int access;
     private final ByteBuffer classBytes;
@@ -22,7 +20,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
     private volatile DefinedTypeDefinition verified;
 
-    DefinedTypeDefinitionImpl(final Universe definingLoader, final String name, final ByteBuffer orig) {
+    DefinedTypeDefinitionImpl(final Dictionary definingLoader, final String name, final ByteBuffer orig) {
         // do some basic pieces of verification
         if (orig.order() != ByteOrder.BIG_ENDIAN) {
             throw new DefineFailedException("Wrong byte buffer order");
@@ -274,7 +272,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
 
 
-    public Universe getDefiningClassLoader() {
+    public Dictionary getDefiningClassLoader() {
         return definingLoader;
     }
 

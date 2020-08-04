@@ -4,7 +4,6 @@ import cc.quarkus.qcc.graph.ArrayType;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
-import cc.quarkus.qcc.type.universe.Universe;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -37,7 +36,7 @@ final class ResolvedTypeDefinitionImpl implements ResolvedTypeDefinition {
         return delegate.isArray();
     }
 
-    public Universe getDefiningClassLoader() {
+    public Dictionary getDefiningClassLoader() {
         return delegate.getDefiningClassLoader();
     }
 

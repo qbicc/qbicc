@@ -3,21 +3,19 @@ package cc.quarkus.qcc.type.definition;
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.type.universe.Universe;
-
 /**
  *
  */
 public interface DefinedTypeDefinition {
-    static DefinedTypeDefinition create(final Universe universe, String name, ByteBuffer buffer) {
-        return new DefinedTypeDefinitionImpl(universe, name, buffer);
+    static DefinedTypeDefinition create(final Dictionary dictionary, String name, ByteBuffer buffer) {
+        return new DefinedTypeDefinitionImpl(dictionary, name, buffer);
     }
 
     default boolean isArray() {
         return false;
     }
 
-    Universe getDefiningClassLoader();
+    Dictionary getDefiningClassLoader();
 
     String getName();
 
@@ -87,7 +85,7 @@ public interface DefinedTypeDefinition {
 
         void addInterfaceName(String name);
 
-        void setDefiningClassLoader(Universe universe);
+        void setDefiningClassLoader(Dictionary dictionary);
 
         // XXX XXX XXX
         DefinedFieldDefinition.Builder addField(String name);

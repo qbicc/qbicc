@@ -12,10 +12,10 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
-import cc.quarkus.qcc.type.universe.Universe;
+import cc.quarkus.qcc.type.definition.Dictionary;
 import org.junit.Test;
 
-public class UniverseTest {
+public class DictionaryTest {
 
     static int add(int l, int r) {
         return l + r;
@@ -30,52 +30,52 @@ public class UniverseTest {
     public void testMethod() throws Exception {
         Context context = new Context(false);
         context.run(() -> {
-            Universe universe = new Universe();
-            Universe.setRootUniverse(universe);
+            Dictionary dictionary = new Dictionary();
+            Dictionary.setRootDictionary(dictionary);
             // todo: remove once we have proper JVM init
-            initialize(universe);
+            initialize(dictionary);
             //
-            defineInitialClass(universe, "cc/quarkus/qcc/type/UniverseTest");
-            defineInitialClass(universe, "cc/quarkus/qcc/type/universe/Universe");
+            defineInitialClass(dictionary, "cc/quarkus/qcc/type/DictionaryTest");
+            defineInitialClass(dictionary, "cc/quarkus/qcc/type/definition/Dictionary");
             // end todo
-            DefinedTypeDefinition cls = universe.findClass("cc/quarkus/qcc/type/UniverseTest");
+            DefinedTypeDefinition cls = dictionary.findClass("cc/quarkus/qcc/type/DictionaryTest");
             ResolvedMethodDefinition method = cls.verify().resolve().resolveMethod(MethodIdentifier.of("add", MethodTypeDescriptor.of(Type.S32, Type.S32, Type.S32)));
             assertThat(method.hasMethodBody());
         });
     }
 
-    static void initialize(final Universe universe) throws IOException {
-        defineInitialClass(universe, "java/lang/Object");
-        defineInitialClass(universe, "java/lang/Class");
-        defineInitialClass(universe, "java/io/Serializable");
-        defineInitialClass(universe, "java/lang/reflect/GenericDeclaration");
-        defineInitialClass(universe, "java/lang/reflect/AnnotatedElement");
-        defineInitialClass(universe, "java/lang/reflect/Type");
-        defineInitialClass(universe, "java/lang/String");
-        defineInitialClass(universe, "java/lang/Comparable");
-        defineInitialClass(universe, "java/lang/CharSequence");
+    static void initialize(final Dictionary dictionary) throws IOException {
+        defineInitialClass(dictionary, "java/lang/Object");
+        defineInitialClass(dictionary, "java/lang/Class");
+        defineInitialClass(dictionary, "java/io/Serializable");
+        defineInitialClass(dictionary, "java/lang/reflect/GenericDeclaration");
+        defineInitialClass(dictionary, "java/lang/reflect/AnnotatedElement");
+        defineInitialClass(dictionary, "java/lang/reflect/Type");
+        defineInitialClass(dictionary, "java/lang/String");
+        defineInitialClass(dictionary, "java/lang/Comparable");
+        defineInitialClass(dictionary, "java/lang/CharSequence");
     }
 
-    private static void defineInitialClass(Universe universe, String className) throws IOException {
-        universe.defineClass(className, ByteBuffer.wrap(Holder.classFinder.findClass(className).readAllBytes()));
+    private static void defineInitialClass(Dictionary dictionary, String className) throws IOException {
+        dictionary.defineClass(className, ByteBuffer.wrap(Holder.classFinder.findClass(className).readAllBytes()));
     }
 
     @Test
     public void testResolveMethod() throws Exception {
         Context context = new Context(false);
         context.run(() -> {
-            Universe universe = new Universe();
-            Universe.setRootUniverse(universe);
-            initialize(universe);
+            Dictionary dictionary = new Dictionary();
+            Dictionary.setRootDictionary(dictionary);
+            initialize(dictionary);
             //
-            defineInitialClass(universe, "cc/quarkus/qcc/type/MyClass");
-            defineInitialClass(universe, "cc/quarkus/qcc/type/MyOtherClass");
-            DefinedTypeDefinition obj = universe.findClass("java/lang/Object");
-            DefinedTypeDefinition myClass = universe.findClass("cc/quarkus/qcc/type/MyClass");
+            defineInitialClass(dictionary, "cc/quarkus/qcc/type/MyClass");
+            defineInitialClass(dictionary, "cc/quarkus/qcc/type/MyOtherClass");
+            DefinedTypeDefinition obj = dictionary.findClass("java/lang/Object");
+            DefinedTypeDefinition myClass = dictionary.findClass("cc/quarkus/qcc/type/MyClass");
             MethodIdentifier identifier = MethodIdentifier.of("equals", MethodTypeDescriptor.of(Type.BOOL, obj.verify().getClassType()));
             ResolvedMethodDefinition method = myClass.verify().resolve().resolveMethod(identifier);
             assertThat(method.getEnclosingTypeDefinition().getName()).isEqualTo(myClass.getName());
-            DefinedTypeDefinition myOtherClass = universe.findClass("cc/quarkus/qcc/type/MyOtherClass");
+            DefinedTypeDefinition myOtherClass = dictionary.findClass("cc/quarkus/qcc/type/MyOtherClass");
             method = myOtherClass.verify().resolve().resolveMethod(identifier);
             assertThat(method.getEnclosingTypeDefinition().getName()).isEqualTo(obj.getName());
         });

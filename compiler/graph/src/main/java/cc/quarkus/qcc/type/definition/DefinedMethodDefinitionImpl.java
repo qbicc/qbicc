@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
 import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.type.universe.Universe;
 
 final class DefinedMethodDefinitionImpl implements DefinedMethodDefinition {
     private final DefinedTypeDefinitionImpl enclosing;
@@ -51,7 +50,7 @@ final class DefinedMethodDefinitionImpl implements DefinedMethodDefinition {
             return resolved;
         }
         int len = parameterDescriptors.length;
-        Universe classLoader = getEnclosingTypeDefinition().getDefiningClassLoader();
+        Dictionary classLoader = getEnclosingTypeDefinition().getDefiningClassLoader();
         Type[] paramTypes;
         Type returnType;
         try {

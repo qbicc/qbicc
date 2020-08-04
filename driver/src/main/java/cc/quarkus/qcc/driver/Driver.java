@@ -13,11 +13,12 @@ import java.util.Set;
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGenerator;
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGeneratorFactory;
 import cc.quarkus.qcc.context.Context;
+import cc.quarkus.qcc.graph.GraphFactory;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
-import cc.quarkus.qcc.type.universe.Universe;
+import cc.quarkus.qcc.type.definition.Dictionary;
 import io.smallrye.common.constraint.Assert;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 
@@ -75,13 +76,16 @@ public class Driver {
             for (Plugin plugin : allPlugins) {
                 graphFactoryPlugins.addAll(plugin.getGraphFactoryPlugins());
             }
-            graphFactoryPlugins.sort(Comparator.comparingInt(GraphFactoryPlugin::getPriority).thenComparing(a -> a.getClass().getName()));
-
+            graphFactoryPlugins.sort(Comparator.comparingInt(GraphFactoryPlugin::getPriority).thenComparing(a -> a.getClass().getName()).reversed());
+            GraphFactory factory = GraphFactory.BASIC_FACTORY;
+            for (GraphFactoryPlugin graphFactoryPlugin : graphFactoryPlugins) {
+                factory = graphFactoryPlugin.construct(factory);
+            }
 
             // ▫ Additive section ▫ Classes may be loaded and initialized
             // ▪ set up bootstrap class dictionary
-            Universe bootstrapLoader = new Universe();
-            Universe.setRootUniverse(bootstrapLoader);
+            Dictionary bootstrapLoader = new Dictionary();
+            Dictionary.setRootDictionary(bootstrapLoader);
             // ▪ initialize the JVM
             JavaVM javaVM = JavaVM.create(bootstrapLoader, driverConfig.bootstrapModules());
             // XXX
@@ -172,7 +176,7 @@ public class Driver {
     }
 
 
-    private static void defineInitialClass(Universe universe, String className) {
+    private static void defineInitialClass(Dictionary dictionary, String className) {
         InputStream stream = Driver.class.getClassLoader().getResourceAsStream(className + ".class");
         if (stream == null) {
             try {
@@ -182,7 +186,7 @@ public class Driver {
             }
         }
         try {
-            universe.defineClass(className, ByteBuffer.wrap(stream.readAllBytes()));
+            dictionary.defineClass(className, ByteBuffer.wrap(stream.readAllBytes()));
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }

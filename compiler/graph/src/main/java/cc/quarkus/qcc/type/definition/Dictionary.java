@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type.universe;
+package cc.quarkus.qcc.type.definition;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
@@ -6,28 +6,25 @@ import java.util.concurrent.ConcurrentHashMap;
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.type.definition.DefineFailedException;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.LinkageException;
 import org.objectweb.asm.Opcodes;
 
-public class Universe {
+public class Dictionary {
 
     public static final int ASM_VERSION = Opcodes.ASM7;
 
-    private static final AttachmentKey<Universe> key = new AttachmentKey<>();
+    private static final AttachmentKey<Dictionary> key = new AttachmentKey<>();
 
-    public static Universe rootUniverse() {
+    public static Dictionary rootDictionary() {
         return Context.requireCurrent().getAttachment(key);
     }
 
-    public static void setRootUniverse(Universe u) {
+    public static void setRootDictionary(Dictionary u) {
         if (Context.requireCurrent().putAttachmentIfAbsent(key, u) != null) {
-            throw new IllegalStateException("Root universe already attached to context");
+            throw new IllegalStateException("Root dictionary already attached to context");
         }
     }
 
-    public Universe() {
+    public Dictionary() {
     }
 
     public DefinedTypeDefinition findClass(String name) throws LinkageException {

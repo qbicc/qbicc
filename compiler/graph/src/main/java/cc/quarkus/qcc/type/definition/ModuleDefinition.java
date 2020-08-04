@@ -2,14 +2,12 @@ package cc.quarkus.qcc.type.definition;
 
 import java.nio.ByteBuffer;
 
-import cc.quarkus.qcc.type.universe.Universe;
-
 /**
  * A module definition.
  */
 public interface ModuleDefinition {
-    static ModuleDefinition create(final Universe universe, ByteBuffer buffer) {
-        return new ModuleDefinitionImpl(universe, buffer);
+    static ModuleDefinition create(final Dictionary dictionary, ByteBuffer buffer) {
+        return new ModuleDefinitionImpl(dictionary, buffer);
     }
 
     String getName();
