@@ -80,8 +80,13 @@ final class JavaVMImpl implements JavaVM {
         this.bootstrapModules = bootstrapModules;
         try {
             defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/Object");
-            VerifiedTypeDefinition classClassDef = defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/Class").verify();
-            classClass = new JavaClassImpl(this, classClassDef, true /* special ctor for Class.class */);
+            DefinedTypeDefinition classClassDefined = defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/Class");
+            defineBootClass(bootstrapLoader, javaBase.jarFile, "java/io/Serializable");
+            defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/reflect/GenericDeclaration");
+            defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/reflect/Type");
+            defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/reflect/AnnotatedElement");
+            VerifiedTypeDefinition classClassVerified = classClassDefined.verify();
+            classClass = new JavaClassImpl(this, classClassVerified, true /* special ctor for Class.class */);
             defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/ClassLoader");
         } catch (IOException e) {
             throw new RuntimeException(e);

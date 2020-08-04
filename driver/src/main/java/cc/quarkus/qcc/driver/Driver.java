@@ -109,11 +109,7 @@ public class Driver {
             final NativeImageGeneratorFactory generatorFactory = NativeImageGeneratorFactory.getInstance(driverConfig.nativeImageGenerator(), classLoader);
             NativeImageGenerator generator = generatorFactory.createGenerator();
             // ↓↓↓↓↓↓ TODO: temporary ↓↓↓↓↓↓
-            defineInitialClass(bootstrapLoader, "java/io/Serializable");
-            defineInitialClass(bootstrapLoader, "java/lang/reflect/GenericDeclaration");
-            defineInitialClass(bootstrapLoader, "java/lang/reflect/AnnotatedElement");
             defineInitialClass(bootstrapLoader, "java/lang/String");
-            defineInitialClass(bootstrapLoader, "java/lang/reflect/Type");
             defineInitialClass(bootstrapLoader, "java/lang/Comparable");
             defineInitialClass(bootstrapLoader, "java/lang/CharSequence");
             defineInitialClass(bootstrapLoader, "java/lang/System");
