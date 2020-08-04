@@ -19,6 +19,7 @@ import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
 import cc.quarkus.qcc.type.universe.Universe;
 import io.smallrye.common.constraint.Assert;
+import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 
 /**
  * A simple driver to run all the stages of compilation.
@@ -57,8 +58,7 @@ public class Driver {
         Boolean result = context.run(() -> {
             final ClassLoader classLoader = Main.class.getClassLoader();
 
-            // todo: this is just temporary... sorry :(
-            Path javaBase = Path.of(System.getProperty("user.home"), ".m2/repository/cc/quarkus/qcc/openjdk/java.base/11.0.8+8-1.0/java.base-11.0.8+8-1.0-linux.jar");
+            Path javaBase = Maven.resolver().resolve("cc.quarkus.qcc.openjdk:java.base:jar:linux:11.0.8+8-1.0").withTransitivity().asSingleFile().toPath();
             // todo: map args to configurations
             DriverConfig driverConfig = new DriverConfig() {
                 public String nativeImageGenerator() {
