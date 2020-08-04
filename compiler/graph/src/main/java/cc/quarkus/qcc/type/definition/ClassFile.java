@@ -49,6 +49,8 @@ public final class ClassFile {
     public static final int ACC_MODULE = 1 << 15;
     public static final int ACC_MANDATED = 1 << 15; // same as ACC_MODULE
 
+    public static final int V9 = 0 << 16 | 53;
+
     public static String getClassName(ByteBuffer classFile, int cpEntryNumber, final int[] cpOffsets, StringBuilder scratch) {
         if (cpEntryNumber == 0) {
             return null;

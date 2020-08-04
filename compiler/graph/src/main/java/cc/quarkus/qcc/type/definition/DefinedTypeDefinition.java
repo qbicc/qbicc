@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.type.definition;
 
 import java.nio.ByteBuffer;
+import java.util.function.Consumer;
 
 import cc.quarkus.qcc.type.universe.Universe;
 
@@ -69,6 +70,13 @@ public interface DefinedTypeDefinition {
     int getFieldCount();
 
     DefinedFieldDefinition getFieldDefinition(int index) throws IndexOutOfBoundsException;
+
+    default void eachField(Consumer<DefinedFieldDefinition> consumer) {
+        int count = getFieldCount();
+        for (int i = 0; i < count; i++) {
+            consumer.accept(getFieldDefinition(i));
+        }
+    }
 
     int getMethodCount();
 

@@ -1,90 +1,41 @@
 package cc.quarkus.qcc.interpreter;
 
-import java.util.concurrent.atomic.AtomicReferenceArray;
+interface FieldContainer {
+    FieldSet getFieldSet();
 
-import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+    JavaObject getObjectFieldPlain(String name);
 
-final class FieldContainer {
-    private final VerifiedTypeDefinition type;
-    final FieldSet fieldSet;
-    // todo: autoboxing is really a terrible idea
-    final AtomicReferenceArray<Object> objects;
+    JavaObject getObjectFieldVolatile(String name);
 
-    FieldContainer(VerifiedTypeDefinition type, FieldSet fieldSet) {
-        this.type = type;
-        this.fieldSet = fieldSet;
-        objects = new AtomicReferenceArray<>(fieldSet.getSize());
-    }
+    JavaObject getObjectFieldAcquire(String name);
 
-    JavaObject getObjectFieldPlain(String name) {
-        return (JavaObject) objects.getPlain(fieldSet.getIndex(name));
-    }
+    long getLongFieldPlain(String name);
 
-    JavaObject getObjectFieldVolatile(String name) {
-        return (JavaObject) objects.get(fieldSet.getIndex(name));
-    }
+    long getLongFieldVolatile(String name);
 
-    JavaObject getObjectFieldAcquire(String name) {
-        return (JavaObject) objects.getAcquire(fieldSet.getIndex(name));
-    }
+    long getLongFieldAcquire(String name);
 
-    long getLongFieldPlain(String name) {
-        return ((Number) objects.getPlain(fieldSet.getIndex(name))).longValue();
-    }
+    int getIntFieldPlain(String name);
 
-    long getLongFieldVolatile(String name) {
-        return ((Number) objects.get(fieldSet.getIndex(name))).longValue();
-    }
+    int getIntFieldVolatile(String name);
 
-    long getLongFieldAcquire(String name) {
-        return ((Number) objects.getAcquire(fieldSet.getIndex(name))).longValue();
-    }
+    int getIntFieldAcquire(String name);
 
-    int getIntFieldPlain(String name) {
-        return ((Number) objects.getPlain(fieldSet.getIndex(name))).intValue();
-    }
+    void setFieldPlain(String name, JavaObject value);
 
-    int getIntFieldVolatile(String name) {
-        return ((Number) objects.get(fieldSet.getIndex(name))).intValue();
-    }
+    void setFieldVolatile(String name, JavaObject value);
 
-    int getIntFieldAcquire(String name) {
-        return ((Number) objects.getAcquire(fieldSet.getIndex(name))).intValue();
-    }
+    void setFieldRelease(String name, JavaObject value);
 
-    void setFieldPlain(String name, JavaObject value) {
-        objects.setPlain(fieldSet.getIndex(name), value);
-    }
+    void setFieldPlain(String name, long value);
 
-    void setFieldVolatile(String name, JavaObject value) {
-        objects.set(fieldSet.getIndex(name), value);
-    }
+    void setFieldVolatile(String name, long value);
 
-    void setFieldRelease(String name, JavaObject value) {
-        objects.setRelease(fieldSet.getIndex(name), value);
-    }
+    void setFieldRelease(String name, long value);
 
-    void setFieldPlain(String name, long value) {
-        objects.setPlain(fieldSet.getIndex(name), Long.valueOf(value));
-    }
+    void setFieldPlain(String name, int value);
 
-    void setFieldVolatile(String name, long value) {
-        objects.set(fieldSet.getIndex(name), Long.valueOf(value));
-    }
+    void setFieldVolatile(String name, int value);
 
-    void setFieldRelease(String name, long value) {
-        objects.setRelease(fieldSet.getIndex(name), Long.valueOf(value));
-    }
-
-    void setFieldPlain(String name, int value) {
-        objects.setPlain(fieldSet.getIndex(name), Integer.valueOf(value));
-    }
-
-    void setFieldVolatile(String name, int value) {
-        objects.set(fieldSet.getIndex(name), Integer.valueOf(value));
-    }
-
-    void setFieldRelease(String name, int value) {
-        objects.setRelease(fieldSet.getIndex(name), Integer.valueOf(value));
-    }
+    void setFieldRelease(String name, int value);
 }

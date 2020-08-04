@@ -2,37 +2,52 @@ package cc.quarkus.qcc.interpreter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.definition.DefinedFieldDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 
 final class FieldSet {
-    private static final String[] NO_STRINGS = new String[0];
-    final String[] sortedNames;
+    final Map<String, Integer> fieldIndices = new HashMap<>();
+    final DefinedFieldDefinition[] sortedFields;
 
     FieldSet(VerifiedTypeDefinition type, boolean statics) {
         int cnt = type.getFieldCount();
-        List<String> names = new ArrayList<>(cnt);
-        for (int i = 0; i < cnt; i ++) {
-            DefinedFieldDefinition field = type.getFieldDefinition(i);
+        List<DefinedFieldDefinition> fields = new ArrayList<>(cnt);
+        type.eachField((field) -> {
             if (statics == field.isStatic()) {
-                names.add(field.getName());
+                fields.add(field);
             }
+        });
+        fields.sort(Comparator.comparing(DefinedFieldDefinition::getName));
+
+        sortedFields = fields.toArray((i) -> new DefinedFieldDefinition[i]);
+
+        for (int i = 0; i < cnt; i++) {
+            DefinedFieldDefinition field = sortedFields[i];
+            fieldIndices.put(field.getName(), i);
         }
-        names.sort(String::compareTo);
-        sortedNames = names.toArray(NO_STRINGS);
     }
 
     int getIndex(String name) {
-        int idx = Arrays.binarySearch(sortedNames, name);
-        if (idx < 0) {
-            throw new IllegalArgumentException("No such field \"" + name + "\"");
+        Integer index = fieldIndices.get(name);
+
+        if (index == null) {
+            throw new IllegalArgumentException("No such field: " + name);
         }
-        return idx;
+
+        return index;
+    }
+
+    DefinedFieldDefinition getType(String name) {
+        return sortedFields[getIndex(name)];
     }
 
     int getSize() {
-        return sortedNames.length;
+        return sortedFields.length;
     }
 }
