@@ -21,7 +21,7 @@ public class TestUtil {
 
     public static void defineInitialClass(Universe universe, String className) throws IOException {
         // temporary hackery...
-        try (InputStream is = TestUtil.class.getClassLoader().getResourceAsStream(className)) {
+        try (InputStream is = TestUtil.class.getClassLoader().getResourceAsStream(className + ".class")) {
             universe.defineClass(className, ByteBuffer.wrap(is.readAllBytes()));
         }
     }
