@@ -60,10 +60,53 @@ public final class ClassFile {
         return getUtf8Entry(classFile, cpOffsets[strEntry], scratch);
     }
 
-    public static String getUtf8Entry(ByteBuffer classFile, int cpEntryOffset, String[] strCache, StringBuilder scratch) {
-        String str = strCache[cpEntryOffset];
+    public static String getClassName(ByteBuffer classFile, int cpEntryNumber, final int[] cpOffsets, String[] strCache, StringBuilder scratch) {
+        if (cpEntryNumber == 0) {
+            return null;
+        }
+        if (classFile.get(cpOffsets[cpEntryNumber]) != ClassFile.CONSTANT_Class) {
+            throw new IllegalStateException("Invalid constant pool entry type");
+        }
+        int strEntry = classFile.getShort(cpOffsets[cpEntryNumber] + 1) & 0xffff;
+        return getUtf8Entry(classFile, strEntry, cpOffsets, strCache, scratch);
+    }
+
+    public static String getModuleName(ByteBuffer classFile, int cpEntryNumber, final int[] cpOffsets, String[] strCache, StringBuilder scratch) {
+        if (cpEntryNumber == 0) {
+            return null;
+        }
+        if (classFile.get(cpOffsets[cpEntryNumber]) != ClassFile.CONSTANT_Module) {
+            throw new IllegalStateException("Invalid constant pool entry type");
+        }
+        int strEntry = classFile.getShort(cpOffsets[cpEntryNumber] + 1) & 0xffff;
+        return getUtf8Entry(classFile, strEntry, cpOffsets, strCache, scratch);
+    }
+
+    public static String getPackageName(ByteBuffer classFile, int cpEntryNumber, final int[] cpOffsets, String[] strCache, StringBuilder scratch) {
+        if (cpEntryNumber == 0) {
+            return null;
+        }
+        if (classFile.get(cpOffsets[cpEntryNumber]) != ClassFile.CONSTANT_Package) {
+            throw new IllegalStateException("Invalid constant pool entry type");
+        }
+        int strEntry = classFile.getShort(cpOffsets[cpEntryNumber] + 1) & 0xffff;
+        return getUtf8Entry(classFile, strEntry, cpOffsets, strCache, scratch);
+    }
+
+    public static String getUtf8Entry(ByteBuffer classFile, int cpEntryNumber, final int[] cpOffsets, StringBuilder scratch) {
+        if (cpEntryNumber == 0) {
+            return null;
+        }
+        return getUtf8Entry(classFile, cpOffsets[cpEntryNumber], scratch);
+    }
+
+    public static String getUtf8Entry(ByteBuffer classFile, int cpEntryNumber, int[] cpOffsets, String[] strCache, StringBuilder scratch) {
+        if (cpEntryNumber == 0) {
+            return null;
+        }
+        String str = strCache[cpEntryNumber];
         if (str == null) {
-            str = strCache[cpEntryOffset] = getUtf8Entry(classFile, cpEntryOffset, scratch);
+            str = strCache[cpEntryNumber] = getUtf8Entry(classFile, cpEntryNumber, cpOffsets, scratch);
         }
         return str;
     }
