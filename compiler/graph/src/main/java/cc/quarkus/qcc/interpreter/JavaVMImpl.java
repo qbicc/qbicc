@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -112,6 +113,21 @@ final class JavaVMImpl implements JavaVM {
             throw new IllegalArgumentException("Initial class finder cannot find bootstrap class \"" + name + "\"");
         }
         return bootstrapLoader.defineClass(name, bytes);
+    }
+
+    public JavaClass defineClass(final String name, final JavaObject classLoader, final ByteBuffer bytes) {
+        Dictionary dictionary = getDictionaryFor(classLoader);
+        VerifiedTypeDefinition def = dictionary.defineClass(name, bytes).verify();
+        JavaClassImpl javaClass = new JavaClassImpl(this, def);
+        registerJavaClassOf(def.getClassType(), javaClass);
+        return javaClass;
+    }
+
+    private static final AtomicLong anonCounter = new AtomicLong();
+
+    public JavaClass defineAnonymousClass(final JavaClass hostClass, final ByteBuffer bytes) {
+        String newName = hostClass.getTypeDefinition().getName() + "/" + anonCounter.getAndIncrement();
+        return defineClass(newName, getClassLoaderFor(hostClass.getTypeDefinition().getDefiningClassLoader()), bytes);
     }
 
     public JavaThread newThread(final String threadName, final JavaObject threadGroup, final boolean daemon) {

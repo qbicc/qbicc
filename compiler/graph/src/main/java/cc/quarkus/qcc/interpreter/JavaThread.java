@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.interpreter;
 
-import java.nio.ByteBuffer;
-
 /**
  * A thread in the inner VM.
  * <p>
@@ -23,10 +21,6 @@ public interface JavaThread extends AutoCloseable {
      * @param clazz the class to initialize
      */
     void initClass(JavaClass clazz);
-
-    JavaClass defineClass(String name, JavaObject classLoader, ByteBuffer bytes);
-
-    JavaClass defineAnonymousClass(JavaClass hostClass, ByteBuffer bytes);
 
     JavaObject allocateObject(JavaClass type);
 

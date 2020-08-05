@@ -103,21 +103,6 @@ final class JavaThreadImpl implements JavaThread {
         // class has no initializer (OK)
     }
 
-    public JavaClass defineClass(final String name, final JavaObject classLoader, final ByteBuffer bytes) {
-        Dictionary dictionary = vm.getDictionaryFor(classLoader);
-        VerifiedTypeDefinition def = dictionary.defineClass(name, bytes).verify();
-        JavaClassImpl javaClass = new JavaClassImpl(vm, def);
-        vm.registerJavaClassOf(def.getClassType(), javaClass);
-        return javaClass;
-    }
-
-    private static final AtomicLong anonCounter = new AtomicLong();
-
-    public JavaClass defineAnonymousClass(final JavaClass hostClass, final ByteBuffer bytes) {
-        String newName = hostClass.getTypeDefinition().getName() + "/" + anonCounter.getAndIncrement();
-        return defineClass(newName, vm.getClassLoaderFor(hostClass.getTypeDefinition().getDefiningClassLoader()), bytes);
-    }
-
     public JavaObject allocateObject(final JavaClass type) {
         return new JavaObjectImpl((JavaClassImpl) type);
     }

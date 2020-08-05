@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.interpreter;
 
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -20,6 +21,25 @@ public interface JavaVM extends AutoCloseable {
     JavaThread newThread(String threadName, JavaObject threadGroup, boolean daemon);
 
     JavaThread currentThread();
+
+    /**
+     * Define an unresolved class into this VM.
+     *
+     * @param name the class name (must not be {@code null})
+     * @param classLoader the class loader instance ({@code null} indicates the bootstrap class loader)
+     * @param bytes the class bytes (must not be {@code null})
+     * @return the defined class (not {@code null})
+     */
+    JavaClass defineClass(String name, JavaObject classLoader, ByteBuffer bytes);
+
+    /**
+     * Define an unresolved anonymous class into this VM.
+     *
+     * @param hostClass the host class (must not be {@code null})
+     * @param bytes the class bytes (must not be {@code null})
+     * @return the defined class (not {@code null})
+     */
+    JavaClass defineAnonymousClass(JavaClass hostClass, ByteBuffer bytes);
 
     /**
      * Deliver a "signal" to the target environment.
