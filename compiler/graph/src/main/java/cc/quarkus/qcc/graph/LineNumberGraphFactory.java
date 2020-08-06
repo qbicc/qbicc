@@ -161,11 +161,11 @@ public class LineNumberGraphFactory extends DelegatingGraphFactory {
         return withLineNumber(getDelegate().tryInvokeInstanceMethod(dependency, instance, kind, owner, method, arguments, returnTarget, catchTarget));
     }
 
-    public TerminatorValue tryInvokeValueMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+    public ValueTerminator tryInvokeValueMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
         return withLineNumber(getDelegate().tryInvokeValueMethod(dependency, owner, method, arguments, returnTarget, catchTarget));
     }
 
-    public TerminatorValue tryInvokeInstanceValueMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+    public ValueTerminator tryInvokeInstanceValueMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
         return withLineNumber(getDelegate().tryInvokeInstanceValueMethod(dependency, instance, kind, owner, method, arguments, returnTarget, catchTarget));
     }
 

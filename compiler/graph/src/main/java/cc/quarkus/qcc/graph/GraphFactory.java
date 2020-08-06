@@ -99,9 +99,9 @@ public interface GraphFactory {
 
     Terminator tryInvokeInstanceMethod(Node dependency, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
 
-    TerminatorValue tryInvokeValueMethod(Node dependency, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
+    ValueTerminator tryInvokeValueMethod(Node dependency, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
 
-    TerminatorValue tryInvokeInstanceValueMethod(Node dependency, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
+    ValueTerminator tryInvokeInstanceValueMethod(Node dependency, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
 
     Terminator tryThrow(Node dependency, Value value, NodeHandle catchTarget);
 
@@ -411,7 +411,7 @@ public interface GraphFactory {
             return op;
         }
 
-        public TerminatorValue tryInvokeValueMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        public ValueTerminator tryInvokeValueMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
             TryInvocationValueImpl value = new TryInvocationValueImpl();
             value.setBasicDependency(dependency);
             value.setArgumentCount(arguments.size());
@@ -426,7 +426,7 @@ public interface GraphFactory {
             return value;
         }
 
-        public TerminatorValue tryInvokeInstanceValueMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        public ValueTerminator tryInvokeInstanceValueMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
             TryInstanceInvocationValueImpl value = new TryInstanceInvocationValueImpl();
             value.setBasicDependency(dependency);
             value.setArgumentCount(arguments.size());
@@ -457,9 +457,4 @@ public interface GraphFactory {
             return block;
         }
     };
-
-    interface TerminatorValue {
-        Value getValue();
-        Terminator getTerminator();
-    }
 }
