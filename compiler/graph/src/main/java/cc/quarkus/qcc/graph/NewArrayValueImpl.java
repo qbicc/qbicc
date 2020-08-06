@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
 
-final class NewArrayValueImpl extends MemoryStateValueImpl implements NewArrayValue {
+final class NewArrayValueImpl extends DependentValueImpl implements NewArrayValue {
     NodeHandle type;
     NodeHandle size;
 

@@ -51,7 +51,7 @@ public final class BytecodeParser extends MethodVisitor {
     int pni = 0;
     BasicBlockImpl futureBlock;
     BasicBlockImpl currentBlock;
-    MemoryState memoryState;
+    Node dependency;
     final Map<Label, NodeHandle> allBlocks = new IdentityHashMap<>();
     final List<Label> pendingLabels = new ArrayList<>();
     final State inBlockState = new InBlock();
@@ -119,7 +119,7 @@ public final class BytecodeParser extends MethodVisitor {
         stack = new Value[16];
         sp = 0;
         fsp = 0;
-        memoryState = graphFactory.initialMemoryState();
+        dependency = null; // todo: method entry node
     }
 
     private Type typeOfAsmType(final org.objectweb.asm.Type asmType) {
@@ -349,7 +349,7 @@ public final class BytecodeParser extends MethodVisitor {
     Capture capture() {
         Value[] captureStack = Arrays.copyOf(stack, sp);
         Value[] captureLocals = Arrays.copyOf(locals, lp);
-        return new Capture(captureStack, captureLocals, memoryState);
+        return new Capture(captureStack, captureLocals, dependency);
     }
 
     NodeHandle getOrMakeBlockHandle(Label label) {
@@ -518,23 +518,23 @@ public final class BytecodeParser extends MethodVisitor {
             for (int i = 0; i < localCnt; i ++) {
                 phiLocals[i] = graphFactory.phi(capture.locals[i].getType(), currentBlock);
             }
-            PhiMemoryState phiMemoryState = graphFactory.phiMemory(currentBlock);
+            PhiDependency phiMemoryState = graphFactory.phiDependency(currentBlock);
             capture = new Capture(new Value[] { exceptionPhi }, phiLocals, phiMemoryState);
             // we don't change any state
             blockEnters.put(catch_, capture);
             blockExits.put(catch_, capture);
             if (activeTrySet.isEmpty()) {
                 // rethrow
-                catch_.setTerminator(graphFactory.throw_(memoryState, exceptionPhi));
+                catch_.setTerminator(graphFactory.throw_(dependency, exceptionPhi));
             } else {
                 TryState first = activeTrySet.first();
                 // check one and continue
-                Terminator if_ = graphFactory.if_(memoryState,
+                Terminator if_ = graphFactory.if_(dependency,
                     graphFactory.instanceOf(exceptionPhi, first.getExceptionType()),
                     first.getCatchHandler(),
                     NodeHandle.of(getCatchHandler(activeTrySet.tailSet(first, false)))
                 );
-                memoryState = if_;
+                dependency = if_;
                 catch_.setTerminator(if_);
             }
             catchInfo = new CatchInfo(catch_, exceptionPhi);
@@ -570,7 +570,7 @@ public final class BytecodeParser extends MethodVisitor {
             Capture phiCapture = entry.getValue();
             fixPhis(entered, blockExits.keySet(), phiCapture.locals);
             fixPhis(entered, blockExits.keySet(), phiCapture.stack);
-            fixPhis(entered, blockExits.keySet(), phiCapture.memoryState);
+            fixPhis(entered, blockExits.keySet(), phiCapture.dependency);
         }
     }
 
@@ -599,17 +599,17 @@ public final class BytecodeParser extends MethodVisitor {
         }
     }
 
-    private void fixPhis(final BasicBlock entered, final Set<BasicBlock> exits, final MemoryState memoryState) {
-        if (memoryState instanceof PhiMemoryState) {
-            PhiMemoryState phiMemoryState = (PhiMemoryState) memoryState;
+    private void fixPhis(final BasicBlock entered, final Set<BasicBlock> exits, final Node dependency) {
+        if (dependency instanceof PhiDependency) {
+            PhiDependency phiMemoryState = (PhiDependency) dependency;
             final Iterator<BasicBlock> iterator = exits.iterator();
             while (iterator.hasNext()) {
                 final BasicBlock exit1 = iterator.next();
-                MemoryState ms1 = phiMemoryState.getMemoryStateForBlock(exit1);
+                Node ms1 = phiMemoryState.getDependencyForBlock(exit1);
                 if (ms1 != null) {
                     while (iterator.hasNext()) {
                         BasicBlock exit2 = iterator.next();
-                        MemoryState ms2 = phiMemoryState.getMemoryStateForBlock(exit2);
+                        Node ms2 = phiMemoryState.getDependencyForBlock(exit2);
                         if (ms2 != ms1) {
                             // keep it as a phi
                             return;
@@ -647,8 +647,8 @@ public final class BytecodeParser extends MethodVisitor {
             }
         }
         // finally memory
-        PhiMemoryState memoryState = (PhiMemoryState) enterState.memoryState;
-        memoryState.setMemoryStateForBlock(exitingBlock, exitState.memoryState);
+        PhiDependency memoryState = (PhiDependency) enterState.dependency;
+        memoryState.setDependencyForBlock(exitingBlock, exitState.dependency);
     }
 
     void enter(State state) {
@@ -673,7 +673,7 @@ public final class BytecodeParser extends MethodVisitor {
                 locals[i] = graphFactory.phi(locals[i].getType(), currentBlock);
             }
         }
-        memoryState = graphFactory.phiMemory(currentBlock);
+        dependency = graphFactory.phiDependency(currentBlock);
         blockEnters.putIfAbsent(currentBlock, capture());
     }
 
@@ -689,7 +689,7 @@ public final class BytecodeParser extends MethodVisitor {
                 setLocal(i, graphFactory.phi(type, currentBlock));
             }
         }
-        memoryState = graphFactory.phiMemory(currentBlock);
+        dependency = graphFactory.phiDependency(currentBlock);
         blockEnters.putIfAbsent(currentBlock, capture());
     }
 
@@ -791,15 +791,15 @@ public final class BytecodeParser extends MethodVisitor {
                     return;
                 }
                 case Opcodes.NEW: {
-                    GraphFactory.MemoryStateValue value = graphFactory.new_(memoryState, classType);
-                    memoryState = value.getMemoryState();
-                    push(value.getValue());
+                    Value value = graphFactory.new_(dependency, classType);
+                    dependency = value.getSingleDependency(graphFactory, dependency);
+                    push(value);
                     return;
                 }
                 case Opcodes.ANEWARRAY: {
-                    GraphFactory.MemoryStateValue value = graphFactory.newArray(memoryState, classType.getArrayType(), pop(false));
-                    memoryState = value.getMemoryState();
-                    push(value.getValue());
+                    Value value = graphFactory.newArray(dependency, classType.getArrayType(), pop(false));
+                    dependency = value.getSingleDependency(graphFactory, dependency);
+                    push(value);
                     return;
                 }
                 case Opcodes.CHECKCAST: {
@@ -809,12 +809,12 @@ public final class BytecodeParser extends MethodVisitor {
                     NodeHandle continueHandle = new NodeHandle();
                     // make a little basic block to handle the class cast exception throw
                     ClassType cce = dictionary.findClass("java/lang/ClassCastException").verify().getClassType();
-                    GraphFactory.MemoryStateValue newCce = graphFactory.new_(null, cce);
-                    MemoryState tmpState = graphFactory.invokeInstanceMethod(newCce.getMemoryState(), newCce.getValue(), InstanceInvocation.Kind.EXACT, cce, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
-                    BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newCce.getValue()));
+                    Value newCce = graphFactory.new_(null, cce);
+                    Node tmpState = graphFactory.invokeInstanceMethod(newCce, newCce, InstanceInvocation.Kind.EXACT, cce, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
+                    BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newCce));
                     // if the cast failed, jump to the fail block
-                    Terminator terminator = graphFactory.if_(memoryState, isOk, continueHandle, NodeHandle.of(throwBlock));
-                    memoryState = terminator;
+                    Terminator terminator = graphFactory.if_(dependency, isOk, continueHandle, NodeHandle.of(throwBlock));
+                    dependency = terminator;
                     currentBlock.setTerminator(terminator);
                     enter(futureBlockState);
                     continueHandle.setTarget(futureBlock);
@@ -829,12 +829,12 @@ public final class BytecodeParser extends MethodVisitor {
         void nullCheck(Value value) {
             Value isNull = graphFactory.binaryOperation(CommutativeBinaryValue.Kind.CMP_EQ, value, Value.NULL);
             ClassType npe = dictionary.findClass("java/lang/NullPointerException").verify().getClassType();
-            GraphFactory.MemoryStateValue newNpe = graphFactory.new_(null, npe);
-            MemoryState tmpState = graphFactory.invokeInstanceMethod(newNpe.getMemoryState(), newNpe.getValue(), InstanceInvocation.Kind.EXACT, npe, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
-            BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newNpe.getValue()));
+            Value newNpe = graphFactory.new_(null, npe);
+            Node tmpState = graphFactory.invokeInstanceMethod(newNpe, newNpe, InstanceInvocation.Kind.EXACT, npe, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
+            BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newNpe));
             NodeHandle continueHandle = new NodeHandle();
-            Terminator terminator = graphFactory.if_(memoryState, isNull, NodeHandle.of(throwBlock), continueHandle);
-            memoryState = terminator;
+            Terminator terminator = graphFactory.if_(dependency, isNull, NodeHandle.of(throwBlock), continueHandle);
+            dependency = terminator;
             currentBlock.setTerminator(terminator);
             enter(futureBlockState);
             continueHandle.setTarget(futureBlock);
@@ -848,26 +848,26 @@ public final class BytecodeParser extends MethodVisitor {
             // todo: check type...
             switch (opcode) {
                 case Opcodes.GETSTATIC: {
-                    GraphFactory.MemoryStateValue memoryStateValue = graphFactory.readStaticField(memoryState, ownerType, name, JavaAccessMode.DETECT);
-                    memoryState = memoryStateValue.getMemoryState();
-                    push(memoryStateValue.getValue());
+                    Value result = graphFactory.readStaticField(dependency, ownerType, name, JavaAccessMode.DETECT);
+                    dependency = result;
+                    push(result);
                     break;
                 }
                 case Opcodes.GETFIELD: {
-                    GraphFactory.MemoryStateValue memoryStateValue = graphFactory.readInstanceField(memoryState, pop(), ownerType, name, JavaAccessMode.DETECT);
-                    memoryState = memoryStateValue.getMemoryState();
-                    push(memoryStateValue.getValue());
+                    Value result = graphFactory.readInstanceField(dependency, pop(), ownerType, name, JavaAccessMode.DETECT);
+                    dependency = result;
+                    push(result);
                     break;
                 }
                 case Opcodes.PUTSTATIC: {
                     Value value = pop(parsedDescriptor.isClass2Type());
-                    memoryState = graphFactory.writeStaticField(memoryState, ownerType, name, value, JavaAccessMode.DETECT);
+                    dependency = graphFactory.writeStaticField(dependency, ownerType, name, value, JavaAccessMode.DETECT);
                     break;
                 }
                 case Opcodes.PUTFIELD: {
                     Value instance = pop();
                     Value value = pop(parsedDescriptor.isClass2Type());
-                    memoryState = graphFactory.writeInstanceField(memoryState, instance, ownerType, name, value, JavaAccessMode.DETECT);
+                    dependency = graphFactory.writeInstanceField(dependency, instance, ownerType, name, value, JavaAccessMode.DETECT);
                     break;
                 }
                 default: {
@@ -915,7 +915,7 @@ public final class BytecodeParser extends MethodVisitor {
                 keys[i] = min + i;
                 targets[i] = getOrMakeBlockHandle(labels[i]);
             }
-            currentBlock.setTerminator(graphFactory.switch_(memoryState, pop(), keys, targets, getOrMakeBlockHandle(dflt)));
+            currentBlock.setTerminator(graphFactory.switch_(dependency, pop(), keys, targets, getOrMakeBlockHandle(dflt)));
             enter(possibleBlockState);
         }
 
@@ -926,7 +926,7 @@ public final class BytecodeParser extends MethodVisitor {
             for (int i = 0; i < keys.length; i ++) {
                 targets[i] = getOrMakeBlockHandle(labels[i]);
             }
-            currentBlock.setTerminator(graphFactory.switch_(memoryState, pop(), keys, targets, getOrMakeBlockHandle(dflt)));
+            currentBlock.setTerminator(graphFactory.switch_(dependency, pop(), keys, targets, getOrMakeBlockHandle(dflt)));
             enter(possibleBlockState);
         }
 
@@ -1233,9 +1233,9 @@ public final class BytecodeParser extends MethodVisitor {
                 case Opcodes.CALOAD:
                 case Opcodes.SALOAD: {
                     // todo: add bounds check
-                    GraphFactory.MemoryStateValue memoryStateValue = graphFactory.readArrayValue(memoryState, pop(), pop(), JavaAccessMode.PLAIN);
-                    memoryState = memoryStateValue.getMemoryState();
-                    push(memoryStateValue.getValue());
+                    Value result = graphFactory.readArrayValue(dependency, pop(), pop(), JavaAccessMode.PLAIN);
+                    dependency = result;
+                    push(result);
                     return;
                 }
 
@@ -1249,7 +1249,7 @@ public final class BytecodeParser extends MethodVisitor {
                 case Opcodes.CASTORE:
                 case Opcodes.SASTORE: {
                     // todo: add bounds check
-                    memoryState = graphFactory.writeArrayValue(memoryState, pop(), pop(), popSmart(), JavaAccessMode.PLAIN);
+                    dependency = graphFactory.writeArrayValue(dependency, pop(), pop(), popSmart(), JavaAccessMode.PLAIN);
                     return;
                 }
 
@@ -1266,7 +1266,7 @@ public final class BytecodeParser extends MethodVisitor {
 
                 case Opcodes.ATHROW: {
                     // todo: graph factory that tracks try/catch
-                    currentBlock.setTerminator(graphFactory.throw_(memoryState, pop()));
+                    currentBlock.setTerminator(graphFactory.throw_(dependency, pop()));
                     enter(possibleBlockState);
                     return;
                 }
@@ -1281,12 +1281,12 @@ public final class BytecodeParser extends MethodVisitor {
                 case Opcodes.IRETURN:
                 case Opcodes.FRETURN:
                 case Opcodes.ARETURN: {
-                    currentBlock.setTerminator(graphFactory.return_(memoryState, popSmart()));
+                    currentBlock.setTerminator(graphFactory.return_(dependency, popSmart()));
                     enter(possibleBlockState);
                     return;
                 }
                 case Opcodes.RETURN: {
-                    currentBlock.setTerminator(graphFactory.return_(memoryState));
+                    currentBlock.setTerminator(graphFactory.return_(dependency));
                     enter(possibleBlockState);
                     return;
                 }
@@ -1302,8 +1302,8 @@ public final class BytecodeParser extends MethodVisitor {
                 case Opcodes.GOTO: {
                     BasicBlock currentBlock = BytecodeParser.this.currentBlock;
                     NodeHandle jumpTarget = getOrMakeBlockHandle(label);
-                    Terminator goto_ = graphFactory.goto_(memoryState, jumpTarget);
-                    memoryState = goto_;
+                    Terminator goto_ = graphFactory.goto_(dependency, jumpTarget);
+                    dependency = goto_;
                     currentBlock.setTerminator(goto_);
                     enter(possibleBlockState);
                     return;
@@ -1351,9 +1351,9 @@ public final class BytecodeParser extends MethodVisitor {
         void handleIfInsn(Value cond, Label label) {
             BasicBlock currentBlock = BytecodeParser.this.currentBlock;
             NodeHandle falseTarget = new NodeHandle();
-            Terminator if_ = graphFactory.if_(memoryState, cond, getOrMakeBlockHandle(label), falseTarget);
+            Terminator if_ = graphFactory.if_(dependency, cond, getOrMakeBlockHandle(label), falseTarget);
             currentBlock.setTerminator(if_);
-            memoryState = if_;
+            dependency = if_;
             enter(futureBlockState);
             falseTarget.setTarget(futureBlock);
         }
@@ -1402,11 +1402,11 @@ public final class BytecodeParser extends MethodVisitor {
             // todo: catch tracking graph factory
             if (opcode == Opcodes.INVOKESTATIC) {
                 if (returnType == Type.VOID) {
-                    memoryState = graphFactory.invokeMethod(memoryState, ownerType, resolved, arguments);
+                    dependency = graphFactory.invokeMethod(dependency, ownerType, resolved, arguments);
                 } else {
-                    GraphFactory.MemoryStateValue res = graphFactory.invokeValueMethod(memoryState, ownerType, resolved, arguments);
-                    memoryState = res.getMemoryState();
-                    push(res.getValue());
+                    Value res = graphFactory.invokeValueMethod(dependency, ownerType, resolved, arguments);
+                    dependency = res;
+                    push(res);
                 }
             } else {
                 Value receiver = pop();
@@ -1418,11 +1418,11 @@ public final class BytecodeParser extends MethodVisitor {
                     default: throw new IllegalStateException();
                 }
                 if (returnType == Type.VOID) {
-                    memoryState = graphFactory.invokeInstanceMethod(memoryState, receiver, kind, ownerType, resolved, arguments);
+                    dependency = graphFactory.invokeInstanceMethod(dependency, receiver, kind, ownerType, resolved, arguments);
                 } else {
-                    GraphFactory.MemoryStateValue res = graphFactory.invokeInstanceValueMethod(memoryState, receiver, kind, ownerType, resolved, arguments);
-                    memoryState = res.getMemoryState();
-                    push(res.getValue());
+                    Value res = graphFactory.invokeInstanceValueMethod(dependency, receiver, kind, ownerType, resolved, arguments);
+                    dependency = res;
+                    push(res);
                 }
             }
         }
@@ -1472,9 +1472,9 @@ public final class BytecodeParser extends MethodVisitor {
                 // treat it like a goto
                 BasicBlock currentBlock = BytecodeParser.this.currentBlock;
                 NodeHandle target = new NodeHandle();
-                Terminator goto_ = graphFactory.goto_(memoryState, target);
+                Terminator goto_ = graphFactory.goto_(dependency, target);
                 currentBlock.setTerminator(goto_);
-                memoryState = goto_;
+                dependency = goto_;
                 enter(futureBlockState);
                 target.setTarget(futureBlock);
                 outer().visitLabel(label);
@@ -1670,12 +1670,12 @@ public final class BytecodeParser extends MethodVisitor {
     static final class Capture {
         final Value[] stack;
         final Value[] locals;
-        final MemoryState memoryState;
+        final Node dependency;
 
-        Capture(final Value[] stack, final Value[] locals, final MemoryState memoryState) {
+        Capture(final Value[] stack, final Value[] locals, final Node dependency) {
             this.stack = stack;
             this.locals = locals;
-            this.memoryState = memoryState;
+            this.dependency = dependency;
         }
     }
 

@@ -5,7 +5,7 @@ import cc.quarkus.qcc.constraint.Constraint;
 /**
  *
  */
-final class NewValueImpl extends MemoryStateValueImpl implements NewValue {
+final class NewValueImpl extends DependentValueImpl implements NewValue {
     NodeHandle type;
 
     public ClassType getType() {

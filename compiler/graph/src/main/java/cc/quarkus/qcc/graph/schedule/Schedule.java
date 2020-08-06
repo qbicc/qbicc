@@ -5,7 +5,6 @@ import java.util.Map;
 
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.ConstantValue;
-import cc.quarkus.qcc.graph.MemoryState;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.PinnedNode;
@@ -88,9 +87,9 @@ public interface Schedule {
                 selected = candidate;
             }
         }
-        if (node instanceof MemoryState) {
-            MemoryState memoryState = (MemoryState) node;
-            MemoryState dependency = memoryState.getMemoryDependency();
+        cnt = node.getBasicDependencyCount();
+        for (int i = 0; i < cnt; i ++) {
+            Node dependency = node.getBasicDependency(i);
             if (dependency != null) {
                 BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, dependency);
                 if (candidate.domDepth > selected.domDepth) {

@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  * An operation on a field.
  */
-public interface FieldOperation extends MemoryState {
+public interface FieldOperation extends Node {
     ClassType getFieldOwner();
 
     void setFieldOwner(ClassType fieldOwner);

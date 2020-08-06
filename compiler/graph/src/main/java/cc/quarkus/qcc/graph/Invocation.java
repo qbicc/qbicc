@@ -5,7 +5,7 @@ import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 /**
  * A method invocation.
  */
-public interface Invocation extends MemoryState {
+public interface Invocation extends Node {
     ClassType getMethodOwner();
     void setMethodOwner(ClassType owner);
 

@@ -30,15 +30,13 @@ import cc.quarkus.qcc.graph.FloatType;
 import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.IfValue;
-import cc.quarkus.qcc.graph.InitialMemoryState;
 import cc.quarkus.qcc.graph.InstanceFieldWrite;
 import cc.quarkus.qcc.graph.IntegerType;
 import cc.quarkus.qcc.graph.InvocationValue;
-import cc.quarkus.qcc.graph.MemoryState;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NonCommutativeBinaryValue;
 import cc.quarkus.qcc.graph.ParameterValue;
-import cc.quarkus.qcc.graph.PhiMemoryState;
+import cc.quarkus.qcc.graph.PhiDependency;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Return;
 import cc.quarkus.qcc.graph.SignedIntegerType;
@@ -320,14 +318,13 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             return;
         }
         // first build dependencies
-        if (node instanceof cc.quarkus.qcc.graph.MemoryState) {
-            MemoryState memoryState = (MemoryState) node;
-            MemoryState dependency = memoryState.getMemoryDependency();
-            build(cache, schedule, dependency);
-        }
         int depCnt = node.getValueDependencyCount();
         for (int i = 0; i < depCnt; i ++) {
             build(cache, schedule, node.getValueDependency(i));
+        }
+        depCnt = node.getBasicDependencyCount();
+        for (int i = 0; i < depCnt; i ++) {
+            build(cache, schedule, node.getBasicDependency(i));
         }
         // all dependencies are now in the cache
         final cc.quarkus.qcc.machine.llvm.BasicBlock target = getBlock(cache, schedule, schedule.getBlockForNode(node));
@@ -501,22 +498,15 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 throw new IllegalStateException();
             }
             cache.values.put(value, val);
-        } else if (node instanceof MemoryState) {
-            MemoryState memoryState = (MemoryState) node;
-            if (memoryState instanceof InstanceFieldWrite) {
-                InstanceFieldWrite ifw = (InstanceFieldWrite) memoryState;
-                target.store(Types.i32, getValue(cache, ifw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
-            } else if (memoryState instanceof FieldWrite) {
-                // static
-                FieldWrite sfw = (FieldWrite) memoryState;
-                target.store(Types.i32, getValue(cache, sfw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
-            } else if (memoryState instanceof InitialMemoryState) {
-                // no action
-            } else if (memoryState instanceof PhiMemoryState) {
-                // no action
-            } else {
-                throw new IllegalStateException();
-            }
+        } else if (node instanceof InstanceFieldWrite) {
+            InstanceFieldWrite ifw = (InstanceFieldWrite) node;
+            target.store(Types.i32, getValue(cache, ifw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
+        } else if (node instanceof FieldWrite) {
+            // static
+            FieldWrite sfw = (FieldWrite) node;
+            target.store(Types.i32, getValue(cache, sfw.getWriteValue()), Types.i32, Values.ZERO /* todo: get address of static field */);
+        } else if (node instanceof PhiDependency) {
+            // no action
         } else {
             throw new IllegalStateException();
         }

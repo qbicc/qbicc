@@ -188,10 +188,10 @@ public class SimpleOptGraphFactory extends DelegatingGraphFactory {
         }
     }
 
-    public Terminator if_(final MemoryState input, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
+    public Terminator if_(final Node dependency, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
         if (condition instanceof ConstantValue) {
-            return ((ConstantValue) condition).isTrue() ? goto_(input, trueTarget) : goto_(input, falseTarget);
+            return ((ConstantValue) condition).isTrue() ? goto_(dependency, trueTarget) : goto_(dependency, falseTarget);
         }
-        return getDelegate().if_(input, condition, trueTarget, falseTarget);
+        return getDelegate().if_(dependency, condition, trueTarget, falseTarget);
     }
 }

@@ -6,7 +6,7 @@ import java.util.Set;
 
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 
-class InvocationImpl extends MemoryStateImpl implements Invocation {
+class InvocationImpl extends DependentNodeImpl implements Invocation {
     ClassType owner;
     MethodIdentifier invocationTarget;
     Value[] arguments = Value.NO_VALUES;

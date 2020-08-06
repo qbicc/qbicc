@@ -39,69 +39,71 @@ public interface GraphFactory {
 
     Value castOperation(WordCastValue.Kind kind, Value value, WordType toType);
 
-    // memory
+    // memory/dependency
 
-    MemoryState initialMemoryState();
+    PhiDependency phiDependency(BasicBlock basicBlock);
 
-    PhiMemoryState phiMemory(BasicBlock basicBlock);
+    Node multiDependency(Node... nodes);
 
-    MemoryStateValue new_(MemoryState input, ClassType type);
+    Value multiDependency(Value value, Node... nodes);
 
-    MemoryStateValue newArray(MemoryState input, ArrayType type, Value size);
+    Value new_(Node dependency, ClassType type);
 
-    MemoryStateValue pointerLoad(MemoryState input, Value pointer, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
+    Value newArray(Node dependency, ArrayType type, Value size);
 
-    MemoryStateValue readInstanceField(MemoryState input, Value instance, ClassType owner, String name, JavaAccessMode mode);
+    Value pointerLoad(Node dependency, Value pointer, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
 
-    MemoryStateValue readStaticField(MemoryState input, ClassType owner, String name, JavaAccessMode mode);
+    Value readInstanceField(Node dependency, Value instance, ClassType owner, String name, JavaAccessMode mode);
 
-    MemoryStateValue readArrayValue(MemoryState input, Value array, Value index, JavaAccessMode mode);
+    Value readStaticField(Node dependency, ClassType owner, String name, JavaAccessMode mode);
 
-    MemoryState pointerStore(MemoryState input, Value pointer, Value value, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
+    Value readArrayValue(Node dependency, Value array, Value index, JavaAccessMode mode);
 
-    MemoryState writeInstanceField(MemoryState input, Value instance, ClassType owner, String name, Value value, JavaAccessMode mode);
+    Node pointerStore(Node dependency, Value pointer, Value value, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
 
-    MemoryState writeStaticField(MemoryState input, ClassType owner, String name, Value value, JavaAccessMode mode);
+    Node writeInstanceField(Node dependency, Value instance, ClassType owner, String name, Value value, JavaAccessMode mode);
 
-    MemoryState writeArrayValue(MemoryState input, Value array, Value index, Value value, JavaAccessMode mode);
+    Node writeStaticField(Node dependency, ClassType owner, String name, Value value, JavaAccessMode mode);
 
-    MemoryState fence(MemoryState input, MemoryAtomicityMode fenceType);
+    Node writeArrayValue(Node dependency, Value array, Value index, Value value, JavaAccessMode mode);
+
+    Node fence(Node dependency, MemoryAtomicityMode fenceType);
 
     // method invocation
 
-    MemoryState invokeMethod(MemoryState input, ClassType owner, MethodIdentifier method, List<Value> arguments);
+    Node invokeMethod(Node dependency, ClassType owner, MethodIdentifier method, List<Value> arguments);
 
-    MemoryState invokeInstanceMethod(MemoryState input, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments);
+    Node invokeInstanceMethod(Node dependency, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments);
 
-    MemoryStateValue invokeValueMethod(MemoryState input, ClassType owner, MethodIdentifier method, List<Value> arguments);
+    Value invokeValueMethod(Node dependency, ClassType owner, MethodIdentifier method, List<Value> arguments);
 
-    MemoryStateValue invokeInstanceValueMethod(MemoryState input, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments);
+    Value invokeInstanceValueMethod(Node dependency, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments);
 
     // control flow
 
-    Terminator goto_(MemoryState input, NodeHandle targetHandle);
+    Terminator goto_(Node dependency, NodeHandle targetHandle);
 
-    Terminator if_(MemoryState input, Value condition, NodeHandle trueTarget, NodeHandle falseTarget);
+    Terminator if_(Node dependency, Value condition, NodeHandle trueTarget, NodeHandle falseTarget);
 
-    Terminator return_(MemoryState input);
+    Terminator return_(Node dependency);
 
-    Terminator return_(MemoryState input, Value value);
+    Terminator return_(Node dependency, Value value);
 
-    Terminator throw_(MemoryState input, Value value);
+    Terminator throw_(Node dependency, Value value);
 
-    Terminator switch_(MemoryState input, Value value, int[] checkValues, NodeHandle[] targets, NodeHandle defaultTarget);
+    Terminator switch_(Node dependency, Value value, int[] checkValues, NodeHandle[] targets, NodeHandle defaultTarget);
 
     // control flow + try
 
-    Terminator tryInvokeMethod(MemoryState input, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
+    Terminator tryInvokeMethod(Node dependency, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
 
-    Terminator tryInvokeInstanceMethod(MemoryState input, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
+    Terminator tryInvokeInstanceMethod(Node dependency, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
 
-    TerminatorValue tryInvokeValueMethod(MemoryState input, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
+    TerminatorValue tryInvokeValueMethod(Node dependency, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
 
-    TerminatorValue tryInvokeInstanceValueMethod(MemoryState input, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
+    TerminatorValue tryInvokeInstanceValueMethod(Node dependency, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments, NodeHandle returnTarget, NodeHandle catchTarget);
 
-    Terminator tryThrow(MemoryState input, Value value, NodeHandle catchTarget);
+    Terminator tryThrow(Node dependency, Value value, NodeHandle catchTarget);
 
     // basic block
 
@@ -173,36 +175,40 @@ public interface GraphFactory {
             return castValue;
         }
 
-        public MemoryState initialMemoryState() {
-            return new InitialMemoryStateImpl();
+        public PhiDependency phiDependency(final BasicBlock basicBlock) {
+            return new PhiDependencyImpl(basicBlock);
         }
 
-        public PhiMemoryState phiMemory(final BasicBlock basicBlock) {
-            return new PhiMemoryStateImpl(basicBlock);
+        public Node multiDependency(final Node... nodes) {
+            throw new UnsupportedOperationException("Multi dependency");
         }
 
-        public MemoryStateValue new_(final MemoryState input, final ClassType type) {
+        public Value multiDependency(final Value value, final Node... nodes) {
+            throw new UnsupportedOperationException("Multi dependency");
+        }
+
+        public Value new_(final Node dependency, final ClassType type) {
             NewValueImpl value = new NewValueImpl();
-            value.setMemoryDependency(input);
+            value.setBasicDependency(dependency);
             value.setType(type);
             return value;
         }
 
-        public MemoryStateValue newArray(final MemoryState input, final ArrayType type, final Value size) {
+        public Value newArray(final Node dependency, final ArrayType type, final Value size) {
             NewArrayValueImpl value = new NewArrayValueImpl();
-            value.setMemoryDependency(input);
+            value.setBasicDependency(dependency);
             value.setType((ArrayClassType) type); // todo
             value.setSize(size);
             return value;
         }
 
-        public MemoryStateValue pointerLoad(final MemoryState input, final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
+        public Value pointerLoad(final Node dependency, final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
             throw new UnsupportedOperationException("Pointers");
         }
 
-        public MemoryStateValue readInstanceField(final MemoryState input, final Value instance, final ClassType owner, final String name, final JavaAccessMode mode) {
+        public Value readInstanceField(final Node dependency, final Value instance, final ClassType owner, final String name, final JavaAccessMode mode) {
             InstanceFieldReadValueImpl value = new InstanceFieldReadValueImpl();
-            value.setMemoryDependency(input);
+            value.setBasicDependency(dependency);
             value.setInstance(instance);
             value.setFieldOwner(owner);
             value.setFieldName(name);
@@ -210,31 +216,31 @@ public interface GraphFactory {
             return value;
         }
 
-        public MemoryStateValue readStaticField(final MemoryState input, final ClassType owner, final String name, final JavaAccessMode mode) {
+        public Value readStaticField(final Node dependency, final ClassType owner, final String name, final JavaAccessMode mode) {
             StaticFieldReadValueImpl value = new StaticFieldReadValueImpl();
-            value.setMemoryDependency(input);
+            value.setBasicDependency(dependency);
             value.setFieldOwner(owner);
             value.setFieldName(name);
             value.setMode(mode);
             return value;
         }
 
-        public MemoryStateValue readArrayValue(final MemoryState input, final Value array, final Value index, final JavaAccessMode mode) {
+        public Value readArrayValue(final Node dependency, final Value array, final Value index, final JavaAccessMode mode) {
             ArrayElementReadValueImpl value = new ArrayElementReadValueImpl();
-            value.setMemoryDependency(input);
+            value.setBasicDependency(dependency);
             value.setInstance(array);
             value.setIndex(index);
             value.setMode(mode);
             return value;
         }
 
-        public MemoryState pointerStore(final MemoryState input, final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
+        public Node pointerStore(final Node dependency, final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
             throw new UnsupportedOperationException("Pointers");
         }
 
-        public MemoryState writeInstanceField(final MemoryState input, final Value instance, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
+        public Node writeInstanceField(final Node dependency, final Value instance, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
             InstanceFieldWriteImpl op = new InstanceFieldWriteImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setInstance(instance);
             op.setFieldOwner(owner);
             op.setFieldName(name);
@@ -243,9 +249,9 @@ public interface GraphFactory {
             return op;
         }
 
-        public MemoryState writeStaticField(final MemoryState input, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
+        public Node writeStaticField(final Node dependency, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
             StaticFieldWriteImpl op = new StaticFieldWriteImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setFieldOwner(owner);
             op.setFieldName(name);
             op.setWriteValue(value);
@@ -253,9 +259,9 @@ public interface GraphFactory {
             return op;
         }
 
-        public MemoryState writeArrayValue(final MemoryState input, final Value array, final Value index, final Value value, final JavaAccessMode mode) {
+        public Node writeArrayValue(final Node dependency, final Value array, final Value index, final Value value, final JavaAccessMode mode) {
             ArrayElementWriteImpl op = new ArrayElementWriteImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setInstance(array);
             op.setIndex(index);
             op.setWriteValue(value);
@@ -263,13 +269,13 @@ public interface GraphFactory {
             return op;
         }
 
-        public MemoryState fence(final MemoryState input, final MemoryAtomicityMode fenceType) {
+        public Node fence(final Node dependency, final MemoryAtomicityMode fenceType) {
             throw new UnsupportedOperationException("Fence");
         }
 
-        public MemoryState invokeMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        public Node invokeMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
             InvocationImpl op = new InvocationImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setArgumentCount(arguments.size());
             int idx = 0;
             for (Value argument : arguments) {
@@ -280,9 +286,9 @@ public interface GraphFactory {
             return op;
         }
 
-        public MemoryState invokeInstanceMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        public Node invokeInstanceMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
             InstanceInvocationImpl op = new InstanceInvocationImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setArgumentCount(arguments.size());
             int idx = 0;
             for (Value argument : arguments) {
@@ -295,9 +301,9 @@ public interface GraphFactory {
             return op;
         }
 
-        public MemoryStateValue invokeValueMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        public Value invokeValueMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
             InvocationValueImpl value = new InvocationValueImpl();
-            value.setMemoryDependency(input);
+            value.setBasicDependency(dependency);
             value.setArgumentCount(arguments.size());
             int idx = 0;
             for (Value argument : arguments) {
@@ -308,9 +314,9 @@ public interface GraphFactory {
             return value;
         }
 
-        public MemoryStateValue invokeInstanceValueMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        public Value invokeInstanceValueMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
             InstanceInvocationValueImpl value = new InstanceInvocationValueImpl();
-            value.setMemoryDependency(input);
+            value.setBasicDependency(dependency);
             value.setArgumentCount(arguments.size());
             int idx = 0;
             for (Value argument : arguments) {
@@ -323,45 +329,45 @@ public interface GraphFactory {
             return value;
         }
 
-        public Terminator goto_(final MemoryState input, final NodeHandle targetHandle) {
+        public Terminator goto_(final Node dependency, final NodeHandle targetHandle) {
             GotoImpl op = new GotoImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setNextBlock(targetHandle);
             return op;
         }
 
-        public Terminator if_(final MemoryState input, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
+        public Terminator if_(final Node dependency, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
             IfImpl op = new IfImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setCondition(condition);
             op.setTrueBranch(trueTarget);
             op.setFalseBranch(falseTarget);
             return op;
         }
 
-        public Terminator return_(final MemoryState input) {
+        public Terminator return_(final Node dependency) {
             ReturnImpl op = new ReturnImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             return op;
         }
 
-        public Terminator return_(final MemoryState input, final Value value) {
+        public Terminator return_(final Node dependency, final Value value) {
             ValueReturnImpl op = new ValueReturnImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setReturnValue(value);
             return op;
         }
 
-        public Terminator throw_(final MemoryState input, final Value value) {
+        public Terminator throw_(final Node dependency, final Value value) {
             ThrowImpl op = new ThrowImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setThrownValue(value);
             return op;
         }
 
-        public Terminator switch_(final MemoryState input, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
+        public Terminator switch_(final Node dependency, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
             SwitchImpl op = new SwitchImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setDefaultTarget(defaultTarget);
             int length = checkValues.length;
             if (targets.length != length) {
@@ -373,9 +379,9 @@ public interface GraphFactory {
             return op;
         }
 
-        public Terminator tryInvokeMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        public Terminator tryInvokeMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
             TryInvocationImpl op = new TryInvocationImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setArgumentCount(arguments.size());
             int idx = 0;
             for (Value argument : arguments) {
@@ -388,9 +394,9 @@ public interface GraphFactory {
             return op;
         }
 
-        public Terminator tryInvokeInstanceMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        public Terminator tryInvokeInstanceMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
             TryInstanceInvocationImpl op = new TryInstanceInvocationImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setArgumentCount(arguments.size());
             int idx = 0;
             for (Value argument : arguments) {
@@ -405,9 +411,9 @@ public interface GraphFactory {
             return op;
         }
 
-        public TerminatorValue tryInvokeValueMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        public TerminatorValue tryInvokeValueMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
             TryInvocationValueImpl value = new TryInvocationValueImpl();
-            value.setMemoryDependency(input);
+            value.setBasicDependency(dependency);
             value.setArgumentCount(arguments.size());
             int idx = 0;
             for (Value argument : arguments) {
@@ -420,9 +426,9 @@ public interface GraphFactory {
             return value;
         }
 
-        public TerminatorValue tryInvokeInstanceValueMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        public TerminatorValue tryInvokeInstanceValueMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
             TryInstanceInvocationValueImpl value = new TryInstanceInvocationValueImpl();
-            value.setMemoryDependency(input);
+            value.setBasicDependency(dependency);
             value.setArgumentCount(arguments.size());
             int idx = 0;
             for (Value argument : arguments) {
@@ -437,9 +443,9 @@ public interface GraphFactory {
             return value;
         }
 
-        public Terminator tryThrow(final MemoryState input, final Value value, final NodeHandle catchTarget) {
+        public Terminator tryThrow(final Node dependency, final Value value, final NodeHandle catchTarget) {
             TryThrowImpl op = new TryThrowImpl();
-            op.setMemoryDependency(input);
+            op.setBasicDependency(dependency);
             op.setThrownValue(value);
             op.setCatchHandler(catchTarget);
             return op;
@@ -451,22 +457,6 @@ public interface GraphFactory {
             return block;
         }
     };
-
-    interface MemoryStateValue {
-        Value getValue();
-        MemoryState getMemoryState();
-        static MemoryStateValue create(Value value, MemoryState state) {
-            return new MemoryStateValue() {
-                public Value getValue() {
-                    return value;
-                }
-
-                public MemoryState getMemoryState() {
-                    return state;
-                }
-            };
-        }
-    }
 
     interface TerminatorValue {
         Value getValue();

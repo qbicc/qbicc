@@ -9,7 +9,7 @@ import java.util.Set;
 public interface Node {
     void replaceWith(Node node);
 
-    void writeToGraph(final Set<Node> visited, Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException;
+    void writeToGraph(Set<Node> visited, Appendable graph, Set<BasicBlock> knownBlocks) throws IOException;
 
     String getLabelForGraph();
 
@@ -29,4 +29,26 @@ public interface Node {
         throw new IndexOutOfBoundsException(index);
     }
 
+    default int getBasicDependencyCount() {
+        return 0;
+    }
+
+    default Node getBasicDependency(int index) throws IndexOutOfBoundsException {
+        throw new IndexOutOfBoundsException(index);
+    }
+
+    default Node getSingleDependency(GraphFactory graphFactory, Node defaultValue) {
+        int cnt = getValueDependencyCount();
+        if (cnt == 0) {
+            return defaultValue;
+        } else if (cnt == 1) {
+            return getBasicDependency(0);
+        } else {
+            Node[] nodes = new Node[cnt];
+            for (int i = 0; i < cnt ; i ++) {
+                nodes[i] = getBasicDependency(i);
+            }
+            return graphFactory.multiDependency(nodes);
+        }
+    }
 }

@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import io.smallrye.common.constraint.Assert;
 
-abstract class ArrayElementOperationImpl extends MemoryStateImpl implements ArrayElementOperation {
+abstract class ArrayElementOperationImpl extends DependentNodeImpl implements ArrayElementOperation {
     private NodeHandle instance;
     private NodeHandle index;
     private JavaAccessMode mode = JavaAccessMode.PLAIN;

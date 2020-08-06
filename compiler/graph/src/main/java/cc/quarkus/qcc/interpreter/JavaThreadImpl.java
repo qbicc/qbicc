@@ -1,12 +1,10 @@
 package cc.quarkus.qcc.interpreter;
 
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -22,7 +20,6 @@ import cc.quarkus.qcc.graph.InstanceOfValue;
 import cc.quarkus.qcc.graph.Invocation;
 import cc.quarkus.qcc.graph.InvocationValue;
 import cc.quarkus.qcc.graph.JavaAccessMode;
-import cc.quarkus.qcc.graph.MemoryState;
 import cc.quarkus.qcc.graph.NewValue;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NonCommutativeBinaryValue;
@@ -39,8 +36,6 @@ import cc.quarkus.qcc.type.definition.PreparedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedFieldDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedMethodBody;
 import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
-import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
-import cc.quarkus.qcc.type.definition.Dictionary;
 
 final class JavaThreadImpl implements JavaThread {
     final JavaVMImpl vm;
@@ -166,11 +161,9 @@ final class JavaThreadImpl implements JavaThread {
         for (int i = 0; i < cnt; i ++) {
             execute(predecessor, schedule, block, instruction.getValueDependency(i), values, executed);
         }
-        if (instruction instanceof MemoryState) {
-            MemoryState dependency = ((MemoryState) instruction).getMemoryDependency();
-            if (dependency != null) {
-                execute(predecessor, schedule, block, dependency, values, executed);
-            }
+        cnt = instruction.getBasicDependencyCount();
+        for (int i = 0; i < cnt; i ++) {
+            execute(predecessor, schedule, block, instruction.getBasicDependency(i), values, executed);
         }
         // now execute this instruction
         if (instruction instanceof Terminator) {
@@ -296,43 +289,39 @@ final class JavaThreadImpl implements JavaThread {
                 throw new IllegalStateException();
             }
             values.put(value, result);
-        } else if (instruction instanceof MemoryState) {
-            if (instruction instanceof InstanceFieldWrite) {
-                InstanceFieldWrite instanceFieldWrite = (InstanceFieldWrite) instruction;
-                JavaObjectImpl instance = (JavaObjectImpl) values.get(instanceFieldWrite.getInstance());
-                Object writeValue = values.get(instanceFieldWrite.getWriteValue());
-                if (writeValue instanceof JavaObject) {
-                    JavaAccessMode mode = instanceFieldWrite.getMode();
-                    String fieldName = instanceFieldWrite.getFieldName();
-                    if (mode == JavaAccessMode.DETECT) {
-                        ResolvedFieldDefinition fieldDefinition = instanceFieldWrite.getFieldOwner().getDefinition().resolve().findField(fieldName);
-                        mode = fieldDefinition.isVolatile() ? JavaAccessMode.VOLATILE : JavaAccessMode.PLAIN;
-                    }
-                    // obviously terrible
-                    switch (mode) {
-                        case PLAIN: {
-                            instance.fields.setFieldPlain(fieldName, (JavaObject) writeValue);
-                            break;
-                        }
-                        case ORDERED: {
-                            // todo: probably wrong, figure it out
-                            instance.fields.setFieldRelease(fieldName, (JavaObject) writeValue);
-                            break;
-                        }
-                        case VOLATILE: {
-                            instance.fields.setFieldVolatile(fieldName, (JavaObject) writeValue);
-                            break;
-                        }
-                        default: {
-                            throw new IllegalStateException();
-                        }
-                    }
-                } else {
-                    throw new IllegalStateException();
+        } else if (instruction instanceof InstanceFieldWrite) {
+            InstanceFieldWrite instanceFieldWrite = (InstanceFieldWrite) instruction;
+            JavaObjectImpl instance = (JavaObjectImpl) values.get(instanceFieldWrite.getInstance());
+            Object writeValue = values.get(instanceFieldWrite.getWriteValue());
+            if (writeValue instanceof JavaObject) {
+                JavaAccessMode mode = instanceFieldWrite.getMode();
+                String fieldName = instanceFieldWrite.getFieldName();
+                if (mode == JavaAccessMode.DETECT) {
+                    ResolvedFieldDefinition fieldDefinition = instanceFieldWrite.getFieldOwner().getDefinition().resolve().findField(fieldName);
+                    mode = fieldDefinition.isVolatile() ? JavaAccessMode.VOLATILE : JavaAccessMode.PLAIN;
                 }
+                // obviously terrible
+                switch (mode) {
+                    case PLAIN: {
+                        instance.fields.setFieldPlain(fieldName, (JavaObject) writeValue);
+                        break;
+                    }
+                    case ORDERED: {
+                        // todo: probably wrong, figure it out
+                        instance.fields.setFieldRelease(fieldName, (JavaObject) writeValue);
+                        break;
+                    }
+                    case VOLATILE: {
+                        instance.fields.setFieldVolatile(fieldName, (JavaObject) writeValue);
+                        break;
+                    }
+                    default: {
+                        throw new IllegalStateException();
+                    }
+                }
+            } else {
+                throw new IllegalStateException();
             }
-        } else {
-            throw new IllegalStateException();
         }
         return null;
     }

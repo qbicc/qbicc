@@ -10,7 +10,7 @@ import cc.quarkus.qcc.graph.DelegatingGraphFactory;
 import cc.quarkus.qcc.graph.GraphFactory;
 import cc.quarkus.qcc.graph.InstanceInvocation;
 import cc.quarkus.qcc.graph.JavaAccessMode;
-import cc.quarkus.qcc.graph.MemoryState;
+import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
@@ -81,84 +81,84 @@ final class PatcherGraphFactory extends DelegatingGraphFactory implements GraphF
         return super.reinterpretCast(v, remapType(type));
     }
 
-    public MemoryStateValue new_(final MemoryState input, final ClassType type) {
-        return super.new_(input, remapType(type));
+    public Value new_(final Node dependency, final ClassType type) {
+        return super.new_(dependency, remapType(type));
     }
 
-    public MemoryStateValue newArray(final MemoryState input, final ArrayType type, final Value size) {
-        return super.newArray(input, remapType(type), size);
+    public Value newArray(final Node dependency, final ArrayType type, final Value size) {
+        return super.newArray(dependency, remapType(type), size);
     }
 
-    public MemoryStateValue readInstanceField(final MemoryState input, final Value instance, final ClassType owner, final String name, final JavaAccessMode mode) {
+    public Value readInstanceField(final Node dependency, final Value instance, final ClassType owner, final String name, final JavaAccessMode mode) {
         ClassType accessor = accessors.getOrDefault(owner, Map.of()).get(name);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             final MappedField mapped = patchFields.getOrDefault(owner, Map.of()).get(name);
             if (mapped != null) {
-                return readInstanceField(input, instance, mapped.classType, mapped.name, mode);
+                return readInstanceField(dependency, instance, mapped.classType, mapped.name, mode);
             } else {
-                return super.readInstanceField(input, instance, remapType(owner), name, mode);
+                return super.readInstanceField(dependency, instance, remapType(owner), name, mode);
             }
         }
     }
 
-    public MemoryStateValue readStaticField(final MemoryState input, final ClassType owner, final String name, final JavaAccessMode mode) {
+    public Value readStaticField(final Node dependency, final ClassType owner, final String name, final JavaAccessMode mode) {
         ClassType accessor = accessors.getOrDefault(owner, Map.of()).get(name);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             final MappedField mapped = patchFields.getOrDefault(owner, Map.of()).get(name);
             if (mapped != null) {
-                return readStaticField(input, mapped.classType, mapped.name, mode);
+                return readStaticField(dependency, mapped.classType, mapped.name, mode);
             } else {
-                return super.readStaticField(input, remapType(owner), name, mode);
+                return super.readStaticField(dependency, remapType(owner), name, mode);
             }
         }
     }
 
-    public MemoryState writeInstanceField(final MemoryState input, final Value instance, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
+    public Node writeInstanceField(final Node dependency, final Value instance, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
         ClassType accessor = accessors.getOrDefault(owner, Map.of()).get(name);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             final MappedField mapped = patchFields.getOrDefault(owner, Map.of()).get(name);
             if (mapped != null) {
-                return writeInstanceField(input, instance, mapped.classType, mapped.name, value, mode);
+                return writeInstanceField(dependency, instance, mapped.classType, mapped.name, value, mode);
             } else {
-                return super.writeInstanceField(input, instance, remapType(owner), name, value, mode);
+                return super.writeInstanceField(dependency, instance, remapType(owner), name, value, mode);
             }
         }
     }
 
-    public MemoryState writeStaticField(final MemoryState input, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
+    public Node writeStaticField(final Node dependency, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
         ClassType accessor = accessors.getOrDefault(owner, Map.of()).get(name);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             final MappedField mapped = patchFields.getOrDefault(owner, Map.of()).get(name);
             if (mapped != null) {
-                return writeStaticField(input, mapped.classType, mapped.name, value, mode);
+                return writeStaticField(dependency, mapped.classType, mapped.name, value, mode);
             } else {
-                return super.writeStaticField(input, remapType(owner), name, value, mode);
+                return super.writeStaticField(dependency, remapType(owner), name, value, mode);
             }
         }
     }
 
-    public MemoryState invokeMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return super.invokeMethod(input, remapType(owner), remapMethod(method), arguments);
+    public Node invokeMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return super.invokeMethod(dependency, remapType(owner), remapMethod(method), arguments);
     }
 
-    public MemoryState invokeInstanceMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return super.invokeInstanceMethod(input, instance, kind, remapType(owner), remapMethod(method), arguments);
+    public Node invokeInstanceMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return super.invokeInstanceMethod(dependency, instance, kind, remapType(owner), remapMethod(method), arguments);
     }
 
-    public MemoryStateValue invokeValueMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return super.invokeValueMethod(input, remapType(owner), remapMethod(method), arguments);
+    public Value invokeValueMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return super.invokeValueMethod(dependency, remapType(owner), remapMethod(method), arguments);
     }
 
-    public MemoryStateValue invokeInstanceValueMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return super.invokeInstanceValueMethod(input, instance, kind, remapType(owner), remapMethod(method), arguments);
+    public Value invokeInstanceValueMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return super.invokeInstanceValueMethod(dependency, instance, kind, remapType(owner), remapMethod(method), arguments);
     }
 
     static final class MappedField {

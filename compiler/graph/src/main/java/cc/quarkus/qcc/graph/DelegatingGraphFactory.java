@@ -55,116 +55,120 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().castOperation(kind, value, toType);
     }
 
-    public MemoryState initialMemoryState() {
-        return getDelegate().initialMemoryState();
+    public PhiDependency phiDependency(final BasicBlock basicBlock) {
+        return getDelegate().phiDependency(basicBlock);
     }
 
-    public PhiMemoryState phiMemory(final BasicBlock basicBlock) {
-        return getDelegate().phiMemory(basicBlock);
+    public Node multiDependency(final Node... nodes) {
+        return getDelegate().multiDependency(nodes);
     }
 
-    public MemoryStateValue new_(final MemoryState input, final ClassType type) {
-        return getDelegate().new_(input, type);
+    public Value multiDependency(final Value value, final Node... nodes) {
+        return getDelegate().multiDependency(value, nodes);
     }
 
-    public MemoryStateValue newArray(final MemoryState input, final ArrayType type, final Value size) {
-        return getDelegate().newArray(input, type, size);
+    public Value new_(final Node dependency, final ClassType type) {
+        return getDelegate().new_(dependency, type);
     }
 
-    public MemoryStateValue pointerLoad(final MemoryState input, final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-        return getDelegate().pointerLoad(input, pointer, accessMode, atomicityMode);
+    public Value newArray(final Node dependency, final ArrayType type, final Value size) {
+        return getDelegate().newArray(dependency, type, size);
     }
 
-    public MemoryStateValue readInstanceField(final MemoryState input, final Value instance, final ClassType owner, final String name, final JavaAccessMode mode) {
-        return getDelegate().readInstanceField(input, instance, owner, name, mode);
+    public Value pointerLoad(final Node dependency, final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
+        return getDelegate().pointerLoad(dependency, pointer, accessMode, atomicityMode);
     }
 
-    public MemoryStateValue readStaticField(final MemoryState input, final ClassType owner, final String name, final JavaAccessMode mode) {
-        return getDelegate().readStaticField(input, owner, name, mode);
+    public Value readInstanceField(final Node dependency, final Value instance, final ClassType owner, final String name, final JavaAccessMode mode) {
+        return getDelegate().readInstanceField(dependency, instance, owner, name, mode);
     }
 
-    public MemoryStateValue readArrayValue(final MemoryState input, final Value array, final Value index, final JavaAccessMode mode) {
-        return getDelegate().readArrayValue(input, array, index, mode);
+    public Value readStaticField(final Node dependency, final ClassType owner, final String name, final JavaAccessMode mode) {
+        return getDelegate().readStaticField(dependency, owner, name, mode);
     }
 
-    public MemoryState pointerStore(final MemoryState input, final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-        return getDelegate().pointerStore(input, pointer, value, accessMode, atomicityMode);
+    public Value readArrayValue(final Node dependency, final Value array, final Value index, final JavaAccessMode mode) {
+        return getDelegate().readArrayValue(dependency, array, index, mode);
     }
 
-    public MemoryState writeInstanceField(final MemoryState input, final Value instance, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeInstanceField(input, instance, owner, name, value, mode);
+    public Node pointerStore(final Node dependency, final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
+        return getDelegate().pointerStore(dependency, pointer, value, accessMode, atomicityMode);
     }
 
-    public MemoryState writeStaticField(final MemoryState input, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeStaticField(input, owner, name, value, mode);
+    public Node writeInstanceField(final Node dependency, final Value instance, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
+        return getDelegate().writeInstanceField(dependency, instance, owner, name, value, mode);
     }
 
-    public MemoryState writeArrayValue(final MemoryState input, final Value array, final Value index, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeArrayValue(input, array, index, value, mode);
+    public Node writeStaticField(final Node dependency, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
+        return getDelegate().writeStaticField(dependency, owner, name, value, mode);
     }
 
-    public MemoryState fence(final MemoryState input, final MemoryAtomicityMode fenceType) {
-        return getDelegate().fence(input, fenceType);
+    public Node writeArrayValue(final Node dependency, final Value array, final Value index, final Value value, final JavaAccessMode mode) {
+        return getDelegate().writeArrayValue(dependency, array, index, value, mode);
     }
 
-    public MemoryState invokeMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeMethod(input, owner, method, arguments);
+    public Node fence(final Node dependency, final MemoryAtomicityMode fenceType) {
+        return getDelegate().fence(dependency, fenceType);
     }
 
-    public MemoryState invokeInstanceMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeInstanceMethod(input, instance, kind, owner, method, arguments);
+    public Node invokeMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return getDelegate().invokeMethod(dependency, owner, method, arguments);
     }
 
-    public MemoryStateValue invokeValueMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeValueMethod(input, owner, method, arguments);
+    public Node invokeInstanceMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return getDelegate().invokeInstanceMethod(dependency, instance, kind, owner, method, arguments);
     }
 
-    public MemoryStateValue invokeInstanceValueMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeInstanceValueMethod(input, instance, kind, owner, method, arguments);
+    public Value invokeValueMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return getDelegate().invokeValueMethod(dependency, owner, method, arguments);
     }
 
-    public Terminator goto_(final MemoryState input, final NodeHandle targetHandle) {
-        return getDelegate().goto_(input, targetHandle);
+    public Value invokeInstanceValueMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return getDelegate().invokeInstanceValueMethod(dependency, instance, kind, owner, method, arguments);
     }
 
-    public Terminator if_(final MemoryState input, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
-        return getDelegate().if_(input, condition, trueTarget, falseTarget);
+    public Terminator goto_(final Node dependency, final NodeHandle targetHandle) {
+        return getDelegate().goto_(dependency, targetHandle);
     }
 
-    public Terminator return_(final MemoryState input) {
-        return getDelegate().return_(input);
+    public Terminator if_(final Node dependency, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
+        return getDelegate().if_(dependency, condition, trueTarget, falseTarget);
     }
 
-    public Terminator return_(final MemoryState input, final Value value) {
-        return getDelegate().return_(input, value);
+    public Terminator return_(final Node dependency) {
+        return getDelegate().return_(dependency);
     }
 
-    public Terminator throw_(final MemoryState input, final Value value) {
-        return getDelegate().throw_(input, value);
+    public Terminator return_(final Node dependency, final Value value) {
+        return getDelegate().return_(dependency, value);
     }
 
-    public Terminator switch_(final MemoryState input, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
-        return getDelegate().switch_(input, value, checkValues, targets, defaultTarget);
+    public Terminator throw_(final Node dependency, final Value value) {
+        return getDelegate().throw_(dependency, value);
     }
 
-    public Terminator tryInvokeMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return getDelegate().tryInvokeMethod(input, owner, method, arguments, returnTarget, catchTarget);
+    public Terminator switch_(final Node dependency, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
+        return getDelegate().switch_(dependency, value, checkValues, targets, defaultTarget);
     }
 
-    public Terminator tryInvokeInstanceMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return getDelegate().tryInvokeInstanceMethod(input, instance, kind, owner, method, arguments, returnTarget, catchTarget);
+    public Terminator tryInvokeMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        return getDelegate().tryInvokeMethod(dependency, owner, method, arguments, returnTarget, catchTarget);
     }
 
-    public TerminatorValue tryInvokeValueMethod(final MemoryState input, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return getDelegate().tryInvokeValueMethod(input, owner, method, arguments, returnTarget, catchTarget);
+    public Terminator tryInvokeInstanceMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        return getDelegate().tryInvokeInstanceMethod(dependency, instance, kind, owner, method, arguments, returnTarget, catchTarget);
     }
 
-    public TerminatorValue tryInvokeInstanceValueMethod(final MemoryState input, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return getDelegate().tryInvokeInstanceValueMethod(input, instance, kind, owner, method, arguments, returnTarget, catchTarget);
+    public TerminatorValue tryInvokeValueMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        return getDelegate().tryInvokeValueMethod(dependency, owner, method, arguments, returnTarget, catchTarget);
     }
 
-    public Terminator tryThrow(final MemoryState input, final Value value, final NodeHandle catchTarget) {
-        return getDelegate().tryThrow(input, value, catchTarget);
+    public TerminatorValue tryInvokeInstanceValueMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
+        return getDelegate().tryInvokeInstanceValueMethod(dependency, instance, kind, owner, method, arguments, returnTarget, catchTarget);
+    }
+
+    public Terminator tryThrow(final Node dependency, final Value value, final NodeHandle catchTarget) {
+        return getDelegate().tryThrow(dependency, value, catchTarget);
     }
 
     public BasicBlock block(final Terminator term) {

@@ -6,31 +6,31 @@ import java.util.Set;
 
 import io.smallrye.common.constraint.Assert;
 
-final class PhiMemoryStateImpl extends MemoryStateImpl implements PhiMemoryState {
+final class PhiDependencyImpl extends DependentNodeImpl implements PhiDependency {
     private final Key key = new Key();
     private final NodeHandle basicBlock;
 
-    PhiMemoryStateImpl(final NodeHandle basicBlock) {
+    PhiDependencyImpl(final NodeHandle basicBlock) {
         this.basicBlock = basicBlock;
     }
 
-    PhiMemoryStateImpl(final BasicBlock basicBlock) {
+    PhiDependencyImpl(final BasicBlock basicBlock) {
         this(NodeHandle.of(basicBlock));
     }
 
-    public MemoryState getMemoryStateForBlock(final BasicBlock input) {
+    public Node getDependencyForBlock(final BasicBlock input) {
         NodeHandle handle = ((BasicBlockImpl) input).outboundMemoryStates.get(key);
         return handle == null ? null : NodeHandle.getTargetOf(handle);
     }
 
-    public void setMemoryStateForBlock(final BasicBlock input, final MemoryState memoryState) {
-        Assert.checkNotNullParam("value", memoryState);
+    public void setDependencyForBlock(final BasicBlock input, final Node dependency) {
+        Assert.checkNotNullParam("value", dependency);
         BasicBlockImpl bbi = (BasicBlockImpl) input;
         Map<Key, NodeHandle> ov = bbi.outboundMemoryStates;
         if (ov.containsKey(key)) {
             throw new IllegalStateException("Phi " + this + " already has a memory state for block " + input);
         }
-        bbi.outboundMemoryStates = Util.mapWithEntry(ov, key, NodeHandle.of(memoryState));
+        bbi.outboundMemoryStates = Util.mapWithEntry(ov, key, NodeHandle.of(dependency));
     }
 
     public String getLabelForGraph() {
@@ -41,7 +41,7 @@ final class PhiMemoryStateImpl extends MemoryStateImpl implements PhiMemoryState
         super.writeToGraph(visited, graph, knownBlocks);
         int idx = 0;
         for (BasicBlock bb : knownBlocks) {
-            MemoryState memoryState = getMemoryStateForBlock(bb);
+            Node memoryState = getDependencyForBlock(bb);
             if (memoryState != null) {
                 // this is pretty ugly
                 addEdgeTo(visited, graph, bb, "phi-block#" + idx, "black", "solid", knownBlocks);
