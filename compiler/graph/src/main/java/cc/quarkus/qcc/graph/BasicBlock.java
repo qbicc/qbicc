@@ -11,6 +11,10 @@ public interface BasicBlock extends Node {
 
     Set<BasicBlock> calculateReachableBlocks();
 
+    default <P> void accept(GraphVisitor<P> visitor, P param) {
+        // no operation
+    }
+
     default int getSuccessorCount() {
         Terminator terminator = getTerminator();
         if (terminator == null) {

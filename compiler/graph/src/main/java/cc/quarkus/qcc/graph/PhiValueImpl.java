@@ -46,6 +46,10 @@ final class PhiValueImpl extends ValueImpl implements PhiValue {
         this.type = NodeHandle.of(type);
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public String getLabelForGraph() {
         return "phi";
     }

@@ -36,4 +36,8 @@ class TryInvocationImpl extends InvocationImpl implements TryInvocation {
     void setNextBlock(final NodeHandle branch) {
         this.normalTarget = branch;
     }
+
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
 }

@@ -43,6 +43,10 @@ final class IfImpl extends TerminatorImpl implements If {
         falseBranch = branch;
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public String getLabelForGraph() {
         return "if";
     }

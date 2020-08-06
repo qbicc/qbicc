@@ -32,6 +32,10 @@ final class IfValueImpl extends ValueImpl implements IfValue {
         ifFalse = NodeHandle.of(value);
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         addEdgeTo(visited, graph, NodeHandle.getTargetOf(cond), "condition", "black", "solid", knownBlocks);

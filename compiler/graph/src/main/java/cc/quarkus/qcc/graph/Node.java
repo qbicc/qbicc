@@ -21,6 +21,8 @@ public interface Node {
 
     void setSourceLine(int sourceLine);
 
+    <P> void accept(GraphVisitor<P> visitor, P param);
+
     default int getValueDependencyCount() {
         return 0;
     }

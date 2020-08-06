@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.GraphVisitor;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
@@ -65,6 +66,10 @@ public class ValueImpl implements Value {
     }
 
     public void setSourceLine(final int sourceLine) {
+
+    }
+
+    public <P> void accept(final GraphVisitor<P> visitor, final P param) {
 
     }
 }

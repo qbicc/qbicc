@@ -22,6 +22,10 @@ final class NewArrayValueImpl extends DependentValueImpl implements NewArrayValu
         this.size = NodeHandle.of(size);
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public Constraint getConstraint() {
         return null;
     }

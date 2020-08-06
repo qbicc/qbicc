@@ -3,6 +3,10 @@ package cc.quarkus.qcc.graph;
 final class ArrayLengthValueImpl extends ValueImpl implements ArrayLengthValue {
     NodeHandle instance;
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public Value getInstance() {
         return NodeHandle.getTargetOf(instance);
     }

@@ -13,4 +13,8 @@ final class WordCastValueImpl extends CastValueImpl implements WordCastValue {
         Assert.checkNotNullParam("kind", kind);
         this.kind = kind;
     }
+
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
 }

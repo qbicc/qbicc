@@ -6,6 +6,10 @@ import java.util.Set;
 final class ValueReturnImpl extends TerminatorImpl implements ValueReturn {
     NodeHandle retVal;
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public String getLabelForGraph() {
         return "return";
     }

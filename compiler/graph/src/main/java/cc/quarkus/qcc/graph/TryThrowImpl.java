@@ -22,4 +22,8 @@ final class TryThrowImpl extends ThrowImpl implements TryThrow {
     void setCatchHandler(final NodeHandle catchHandler) {
         this.catchHandler = catchHandler;
     }
+
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
 }

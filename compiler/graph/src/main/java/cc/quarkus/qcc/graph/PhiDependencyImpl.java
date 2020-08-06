@@ -33,6 +33,10 @@ final class PhiDependencyImpl extends DependentNodeImpl implements PhiDependency
         bbi.outboundMemoryStates = Util.mapWithEntry(ov, key, NodeHandle.of(dependency));
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public String getLabelForGraph() {
         return "memory-phi";
     }

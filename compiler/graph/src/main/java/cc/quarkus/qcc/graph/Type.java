@@ -14,6 +14,10 @@ public interface Type extends Node {
 
     NullType NULL_TYPE = new NullTypeImpl();
 
+    default <P> void accept(GraphVisitor<P> visitor, P param) {
+        // no operation
+    }
+
     static ArrayType arrayOf(Type elementType) {
         return new ArrayTypeImpl(elementType);
     }

@@ -3,6 +3,10 @@ package cc.quarkus.qcc.graph;
 final class ArrayElementWriteImpl extends ArrayElementOperationImpl implements ArrayElementWrite {
     private NodeHandle writeValue;
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public Value getWriteValue() {
         return NodeHandle.getTargetOf(writeValue);
     }

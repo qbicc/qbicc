@@ -63,6 +63,10 @@ final class ConstantValueEmpty extends ValueImpl implements ConstantValue {
         return new ConstantValueEmpty(type);
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public int compareTo(final ConstantValue other) throws IllegalArgumentException {
         if (other.getType() != type) {
             throw new IllegalArgumentException("Type mismatch");

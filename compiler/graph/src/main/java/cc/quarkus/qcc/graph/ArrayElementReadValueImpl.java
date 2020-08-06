@@ -7,6 +7,10 @@ final class ArrayElementReadValueImpl extends ArrayElementOperationImpl implemen
         return ((ArrayType)getInstance().getType()).getElementType();
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public Constraint getConstraint() {
         return null;
     }

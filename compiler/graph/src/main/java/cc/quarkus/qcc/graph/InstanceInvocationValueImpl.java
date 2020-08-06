@@ -22,4 +22,8 @@ class InstanceInvocationValueImpl extends InvocationValueImpl implements Instanc
     public void setKind(final Kind kind) {
         this.kind = kind;
     }
+
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
 }

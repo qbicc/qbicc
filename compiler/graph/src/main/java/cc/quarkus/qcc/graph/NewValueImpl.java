@@ -16,6 +16,10 @@ final class NewValueImpl extends DependentValueImpl implements NewValue {
         this.type = NodeHandle.of(type);
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public Constraint getConstraint() {
         return null;
     }

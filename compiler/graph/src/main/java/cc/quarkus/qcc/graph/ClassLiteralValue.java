@@ -59,6 +59,10 @@ final class ClassLiteralValue extends ValueImpl implements ConstantValue {
         throw new UnsupportedOperationException();
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public int compareTo(final ConstantValue other) throws IllegalArgumentException {
         throw new UnsupportedOperationException();
     }

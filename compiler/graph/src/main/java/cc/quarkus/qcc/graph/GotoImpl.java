@@ -24,6 +24,10 @@ final class GotoImpl extends TerminatorImpl implements Goto {
         this.target = target;
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public String getLabelForGraph() {
         return "goto";
     }

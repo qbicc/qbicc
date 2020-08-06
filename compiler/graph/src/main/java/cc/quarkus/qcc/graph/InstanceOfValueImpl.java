@@ -20,6 +20,10 @@ final class InstanceOfValueImpl extends ValueImpl implements InstanceOfValue {
         instance = NodeHandle.of(value);
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public String getLabelForGraph() {
         return "instanceof";
     }

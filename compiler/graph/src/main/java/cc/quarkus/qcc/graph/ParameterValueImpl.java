@@ -35,6 +35,10 @@ final class ParameterValueImpl extends ValueImpl implements ParameterValue {
         return NodeHandle.getTargetOf(type);
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public String getLabelForGraph() {
         String name = this.name;
         if (name != null) {

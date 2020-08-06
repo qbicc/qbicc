@@ -23,6 +23,10 @@ final class UnaryValueImpl extends ValueImpl implements UnaryValue {
         this.kind = kind;
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public String getLabelForGraph() {
         return kind.toString();
     }

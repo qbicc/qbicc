@@ -11,6 +11,10 @@ class ThrowImpl extends TerminatorImpl implements Throw {
         thrownValue = NodeHandle.of(thrown);
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public String getLabelForGraph() {
         return "throw";
     }

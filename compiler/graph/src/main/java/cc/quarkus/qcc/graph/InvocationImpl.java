@@ -44,6 +44,10 @@ class InvocationImpl extends DependentNodeImpl implements Invocation {
         arguments[index] = argument;
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         for (int i = 0; i < arguments.length; i++) {

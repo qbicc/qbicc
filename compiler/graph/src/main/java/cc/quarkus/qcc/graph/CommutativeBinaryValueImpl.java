@@ -17,6 +17,10 @@ final class CommutativeBinaryValueImpl extends BinaryValueImpl implements Commut
         this.kind = kind;
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public String getLabelForGraph() {
         return kind.toString();
     }

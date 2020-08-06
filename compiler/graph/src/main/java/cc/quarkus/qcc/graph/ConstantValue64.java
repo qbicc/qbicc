@@ -69,6 +69,10 @@ final class ConstantValue64 extends ValueImpl implements ConstantValue {
         return new ConstantValue64(value, type);
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public int compareTo(final ConstantValue other) throws IllegalArgumentException {
         if (other.getType() != type) {
             throw new IllegalArgumentException("Type mismatch");

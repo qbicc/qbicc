@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.GraphVisitor;
 import cc.quarkus.qcc.graph.Node;
 
 public class SymbolicValueImpl implements SymbolicValue {
@@ -53,6 +54,10 @@ public class SymbolicValueImpl implements SymbolicValue {
     }
 
     public void setSourceLine(final int sourceLine) {
+
+    }
+
+    public <P> void accept(final GraphVisitor<P> visitor, final P param) {
 
     }
 }

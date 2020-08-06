@@ -17,6 +17,10 @@ final class StaticFieldWriteImpl extends FieldOperationImpl implements FieldWrit
         writeValue = NodeHandle.of(value);
     }
 
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
+
     public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
         super.writeToGraph(visited, graph, knownBlocks);
         addEdgeTo(visited, graph, this, "write-value", "black", "solid", knownBlocks);

@@ -19,4 +19,8 @@ final class TryInstanceInvocationImpl extends TryInvocationImpl implements TryIn
     public void setKind(final Kind kind) {
         this.kind = kind;
     }
+
+    public <P> void accept(GraphVisitor<P> visitor, P param) {
+        visitor.visit(param, this);
+    }
 }
