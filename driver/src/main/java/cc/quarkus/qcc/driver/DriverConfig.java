@@ -8,6 +8,4 @@ import java.util.List;
  */
 public interface DriverConfig {
     String nativeImageGenerator(); // todo: replace with Platform detection
-
-    List<Path> bootstrapModules();
 }

@@ -6,8 +6,10 @@ import java.util.List;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import cc.quarkus.qcc.graph.DelegatingGraphFactory;
+import cc.quarkus.qcc.interpreter.JavaVM;
 
 /**
  * A plugin to the QCC process.
@@ -30,6 +32,15 @@ public interface Plugin {
      * @see DelegatingGraphFactory
      */
     default List<GraphFactoryPlugin> getGraphFactoryPlugins() {
+        return List.of();
+    }
+
+    /**
+     * Get the VM configuration plugins for this plugin.  The returned list may be empty but may not be {@code null}.
+     *
+     * @return the list of VM configuration plugins (must not be {@code null})
+     */
+    default List<Consumer<JavaVM.Builder>> getJavaVMConfigurationPlugins() {
         return List.of();
     }
 

@@ -9,7 +9,6 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,10 +22,11 @@ import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
 import cc.quarkus.qcc.graph.ClassType;
+import cc.quarkus.qcc.graph.GraphFactory;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.Dictionary;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
-import cc.quarkus.qcc.type.definition.Dictionary;
 
 final class JavaVMImpl implements JavaVM {
     private boolean exited;
@@ -37,17 +37,20 @@ final class JavaVMImpl implements JavaVM {
     private final ArrayDeque<Signal> signalQueue = new ArrayDeque<>();
     private final Set<JavaThread> threads = ConcurrentHashMap.newKeySet();
     private static final ThreadLocal<JavaThread> attachedThread = new ThreadLocal<>();
+    private final Dictionary bootstrapDictionary;
     private final JavaClassImpl classClass;
     private final ConcurrentMap<JavaObject, Dictionary> classLoaderLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Dictionary, JavaObject> loaderClassLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<ClassType, JavaClassImpl> loadedClasses = new ConcurrentHashMap<>();
     private final Map<String, BootModule> bootstrapModules;
+    private final GraphFactory graphFactory;
 
-    JavaVMImpl(final Dictionary bootstrapLoader, final List<Path> bootstrapModulePath) {
+    JavaVMImpl(final Builder builder) {
         Map<String, BootModule> bootstrapModules = new HashMap<>();
-        for (Path path : bootstrapModulePath) {
+        Dictionary bootstrapDictionary = new Dictionary();
+        for (Path path : builder.bootstrapModules) {
             // open all bootstrap JARs (MR bootstrap JARs not supported)
-            JarFile jarFile = null;
+            JarFile jarFile;
             try {
                 jarFile = new JarFile(path.toFile(), true, ZipFile.OPEN_READ);
             } catch (IOException e) {
@@ -71,7 +74,7 @@ final class JavaVMImpl implements JavaVM {
                 }
                 throw new RuntimeException(e);
             }
-            ModuleDefinition moduleDefinition = ModuleDefinition.create(bootstrapLoader, buffer);
+            ModuleDefinition moduleDefinition = ModuleDefinition.create(bootstrapDictionary, buffer);
             bootstrapModules.put(moduleDefinition.getName(), new BootModule(jarFile, moduleDefinition));
         }
         BootModule javaBase = bootstrapModules.get("java.base");
@@ -80,18 +83,20 @@ final class JavaVMImpl implements JavaVM {
         }
         this.bootstrapModules = bootstrapModules;
         try {
-            defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/Object");
-            DefinedTypeDefinition classClassDefined = defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/Class");
-            defineBootClass(bootstrapLoader, javaBase.jarFile, "java/io/Serializable");
-            defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/reflect/GenericDeclaration");
-            defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/reflect/Type");
-            defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/reflect/AnnotatedElement");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Object");
+            DefinedTypeDefinition classClassDefined = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Class");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/io/Serializable");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/reflect/GenericDeclaration");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/reflect/Type");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/reflect/AnnotatedElement");
             VerifiedTypeDefinition classClassVerified = classClassDefined.verify();
             classClass = new JavaClassImpl(this, classClassVerified, true /* special ctor for Class.class */);
-            defineBootClass(bootstrapLoader, javaBase.jarFile, "java/lang/ClassLoader");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ClassLoader");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        this.bootstrapDictionary = bootstrapDictionary;
+        this.graphFactory = builder.graphFactory;
     }
 
     private static ByteBuffer getJarEntryBuffer(final JarFile jarFile, final String fileName) throws IOException {

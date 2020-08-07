@@ -2,9 +2,13 @@ package cc.quarkus.qcc.interpreter;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import cc.quarkus.qcc.type.definition.Dictionary;
+import cc.quarkus.qcc.graph.GraphFactory;
+import io.smallrye.common.constraint.Assert;
 
 /**
  * A virtual machine.
@@ -62,16 +66,89 @@ public interface JavaVM extends AutoCloseable {
     void close();
 
     /**
-     * Create a new virtual machine.  A list of bootstrap module JARs must be given in order to set up
-     * the core system classes.
+     * Get a builder for a new VM.
      *
-     *
-     * @param bootstrapLoader the bootstrap loader dictionary to use (must not be {@code null})
-     * @param bootstrapModulePath the bootstrap module path (must not be {@code null})
-     * @return a new virtual machine
+     * @return the builder (not {@code null})
      */
-    static JavaVM create(Dictionary bootstrapLoader, List<Path> bootstrapModulePath) {
-        return new JavaVMImpl(bootstrapLoader, bootstrapModulePath);
+    static Builder builder() {
+        return new Builder();
     }
 
+    /**
+     * A builder for the VM.
+     */
+    class Builder {
+        final List<Path> bootstrapModules = new ArrayList<>();
+        final List<Path> platformModules = new ArrayList<>();
+        GraphFactory graphFactory = GraphFactory.BASIC_FACTORY;
+        final Map<String, String> systemProperties = new HashMap<>();
+
+        Builder() {
+        }
+
+        /**
+         * Add a bootstrap module.
+         *
+         * @param modulePath the path to the module JAR (must not be {@code null})
+         * @return this builder
+         */
+        public Builder addBootstrapModule(Path modulePath) {
+            bootstrapModules.add(Assert.checkNotNullParam("modulePath", modulePath));
+            return this;
+        }
+
+        /**
+         * Add all of the given bootstrap modules.
+         *
+         * @param modulePaths the paths to the module JARs (must not be {@code null})
+         * @return this builder
+         */
+        public Builder addBootstrapModules(final List<Path> modulePaths) {
+            bootstrapModules.addAll(modulePaths);
+            return this;
+        }
+
+        /**
+         * Add a platform (non-bootstrap) module.
+         *
+         * @param modulePath the path to the module JAR (must not be {@code null})
+         * @return this builder
+         */
+        public Builder addPlatformModule(Path modulePath) {
+            platformModules.add(Assert.checkNotNullParam("modulePath", modulePath));
+            return this;
+        }
+
+        /**
+         * Set an initial system property.
+         *
+         * @param propertyName  the property name (must not be {@code null})
+         * @param propertyValue the property value (must not be {@code null})
+         * @return this builder
+         */
+        public Builder setSystemProperty(String propertyName, String propertyValue) {
+            systemProperties.put(Assert.checkNotNullParam("propertyName", propertyName), Assert.checkNotNullParam("propertyValue)", propertyValue));
+            return this;
+        }
+
+        /**
+         * Set the graph factory to use for bytecode parsing.
+         *
+         * @param graphFactory the graph factory to use (must not be {@code null})
+         * @return this builder
+         */
+        public Builder setGraphFactory(final GraphFactory graphFactory) {
+            this.graphFactory = Assert.checkNotNullParam("graphFactory", graphFactory);
+            return this;
+        }
+
+        /**
+         * Construct the new VM.
+         *
+         * @return the new VM (not {@code null})
+         */
+        public JavaVM build() {
+            return new JavaVMImpl(this);
+        }
+    }
 }

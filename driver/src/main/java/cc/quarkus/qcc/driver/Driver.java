@@ -1,24 +1,17 @@
 package cc.quarkus.qcc.driver;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGenerator;
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGeneratorFactory;
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.graph.GraphFactory;
-import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.interpreter.JavaVM;
-import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
-import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
-import cc.quarkus.qcc.type.definition.Dictionary;
 import io.smallrye.common.constraint.Assert;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 
@@ -46,8 +39,8 @@ public class Driver {
 
     private final Context context;
 
-    private Driver(final Context context) {
-        this.context = context;
+    private Driver(final Builder builder) {
+        this.context = new Context(false);
     }
 
     /**
@@ -65,10 +58,6 @@ public class Driver {
                 public String nativeImageGenerator() {
                     return "llvm-generic";
                 }
-
-                public List<Path> bootstrapModules() {
-                    return List.of(javaBase);
-                }
             };
             // ▪ Load and initialize plugins
             List<Plugin> allPlugins = Plugin.findAllPlugins(List.of(classLoader), Set.of());
@@ -83,17 +72,15 @@ public class Driver {
             }
 
             // ▫ Additive section ▫ Classes may be loaded and initialized
-            // ▪ set up bootstrap class dictionary
-            Dictionary bootstrapLoader = new Dictionary();
-            Dictionary.setRootDictionary(bootstrapLoader);
             // ▪ initialize the JVM
-            JavaVM javaVM = JavaVM.create(bootstrapLoader, driverConfig.bootstrapModules());
-            // XXX
-            // ▪ initialize bootstrap classes
-            // XXX
-            // ▪ instantiate bootstrap class loader with dictionary
-            // XXX
-            // ▪ instantiate JDK class loaders with dictionaries
+            JavaVM.Builder builder = JavaVM.builder();
+            for (Plugin plugin : allPlugins) {
+                for (Consumer<JavaVM.Builder> consumer : plugin.getJavaVMConfigurationPlugins()) {
+                    consumer.accept(builder);
+                }
+            }
+            builder.setGraphFactory(factory);
+            JavaVM javaVM = builder.addBootstrapModules(List.of(javaBase)).build();
             // XXX
             // ▪ instantiate agent class loader(s)
             // XXX
@@ -112,94 +99,45 @@ public class Driver {
             // load the native image generator
             final NativeImageGeneratorFactory generatorFactory = NativeImageGeneratorFactory.getInstance(driverConfig.nativeImageGenerator(), classLoader);
             NativeImageGenerator generator = generatorFactory.createGenerator();
-            // ↓↓↓↓↓↓ TODO: temporary ↓↓↓↓↓↓
-            defineInitialClass(bootstrapLoader, "java/lang/String");
-            defineInitialClass(bootstrapLoader, "java/lang/Comparable");
-            defineInitialClass(bootstrapLoader, "java/lang/CharSequence");
-            defineInitialClass(bootstrapLoader, "java/lang/System");
-            defineInitialClass(bootstrapLoader, "java/io/Console");
-            defineInitialClass(bootstrapLoader, "java/io/Flushable");
-            defineInitialClass(bootstrapLoader, "java/io/InputStream");
-            defineInitialClass(bootstrapLoader, "java/io/Closeable");
-            defineInitialClass(bootstrapLoader, "java/lang/AutoCloseable");
-            defineInitialClass(bootstrapLoader, "java/io/FilterOutputStream");
-            defineInitialClass(bootstrapLoader, "java/io/PrintStream");
-            defineInitialClass(bootstrapLoader, "java/io/OutputStream");
-            defineInitialClass(bootstrapLoader, "java/lang/Appendable");
-            defineInitialClass(bootstrapLoader, "java/lang/SecurityManager");
-            defineInitialClass(bootstrapLoader, "java/util/Properties");
-            defineInitialClass(bootstrapLoader, "java/util/Hashtable");
-            defineInitialClass(bootstrapLoader, "java/util/Dictionary");
-            defineInitialClass(bootstrapLoader, "java/util/Map");
-            defineInitialClass(bootstrapLoader, "java/lang/Cloneable");
-            defineInitialClass(bootstrapLoader, "java/lang/ModuleLayer");
-            defineInitialClass(bootstrapLoader, "java/nio/channels/Channel");
-            defineInitialClass(bootstrapLoader, "java/lang/System$Logger");
-            defineInitialClass(bootstrapLoader, "java/util/ResourceBundle");
-            defineInitialClass(bootstrapLoader, "java/io/FileOutputStream");
-            defineInitialClass(bootstrapLoader, "java/lang/Throwable");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/SharedSecrets");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaIOAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/Unsafe");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaUtilJarAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaLangAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaLangModuleAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaLangInvokeAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaLangRefAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaNetInetAddressAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaNetHttpCookieAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaNetSocketAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaNetUriAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaNetURLAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaNetURLClassLoaderAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaNioAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaIOFileDescriptorAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaIOFilePermissionAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaSecurityAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaUtilZipFileAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaUtilResourceBundleAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaAWTAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaAWTFontAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaBeansAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaObjectInputStreamAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaObjectInputFilterAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaIORandomAccessFileAccess");
-            defineInitialClass(bootstrapLoader, "jdk/internal/misc/JavaxCryptoSealedObjectAccess");
-            defineInitialClass(bootstrapLoader, "java/nio/charset/Charset");
-            defineInitialClass(bootstrapLoader, "hello/world/Main");
-            generator.addEntryPoint(bootstrapLoader.findClass("hello/world/Main").verify().resolve().resolveMethod(MethodIdentifier.of("main", MethodTypeDescriptor.of(Type.S32, Type.S32, Type.S32))));
-            // ↑↑↑↑↑↑ TODO: temporary ↑↑↑↑↑↑
             generator.compile();
             return Boolean.valueOf(context.errors() == 0);
         });
         return result.booleanValue();
     }
 
-
-    private static void defineInitialClass(Dictionary dictionary, String className) {
-        InputStream stream = Driver.class.getClassLoader().getResourceAsStream(className + ".class");
-        if (stream == null) {
-            try {
-                stream = Files.newInputStream(Path.of(System.getProperty("qcc.compile.class-path", "/tmp"), className + ".class"));
-            } catch (IOException e) {
-                throw new IllegalStateException("Missing class " + className);
-            }
-        }
-        try {
-            dictionary.defineClass(className, ByteBuffer.wrap(stream.readAllBytes()));
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
+    /**
+     * Construct a new builder.
+     *
+     * @return the new builder (not {@code null})
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 
-    /**
-     * Create a new driver instance.
-     *
-     * @param context the context (must not be {@code null})
-     * @return the driver instance
-     */
-    public static Driver create(final Context context) {
-        Assert.checkNotNullParam("context", context);
-        return new Driver(context);
+    public static final class Builder {
+        final List<ClassLoader> searchLoaders = new ArrayList<>();
+        final List<Consumer<JavaVM.Builder>> vmConfigurators = new ArrayList<>();
+
+        Builder() {}
+
+        /**
+         * Add a class loader to the search path for plugins and implementations.
+         *
+         * @param loader the class loader (must not be {@code null})
+         * @return this builder
+         */
+        public Builder addSearchClassLoader(ClassLoader loader) {
+            searchLoaders.add(Assert.checkNotNullParam("loader", loader));
+            return this;
+        }
+
+        public Builder addVMConfigurator(Consumer<JavaVM.Builder> configurator) {
+            vmConfigurators.add(Assert.checkNotNullParam("configurator", configurator));
+            return this;
+        }
+
+        public Driver build() {
+            return new Driver(this);
+        }
     }
 }
