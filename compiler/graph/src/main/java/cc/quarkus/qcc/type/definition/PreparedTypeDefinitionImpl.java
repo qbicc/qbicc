@@ -1,8 +1,14 @@
 package cc.quarkus.qcc.type.definition;
 
 import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
+import cc.quarkus.qcc.interpreter.JavaClass;
+import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.type.annotation.Annotation;
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.InitializerElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
  *
@@ -30,32 +36,64 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
         return delegate.getInterface(index).prepare();
     }
 
-    public boolean isArray() {
-        return delegate.isArray();
+    public FieldElement getField(final int index) {
+        return delegate.getField(index);
     }
 
-    public Dictionary getDefiningClassLoader() {
+    public MethodElement getMethod(final int index) {
+        return delegate.getMethod(index);
+    }
+
+    public ConstructorElement getConstructor(final int index) {
+        return delegate.getConstructor(index);
+    }
+
+    public InitializerElement getInitializer() {
+        return delegate.getInitializer();
+    }
+
+    public JavaObject getDefiningClassLoader() {
         return delegate.getDefiningClassLoader();
     }
 
-    public String getName() {
-        return delegate.getName();
+    public JavaClass getJavaClass() {
+        return delegate.getJavaClass();
+    }
+
+    public String getInternalName() {
+        return delegate.getInternalName();
+    }
+
+    public boolean internalNameEquals(final String internalName) {
+        return delegate.internalNameEquals(internalName);
     }
 
     public int getModifiers() {
         return delegate.getModifiers();
     }
 
-    public String getSuperClassName() {
-        return delegate.getSuperClassName();
+    public boolean hasSuperClass() {
+        return delegate.hasSuperClass();
+    }
+
+    public String getSuperClassInternalName() {
+        return delegate.getSuperClassInternalName();
+    }
+
+    public boolean superClassInternalNameEquals(final String internalName) {
+        return delegate.superClassInternalNameEquals(internalName);
     }
 
     public int getInterfaceCount() {
         return delegate.getInterfaceCount();
     }
 
-    public String getInterfaceName(final int index) throws IndexOutOfBoundsException {
-        return delegate.getInterfaceName(index);
+    public String getInterfaceInternalName(final int index) throws IndexOutOfBoundsException {
+        return delegate.getInterfaceInternalName(index);
+    }
+
+    public boolean interfaceInternalNameEquals(final int index, final String internalName) throws IndexOutOfBoundsException {
+        return delegate.interfaceInternalNameEquals(index, internalName);
     }
 
     public int getFieldCount() {
@@ -66,32 +104,24 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
         return delegate.getMethodCount();
     }
 
-    public ResolvedFieldDefinition resolveField(final Type type, final String name) {
-        return delegate.resolveField(type, name);
+    public int getConstructorCount() {
+        return delegate.getConstructorCount();
     }
 
-    public ResolvedFieldDefinition findField(final String name) {
-        return delegate.findField(name);
+    public int getVisibleAnnotationCount() {
+        return delegate.getVisibleAnnotationCount();
     }
 
-    public ResolvedFieldDefinition getFieldDefinition(final int index) throws IndexOutOfBoundsException {
-        return delegate.getFieldDefinition(index);
+    public Annotation getVisibleAnnotation(final int index) {
+        return delegate.getVisibleAnnotation(index);
     }
 
-    public ResolvedMethodDefinition getMethodDefinition(final int index) throws IndexOutOfBoundsException {
-        return delegate.getMethodDefinition(index);
+    public int getInvisibleAnnotationCount() {
+        return delegate.getInvisibleAnnotationCount();
     }
 
-    public ResolvedMethodDefinition resolveMethod(final MethodIdentifier identifier) {
-        return delegate.resolveMethod(identifier);
-    }
-
-    public ResolvedMethodDefinition resolveInterfaceMethod(final MethodIdentifier identifier) {
-        return delegate.resolveInterfaceMethod(identifier);
-    }
-
-    public ResolvedMethodDefinition resolveInterfaceMethod(final MethodIdentifier identifier, final boolean searchingSuper) {
-        return delegate.resolveInterfaceMethod(identifier, searchingSuper);
+    public Annotation getInvisibleAnnotation(final int index) {
+        return delegate.getInvisibleAnnotation(index);
     }
 
     public InitializedTypeDefinition initialize() throws InitializationFailedException {
@@ -115,11 +145,9 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
                     return initializing;
                 }
                 this.initializing = initialized = new InitializedTypeDefinitionImpl(this);
-                // TODO: call into VM initializer
-                // vm.initializeClass(xxx)
-                // TODO: ^^^^
-                getDefiningClassLoader().replaceTypeDefinition(getName(), this, initialized);
+                JavaVM.requireCurrentThread().initClass(getJavaClass());
                 this.initialized = initialized;
+                this.initializing = null;
             }
         }
         return initialized;

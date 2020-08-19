@@ -10,6 +10,10 @@ public final class IntAnnotationValue extends PrimitiveAnnotationValue {
         this.value = value;
     }
 
+    public static IntAnnotationValue of(final int value) {
+        return new IntAnnotationValue(value);
+    }
+
     public boolean booleanValue() {
         return value != 0;
     }

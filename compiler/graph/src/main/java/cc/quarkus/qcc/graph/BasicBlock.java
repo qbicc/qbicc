@@ -6,6 +6,8 @@ import java.util.Set;
  *
  */
 public interface BasicBlock extends Node {
+    BasicBlock VOID_EMPTY = BasicBlockImpl.makeEmpty();
+
     Terminator getTerminator();
     void setTerminator(Terminator terminator);
 

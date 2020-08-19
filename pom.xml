@@ -32,7 +32,6 @@
         <module>context</module>
         <module>driver</module>
         <module>machine</module>
-        <module>metaprogram</module>
         <module>native</module>
         <module>runtime</module>
         <module>plugins</module>

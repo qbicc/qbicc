@@ -10,6 +10,10 @@ public final class CharAnnotationValue extends PrimitiveAnnotationValue {
         this.value = value;
     }
 
+    public static CharAnnotationValue of(final int value) {
+        return new CharAnnotationValue((char) value);
+    }
+
     public boolean booleanValue() {
         return value != 0;
     }

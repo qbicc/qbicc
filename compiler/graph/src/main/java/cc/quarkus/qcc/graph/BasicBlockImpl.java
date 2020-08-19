@@ -14,6 +14,12 @@ final class BasicBlockImpl extends NodeImpl implements BasicBlock {
     Map<PhiDependencyImpl.Key, NodeHandle> outboundMemoryStates = Map.of();
     NodeHandle terminalInstruction;
 
+    static BasicBlock makeEmpty() {
+        BasicBlockImpl basicBlock = new BasicBlockImpl();
+        basicBlock.setTerminator(new ReturnImpl());
+        return basicBlock;
+    }
+
     public Terminator getTerminator() {
         return NodeHandle.getTargetOf(terminalInstruction);
     }

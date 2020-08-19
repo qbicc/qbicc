@@ -10,6 +10,10 @@ public final class LongAnnotationValue extends PrimitiveAnnotationValue {
         this.value = value;
     }
 
+    public static LongAnnotationValue of(final long value) {
+        return new LongAnnotationValue(value);
+    }
+
     public boolean booleanValue() {
         return value != 0;
     }

@@ -2,7 +2,6 @@ package cc.quarkus.qcc.interpreter;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
@@ -23,7 +22,6 @@ import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.NewValue;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NonCommutativeBinaryValue;
-import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.Throw;
@@ -31,11 +29,10 @@ import cc.quarkus.qcc.graph.Try;
 import cc.quarkus.qcc.graph.UnaryValue;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.schedule.Schedule;
-import cc.quarkus.qcc.type.definition.DefinedMethodDefinition;
+import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.PreparedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ResolvedFieldDefinition;
-import cc.quarkus.qcc.type.definition.ResolvedMethodBody;
-import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
 
 final class JavaThreadImpl implements JavaThread {
     final JavaVMImpl vm;
@@ -85,17 +82,7 @@ final class JavaThreadImpl implements JavaThread {
         checkThread();
         // todo: we have no duplicate init protection whatsoever
         PreparedTypeDefinition prepared = clazz.getTypeDefinition().resolve().prepare();
-        // find the initializer
-        int cnt = prepared.getMethodCount();
-        for (int i = 0; i < cnt; i ++) {
-            ResolvedMethodDefinition methodDefinition = prepared.getMethodDefinition(i);
-            if (methodDefinition.getName().equals("<clinit>")) {
-                // the one and only
-                executeExact(methodDefinition);
-                return;
-            }
-        }
-        // class has no initializer (OK)
+        executeExact(prepared.getInitializer().getExactMethodBody());
     }
 
     public JavaObject allocateObject(final JavaClass type) {
@@ -124,23 +111,21 @@ final class JavaThreadImpl implements JavaThread {
 
     private JavaObject executeExact(JavaMethod method, JavaObject receiver, Object... args) {
         checkThread();
-        DefinedMethodDefinition definition = method.getDefinition();
+        MethodHandle definition = method.getExactHandle();
         return executeExact(definition, args);
     }
 
-    private JavaObject executeExact(final DefinedMethodDefinition definition, final Object... args) {
-        ResolvedMethodBody resolved = definition.resolve().getMethodBody().verify().resolve();
-        BasicBlock entryBlock = resolved.getEntryBlock();
+    private JavaObject executeExact(final MethodHandle resolved, final Object... args) {
+        MethodBody methodBody = resolved.getResolvedMethodBody();
+        BasicBlock entryBlock = methodBody.getEntryBlock();
         // todo: cache
         Schedule schedule = Schedule.forMethod(entryBlock);
-        List<ParameterValue> parameters = resolved.getParameters();
-        if (args.length != parameters.size()) {
+        if (args.length != methodBody.getParameterCount()) {
             throw new IllegalArgumentException("Mismatched parameter lengths");
         }
         Map<Value, Object> values = new HashMap<>();
-        int i = 0;
-        for (ParameterValue value : parameters) {
-            values.put(value, args[i++]);
+        for (int i = 0; i < args.length; i ++) {
+            values.put(methodBody.getParameterValue(i), args[i]);
         }
         return execute(null, schedule, entryBlock, values);
     }
@@ -297,7 +282,7 @@ final class JavaThreadImpl implements JavaThread {
                 JavaAccessMode mode = instanceFieldWrite.getMode();
                 String fieldName = instanceFieldWrite.getFieldName();
                 if (mode == JavaAccessMode.DETECT) {
-                    ResolvedFieldDefinition fieldDefinition = instanceFieldWrite.getFieldOwner().getDefinition().resolve().findField(fieldName);
+                    FieldElement fieldDefinition = instanceFieldWrite.getFieldOwner().getDefinition().resolve().findField(fieldName);
                     mode = fieldDefinition.isVolatile() ? JavaAccessMode.VOLATILE : JavaAccessMode.PLAIN;
                 }
                 // obviously terrible

@@ -19,7 +19,7 @@ final class ClassTypeImpl extends AbstractClassTypeImpl implements ClassType {
     }
 
     public String getClassName() {
-        return definition.getName();
+        return definition.getInternalName();
     }
 
     public ClassType getSuperClass() {

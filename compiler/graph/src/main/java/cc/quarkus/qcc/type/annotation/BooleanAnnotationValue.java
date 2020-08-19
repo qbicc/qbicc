@@ -13,6 +13,10 @@ public final class BooleanAnnotationValue extends PrimitiveAnnotationValue {
         this.value = value;
     }
 
+    public static BooleanAnnotationValue of(final boolean val) {
+        return val ? TRUE : FALSE;
+    }
+
     public boolean booleanValue() {
         return value;
     }

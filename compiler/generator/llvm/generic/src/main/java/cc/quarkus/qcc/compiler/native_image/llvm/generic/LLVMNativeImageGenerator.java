@@ -70,9 +70,10 @@ import cc.quarkus.qcc.machine.tool.process.OutputDestination;
 import cc.quarkus.qcc.tool.llvm.LlcInvoker;
 import cc.quarkus.qcc.tool.llvm.LlcTool;
 import cc.quarkus.qcc.tool.llvm.LlcToolImpl;
-import cc.quarkus.qcc.type.definition.DefinedMethodDefinition;
-import cc.quarkus.qcc.type.definition.ResolvedMethodBody;
-import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
+import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.MethodHandle;
+import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
 import io.smallrye.common.constraint.Assert;
@@ -80,7 +81,7 @@ import io.smallrye.common.constraint.Assert;
 final class LLVMNativeImageGenerator implements NativeImageGenerator {
     private final Module module = Module.newModule();
     private final Map<Type, Map<MethodIdentifier, FunctionDefinition>> functionsByType = new HashMap<>();
-    private final ArrayDeque<ResolvedMethodDefinition> methodQueue = new ArrayDeque<>();
+    private final ArrayDeque<MethodElement> methodQueue = new ArrayDeque<>();
     private final Map<Type, cc.quarkus.qcc.machine.llvm.Value> types = new HashMap<>();
     private final LlcTool llc;
     private final CCompiler cc;
@@ -106,8 +107,8 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         objProvider = ObjectFileProvider.findProvider(Platform.HOST_PLATFORM.getObjectType(), classLoader).orElseThrow();
     }
 
-    public void addEntryPoint(final DefinedMethodDefinition methodDefinition) {
-        methodQueue.addLast(methodDefinition.resolve());
+    public void addEntryPoint(final MethodElement methodDefinition) {
+        methodQueue.addLast(methodDefinition);
     }
 
     public void compile() {
@@ -122,7 +123,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         // XXX move this writing code to program writer
         final Module module = this.module;
         while (! methodQueue.isEmpty()) {
-            compileMethod(methodQueue.removeFirst());
+            compileMethod(methodQueue.removeFirst(), false);
         }
         // XXX print it to screen
         try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out))) {
@@ -243,20 +244,25 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         }
     }
 
-    void compileMethod(final ResolvedMethodDefinition definition) {
-        ArrayDeque<ResolvedMethodDefinition> mq = methodQueue;
+    void compileMethod(final MethodElement definition, final boolean virtual) {
+        ArrayDeque<MethodElement> mq = methodQueue;
         Module module = this.module;
-        final FunctionDefinition func = getMethod(definition.getEnclosingTypeDefinition().verify().getClassType(), definition.getMethodIdentifier()).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL);
+        final FunctionDefinition func = getMethod(definition.getEnclosingType().verify().getClassType(), definition.getMethodIdentifier()).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL);
         int idx = 0;
-        ResolvedMethodBody graph = definition.getMethodBody().verify().resolve();
-        BasicBlock entryBlock = graph.getEntryBlock();
+        MethodHandle methodHandle = virtual ? definition.getVirtualMethodBody() : definition.getExactMethodBody();
+        if (methodHandle == null) {
+            // nothing to do
+            return;
+        }
+        MethodBody methodBody = methodHandle.getResolvedMethodBody();
+        BasicBlock entryBlock = methodBody.getEntryBlock();
         Set<BasicBlock> reachableBlocks = entryBlock.calculateReachableBlocks();
         Schedule schedule = Schedule.forMethod(entryBlock);
         final MethodContext cache = new MethodContext(definition, func, reachableBlocks, schedule);
         func.returns(typeOf(definition.getReturnType()));
-        final List<ParameterValue> paramVals = graph.getParameters();
-        for (ParameterValue pv : paramVals) {
-            cache.values.put(pv, func.param(typeOf(pv.getType())).name("p" + idx++).asValue());
+        int cnt = methodBody.getParameterCount();
+        for (int i = 0; i < cnt; i ++) {
+            cache.values.put(methodBody.getParameterValue(i), func.param(typeOf(definition.getParameter(i).getType())).name("p" + idx++).asValue());
         }
         cache.blocks.put(entryBlock, func);
         for (BasicBlock block : reachableBlocks) {
@@ -387,7 +393,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             }
             visitDependencies(param, node);
             Type returnType = node.getInvocationTarget().getReturnType();
-            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget()));
+            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget(), node.getKind()));
             cc.quarkus.qcc.graph.Value instance = node.getInstance();
             call.arg(typeOf(instance.getType()), getValue(param, instance));
             int cnt = node.getArgumentCount();
@@ -403,7 +409,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             }
             visitDependencies(param, node);
             Type returnType = node.getInvocationTarget().getReturnType();
-            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget()));
+            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget(), node.getKind()));
             param.values.put(node, call.asLocal());
             cc.quarkus.qcc.graph.Value instance = node.getInstance();
             call.arg(typeOf(instance.getType()), getValue(param, instance));
@@ -420,7 +426,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             }
             visitDependencies(param, node);
             Type returnType = node.getInvocationTarget().getReturnType();
-            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget()));
+            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget(), InstanceInvocation.Kind.EXACT));
             int cnt = node.getArgumentCount();
             for (int i = 0; i < cnt; i++) {
                 cc.quarkus.qcc.graph.Value arg = node.getArgument(i);
@@ -434,7 +440,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             }
             visitDependencies(param, node);
             Type returnType = node.getInvocationTarget().getReturnType();
-            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget()));
+            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget(), InstanceInvocation.Kind.EXACT));
             param.values.put(node, call.asLocal());
             int cnt = node.getArgumentCount();
             for (int i = 0; i < cnt; i++) {
@@ -622,9 +628,14 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         return inputType instanceof SignedIntegerType;
     }
 
-    private Value getFunctionOf(final MethodContext cache, final ClassType owner, final MethodIdentifier invocationTarget) {
-        final ResolvedMethodDefinition resolved = owner.getDefinition().resolve().resolveMethod(invocationTarget);
-        compileMethod(resolved);
+    private Value getFunctionOf(final MethodContext cache, final ClassType owner, final MethodIdentifier invocationTarget, final InstanceInvocation.Kind kind) {
+        ResolvedTypeDefinition resolvedType = owner.getDefinition().resolve();
+        final int index = resolvedType.findMethodIndex(invocationTarget.getName(), invocationTarget.getReturnType(), invocationTarget.getParameterTypesAsArray());
+        if (index == -1) {
+            throw new IllegalStateException("Unexpected unresolved method");
+        }
+
+        compileMethod(resolvedType.getMethod(index), kind != InstanceInvocation.Kind.EXACT);
         return getMethod(owner, invocationTarget).asGlobal();
     }
 
@@ -642,7 +653,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
     }
 
     static final class MethodContext {
-        final ResolvedMethodDefinition currentMethod;
+        final MethodElement currentMethod;
         final FunctionDefinition def;
         final Map<cc.quarkus.qcc.graph.Value, cc.quarkus.qcc.machine.llvm.Value> values = new HashMap<>();
         final Map<cc.quarkus.qcc.graph.BasicBlock, cc.quarkus.qcc.machine.llvm.BasicBlock> blocks = new HashMap<>();
@@ -651,7 +662,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         final Schedule schedule;
         final Set<Node> built = new HashSet<>();
 
-        MethodContext(final ResolvedMethodDefinition currentMethod, final FunctionDefinition def, final Set<BasicBlock> knownBlocks, final Schedule schedule) {
+        MethodContext(final MethodElement currentMethod, final FunctionDefinition def, final Set<BasicBlock> knownBlocks, final Schedule schedule) {
             this.currentMethod = currentMethod;
             this.def = def;
             this.knownBlocks = knownBlocks;

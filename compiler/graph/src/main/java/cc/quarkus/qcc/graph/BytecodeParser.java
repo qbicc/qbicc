@@ -14,12 +14,15 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
 
+import cc.quarkus.qcc.interpreter.JavaClass;
+import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ResolvedMethodDefinition;
+import cc.quarkus.qcc.interpreter.Dictionary;
+import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
+import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
-import cc.quarkus.qcc.type.definition.Dictionary;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
@@ -33,7 +36,6 @@ import org.objectweb.asm.TypePath;
 public final class BytecodeParser extends MethodVisitor {
     final LineNumberGraphFactory graphFactory;
     final BasicBlockImpl firstBlock;
-    final Dictionary dictionary;
     Type[] frameStackTypes;
     int fsp; // points after the last frame stack element
     Type[] frameLocalTypes;
@@ -66,7 +68,6 @@ public final class BytecodeParser extends MethodVisitor {
     public BytecodeParser(final int mods, final String name, final String descriptor, final ResolvedTypeDefinition typeDefinition) {
         super(Dictionary.ASM_VERSION);
         graphFactory = new LineNumberGraphFactory(GraphFactory.BASIC_FACTORY);
-        this.dictionary = typeDefinition.getDefiningClassLoader();
         boolean isStatic = (mods & Opcodes.ACC_STATIC) != 0;
         org.objectweb.asm.Type[] argTypes = getArgumentTypes(descriptor);
         int localsCount = argTypes.length;
@@ -134,14 +135,26 @@ public final class BytecodeParser extends MethodVisitor {
             case org.objectweb.asm.Type.DOUBLE: return Type.F64;
             case org.objectweb.asm.Type.VOID: /* TODO void is not a type */ return Type.VOID;
             case org.objectweb.asm.Type.ARRAY: return Type.arrayOf(typeOfAsmType(asmType.getElementType())); // todo cache
-            case org.objectweb.asm.Type.OBJECT: return dictionary.findClass(asmType.getInternalName()).verify().getClassType();
+            case org.objectweb.asm.Type.OBJECT: return loadClassType(asmType.getInternalName());
             default: throw new IllegalStateException();
         }
     }
 
+    private ClassType loadClassType(String name) {
+        return loadClassDefinition(name).verify().getClassType();
+    }
+
+    private VerifiedTypeDefinition loadClassDefinition(final String name) {
+        return loadClass(name).getTypeDefinition();
+    }
+
+    private JavaClass loadClass(String name) {
+        return JavaVM.requireCurrent().loadClass(null /* todo */, name);
+    }
+
     public void visitParameter(final String name, final int access) {
         ParameterValue pv = originalParams.get(pni++);
-        pv.setName(name);
+//        pv.setName(name);
     }
 
     public void visitCode() {
@@ -389,7 +402,7 @@ public final class BytecodeParser extends MethodVisitor {
             throw new IllegalStateException();
         } else if (o instanceof String) {
             // regular reference type
-            return dictionary.findClass((String) o).verify().getClassType();
+            return loadClassType((String) o);
         } else {
             throw new IllegalStateException();
         }
@@ -470,7 +483,7 @@ public final class BytecodeParser extends MethodVisitor {
 
     public void visitTryCatchBlock(final Label start, final Label end, final Label handler, final String type) {
         NodeHandle catchHandle = getOrMakeBlockHandle(handler);
-        DefinedTypeDefinition exceptionTypeClass = type == null ? dictionary.findClass("java/lang/Throwable") : dictionary.findClass(type);
+        DefinedTypeDefinition exceptionTypeClass = type == null ? loadClassDefinition("java/lang/Throwable") : loadClassDefinition(type);
         // todo: verifier: ensure that exceptionTypeClass extends Throwable
         ClassType exceptionType = exceptionTypeClass.verify().getClassType();
         final int index = catchIndex ++;
@@ -512,7 +525,7 @@ public final class BytecodeParser extends MethodVisitor {
             // build catch block
             Capture capture = capture();
             BasicBlock catch_ = new BasicBlockImpl();
-            PhiValue exceptionPhi = graphFactory.phi(dictionary.findClass("java/lang/Throwable").verify().getClassType(), currentBlock);
+            PhiValue exceptionPhi = graphFactory.phi(loadClassType("java/lang/Throwable"), currentBlock);
             int localCnt = capture.locals.length;
             Value[] phiLocals = new Value[localCnt];
             for (int i = 0; i < localCnt; i ++) {
@@ -781,7 +794,7 @@ public final class BytecodeParser extends MethodVisitor {
 
         public void visitTypeInsn(final int opcode, final String type) {
             gotInstr = true;
-            ClassType classType = (ClassType) dictionary.parseSingleDescriptor(type);
+            ClassType classType = (ClassType) parseSingleDescriptor(type);
             switch (opcode) {
                 case Opcodes.INSTANCEOF: {
                     Value value = pop(false);
@@ -808,7 +821,7 @@ public final class BytecodeParser extends MethodVisitor {
                     Value isOk = graphFactory.if_(isNull, Value.TRUE, graphFactory.instanceOf(value, classType));
                     NodeHandle continueHandle = new NodeHandle();
                     // make a little basic block to handle the class cast exception throw
-                    ClassType cce = dictionary.findClass("java/lang/ClassCastException").verify().getClassType();
+                    ClassType cce = loadClassType("java/lang/ClassCastException");
                     Value newCce = graphFactory.new_(null, cce);
                     Node tmpState = graphFactory.invokeInstanceMethod(newCce, newCce, InstanceInvocation.Kind.EXACT, cce, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
                     BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newCce));
@@ -828,7 +841,7 @@ public final class BytecodeParser extends MethodVisitor {
 
         void nullCheck(Value value) {
             Value isNull = graphFactory.binaryOperation(CommutativeBinaryValue.Kind.CMP_EQ, value, Value.NULL);
-            ClassType npe = dictionary.findClass("java/lang/NullPointerException").verify().getClassType();
+            ClassType npe = loadClassType("java/lang/NullPointerException");
             Value newNpe = graphFactory.new_(null, npe);
             Node tmpState = graphFactory.invokeInstanceMethod(newNpe, newNpe, InstanceInvocation.Kind.EXACT, npe, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
             BasicBlock throwBlock = graphFactory.block(graphFactory.throw_(tmpState, newNpe));
@@ -843,8 +856,8 @@ public final class BytecodeParser extends MethodVisitor {
 
         public void visitFieldInsn(final int opcode, final String owner, final String name, final String descriptor) {
             gotInstr = true;
-            ClassType ownerType = dictionary.findClass(owner).verify().getClassType();
-            Type parsedDescriptor = dictionary.parseSingleDescriptor(descriptor);
+            ClassType ownerType = loadClassType(owner);
+            Type parsedDescriptor = parseSingleDescriptor(descriptor);
             // todo: check type...
             switch (opcode) {
                 case Opcodes.GETSTATIC: {
@@ -1360,22 +1373,24 @@ public final class BytecodeParser extends MethodVisitor {
 
         public void visitMethodInsn(final int opcode, final String owner, final String name, final String descriptor, final boolean isInterface) {
             gotInstr = true;
-            DefinedTypeDefinition def = dictionary.findClass(owner);
+            DefinedTypeDefinition def = loadClassDefinition(owner);
             org.objectweb.asm.Type[] types = getArgumentTypes(descriptor);
             int length = types.length;
             Type[] actualTypes = new Type[length];
             for (int i = 0; i < length; i++) {
                 actualTypes[i] = typeOfAsmType(types[i]);
             }
-            ResolvedMethodDefinition methodDef;
+            MethodHandle methodDef;
             Type returnType = typeOfAsmType(getReturnType(descriptor));
             MethodIdentifier identifier = MethodIdentifier.of(name, MethodTypeDescriptor.of(returnType, actualTypes));
-            if (opcode != Opcodes.INVOKEINTERFACE) {
-                methodDef = def.verify().resolve().resolveMethod(identifier);
+            ResolvedTypeDefinition resolved = def.verify().resolve();
+            if (opcode == Opcodes.INVOKESPECIAL) {
+                methodDef = resolved.resolveMethodHandleExact(name, returnType, actualTypes);
+            } else if (opcode != Opcodes.INVOKEINTERFACE) {
+                methodDef = resolved.resolveMethodHandleVirtual(name, returnType, actualTypes);
             } else {
-                methodDef = def.verify().resolve().resolveInterfaceMethod(identifier);
+                methodDef = resolved.resolveMethodHandleInterface(name, returnType, actualTypes);
             }
-            MethodIdentifier resolved = methodDef.getMethodIdentifier();
             ClassType ownerType = def.verify().getClassType();
             List<Value> arguments;
             if (length == 0) {
@@ -1402,9 +1417,9 @@ public final class BytecodeParser extends MethodVisitor {
             // todo: catch tracking graph factory
             if (opcode == Opcodes.INVOKESTATIC) {
                 if (returnType == Type.VOID) {
-                    dependency = graphFactory.invokeMethod(dependency, ownerType, resolved, arguments);
+                    dependency = graphFactory.invokeMethod(dependency, ownerType, null, arguments);
                 } else {
-                    Value res = graphFactory.invokeValueMethod(dependency, ownerType, resolved, arguments);
+                    Value res = graphFactory.invokeValueMethod(dependency, ownerType, null, arguments);
                     dependency = res;
                     push(res);
                 }
@@ -1418,9 +1433,9 @@ public final class BytecodeParser extends MethodVisitor {
                     default: throw new IllegalStateException();
                 }
                 if (returnType == Type.VOID) {
-                    dependency = graphFactory.invokeInstanceMethod(dependency, receiver, kind, ownerType, resolved, arguments);
+                    dependency = graphFactory.invokeInstanceMethod(dependency, receiver, kind, ownerType, null, arguments);
                 } else {
-                    Value res = graphFactory.invokeInstanceValueMethod(dependency, receiver, kind, ownerType, resolved, arguments);
+                    Value res = graphFactory.invokeInstanceValueMethod(dependency, receiver, kind, ownerType, null, arguments);
                     dependency = res;
                     push(res);
                 }
@@ -1517,6 +1532,10 @@ public final class BytecodeParser extends MethodVisitor {
             enter(futureBlockState);
             outer().visitFrame(type, numLocal, local, numStack, stack);
         }
+    }
+
+    private Type parseSingleDescriptor(final String type) {
+        return null;
     }
 
     abstract class EnterBlockOnInsnState extends State {

@@ -51,10 +51,16 @@ public interface MethodTypeDescriptor {
                 }
                 return true;
             }
+
+            public Type[] getParameterTypesAsArray() {
+                return paramTypes.toArray(Type[]::new);
+            }
         };
     }
 
     static MethodTypeDescriptor of(Type returnType, Type... paramTypes) {
         return of(returnType, List.of(paramTypes));
     }
+
+    Type[] getParameterTypesAsArray();
 }

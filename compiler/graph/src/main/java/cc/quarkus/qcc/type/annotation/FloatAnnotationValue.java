@@ -10,6 +10,10 @@ public final class FloatAnnotationValue extends PrimitiveAnnotationValue {
         this.value = value;
     }
 
+    public static FloatAnnotationValue of(final float value) {
+        return new FloatAnnotationValue(value);
+    }
+
     public boolean booleanValue() {
         return value != 0;
     }

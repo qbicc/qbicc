@@ -10,6 +10,10 @@ public final class ShortAnnotationValue extends PrimitiveAnnotationValue {
         this.value = value;
     }
 
+    public static ShortAnnotationValue of(final int value) {
+        return new ShortAnnotationValue((short) value);
+    }
+
     public boolean booleanValue() {
         return value != 0;
     }

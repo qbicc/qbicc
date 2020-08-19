@@ -10,6 +10,10 @@ public final class DoubleAnnotationValue extends PrimitiveAnnotationValue {
         this.value = value;
     }
 
+    public static DoubleAnnotationValue of(final double value) {
+        return new DoubleAnnotationValue(value);
+    }
+
     public boolean booleanValue() {
         return value != 0;
     }

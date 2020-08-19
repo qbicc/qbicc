@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
-import cc.quarkus.qcc.type.definition.Dictionary;
+import cc.quarkus.qcc.interpreter.Dictionary;
 
 final class ArrayClassTypeImpl extends AbstractClassTypeImpl implements ArrayClassType {
     private final Type elementType;

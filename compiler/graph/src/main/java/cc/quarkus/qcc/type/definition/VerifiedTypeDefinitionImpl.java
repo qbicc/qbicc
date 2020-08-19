@@ -3,10 +3,13 @@ package cc.quarkus.qcc.type.definition;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.InterfaceType;
 import cc.quarkus.qcc.graph.Type;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.MethodNode;
+import cc.quarkus.qcc.interpreter.JavaClass;
+import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.type.annotation.Annotation;
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.InitializerElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
  *
@@ -16,15 +19,20 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
     private final ClassType classType;
     private final VerifiedTypeDefinition superType;
     private final VerifiedTypeDefinition[] interfaces;
+    private final FieldElement[] fields;
+    private final MethodElement[] methods;
+    private final ConstructorElement[] ctors;
+    private final InitializerElement init;
     private volatile ResolvedTypeDefinition resolved;
 
-    @Deprecated(forRemoval = true) // as soon as we don't need it anymore
-    private final MethodNode[] methodNodes;
-
-    VerifiedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final VerifiedTypeDefinition superType, final VerifiedTypeDefinition[] interfaces) {
+    VerifiedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final VerifiedTypeDefinition superType, final VerifiedTypeDefinition[] interfaces, final FieldElement[] fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init) {
         this.delegate = delegate;
         this.superType = superType;
         this.interfaces = interfaces;
+        this.fields = fields;
+        this.methods = methods;
+        this.ctors = ctors;
+        this.init = init;
         int interfaceCnt = interfaces.length;
         InterfaceType[] interfaceTypes = new InterfaceType[interfaceCnt];
         for (int i = 0; i < interfaceCnt; i ++) {
@@ -39,52 +47,48 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
         } else {
             classType = Type.classType(this, superType == null ? null : superType.getClassType(), interfaceTypes);
         }
-        // -----------------------------------
-        // ↓↓↓ delete once we can drop asm ↓↓↓
-        int methodCount = getMethodCount();
-        MethodNode[] nodes = new MethodNode[methodCount];
-        ClassNode classNode = new ClassNode(Dictionary.ASM_VERSION) {
-            int idx = 0; // hopefully we visit in the same order
-            public MethodVisitor visitMethod(final int access, final String name, final String descriptor, final String signature, final String[] exceptions) {
-                MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
-                nodes[idx++] = (MethodNode) mv;
-                return mv;
-            }
-        };
-        try {
-            new ClassReader(new ByteBufferInputStream(delegate.getClassBytes())).accept(classNode, 0);
-        } catch (Exception e) {
-            throw new VerifyFailedException(e);
-        }
-        methodNodes = nodes;
-        // ↑↑↑ delete once we can drop asm ↑↑↑
-        // -----------------------------------
     }
 
     // delegates
 
-    public Dictionary getDefiningClassLoader() {
-        return delegate.getDefiningClassLoader();
+    public JavaClass getJavaClass() {
+        return delegate.getJavaClass();
     }
 
-    public String getName() {
-        return delegate.getName();
+    public String getInternalName() {
+        return delegate.getInternalName();
+    }
+
+    public boolean internalNameEquals(final String internalName) {
+        return delegate.internalNameEquals(internalName);
     }
 
     public int getModifiers() {
         return delegate.getModifiers();
     }
 
-    public String getSuperClassName() {
-        return delegate.getSuperClassName();
+    public String getSuperClassInternalName() {
+        return delegate.getSuperClassInternalName();
+    }
+
+    public boolean superClassInternalNameEquals(final String internalName) {
+        return delegate.superClassInternalNameEquals(internalName);
     }
 
     public int getInterfaceCount() {
         return delegate.getInterfaceCount();
     }
 
-    public String getInterfaceName(final int index) throws IndexOutOfBoundsException {
-        return delegate.getInterfaceName(index);
+    public String getInterfaceInternalName(final int index) throws IndexOutOfBoundsException {
+        return delegate.getInterfaceInternalName(index);
+    }
+
+    public boolean interfaceInternalNameEquals(final int index, final String internalName) throws IndexOutOfBoundsException {
+        return delegate.interfaceInternalNameEquals(index, internalName);
+    }
+
+    public JavaObject getDefiningClassLoader() {
+        return delegate.getDefiningClassLoader();
     }
 
     public int getFieldCount() {
@@ -95,12 +99,28 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
         return delegate.getMethodCount();
     }
 
-    public DefinedFieldDefinition getFieldDefinition(final int index) throws IndexOutOfBoundsException {
-        return delegate.getFieldDefinition(index);
+    public int getConstructorCount() {
+        return delegate.getConstructorCount();
     }
 
-    public DefinedMethodDefinition getMethodDefinition(final int index) throws IndexOutOfBoundsException {
-        return delegate.getMethodDefinition(index);
+    public int getVisibleAnnotationCount() {
+        return delegate.getVisibleAnnotationCount();
+    }
+
+    public Annotation getVisibleAnnotation(final int index) {
+        return delegate.getVisibleAnnotation(index);
+    }
+
+    public int getInvisibleAnnotationCount() {
+        return delegate.getInvisibleAnnotationCount();
+    }
+
+    public Annotation getInvisibleAnnotation(final int index) {
+        return delegate.getInvisibleAnnotation(index);
+    }
+
+    public boolean hasSuperClass() {
+        return delegate.hasSuperClass();
     }
 
     // local methods
@@ -115,6 +135,22 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
 
     public VerifiedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
         return interfaces[index];
+    }
+
+    public FieldElement getField(final int index) {
+        return fields[index];
+    }
+
+    public MethodElement getMethod(final int index) {
+        return methods[index];
+    }
+
+    public ConstructorElement getConstructor(final int index) {
+        return ctors[index];
+    }
+
+    public InitializerElement getInitializer() {
+        return init;
     }
 
     // next stage
@@ -134,11 +170,16 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
         }
         cnt = getFieldCount();
         for (int i = 0; i < cnt; i ++) {
-            getFieldDefinition(i).resolve();
+            fields[i].getType();
         }
         cnt = getMethodCount();
         for (int i = 0; i < cnt; i ++) {
-            getMethodDefinition(i).resolve();
+            MethodElement method = methods[i];
+            method.getReturnType();
+            int cnt2 = method.getParameterCount();
+            for (int j = 0; j < cnt2; j ++) {
+                method.getParameter(j).getType();
+            }
         }
         synchronized (this) {
             resolved = this.resolved;
@@ -146,15 +187,9 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
                 return resolved;
             }
             resolved = new ResolvedTypeDefinitionImpl(this);
-            getDefiningClassLoader().replaceTypeDefinition(getName(), this, resolved);
             this.resolved = resolved;
         }
         return resolved;
-    }
-
-    @Deprecated(forRemoval = true) // as soon as it's not needed anymore!
-    MethodNode getMethodNode(final int index) {
-        return methodNodes[index];
     }
 }
 

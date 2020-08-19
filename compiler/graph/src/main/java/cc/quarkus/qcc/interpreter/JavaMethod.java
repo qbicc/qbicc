@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.interpreter;
 
-import cc.quarkus.qcc.type.definition.DefinedMethodDefinition;
+import cc.quarkus.qcc.type.definition.MethodHandle;
 
 /**
  * A Java method handle.
@@ -14,13 +14,13 @@ public interface JavaMethod {
         throw new ClassCastException();
     }
 
-    DefinedMethodDefinition getDefinition();
+    MethodHandle getExactHandle();
+
+    MethodHandle getVirtualHandle();
 
     JavaClass getDeclaringClass();
 
     String getMethodName();
 
     int getModifiers();
-
-    String getSignature();
 }

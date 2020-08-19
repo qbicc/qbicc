@@ -2,11 +2,10 @@ package cc.quarkus.qcc.interpreter;
 
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.Dictionary;
 import io.smallrye.common.function.ExceptionConsumer;
 import org.fest.assertions.core.Condition;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -18,7 +17,7 @@ import static org.fest.assertions.api.Assertions.assertThat;
 
 public class PrototypeTest {
     @Test
-    @Ignore("test is failing")
+    @Disabled("test is failing")
     public void testPrototype() throws Exception {
         withRootDictionary((dictionary) -> {
             String classWithFields = p(ClassWithFields.class);

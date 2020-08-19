@@ -16,7 +16,7 @@ final class InterfaceTypeImpl extends AbstractClassTypeImpl implements Interface
     }
 
     public String getClassName() {
-        return definition.getName();
+        return definition.getInternalName();
     }
 
     public ClassType getSuperClass() {

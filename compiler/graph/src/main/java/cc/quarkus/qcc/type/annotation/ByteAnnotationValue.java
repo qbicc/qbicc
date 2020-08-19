@@ -10,6 +10,11 @@ public final class ByteAnnotationValue extends PrimitiveAnnotationValue {
         this.value = value;
     }
 
+    public static ByteAnnotationValue of(final int value) {
+        // todo: cache
+        return new ByteAnnotationValue((byte) value);
+    }
+
     public boolean booleanValue() {
         return value != 0;
     }

@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.type.annotation;
 
+import io.smallrye.common.constraint.Assert;
+
 /**
  * A {@link String} annotation value.
  */
@@ -8,6 +10,10 @@ public final class StringAnnotationValue extends AnnotationValue {
 
     StringAnnotationValue(final String string) {
         this.string = string;
+    }
+
+    public static StringAnnotationValue of(final String value) {
+        return new StringAnnotationValue(Assert.checkNotNullParam("value", value));
     }
 
     public String getString() {

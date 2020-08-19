@@ -14,17 +14,13 @@ public interface Type extends Node {
 
     NullType NULL_TYPE = new NullTypeImpl();
 
+    // TODO: Type isn't really a Node, or...?
     default <P> void accept(GraphVisitor<P> visitor, P param) {
         // no operation
     }
 
     static ArrayType arrayOf(Type elementType) {
         return new ArrayTypeImpl(elementType);
-    }
-
-    @Deprecated
-    static ClassType classNamed(String name) {
-        throw Assert.unsupported();
     }
 
     static ClassType classType(VerifiedTypeDefinition definition, ClassType superType, InterfaceType... interfaceTypes) {

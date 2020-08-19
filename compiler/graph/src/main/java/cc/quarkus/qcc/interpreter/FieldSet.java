@@ -1,35 +1,33 @@
 package cc.quarkus.qcc.interpreter;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.type.definition.DefinedFieldDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
 
 final class FieldSet {
     final Map<String, Integer> fieldIndices = new HashMap<>();
-    final DefinedFieldDefinition[] sortedFields;
+    final FieldElement[] sortedFields;
 
     FieldSet(VerifiedTypeDefinition type, boolean statics) {
         int cnt = type.getFieldCount();
-        List<DefinedFieldDefinition> fields = new ArrayList<>(cnt);
+        List<FieldElement> fields = new ArrayList<>(cnt);
         type.eachField((field) -> {
             if (statics == field.isStatic()) {
                 fields.add(field);
             }
         });
-        fields.sort(Comparator.comparing(DefinedFieldDefinition::getName));
+        fields.sort(Comparator.comparing(FieldElement::getName));
 
-        sortedFields = fields.toArray((i) -> new DefinedFieldDefinition[i]);
+        sortedFields = fields.toArray(FieldElement[]::new);
 
         for (int i = 0; i < cnt; i++) {
-            DefinedFieldDefinition field = sortedFields[i];
-            fieldIndices.put(field.getName(), i);
+            FieldElement field = sortedFields[i];
+            fieldIndices.put(field.getName(), Integer.valueOf(i));
         }
     }
 
@@ -40,10 +38,10 @@ final class FieldSet {
             throw new IllegalArgumentException("No such field: " + name);
         }
 
-        return index;
+        return index.intValue();
     }
 
-    DefinedFieldDefinition getType(String name) {
+    FieldElement getType(String name) {
         return sortedFields[getIndex(name)];
     }
 

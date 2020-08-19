@@ -6,6 +6,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -24,9 +25,9 @@ import java.util.zip.ZipFile;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.GraphFactory;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.Dictionary;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+import io.smallrye.common.constraint.Assert;
 
 final class JavaVMImpl implements JavaVM {
     private boolean exited;
@@ -38,6 +39,7 @@ final class JavaVMImpl implements JavaVM {
     private final Set<JavaThread> threads = ConcurrentHashMap.newKeySet();
     private static final ThreadLocal<JavaThread> attachedThread = new ThreadLocal<>();
     private final Dictionary bootstrapDictionary;
+    private final JavaClassImpl objectClass;
     private final JavaClassImpl classClass;
     private final ConcurrentMap<JavaObject, Dictionary> classLoaderLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Dictionary, JavaObject> loaderClassLoaders = new ConcurrentHashMap<>();
@@ -83,7 +85,7 @@ final class JavaVMImpl implements JavaVM {
         }
         this.bootstrapModules = bootstrapModules;
         try {
-            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Object");
+            DefinedTypeDefinition objectDef = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Object");
             DefinedTypeDefinition classClassDefined = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Class");
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/io/Serializable");
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/reflect/GenericDeclaration");
@@ -91,6 +93,7 @@ final class JavaVMImpl implements JavaVM {
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/reflect/AnnotatedElement");
             VerifiedTypeDefinition classClassVerified = classClassDefined.verify();
             classClass = new JavaClassImpl(this, classClassVerified, true /* special ctor for Class.class */);
+            objectClass = new JavaClassImpl(this, objectDef.verify());
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ClassLoader");
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -131,8 +134,27 @@ final class JavaVMImpl implements JavaVM {
     private static final AtomicLong anonCounter = new AtomicLong();
 
     public JavaClass defineAnonymousClass(final JavaClass hostClass, final ByteBuffer bytes) {
-        String newName = hostClass.getTypeDefinition().getName() + "/" + anonCounter.getAndIncrement();
-        return defineClass(newName, getClassLoaderFor(hostClass.getTypeDefinition().getDefiningClassLoader()), bytes);
+        String newName = hostClass.getTypeDefinition().getInternalName() + "/" + anonCounter.getAndIncrement();
+        return defineClass(newName, hostClass.getTypeDefinition().getDefiningClassLoader(), bytes);
+    }
+
+    public JavaClass loadClass(final JavaObject classLoader, final String name) throws Thrown {
+        JavaClass loaded = findLoadedClass(classLoader, name);
+        if (loaded != null) {
+            return loaded;
+        }
+        JavaThread javaThread = currentThread();
+        if (javaThread == null) {
+            throw new IllegalStateException("No VM to load class " + name);
+        }
+        // todo: invoke loadClass on class loader instance
+        throw new UnsupportedOperationException("VM loading not implemented yet");
+    }
+
+    public JavaClass findLoadedClass(final JavaObject classLoader, final String name) {
+        DefinedTypeDefinition loadedClass = getDictionaryFor(classLoader).findLoadedClass(name);
+        // todo...
+        return getJavaClassOf(loadedClass.verify().getClassType());
     }
 
     public JavaThread newThread(final String threadName, final JavaObject threadGroup, final boolean daemon) {
@@ -154,7 +176,7 @@ final class JavaVMImpl implements JavaVM {
         attachedThread.remove();
     }
 
-    public JavaThread currentThread() {
+    static JavaThread currentThread() {
         return attachedThread.get();
     }
 
@@ -196,6 +218,22 @@ final class JavaVMImpl implements JavaVM {
         }
     }
 
+    public String deduplicate(final JavaObject classLoader, final String string) {
+        // TODO
+        return string;
+    }
+
+    public String deduplicate(final JavaObject classLoader, final ByteBuffer buffer, final int offset, final int length, final boolean expectTerminator) {
+        // TODO: apart from being inefficient, this is also not strictly correct! don't copy this code
+        byte[] bytes = new byte[length];
+        buffer.duplicate().position(offset).get(bytes);
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    public JavaObject allocateDirectBuffer(final ByteBuffer backingBuffer) {
+        throw Assert.unsupported();
+    }
+
     void exit(int status) {
         vmLock.lock();
         try {
@@ -228,11 +266,25 @@ final class JavaVMImpl implements JavaVM {
         }
     }
 
-    JavaClassImpl getClassClass() {
+    public DefinedTypeDefinition.Builder newTypeDefinitionBuilder(final JavaObject classLoader) {
+        // TODO: use plugins to get a builder
+        DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
+        builder.setDefiningClassLoader(classLoader);
+        return builder;
+    }
+
+    public JavaClassImpl getClassClass() {
         return classClass;
     }
 
+    public JavaClassImpl getObjectClass() {
+        return objectClass;
+    }
+
     Dictionary getDictionaryFor(final JavaObject classLoader) {
+        if (classLoader == null) {
+            return bootstrapDictionary;
+        }
         Dictionary dictionary = classLoaderLoaders.get(classLoader);
         if (dictionary == null) {
             throw new IllegalStateException("Class loader object is unknown");

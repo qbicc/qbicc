@@ -52,7 +52,7 @@ public class PrototypeGenerator {
                 (field) -> proto.visitField(
                         field.getModifiers(),
                         field.getName(),
-                        ci(javaTypeFromFieldType(field.resolve().getType())),
+                        ci(javaTypeFromFieldType(field.getType())),
                         null, null));
 
         proto.visitEnd();

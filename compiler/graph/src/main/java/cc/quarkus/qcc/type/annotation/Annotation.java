@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.type.annotation;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,15 +11,17 @@ import io.smallrye.common.constraint.Assert;
  * An annotation.
  */
 public final class Annotation extends AnnotationValue {
+    public static final Annotation[] NO_ANNOTATIONS = new Annotation[0];
+
     private final String className;
     private final Map<String, AnnotationValue> values;
 
     Annotation(Builder builder) {
         className = Assert.checkNotNullParam("builder.className", builder.className);
-        values = Collections.unmodifiableMap(new LinkedHashMap<>(builder.values));
+        values = Map.copyOf(builder.values);
     }
 
-    public String getClassName() {
+    public String getClassInternalName() {
         return className;
     }
 
@@ -40,6 +41,10 @@ public final class Annotation extends AnnotationValue {
         return Kind.ANNOTATION;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public static final class Builder {
         String className;
         HashMap<String, AnnotationValue> values = new LinkedHashMap<>();
@@ -50,8 +55,8 @@ public final class Annotation extends AnnotationValue {
             return className;
         }
 
-        public Builder setClassName(final String className) {
-            this.className = Assert.checkNotNullParam("className", className);
+        public Builder setClassName(final String internalName) {
+            this.className = Assert.checkNotNullParam("internalName", internalName);
             return this;
         }
 

@@ -1,9 +1,10 @@
 package cc.quarkus.qcc.constraint;
 
-import org.junit.Test;
 
 import static cc.quarkus.qcc.constraint.Constraint.*;
 import static org.fest.assertions.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 
 public class ConstraintTest {
 

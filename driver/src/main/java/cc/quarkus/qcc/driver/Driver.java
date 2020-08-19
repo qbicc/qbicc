@@ -39,7 +39,7 @@ public class Driver {
 
     private final Context context;
 
-    private Driver(final Builder builder) {
+    Driver(final Builder builder) {
         this.context = new Context(false);
     }
 

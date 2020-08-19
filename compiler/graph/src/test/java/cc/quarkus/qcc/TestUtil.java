@@ -1,6 +1,6 @@
 package cc.quarkus.qcc;
 
-import cc.quarkus.qcc.type.definition.Dictionary;
+import cc.quarkus.qcc.interpreter.Dictionary;
 
 import java.io.IOException;
 import java.io.InputStream;

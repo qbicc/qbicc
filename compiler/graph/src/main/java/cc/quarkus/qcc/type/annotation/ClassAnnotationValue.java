@@ -4,14 +4,14 @@ package cc.quarkus.qcc.type.annotation;
  * A {@link Class} annotation value.
  */
 public final class ClassAnnotationValue extends AnnotationValue {
-    private final String className;
+    private final String classInternalName;
 
-    ClassAnnotationValue(final String className) {
-        this.className = className;
+    ClassAnnotationValue(final String classInternalName) {
+        this.classInternalName = classInternalName;
     }
 
-    public String getClassName() {
-        return className;
+    public String getClassInternalName() {
+        return classInternalName;
     }
 
     public Kind getKind() {

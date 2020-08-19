@@ -56,6 +56,10 @@ public interface MethodIdentifier extends MethodTypeDescriptor {
                 }
                 return true;
             }
+
+            public Type[] getParameterTypesAsArray() {
+                return descriptor.getParameterTypesAsArray();
+            }
         };
     }
 }

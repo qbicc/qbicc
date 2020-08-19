@@ -2,6 +2,9 @@ package cc.quarkus.qcc.type.definition;
 
 import java.nio.ByteBuffer;
 
+import cc.quarkus.qcc.interpreter.Dictionary;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+
 /**
  * A module definition.
  */

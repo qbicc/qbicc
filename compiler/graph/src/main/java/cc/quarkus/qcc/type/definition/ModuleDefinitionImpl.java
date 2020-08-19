@@ -3,6 +3,9 @@ package cc.quarkus.qcc.type.definition;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import cc.quarkus.qcc.interpreter.Dictionary;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+
 final class ModuleDefinitionImpl implements ModuleDefinition {
     final String name;
     final String version;
@@ -49,37 +52,37 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
             cpOffsets[i] = buffer.position();
             int tag = buffer.get() & 0xff;
             switch (tag) {
-                case ClassFile.CONSTANT_Utf8: {
+                case ClassFileUtil.CONSTANT_Utf8: {
                     int size = buffer.getShort() & 0xffff;
                     buffer.position(buffer.position() + size);
                     break;
                 }
-                case ClassFile.CONSTANT_Integer:
-                case ClassFile.CONSTANT_Float:
-                case ClassFile.CONSTANT_Fieldref:
-                case ClassFile.CONSTANT_Methodref:
-                case ClassFile.CONSTANT_InterfaceMethodref:
-                case ClassFile.CONSTANT_NameAndType:
-                case ClassFile.CONSTANT_Dynamic:
-                case ClassFile.CONSTANT_InvokeDynamic: {
+                case ClassFileUtil.CONSTANT_Integer:
+                case ClassFileUtil.CONSTANT_Float:
+                case ClassFileUtil.CONSTANT_Fieldref:
+                case ClassFileUtil.CONSTANT_Methodref:
+                case ClassFileUtil.CONSTANT_InterfaceMethodref:
+                case ClassFileUtil.CONSTANT_NameAndType:
+                case ClassFileUtil.CONSTANT_Dynamic:
+                case ClassFileUtil.CONSTANT_InvokeDynamic: {
                     buffer.position(buffer.position() + 4);
                     break;
                 }
-                case ClassFile.CONSTANT_Class:
-                case ClassFile.CONSTANT_String:
-                case ClassFile.CONSTANT_MethodType:
-                case ClassFile.CONSTANT_Module:
-                case ClassFile.CONSTANT_Package: {
+                case ClassFileUtil.CONSTANT_Class:
+                case ClassFileUtil.CONSTANT_String:
+                case ClassFileUtil.CONSTANT_MethodType:
+                case ClassFileUtil.CONSTANT_Module:
+                case ClassFileUtil.CONSTANT_Package: {
                     buffer.position(buffer.position() + 2);
                     break;
                 }
-                case ClassFile.CONSTANT_Long:
-                case ClassFile.CONSTANT_Double: {
+                case ClassFileUtil.CONSTANT_Long:
+                case ClassFileUtil.CONSTANT_Double: {
                     buffer.position(buffer.position() + 8);
                     i++; // two slots
                     break;
                 }
-                case ClassFile.CONSTANT_MethodHandle: {
+                case ClassFileUtil.CONSTANT_MethodHandle: {
                     buffer.position(buffer.position() + 3);
                     break;
                 }
@@ -94,7 +97,7 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
             throw new DefineFailedException("Expected only a ACC_MODULE flag");
         }
         int thisClassIdx = buffer.getShort() & 0xffff;
-        if (! ClassFile.classNameEquals(buffer, thisClassIdx, cpOffsets, "module-info")) {
+        if (! ClassFileUtil.classNameEquals(buffer, thisClassIdx, cpOffsets, "module-info")) {
             throw new DefineFailedException("Class name mismatch");
         }
         if (buffer.getShort() != 0) {
@@ -132,20 +135,20 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
             int attrNameIdx = buffer.getShort() & 0xffff;
             int size = buffer.getInt();
             int endPos = buffer.position() + size;
-            if (ClassFile.utf8EntryEquals(buffer, cpOffsets[attrNameIdx], "ModulePackages")) {
+            if (ClassFileUtil.utf8EntryEquals(buffer, cpOffsets[attrNameIdx], "ModulePackages")) {
                 int packageCnt = buffer.getShort() & 0xffff;
                 if (packageCnt > 0) {
                     packages = new String[packageCnt];
                     for (int j = 0; j < packageCnt; j++) {
-                        packages[j] = ClassFile.getPackageName(buffer, buffer.getShort() & 0xffff, cpOffsets, strCache, b);
+                        packages[j] = ClassFileUtil.getPackageName(buffer, buffer.getShort() & 0xffff, cpOffsets, strCache, b);
                     }
                 }
-            } else if (ClassFile.utf8EntryEquals(buffer, cpOffsets[attrNameIdx], "Module")) {
+            } else if (ClassFileUtil.utf8EntryEquals(buffer, cpOffsets[attrNameIdx], "Module")) {
                 int moduleNameIdx = buffer.getShort() & 0xffff;
-                name = ClassFile.getModuleName(buffer, moduleNameIdx, cpOffsets, strCache, b);
+                name = ClassFileUtil.getModuleName(buffer, moduleNameIdx, cpOffsets, strCache, b);
                 modifiers = buffer.getShort() & 0xffff;
                 int versionIdx = buffer.getShort() & 0xffff;
-                version = ClassFile.getUtf8Entry(buffer, versionIdx, cpOffsets, strCache, b);
+                version = ClassFileUtil.getUtf8Entry(buffer, versionIdx, cpOffsets, strCache, b);
                 int requiresCnt = buffer.getShort() & 0xffff;
                 if (requiresCnt > 0) {
                     requiresNames = new String[requiresCnt];
@@ -153,11 +156,11 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
                     requiresVersions = new String[requiresCnt];
                     for (int j = 0; j < requiresCnt; j++) {
                         int reqIdx = buffer.getShort() & 0xffff;
-                        requiresNames[j] = ClassFile.getModuleName(buffer, reqIdx, cpOffsets, strCache, b);
+                        requiresNames[j] = ClassFileUtil.getModuleName(buffer, reqIdx, cpOffsets, strCache, b);
                         requiresModifiers[j] = buffer.getShort() & 0xffff;
                         int reqVerIdx = buffer.getShort() & 0xffff;
                         if (reqVerIdx != 0) {
-                            requiresVersions[j] = ClassFile.getUtf8Entry(buffer, reqIdx, cpOffsets, strCache, b);
+                            requiresVersions[j] = ClassFileUtil.getUtf8Entry(buffer, reqIdx, cpOffsets, strCache, b);
                         }
                     }
                 }
@@ -168,7 +171,7 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
                     exportsTo = new String[exportsCnt][];
                     for (int j = 0; j < exportsCnt; j ++) {
                         int expIdx = buffer.getShort() & 0xffff;
-                        exportsNames[j] = ClassFile.getPackageName(buffer, expIdx, cpOffsets, strCache, b);
+                        exportsNames[j] = ClassFileUtil.getPackageName(buffer, expIdx, cpOffsets, strCache, b);
                         exportsModifiers[j]= buffer.getShort() & 0xffff;
                         int expToCnt = buffer.getShort() & 0xffff;
                         if (expToCnt == 0) {
@@ -177,7 +180,7 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
                             exportsTo[j] = new String[expToCnt];
                             for (int k = 0; k < expToCnt; k ++) {
                                 int expToIdx = buffer.getShort() & 0xffff;
-                                exportsTo[j][k] = ClassFile.getModuleName(buffer, expToIdx, cpOffsets, strCache, b);
+                                exportsTo[j][k] = ClassFileUtil.getModuleName(buffer, expToIdx, cpOffsets, strCache, b);
                             }
                         }
                     }
@@ -189,7 +192,7 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
                     opensTo = new String[opensCnt][];
                     for (int j = 0; j < opensCnt; j ++) {
                         int openIdx = buffer.getShort() & 0xffff;
-                        opensNames[j] = ClassFile.getPackageName(buffer, openIdx, cpOffsets, strCache, b);
+                        opensNames[j] = ClassFileUtil.getPackageName(buffer, openIdx, cpOffsets, strCache, b);
                         opensModifiers[j]= buffer.getShort() & 0xffff;
                         int openToCnt = buffer.getShort() & 0xffff;
                         if (openToCnt == 0) {
@@ -198,7 +201,7 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
                             opensTo[j] = new String[openToCnt];
                             for (int k = 0; k < openToCnt; k ++) {
                                 int openToIdx = buffer.getShort() & 0xffff;
-                                opensTo[j][k] = ClassFile.getModuleName(buffer, openToIdx, cpOffsets, strCache, b);
+                                opensTo[j][k] = ClassFileUtil.getModuleName(buffer, openToIdx, cpOffsets, strCache, b);
                             }
                         }
                     }
@@ -208,7 +211,7 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
                     uses = new String[usesCnt];
                     for (int j = 0; j < usesCnt; j ++) {
                         int usesIdx = buffer.getShort() & 0xffff;
-                        uses[j] = ClassFile.getClassName(buffer, usesIdx, cpOffsets, strCache, b);
+                        uses[j] = ClassFileUtil.getClassName(buffer, usesIdx, cpOffsets, strCache, b);
                     }
                 }
                 int providesCnt = buffer.getShort() & 0xffff;
@@ -217,7 +220,7 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
                     providesWith = new String[providesCnt][];
                     for (int j = 0; j < providesCnt; j ++) {
                         int provIdx = buffer.getShort() & 0xffff;
-                        provides[j] = ClassFile.getClassName(buffer, provIdx, cpOffsets, strCache, b);
+                        provides[j] = ClassFileUtil.getClassName(buffer, provIdx, cpOffsets, strCache, b);
                         int provWithCnt = buffer.getShort() & 0xffff;
                         if (provWithCnt == 0) {
                             providesWith[j] = NO_STRINGS;
@@ -225,7 +228,7 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
                             providesWith[j] = new String[provWithCnt];
                             for (int k = 0; k < provWithCnt; k ++) {
                                 int provWithIdx = buffer.getShort() & 0xffff;
-                                providesWith[j][k] = ClassFile.getClassName(buffer, provWithIdx, cpOffsets, strCache, b);
+                                providesWith[j][k] = ClassFileUtil.getClassName(buffer, provWithIdx, cpOffsets, strCache, b);
                             }
                         }
                     }
