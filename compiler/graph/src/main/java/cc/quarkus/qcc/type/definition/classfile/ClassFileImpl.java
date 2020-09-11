@@ -551,7 +551,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             addExactBody(builder, index);
         }
         if (hasVirtual) {
-            builder.setVirtualMethodBody(new VirtualMethodBodyImpl(this, index));
+            builder.setVirtualMethodBody(new VirtualMethodHandleImpl(this, index));
         }
         addParameters(builder, index);
         addAnnotations(builder);
@@ -602,7 +602,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     private void addExactBody(final ExactExecutableElement.Builder builder, final int index, final ByteBuffer codeAttr) {
         int modifiers = getShort(methodOffsets[index]);
-        builder.setExactMethodBody(new ExactMethodHandle(modifiers, index, codeAttr));
+        builder.setExactMethodBody(new ExactMethodHandleImpl(modifiers, index, codeAttr));
     }
 
     private void addParameters(ParameterizedExecutableElement.Builder builder, int index) {

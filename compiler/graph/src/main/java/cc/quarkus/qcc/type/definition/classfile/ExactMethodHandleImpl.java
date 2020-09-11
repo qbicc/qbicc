@@ -9,8 +9,8 @@ import cc.quarkus.qcc.type.definition.ResolutionFailedException;
 /**
  *
  */
-final class ExactMethodHandle extends AbstractBufferBacked implements MethodHandle {
-    ExactMethodHandle(final int modifiers, final int index, final ByteBuffer codeAttr) {
+final class ExactMethodHandleImpl extends AbstractBufferBacked implements MethodHandle {
+    ExactMethodHandleImpl(final int modifiers, final int index, final ByteBuffer codeAttr) {
         super(codeAttr);
         int save = codeAttr.position();
         int maxStack = codeAttr.getShort() & 0xffff;

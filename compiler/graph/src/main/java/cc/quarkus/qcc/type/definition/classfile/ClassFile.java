@@ -287,6 +287,14 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
 
     int getMinorVersion();
 
+    default int compareVersion(int major, int minor) {
+        int res = Integer.compare(getMajorVersion(), major);
+        if (res == 0) {
+            res = Integer.compare(getMinorVersion(), minor);
+        }
+        return res;
+    }
+
     /**
      * Get the number of constants, including the invisible "null" constant at index zero.
      *
