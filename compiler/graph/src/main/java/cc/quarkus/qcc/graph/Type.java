@@ -2,12 +2,13 @@ package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
-import io.smallrye.common.constraint.Assert;
 
 /**
  *
  */
 public interface Type extends Node {
+
+    Type[] NO_TYPES = new Type[0];
 
     // TODO: Void isn't really a type...
     VoidType VOID = new VoidTypeImpl();

@@ -713,6 +713,30 @@ final class DefinedMethodBody {
         }
     }
 
+    int getLocalVarEntryCount(int varIdx) {
+        return localVariables[varIdx].length / 5;
+    }
+
+    int getLocalVarStartPc(int varIdx, int entryIdx) {
+        return localVariables[varIdx][entryIdx * 5];
+    }
+
+    int getLocalVarLength(int varIdx, int entryIdx) {
+        return localVariables[varIdx][entryIdx * 5 + 1];
+    }
+
+    int getLocalVarNameIndex(int varIdx, int entryIdx) {
+        return localVariables[varIdx][entryIdx * 5 + 2];
+    }
+
+    int getLocalVarDescriptorIndex(int varIdx, int entryIdx) {
+        return localVariables[varIdx][entryIdx * 5 + 3];
+    }
+
+    int getLocalVarSignatureIndex(int varIdx, int entryIdx) {
+        return localVariables[varIdx][entryIdx * 5 + 4];
+    }
+
     int getCodeOffs() {
         return codeOffs;
     }

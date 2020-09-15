@@ -12,6 +12,8 @@ public interface ClassType extends Type {
 
     ClassType getSuperClass();
 
+    UninitializedType uninitialized();
+
     default boolean hasSuperClass() {
         return getSuperClass() != null;
     }

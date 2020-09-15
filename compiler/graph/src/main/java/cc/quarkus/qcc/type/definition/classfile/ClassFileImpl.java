@@ -56,6 +56,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     private final int[] methodOffsets;
     private final int[][] methodAttributeOffsets;
     private final int[] attributeOffsets;
+    private final int thisClassIdx;
 
     ClassFileImpl(final JavaObject definingClassLoader, final ByteBuffer buffer) {
         super(buffer);
@@ -181,6 +182,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         this.definingClassLoader = definingClassLoader;
         this.attributeOffsets = attributeOffsets;
         this.cpOffsets = cpOffsets;
+        this.thisClassIdx = thisClassIdx;
         strings = new String[cpOffsets.length];
     }
 
@@ -259,12 +261,12 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         return cpOffset == 0 ? 0 : getLong(cpOffset + offset);
     }
 
-    private Type resolveSingleDescriptor(int cpIdx) {
+    Type resolveSingleDescriptor(int cpIdx) {
         int cpOffset = cpOffsets[cpIdx];
         return resolveSingleDescriptor(cpOffset + 3, getShort(cpOffset + 1));
     }
 
-    private Type resolveSingleDescriptor(final int offs, final int maxLen) {
+    Type resolveSingleDescriptor(final int offs, final int maxLen) {
         if (maxLen < 1) {
             throw new InvalidTypeDescriptorException("Invalid empty type descriptor");
         }
@@ -285,6 +287,11 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             case 'L': return loadClass(offs + 1, maxLen - 1, true);
             default: throw new InvalidTypeDescriptorException("Invalid type descriptor character '" + (char) b + "'");
         }
+    }
+
+    public ClassType resolveType() {
+        int offset = cpOffsets[thisClassIdx];
+        return loadClass(offset + 3, getShort(offset + 1), false);
     }
 
     private ClassType loadClass(final int offs, final int maxLen, final boolean expectTerminator) {
@@ -864,5 +871,4 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         }
         return newVal;
     }
-
 }
