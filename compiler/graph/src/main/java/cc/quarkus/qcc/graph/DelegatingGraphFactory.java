@@ -23,155 +23,247 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().phi(type, basicBlock);
     }
 
-    public Value if_(final Value condition, final Value trueValue, final Value falseValue) {
-        return getDelegate().if_(condition, trueValue, falseValue);
+    public PhiValue phi(final Type type, final NodeHandle basicBlockHandle) {
+        return getDelegate().phi(type, basicBlockHandle);
     }
 
-    public Value binaryOperation(final CommutativeBinaryValue.Kind kind, final Value v1, final Value v2) {
-        return getDelegate().binaryOperation(kind, v1, v2);
+    public Value if_(final Context ctxt, final Value condition, final Value trueValue, final Value falseValue) {
+        return getDelegate().if_(ctxt, condition, trueValue, falseValue);
     }
 
-    public Value binaryOperation(final NonCommutativeBinaryValue.Kind kind, final Value v1, final Value v2) {
-        return getDelegate().binaryOperation(kind, v1, v2);
+    public Value lengthOfArray(final Context ctxt, final Value array) {
+        return getDelegate().lengthOfArray(ctxt, array);
     }
 
-    public Value unaryOperation(final UnaryValue.Kind kind, final Value v) {
-        return getDelegate().unaryOperation(kind, v);
-    }
-
-    public Value lengthOfArray(final Value array) {
-        return getDelegate().lengthOfArray(array);
-    }
-
-    public Value instanceOf(final Value v, final ClassType type) {
-        return getDelegate().instanceOf(v, type);
-    }
-
-    public Value reinterpretCast(final Value v, final Type type) {
-        return getDelegate().reinterpretCast(v, type);
-    }
-
-    public Value castOperation(final WordCastValue.Kind kind, final Value value, final WordType toType) {
-        return getDelegate().castOperation(kind, value, toType);
+    public Value instanceOf(final Context ctxt, final Value v, final ClassType type) {
+        return getDelegate().instanceOf(ctxt, v, type);
     }
 
     public PhiDependency phiDependency(final BasicBlock basicBlock) {
         return getDelegate().phiDependency(basicBlock);
     }
 
-    public Node multiDependency(final Node... nodes) {
-        return getDelegate().multiDependency(nodes);
+    public PhiDependency phiDependency(final NodeHandle basicBlockHandle) {
+        return getDelegate().phiDependency(basicBlockHandle);
     }
 
-    public Value multiDependency(final Value value, final Node... nodes) {
-        return getDelegate().multiDependency(value, nodes);
+    public Value new_(final Context ctxt, final ClassType type) {
+        return getDelegate().new_(ctxt, type);
     }
 
-    public Value new_(final Node dependency, final ClassType type) {
-        return getDelegate().new_(dependency, type);
+    public Value newArray(final Context ctxt, final ArrayType type, final Value size) {
+        return getDelegate().newArray(ctxt, type, size);
     }
 
-    public Value newArray(final Node dependency, final ArrayType type, final Value size) {
-        return getDelegate().newArray(dependency, type, size);
+    public Value multiNewArray(final Context ctxt, final ArrayType type, final Value... dimensions) {
+        return getDelegate().multiNewArray(ctxt, type, dimensions);
     }
 
-    public Value pointerLoad(final Node dependency, final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-        return getDelegate().pointerLoad(dependency, pointer, accessMode, atomicityMode);
+    public Value clone(final Context ctxt, final Value object) {
+        return getDelegate().clone(ctxt, object);
     }
 
-    public Value readInstanceField(final Node dependency, final Value instance, final ClassType owner, final String name, final JavaAccessMode mode) {
-        return getDelegate().readInstanceField(dependency, instance, owner, name, mode);
+    public Value pointerLoad(final Context ctxt, final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
+        return getDelegate().pointerLoad(ctxt, pointer, accessMode, atomicityMode);
     }
 
-    public Value readStaticField(final Node dependency, final ClassType owner, final String name, final JavaAccessMode mode) {
-        return getDelegate().readStaticField(dependency, owner, name, mode);
+    public Value readInstanceField(final Context ctxt, final Value instance, final ClassType owner, final String name, final JavaAccessMode mode) {
+        return getDelegate().readInstanceField(ctxt, instance, owner, name, mode);
     }
 
-    public Value readArrayValue(final Node dependency, final Value array, final Value index, final JavaAccessMode mode) {
-        return getDelegate().readArrayValue(dependency, array, index, mode);
+    public Value readStaticField(final Context ctxt, final ClassType owner, final String name, final JavaAccessMode mode) {
+        return getDelegate().readStaticField(ctxt, owner, name, mode);
     }
 
-    public Node pointerStore(final Node dependency, final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-        return getDelegate().pointerStore(dependency, pointer, value, accessMode, atomicityMode);
+    public Value readArrayValue(final Context ctxt, final Value array, final Value index, final JavaAccessMode mode) {
+        return getDelegate().readArrayValue(ctxt, array, index, mode);
     }
 
-    public Node writeInstanceField(final Node dependency, final Value instance, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeInstanceField(dependency, instance, owner, name, value, mode);
+    public Node pointerStore(final Context ctxt, final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
+        return getDelegate().pointerStore(ctxt, pointer, value, accessMode, atomicityMode);
     }
 
-    public Node writeStaticField(final Node dependency, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeStaticField(dependency, owner, name, value, mode);
+    public Node writeInstanceField(final Context ctxt, final Value instance, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
+        return getDelegate().writeInstanceField(ctxt, instance, owner, name, value, mode);
     }
 
-    public Node writeArrayValue(final Node dependency, final Value array, final Value index, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeArrayValue(dependency, array, index, value, mode);
+    public Node writeStaticField(final Context ctxt, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
+        return getDelegate().writeStaticField(ctxt, owner, name, value, mode);
     }
 
-    public Node fence(final Node dependency, final MemoryAtomicityMode fenceType) {
-        return getDelegate().fence(dependency, fenceType);
+    public Node writeArrayValue(final Context ctxt, final Value array, final Value index, final Value value, final JavaAccessMode mode) {
+        return getDelegate().writeArrayValue(ctxt, array, index, value, mode);
     }
 
-    public Node invokeMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeMethod(dependency, owner, method, arguments);
+    public Node fence(final Context ctxt, final MemoryAtomicityMode fenceType) {
+        return getDelegate().fence(ctxt, fenceType);
     }
 
-    public Node invokeInstanceMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeInstanceMethod(dependency, instance, kind, owner, method, arguments);
+    public Node monitorEnter(final Context ctxt, final Value obj) {
+        return getDelegate().monitorEnter(ctxt, obj);
     }
 
-    public Value invokeValueMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeValueMethod(dependency, owner, method, arguments);
+    public Node monitorExit(final Context ctxt, final Value obj) {
+        return getDelegate().monitorExit(ctxt, obj);
     }
 
-    public Value invokeInstanceValueMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeInstanceValueMethod(dependency, instance, kind, owner, method, arguments);
+    public Node invokeMethod(final Context ctxt, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return getDelegate().invokeMethod(ctxt, owner, method, arguments);
     }
 
-    public Terminator goto_(final Node dependency, final NodeHandle targetHandle) {
-        return getDelegate().goto_(dependency, targetHandle);
+    public Node invokeInstanceMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return getDelegate().invokeInstanceMethod(ctxt, instance, kind, owner, method, arguments);
     }
 
-    public Terminator if_(final Node dependency, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
-        return getDelegate().if_(dependency, condition, trueTarget, falseTarget);
+    public Value invokeValueMethod(final Context ctxt, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return getDelegate().invokeValueMethod(ctxt, owner, method, arguments);
     }
 
-    public Terminator return_(final Node dependency) {
-        return getDelegate().return_(dependency);
+    public Value invokeInstanceValueMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        return getDelegate().invokeInstanceValueMethod(ctxt, instance, kind, owner, method, arguments);
     }
 
-    public Terminator return_(final Node dependency, final Value value) {
-        return getDelegate().return_(dependency, value);
+    public Node goto_(final Context ctxt, final NodeHandle targetHandle) {
+        return getDelegate().goto_(ctxt, targetHandle);
     }
 
-    public Terminator throw_(final Node dependency, final Value value) {
-        return getDelegate().throw_(dependency, value);
+    public Node if_(final Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
+        return getDelegate().if_(ctxt, condition, trueTarget, falseTarget);
     }
 
-    public Terminator switch_(final Node dependency, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
-        return getDelegate().switch_(dependency, value, checkValues, targets, defaultTarget);
+    public Node return_(final Context ctxt) {
+        return getDelegate().return_(ctxt);
     }
 
-    public Terminator tryInvokeMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return getDelegate().tryInvokeMethod(dependency, owner, method, arguments, returnTarget, catchTarget);
+    public Node return_(final Context ctxt, final Value value) {
+        return getDelegate().return_(ctxt, value);
     }
 
-    public Terminator tryInvokeInstanceMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return getDelegate().tryInvokeInstanceMethod(dependency, instance, kind, owner, method, arguments, returnTarget, catchTarget);
+    public Node throw_(final Context ctxt, final Value value) {
+        return getDelegate().throw_(ctxt, value);
     }
 
-    public ValueTerminator tryInvokeValueMethod(final Node dependency, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return getDelegate().tryInvokeValueMethod(dependency, owner, method, arguments, returnTarget, catchTarget);
+    public Node switch_(final Context ctxt, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
+        return getDelegate().switch_(ctxt, value, checkValues, targets, defaultTarget);
     }
 
-    public ValueTerminator tryInvokeInstanceValueMethod(final Node dependency, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments, final NodeHandle returnTarget, final NodeHandle catchTarget) {
-        return getDelegate().tryInvokeInstanceValueMethod(dependency, instance, kind, owner, method, arguments, returnTarget, catchTarget);
+    public Value add(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().add(ctxt, v1, v2);
     }
 
-    public Terminator tryThrow(final Node dependency, final Value value, final NodeHandle catchTarget) {
-        return getDelegate().tryThrow(dependency, value, catchTarget);
+    public Value multiply(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().multiply(ctxt, v1, v2);
     }
 
-    public BasicBlock block(final Terminator term) {
-        return getDelegate().block(term);
+    public Value and(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().and(ctxt, v1, v2);
+    }
+
+    public Value or(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().or(ctxt, v1, v2);
+    }
+
+    public Value xor(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().xor(ctxt, v1, v2);
+    }
+
+    public Value cmpEq(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().cmpEq(ctxt, v1, v2);
+    }
+
+    public Value cmpNe(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().cmpNe(ctxt, v1, v2);
+    }
+
+    public Value shr(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().shr(ctxt, v1, v2);
+    }
+
+    public Value shl(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().shl(ctxt, v1, v2);
+    }
+
+    public Value sub(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().sub(ctxt, v1, v2);
+    }
+
+    public Value divide(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().divide(ctxt, v1, v2);
+    }
+
+    public Value remainder(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().remainder(ctxt, v1, v2);
+    }
+
+    public Value cmpLt(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().cmpLt(ctxt, v1, v2);
+    }
+
+    public Value cmpGt(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().cmpGt(ctxt, v1, v2);
+    }
+
+    public Value cmpLe(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().cmpLe(ctxt, v1, v2);
+    }
+
+    public Value cmpGe(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().cmpGe(ctxt, v1, v2);
+    }
+
+    public Value rol(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().rol(ctxt, v1, v2);
+    }
+
+    public Value ror(final Context ctxt, final Value v1, final Value v2) {
+        return getDelegate().ror(ctxt, v1, v2);
+    }
+
+    public Value negate(final Context ctxt, final Value v) {
+        return getDelegate().negate(ctxt, v);
+    }
+
+    public Value byteSwap(final Context ctxt, final Value v) {
+        return getDelegate().byteSwap(ctxt, v);
+    }
+
+    public Value bitReverse(final Context ctxt, final Value v) {
+        return getDelegate().bitReverse(ctxt, v);
+    }
+
+    public Value countLeadingZeros(final Context ctxt, final Value v) {
+        return getDelegate().countLeadingZeros(ctxt, v);
+    }
+
+    public Value countTrailingZeros(final Context ctxt, final Value v) {
+        return getDelegate().countTrailingZeros(ctxt, v);
+    }
+
+    public Value truncate(final Context ctxt, final Value value, final WordType toType) {
+        return getDelegate().truncate(ctxt, value, toType);
+    }
+
+    public Value extend(final Context ctxt, final Value value, final WordType toType) {
+        return getDelegate().extend(ctxt, value, toType);
+    }
+
+    public Value bitCast(final Context ctxt, final Value value, final WordType toType) {
+        return getDelegate().bitCast(ctxt, value, toType);
+    }
+
+    public Value valueConvert(final Context ctxt, final Value value, final WordType toType) {
+        return getDelegate().valueConvert(ctxt, value, toType);
+    }
+
+    public Value populationCount(final Context ctxt, final Value v) {
+        return getDelegate().populationCount(ctxt, v);
+    }
+
+    public Value jsr(final Context ctxt, final NodeHandle target, final NodeHandle returnBlock) {
+        return getDelegate().jsr(ctxt, target, returnBlock);
+    }
+
+    public Node ret(final Context ctxt, final Value address) {
+        return getDelegate().ret(ctxt, address);
     }
 }

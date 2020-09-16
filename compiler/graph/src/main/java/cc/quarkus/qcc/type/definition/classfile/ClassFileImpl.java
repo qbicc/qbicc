@@ -289,6 +289,20 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         }
     }
 
+    ClassType resolveSingleType(int cpIdx) {
+        int cpOffset = cpOffsets[cpIdx];
+        return resolveSingleType(cpOffset + 3, getShort(cpOffset + 1));
+    }
+
+    ClassType resolveSingleType(int offs, int maxLen) {
+        return loadClass(offs + 1, maxLen - 1, false);
+    }
+
+    ClassType resolveSingleType(String name) {
+        JavaVM vm = JavaVM.requireCurrentThread().getVM();
+        return vm.loadClass(definingClassLoader, name).getTypeDefinition().verify().getClassType();
+    }
+
     public ClassType resolveType() {
         int offset = cpOffsets[thisClassIdx];
         return loadClass(offset + 3, getShort(offset + 1), false);

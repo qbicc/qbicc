@@ -104,6 +104,14 @@ public interface Type extends Node {
         return true;
     }
 
+    default boolean isSigned() {
+        return false;
+    }
+
+    default boolean isUnsigned() {
+        return false;
+    }
+
     /**
      * Get the zero value for this type.
      *

@@ -7,4 +7,8 @@ public interface UnsignedIntegerType extends IntegerType {
     default boolean isAssignableFrom(Type otherType) {
         return otherType instanceof UnsignedIntegerType && ((UnsignedIntegerType) otherType).getSize() == getSize();
     }
+
+    default boolean isUnsigned() {
+        return true;
+    }
 }

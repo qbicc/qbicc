@@ -4,6 +4,7 @@ import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.NoSuchElementException;
 
 /**
  * The defined method body content, before verification.
@@ -21,7 +22,9 @@ final class DefinedMethodBody {
     private final int codeLen;
     private final int exTableOffs;
     private final int exTableLen;
-    private final short[] entryPoints; // format: destination source (alternating), sorted by destination (ascending) then source (ascending)
+
+    private final short[] entryPoints; // format: dest-bci (unsigned) cnt (unsigned), sorted by dest-bci
+
     private final short[] lineNumbers; // format: start_pc line_number (alternating), sorted uniquely by start_pc (ascending)
     /**
      * Each entry is an array of non-overlapping intervals for the corresponding local var slot.
@@ -55,6 +58,7 @@ final class DefinedMethodBody {
         codeOffs = codeAttr.position();
         short[] entryPoints = NO_SHORTS;
         int entryPointLen = 0;
+        int entryPointSourcesLen = 0;
         // process bytecodes for entry points
         int src = 0;
         int target;
@@ -73,37 +77,45 @@ final class DefinedMethodBody {
                 case OP_IFEQ:
                 case OP_IFNE:
                 case OP_IFNONNULL:
-                case OP_IFNULL:
+                case OP_IFNULL: {
+                    // just like GOTO except we also need to fall through
+                    target = src + 2;
+                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
+                    if (idx < 0) {
+                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
+                    }
+                    //goto case OP_GOTO;
+                }
                 case OP_GOTO: {
                     target = src + codeAttr.getShort();
-                    int idx = findEntryPoint(entryPoints, entryPointLen, target, src);
+                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
-                        entryPoints = insertEntryPoint(entryPoints, idx, entryPointLen++, target, src);
+                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
                     }
                     break;
                 }
                 case OP_GOTO_W: {
                     target = src + codeAttr.getInt();
-                    int idx = findEntryPoint(entryPoints, entryPointLen, target, src);
+                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
-                        entryPoints = insertEntryPoint(entryPoints, idx, entryPointLen++, target, src);
+                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
                     }
                     break;
                 }
                 case OP_LOOKUPSWITCH: {
                     align(codeAttr, 4);
                     target = src + codeAttr.getInt();
-                    int idx = findEntryPoint(entryPoints, entryPointLen, target, src);
+                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
-                        entryPoints = insertEntryPoint(entryPoints, idx, entryPointLen++, target, src);
+                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
                     }
                     int cnt = codeAttr.getInt();
                     for (int i = 0; i < cnt; i ++) {
                         codeAttr.getInt(); // match
                         target = src + codeAttr.getInt();
-                        idx = findEntryPoint(entryPoints, entryPointLen, target, src);
+                        idx = findEntryPoint(entryPoints, entryPointLen, target);
                         if (idx < 0) {
-                            entryPoints = insertEntryPoint(entryPoints, idx, entryPointLen++, target, src);
+                            entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
                         }
                     }
                     break;
@@ -111,9 +123,9 @@ final class DefinedMethodBody {
                 case OP_TABLESWITCH: {
                     align(codeAttr, 4);
                     target = src + codeAttr.getInt();
-                    int idx = findEntryPoint(entryPoints, entryPointLen, target, src);
+                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
-                        entryPoints = insertEntryPoint(entryPoints, idx, entryPointLen++, target, src);
+                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
                     }
                     int cnt = -(codeAttr.getInt() - codeAttr.getInt());
                     if (cnt < 0) {
@@ -122,9 +134,9 @@ final class DefinedMethodBody {
                     for (int i = 0; i < cnt; i ++) {
                         codeAttr.getInt(); // match
                         target = src + codeAttr.getInt();
-                        idx = findEntryPoint(entryPoints, entryPointLen, target, src);
+                        idx = findEntryPoint(entryPoints, entryPointLen, target);
                         if (idx < 0) {
-                            entryPoints = insertEntryPoint(entryPoints, idx, entryPointLen++, target, src);
+                            entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
                         }
                     }
                     break;
@@ -552,7 +564,7 @@ final class DefinedMethodBody {
         }
     }
 
-    private short[] insertEntryPoint(short[] entryPoints, int idx, final int entryPointLen, final int target, final int src) {
+    static short[] insertNewEntryPoint(short[] entryPoints, int idx, final int entryPointLen, final int target) {
         assert idx < 0;
         idx = -idx - 1;
         if (entryPointLen == entryPoints.length) {
@@ -564,11 +576,11 @@ final class DefinedMethodBody {
             System.arraycopy(entryPoints, base, entryPoints, base + 2, (entryPointLen - idx) << 1);
         }
         entryPoints[base] = (short) target;
-        entryPoints[base + 1] = (short) src;
+        entryPoints[base + 1] = 1;
         return entryPoints;
     }
 
-    static int findEntryPoint(final short[] entryPoints, final int entryPointLen, final int target, final int src) {
+    static int findEntryPoint(final short[] entryPoints, final int entryPointLen, final int target) {
         if (entryPoints == null) {
             return -1;
         }
@@ -583,16 +595,8 @@ final class DefinedMethodBody {
             } else if (midVal > target) {
                 high = mid - 1;
             } else {
-                // target matches, now check source
-                midVal = entryPoints[(mid << 1) + 1] & 0xffff;
-                if (midVal < src) {
-                    low = mid + 1;
-                } else if (midVal > src) {
-                    high = mid - 1;
-                } else {
-                    // found it
-                    return mid;
-                }
+                // target matches; bump the count
+                entryPoints[(mid << 1) + 1]++;
             }
         }
         // not present
@@ -681,12 +685,25 @@ final class DefinedMethodBody {
         return entryPoints.length >> 1;
     }
 
-    int getEntryPointSource(int index) {
-        return entryPoints[(index << 1) + 1];
-    }
-
     int getEntryPointDestination(int index) {
         return entryPoints[index << 1];
+    }
+
+    int getEntryPointIndex(final int target) {
+        int low = 0;
+        int high = getEntryPointCount();
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            int midVal = entryPoints[mid << 1];
+            if (midVal < target) {
+                low = mid + 1;
+            } else if (midVal > target) {
+                high = mid - 1;
+            } else {
+                return mid;
+            }
+        }
+        return -low - 1;
     }
 
     int getLineNumber(int bci) {

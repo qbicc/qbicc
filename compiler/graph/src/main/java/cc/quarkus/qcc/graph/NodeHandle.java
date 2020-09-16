@@ -1,26 +1,31 @@
 package cc.quarkus.qcc.graph;
 
-final class NodeHandle {
+public final class NodeHandle {
     private Object target;
 
-    NodeHandle() {
+    public NodeHandle() {
     }
 
-    void setTarget(Node target) {
+    public <N extends Node> N setTarget(N target) {
         //noinspection RedundantCast
         this.target = (NodeImpl) target;
+        return target;
     }
 
-    void setTarget(NodeHandle target) {
+    public NodeHandle setTarget(NodeHandle target) {
+        if (target == this) {
+            return target;
+        }
         Object oldTarget = this.target;
         if (oldTarget instanceof NodeHandle) {
             ((NodeHandle) oldTarget).setTarget(target);
         } else {
             this.target = target;
         }
+        return target;
     }
 
-    NodeHandle lastHandle() {
+    public NodeHandle lastHandle() {
         Object target = this.target;
         if (target instanceof NodeHandle) {
             return ((NodeHandle) target).lastHandle();
@@ -31,13 +36,17 @@ final class NodeHandle {
         }
     }
 
+    public boolean hasTarget() {
+        return lastHandle().target instanceof NodeImpl;
+    }
+
     // helper
-    static NodeHandle of(Node node) {
+    public static NodeHandle of(Node node) {
         return node == null ? null : ((NodeImpl) node).getHandle().lastHandle();
     }
 
     @SuppressWarnings("unchecked")
-    static <N extends Node> N getTargetOf(NodeHandle handle) {
+    public static <N extends Node> N getTargetOf(NodeHandle handle) {
         return handle == null ? null : (N) handle.lastHandle().target;
     }
 

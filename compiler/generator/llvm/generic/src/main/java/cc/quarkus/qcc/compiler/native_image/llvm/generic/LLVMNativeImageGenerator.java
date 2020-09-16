@@ -462,8 +462,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             cc.quarkus.qcc.machine.llvm.BasicBlock target = getBlock(param, node);
             Value val;
             switch (node.getKind()) {
-                case UNSIGNED_SHR: val = target.lshr(inputType, llvmLeft, llvmRight).asLocal(); break;
-                case SHR: val = target.ashr(inputType, llvmLeft, llvmRight).asLocal(); break;
+                case SHR: val = (javaInputType.isUnsigned() ? target.lshr(inputType, llvmLeft, llvmRight) : target.ashr(inputType, llvmLeft, llvmRight)).asLocal(); break;
                 case SHL: val = target.shl(inputType, llvmLeft, llvmRight).asLocal(); break;
                 case SUB: val = isFloating(javaInputType) ?
                                 target.fsub(inputType, llvmLeft, llvmRight).asLocal() :

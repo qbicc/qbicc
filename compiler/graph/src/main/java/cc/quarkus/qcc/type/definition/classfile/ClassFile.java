@@ -60,7 +60,7 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
     /**
      * Quoting from OpenJDK:
      *
-     * A polymorphic signature method (JLS 15.12.3) is a method that
+     * A signature-polymorphic method (JLS 15.12.3) is a method that
      *   (i) is declared in the java.lang.invoke.MethodHandle/VarHandle classes;
      *  (ii) takes a single variable arity parameter;
      * (iii) whose declared type is Object[];
@@ -69,6 +69,7 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
      */
     int I_ACC_SIGNATURE_POLYMORPHIC = 1 << 16;
     int I_ACC_DEPRECATED = 1 << 17;
+    int I_ACC_HIDDEN = 1 << 18;
 
     int V9 = 0 << 16 | 53;
 
@@ -280,6 +281,14 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
     int OP_IMPDEP1 = 0xfe;
     int OP_IMPDEP2 = 0xff;
 
+    int T_BOOLEAN = 4;
+    int T_CHAR = 5;
+    int T_FLOAT = 6;
+    int T_DOUBLE = 7;
+    int T_BYTE = 8;
+    int T_SHORT = 9;
+    int T_INT = 10;
+    int T_LONG = 11;
 
     ByteBuffer getBackingBuffer();
 
@@ -360,6 +369,11 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
         return getNameAndTypeConstantDescriptor(getRawConstantShort(idx, 3));
     }
 
+    default int getFieldrefConstantDescriptorIdx(final int idx) {
+        checkConstantType(idx, CONSTANT_Fieldref);
+        return getNameAndTypeConstantDescriptorIdx(getRawConstantShort(idx, 3));
+    }
+
     default String getMethodrefConstantClassName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_Methodref);
         return getClassConstantName(getRawConstantShort(idx, 1));
@@ -396,8 +410,12 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
     }
 
     default String getNameAndTypeConstantDescriptor(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        return getUtf8Constant(getNameAndTypeConstantDescriptorIdx(idx));
+    }
+
+    default int getNameAndTypeConstantDescriptorIdx(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_NameAndType);
-        return getUtf8Constant(getRawConstantShort(idx, 3));
+        return getRawConstantShort(idx, 3);
     }
 
     // todo: MethodHandle

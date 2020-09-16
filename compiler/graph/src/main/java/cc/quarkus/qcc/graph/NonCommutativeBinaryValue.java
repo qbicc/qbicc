@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph;
 
-import org.objectweb.asm.Opcodes;
+import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
 
 /**
  *
@@ -24,7 +24,6 @@ public interface NonCommutativeBinaryValue extends BinaryValue {
     }
 
     enum Kind {
-        UNSIGNED_SHR,
         SHR,
         SHL,
         SUB,
@@ -34,54 +33,54 @@ public interface NonCommutativeBinaryValue extends BinaryValue {
         CMP_GT,
         CMP_LE,
         CMP_GE,
+        ROL,
+        ROR,
         ;
 
         public static Kind fromOpcode(final int opcode) {
             switch (opcode) {
-                case Opcodes.IUSHR:
-                case Opcodes.LUSHR: {
-                    return UNSIGNED_SHR;
-                }
-                case Opcodes.ISHR:
-                case Opcodes.LSHR: {
+                case OP_IUSHR:
+                case OP_LUSHR:
+                case OP_ISHR:
+                case OP_LSHR: {
                     return SHR;
                 }
-                case Opcodes.ISHL:
-                case Opcodes.LSHL: {
+                case OP_ISHL:
+                case OP_LSHL: {
                     return SHL;
                 }
-                case Opcodes.IFLT:
-                case Opcodes.IF_ICMPLT: {
+                case OP_IFLT:
+                case OP_IF_ICMPLT: {
                     return CMP_LT;
                 }
-                case Opcodes.IFLE:
-                case Opcodes.IF_ICMPLE: {
+                case OP_IFLE:
+                case OP_IF_ICMPLE: {
                     return CMP_LE;
                 }
-                case Opcodes.IFGT:
-                case Opcodes.IF_ICMPGT: {
+                case OP_IFGT:
+                case OP_IF_ICMPGT: {
                     return CMP_GT;
                 }
-                case Opcodes.IFGE:
-                case Opcodes.IF_ICMPGE: {
+                case OP_IFGE:
+                case OP_IF_ICMPGE: {
                     return CMP_GE;
                 }
-                case Opcodes.IDIV:
-                case Opcodes.LDIV:
-                case Opcodes.DDIV:
-                case Opcodes.FDIV: {
+                case OP_IDIV:
+                case OP_LDIV:
+                case OP_DDIV:
+                case OP_FDIV: {
                     return DIV;
                 }
-                case Opcodes.IREM:
-                case Opcodes.LREM:
-                case Opcodes.DREM:
-                case Opcodes.FREM: {
+                case OP_IREM:
+                case OP_LREM:
+                case OP_DREM:
+                case OP_FREM: {
                     return MOD;
                 }
-                case Opcodes.ISUB:
-                case Opcodes.LSUB:
-                case Opcodes.FSUB:
-                case Opcodes.DSUB: {
+                case OP_ISUB:
+                case OP_LSUB:
+                case OP_FSUB:
+                case OP_DSUB: {
                     return SUB;
                 }
                 default: {

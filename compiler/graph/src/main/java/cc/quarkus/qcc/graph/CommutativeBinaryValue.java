@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph;
 
-import org.objectweb.asm.Opcodes;
+import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
 
 /**
  *
@@ -33,40 +33,40 @@ public interface CommutativeBinaryValue extends BinaryValue {
 
         public static Kind fromOpcode(int opcode) {
             switch (opcode) {
-                case Opcodes.LADD:
-                case Opcodes.FADD:
-                case Opcodes.DADD:
-                case Opcodes.IADD: {
+                case OP_LADD:
+                case OP_FADD:
+                case OP_DADD:
+                case OP_IADD: {
                     return ADD;
                 }
-                case Opcodes.LAND:
-                case Opcodes.IAND: {
+                case OP_LAND:
+                case OP_IAND: {
                     return AND;
                 }
-                case Opcodes.LOR:
-                case Opcodes.IOR: {
+                case OP_LOR:
+                case OP_IOR: {
                     return OR;
                 }
-                case Opcodes.LXOR:
-                case Opcodes.IXOR: {
+                case OP_LXOR:
+                case OP_IXOR: {
                     return XOR;
                 }
-                case Opcodes.IFEQ:
-                case Opcodes.IFNULL:
-                case Opcodes.IF_ACMPEQ:
-                case Opcodes.IF_ICMPEQ: {
+                case OP_IFEQ:
+                case OP_IFNULL:
+                case OP_IF_ACMPEQ:
+                case OP_IF_ICMPEQ: {
                     return CMP_EQ;
                 }
-                case Opcodes.IFNE:
-                case Opcodes.IFNONNULL:
-                case Opcodes.IF_ACMPNE:
-                case Opcodes.IF_ICMPNE: {
+                case OP_IFNE:
+                case OP_IFNONNULL:
+                case OP_IF_ACMPNE:
+                case OP_IF_ICMPNE: {
                     return CMP_NE;
                 }
-                case Opcodes.IMUL:
-                case Opcodes.LMUL:
-                case Opcodes.FMUL:
-                case Opcodes.DMUL: {
+                case OP_IMUL:
+                case OP_LMUL:
+                case OP_FMUL:
+                case OP_DMUL: {
                     return MULTIPLY;
                 }
                 default: {

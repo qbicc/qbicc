@@ -38,6 +38,10 @@ final class PhiValueImpl extends ValueImpl implements PhiValue {
         bbi.outboundValues = Util.mapWithEntry(ov, key, NodeHandle.of(value));
     }
 
+    public void setValueForBlock(final NodeHandle input, final Value value) {
+        setValueForBlock(NodeHandle.<BasicBlock>getTargetOf(input), value);
+    }
+
     public Type getType() {
         return NodeHandle.getTargetOf(type);
     }

@@ -219,7 +219,6 @@ final class JavaThreadImpl implements JavaThread {
                 } else if (binaryValue instanceof NonCommutativeBinaryValue) {
                     NonCommutativeBinaryValue.Kind kind = ((NonCommutativeBinaryValue) binaryValue).getKind();
                     switch (kind) {
-                        case UNSIGNED_SHR:
                         case SHR:
                         case SHL:
                         case SUB:

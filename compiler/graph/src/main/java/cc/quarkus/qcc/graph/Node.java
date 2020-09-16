@@ -46,11 +46,7 @@ public interface Node {
         } else if (cnt == 1) {
             return getBasicDependency(0);
         } else {
-            Node[] nodes = new Node[cnt];
-            for (int i = 0; i < cnt ; i ++) {
-                nodes[i] = getBasicDependency(i);
-            }
-            return graphFactory.multiDependency(nodes);
+            throw new IllegalStateException();
         }
     }
 }

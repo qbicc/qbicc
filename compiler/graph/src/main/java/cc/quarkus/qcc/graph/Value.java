@@ -26,9 +26,19 @@ public interface Value extends Node {
         return new ConstantValue32(operand, Type.S32);
     }
 
+    static ConstantValue const_(int operand, Type type) {
+        // todo: cache
+        return new ConstantValue32(operand, type);
+    }
+
     static ConstantValue const_(long operand) {
         // todo: cache
         return new ConstantValue64(operand, Type.S64);
+    }
+
+    static ConstantValue const_(long operand, Type type) {
+        // todo: cache
+        return new ConstantValue64(operand, type);
     }
 
     static ConstantValue const_(float floatValue) {
