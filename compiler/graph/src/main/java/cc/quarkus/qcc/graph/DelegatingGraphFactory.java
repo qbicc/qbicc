@@ -39,14 +39,6 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().instanceOf(ctxt, v, type);
     }
 
-    public PhiDependency phiDependency(final BasicBlock basicBlock) {
-        return getDelegate().phiDependency(basicBlock);
-    }
-
-    public PhiDependency phiDependency(final NodeHandle basicBlockHandle) {
-        return getDelegate().phiDependency(basicBlockHandle);
-    }
-
     public Value new_(final Context ctxt, final ClassType type) {
         return getDelegate().new_(ctxt, type);
     }

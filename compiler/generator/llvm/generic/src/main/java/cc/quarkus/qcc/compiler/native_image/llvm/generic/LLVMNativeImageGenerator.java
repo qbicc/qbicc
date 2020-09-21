@@ -37,7 +37,6 @@ import cc.quarkus.qcc.graph.InvocationValue;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NonCommutativeBinaryValue;
 import cc.quarkus.qcc.graph.ParameterValue;
-import cc.quarkus.qcc.graph.PhiDependency;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Return;
 import cc.quarkus.qcc.graph.SignedIntegerType;
@@ -496,13 +495,6 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
 
         public void visit(final MethodContext param, final ParameterValue node) {
             // already cached
-        }
-
-        public void visit(final MethodContext param, final PhiDependency node) {
-            if (! param.built.add(node)) {
-                return;
-            }
-            visitDependencies(param, node);
         }
 
         public void visit(final MethodContext param, final PhiValue node) {

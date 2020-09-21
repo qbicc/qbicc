@@ -49,14 +49,6 @@ public class LineNumberGraphFactory extends DelegatingGraphFactory {
         return withLineNumber(getDelegate().phi(type, basicBlockHandle));
     }
 
-    public PhiDependency phiDependency(final BasicBlock basicBlock) {
-        return withLineNumber(getDelegate().phiDependency(basicBlock));
-    }
-
-    public PhiDependency phiDependency(final NodeHandle basicBlockHandle) {
-        return withLineNumber(getDelegate().phiDependency(basicBlockHandle));
-    }
-
     public Value new_(final Context ctxt, final ClassType type) {
         return withLineNumber(getDelegate().new_(ctxt, type));
     }

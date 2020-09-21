@@ -108,10 +108,6 @@ public interface GraphVisitor<P> {
         visitUnknown(param, node);
     }
 
-    default void visit(P param, PhiDependency node) {
-        visitUnknown(param, node);
-    }
-
     default void visit(P param, PhiValue node) {
         visitUnknown(param, node);
     }

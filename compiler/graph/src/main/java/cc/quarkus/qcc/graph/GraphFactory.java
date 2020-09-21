@@ -18,14 +18,6 @@ public interface GraphFactory {
 
     PhiValue phi(Type type, NodeHandle basicBlockHandle);
 
-    // phi dependency
-
-    @Deprecated // null represents no deps within block; block deps are implicit
-    PhiDependency phiDependency(BasicBlock basicBlock);
-
-    @Deprecated
-    PhiDependency phiDependency(NodeHandle basicBlockHandle);
-
     // ternary
 
     Value if_(Context ctxt, Value condition, Value trueValue, Value falseValue);
@@ -427,14 +419,6 @@ public interface GraphFactory {
             value.setInstance(v);
             value.setInstanceType(type);
             return value;
-        }
-
-        public PhiDependency phiDependency(final BasicBlock basicBlock) {
-            return phiDependency(NodeHandle.of(basicBlock));
-        }
-
-        public PhiDependency phiDependency(final NodeHandle basicBlockHandle) {
-            return new PhiDependencyImpl(basicBlockHandle);
         }
 
         public Value new_(Context ctxt, final ClassType type) {
