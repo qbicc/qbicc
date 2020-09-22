@@ -5,18 +5,24 @@ import java.util.List;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 
 /**
- * A graph factory which sets the line number on each created node.
+ * A graph factory which sets the line number and bytecode index on each created node.
  */
 public class LineNumberGraphFactory extends DelegatingGraphFactory {
-    private int lineNumber;
+    private int lineNumber; // 0 == none
+    private int bytecodeIndex; // -1 == none
 
     public LineNumberGraphFactory(final GraphFactory delegate) {
         super(delegate);
     }
 
     private <N> N withLineNumber(N orig) {
-        if (orig instanceof Node && lineNumber != 0) {
-            ((Node) orig).setSourceLine(lineNumber);
+        if (orig instanceof Node) {
+            if (lineNumber > 0) {
+                ((Node) orig).setSourceLine(lineNumber);
+            }
+            if (bytecodeIndex >= 0) {
+                ((Node) orig).setBytecodeIndex(bytecodeIndex);
+            }
         }
         return orig;
     }
@@ -27,6 +33,14 @@ public class LineNumberGraphFactory extends DelegatingGraphFactory {
 
     public void setLineNumber(final int lineNumber) {
         this.lineNumber = lineNumber;
+    }
+
+    public int getBytecodeIndex() {
+        return bytecodeIndex;
+    }
+
+    public void setBytecodeIndex(final int bytecodeIndex) {
+        this.bytecodeIndex = bytecodeIndex;
     }
 
     public Value if_(final Context ctxt, final Value condition, final Value trueValue, final Value falseValue) {

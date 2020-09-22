@@ -21,6 +21,10 @@ public interface Node {
 
     void setSourceLine(int sourceLine);
 
+    int getBytecodeIndex();
+
+    void setBytecodeIndex(int bytecodeIndex);
+
     <P> void accept(GraphVisitor<P> visitor, P param);
 
     default int getValueDependencyCount() {

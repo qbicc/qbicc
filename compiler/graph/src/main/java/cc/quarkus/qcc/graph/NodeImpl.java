@@ -9,6 +9,7 @@ abstract class NodeImpl implements Node {
     private NodeHandle myHandle;
     private int id = hashCode();
     private int sourceLine;
+    private int bytecodeIndex;
 
     public void replaceWith(final Node other) {
         Assert.checkNotNullParam("other", other);
@@ -28,6 +29,14 @@ abstract class NodeImpl implements Node {
 
     public void setSourceLine(final int sourceLine) {
         this.sourceLine = sourceLine;
+    }
+
+    public int getBytecodeIndex() {
+        return bytecodeIndex;
+    }
+
+    public void setBytecodeIndex(final int bytecodeIndex) {
+        this.bytecodeIndex = bytecodeIndex;
     }
 
     public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
