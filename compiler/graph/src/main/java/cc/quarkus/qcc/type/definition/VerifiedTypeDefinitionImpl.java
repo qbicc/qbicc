@@ -16,6 +16,7 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
  */
 final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
     private final DefinedTypeDefinitionImpl delegate;
+    private final JavaClass javaClass;
     private final ClassType classType;
     private final VerifiedTypeDefinition superType;
     private final VerifiedTypeDefinition[] interfaces;
@@ -47,12 +48,13 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
         } else {
             classType = Type.classType(this, superType == null ? null : superType.getClassType(), interfaceTypes);
         }
+        javaClass = null; // TODO: chicken/egg situation
     }
 
     // delegates
 
     public JavaClass getJavaClass() {
-        return delegate.getJavaClass();
+        return javaClass;
     }
 
     public String getInternalName() {

@@ -325,11 +325,17 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
      * @throws ConstantTypeMismatchException if the constant pool entry is of the wrong type
      */
     default String getClassConstantName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        if (idx == 0) {
+            return null;
+        }
         checkConstantType(idx, CONSTANT_Class);
         return getUtf8Constant(getRawConstantShort(idx, 1));
     }
 
     default String getStringConstant(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        if (idx == 0) {
+            return null;
+        }
         checkConstantType(idx, CONSTANT_String);
         return getUtf8Constant(getRawConstantShort(idx, 1));
     }

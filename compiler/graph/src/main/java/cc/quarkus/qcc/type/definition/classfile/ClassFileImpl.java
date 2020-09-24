@@ -76,10 +76,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         if (major < 45 || major == 45 && minor < 3 || major > 55 || major == 55 && minor > 0) {
             throw new DefineFailedException("Unsupported class version " + major + "." + minor);
         }
-        int cpCount = (scanBuf.getShort() & 0xffff) - 1;
+        int cpCount = (scanBuf.getShort() & 0xffff);
         // one extra slot because the constant pool is one-based, so just leave a hole at the beginning
-        int[] cpOffsets = new int[cpCount + 1];
-        for (int i = 1; i < cpCount + 1; i ++) {
+        int[] cpOffsets = new int[cpCount];
+        for (int i = 1; i < cpCount; i ++) {
             cpOffsets[i] = scanBuf.position();
             int tag = scanBuf.get() & 0xff;
             switch (tag) {
@@ -137,6 +137,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         for (int i = 0; i < fieldsCnt; i ++) {
             fieldOffsets[i] = scanBuf.position();
             int fieldAccess = scanBuf.getShort() & 0xffff;
+            scanBuf.getShort(); // name index
+            scanBuf.getShort(); // descriptor index
             // skip attributes
             int attrCnt = scanBuf.getShort() & 0xffff;
             fieldAttributeOffsets[i] = new int[attrCnt];
@@ -153,11 +155,14 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         for (int i = 0; i < methodsCnt; i ++) {
             methodOffsets[i] = scanBuf.position();
             int methodAccess = scanBuf.getShort() & 0xffff;
+            scanBuf.getShort(); // name index
+            scanBuf.getShort(); // descriptor index
             // skip attributes - except for code (for now)
             int attrCnt = scanBuf.getShort() & 0xffff;
             methodAttributeOffsets[i] = new int[attrCnt];
             for (int j = 0; j < attrCnt; j ++) {
                 methodAttributeOffsets[i][j] = scanBuf.position();
+                scanBuf.getShort(); // name index
                 int size = scanBuf.getInt();
                 scanBuf.position(scanBuf.position() + size);
             }
@@ -299,17 +304,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     ClassType resolveSingleType(String name) {
-        JavaVM vm = JavaVM.requireCurrentThread().getVM();
+        JavaVM vm = JavaVM.requireCurrent();
         return vm.loadClass(definingClassLoader, name).getTypeDefinition().verify().getClassType();
     }
 
     public ClassType resolveType() {
-        int offset = cpOffsets[thisClassIdx];
+        int nameIdx = getShort(cpOffsets[thisClassIdx] + 1);
+        int offset = cpOffsets[nameIdx];
         return loadClass(offset + 3, getShort(offset + 1), false);
     }
 
     private ClassType loadClass(final int offs, final int maxLen, final boolean expectTerminator) {
-        JavaVM vm = JavaVM.requireCurrentThread().getVM();
+        JavaVM vm = JavaVM.requireCurrent();
         return vm.loadClass(definingClassLoader, vm.deduplicate(definingClassLoader, buffer, offs, maxLen, expectTerminator)).getTypeDefinition().verify().getClassType();
     }
 
@@ -553,6 +559,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     public FieldElement resolveField(final int index) {
         FieldElement.Builder builder = FieldElement.builder();
+        builder.setEnclosingType(resolveType().getDefinition());
         builder.setTypeResolver(this, index);
         builder.setModifiers(getShort(fieldOffsets[index]));
         builder.setName(getUtf8Constant(getShort(fieldOffsets[index] + 2)));
@@ -562,6 +569,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     public MethodElement resolveMethod(final int index) {
         MethodElement.Builder builder = MethodElement.builder();
+        builder.setEnclosingType(resolveType().getDefinition());
         builder.setReturnTypeResolver(this, index);
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
@@ -581,6 +589,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     public ConstructorElement resolveConstructor(final int index) {
         ConstructorElement.Builder builder = ConstructorElement.builder();
+        builder.setEnclosingType(resolveType().getDefinition());
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
         addExactBody(builder, index);
@@ -591,6 +600,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     public InitializerElement resolveInitializer(final int index) {
         InitializerElement.Builder builder = InitializerElement.builder();
+        builder.setEnclosingType(resolveType().getDefinition());
         builder.setModifiers(ACC_STATIC);
         addExactBody(builder, index);
         return builder.build();

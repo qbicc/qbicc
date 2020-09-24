@@ -35,7 +35,6 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final int initializerIndex;
     private final Annotation[] visibleAnnotations;
     private final Annotation[] invisibleAnnotations;
-    private final JavaClass javaClass;
 
     private volatile DefinedTypeDefinition verified;
 
@@ -49,7 +48,6 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private static final Annotation[][][] NO_ANNOTATION_ARRAY_ARRAYS = new Annotation[0][][];
 
     DefinedTypeDefinitionImpl(final BuilderImpl builder) {
-        this.javaClass = Assert.checkNotNullParam("builder.javaClass", builder.javaClass);
         this.definingClassLoader = builder.definingClassLoader;
         this.internalName = Assert.checkNotNullParam("builder.internalName", builder.internalName);
         this.superClassName = builder.superClassName;
@@ -71,10 +69,6 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         this.invisibleAnnotations = annotationCount == 0 ? Annotation.NO_ANNOTATIONS : Arrays.copyOf(builder.invisibleAnnotations, annotationCount);
         this.initializerResolver = builder.initializerResolver;
         this.initializerIndex = builder.initializerIndex;
-    }
-
-    public JavaClass getJavaClass() {
-        return javaClass;
     }
 
     public String getInternalName() {
@@ -116,7 +110,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         }
         VerifiedTypeDefinition superType;
         if (superClassName != null) {
-            superType = JavaVM.currentThread().getVM().loadClass(definingClassLoader, superClassName).getTypeDefinition();
+            superType = JavaVM.requireCurrent().loadClass(definingClassLoader, superClassName).getTypeDefinition();
         } else {
             superType = null;
         }
@@ -204,16 +198,16 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         String superClassName = "java/lang/Object";
         int modifiers = ClassFile.ACC_SUPER;
         int interfaceCount;
-        String[] interfaceNames;
+        String[] interfaceNames = NO_INTERFACES;
         int methodCount;
-        MethodResolver[] methodResolvers;
-        int[] methodIndexes;
+        MethodResolver[] methodResolvers = NO_METHODS;
+        int[] methodIndexes = NO_INTS;
         int fieldCount;
-        FieldResolver[] fieldResolvers;
-        int[] fieldIndexes;
+        FieldResolver[] fieldResolvers = NO_FIELDS;
+        int[] fieldIndexes = NO_INTS;
         int constructorCount;
-        ConstructorResolver[] constructorResolvers;
-        int[] constructorIndexes;
+        ConstructorResolver[] constructorResolvers = NO_CONSTRUCTORS;
+        int[] constructorIndexes = NO_INTS;
         InitializerResolver initializerResolver = InitializerResolver.EMPTY;
         int initializerIndex;
         int visibleAnnotationCount;
@@ -253,7 +247,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             int fieldCount = this.fieldCount;
             if (fieldCount == len) {
                 // just grow it
-                int newSize = ((len << 1) + len) >> 1;
+                int newSize = len == 0 ? 4 : len << 1;
                 fieldResolvers = this.fieldResolvers = Arrays.copyOf(fieldResolvers, newSize);
                 fieldIndexes = this.fieldIndexes = Arrays.copyOf(fieldIndexes, newSize);
             }
@@ -285,7 +279,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             int methodCount = this.methodCount;
             if (methodCount == len) {
                 // just grow it
-                int newSize = ((len << 1) + len) >> 1;
+                int newSize = len == 0 ? 4 : len << 1;
                 methodResolvers = this.methodResolvers = Arrays.copyOf(methodResolvers, newSize);
                 methodIndexes = this.methodIndexes = Arrays.copyOf(methodIndexes, newSize);
             }
@@ -317,7 +311,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             int constructorCount = this.constructorCount;
             if (constructorCount == len) {
                 // just grow it
-                int newSize = ((len << 1) + len) >> 1;
+                int newSize = len == 0 ? 4 : len << 1;
                 constructorResolvers = this.constructorResolvers = Arrays.copyOf(constructorResolvers, newSize);
                 constructorIndexes = this.constructorIndexes = Arrays.copyOf(constructorIndexes, newSize);
             }
@@ -346,7 +340,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             int interfaceCount = this.interfaceCount;
             if (interfaceCount == len) {
                 // just grow it
-                int newSize = ((len << 1) + len) >> 1;
+                int newSize = len == 0 ? 4 : len << 1;
                 interfaceNames = this.interfaceNames = Arrays.copyOf(interfaceNames, newSize);
             }
             interfaceNames[interfaceCount] = interfaceInternalName;
@@ -376,7 +370,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                 int len = annotations.length;
                 if (annotationCount == len) {
                     // just grow it
-                    int newSize = ((len << 1) + len) >> 1;
+                    int newSize = len == 0 ? 4 : len << 1;
                     annotations = this.visibleAnnotations = Arrays.copyOf(annotations, newSize);
                 }
             }
@@ -407,7 +401,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                 int len = annotations.length;
                 if (annotationCount == len) {
                     // just grow it
-                    int newSize = ((len << 1) + len) >> 1;
+                    int newSize = len == 0 ? 4 : len << 1;
                     annotations = this.invisibleAnnotations = Arrays.copyOf(annotations, newSize);
                 }
             }

@@ -42,6 +42,8 @@ public interface BasicElement {
     interface Builder {
         void setModifiers(int flags);
 
+        void setEnclosingType(final DefinedTypeDefinition enclosingType);
+
         BasicElement build();
     }
 }

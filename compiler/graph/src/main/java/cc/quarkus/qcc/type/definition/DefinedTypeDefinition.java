@@ -33,8 +33,6 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
      */
     JavaObject getDefiningClassLoader();
 
-    JavaClass getJavaClass();
-
     String getInternalName();
 
     boolean internalNameEquals(String internalName);

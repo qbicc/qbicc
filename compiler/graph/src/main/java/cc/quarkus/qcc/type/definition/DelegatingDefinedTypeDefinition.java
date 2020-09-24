@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.interpreter.JavaClass;
 import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.type.annotation.Annotation;
 
@@ -18,10 +17,6 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
 
     public JavaObject getDefiningClassLoader() {
         return getDelegate().getDefiningClassLoader();
-    }
-
-    public JavaClass getJavaClass() {
-        return getDelegate().getJavaClass();
     }
 
     public String getInternalName() {

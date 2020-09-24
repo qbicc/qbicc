@@ -158,8 +158,7 @@ final class JavaVMImpl implements JavaVM {
 
     public JavaClass findLoadedClass(final JavaObject classLoader, final String name) {
         DefinedTypeDefinition loadedClass = getDictionaryFor(classLoader).findLoadedClass(name);
-        // todo...
-        return getJavaClassOf(loadedClass.verify().getClassType());
+        return loadedClass == null ? null : getJavaClassOf(loadedClass.verify().getClassType());
     }
 
     public JavaThread newThread(final String threadName, final JavaObject threadGroup, final boolean daemon) {
