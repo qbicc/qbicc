@@ -24,6 +24,12 @@ import cc.quarkus.qcc.graph.LineNumberGraphFactory;
 import cc.quarkus.qcc.graph.NodeHandle;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Ret;
+import cc.quarkus.qcc.graph.Switch;
+import cc.quarkus.qcc.graph.TryInstanceInvocation;
+import cc.quarkus.qcc.graph.TryInstanceInvocationValue;
+import cc.quarkus.qcc.graph.TryInvocation;
+import cc.quarkus.qcc.graph.TryInvocationValue;
+import cc.quarkus.qcc.graph.TryThrow;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
@@ -855,8 +861,7 @@ final class ClassParser {
                     int target = src + (opcode == OP_GOTO ? buffer.getShort() : buffer.getInt());
                     BasicBlock from = gf.goto_(ctxt, getBlockForIndex(target));
                     // set the position after, so that the bci for the instruction is correct
-                    buffer.position(target);
-                    processBlock(buffer, from);
+                    processBlock(buffer.position(target), from);
                     return;
                 }
                 case OP_JSR:
@@ -873,8 +878,7 @@ final class ClassParser {
                     BasicBlock termBlock = gf.jsr(ctxt, dest, retBlock);
                     int pos = buffer.position();
                     // process the jsr call target block
-                    buffer.position(target);
-                    processBlock(buffer, termBlock);
+                    processBlock(buffer.position(target), termBlock);
                     BasicBlock jsrTargetBlock = NodeHandle.getTargetOf(dest);
                     // traverse the JSR target block to find the exit state, if any
                     RetPhiComputingVisitor jv = new RetPhiComputingVisitor();
@@ -884,7 +888,7 @@ final class ClassParser {
                         restoreStack(jv.exitStack);
                         restoreLocals(jv.exitLocals);
                         buffer.position(pos);
-                        processBlock(buffer, termBlock);
+                        processBlock(buffer.position(pos), termBlock);
                     }
                     return;
                 }
@@ -1255,6 +1259,38 @@ final class ClassParser {
 
         public void visit(final BasicBlock returnBlock, final Jsr node) {
             handleBlock(returnBlock, node.getReturn());
+        }
+
+        public void visit(final BasicBlock returnBlock, final Switch node) {
+            handleBlock(returnBlock, node.getDefaultTarget());
+            int cnt = node.getNumberOfValues();
+            for (int i = 0; i < cnt; i ++) {
+                handleBlock(returnBlock, node.getTargetForValue(i));
+            }
+        }
+
+        public void visit(final BasicBlock returnBlock, final TryInstanceInvocation node) {
+            handleBlock(returnBlock, node.getCatchHandler());
+            handleBlock(returnBlock, node.getTarget());
+        }
+
+        public void visit(final BasicBlock returnBlock, final TryInstanceInvocationValue node) {
+            handleBlock(returnBlock, node.getCatchHandler());
+            handleBlock(returnBlock, node.getTarget());
+        }
+
+        public void visit(final BasicBlock returnBlock, final TryInvocation node) {
+            handleBlock(returnBlock, node.getCatchHandler());
+            handleBlock(returnBlock, node.getTarget());
+        }
+
+        public void visit(final BasicBlock returnBlock, final TryInvocationValue node) {
+            handleBlock(returnBlock, node.getCatchHandler());
+            handleBlock(returnBlock, node.getTarget());
+        }
+
+        public void visit(final BasicBlock returnBlock, final TryThrow node) {
+            handleBlock(returnBlock, node.getCatchHandler());
         }
     }
 }
