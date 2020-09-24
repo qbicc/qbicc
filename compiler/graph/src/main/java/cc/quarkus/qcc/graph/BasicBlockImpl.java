@@ -42,7 +42,7 @@ final class BasicBlockImpl extends NodeImpl implements BasicBlock {
                 ((BasicBlockImpl)ifTi.getFalseBranch()).findReachable(set);
             }
             if (ti instanceof Goto) {
-                ((BasicBlockImpl)((Goto) ti).getNextBlock()).findReachable(set);
+                ((BasicBlockImpl)((Goto) ti).getTarget()).findReachable(set);
             }
             if (ti instanceof Try) {
                 ((BasicBlockImpl)((Try) ti).getCatchHandler()).findReachable(set);

@@ -7,8 +7,11 @@ public final class NodeHandle {
     }
 
     public <N extends Node> N setTarget(N target) {
-        //noinspection RedundantCast
-        this.target = (NodeImpl) target;
+        NodeImpl nodeTarget = (NodeImpl) target;
+        if (nodeTarget.getHandleIfExists() == null) {
+            nodeTarget.setHandle(this);
+        }
+        this.target = nodeTarget;
         return target;
     }
 

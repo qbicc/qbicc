@@ -46,7 +46,7 @@ public interface BasicBlock extends Node {
         }
         if (terminator instanceof Goto) {
             if (cnt == 0) {
-                return ((Goto) terminator).getNextBlock();
+                return ((Goto) terminator).getTarget();
             } else {
                 cnt--;
             }

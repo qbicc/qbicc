@@ -139,27 +139,27 @@ public class LineNumberGraphFactory extends DelegatingGraphFactory {
         return withLineNumber(getDelegate().invokeInstanceValueMethod(ctxt, instance, kind, owner, method, arguments));
     }
 
-    public Node goto_(final Context ctxt, final NodeHandle targetHandle) {
+    public BasicBlock goto_(final Context ctxt, final NodeHandle targetHandle) {
         return withLineNumber(getDelegate().goto_(ctxt, targetHandle));
     }
 
-    public Node if_(final Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
+    public BasicBlock if_(final Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
         return withLineNumber(getDelegate().if_(ctxt, condition, trueTarget, falseTarget));
     }
 
-    public Node return_(final Context ctxt) {
+    public BasicBlock return_(final Context ctxt) {
         return withLineNumber(getDelegate().return_(ctxt));
     }
 
-    public Node return_(final Context ctxt, final Value value) {
+    public BasicBlock return_(final Context ctxt, final Value value) {
         return withLineNumber(getDelegate().return_(ctxt, value));
     }
 
-    public Node throw_(final Context ctxt, final Value value) {
+    public BasicBlock throw_(final Context ctxt, final Value value) {
         return withLineNumber(getDelegate().throw_(ctxt, value));
     }
 
-    public Node switch_(final Context ctxt, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
+    public BasicBlock switch_(final Context ctxt, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
         return withLineNumber(getDelegate().switch_(ctxt, value, checkValues, targets, defaultTarget));
     }
 
@@ -273,5 +273,13 @@ public class LineNumberGraphFactory extends DelegatingGraphFactory {
 
     public Value populationCount(final Context ctxt, final Value v) {
         return withLineNumber(getDelegate().populationCount(ctxt, v));
+    }
+
+    public BasicBlock jsr(final Context ctxt, final NodeHandle target, final NodeHandle ret) {
+        return withLineNumber(getDelegate().jsr(ctxt, target, ret));
+    }
+
+    public BasicBlock ret(final Context ctxt, final Value address) {
+        return withLineNumber(getDelegate().ret(ctxt, address));
     }
 }

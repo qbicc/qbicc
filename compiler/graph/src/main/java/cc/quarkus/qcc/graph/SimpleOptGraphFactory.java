@@ -44,15 +44,15 @@ public class SimpleOptGraphFactory extends DelegatingGraphFactory {
         return getDelegate().instanceOf(ctxt, v, type);
     }
 
-    public Node if_(final Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
+    public BasicBlock if_(final Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
         if (condition instanceof ConstantValue) {
             NodeHandle h = new NodeHandle();
             if (((ConstantValue) condition).isTrue()) {
-                Node node = goto_(ctxt, trueTarget);
+                BasicBlock node = goto_(ctxt, trueTarget);
                 ctxt.setCurrentBlock(h);
                 return node;
             } else {
-                Node node = goto_(ctxt, h);
+                BasicBlock node = goto_(ctxt, h);
                 ctxt.setCurrentBlock(h);
                 return node;
             }

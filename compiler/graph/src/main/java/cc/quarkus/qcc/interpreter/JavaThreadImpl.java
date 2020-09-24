@@ -174,7 +174,7 @@ final class JavaThreadImpl implements JavaThread {
             }
             if (terminator instanceof Goto) {
                 // continue to the next block
-                return execute(block, schedule, ((Goto) terminator).getNextBlock(), values);
+                return execute(block, schedule, ((Goto) terminator).getTarget(), values);
             }
             if (terminator instanceof If) {
                 If if_ = (If) terminator;

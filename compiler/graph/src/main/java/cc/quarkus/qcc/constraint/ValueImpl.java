@@ -69,6 +69,14 @@ public class ValueImpl implements Value {
 
     }
 
+    public int getBytecodeIndex() {
+        return 0;
+    }
+
+    public void setBytecodeIndex(final int bytecodeIndex) {
+
+    }
+
     public <P> void accept(final GraphVisitor<P> visitor, final P param) {
 
     }

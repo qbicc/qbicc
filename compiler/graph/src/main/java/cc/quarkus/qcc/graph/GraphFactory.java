@@ -132,29 +132,36 @@ public interface GraphFactory {
 
     // control flow - terminalBlock is updated to point to this terminator
 
-    Node goto_(Context ctxt, NodeHandle targetHandle);
+    /**
+     * Generate a {@code goto} termination node.  The terminated block is returned.
+     *
+     * @param ctxt the current context (must not be {@code null})
+     * @param targetHandle the handle of the jump target (must not be {@code null})
+     * @return the terminated block
+     */
+    BasicBlock goto_(Context ctxt, NodeHandle targetHandle);
 
     /**
      * Construct an {@code if} node.  If the condition is true, the {@code trueTarget} will receive control.  Otherwise,
      * the {@code falseTarget} will receive control.
      * <p>
-     * Terminates the current block.
+     * Terminates the current block, which is returned.
      *
      * @param ctxt the context (must not be {@code null})
      * @param condition the condition (must not be {@code null})
      * @param trueTarget the execution target to use when {@code condition} is {@code true}
      * @param falseTarget the execution target to use when {@code condition} is {@code false}
-     * @return the new node, which is also added to the context as the current dependency
+     * @return the terminated block
      */
-    Node if_(Context ctxt, Value condition, NodeHandle trueTarget, NodeHandle falseTarget);
+    BasicBlock if_(Context ctxt, Value condition, NodeHandle trueTarget, NodeHandle falseTarget);
 
-    Node return_(Context ctxt);
+    BasicBlock return_(Context ctxt);
 
-    Node return_(Context ctxt, Value value);
+    BasicBlock return_(Context ctxt, Value value);
 
-    Node throw_(Context ctxt, Value value);
+    BasicBlock throw_(Context ctxt, Value value);
 
-    Node switch_(Context ctxt, Value value, int[] checkValues, NodeHandle[] targets, NodeHandle defaultTarget);
+    BasicBlock switch_(Context ctxt, Value value, int[] checkValues, NodeHandle[] targets, NodeHandle defaultTarget);
 
     /**
      * Construct a {@code jsr} node which must be returned from.  Before lowering, {@code jsr} nodes are inlined,
@@ -164,10 +171,10 @@ public interface GraphFactory {
      *
      * @param ctxt the context (must not be {@code null})
      * @param target the subroutine call target (must not be {@code null})
-     * @param returnBlock the block to resume execution upon return (must not be {@code null})
-     * @return the return address value to be used by {@link #ret(Context,Value)}
+     * @param ret the block to return to (must not be {@code null})
+     * @return the terminated block
      */
-    Value jsr(Context ctxt, NodeHandle target, NodeHandle returnBlock);
+    BasicBlock jsr(Context ctxt, NodeHandle target, final NodeHandle ret);
 
     /**
      * Return from a {@code jsr} subroutine call.
@@ -175,10 +182,10 @@ public interface GraphFactory {
      * Terminates the current block.
      *
      * @param ctxt the context (must not be {@code null})
-     * @param address the return address returned by {@link #jsr(Context, NodeHandle, NodeHandle)}
+     * @param address the return address (must not be {@code null})
      * @return the node
      */
-    Node ret(Context ctxt, Value address);
+    BasicBlock ret(Context ctxt, Value address);
 
     /**
      * A basic factory which produces each kind of node.
@@ -634,40 +641,44 @@ public interface GraphFactory {
             return value;
         }
 
-        public Node goto_(Context ctxt, final NodeHandle targetHandle) {
+        public BasicBlock goto_(Context ctxt, final NodeHandle targetHandle) {
             GotoImpl op = new GotoImpl();
             op.setBasicDependency(ctxt.setDependency(null));
-            op.setNextBlock(targetHandle);
-            ctxt.getAndSetCurrentBlock(null).setTarget(block(op));
-            return op;
+            op.setTarget(targetHandle);
+            BasicBlock block = block(op);
+            ctxt.getAndSetCurrentBlock(null).setTarget(block);
+            return block;
         }
 
-        public Node if_(Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
+        public BasicBlock if_(Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
             IfImpl op = new IfImpl();
             op.setBasicDependency(ctxt.setDependency(null));
             op.setCondition(condition);
             op.setTrueBranch(trueTarget);
             op.setFalseBranch(falseTarget);
-            ctxt.getAndSetCurrentBlock(null).setTarget(block(op));
-            return op;
+            BasicBlock block = block(op);
+            ctxt.getAndSetCurrentBlock(null).setTarget(block);
+            return block;
         }
 
-        public Node return_(Context ctxt) {
+        public BasicBlock return_(Context ctxt) {
             ReturnImpl op = new ReturnImpl();
             op.setBasicDependency(ctxt.setDependency(null));
-            ctxt.getAndSetCurrentBlock(null).setTarget(block(op));
-            return op;
+            BasicBlock block = block(op);
+            ctxt.getAndSetCurrentBlock(null).setTarget(block);
+            return block;
         }
 
-        public Node return_(Context ctxt, final Value value) {
+        public BasicBlock return_(Context ctxt, final Value value) {
             ValueReturnImpl op = new ValueReturnImpl();
             op.setBasicDependency(ctxt.setDependency(null));
             op.setReturnValue(value);
-            ctxt.getAndSetCurrentBlock(null).setTarget(block(op));
-            return op;
+            BasicBlock block = block(op);
+            ctxt.getAndSetCurrentBlock(null).setTarget(block);
+            return block;
         }
 
-        public Node throw_(Context ctxt, final Value value) {
+        public BasicBlock throw_(Context ctxt, final Value value) {
             NodeHandle catch_ = ctxt.getCatch();
             ThrowImpl op;
             if (catch_ == null) {
@@ -679,19 +690,20 @@ public interface GraphFactory {
             }
             op.setBasicDependency(ctxt.setDependency(op));
             op.setThrownValue(value);
-            ctxt.getAndSetCurrentBlock(null).setTarget(block(op));
-            return op;
+            BasicBlock block = block(op);
+            ctxt.getAndSetCurrentBlock(null).setTarget(block);
+            return block;
         }
 
-        public Value jsr(final Context ctxt, final NodeHandle target, final NodeHandle returnBlock) {
+        public BasicBlock jsr(final Context ctxt, final NodeHandle target, final NodeHandle ret) {
             throw new UnsupportedOperationException();
         }
 
-        public Node ret(final Context ctxt, final Value address) {
+        public BasicBlock ret(final Context ctxt, final Value address) {
             throw new UnsupportedOperationException();
         }
 
-        public Node switch_(Context ctxt, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
+        public BasicBlock switch_(Context ctxt, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
             SwitchImpl op = new SwitchImpl();
             op.setBasicDependency(ctxt.setDependency(op));
             op.setDefaultTarget(defaultTarget);
@@ -702,8 +714,9 @@ public interface GraphFactory {
             for (int i = 0; i < length; i ++) {
                 op.setTargetForValue(checkValues[i], targets[i]);
             }
-            ctxt.getAndSetCurrentBlock(null).setTarget(block(op));
-            return op;
+            BasicBlock block = block(op);
+            ctxt.getAndSetCurrentBlock(null).setTarget(block);
+            return block;
         }
 
         BasicBlock block(final Terminator term) {

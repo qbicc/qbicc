@@ -59,4 +59,12 @@ public final class ReturnAddressType implements Type {
     public void setSourceLine(final int sourceLine) {
         throw new UnsupportedOperationException();
     }
+
+    public int getBytecodeIndex() {
+        throw new UnsupportedOperationException();
+    }
+
+    public void setBytecodeIndex(final int bytecodeIndex) {
+        throw new UnsupportedOperationException();
+    }
 }

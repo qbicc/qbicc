@@ -115,27 +115,27 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().invokeInstanceValueMethod(ctxt, instance, kind, owner, method, arguments);
     }
 
-    public Node goto_(final Context ctxt, final NodeHandle targetHandle) {
+    public BasicBlock goto_(final Context ctxt, final NodeHandle targetHandle) {
         return getDelegate().goto_(ctxt, targetHandle);
     }
 
-    public Node if_(final Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
+    public BasicBlock if_(final Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
         return getDelegate().if_(ctxt, condition, trueTarget, falseTarget);
     }
 
-    public Node return_(final Context ctxt) {
+    public BasicBlock return_(final Context ctxt) {
         return getDelegate().return_(ctxt);
     }
 
-    public Node return_(final Context ctxt, final Value value) {
+    public BasicBlock return_(final Context ctxt, final Value value) {
         return getDelegate().return_(ctxt, value);
     }
 
-    public Node throw_(final Context ctxt, final Value value) {
+    public BasicBlock throw_(final Context ctxt, final Value value) {
         return getDelegate().throw_(ctxt, value);
     }
 
-    public Node switch_(final Context ctxt, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
+    public BasicBlock switch_(final Context ctxt, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
         return getDelegate().switch_(ctxt, value, checkValues, targets, defaultTarget);
     }
 
@@ -251,11 +251,11 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().populationCount(ctxt, v);
     }
 
-    public Value jsr(final Context ctxt, final NodeHandle target, final NodeHandle returnBlock) {
-        return getDelegate().jsr(ctxt, target, returnBlock);
+    public BasicBlock jsr(final Context ctxt, final NodeHandle target, final NodeHandle ret) {
+        return getDelegate().jsr(ctxt, target, ret);
     }
 
-    public Node ret(final Context ctxt, final Value address) {
+    public BasicBlock ret(final Context ctxt, final Value address) {
         return getDelegate().ret(ctxt, address);
     }
 }

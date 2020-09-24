@@ -25,11 +25,11 @@ class TryInvocationImpl extends InvocationImpl implements TryInvocation {
         this.catchHandler = catchHandler;
     }
 
-    public BasicBlock getNextBlock() {
+    public BasicBlock getTarget() {
         return NodeHandle.getTargetOf(normalTarget);
     }
 
-    public void setNextBlock(final BasicBlock branch) {
+    public void setTarget(final BasicBlock branch) {
         this.normalTarget = NodeHandle.of(branch);
     }
 

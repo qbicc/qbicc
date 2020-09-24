@@ -7,12 +7,16 @@ public interface GraphVisitor<P> {
     default void visitDependencies(P param, Node node) {
         int cnt = node.getBasicDependencyCount();
         for (int i = 0; i < cnt; i++) {
-            node.getBasicDependency(i).accept(this, param);
+            visitDependency(param, node.getBasicDependency(i));
         }
         cnt = node.getValueDependencyCount();
         for (int i = 0; i < cnt; i++) {
-            node.getValueDependency(i).accept(this, param);
+            visitDependency(param, node.getValueDependency(i));
         }
+    }
+
+    default void visitDependency(P param, Node dependency) {
+        dependency.accept(this, param);
     }
 
     default void visitUnknown(P param, Node node) {
@@ -92,6 +96,10 @@ public interface GraphVisitor<P> {
         visitUnknown(param, node);
     }
 
+    default void visit(P param, Jsr node) {
+        visitUnknown(param, node);
+    }
+
     default void visit(P param, NewArrayValue node) {
         visitUnknown(param, node);
     }
@@ -109,6 +117,10 @@ public interface GraphVisitor<P> {
     }
 
     default void visit(P param, PhiValue node) {
+        visitUnknown(param, node);
+    }
+
+    default void visit(P param, Ret node) {
         visitUnknown(param, node);
     }
 

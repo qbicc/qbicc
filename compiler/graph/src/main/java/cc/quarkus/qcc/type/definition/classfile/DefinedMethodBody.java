@@ -706,6 +706,10 @@ final class DefinedMethodBody {
         return -low - 1;
     }
 
+    int getEntryPointSourceCount(final int epIdx) {
+        return entryPoints[(index << 1) + 1] & 0xffff;
+    }
+
     int getLineNumber(int bci) {
         int low = 0;
         int high = lineNumbers.length - 1;

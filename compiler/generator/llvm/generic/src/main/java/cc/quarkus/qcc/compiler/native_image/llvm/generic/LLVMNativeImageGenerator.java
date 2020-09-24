@@ -357,7 +357,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 return;
             }
             visitDependencies(param, node);
-            getBlock(param, node).br(getBlock(param, node.getNextBlock()));
+            getBlock(param, node).br(getBlock(param, node.getTarget()));
         }
 
         public void visit(final MethodContext param, final If node) {

@@ -12,15 +12,15 @@ final class GotoImpl extends TerminatorImpl implements Goto {
     GotoImpl() {
     }
 
-    public BasicBlock getNextBlock() {
+    public BasicBlock getTarget() {
         return NodeHandle.getTargetOf(target);
     }
 
-    public void setNextBlock(final BasicBlock branch) {
+    public void setTarget(final BasicBlock branch) {
         target = NodeHandle.of(branch);
     }
 
-    void setNextBlock(final NodeHandle target) {
+    void setTarget(final NodeHandle target) {
         this.target = target;
     }
 

@@ -13,12 +13,17 @@ import cc.quarkus.qcc.graph.ArrayClassType;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.ConstantValue;
+import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.GraphFactory;
+import cc.quarkus.qcc.graph.GraphVisitor;
+import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.InstanceInvocation;
 import cc.quarkus.qcc.graph.JavaAccessMode;
-import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.Jsr;
+import cc.quarkus.qcc.graph.LineNumberGraphFactory;
 import cc.quarkus.qcc.graph.NodeHandle;
 import cc.quarkus.qcc.graph.PhiValue;
+import cc.quarkus.qcc.graph.Ret;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
@@ -28,11 +33,12 @@ final class ClassParser {
     static final ConstantValue INT_SHIFT_MASK = Value.const_(0x1f);
     static final ConstantValue LONG_SHIFT_MASK = Value.const_(0x3f);
     final VerifiedMethodBody verifiedMethodBody;
-    final GraphFactory graphFactory;
     final Value[] stack;
     final Value[] locals;
     final NodeHandle[] blockHandles;
-    private final GraphFactory gf;
+    private Map<BasicBlock, Value[]> retStacks;
+    private Map<BasicBlock, Value[]> retLocals;
+    private final LineNumberGraphFactory gf;
     int sp;
     NodeHandle currentBlockHandle;
 
@@ -41,24 +47,17 @@ final class ClassParser {
         DefinedMethodBody definedBody = verifiedMethodBody.getDefinedBody();
         stack = new Value[definedBody.getMaxStack()];
         locals = new Value[definedBody.getMaxLocals()];
-        this.graphFactory = graphFactory;
         int cnt = definedBody.getEntryPointCount();
         NodeHandle[] blockHandles = new NodeHandle[cnt];
         int dest = -1;
-        NodeHandle current = null;
-        // make sure all entries for a given destination point to the same block
-        // XXX pending rewrite of VMB entry point array structures
+        // make a "canonical" node handle for each block
         for (int i = 0; i < cnt; i ++) {
-            if (definedBody.getEntryPointDestination(i) != dest) {
-                current = new NodeHandle();
-                dest = definedBody.getEntryPointDestination(i);
-            }
-            blockHandles[i] = current;
+            blockHandles[i] = new NodeHandle();
         }
         this.blockHandles = blockHandles;
         // it's not an entry point
         currentBlockHandle = new NodeHandle();
-        gf = graphFactory;
+        gf = new LineNumberGraphFactory(graphFactory);
     }
 
     // stack manipulation
@@ -225,14 +224,34 @@ final class ClassParser {
         return Arrays.copyOfRange(stack, 0, sp);
     }
 
+    void restoreStack(Value[] stack) {
+        if (sp > stack.length) {
+            Arrays.fill(this.stack, sp, stack.length, null);
+        }
+        System.arraycopy(stack, 0, this.stack, 0, stack.length);
+        sp = stack.length;
+    }
+
     Value[] saveLocals() {
         return locals.clone();
+    }
+
+    void restoreLocals(Value[] locals) {
+        assert locals.length == this.locals.length;
+        System.arraycopy(locals, 0, this.locals, 0, locals.length);
     }
 
     Map<NodeHandle, PhiValue[]> entryLocalsArrays = new HashMap<>();
     Map<NodeHandle, PhiValue[]> entryStacks = new HashMap<>();
 
-    void processBlock(ByteBuffer buffer, BasicBlock from, Value[] inputVars, Value[] inputStack) {
+    /**
+     * Process a single block.  The current stack and locals are used as a template for the phi value types within
+     * the block.  At exit the stack and locals are in an indeterminate state.
+     *
+     * @param buffer the bytecode buffer
+     * @param from the source (exiting) block
+     */
+    void processBlock(ByteBuffer buffer, BasicBlock from) {
         // this is the canonical map key handle
         NodeHandle block = getBlockForIndex(buffer.position());
         assert block != null : "No block registered for BCI " + buffer.position();
@@ -245,45 +264,49 @@ final class ClassParser {
             entryStack = entryStacks.get(block);
         } else {
             // not registered yet; process new block first
-            entryLocalsArray = new PhiValue[inputVars.length];
-            entryStack = new PhiValue[inputStack.length];
-            for (int i = 0; i < inputVars.length; i ++) {
-                if (inputVars[i] != null) {
-                    entryLocalsArray[i] = gf.phi(inputVars[i].getType(), block);
+            entryLocalsArray = new PhiValue[locals.length];
+            entryStack = new PhiValue[sp];
+            for (int i = 0; i < locals.length; i ++) {
+                if (locals[i] != null) {
+                    entryLocalsArray[i] = gf.phi(locals[i].getType(), block);
                 }
             }
-            for (int i = 0; i < inputStack.length; i ++) {
-                if (inputStack[i] != null) {
-                    entryStack[i] = gf.phi(inputStack[i].getType(), block);
+            for (int i = 0; i < sp; i ++) {
+                if (stack[i] != null) {
+                    entryStack[i] = gf.phi(stack[i].getType(), block);
                 }
             }
             entryLocalsArrays.put(block, entryLocalsArray);
             entryStacks.put(block, entryStack);
-            processNewBlock(buffer, block, entryLocalsArray, entryStack);
+            restoreStack(entryStack);
+            restoreLocals(entryLocalsArray);
+            processNewBlock(buffer, block);
         }
         // complete phis
-        assert inputVars.length == entryLocalsArray.length;
-        for (int i = 0; i < inputVars.length; i ++) {
-            if (inputVars[i] != null) {
-                entryLocalsArray[i].setValueForBlock(from, inputVars[i]);
+        for (int i = 0; i < locals.length; i ++) {
+            if (locals[i] != null) {
+                entryLocalsArray[i].setValueForBlock(from, locals[i]);
             }
         }
-        for (int i = 0; i < inputStack.length; i ++) {
-            Value old = inputStack[i];
+        for (int i = 0; i < sp; i ++) {
+            Value old = stack[i];
             if (old != null) {
                 entryStack[i].setValueForBlock(from, old);
             }
         }
     }
 
-    void processNewBlock(ByteBuffer buffer, final NodeHandle block, Value[] inputVars, Value[] inputStack) {
+    void processNewBlock(ByteBuffer buffer, final NodeHandle block) {
         GraphFactory.Context ctxt = new GraphFactory.Context(block);
         Value v1, v2, v3, v4;
         int opcode;
         int src;
         boolean wide;
+        DefinedMethodBody definedBody = verifiedMethodBody.getDefinedBody();
         while (buffer.hasRemaining()) {
             src = buffer.position();
+            gf.setBytecodeIndex(src);
+            gf.setLineNumber(definedBody.getLineNumber(src));
             opcode = buffer.get() & 0xff;
             wide = opcode == OP_WIDE;
             if (wide) {
@@ -786,72 +809,89 @@ final class ClassParser {
                     push(gf.if_(ctxt, v4, Value.const_(1), gf.if_(ctxt, v3, Value.const_(-1), Value.const_(0))));
                     break;
                 case OP_IFEQ:
-                    int dest1 = buffer.getShort() + src;
-                    int dest2 = buffer.position();
-                    NodeHandle b1 = getBlockForIndex(dest1);
-                    NodeHandle b2 = getBlockForIndex(dest2);
-                    Value[] varSnap = saveLocals();
-                    Value[] stackSnap = saveStack();
-                    gf.if_(ctxt, gf.cmpEq(ctxt, pop(Type.S32), Value.ICONST_0), b1, b2);
-                    processBlock(buffer.position(dest1), NodeHandle.getTargetOf(block), varSnap, stackSnap);
-                    processBlock(buffer.position(dest2), NodeHandle.getTargetOf(block), varSnap, stackSnap);
+                    processIf(buffer, ctxt, gf.cmpEq(ctxt, pop(Type.S32), Value.ICONST_0), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IFNE:
-                    gf.if_(ctxt, gf.cmpNe(ctxt, pop(Type.S32), Value.ICONST_0), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpNe(ctxt, pop(Type.S32), Value.ICONST_0), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IFLT:
-                    gf.if_(ctxt, gf.cmpLt(ctxt, pop(Type.S32), Value.ICONST_0), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpLt(ctxt, pop(Type.S32), Value.ICONST_0), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IFGE:
-                    gf.if_(ctxt, gf.cmpGe(ctxt, pop(Type.S32), Value.ICONST_0), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpGe(ctxt, pop(Type.S32), Value.ICONST_0), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IFGT:
-                    gf.if_(ctxt, gf.cmpGt(ctxt, pop(Type.S32), Value.ICONST_0), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpGt(ctxt, pop(Type.S32), Value.ICONST_0), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IFLE:
-                    gf.if_(ctxt, gf.cmpLe(ctxt, pop(Type.S32), Value.ICONST_0), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpLe(ctxt, pop(Type.S32), Value.ICONST_0), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPEQ:
-                    gf.if_(ctxt, gf.cmpEq(ctxt, pop(Type.S32), pop(Type.S32)), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpEq(ctxt, pop(Type.S32), pop(Type.S32)), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPNE:
-                    gf.if_(ctxt, gf.cmpNe(ctxt, pop(Type.S32), pop(Type.S32)), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpNe(ctxt, pop(Type.S32), pop(Type.S32)), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPLT:
-                    gf.if_(ctxt, gf.cmpLt(ctxt, pop(Type.S32), pop(Type.S32)), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpLt(ctxt, pop(Type.S32), pop(Type.S32)), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPGE:
-                    gf.if_(ctxt, gf.cmpGe(ctxt, pop(Type.S32), pop(Type.S32)), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpGe(ctxt, pop(Type.S32), pop(Type.S32)), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPGT:
-                    gf.if_(ctxt, gf.cmpGt(ctxt, pop(Type.S32), pop(Type.S32)), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpGt(ctxt, pop(Type.S32), pop(Type.S32)), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPLE:
-                    gf.if_(ctxt, gf.cmpLe(ctxt, pop(Type.S32), pop(Type.S32)), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpLe(ctxt, pop(Type.S32), pop(Type.S32)), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ACMPEQ:
-                    gf.if_(ctxt, gf.cmpEq(ctxt, pop(), pop()), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpEq(ctxt, pop(), pop()), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ACMPNE:
-                    gf.if_(ctxt, gf.cmpNe(ctxt, pop(), pop()), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpNe(ctxt, pop(), pop()), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_GOTO:
-                case OP_GOTO_W:
-                    int target1 = (opcode == OP_GOTO ? buffer.getShort() : buffer.getInt()) + src;
-                    gf.goto_(ctxt, getBlockForIndex(target1));
-                    // todo: recurse into target block
+                case OP_GOTO_W: {
+                    int target = src + (opcode == OP_GOTO ? buffer.getShort() : buffer.getInt());
+                    BasicBlock from = gf.goto_(ctxt, getBlockForIndex(target));
+                    // set the position after, so that the bci for the instruction is correct
+                    buffer.position(target);
+                    processBlock(buffer, from);
                     return;
+                }
                 case OP_JSR:
-                case OP_JSR_W:
+                case OP_JSR_W: {
                     int target = src + (opcode == OP_JSR ? buffer.getShort() : buffer.getInt());
                     int ret = buffer.position();
+                    // jsr destination
                     NodeHandle dest = getBlockForIndex(target);
-                    push(gf.jsr(ctxt, dest, getBlockForIndex(buffer.position())));
-                    // todo: recursively process dest *HERE*
-                    // todo: recursively process return block with stack output from JSR block
+                    // return address is really the target, used to compute the exit state
+                    ConstantValue ra = Value.const_(target, ReturnAddressType.INSTANCE);
+                    push(ra);
+                    NodeHandle retBlock = getBlockForIndex(ret);
+                    // the jsr call
+                    BasicBlock termBlock = gf.jsr(ctxt, dest, retBlock);
+                    int pos = buffer.position();
+                    // process the jsr call target block
+                    buffer.position(target);
+                    processBlock(buffer, termBlock);
+                    BasicBlock jsrTargetBlock = NodeHandle.getTargetOf(dest);
+                    // traverse the JSR target block to find the exit state, if any
+                    RetPhiComputingVisitor jv = new RetPhiComputingVisitor();
+                    jv.handleBlock(NodeHandle.getTargetOf(dest), jsrTargetBlock);
+                    // if we never exit (e.g. throw from all paths) then we don't need to continue
+                    if (jv.exited) {
+                        restoreStack(jv.exitStack);
+                        restoreLocals(jv.exitLocals);
+                        buffer.position(pos);
+                        processBlock(buffer, termBlock);
+                    }
                     return;
+                }
                 case OP_RET:
-                    gf.ret(ctxt, pop(ReturnAddressType.INSTANCE));
+                    // each ret records the output stack and locals at the point of the ret, and then exits.
+                    Value rat = pop(ReturnAddressType.INSTANCE);
+                    setJsrExitState(gf.ret(ctxt, rat), saveStack(), saveLocals());
                     // exit one level of recursion
                     return;
                 case OP_TABLESWITCH:
@@ -867,11 +907,14 @@ final class ClassParser {
                         vals[i] = low + i;
                         handles[i] = getBlockForIndex(dests[i] = buffer.getInt() + src);
                     }
-                    gf.switch_(ctxt, pop(Type.S32), vals, handles, getBlockForIndex(db + src));
-                    varSnap = saveLocals();
-                    stackSnap = saveStack();
+                    BasicBlock exited = gf.switch_(ctxt, pop(Type.S32), vals, handles, getBlockForIndex(db + src));
+                    Value[] stackSnap = saveStack();
+                    Value[] varSnap = saveLocals();
+                    processBlock(buffer.position(db + src), exited);
                     for (int i = 0; i < handles.length; i++) {
-                        processBlock(buffer.position(dests[i]), NodeHandle.getTargetOf(block), varSnap, stackSnap);
+                        restoreStack(stackSnap);
+                        restoreLocals(varSnap);
+                        processBlock(buffer.position(dests[i]), exited);
                     }
                     // done
                     return;
@@ -886,11 +929,14 @@ final class ClassParser {
                         vals[i] = buffer.getInt();
                         handles[i] = getBlockForIndex(dests[i] = buffer.getInt() + src);
                     }
-                    gf.switch_(ctxt, pop(Type.S32), vals, handles, getBlockForIndex(db + src));
-                    varSnap = saveLocals();
+                    exited = gf.switch_(ctxt, pop(Type.S32), vals, handles, getBlockForIndex(db + src));
                     stackSnap = saveStack();
+                    varSnap = saveLocals();
+                    processBlock(buffer.position(db + src), exited);
                     for (int i = 0; i < handles.length; i++) {
-                        processBlock(buffer.position(dests[i]), NodeHandle.getTargetOf(block), varSnap, stackSnap);
+                        restoreStack(stackSnap);
+                        restoreLocals(varSnap);
+                        processBlock(buffer.position(dests[i]), exited);
                     }
                     // done
                     return;
@@ -1016,10 +1062,10 @@ final class ClassParser {
                     v1 = pop();
                     NodeHandle okHandle = new NodeHandle();
                     NodeHandle notNullHandle = new NodeHandle();
-                    Node if1 = gf.if_(ctxt, gf.cmpEq(ctxt, v1, Value.NULL), okHandle, notNullHandle);
+                    gf.if_(ctxt, gf.cmpEq(ctxt, v1, Value.NULL), okHandle, notNullHandle);
                     ctxt.setCurrentBlock(notNullHandle);
                     NodeHandle castFailedHandle = new NodeHandle();
-                    Node if2 = gf.if_(ctxt, gf.instanceOf(ctxt, v1, clazz), okHandle, castFailedHandle);
+                    gf.if_(ctxt, gf.instanceOf(ctxt, v1, clazz), okHandle, castFailedHandle);
                     ctxt.setCurrentBlock(castFailedHandle);
                     ClassType cce = resolveClass("java/lang/ClassCastException");
                     // do not change stack depth starting here
@@ -1038,13 +1084,13 @@ final class ClassParser {
                     ctxt.setCurrentBlock(notNullHandle);
                     v1 = gf.instanceOf(ctxt, v1, clazz);
                     NodeHandle mergeHandle = new NodeHandle();
-                    Node g1 = gf.goto_(ctxt, mergeHandle);
+                    BasicBlock t1 = gf.goto_(ctxt, mergeHandle);
                     ctxt.setCurrentBlock(nullHandle);
-                    Node g2 = gf.goto_(ctxt, mergeHandle);
+                    BasicBlock t2 = gf.goto_(ctxt, mergeHandle);
                     ctxt.setCurrentBlock(mergeHandle);
-                    PhiValue phi = gf.phi(Type.BOOL, ctxt.getCurrentBlock());
-                    phi.setValueForBlock(nullHandle, Value.FALSE);
-                    phi.setValueForBlock(notNullHandle, v1);
+                    PhiValue phi = gf.phi(Type.BOOL, mergeHandle);
+                    phi.setValueForBlock(t2, Value.FALSE);
+                    phi.setValueForBlock(t1, v1);
                     push(phi);
                     break;
                 case OP_MONITORENTER:
@@ -1065,15 +1111,47 @@ final class ClassParser {
                     push(gf.multiNewArray(ctxt, Type.arrayOf(resolveDescriptor(cpIdx)), dims));
                     break;
                 case OP_IFNULL:
-                    gf.if_(ctxt, gf.cmpEq(ctxt, pop(), Value.NULL), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpEq(ctxt, pop(), Value.NULL), buffer.getShort() + src, buffer.position());
                     break;
                 case OP_IFNONNULL:
-                    gf.if_(ctxt, gf.cmpNe(ctxt, pop(), Value.NULL), getBlockForIndex(buffer.getShort() + src), getBlockForIndex(buffer.position()));
+                    processIf(buffer, ctxt, gf.cmpNe(ctxt, pop(), Value.NULL), buffer.getShort() + src, buffer.position());
                     break;
                 default:
                     throw new InvalidByteCodeException();
             }
+            // now check to see if the new position is an entry point
+            int epIdx = definedBody.getEntryPointIndex(buffer.position());
+            if (epIdx >= 0 && definedBody.getEntryPointSourceCount(epIdx) > 1) {
+                // two or more blocks enter here; start a new block via goto
+                processBlock(buffer, gf.goto_(ctxt, blockHandles[epIdx]));
+                return;
+            }
         }
+    }
+
+    private void setJsrExitState(final BasicBlock retBlock, final Value[] saveStack, final Value[] saveLocals) {
+        Map<BasicBlock, Value[]> retStacks = this.retStacks;
+        if (retStacks == null) {
+            retStacks = this.retStacks = new HashMap<>();
+        }
+        retStacks.put(retBlock, saveStack);
+        Map<BasicBlock, Value[]> retLocals = this.retLocals;
+        if (retLocals == null) {
+            retLocals = this.retLocals = new HashMap<>();
+        }
+        retLocals.put(retBlock, saveLocals);
+    }
+
+    private void processIf(final ByteBuffer buffer, final GraphFactory.Context ctxt, final Value cond, final int dest1, final int dest2) {
+        NodeHandle b1 = getBlockForIndex(dest1);
+        NodeHandle b2 = getBlockForIndex(dest2);
+        BasicBlock from = gf.if_(ctxt, cond, b1, b2);
+        Value[] varSnap = saveLocals();
+        Value[] stackSnap = saveStack();
+        processBlock(buffer.position(dest1), from);
+        restoreStack(stackSnap);
+        restoreLocals(varSnap);
+        processBlock(buffer.position(dest2), from);
     }
 
     private ClassFileImpl getClassFile() {
@@ -1123,5 +1201,60 @@ final class ClassParser {
 
     private static int getWidenableValueSigned(final ByteBuffer buffer, final boolean wide) {
         return wide ? buffer.getShort() : buffer.get();
+    }
+
+    private class RetPhiComputingVisitor implements GraphVisitor<BasicBlock> {
+        PhiValue[] exitStack;
+        PhiValue[] exitLocals;
+        boolean exited;
+
+        void handleBlock(final BasicBlock returnBlock, final BasicBlock block) {
+            if (block.getTerminator() instanceof Ret) {
+                Value[] stack = retStacks.get(block);
+                Value[] locals = retLocals.get(block);
+                PhiValue[] phiStack;
+                PhiValue[] phiLocals;
+                if (exitStack == null) {
+                    // make phis
+                    phiStack = new PhiValue[stack.length];
+                    phiLocals = new PhiValue[locals.length];
+                    for (int i = 0; i < stack.length; i ++) {
+                        phiStack[i] = gf.phi(stack[i].getType(), returnBlock);
+                        phiStack[i].setValueForBlock(block, stack[i]);
+                    }
+                    for (int i = 0; i < locals.length; i ++) {
+                        phiLocals[i] = gf.phi(locals[i].getType(), returnBlock);
+                        phiLocals[i].setValueForBlock(block, locals[i]);
+                    }
+                    exitStack = phiStack;
+                    exitLocals = phiLocals;
+                    exited = true;
+                } else {
+                    phiStack = exitStack;
+                    phiLocals = exitLocals;
+                    for (int i = 0; i < stack.length; i ++) {
+                        phiStack[i].setValueForBlock(block, stack[i]);
+                    }
+                    for (int i = 0; i < locals.length; i ++) {
+                        phiLocals[i].setValueForBlock(block, locals[i]);
+                    }
+                }
+            } else {
+                block.getTerminator().accept(this, null);
+            }
+        }
+
+        public void visit(final BasicBlock returnBlock, final If node) {
+            handleBlock(returnBlock, node.getTrueBranch());
+            handleBlock(returnBlock, node.getFalseBranch());
+        }
+
+        public void visit(final BasicBlock returnBlock, final Goto node) {
+            handleBlock(returnBlock, node.getTarget());
+        }
+
+        public void visit(final BasicBlock returnBlock, final Jsr node) {
+            handleBlock(returnBlock, node.getReturn());
+        }
     }
 }
