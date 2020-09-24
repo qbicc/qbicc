@@ -151,6 +151,14 @@ public interface JavaVM extends AutoCloseable {
     }
 
     /**
+     * Create a new graph factory.
+     *
+     * @return the graph factory
+     */
+    GraphFactory createGraphFactory();
+
+
+    /**
      * A builder for the VM.
      */
     class Builder {

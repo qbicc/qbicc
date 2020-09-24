@@ -55,6 +55,10 @@ public class LineNumberGraphFactory extends DelegatingGraphFactory {
         return withLineNumber(getDelegate().instanceOf(ctxt, v, type));
     }
 
+    public ParameterValue parameter(final Type type, final int index) {
+        return withLineNumber(getDelegate().parameter(type, index));
+    }
+
     public PhiValue phi(final Type type, final BasicBlock basicBlock) {
         return withLineNumber(getDelegate().phi(type, basicBlock));
     }

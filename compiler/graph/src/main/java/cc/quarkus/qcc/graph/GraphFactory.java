@@ -12,6 +12,8 @@ public interface GraphFactory {
 
     // values
 
+    ParameterValue parameter(Type type, int index);
+
     // phi
 
     PhiValue phi(Type type, BasicBlock basicBlock);
@@ -400,6 +402,13 @@ public interface GraphFactory {
         public Value lengthOfArray(final Context ctxt, final Value array) {
             ArrayLengthValueImpl value = new ArrayLengthValueImpl();
             value.setInstance(array);
+            return value;
+        }
+
+        public ParameterValue parameter(final Type type, final int index) {
+            ParameterValueImpl value = new ParameterValueImpl();
+            value.setType(type);
+            value.setIndex(index);
             return value;
         }
 

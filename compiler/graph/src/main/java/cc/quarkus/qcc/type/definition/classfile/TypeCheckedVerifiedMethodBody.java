@@ -4,13 +4,14 @@ import java.nio.ByteBuffer;
 
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 final class TypeCheckedVerifiedMethodBody extends VerifiedMethodBody {
 
     final StackMapFrame[] stackMap;
 
-    TypeCheckedVerifiedMethodBody(final DefinedMethodBody definedBody, final Type[] parameterTypes) {
-        super(definedBody, parameterTypes);
+    TypeCheckedVerifiedMethodBody(final DefinedMethodBody definedBody, final MethodElement methodElement) {
+        super(definedBody, methodElement);
         ClassFileImpl classFile = definedBody.getClassFile();
         int smt = definedBody.getStackMapTableOffs();
         if (smt == -1) {
@@ -29,13 +30,13 @@ final class TypeCheckedVerifiedMethodBody extends VerifiedMethodBody {
         try {
             codeAttr.position(smt);
             boolean instance = (definedBody.getModifiers() & ClassFile.ACC_STATIC) == 0;
+            int parameterCount = methodElement.getParameterCount();
+            lc = 0;
             if (instance) {
-                typeLocals[0] = classFile.resolveType();
-                System.arraycopy(parameterTypes, 0, typeLocals, 1, parameterTypes.length);
-                lc = parameterTypes.length + 1;
-            } else {
-                System.arraycopy(parameterTypes, 0, typeLocals, 0, parameterTypes.length);
-                lc = parameterTypes.length;
+                typeLocals[lc++] = classFile.resolveType();
+            }
+            for (int i = 0; i < parameterCount; i++) {
+                typeLocals[lc++] = methodElement.getParameter(i).getType();
             }
             int cnt = definedBody.getStackMapTableLen();
             StackMapFrame[] frames = new StackMapFrame[cnt];

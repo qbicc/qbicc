@@ -1,18 +1,19 @@
 package cc.quarkus.qcc.type.definition.classfile;
 
 import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
  *
  */
 abstract class VerifiedMethodBody {
     final DefinedMethodBody definedBody;
-    final Type[] parameterTypes;
+    final MethodElement methodElement;
     final Type[][] variableTypes;
 
-    VerifiedMethodBody(final DefinedMethodBody definedBody, final Type[] parameterTypes) {
+    VerifiedMethodBody(final DefinedMethodBody definedBody, final MethodElement methodElement) {
         this.definedBody = definedBody;
-        this.parameterTypes = parameterTypes;
+        this.methodElement = methodElement;
         int maxLocals = definedBody.getMaxLocals();
         Type[][] variableTypes = new Type[maxLocals][];
         for (int i = 0; i < maxLocals; i ++) {

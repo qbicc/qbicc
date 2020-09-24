@@ -19,6 +19,10 @@ public class DelegatingGraphFactory implements GraphFactory {
         return delegate;
     }
 
+    public ParameterValue parameter(final Type type, final int index) {
+        return getDelegate().parameter(type, index);
+    }
+
     public PhiValue phi(final Type type, final BasicBlock basicBlock) {
         return getDelegate().phi(type, basicBlock);
     }

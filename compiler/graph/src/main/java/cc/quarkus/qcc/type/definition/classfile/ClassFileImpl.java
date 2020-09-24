@@ -623,7 +623,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     private void addExactBody(final ExactExecutableElement.Builder builder, final int index, final ByteBuffer codeAttr) {
         int modifiers = getShort(methodOffsets[index]);
-        builder.setExactMethodBody(new ExactMethodHandleImpl(modifiers, index, codeAttr));
+        builder.setExactMethodBody(new ExactMethodHandleImpl(this, modifiers, index, codeAttr));
     }
 
     private void addParameters(ParameterizedExecutableElement.Builder builder, int index) {

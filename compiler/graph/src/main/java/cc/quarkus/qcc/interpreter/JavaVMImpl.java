@@ -273,6 +273,11 @@ final class JavaVMImpl implements JavaVM {
         return builder;
     }
 
+    public GraphFactory createGraphFactory() {
+        // TODO: new instance per call?
+        return graphFactory;
+    }
+
     public JavaClassImpl getClassClass() {
         return classClass;
     }

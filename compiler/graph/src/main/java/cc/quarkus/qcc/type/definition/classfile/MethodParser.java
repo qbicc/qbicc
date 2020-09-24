@@ -35,7 +35,7 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
 
-final class ClassParser {
+final class MethodParser {
     static final ConstantValue INT_SHIFT_MASK = Value.const_(0x1f);
     static final ConstantValue LONG_SHIFT_MASK = Value.const_(0x3f);
     final VerifiedMethodBody verifiedMethodBody;
@@ -48,7 +48,7 @@ final class ClassParser {
     int sp;
     NodeHandle currentBlockHandle;
 
-    ClassParser(final VerifiedMethodBody verifiedMethodBody, final GraphFactory graphFactory) {
+    MethodParser(final VerifiedMethodBody verifiedMethodBody, final GraphFactory graphFactory) {
         this.verifiedMethodBody = verifiedMethodBody;
         DefinedMethodBody definedBody = verifiedMethodBody.getDefinedBody();
         stack = new Value[definedBody.getMaxStack()];
