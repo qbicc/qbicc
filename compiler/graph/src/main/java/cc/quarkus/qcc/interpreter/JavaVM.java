@@ -38,12 +38,15 @@ public interface JavaVM extends AutoCloseable {
     }
 
     static JavaVM current() {
-        JavaThread javaThread = currentThread();
-        return javaThread == null ? null : javaThread.getVM();
+        return JavaVMImpl.currentVm();
     }
 
     static JavaVM requireCurrent() {
-        return requireCurrentThread().getVM();
+        JavaVM current = current();
+        if (current == null) {
+            throw new IllegalStateException("JavaVM is not attached");
+        }
+        return current;
     }
 
     JavaClass getClassClass();

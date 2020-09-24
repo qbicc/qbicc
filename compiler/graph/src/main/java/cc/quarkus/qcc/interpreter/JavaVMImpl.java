@@ -30,6 +30,7 @@ import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
 final class JavaVMImpl implements JavaVM {
+    private static final ThreadLocal<JavaVMImpl> currentVm = new ThreadLocal<>();
     private boolean exited;
     private int exitCode = -1;
     private final Lock vmLock = new ReentrantLock();
@@ -37,7 +38,7 @@ final class JavaVMImpl implements JavaVM {
     private final Condition signalCondition = vmLock.newCondition();
     private final ArrayDeque<Signal> signalQueue = new ArrayDeque<>();
     private final Set<JavaThread> threads = ConcurrentHashMap.newKeySet();
-    private static final ThreadLocal<JavaThread> attachedThread = new ThreadLocal<>();
+    private final ThreadLocal<JavaThreadImpl> attachedThread = new ThreadLocal<>();
     private final Dictionary bootstrapDictionary;
     private final JavaClassImpl objectClass;
     private final JavaClassImpl classClass;
@@ -84,7 +85,11 @@ final class JavaVMImpl implements JavaVM {
             throw new RuntimeException("Bootstrap failed: no java.base module found");
         }
         this.bootstrapModules = bootstrapModules;
+        this.bootstrapDictionary = bootstrapDictionary;
+        this.graphFactory = builder.graphFactory;
+        JavaVMImpl old = currentVm.get();
         try {
+            currentVm.set(this);
             DefinedTypeDefinition objectDef = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Object");
             DefinedTypeDefinition classClassDefined = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Class");
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/io/Serializable");
@@ -97,9 +102,9 @@ final class JavaVMImpl implements JavaVM {
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ClassLoader");
         } catch (IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            currentVm.set(old);
         }
-        this.bootstrapDictionary = bootstrapDictionary;
-        this.graphFactory = builder.graphFactory;
     }
 
     private static ByteBuffer getJarEntryBuffer(final JarFile jarFile, final String fileName) throws IOException {
@@ -165,7 +170,11 @@ final class JavaVMImpl implements JavaVM {
         if (attachedThread.get() != null) {
             throw new IllegalStateException("Thread is already attached");
         }
-        attachedThread.set(thread);
+        if (currentVm.get() != null) {
+            throw new IllegalStateException("Another JVM is already attached");
+        }
+        currentVm.set(this);
+        attachedThread.set((JavaThreadImpl) thread);
     }
 
     void detach(JavaThread thread) throws IllegalStateException {
@@ -174,10 +183,16 @@ final class JavaVMImpl implements JavaVM {
             throw new IllegalStateException("Thread is not attached");
         }
         attachedThread.remove();
+        currentVm.remove();
     }
 
-    static JavaThread currentThread() {
-        return attachedThread.get();
+    static JavaThreadImpl currentThread() {
+        JavaVMImpl javaVM = currentVm();
+        return javaVM == null ? null : javaVM.attachedThread.get();
+    }
+
+    static JavaVMImpl currentVm() {
+        return currentVm.get();
     }
 
     public void deliverSignal(final Signal signal) {

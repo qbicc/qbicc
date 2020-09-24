@@ -53,6 +53,7 @@ final class JavaThreadImpl implements JavaThread {
             if (attachedThread != null) {
                 throw new IllegalStateException("Thread is already attached");
             }
+            vm.tryAttach(this);
             attachedThread = Thread.currentThread();
         } finally {
             threadLock.unlock();
@@ -61,6 +62,7 @@ final class JavaThreadImpl implements JavaThread {
             r.run();
         } finally {
             threadLock.lock();
+            vm.detach(this);
             assert attachedThread == Thread.currentThread();
             attachedThread = null;
             threadLock.unlock();
