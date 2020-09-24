@@ -1244,7 +1244,7 @@ final class ClassParser {
                     }
                 }
             } else {
-                block.getTerminator().accept(this, null);
+                block.getTerminator().accept(this, returnBlock);
             }
         }
 
