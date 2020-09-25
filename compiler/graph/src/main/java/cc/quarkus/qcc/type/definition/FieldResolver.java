@@ -6,5 +6,5 @@ import cc.quarkus.qcc.type.definition.element.FieldElement;
  *
  */
 public interface FieldResolver {
-    FieldElement resolveField(int index);
+    FieldElement resolveField(int index, DefinedTypeDefinition enclosing);
 }

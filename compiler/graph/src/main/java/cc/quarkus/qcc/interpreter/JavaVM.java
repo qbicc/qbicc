@@ -81,7 +81,7 @@ public interface JavaVM extends AutoCloseable {
      * @return the class (not {@code null})
      * @throws Thrown if the internal JVM has thrown an exception while loading the class
      */
-    JavaClass loadClass(JavaObject classLoader, String name) throws Thrown;
+    DefinedTypeDefinition loadClass(JavaObject classLoader, String name) throws Thrown;
 
     /**
      * Find a loaded class, returning {@code null} if the class loader did not previously load the class.  The VM
@@ -91,7 +91,7 @@ public interface JavaVM extends AutoCloseable {
      * @param name the internal name of the class to load (must not be {@code null})
      * @return the class, or {@code null} if the class was not already loaded
      */
-    JavaClass findLoadedClass(JavaObject classLoader, String name);
+    DefinedTypeDefinition findLoadedClass(JavaObject classLoader, String name);
 
     /**
      * Deliver a "signal" to the target environment.

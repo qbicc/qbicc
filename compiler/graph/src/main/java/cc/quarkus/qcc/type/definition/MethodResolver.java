@@ -6,5 +6,5 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
  *
  */
 public interface MethodResolver {
-    MethodElement resolveMethod(int index);
+    MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing);
 }

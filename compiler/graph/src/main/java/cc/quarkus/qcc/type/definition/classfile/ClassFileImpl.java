@@ -24,6 +24,7 @@ import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
 import cc.quarkus.qcc.type.definition.ClassFileUtil;
 import cc.quarkus.qcc.type.definition.DefineFailedException;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ResolutionFailedException;
 import cc.quarkus.qcc.type.definition.element.AnnotatedElement;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -305,7 +306,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     ClassType resolveSingleType(String name) {
         JavaVM vm = JavaVM.requireCurrent();
-        return vm.loadClass(definingClassLoader, name).getTypeDefinition().verify().getClassType();
+        return vm.loadClass(definingClassLoader, name).verify().getClassType();
     }
 
     public ClassType resolveType() {
@@ -316,7 +317,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     private ClassType loadClass(final int offs, final int maxLen, final boolean expectTerminator) {
         JavaVM vm = JavaVM.requireCurrent();
-        return vm.loadClass(definingClassLoader, vm.deduplicate(definingClassLoader, buffer, offs, maxLen, expectTerminator)).getTypeDefinition().verify().getClassType();
+        return vm.loadClass(definingClassLoader, vm.deduplicate(definingClassLoader, buffer, offs, maxLen, expectTerminator)).verify().getClassType();
     }
 
     public int getAccess() {
@@ -506,12 +507,14 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         for (int i = 0; i < cnt; i ++) {
             builder.addInterfaceName(getInterfaceName(i));
         }
+        boolean foundInitializer = false;
         cnt = getMethodCount();
         for (int i = 0; i < cnt; i ++) {
             int base = methodOffsets[i];
             int nameIdx = getShort(base + 2);
             if (utf8ConstantEquals(nameIdx, "<clinit>")) {
                 builder.setInitializer(this, i);
+                foundInitializer = true;
             } else {
                 if (utf8ConstantEquals(nameIdx, "<init>")) {
                     builder.addConstructor(this, i);
@@ -519,6 +522,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
                     builder.addMethod(this, i);
                 }
             }
+        }
+        if (! foundInitializer) {
+            // synthesize an empty one
+            builder.setInitializer(this, 0);
         }
         cnt = getFieldCount();
         for (int i = 0; i < cnt; i ++) {
@@ -557,9 +564,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         builder.setModifiers(access);
     }
 
-    public FieldElement resolveField(final int index) {
+    public FieldElement resolveField(final int index, final DefinedTypeDefinition enclosing) {
         FieldElement.Builder builder = FieldElement.builder();
-        builder.setEnclosingType(resolveType().getDefinition());
+        builder.setEnclosingType(enclosing);
         builder.setTypeResolver(this, index);
         builder.setModifiers(getShort(fieldOffsets[index]));
         builder.setName(getUtf8Constant(getShort(fieldOffsets[index] + 2)));
@@ -567,9 +574,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         return builder.build();
     }
 
-    public MethodElement resolveMethod(final int index) {
+    public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing) {
         MethodElement.Builder builder = MethodElement.builder();
-        builder.setEnclosingType(resolveType().getDefinition());
+        builder.setEnclosingType(enclosing);
         builder.setReturnTypeResolver(this, index);
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
@@ -577,32 +584,36 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         boolean mayHaveExact = (methodModifiers & ACC_ABSTRACT) == 0;
         boolean hasVirtual = (methodModifiers & (ACC_STATIC | ACC_PRIVATE)) == 0;
         if (mayHaveExact) {
-            addExactBody(builder, index);
+            addExactBody(builder, index, enclosing);
         }
         if (hasVirtual) {
             builder.setVirtualMethodBody(new VirtualMethodHandleImpl(this, index));
         }
-        addParameters(builder, index);
+        addParameters(builder, index, enclosing);
         addAnnotations(builder);
         return builder.build();
     }
 
-    public ConstructorElement resolveConstructor(final int index) {
+    public ConstructorElement resolveConstructor(final int index, final DefinedTypeDefinition enclosing) {
         ConstructorElement.Builder builder = ConstructorElement.builder();
-        builder.setEnclosingType(resolveType().getDefinition());
+        builder.setEnclosingType(enclosing);
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
-        addExactBody(builder, index);
-        addParameters(builder, index);
+        addExactBody(builder, index, enclosing);
+        addParameters(builder, index, enclosing);
         addAnnotations(builder);
         return builder.build();
     }
 
-    public InitializerElement resolveInitializer(final int index) {
+    public InitializerElement resolveInitializer(final int index, final DefinedTypeDefinition enclosing) {
         InitializerElement.Builder builder = InitializerElement.builder();
-        builder.setEnclosingType(resolveType().getDefinition());
+        builder.setEnclosingType(enclosing);
         builder.setModifiers(ACC_STATIC);
-        addExactBody(builder, index);
+        if (index == 0) {
+            builder.setExactMethodBody(MethodHandle.VOID_EMPTY);
+        } else {
+            addExactBody(builder, index, enclosing);
+        }
         return builder.build();
     }
 
@@ -621,22 +632,22 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         return resolveSingleDescriptor((int) (argument & 0x7fff_ffff), 1024);
     }
 
-    private void addExactBody(ExactExecutableElement.Builder builder, int index) {
+    private void addExactBody(ExactExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
         int attrCount = getMethodAttributeCount(index);
         for (int i = 0; i < attrCount; i ++) {
             if (methodAttributeNameEquals(index, i, "Code")) {
-                addExactBody(builder, index, getMethodRawAttributeContent(index, i));
+                addExactBody(builder, index, getMethodRawAttributeContent(index, i), enclosing);
                 return;
             }
         }
     }
 
-    private void addExactBody(final ExactExecutableElement.Builder builder, final int index, final ByteBuffer codeAttr) {
+    private void addExactBody(final ExactExecutableElement.Builder builder, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing) {
         int modifiers = getShort(methodOffsets[index]);
-        builder.setExactMethodBody(new ExactMethodHandleImpl(this, modifiers, index, codeAttr));
+        builder.setExactMethodBody(new ExactMethodHandleImpl(this, modifiers, index, codeAttr, enclosing));
     }
 
-    private void addParameters(ParameterizedExecutableElement.Builder builder, int index) {
+    private void addParameters(ParameterizedExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
         int base = methodOffsets[index];
         int descIdx = getShort(base + 4);
         int attrCnt = getMethodAttributeCount(index);
@@ -699,6 +710,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             }
             paramBuilder.setResolver(this, (long)index << 8 | i);
             addAnnotations(paramBuilder);
+            paramBuilder.setEnclosingType(enclosing);
             builder.addParameter(paramBuilder.build());
         }
     }
@@ -713,19 +725,19 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             case 'J':
             case 'S':
             case 'Z': {
-                return offs + 1;
+                return 1 + scanSingleParameter(idx, offs + 1);
             }
             case ')': {
                 return 0;
             }
             case '[': {
-                return 1 + scanSingleParameter(idx, offs + 1);
+                return scanSingleParameter(idx, offs + 1);
             }
             case 'L': {
                 for (;;) {
                     offs++;
                     if (utf8ConstantByteAt(idx, offs) == ';') {
-                        return offs + 1;
+                        return scanSingleParameter(idx, offs + 1) + 1;
                     }
                 }
             }
@@ -739,16 +751,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         if (utf8ConstantByteAt(idx, 0) != '(') {
             throw new InvalidTypeDescriptorException("Expected ( in method descriptor");
         }
-        return scanDescriptorParameters(idx, 1);
-    }
-
-    private int scanDescriptorParameters(int idx, int offs) {
-        int n = scanSingleParameter(idx, offs);
-        if (n == 0) {
-            return 0;
-        } else {
-            return 1 + scanDescriptorParameters(idx, n);
-        }
+        return scanSingleParameter(idx, 1);
     }
 
     private void addAnnotations(AnnotatedElement.Builder builder) {

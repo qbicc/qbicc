@@ -67,7 +67,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         this.visibleAnnotations = annotationCount == 0 ? Annotation.NO_ANNOTATIONS : Arrays.copyOf(builder.visibleAnnotations, annotationCount);
         annotationCount = builder.invisibleAnnotationCount;
         this.invisibleAnnotations = annotationCount == 0 ? Annotation.NO_ANNOTATIONS : Arrays.copyOf(builder.invisibleAnnotations, annotationCount);
-        this.initializerResolver = builder.initializerResolver;
+        this.initializerResolver = Assert.checkNotNullParam("builder.initializerResolver", builder.initializerResolver);
         this.initializerIndex = builder.initializerIndex;
     }
 
@@ -110,31 +110,31 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         }
         VerifiedTypeDefinition superType;
         if (superClassName != null) {
-            superType = JavaVM.requireCurrent().loadClass(definingClassLoader, superClassName).getTypeDefinition();
+            superType = JavaVM.requireCurrent().loadClass(definingClassLoader, superClassName).verify();
         } else {
             superType = null;
         }
         int cnt = getInterfaceCount();
         VerifiedTypeDefinition[] interfaces = new VerifiedTypeDefinition[cnt];
         for (int i = 0; i < cnt; i ++) {
-            interfaces[i] = JavaVM.currentThread().getVM().loadClass(definingClassLoader, getInterfaceInternalName(i)).getTypeDefinition();
+            interfaces[i] = JavaVM.requireCurrent().loadClass(definingClassLoader, getInterfaceInternalName(i)).verify();
         }
         cnt = getFieldCount();
         FieldElement[] fields = cnt == 0 ? FieldElement.NO_FIELDS : new FieldElement[cnt];
         for (int i = 0; i < cnt; i ++) {
-            fields[i] = fieldResolvers[i].resolveField(fieldIndexes[i]);
+            fields[i] = fieldResolvers[i].resolveField(fieldIndexes[i], this);
         }
         cnt = getMethodCount();
         MethodElement[] methods = cnt == 0 ? MethodElement.NO_METHODS : new MethodElement[cnt];
         for (int i = 0; i < cnt; i ++) {
-            methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i]);
+            methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i], this);
         }
         cnt = getConstructorCount();
         ConstructorElement[] ctors = cnt == 0 ? ConstructorElement.NO_CONSTRUCTORS : new ConstructorElement[cnt];
         for (int i = 0; i < cnt; i ++) {
-            ctors[i] = constructorResolvers[i].resolveConstructor(constructorIndexes[i]);
+            ctors[i] = constructorResolvers[i].resolveConstructor(constructorIndexes[i], this);
         }
-        InitializerElement init = initializerResolver.resolveInitializer(initializerIndex);
+        InitializerElement init = initializerResolver.resolveInitializer(initializerIndex, this);
         synchronized (this) {
             verified = this.verified;
             if (verified != null) {
@@ -208,7 +208,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int constructorCount;
         ConstructorResolver[] constructorResolvers = NO_CONSTRUCTORS;
         int[] constructorIndexes = NO_INTS;
-        InitializerResolver initializerResolver = InitializerResolver.EMPTY;
+        InitializerResolver initializerResolver;
         int initializerIndex;
         int visibleAnnotationCount;
         Annotation[] visibleAnnotations;

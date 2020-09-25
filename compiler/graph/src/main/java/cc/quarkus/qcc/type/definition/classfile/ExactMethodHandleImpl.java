@@ -7,6 +7,7 @@ import cc.quarkus.qcc.graph.NodeHandle;
 import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ResolutionFailedException;
@@ -19,13 +20,15 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
     private final ClassFileImpl classFile;
     private final int modifiers;
     private final int index;
+    private final DefinedTypeDefinition enclosing;
     private final ByteBuffer byteCode;
 
-    ExactMethodHandleImpl(final ClassFileImpl classFile, final int modifiers, final int index, final ByteBuffer codeAttr) {
+    ExactMethodHandleImpl(final ClassFileImpl classFile, final int modifiers, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing) {
         super(codeAttr);
         this.classFile = classFile;
         this.modifiers = modifiers;
         this.index = index;
+        this.enclosing = enclosing;
         int save = codeAttr.position();
         int maxStack = codeAttr.getShort() & 0xffff;
         int maxLocals = codeAttr.getShort() & 0xffff;
@@ -48,13 +51,13 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
     }
 
     public int getParameterCount() {
-        return classFile.resolveMethod(index).getParameterCount();
+        return classFile.resolveMethod(index, enclosing).getParameterCount();
     }
 
     public MethodBody getResolvedMethodBody() throws ResolutionFailedException {
         DefinedMethodBody dmb = new DefinedMethodBody(classFile, modifiers, index, buffer);
         VerifiedMethodBody vmb;
-        MethodElement methodElement = classFile.resolveMethod(index);
+        MethodElement methodElement = classFile.resolveMethod(index, enclosing);
         int paramCount = methodElement.getParameterCount();
         if (classFile.compareVersion(50, 0) >= 0) {
             // verify by type checking

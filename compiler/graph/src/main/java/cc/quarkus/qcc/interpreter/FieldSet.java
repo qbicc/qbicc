@@ -25,7 +25,7 @@ final class FieldSet {
 
         sortedFields = fields.toArray(FieldElement[]::new);
 
-        for (int i = 0; i < cnt; i++) {
+        for (int i = 0; i < sortedFields.length; i++) {
             FieldElement field = sortedFields[i];
             fieldIndices.put(field.getName(), Integer.valueOf(i));
         }

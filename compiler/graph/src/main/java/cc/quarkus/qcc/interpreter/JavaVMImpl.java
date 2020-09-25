@@ -143,8 +143,8 @@ final class JavaVMImpl implements JavaVM {
         return defineClass(newName, hostClass.getTypeDefinition().getDefiningClassLoader(), bytes);
     }
 
-    public JavaClass loadClass(final JavaObject classLoader, final String name) throws Thrown {
-        JavaClass loaded = findLoadedClass(classLoader, name);
+    public DefinedTypeDefinition loadClass(final JavaObject classLoader, final String name) throws Thrown {
+        DefinedTypeDefinition loaded = findLoadedClass(classLoader, name);
         if (loaded != null) {
             return loaded;
         }
@@ -156,9 +156,8 @@ final class JavaVMImpl implements JavaVM {
         throw new UnsupportedOperationException("VM loading not implemented yet");
     }
 
-    public JavaClass findLoadedClass(final JavaObject classLoader, final String name) {
-        DefinedTypeDefinition loadedClass = getDictionaryFor(classLoader).findLoadedClass(name);
-        return loadedClass == null ? null : getJavaClassOf(loadedClass.verify().getClassType());
+    public DefinedTypeDefinition findLoadedClass(final JavaObject classLoader, final String name) {
+        return getDictionaryFor(classLoader).findLoadedClass(name);
     }
 
     public JavaThread newThread(final String threadName, final JavaObject threadGroup, final boolean daemon) {

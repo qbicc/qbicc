@@ -1,16 +1,14 @@
 package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.constraint.Constraint;
+import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
-import cc.quarkus.qcc.interpreter.Dictionary;
 
 final class ArrayClassTypeImpl extends AbstractClassTypeImpl implements ArrayClassType {
     private final Type elementType;
-    private final ClassType superClass;
 
     ArrayClassTypeImpl(final Type elementType) {
         this.elementType = elementType;
-        superClass = Dictionary.rootDictionary().findClass("java/lang/Object").verify().getClassType();
     }
 
     public Type getElementType() {
@@ -23,7 +21,7 @@ final class ArrayClassTypeImpl extends AbstractClassTypeImpl implements ArrayCla
     }
 
     public ClassType getSuperClass() {
-        return superClass;
+        return JavaVM.requireCurrent().getObjectClass().getTypeDefinition().getClassType();
     }
 
     public int getInterfaceCount() {

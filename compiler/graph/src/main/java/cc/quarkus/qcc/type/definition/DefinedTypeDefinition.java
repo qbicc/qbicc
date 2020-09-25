@@ -116,10 +116,10 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
     }
 
     default Type resolveFieldType(long argument) throws ResolutionFailedException {
-        return resolveField((int) argument).getType();
+        return resolveField((int) argument, this).getType();
     }
 
-    default FieldElement resolveField(int index) {
+    default FieldElement resolveField(int index, final DefinedTypeDefinition enclosing) {
         return verify().getField(index);
     }
 
@@ -141,10 +141,10 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
     }
 
     default Type resolveParameterType(long argument) throws ResolutionFailedException {
-        return resolveMethod((int) (argument << 8)).getParameter((int) (argument & 0xff)).getType();
+        return resolveMethod((int) (argument << 8), this).getParameter((int) (argument & 0xff)).getType();
     }
 
-    default MethodElement resolveMethod(int index) {
+    default MethodElement resolveMethod(int index, final DefinedTypeDefinition enclosing) {
         return verify().getMethod(index);
     }
 
@@ -168,7 +168,7 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
         }
     }
 
-    default ConstructorElement resolveConstructor(int index) {
+    default ConstructorElement resolveConstructor(int index, final DefinedTypeDefinition enclosing) {
         return verify().getConstructor(index);
     }
 
@@ -176,7 +176,7 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
     // Initializer
     // ==================
 
-    default InitializerElement resolveInitializer(int index) {
+    default InitializerElement resolveInitializer(int index, final DefinedTypeDefinition enclosing) {
         return verify().getInitializer();
     }
 
