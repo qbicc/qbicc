@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
 import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.interpreter.JavaClass;
 import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -18,10 +17,6 @@ final class InitializedTypeDefinitionImpl implements InitializedTypeDefinition {
 
     public ClassType getClassType() {
         return delegate.getClassType();
-    }
-
-    public JavaClass getJavaClass() {
-        return delegate.getJavaClass();
     }
 
     public InitializedTypeDefinition getSuperClass() {

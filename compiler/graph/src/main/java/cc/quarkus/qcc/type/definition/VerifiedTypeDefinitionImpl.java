@@ -53,10 +53,6 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
 
     // delegates
 
-    public JavaClass getJavaClass() {
-        return javaClass;
-    }
-
     public String getInternalName() {
         return delegate.getInternalName();
     }

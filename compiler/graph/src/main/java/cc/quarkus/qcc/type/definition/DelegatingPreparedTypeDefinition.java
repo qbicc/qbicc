@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.interpreter.JavaClass;
-
 /**
  *
  */
@@ -20,10 +18,6 @@ public abstract class DelegatingPreparedTypeDefinition extends DelegatingResolve
 
     public PreparedTypeDefinition resolve() {
         return this;
-    }
-
-    public JavaClass getJavaClass() {
-        return getDelegate().getJavaClass();
     }
 
     public PreparedTypeDefinition getSuperClass() {

@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
 import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.interpreter.JavaClass;
 import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.interpreter.Thrown;
@@ -74,10 +73,6 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
 
     public JavaObject getDefiningClassLoader() {
         return delegate.getDefiningClassLoader();
-    }
-
-    public JavaClass getJavaClass() {
-        return delegate.getJavaClass();
     }
 
     public String getInternalName() {

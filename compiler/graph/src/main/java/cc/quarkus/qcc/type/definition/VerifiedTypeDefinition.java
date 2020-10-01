@@ -17,8 +17,6 @@ public interface VerifiedTypeDefinition extends DefinedTypeDefinition {
         return this;
     }
 
-    JavaClass getJavaClass();
-
     ClassType getClassType();
 
     VerifiedTypeDefinition getSuperClass();

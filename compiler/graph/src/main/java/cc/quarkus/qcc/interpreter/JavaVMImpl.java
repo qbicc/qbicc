@@ -197,9 +197,9 @@ final class JavaVMImpl implements JavaVM {
 
     private static final AtomicLong anonCounter = new AtomicLong();
 
-    public DefinedTypeDefinition defineAnonymousClass(final JavaClass hostClass, final ByteBuffer bytes) {
-        String newName = hostClass.getTypeDefinition().getInternalName() + "/" + anonCounter.getAndIncrement();
-        return defineClass(newName, hostClass.getTypeDefinition().getDefiningClassLoader(), bytes);
+    public DefinedTypeDefinition defineAnonymousClass(final DefinedTypeDefinition hostClass, final ByteBuffer bytes) {
+        String newName = hostClass.getInternalName() + "/" + anonCounter.getAndIncrement();
+        return defineClass(newName, hostClass.getDefiningClassLoader(), bytes);
     }
 
     public DefinedTypeDefinition loadClass(JavaObject classLoader, final String name) throws Thrown {
