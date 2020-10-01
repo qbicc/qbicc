@@ -10,8 +10,4 @@ class JavaObjectImpl implements JavaObject {
         this.definition = definition;
         fields = FieldContainer.forInstanceFieldsOf(definition);
     }
-
-    public JavaClass getJavaClass() {
-        return definition.getJavaClass();
-    }
 }

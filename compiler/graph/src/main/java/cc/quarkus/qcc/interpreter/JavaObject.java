@@ -4,7 +4,6 @@ package cc.quarkus.qcc.interpreter;
  * A Java object handle.
  */
 public interface JavaObject {
-    JavaClass getJavaClass();
 
     default boolean isClass() {
         return false;

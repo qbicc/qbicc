@@ -49,8 +49,4 @@ final class JavaCharArray implements JavaArray {
     public void putArray(final int index, final JavaObject value) {
         throw new UnsupportedOperationException();
     }
-
-    public JavaClass getJavaClass() {
-        throw new UnsupportedOperationException();
-    }
 }

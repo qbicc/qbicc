@@ -75,7 +75,7 @@ public interface JavaVM extends AutoCloseable {
      * @param bytes the class bytes (must not be {@code null})
      * @return the defined class (not {@code null})
      */
-    DefinedTypeDefinition defineAnonymousClass(JavaClass hostClass, ByteBuffer bytes);
+    DefinedTypeDefinition defineAnonymousClass(DefinedTypeDefinition hostClass, ByteBuffer bytes);
 
     /**
      * Load a class. If the class is already loaded, it is returned without entering the VM.  Otherwise the
