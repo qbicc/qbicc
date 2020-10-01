@@ -47,6 +47,10 @@ final class Float32Type extends NativeObjectTypeImpl implements FloatType {
         }
     }
 
+    public Object boxValue(final ConstantValue value) {
+        return Float.valueOf(Float.intBitsToFloat(value.intValue()));
+    }
+
     public String getLabelForGraph() {
         return "float32";
     }

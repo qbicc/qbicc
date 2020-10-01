@@ -2,6 +2,7 @@ package cc.quarkus.qcc.interpreter;
 
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.FieldContainer;
 import io.smallrye.common.function.ExceptionConsumer;
 import org.fest.assertions.core.Condition;
 import org.junit.jupiter.api.Disabled;
@@ -47,7 +48,6 @@ public class PrototypeTest {
 
         context.run(() -> {
             Dictionary dictionary = new Dictionary();
-            Dictionary.setRootDictionary(dictionary);
 
             initialize(dictionary);
 

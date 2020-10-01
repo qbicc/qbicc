@@ -7,8 +7,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import cc.quarkus.qcc.graph.ArrayClassType;
+import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.GraphFactory;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.MethodHandle;
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -49,9 +54,9 @@ public interface JavaVM extends AutoCloseable {
         return current;
     }
 
-    JavaClass getClassClass();
+    DefinedTypeDefinition getClassTypeDefinition();
 
-    JavaClass getObjectClass();
+    DefinedTypeDefinition getObjectTypeDefinition();
 
     /**
      * Define an unresolved class into this VM.
@@ -61,7 +66,7 @@ public interface JavaVM extends AutoCloseable {
      * @param bytes the class bytes (must not be {@code null})
      * @return the defined class (not {@code null})
      */
-    JavaClass defineClass(String name, JavaObject classLoader, ByteBuffer bytes);
+    DefinedTypeDefinition defineClass(String name, JavaObject classLoader, ByteBuffer bytes);
 
     /**
      * Define an unresolved anonymous class into this VM.
@@ -70,7 +75,7 @@ public interface JavaVM extends AutoCloseable {
      * @param bytes the class bytes (must not be {@code null})
      * @return the defined class (not {@code null})
      */
-    JavaClass defineAnonymousClass(JavaClass hostClass, ByteBuffer bytes);
+    DefinedTypeDefinition defineAnonymousClass(JavaClass hostClass, ByteBuffer bytes);
 
     /**
      * Load a class. If the class is already loaded, it is returned without entering the VM.  Otherwise the
@@ -92,6 +97,45 @@ public interface JavaVM extends AutoCloseable {
      * @return the class, or {@code null} if the class was not already loaded
      */
     DefinedTypeDefinition findLoadedClass(JavaObject classLoader, String name);
+
+    /**
+     * Allocate an object without initializing it (all fields/elements will be {@code null}, {@code false}, or zero).
+     * If the given {@code type} is not initialized, it will be.
+     *
+     * @param type the type to allocate (must not be {@code null})
+     * @return the allocated object (not {@code null})
+     */
+    JavaObject allocateObject(ClassType type);
+
+    JavaArray allocateArray(ArrayClassType type, int length);
+
+    /**
+     * Invoke a constructor reflectively.  Primitive arguments should be boxed.
+     *
+     * @param method the constructor to invoke
+     * @param args the arguments, whose times must match the constructor's expectations
+     */
+    void invokeExact(ConstructorElement method, Object... args);
+
+    /**
+     * Invoke a method reflectively.  Primitive arguments should be boxed.
+     *
+     * @param method the method to invoke
+     * @param args the arguments, whose times must match the method's expectations
+     * @return the result
+     */
+    Object invokeExact(MethodElement method, Object... args);
+
+    /**
+     * Invoke a method reflectively.  Primitive arguments should be boxed.
+     *
+     * @param method the method to invoke
+     * @param args the arguments, whose times must match the method's expectations
+     * @return the result
+     */
+    Object invokeVirtual(MethodElement method, Object... args);
+
+    Object invoke(MethodHandle handle, Object... args);
 
     /**
      * Deliver a "signal" to the target environment.
@@ -160,6 +204,12 @@ public interface JavaVM extends AutoCloseable {
      */
     GraphFactory createGraphFactory();
 
+    /**
+     * Get the main (root) thread group for the VM.
+     *
+     * @return the thread group (not {@code null})
+     */
+    JavaObject getMainThreadGroup();
 
     /**
      * A builder for the VM.
@@ -235,11 +285,7 @@ public interface JavaVM extends AutoCloseable {
          * @return the new VM (not {@code null})
          */
         public JavaVM build() {
-            JavaVMImpl javaVM = new JavaVMImpl(this);
-            // invoke System.initPhase1
-            // invoke System.initPhase2
-            // invoke System.initPhase3
-            return javaVM;
+            return new JavaVMImpl(this);
         }
     }
 }

@@ -28,6 +28,10 @@ final class SignedInteger32TypeImpl extends SignedIntegerTypeImpl {
         return value == 0;
     }
 
+    public Object boxValue(final ConstantValue value) {
+        return Integer.valueOf(value.intValue());
+    }
+
     public boolean isNegative(final long value) {
         return ((int) value) < 0;
     }

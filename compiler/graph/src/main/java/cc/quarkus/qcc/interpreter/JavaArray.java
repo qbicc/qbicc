@@ -4,7 +4,7 @@ package cc.quarkus.qcc.interpreter;
  *
  */
 public interface JavaArray extends JavaObject {
-    int dimensions();
+    int getLength();
 
     default boolean isArray() {
         return true;
@@ -16,15 +16,19 @@ public interface JavaArray extends JavaObject {
 
     JavaClass getNestedType();
 
-    JavaArray getArrayArray(int index);
-
-    JavaObject getArrayObject(int index);
-
-    long getArrayLong(int index);
+    boolean getArrayBoolean(int index);
 
     int getArrayInt(int index);
 
-    byte getArrayByte(int index);
+    long getArrayLong(int index);
 
-    boolean getArrayBoolean(int index);
+    JavaObject getArrayObject(int index);
+
+    void putArray(int index, boolean value);
+
+    void putArray(int index, int value);
+
+    void putArray(int index, long value);
+
+    void putArray(int index, JavaObject value);
 }

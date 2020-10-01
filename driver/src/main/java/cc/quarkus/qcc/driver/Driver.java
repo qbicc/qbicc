@@ -11,6 +11,8 @@ import cc.quarkus.qcc.compiler.native_image.api.NativeImageGenerator;
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGeneratorFactory;
 import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.graph.GraphFactory;
+import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.interpreter.JavaThread;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import io.smallrye.common.constraint.Assert;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
@@ -81,6 +83,10 @@ public class Driver {
             }
             builder.setGraphFactory(factory);
             JavaVM javaVM = builder.addBootstrapModules(List.of(javaBase)).build();
+            // Initialize the VM
+            JavaObject mainThreadGroup = javaVM.getMainThreadGroup();
+            JavaThread main = javaVM.newThread("main", mainThreadGroup, false);
+            main.doAttached(() -> javaVM.loadClass(null, "java/lang/System").verify().resolve().prepare().initialize());
             // XXX
             // ▪ instantiate agent class loader(s)
             // XXX

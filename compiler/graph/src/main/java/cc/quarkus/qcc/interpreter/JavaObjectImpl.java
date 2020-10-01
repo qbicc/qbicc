@@ -1,21 +1,17 @@
 package cc.quarkus.qcc.interpreter;
 
+import cc.quarkus.qcc.type.definition.FieldContainer;
+import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+
 class JavaObjectImpl implements JavaObject {
-    final JavaClassImpl class_;
+    final VerifiedTypeDefinition definition;
     final FieldContainer fields;
-
-    JavaObjectImpl(final JavaClassImpl class_) {
-        this.class_ = class_;
-        fields = new FieldContainerImpl(class_.definition, class_.instanceFields);
-    }
-
-    JavaObjectImpl(final FieldContainer fieldContainer) {
-        // only called from JavaClassImpl
-        this.class_ = (JavaClassImpl) this;
-        fields = fieldContainer;
+    JavaObjectImpl(final VerifiedTypeDefinition definition) {
+        this.definition = definition;
+        fields = FieldContainer.forInstanceFieldsOf(definition);
     }
 
     public JavaClass getJavaClass() {
-        return class_;
+        return definition.getJavaClass();
     }
 }

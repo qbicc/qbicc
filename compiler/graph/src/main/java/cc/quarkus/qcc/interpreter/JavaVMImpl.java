@@ -10,6 +10,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,15 +25,58 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
+import cc.quarkus.qcc.graph.ArrayClassType;
+import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.ClassType;
+import cc.quarkus.qcc.graph.CommutativeBinaryValue;
+import cc.quarkus.qcc.graph.ConstantValue;
+import cc.quarkus.qcc.graph.FieldReadValue;
+import cc.quarkus.qcc.graph.FieldWrite;
+import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.GraphFactory;
+import cc.quarkus.qcc.graph.GraphVisitor;
+import cc.quarkus.qcc.graph.If;
+import cc.quarkus.qcc.graph.IfValue;
+import cc.quarkus.qcc.graph.InstanceFieldReadValue;
+import cc.quarkus.qcc.graph.InstanceFieldWrite;
+import cc.quarkus.qcc.graph.InstanceInvocation;
+import cc.quarkus.qcc.graph.InstanceOfValue;
+import cc.quarkus.qcc.graph.Invocation;
+import cc.quarkus.qcc.graph.InvocationValue;
+import cc.quarkus.qcc.graph.Jsr;
+import cc.quarkus.qcc.graph.NewArrayValue;
+import cc.quarkus.qcc.graph.NewValue;
+import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.NonCommutativeBinaryValue;
+import cc.quarkus.qcc.graph.ParameterValue;
+import cc.quarkus.qcc.graph.PhiValue;
+import cc.quarkus.qcc.graph.Ret;
+import cc.quarkus.qcc.graph.Return;
+import cc.quarkus.qcc.graph.Terminator;
+import cc.quarkus.qcc.graph.Throw;
+import cc.quarkus.qcc.graph.Try;
+import cc.quarkus.qcc.graph.TryInvocation;
+import cc.quarkus.qcc.graph.TryThrow;
+import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.graph.UnaryValue;
+import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueReturn;
+import cc.quarkus.qcc.graph.WordCastValue;
+import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
+import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
 import io.smallrye.common.constraint.Assert;
 
 final class JavaVMImpl implements JavaVM {
     private static final ThreadLocal<JavaVMImpl> currentVm = new ThreadLocal<>();
+    private static final Object[] NO_OBJECTS = new Object[0];
     private boolean exited;
     private int exitCode = -1;
     private final Lock vmLock = new ReentrantLock();
@@ -40,16 +86,25 @@ final class JavaVMImpl implements JavaVM {
     private final Set<JavaThread> threads = ConcurrentHashMap.newKeySet();
     private final ThreadLocal<JavaThreadImpl> attachedThread = new ThreadLocal<>();
     private final Dictionary bootstrapDictionary;
-    private final JavaClassImpl objectClass;
-    private final JavaClassImpl classClass;
     private final ConcurrentMap<JavaObject, Dictionary> classLoaderLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Dictionary, JavaObject> loaderClassLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<ClassType, JavaClassImpl> loadedClasses = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MethodBody, Map<BasicBlock, List<Node>>> schedules = new ConcurrentHashMap<>();
     private final Map<String, BootModule> bootstrapModules;
     private final GraphFactory graphFactory;
+    private final JavaObject mainThreadGroup;
+    final DefinedTypeDefinition classLoaderClass;
+    final DefinedTypeDefinition classClass;
+    final DefinedTypeDefinition objectClass;
+    final DefinedTypeDefinition stringClass;
+    final DefinedTypeDefinition threadClass;
+    final DefinedTypeDefinition threadGroupClass;
+    final DefinedTypeDefinition classNotFoundExceptionClass;
+    final DefinedTypeDefinition noSuchMethodErrorClass;
+    final DefinedTypeDefinition abstractMethodErrorClass;
 
     JavaVMImpl(final Builder builder) {
-        Map<String, BootModule> bootstrapModules = new HashMap<>();
+        Map<String, BootModule> bootstrapModules = new LinkedHashMap<>();
         Dictionary bootstrapDictionary = new Dictionary();
         for (Path path : builder.bootstrapModules) {
             // open all bootstrap JARs (MR bootstrap JARs not supported)
@@ -90,16 +145,23 @@ final class JavaVMImpl implements JavaVM {
         JavaVMImpl old = currentVm.get();
         try {
             currentVm.set(this);
-            DefinedTypeDefinition objectDef = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Object");
-            DefinedTypeDefinition classClassDefined = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Class");
+            objectClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Object");
+            classClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Class");
+            classLoaderClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ClassLoader");
+            stringClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/String");
+            classNotFoundExceptionClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ClassNotFoundException");
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/io/Serializable");
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/reflect/GenericDeclaration");
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/reflect/Type");
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/reflect/AnnotatedElement");
-            VerifiedTypeDefinition classClassVerified = classClassDefined.verify();
-            classClass = new JavaClassImpl(this, classClassVerified, true /* special ctor for Class.class */);
-            objectClass = new JavaClassImpl(this, objectDef.verify());
-            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ClassLoader");
+            // now instantiate the main thread group
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Thread$UncaughtExceptionHandler");
+            threadGroupClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ThreadGroup");
+            threadClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Thread");
+            mainThreadGroup = new JavaObjectImpl(threadGroupClass.verify());
+            // run time linkage errors
+            noSuchMethodErrorClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/NoSuchMethodError");
+            abstractMethodErrorClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/AbstractMethodError");
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
@@ -128,22 +190,23 @@ final class JavaVMImpl implements JavaVM {
         return bootstrapLoader.defineClass(name, bytes);
     }
 
-    public JavaClass defineClass(final String name, final JavaObject classLoader, final ByteBuffer bytes) {
+    public DefinedTypeDefinition defineClass(final String name, final JavaObject classLoader, final ByteBuffer bytes) {
         Dictionary dictionary = getDictionaryFor(classLoader);
-        VerifiedTypeDefinition def = dictionary.defineClass(name, bytes).verify();
-        JavaClassImpl javaClass = new JavaClassImpl(this, def);
-        registerJavaClassOf(def.getClassType(), javaClass);
-        return javaClass;
+        return dictionary.defineClass(name, bytes).verify();
     }
 
     private static final AtomicLong anonCounter = new AtomicLong();
 
-    public JavaClass defineAnonymousClass(final JavaClass hostClass, final ByteBuffer bytes) {
+    public DefinedTypeDefinition defineAnonymousClass(final JavaClass hostClass, final ByteBuffer bytes) {
         String newName = hostClass.getTypeDefinition().getInternalName() + "/" + anonCounter.getAndIncrement();
         return defineClass(newName, hostClass.getTypeDefinition().getDefiningClassLoader(), bytes);
     }
 
-    public DefinedTypeDefinition loadClass(final JavaObject classLoader, final String name) throws Thrown {
+    public DefinedTypeDefinition loadClass(JavaObject classLoader, final String name) throws Thrown {
+        if (classLoader == null) {
+            // do it the other way
+            return loadBootstrapClass(name);
+        }
         DefinedTypeDefinition loaded = findLoadedClass(classLoader, name);
         if (loaded != null) {
             return loaded;
@@ -152,12 +215,400 @@ final class JavaVMImpl implements JavaVM {
         if (javaThread == null) {
             throw new IllegalStateException("No VM to load class " + name);
         }
-        // todo: invoke loadClass on class loader instance
-        throw new UnsupportedOperationException("VM loading not implemented yet");
+        ResolvedTypeDefinition resolvedCL = classLoaderClass.verify().resolve();
+        VerifiedTypeDefinition stringClassVerified = stringClass.verify();
+        MethodHandle loadClass = resolvedCL.resolveMethodHandleVirtual("loadClass", stringClassVerified.getClassType(),
+            classClass.verify().getClassType());
+        int length = name.length();
+        JavaArray array = allocateArray(Type.JAVA_CHAR_ARRAY, length);
+        for (int i = 0; i < length; i++) {
+            array.putArray(i, name.charAt(i));
+        }
+        MethodHandle initString = stringClassVerified.resolve().resolveConstructorHandle(Type.JAVA_CHAR_ARRAY);
+        JavaObject nameInstance = allocateObject(stringClassVerified.getClassType());
+        invoke(initString, array);
+        return ((JavaClass) invoke(loadClass, nameInstance)).getTypeDefinition();
+    }
+
+    public DefinedTypeDefinition loadBootstrapClass(final String name) {
+        Dictionary bd = this.bootstrapDictionary;
+        DefinedTypeDefinition loadedClass = bd.findLoadedClass(name);
+        if (loadedClass != null) {
+            throw new IllegalArgumentException("No class found");
+        }
+        ByteBuffer bytes;
+        for (BootModule module : bootstrapModules.values()) {
+            try {
+                bytes = getJarEntryBuffer(module.jarFile, name + ".class");
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Failed to load class", e);
+            }
+            if (bytes != null) {
+                DefinedTypeDefinition defined = bd.tryDefineClass(name, bytes);
+                if (defined != null) {
+                    return defined;
+                }
+            }
+        }
+        // class not found
+        throw classNotFound(name);
+    }
+
+    private Thrown classNotFound(String name) {
+        return new Thrown(newException(classNotFoundExceptionClass, name));
+    }
+
+    private JavaObject newException(DefinedTypeDefinition type, String arg) {
+        JavaObject e = allocateObject(type.verify().getClassType());
+        MethodHandle ctor = type.verify().resolve().resolveConstructorHandle(stringClass.verify().getClassType());
+        // todo: backtrace should be set to thread.tos
+        invoke(ctor, e, newString(arg));
+        return e;
+    }
+
+    private JavaObject newString(String str) {
+        VerifiedTypeDefinition stringClassVerified = stringClass.verify();
+        int length = str.length();
+        JavaArray array = allocateArray(Type.JAVA_CHAR_ARRAY, length);
+        for (int i = 0; i < length; i++) {
+            array.putArray(i, str.charAt(i));
+        }
+        MethodHandle initString = stringClassVerified.resolve().resolveConstructorHandle(Type.JAVA_CHAR_ARRAY);
+        return allocateObject(stringClassVerified.getClassType());
     }
 
     public DefinedTypeDefinition findLoadedClass(final JavaObject classLoader, final String name) {
         return getDictionaryFor(classLoader).findLoadedClass(name);
+    }
+
+    public JavaObject allocateObject(final ClassType type) {
+        return new JavaObjectImpl(type.getDefinition());
+    }
+
+    public JavaArray allocateArray(final ArrayClassType type, final int length) {
+        Type elementType = type.getElementType();
+        if (elementType instanceof ClassType) {
+            // todo
+        } else if (elementType == Type.BOOL) {
+            // todo
+        } else if (elementType == Type.U16) {
+            return new JavaCharArray(length);
+        } // ...
+        throw new UnsupportedOperationException();
+    }
+
+    public void invokeExact(final ConstructorElement method, final Object... args) {
+        MethodHandle exactHandle = method.getExactMethodBody();
+        if (exactHandle == null) {
+            throw new IllegalArgumentException("Method has no body");
+        }
+        invokeWith(exactHandle.getResolvedMethodBody(), args);
+    }
+
+    public Object invokeExact(final MethodElement method, final Object... args) {
+        MethodHandle exactHandle = method.getExactMethodBody();
+        if (exactHandle == null) {
+            throw new IllegalArgumentException("Method has no body");
+        }
+        return invokeWith(exactHandle.getResolvedMethodBody(), args);
+    }
+
+    public Object invokeVirtual(final MethodElement method, final Object... args) {
+        MethodHandle exactHandle = method.getVirtualMethodBody();
+        if (exactHandle == null) {
+            throw new IllegalArgumentException("Method has no body");
+        }
+        return invokeWith(exactHandle.getResolvedMethodBody(), args);
+    }
+
+    public Object invoke(final MethodHandle handle, final Object... args) {
+        return invokeWith(handle.getResolvedMethodBody(), args);
+    }
+
+    private Object invokeWith(final MethodBody methodBody, final Object... args) {
+        int cnt = methodBody.getParameterCount();
+        if (cnt != args.length) {
+            throw new IllegalArgumentException("Invalid method parameter count");
+        }
+        BasicBlock entryBlock = methodBody.getEntryBlock();
+        StackFrame frame = ((JavaThreadImpl) JavaVM.requireCurrentThread()).pushNewFrame(/* TODO */null);
+        for (int i = 0; i < cnt; i ++) {
+            ParameterValue paramValue = methodBody.getParameterValue(i);
+            Type paramType = paramValue.getType();
+            frame.bindValue(paramValue, args[i]);
+        }
+        return execute(methodBody);
+    }
+
+    private List<Node> scheduleBlock(MethodBody body, BasicBlock block) {
+        return schedules.computeIfAbsent(body, b -> {
+            Map<BasicBlock, LinkedHashSet<Node>> nodes = new HashMap<>();
+            BasicBlock entryBlock = b.getEntryBlock();
+            Schedule schedule = Schedule.forMethod(entryBlock);
+            scheduleNode(nodes, schedule, entryBlock.getTerminator());
+            Map<BasicBlock, List<Node>> finalMap = new HashMap<>(nodes.size());
+            for (Map.Entry<BasicBlock, LinkedHashSet<Node>> entry : nodes.entrySet()) {
+                finalMap.put(entry.getKey(), List.of(entry.getValue().toArray(Node[]::new)));
+            }
+            return finalMap;
+        }).getOrDefault(block, List.of());
+    }
+
+    private void scheduleNode(final Map<BasicBlock, LinkedHashSet<Node>> nodes, final Schedule schedule, final Node node) {
+        LinkedHashSet<Node> set = nodes.computeIfAbsent(schedule.getBlockForNode(node), b -> new LinkedHashSet<>());
+        if (set.contains(node)) {
+            return;
+        }
+        // todo - improve, improve
+        int cnt = node.getBasicDependencyCount();
+        for (int i = 0; i < cnt; i ++) {
+            scheduleNode(nodes, schedule, node.getBasicDependency(i));
+        }
+        cnt = node.getValueDependencyCount();
+        for (int i = 0; i < cnt; i ++) {
+            scheduleNode(nodes, schedule, node.getValueDependency(i));
+        }
+        set.add(node);
+        if (node instanceof Terminator) {
+            // todo improve: general "successor" property?
+            if (node instanceof Try) {
+                scheduleNode(nodes, schedule, ((Try) node).getCatchHandler());
+            }
+            if (node instanceof Goto) {
+                scheduleNode(nodes, schedule, ((Goto) node).getTarget());
+            }
+            if (node instanceof If) {
+                scheduleNode(nodes, schedule, ((If) node).getTrueBranch());
+                scheduleNode(nodes, schedule, ((If) node).getFalseBranch());
+            }
+            if (node instanceof Jsr) {
+                scheduleNode(nodes, schedule, ((Jsr) node).getTarget());
+                scheduleNode(nodes, schedule, ((Jsr) node).getReturn());
+            }
+        }
+    }
+
+    private Object execute(MethodBody methodBody) {
+        BasicBlock block = methodBody.getEntryBlock();
+        BasicBlock predecessor = null;
+        // run the method body by running each basic block in turn, following control flow as needed
+        StackFrame frame = ((JavaThreadImpl) JavaVM.currentThread()).tos;
+        for (;;) {
+            List<Node> scheduledNodes = scheduleBlock(methodBody, block);
+            // run the block by executing each node in scheduled order
+            for (Node node : scheduledNodes) {
+                if (node instanceof PhiValue) {
+                    PhiValue phiValue = (PhiValue) node;
+                    frame.bindValue(phiValue, frame.getValue(phiValue.getValueForBlock(predecessor)));
+                } else if (node instanceof Invocation) {
+                    Invocation op = (Invocation) node;
+                    MethodIdentifier it = op.getInvocationTarget();
+                    ResolvedTypeDefinition owner = op.getMethodOwner().getDefinition().resolve();
+                    int methodIndex = owner.findMethodIndex(it.getName(), it.getReturnType(), it.getParameterTypesAsArray());
+                    if (methodIndex == - 1) {
+                        throw new Thrown(newException(noSuchMethodErrorClass, null));
+                    }
+                    MethodHandle target = computeInvocationTarget(op, owner, methodIndex);
+                    if (target == null) {
+                        // todo: not exactly right but good enough for now
+                        throw new Thrown(newException(abstractMethodErrorClass, null));
+                    }
+                    Object[] args = computeInvocationArguments(frame, op);
+                    if (op instanceof InvocationValue) {
+                        frame.bindValue((Value) op, invoke(target, args));
+                    } else {
+                        invoke(target, args);
+                    }
+                } else if (node instanceof Throw) {
+                    throw new Thrown((JavaObject) frame.getValue(((Throw) node).getThrownValue()));
+                } else if (node instanceof Value) {
+                    node.accept(computer, frame);
+                } else if (node instanceof Terminator) {
+                    // todo: assert node is last in list
+                    break;
+                } else {
+                    throw new IllegalStateException("Unsupported node " + node);
+                }
+            }
+            // all nodes in the block have been executed; now execute the terminator
+            predecessor = block;
+            Terminator terminator = block.getTerminator();
+            if (terminator instanceof ValueReturn) {
+                return frame.getValue(((ValueReturn) terminator).getReturnValue());
+            } else if (terminator instanceof Return) {
+                return null;
+            } else if (terminator instanceof TryThrow) {
+                TryThrow tryThrow = (TryThrow) terminator;
+                frame.bindValue(tryThrow.getCatchValue(), frame.getValue(tryThrow.getThrownValue()));
+                block = tryThrow.getCatchHandler();
+            } else if (terminator instanceof Throw) {
+                throw new Thrown((JavaObject) frame.getValue(((Throw) terminator).getThrownValue()));
+            } else if (terminator instanceof TryInvocation) {
+                TryInvocation op = (TryInvocation) terminator;
+                MethodIdentifier it = op.getInvocationTarget();
+                ResolvedTypeDefinition owner = op.getMethodOwner().getDefinition().resolve();
+                int methodIndex = owner.findMethodIndex(it.getName(), it.getReturnType(), it.getParameterTypesAsArray());
+                if (methodIndex == - 1) {
+                    frame.bindValue(op.getCatchValue(), newException(noSuchMethodErrorClass, null));
+                    block = op.getCatchHandler();
+                    continue;
+                }
+                MethodHandle target = computeInvocationTarget(op, owner, methodIndex);
+                if (target == null) {
+                    // todo: not exactly right but good enough for now
+                    frame.bindValue(op.getCatchValue(), newException(abstractMethodErrorClass, null));
+                    block = op.getCatchHandler();
+                    continue;
+                }
+                Object[] args = computeInvocationArguments(frame, op);
+                try {
+                    if (op instanceof InvocationValue) {
+                        frame.bindValue((Value) op, invoke(target, args));
+                    } else {
+                        invoke(target, args);
+                    }
+                    block = op.getTarget();
+                } catch (Thrown t) {
+                    frame.bindValue(op.getCatchValue(), t.getThrowable());
+                    block = op.getCatchHandler();
+                }
+            } else if (terminator instanceof Jsr) {
+                Jsr jsr = (Jsr) terminator;
+                frame.bindValue(jsr.getReturnAddressValue(), jsr.getReturn());
+                block = jsr.getTarget();
+            } else if (terminator instanceof Ret) {
+                block = (BasicBlock) frame.getValue(((Ret) terminator).getReturnAddressValue());
+            } else if (terminator instanceof Goto) {
+                block = ((Goto) terminator).getTarget();
+            } else if (terminator instanceof If) {
+                If if_ = (If) terminator;
+                Object value = frame.getValue(if_.getCondition());
+                if (((Integer) value).intValue() != 0) {
+                    block = if_.getTrueBranch();
+                } else {
+                    block = if_.getFalseBranch();
+                }
+            }
+        }
+    }
+
+    private final Computer computer = new Computer();
+
+    final class Computer implements GraphVisitor<StackFrame> {
+        public void visit(final StackFrame frame, final CommutativeBinaryValue node) {
+            // todo: individual types?
+            switch (node.getKind()) {
+                case ADD: {
+                    frame.bindValue(node, node.getType().interpAdd(frame.getValue(node.getLeftInput()), frame.getValue(node.getRightInput())));
+                    break;
+                }
+                // todo: remaining cases
+                default: {
+                    throw new IllegalStateException();
+                }
+            }
+        }
+
+        public void visit(final StackFrame param, final NonCommutativeBinaryValue node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final UnaryValue node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final FieldReadValue node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final FieldWrite node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final IfValue node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final InstanceFieldReadValue node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final InstanceFieldWrite node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final InstanceOfValue node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final NewArrayValue node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final NewValue node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final ParameterValue node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final PhiValue node) {
+            // todo
+            throw new IllegalStateException();
+        }
+
+        public void visit(final StackFrame param, final WordCastValue node) {
+            // todo
+            throw new IllegalStateException();
+        }
+    }
+
+    private Object[] computeInvocationArguments(final StackFrame frame, final Invocation op) {
+        final Object[] args;
+        int cnt = op.getArgumentCount();
+        if (op instanceof InstanceInvocation) {
+            args = new Object[cnt + 1];
+            args[0] = ((InstanceInvocation) op).getInstance();
+            for (int i = 0; i < cnt; i++) {
+                args[i + 1] = frame.getValue(op.getArgument(i));
+            }
+        } else {
+            args = cnt == 0 ? NO_OBJECTS : new Object[cnt];
+            for (int i = 0; i < cnt; i++) {
+                args[i] = frame.getValue(op.getArgument(i));
+            }
+        }
+        return args;
+    }
+
+    private MethodHandle computeInvocationTarget(final Invocation op, final ResolvedTypeDefinition owner, final int methodIndex) {
+        final MethodHandle target;
+        if (op instanceof InstanceInvocation) {
+            InstanceInvocation iOp = (InstanceInvocation) op;
+            Value instanceVal = iOp.getInstance();
+            InstanceInvocation.Kind kind = iOp.getKind();
+            if (kind == InstanceInvocation.Kind.EXACT) {
+                target = owner.getMethod(methodIndex).getExactMethodBody();
+            } else {
+                target = owner.getMethod(methodIndex).getVirtualMethodBody();
+            }
+        } else {
+            // static invocation
+            target = owner.getMethod(methodIndex).getExactMethodBody();
+        }
+        return target;
     }
 
     public JavaThread newThread(final String threadName, final JavaObject threadGroup, final boolean daemon) {
@@ -187,6 +638,14 @@ final class JavaVMImpl implements JavaVM {
     static JavaThreadImpl currentThread() {
         JavaVMImpl javaVM = currentVm();
         return javaVM == null ? null : javaVM.attachedThread.get();
+    }
+
+    public DefinedTypeDefinition getClassTypeDefinition() {
+        return classClass;
+    }
+
+    public DefinedTypeDefinition getObjectTypeDefinition() {
+        return objectClass;
     }
 
     static JavaVMImpl currentVm() {
@@ -264,7 +723,7 @@ final class JavaVMImpl implements JavaVM {
         try {
             exit(134); // SIGKILL-ish
             for (JavaThread thread : threads) {
-                thread.close();
+                thread.await();
             }
             // todo: this is all probably wrong; we need to figure out lifecycle more accurately
             for (BootModule bootModule : bootstrapModules.values()) {
@@ -291,12 +750,8 @@ final class JavaVMImpl implements JavaVM {
         return graphFactory;
     }
 
-    public JavaClassImpl getClassClass() {
-        return classClass;
-    }
-
-    public JavaClassImpl getObjectClass() {
-        return objectClass;
+    public JavaObject getMainThreadGroup() {
+        return mainThreadGroup;
     }
 
     Dictionary getDictionaryFor(final JavaObject classLoader) {
@@ -305,7 +760,10 @@ final class JavaVMImpl implements JavaVM {
         }
         Dictionary dictionary = classLoaderLoaders.get(classLoader);
         if (dictionary == null) {
-            throw new IllegalStateException("Class loader object is unknown");
+            Dictionary appearing = classLoaderLoaders.putIfAbsent(classLoader, dictionary = new Dictionary(classLoader));
+            if (appearing != null) {
+                dictionary = appearing;
+            }
         }
         return dictionary;
     }
@@ -348,6 +806,33 @@ final class JavaVMImpl implements JavaVM {
 
         public void close() throws IOException {
             jarFile.close();
+        }
+    }
+
+    static final class StackFrame {
+        private final StackFrame parent;
+        private final Invocation caller;
+        private final Map<Value, Object> values = new HashMap<>();
+
+        StackFrame(final StackFrame parent, final Invocation caller) {
+            this.parent = parent;
+            this.caller = caller;
+        }
+
+        Object getValue(Value v) {
+            return v instanceof ConstantValue ? v.getType().boxValue((ConstantValue) v) : values.get(v);
+        }
+
+        void bindValue(Value v, Object value) {
+            values.put(v, value);
+        }
+
+        Invocation getCaller() {
+            return caller;
+        }
+
+        StackFrame getParent() {
+            return parent;
         }
     }
 }

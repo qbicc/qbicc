@@ -32,6 +32,10 @@ final class SignedInteger64TypeImpl extends SignedIntegerTypeImpl {
         return ((long) value) == 0;
     }
 
+    public Object boxValue(final ConstantValue value) {
+        return Long.valueOf(value.longValue());
+    }
+
     public boolean isNegative(final long value) {
         return value < 0;
     }

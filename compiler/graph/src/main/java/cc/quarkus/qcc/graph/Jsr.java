@@ -8,4 +8,6 @@ public interface Jsr extends Terminator {
     BasicBlock getTarget();
 
     BasicBlock getReturn();
+
+    Value getReturnAddressValue();
 }

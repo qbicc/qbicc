@@ -7,6 +7,7 @@ import cc.quarkus.qcc.graph.IntegerType;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.WordType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.FieldContainer;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;

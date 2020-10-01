@@ -762,18 +762,17 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     private Annotation buildAnnotation(ByteBuffer buffer) {
         Annotation.Builder builder = Annotation.builder();
-        int typeIndex = getShort(buffer.getShort() & 0xffff);
-        int avPairCnt = getShort(buffer.getShort() & 0xffff);
-        int ch = getRawConstantByte(typeIndex, 4); // first byte of the string
+        int typeIndex = buffer.getShort() & 0xffff;
+        int ch = getRawConstantByte(typeIndex, 3); // first byte of the string
         if (ch != 'L') {
             throw new InvalidTypeDescriptorException("Invalid annotation type descriptor");
         }
         int typeLen = getRawConstantShort(typeIndex, 1);
-        ch = getRawConstantByte(typeIndex, 3 + typeLen); // last byte
+        ch = getRawConstantByte(typeIndex, 3 + typeLen - 1); // last byte
         if (ch != ';') {
             throw new InvalidTypeDescriptorException("Unterminated annotation type descriptor");
         }
-        JavaVM vm = JavaVM.requireCurrentThread().getVM();
+        JavaVM vm = JavaVM.requireCurrent();
         String name = vm.deduplicate(definingClassLoader, this.buffer, cpOffsets[typeIndex] + 3, typeLen, true);
         builder.setClassName(name);
         int cnt = buffer.getShort() & 0xffff;

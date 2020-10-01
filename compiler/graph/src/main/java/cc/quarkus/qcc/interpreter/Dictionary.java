@@ -3,8 +3,6 @@ package cc.quarkus.qcc.interpreter;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.Context;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.definition.DefineFailedException;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -17,19 +15,7 @@ public class Dictionary {
 
     public static final int ASM_VERSION = Opcodes.ASM7;
 
-    private static final AttachmentKey<Dictionary> key = new AttachmentKey<>();
-
     private final JavaObject classLoader;
-
-    public static Dictionary rootDictionary() {
-        return Context.requireCurrent().getAttachment(key);
-    }
-
-    public static void setRootDictionary(Dictionary u) {
-        if (Context.requireCurrent().putAttachmentIfAbsent(key, u) != null) {
-            throw new IllegalStateException("Root dictionary already attached to context");
-        }
-    }
 
     Dictionary() {
         classLoader = null;
@@ -51,6 +37,22 @@ public class Dictionary {
 
     public DefinedTypeDefinition findLoadedClass(String name) {
         return objectTypes.get(name);
+    }
+
+    public DefinedTypeDefinition tryDefineClass(final String name, final ByteBuffer buffer) {
+        if (objectTypes.containsKey(name)) {
+            return null;
+        }
+        JavaVM vm = JavaVM.requireCurrent();
+
+        ClassFile classFile = ClassFile.of(buffer, classLoader);
+        DefinedTypeDefinition.Builder builder = vm.newTypeDefinitionBuilder(classLoader);
+        classFile.accept(builder);
+        DefinedTypeDefinition def = builder.build();
+        if (objectTypes.putIfAbsent(name, def) != null) {
+            return null;
+        }
+        return def;
     }
 
     public DefinedTypeDefinition defineClass(String name, ByteBuffer buffer) throws LinkageException {

@@ -20,6 +20,10 @@ final class SignedInteger8TypeImpl extends SignedIntegerTypeImpl {
         return ((byte) value) == 0;
     }
 
+    public Object boxValue(final ConstantValue value) {
+        return Byte.valueOf(value.byteValue());
+    }
+
     public boolean isNegative(final long value) {
         return ((byte) value) < 0;
     }

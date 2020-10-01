@@ -4,6 +4,7 @@ import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.interpreter.JavaClass;
 import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.interpreter.Thrown;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -15,11 +16,17 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
  */
 final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
     private final ResolvedTypeDefinitionImpl delegate;
-    private volatile InitializedTypeDefinition initialized;
-    private InitializedTypeDefinition initializing;
+    private final FieldSet staticFieldSet;
+    private final FieldSet instanceFieldSet;
+    private final FieldContainer staticFields;
+    private volatile PreparedTypeDefinition initialized;
+    private PreparedTypeDefinition initializing;
 
     PreparedTypeDefinitionImpl(final ResolvedTypeDefinitionImpl delegate) {
         this.delegate = delegate;
+        instanceFieldSet = new FieldSet(delegate, false);
+        staticFieldSet = new FieldSet(delegate, true);
+        staticFields = FieldContainer.forStaticFieldsOf(delegate);
     }
 
     // delegations
@@ -29,11 +36,24 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
     }
 
     public PreparedTypeDefinition getSuperClass() {
-        return delegate.getSuperClass().prepare();
+        ResolvedTypeDefinition superClass = delegate.getSuperClass();
+        return superClass == null ? null : superClass.prepare();
     }
 
     public PreparedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
         return delegate.getInterface(index).prepare();
+    }
+
+    public FieldSet getInstanceFieldSet() {
+        return instanceFieldSet;
+    }
+
+    public FieldSet getStaticFieldSet() {
+        return staticFieldSet;
+    }
+
+    public FieldContainer getStaticFields() {
+        return staticFields;
     }
 
     public FieldElement getField(final int index) {
@@ -125,9 +145,9 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
     }
 
     public InitializedTypeDefinition initialize() throws InitializationFailedException {
-        InitializedTypeDefinition initialized = this.initialized;
+        PreparedTypeDefinition initialized = this.initialized;
         if (initialized != null) {
-            return initialized;
+            return initialized.initialize();
         }
         PreparedTypeDefinition superClass = getSuperClass();
         if (superClass != null) {
@@ -142,14 +162,22 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
             if (initialized == null) {
                 if (initializing != null) {
                     // init in progress from this same thread
-                    return initializing;
+                    return initializing.initialize();
                 }
                 this.initializing = initialized = new InitializedTypeDefinitionImpl(this);
-                JavaVM.requireCurrentThread().initClass(getJavaClass());
+                JavaVM vm = JavaVM.requireCurrent();
+                try {
+                    vm.invoke(getInitializer().getExactMethodBody());
+                } catch (Thrown t) {
+                    InitializationFailedException ex = new InitializationFailedException(t);
+                    this.initialized = new InitializationFailedDefinitionImpl(this, ex);
+                    this.initializing = null;
+                    throw ex;
+                }
                 this.initialized = initialized;
                 this.initializing = null;
             }
         }
-        return initialized;
+        return initialized.initialize();
     }
 }

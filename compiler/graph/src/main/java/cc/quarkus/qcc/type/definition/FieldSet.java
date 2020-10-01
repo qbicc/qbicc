@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.interpreter;
+package cc.quarkus.qcc.type.definition;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -9,11 +9,11 @@ import java.util.Map;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 
-final class FieldSet {
+public final class FieldSet {
     final Map<String, Integer> fieldIndices = new HashMap<>();
     final FieldElement[] sortedFields;
 
-    FieldSet(VerifiedTypeDefinition type, boolean statics) {
+    public FieldSet(VerifiedTypeDefinition type, boolean statics) {
         int cnt = type.getFieldCount();
         List<FieldElement> fields = new ArrayList<>(cnt);
         type.eachField((field) -> {

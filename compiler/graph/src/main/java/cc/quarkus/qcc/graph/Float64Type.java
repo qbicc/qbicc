@@ -16,6 +16,10 @@ final class Float64Type extends NativeObjectTypeImpl implements FloatType {
         return true;
     }
 
+    public Object boxValue(final ConstantValue value) {
+        return Double.valueOf(Double.longBitsToDouble(value.longValue()));
+    }
+
     public int getSize() {
         return 8;
     }

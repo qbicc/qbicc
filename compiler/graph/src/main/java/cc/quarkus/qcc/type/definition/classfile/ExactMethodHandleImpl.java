@@ -2,10 +2,12 @@ package cc.quarkus.qcc.type.definition.classfile;
 
 import java.nio.ByteBuffer;
 
+import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.GraphFactory;
 import cc.quarkus.qcc.graph.NodeHandle;
 import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
@@ -76,8 +78,10 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
                 j++;
             }
         }
-        NodeHandle entryBlock = new NodeHandle();
-        methodParser.processNewBlock(byteCode, entryBlock);
-        return new ResolvedMethodBody(parameters, NodeHandle.getTargetOf(entryBlock));
+        NodeHandle entryBlockHandle = new NodeHandle();
+        methodParser.processNewBlock(byteCode, entryBlockHandle);
+        BasicBlock entryBlock = NodeHandle.getTargetOf(entryBlockHandle);
+        Schedule schedule = Schedule.forMethod(entryBlock);
+        return new ResolvedMethodBody(parameters, entryBlock, schedule);
     }
 }

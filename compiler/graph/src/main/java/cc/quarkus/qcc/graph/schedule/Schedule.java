@@ -16,6 +16,8 @@ import io.smallrye.common.constraint.Assert;
  * A linear schedule for basic block instructions.
  */
 public interface Schedule {
+    Schedule EMPTY = forMethod(BasicBlock.VOID_EMPTY);
+
     /**
      * Get the basic block for the given node.
      *

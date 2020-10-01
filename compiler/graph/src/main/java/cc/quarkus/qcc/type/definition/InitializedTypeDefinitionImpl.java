@@ -32,6 +32,18 @@ final class InitializedTypeDefinitionImpl implements InitializedTypeDefinition {
         return delegate.getInterface(index).initialize();
     }
 
+    public FieldSet getInstanceFieldSet() {
+        return delegate.getInstanceFieldSet();
+    }
+
+    public FieldSet getStaticFieldSet() {
+        return delegate.getStaticFieldSet();
+    }
+
+    public FieldContainer getStaticFields() {
+        return delegate.getStaticFields();
+    }
+
     public FieldElement getField(final int index) {
         return delegate.getField(index);
     }

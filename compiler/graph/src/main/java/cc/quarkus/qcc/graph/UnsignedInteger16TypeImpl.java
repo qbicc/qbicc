@@ -23,6 +23,10 @@ final class UnsignedInteger16TypeImpl extends UnsignedIntegerTypeImpl {
         return ((short) value) == 0;
     }
 
+    public Object boxValue(final ConstantValue value) {
+        return Character.valueOf(value.charValue());
+    }
+
     public boolean isNegative(final long value) {
         return false;
     }

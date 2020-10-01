@@ -16,6 +16,11 @@ final class NullTypeImpl extends NodeImpl implements NullType {
         throw new IndexOutOfBoundsException(index);
     }
 
+    public Object boxValue(final ConstantValue value) {
+        // todo: this probably isn't going to work long-term due to Maps being picky about null values...
+        return null;
+    }
+
     public void replaceWith(final Node node) {
         throw Assert.unsupported();
     }

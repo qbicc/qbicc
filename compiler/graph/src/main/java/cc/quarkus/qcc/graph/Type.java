@@ -120,4 +120,20 @@ public interface Type extends Node {
     default Value zero() {
         return Value.const_(0).withTypeRaw(this);
     }
+
+    // Interpreter only - temporary?
+
+    /**
+     * Used only by the interpreter.  Box the given value according to its type.
+     *
+     * @param value the constant value
+     * @return the boxed value
+     */
+    default Object boxValue(ConstantValue value) {
+        throw new UnsupportedOperationException();
+    }
+
+    default Object interpAdd(Object v1, Object v2) {
+        return null;
+    }
 }

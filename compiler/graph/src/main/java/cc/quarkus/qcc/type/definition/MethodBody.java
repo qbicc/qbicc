@@ -2,6 +2,7 @@ package cc.quarkus.qcc.type.definition;
 
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.ParameterValue;
+import cc.quarkus.qcc.graph.schedule.Schedule;
 
 /**
  *
@@ -19,6 +20,10 @@ public interface MethodBody {
         public BasicBlock getEntryBlock() {
             return BasicBlock.VOID_EMPTY;
         }
+
+        public Schedule getSchedule() {
+            return Schedule.EMPTY;
+        }
     };
 
     int getParameterCount();
@@ -26,4 +31,6 @@ public interface MethodBody {
     ParameterValue getParameterValue(int index) throws IndexOutOfBoundsException;
 
     BasicBlock getEntryBlock();
+
+    Schedule getSchedule();
 }

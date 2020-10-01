@@ -21,7 +21,7 @@ final class ArrayClassTypeImpl extends AbstractClassTypeImpl implements ArrayCla
     }
 
     public ClassType getSuperClass() {
-        return JavaVM.requireCurrent().getObjectClass().getTypeDefinition().getClassType();
+        return JavaVM.requireCurrent().getObjectTypeDefinition().verify().getClassType();
     }
 
     public int getInterfaceCount() {

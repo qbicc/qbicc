@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.interpreter;
+package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+import cc.quarkus.qcc.interpreter.JavaObject;
 
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -10,10 +10,14 @@ final class FieldContainerImpl implements FieldContainer {
     // todo: autoboxing is really a terrible idea
     final AtomicReferenceArray<Object> objects;
 
-    FieldContainerImpl(VerifiedTypeDefinition type, FieldSet fieldSet) {
+    FieldContainerImpl(VerifiedTypeDefinition type, final boolean statics) {
         this.type = type;
-        this.fieldSet = fieldSet;
-        objects = new AtomicReferenceArray<>(fieldSet.getSize());
+        if (statics) {
+            this.fieldSet = type.resolve().prepare().getStaticFieldSet();
+        } else {
+            this.fieldSet = type.resolve().prepare().getInstanceFieldSet();
+        }
+        objects = new AtomicReferenceArray<>(this.fieldSet.getSize());
     }
 
     public FieldSet getFieldSet() {

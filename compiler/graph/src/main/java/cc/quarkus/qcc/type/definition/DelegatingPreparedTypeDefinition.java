@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.type.definition;
 
+import cc.quarkus.qcc.interpreter.JavaClass;
+
 /**
  *
  */
@@ -20,12 +22,28 @@ public abstract class DelegatingPreparedTypeDefinition extends DelegatingResolve
         return this;
     }
 
+    public JavaClass getJavaClass() {
+        return getDelegate().getJavaClass();
+    }
+
     public PreparedTypeDefinition getSuperClass() {
         return getDelegate().getSuperClass();
     }
 
     public PreparedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
         return getDelegate().getInterface(index);
+    }
+
+    public FieldSet getInstanceFieldSet() {
+        return getDelegate().getInstanceFieldSet();
+    }
+
+    public FieldSet getStaticFieldSet() {
+        return getDelegate().getStaticFieldSet();
+    }
+
+    public FieldContainer getStaticFields() {
+        return getDelegate().getStaticFields();
     }
 
     public InitializedTypeDefinition initialize() throws InitializationFailedException {

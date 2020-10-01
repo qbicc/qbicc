@@ -1,6 +1,17 @@
-package cc.quarkus.qcc.interpreter;
+package cc.quarkus.qcc.type.definition;
 
-interface FieldContainer {
+import cc.quarkus.qcc.interpreter.JavaObject;
+import io.smallrye.common.constraint.Assert;
+
+public interface FieldContainer {
+    static FieldContainer forInstanceFieldsOf(VerifiedTypeDefinition definition) {
+        return new FieldContainerImpl(Assert.checkNotNullParam("definition", definition), false);
+    }
+
+    static FieldContainer forStaticFieldsOf(VerifiedTypeDefinition definition) {
+        return new FieldContainerImpl(Assert.checkNotNullParam("definition", definition), true);
+    }
+
     FieldSet getFieldSet();
 
     JavaObject getObjectFieldPlain(String name);
