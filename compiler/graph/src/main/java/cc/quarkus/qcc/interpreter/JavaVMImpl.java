@@ -251,7 +251,6 @@ final class JavaVMImpl implements JavaVM {
         if (loadedClass != null) {
             return loadedClass;
         }
-        JavaThread javaThread = JavaVM.requireCurrentThread();
         // search the bootstrap modules for the class
         ByteBuffer bytes;
         for (BootModule module : bootstrapModules.values()) {
@@ -632,15 +631,20 @@ final class JavaVMImpl implements JavaVM {
         return new JavaThreadImpl(threadName, threadGroup, daemon, this);
     }
 
-    void tryAttach(JavaThread thread) throws IllegalStateException {
+    boolean tryAttach(JavaThread thread) throws IllegalStateException {
         if (attachedThread.get() != null) {
             throw new IllegalStateException("Thread is already attached");
         }
-        if (currentVm.get() != null) {
+        JavaVMImpl existing = currentVm.get();
+        if (existing == this) {
+            return false;
+        }
+        if (existing != null) {
             throw new IllegalStateException("Another JVM is already attached");
         }
         currentVm.set(this);
         attachedThread.set((JavaThreadImpl) thread);
+        return true;
     }
 
     void detach(JavaThread thread) throws IllegalStateException {
@@ -655,6 +659,18 @@ final class JavaVMImpl implements JavaVM {
     static JavaThreadImpl currentThread() {
         JavaVMImpl javaVM = currentVm();
         return javaVM == null ? null : javaVM.attachedThread.get();
+    }
+
+    public void doAttached(final Runnable r) {
+        if (currentVm.get() != null) {
+            throw new IllegalStateException("Another JVM is already attached");
+        }
+        currentVm.set(this);
+        try {
+            r.run();
+        } finally {
+            currentVm.remove();
+        }
     }
 
     public DefinedTypeDefinition getClassTypeDefinition() {

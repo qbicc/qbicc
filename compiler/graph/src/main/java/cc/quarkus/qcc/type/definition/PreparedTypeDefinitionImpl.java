@@ -15,16 +15,12 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
  */
 final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
     private final ResolvedTypeDefinitionImpl delegate;
-    private final FieldSet staticFieldSet;
-    private final FieldSet instanceFieldSet;
     private final FieldContainer staticFields;
     private volatile PreparedTypeDefinition initialized;
     private PreparedTypeDefinition initializing;
 
     PreparedTypeDefinitionImpl(final ResolvedTypeDefinitionImpl delegate) {
         this.delegate = delegate;
-        instanceFieldSet = new FieldSet(delegate, false);
-        staticFieldSet = new FieldSet(delegate, true);
         staticFields = FieldContainer.forStaticFieldsOf(delegate);
     }
 
@@ -44,11 +40,11 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
     }
 
     public FieldSet getInstanceFieldSet() {
-        return instanceFieldSet;
+        return delegate.getInstanceFieldSet();
     }
 
     public FieldSet getStaticFieldSet() {
-        return staticFieldSet;
+        return delegate.getStaticFieldSet();
     }
 
     public FieldContainer getStaticFields() {

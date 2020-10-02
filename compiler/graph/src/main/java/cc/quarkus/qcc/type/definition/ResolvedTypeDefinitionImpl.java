@@ -13,10 +13,14 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
  */
 final class ResolvedTypeDefinitionImpl implements ResolvedTypeDefinition {
     private final VerifiedTypeDefinition delegate;
+    private final FieldSet staticFieldSet;
+    private final FieldSet instanceFieldSet;
     private volatile PreparedTypeDefinitionImpl prepared;
 
     ResolvedTypeDefinitionImpl(final VerifiedTypeDefinition delegate) {
         this.delegate = delegate;
+        instanceFieldSet = new FieldSet(delegate, false);
+        staticFieldSet = new FieldSet(delegate, true);
     }
 
     // delegation
@@ -32,6 +36,14 @@ final class ResolvedTypeDefinitionImpl implements ResolvedTypeDefinition {
 
     public ResolvedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
         return delegate.getInterface(index).resolve();
+    }
+
+    public FieldSet getInstanceFieldSet() {
+        return instanceFieldSet;
+    }
+
+    public FieldSet getStaticFieldSet() {
+        return staticFieldSet;
     }
 
     public String getInternalName() {

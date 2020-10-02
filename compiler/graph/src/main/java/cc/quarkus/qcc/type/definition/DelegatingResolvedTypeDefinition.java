@@ -27,4 +27,12 @@ public abstract class DelegatingResolvedTypeDefinition extends DelegatingVerifie
     public ResolvedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
         return getDelegate().getInterface(index);
     }
+
+    public FieldSet getInstanceFieldSet() {
+        return getDelegate().getInstanceFieldSet();
+    }
+
+    public FieldSet getStaticFieldSet() {
+        return getDelegate().getStaticFieldSet();
+    }
 }

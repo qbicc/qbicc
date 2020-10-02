@@ -20,10 +20,6 @@ public interface PreparedTypeDefinition extends ResolvedTypeDefinition {
 
     PreparedTypeDefinition getInterface(int index) throws IndexOutOfBoundsException;
 
-    FieldSet getInstanceFieldSet();
-
-    FieldSet getStaticFieldSet();
-
     FieldContainer getStaticFields();
 
     InitializedTypeDefinition initialize() throws InitializationFailedException;

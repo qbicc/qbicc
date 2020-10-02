@@ -85,23 +85,25 @@ public class Driver {
             JavaVM javaVM = builder.addBootstrapModules(List.of(javaBase)).build();
             // Initialize the VM
             JavaObject mainThreadGroup = javaVM.getMainThreadGroup();
-            JavaThread main = javaVM.newThread("main", mainThreadGroup, false);
-            main.doAttached(() -> javaVM.loadClass(null, "java/lang/System").verify().resolve().prepare().initialize());
-            // XXX
-            // ▪ instantiate agent class loader(s)
-            // XXX
-            // ▪ initialize agent(s)
-            // XXX
-            // ▪ instantiate application class loader(s)
-            // XXX
-            // ▪ trace execution from entry points and collect reachable classes
-            //   (initializing along the way)
+            javaVM.doAttached(() -> {
+                JavaThread main = javaVM.newThread("main", mainThreadGroup, false);
+                main.doAttached(() -> javaVM.loadClass(null, "java/lang/System").verify().resolve().prepare().initialize());
+                // XXX
+                // ▪ instantiate agent class loader(s)
+                // XXX
+                // ▪ initialize agent(s)
+                // XXX
+                // ▪ instantiate application class loader(s)
+                // XXX
+                // ▪ trace execution from entry points and collect reachable classes
+                //   (initializing along the way)
 
 
-            // ▪ terminate JVM and wait for all JVM threads to exit
+                // ▪ terminate JVM and wait for all JVM threads to exit
 
 
 
+            });
             // load the native image generator
             final NativeImageGeneratorFactory generatorFactory = NativeImageGeneratorFactory.getInstance(driverConfig.nativeImageGenerator(), classLoader);
             NativeImageGenerator generator = generatorFactory.createGenerator();

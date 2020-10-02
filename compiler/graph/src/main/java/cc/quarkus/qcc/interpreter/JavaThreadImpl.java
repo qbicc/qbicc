@@ -20,6 +20,7 @@ final class JavaThreadImpl implements JavaThread {
     }
 
     public void doAttached(final Runnable r) {
+        boolean detach;
         threadLock.lock();
         try {
             if (state != State.RUNNING) {
@@ -28,7 +29,7 @@ final class JavaThreadImpl implements JavaThread {
             if (attachedThread != null) {
                 throw new IllegalStateException("Thread is already attached");
             }
-            vm.tryAttach(this);
+            detach = vm.tryAttach(this);
             attachedThread = Thread.currentThread();
         } finally {
             threadLock.unlock();
@@ -37,7 +38,9 @@ final class JavaThreadImpl implements JavaThread {
             r.run();
         } finally {
             threadLock.lock();
-            vm.detach(this);
+            if (detach) {
+                vm.detach(this);
+            }
             assert attachedThread == Thread.currentThread();
             attachedThread = null;
             threadLock.unlock();

@@ -45,6 +45,10 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
     // Fields
     // ==================
 
+    FieldSet getInstanceFieldSet();
+
+    FieldSet getStaticFieldSet();
+
     /**
      * Resolve a field by name and type.
      *

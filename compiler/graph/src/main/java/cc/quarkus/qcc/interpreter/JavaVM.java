@@ -54,6 +54,8 @@ public interface JavaVM extends AutoCloseable {
         return current;
     }
 
+    void doAttached(Runnable r);
+
     DefinedTypeDefinition getClassTypeDefinition();
 
     DefinedTypeDefinition getObjectTypeDefinition();

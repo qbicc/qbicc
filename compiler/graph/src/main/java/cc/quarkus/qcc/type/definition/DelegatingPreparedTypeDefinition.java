@@ -28,14 +28,6 @@ public abstract class DelegatingPreparedTypeDefinition extends DelegatingResolve
         return getDelegate().getInterface(index);
     }
 
-    public FieldSet getInstanceFieldSet() {
-        return getDelegate().getInstanceFieldSet();
-    }
-
-    public FieldSet getStaticFieldSet() {
-        return getDelegate().getStaticFieldSet();
-    }
-
     public FieldContainer getStaticFields() {
         return getDelegate().getStaticFields();
     }

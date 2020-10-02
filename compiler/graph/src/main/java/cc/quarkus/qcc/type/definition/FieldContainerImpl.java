@@ -13,9 +13,9 @@ final class FieldContainerImpl implements FieldContainer {
     FieldContainerImpl(VerifiedTypeDefinition type, final boolean statics) {
         this.type = type;
         if (statics) {
-            this.fieldSet = type.resolve().prepare().getStaticFieldSet();
+            this.fieldSet = type.resolve().getStaticFieldSet();
         } else {
-            this.fieldSet = type.resolve().prepare().getInstanceFieldSet();
+            this.fieldSet = type.resolve().getInstanceFieldSet();
         }
         objects = new AtomicReferenceArray<>(this.fieldSet.getSize());
     }
