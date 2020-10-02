@@ -54,7 +54,7 @@ public class Driver {
         Boolean result = context.run(() -> {
             final ClassLoader classLoader = Main.class.getClassLoader();
 
-            Path javaBase = Maven.resolver().resolve("cc.quarkus.qcc.openjdk:java.base:jar:linux:11.0.8+8-1.0").withTransitivity().asSingleFile().toPath();
+            Path javaBase = Maven.resolver().resolve("cc.quarkus:qccrt-java.base:jar:11.0.0").withTransitivity().asSingleFile().toPath();
             // todo: map args to configurations
             DriverConfig driverConfig = new DriverConfig() {
                 public String nativeImageGenerator() {
