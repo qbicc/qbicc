@@ -4,6 +4,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.List;
 
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.Type;
@@ -290,7 +292,14 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             //
             case '[': return Type.arrayOf(resolveSingleDescriptor(offs + 1, maxLen - 1));
             //
-            case 'L': return loadClass(offs + 1, maxLen - 1, true);
+            case 'L': {
+                for (int i = 0; i < maxLen; i ++) {
+                    if (getByte(offs + 1 + i) == ';') {
+                        return loadClass(offs + 1, i, true);
+                    }
+                }
+                // fall thru
+            }
             default: throw new InvalidTypeDescriptorException("Invalid type descriptor character '" + (char) b + "'");
         }
     }
@@ -570,14 +579,13 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         builder.setTypeResolver(this, index);
         builder.setModifiers(getShort(fieldOffsets[index]));
         builder.setName(getUtf8Constant(getShort(fieldOffsets[index] + 2)));
-        addAnnotations(builder);
+        addFieldAnnotations(index, builder);
         return builder.build();
     }
 
     public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing) {
         MethodElement.Builder builder = MethodElement.builder();
         builder.setEnclosingType(enclosing);
-        builder.setReturnTypeResolver(this, index);
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
         builder.setName(getUtf8Constant(getShort(methodOffsets[index] + 2)));
@@ -590,7 +598,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             builder.setVirtualMethodBody(new VirtualMethodHandleImpl(this, index));
         }
         addParameters(builder, index, enclosing);
-        addAnnotations(builder);
+        addMethodAnnotations(index, builder);
         return builder.build();
     }
 
@@ -601,7 +609,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         builder.setModifiers(methodModifiers);
         addExactBody(builder, index, enclosing);
         addParameters(builder, index, enclosing);
-        addAnnotations(builder);
+        addMethodAnnotations(index, builder);
         return builder.build();
     }
 
@@ -618,18 +626,22 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     public Type resolveFieldType(final long argument) throws ResolutionFailedException {
-        // todo: encode length too?
-        return resolveSingleDescriptor((int) (argument & 0x7fff_ffff), 1024);
+        int fo = fieldOffsets[(int) argument];
+        return resolveSingleDescriptor(getShort(fo + 4));
     }
 
     public Type resolveMethodReturnType(final long argument) throws ResolutionFailedException {
-        // todo: encode length too?
-        return resolveSingleDescriptor((int) (argument & 0x7fff_ffff), 1024);
+        int mo = methodOffsets[(int) (argument >> 16)];
+        int descIdx = getShort(mo + 4);
+        int offs = cpOffsets[descIdx] + 3 + (((int)argument) & 0xffff);
+        return resolveSingleDescriptor(offs, 1024);
     }
 
     public Type resolveParameterType(final long argument) throws ResolutionFailedException {
-        // todo: encode length too?
-        return resolveSingleDescriptor((int) (argument & 0x7fff_ffff), 1024);
+        int mo = methodOffsets[(int) (argument >> 16)];
+        int descIdx = getShort(mo + 4);
+        int offs = cpOffsets[descIdx] + 3 + (((int)argument) & 0xffff);
+        return resolveSingleDescriptor(offs, 1024);
     }
 
     private void addExactBody(ExactExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
@@ -647,9 +659,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         builder.setExactMethodBody(new ExactMethodHandleImpl(this, modifiers, index, codeAttr, enclosing));
     }
 
-    private void addParameters(ParameterizedExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
+    private int addParameters(ParameterizedExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
         int base = methodOffsets[index];
         int descIdx = getShort(base + 4);
+        int descLen = getShort(cpOffsets[descIdx] + 1);
         int attrCnt = getMethodAttributeCount(index);
         ByteBuffer visibleAnn = null;
         ByteBuffer invisibleAnn = null;
@@ -663,99 +676,117 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
                 methodParams = getMethodRawAttributeContent(index, i);
             }
         }
-        int actualCnt = scanDescriptorParameters(descIdx);
-        if (methodParams != null) {
-            int cnt = methodParams.get() & 0xff;
-            if (cnt != actualCnt) {
-                // can't parse; ignore
-                methodParams = null;
-            }
+        int vaCnt = visibleAnn == null ? 0 : visibleAnn.get() & 0xff;
+        int iaCnt = invisibleAnn == null ? 0 : invisibleAnn.get() & 0xff;
+        int mpCnt = methodParams == null ? 0 : methodParams.get() & 0xff;
+        // todo: it would be nice if there was a way to do this without the array list
+        List<ParameterElement.Builder> paramBuilders = new ArrayList<>();
+        if (utf8ConstantByteAt(descIdx, 0) != '(') {
+            throw new InvalidTypeDescriptorException("Invalid method descriptor character");
         }
-        if (visibleAnn != null) {
-            int cnt = visibleAnn.get() & 0xff;
-            if (cnt != actualCnt) {
-                // can't parse; ignore
-                visibleAnn = null;
+        int offs;
+        for (offs = 1; offs < descLen; offs++) {
+            int v = utf8ConstantByteAt(descIdx, offs);
+            if (v == ')') {
+                break;
             }
-        }
-        if (invisibleAnn != null) {
-            int cnt = invisibleAnn.get() & 0xff;
-            if (cnt != actualCnt) {
-                // can't parse; ignore
-                invisibleAnn = null;
-            }
-        }
-
-        int descOffs = 1;
-        for (int i = 0; i < actualCnt; i ++) {
             ParameterElement.Builder paramBuilder = ParameterElement.builder();
-            if (methodParams != null) {
+            paramBuilders.add(paramBuilder);
+            paramBuilder.setEnclosingType(enclosing);
+            paramBuilder.setResolver(this, (index << 16) | offs);
+            while (v == '[' && offs < descLen) {
+                v = utf8ConstantByteAt(descIdx, ++offs);
+            }
+            if (v == 'L') {
+                do {
+                    v = utf8ConstantByteAt(descIdx, ++offs);
+                } while (v != ';' && offs < descLen);
+            } else {
+                if (v != 'B' && v != 'C' && v != 'D' && v != 'F' &&
+                    v != 'I' && v != 'J' && v != 'S' && v != 'Z') {
+                    throw new InvalidTypeDescriptorException("Invalid method descriptor character");
+                }
+            }
+        }
+        if (utf8ConstantByteAt(descIdx, offs++) != ')') {
+            throw new InvalidTypeDescriptorException("Invalid method descriptor character");
+        }
+        int actCnt = paramBuilders.size();
+        if (mpCnt > 0 && mpCnt == actCnt) {
+            for (ParameterElement.Builder paramBuilder : paramBuilders) {
                 int nameIdx = methodParams.getShort() & 0xffff;
                 if (nameIdx != 0) {
                     paramBuilder.setName(getUtf8Constant(nameIdx));
                 }
                 paramBuilder.setModifiers(methodParams.getShort() & 0xffff);
             }
-            if (visibleAnn != null) {
-                int annCnt = visibleAnn.getShort() & 0xffff;
-                for (int j = 0; j < annCnt; j ++) {
-                    paramBuilder.addVisibleAnnotation(buildAnnotation(visibleAnn));
-                }
-            }
-            if (invisibleAnn != null) {
+        }
+        if (iaCnt > 0 && iaCnt == actCnt) {
+            for (ParameterElement.Builder paramBuilder : paramBuilders) {
                 int annCnt = invisibleAnn.getShort() & 0xffff;
                 for (int j = 0; j < annCnt; j ++) {
                     paramBuilder.addInvisibleAnnotation(buildAnnotation(invisibleAnn));
                 }
             }
-            paramBuilder.setResolver(this, (long)index << 8 | i);
-            addAnnotations(paramBuilder);
-            paramBuilder.setEnclosingType(enclosing);
-            builder.addParameter(paramBuilder.build());
         }
-    }
-
-    private int scanSingleParameter(int idx, int offs) {
-        switch (utf8ConstantByteAt(idx, offs)) {
-            case 'B':
-            case 'C':
-            case 'D':
-            case 'F':
-            case 'I':
-            case 'J':
-            case 'S':
-            case 'Z': {
-                return 1 + scanSingleParameter(idx, offs + 1);
-            }
-            case ')': {
-                return 0;
-            }
-            case '[': {
-                return scanSingleParameter(idx, offs + 1);
-            }
-            case 'L': {
-                for (;;) {
-                    offs++;
-                    if (utf8ConstantByteAt(idx, offs) == ';') {
-                        return scanSingleParameter(idx, offs + 1) + 1;
-                    }
+        if (vaCnt > 0 && vaCnt == actCnt) {
+            for (ParameterElement.Builder paramBuilder : paramBuilders) {
+                int annCnt = visibleAnn.getShort() & 0xffff;
+                for (int j = 0; j < annCnt; j ++) {
+                    paramBuilder.addVisibleAnnotation(buildAnnotation(visibleAnn));
                 }
             }
-            default: {
-                throw new InvalidTypeDescriptorException("Unexpected character in method descriptor");
+        }
+        if (builder instanceof MethodElement.Builder) {
+            // go ahead and do the return type too, because we have that info
+            ((MethodElement.Builder) builder).setReturnTypeResolver(this, (index << 16) | offs);
+        } else {
+            if (utf8ConstantByteAt(descIdx, offs) != 'V' || offs != descLen - 1) {
+                throw new InvalidTypeDescriptorException("Invalid method descriptor character");
+            }
+        }
+        for (ParameterElement.Builder paramBuilder : paramBuilders) {
+            builder.addParameter(paramBuilder.build());
+        }
+        return 0;
+    }
+
+    private void addMethodAnnotations(final int index, AnnotatedElement.Builder builder) {
+        int cnt = getMethodAttributeCount(index);
+        for (int i = 0; i < cnt; i ++) {
+            if (methodAttributeNameEquals(index, i, "RuntimeVisibleAnnotations")) {
+                ByteBuffer data = getMethodRawAttributeContent(index, i);
+                int ac = data.getShort() & 0xffff;
+                for (int j = 0; j < ac; j ++) {
+                    builder.addVisibleAnnotation(buildAnnotation(data));
+                }
+            } else if (methodAttributeNameEquals(index, i, "RuntimeInvisibleAnnotations")) {
+                ByteBuffer data = getMethodRawAttributeContent(index, i);
+                int ac = data.getShort() & 0xffff;
+                for (int j = 0; j < ac; j ++) {
+                    builder.addInvisibleAnnotation(buildAnnotation(data));
+                }
             }
         }
     }
 
-    private int scanDescriptorParameters(int idx) {
-        if (utf8ConstantByteAt(idx, 0) != '(') {
-            throw new InvalidTypeDescriptorException("Expected ( in method descriptor");
+    private void addFieldAnnotations(final int index, AnnotatedElement.Builder builder) {
+        int cnt = getFieldAttributeCount(index);
+        for (int i = 0; i < cnt; i ++) {
+            if (fieldAttributeNameEquals(index, i, "RuntimeVisibleAnnotations")) {
+                ByteBuffer data = getFieldRawAttributeContent(index, i);
+                int ac = data.getShort() & 0xffff;
+                for (int j = 0; j < ac; j ++) {
+                    builder.addVisibleAnnotation(buildAnnotation(data));
+                }
+            } else if (fieldAttributeNameEquals(index, i, "RuntimeInvisibleAnnotations")) {
+                ByteBuffer data = getFieldRawAttributeContent(index, i);
+                int ac = data.getShort() & 0xffff;
+                for (int j = 0; j < ac; j ++) {
+                    builder.addInvisibleAnnotation(buildAnnotation(data));
+                }
+            }
         }
-        return scanSingleParameter(idx, 1);
-    }
-
-    private void addAnnotations(AnnotatedElement.Builder builder) {
-        // todo
     }
 
     // general

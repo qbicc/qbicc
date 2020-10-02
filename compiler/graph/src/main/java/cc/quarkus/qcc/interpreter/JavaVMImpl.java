@@ -154,6 +154,20 @@ final class JavaVMImpl implements JavaVM {
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/reflect/GenericDeclaration");
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/reflect/Type");
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/reflect/AnnotatedElement");
+            // dependency classes start here
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Comparable");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/CharSequence");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Runnable");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Throwable");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Void");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/io/PrintStream");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/io/FilterOutputStream");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/io/OutputStream");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/io/Closeable");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/AutoCloseable");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/io/Flushable");
+            defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Appendable");
+            // dependency classes end here
             // now instantiate the main thread group
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Thread$UncaughtExceptionHandler");
             threadGroupClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ThreadGroup");
