@@ -211,10 +211,7 @@ final class JavaVMImpl implements JavaVM {
         if (loaded != null) {
             return loaded;
         }
-        JavaThread javaThread = currentThread();
-        if (javaThread == null) {
-            throw new IllegalStateException("No VM to load class " + name);
-        }
+        JavaThread javaThread = JavaVM.requireCurrentThread();
         ResolvedTypeDefinition resolvedCL = classLoaderClass.verify().resolve();
         VerifiedTypeDefinition stringClassVerified = stringClass.verify();
         MethodHandle loadClass = resolvedCL.resolveMethodHandleVirtual("loadClass", stringClassVerified.getClassType(),
@@ -230,12 +227,18 @@ final class JavaVMImpl implements JavaVM {
         return ((JavaClass) invoke(loadClass, nameInstance)).getTypeDefinition();
     }
 
+    public DefinedTypeDefinition findLoadedBootstrapClass(final String name) {
+        return bootstrapDictionary.findLoadedClass(name);
+    }
+
+
     public DefinedTypeDefinition loadBootstrapClass(final String name) {
-        Dictionary bd = this.bootstrapDictionary;
-        DefinedTypeDefinition loadedClass = bd.findLoadedClass(name);
+        DefinedTypeDefinition loadedClass = findLoadedBootstrapClass(name);
         if (loadedClass != null) {
-            throw new IllegalArgumentException("No class found");
+            return loadedClass;
         }
+        JavaThread javaThread = JavaVM.requireCurrentThread();
+        // search the bootstrap modules for the class
         ByteBuffer bytes;
         for (BootModule module : bootstrapModules.values()) {
             try {
@@ -244,7 +247,7 @@ final class JavaVMImpl implements JavaVM {
                 throw new IllegalArgumentException("Failed to load class", e);
             }
             if (bytes != null) {
-                DefinedTypeDefinition defined = bd.tryDefineClass(name, bytes);
+                DefinedTypeDefinition defined = bootstrapDictionary.tryDefineClass(name, bytes);
                 if (defined != null) {
                     return defined;
                 }
