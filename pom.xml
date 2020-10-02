@@ -373,4 +373,13 @@
             </plugin>
         </plugins>
     </build>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Repository</name>
+            <url>https://maven.pkg.github.com/quarkuscc/qcc</url>
+        </repository>
+    </distributionManagement>
+
 </project>
