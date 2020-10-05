@@ -199,11 +199,11 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     public int getMajorVersion() {
-        return getShort(4);
+        return getShort(6);
     }
 
     public int getMinorVersion() {
-        return getShort(6);
+        return getShort(4);
     }
 
     public int getConstantCount() {

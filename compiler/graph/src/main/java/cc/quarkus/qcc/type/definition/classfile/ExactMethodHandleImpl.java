@@ -24,6 +24,8 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
     private final int index;
     private final DefinedTypeDefinition enclosing;
     private final ByteBuffer byteCode;
+    private final int maxStack;
+    private final int maxLocals;
 
     ExactMethodHandleImpl(final ClassFileImpl classFile, final int modifiers, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing) {
         super(codeAttr);
@@ -32,8 +34,8 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
         this.index = index;
         this.enclosing = enclosing;
         int save = codeAttr.position();
-        int maxStack = codeAttr.getShort() & 0xffff;
-        int maxLocals = codeAttr.getShort() & 0xffff;
+        maxStack = codeAttr.getShort() & 0xffff;
+        maxLocals = codeAttr.getShort() & 0xffff;
         int codeLen = codeAttr.getInt();
         int codeOffs = codeAttr.position();
         int lim = codeAttr.limit();
@@ -45,7 +47,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
         int exTableOffs = codeAttr.position();
         codeAttr.position(exTableOffs + (exTableLen << 3));
         int attrCnt = codeAttr.getShort() & 0xffff;
-
+        codeAttr.position(save);
     }
 
     public int getModifiers() {
@@ -57,13 +59,17 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
     }
 
     public MethodBody getResolvedMethodBody() throws ResolutionFailedException {
-        DefinedMethodBody dmb = new DefinedMethodBody(classFile, modifiers, index, buffer);
+        DefinedMethodBody dmb = new DefinedMethodBody(classFile, modifiers, index, getBackingBuffer().duplicate());
         VerifiedMethodBody vmb;
         MethodElement methodElement = classFile.resolveMethod(index, enclosing);
         int paramCount = methodElement.getParameterCount();
         if (classFile.compareVersion(50, 0) >= 0) {
-            // verify by type checking
-            vmb = new TypeCheckedVerifiedMethodBody(dmb, methodElement);
+            if (dmb.getStackMapTableOffs() != - 1) {
+                // verify by type checking
+                vmb = new TypeCheckedVerifiedMethodBody(dmb, methodElement);
+            } else {
+                vmb = new SimpleMethodBody(dmb, methodElement);
+            }
         } else {
             throw new UnsupportedOperationException("todo");
         }

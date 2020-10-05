@@ -56,16 +56,22 @@ final class DefinedMethodBody {
         maxLocals = codeAttr.getShort() & 0xffff;
         codeLen = codeAttr.getInt();
         codeOffs = codeAttr.position();
+        int lim = codeAttr.limit();
+        codeAttr.limit(codeOffs + codeLen);
+        ByteBuffer bc = codeAttr.slice();
+        codeAttr.limit(lim);
+        codeAttr.position(codeOffs + codeLen);
         short[] entryPoints = NO_SHORTS;
         int entryPointLen = 0;
         int entryPointSourcesLen = 0;
         // process bytecodes for entry points
         int src = 0;
         int target;
-        while (codeAttr.position() - codeOffs < codeLen) {
-            int opcode = codeAttr.get() & 0xff;
+        while (bc.position() < bc.limit()) {
+            int opcode = bc.get() & 0xff;
             switch (opcode) {
                 // interesting cases first
+                case OP_JSR:
                 case OP_IF_ACMPEQ:
                 case OP_IF_ACMPNE:
                 case OP_IF_ICMPEQ:
@@ -87,15 +93,24 @@ final class DefinedMethodBody {
                     //goto case OP_GOTO;
                 }
                 case OP_GOTO: {
-                    target = src + codeAttr.getShort();
+                    target = src + bc.getShort();
                     int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
                         entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
                     }
                     break;
                 }
+                case OP_JSR_W: {
+                    // just like GOTO_W except we also need to fall through
+                    target = src + 4;
+                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
+                    if (idx < 0) {
+                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
+                    }
+                    //goto case OP_GOTO_W;
+                }
                 case OP_GOTO_W: {
-                    target = src + codeAttr.getInt();
+                    target = src + bc.getInt();
                     int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
                         entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
@@ -103,16 +118,16 @@ final class DefinedMethodBody {
                     break;
                 }
                 case OP_LOOKUPSWITCH: {
-                    align(codeAttr, 4);
-                    target = src + codeAttr.getInt();
+                    align(bc, 4);
+                    target = src + bc.getInt();
                     int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
                         entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
                     }
-                    int cnt = codeAttr.getInt();
+                    int cnt = bc.getInt();
                     for (int i = 0; i < cnt; i ++) {
-                        codeAttr.getInt(); // match
-                        target = src + codeAttr.getInt();
+                        bc.getInt(); // match
+                        target = src + bc.getInt();
                         idx = findEntryPoint(entryPoints, entryPointLen, target);
                         if (idx < 0) {
                             entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
@@ -121,19 +136,19 @@ final class DefinedMethodBody {
                     break;
                 }
                 case OP_TABLESWITCH: {
-                    align(codeAttr, 4);
-                    target = src + codeAttr.getInt();
+                    align(bc, 4);
+                    target = src + bc.getInt();
                     int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
                         entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
                     }
-                    int cnt = -(codeAttr.getInt() - codeAttr.getInt());
+                    int cnt = -(bc.getInt() - bc.getInt());
                     if (cnt < 0) {
                         throw new InvalidTableSwitchRangeException();
                     }
                     for (int i = 0; i < cnt; i ++) {
-                        codeAttr.getInt(); // match
-                        target = src + codeAttr.getInt();
+                        bc.getInt(); // match
+                        target = src + bc.getInt();
                         idx = findEntryPoint(entryPoints, entryPointLen, target);
                         if (idx < 0) {
                             entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
@@ -142,7 +157,7 @@ final class DefinedMethodBody {
                     break;
                 }
                 default: {
-                    skipInstruction(codeAttr, opcode);
+                    skipInstruction(bc, opcode);
                     break;
                 }
             }
