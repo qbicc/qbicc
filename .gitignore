@@ -12,4 +12,5 @@ a.out
 *.s
 *.ll
 *.bc
+.factorypath
 
