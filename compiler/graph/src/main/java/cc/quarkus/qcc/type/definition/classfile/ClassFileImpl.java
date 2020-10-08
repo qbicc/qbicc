@@ -4,8 +4,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.List;
 
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.Type;
@@ -30,14 +28,18 @@ import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ResolutionFailedException;
 import cc.quarkus.qcc.type.definition.element.AnnotatedElement;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.ExactExecutableElement;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterElement;
 import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
+import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 
 final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
+                                                                  ConstructorElement.TypeResolver,
                                                                   FieldElement.TypeResolver,
                                                                   MethodElement.TypeResolver,
                                                                   ParameterElement.TypeResolver {
@@ -53,6 +55,14 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     private final JavaObject definingClassLoader;
     private final int[] cpOffsets;
     private final String[] strings;
+    /**
+     * This is the method parameter part of every method descriptor.
+     */
+    private final ParameterizedExecutableDescriptor[] methodParamInfo;
+    /**
+     * This is the type of every field descriptor or the return type of every method descriptor.
+     */
+    private final Type[] types;
     private final int interfacesOffset;
     private final int[] fieldOffsets;
     private final int[][] fieldAttributeOffsets;
@@ -192,6 +202,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         this.cpOffsets = cpOffsets;
         this.thisClassIdx = thisClassIdx;
         strings = new String[cpOffsets.length];
+        methodParamInfo = new ParameterizedExecutableDescriptor[cpOffsets.length];
+        types = new Type[cpOffsets.length];
     }
 
     public ClassFile getClassFile() {
@@ -269,17 +281,130 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         return cpOffset == 0 ? 0 : getLong(cpOffset + offset);
     }
 
+    private void populateTypeInfo(final int descIdx) {
+        checkConstantType(descIdx, CONSTANT_Utf8);
+        if (types[descIdx] != null) {
+            // already populated
+            return;
+        }
+        JavaVM vm = JavaVM.requireCurrent();
+        int b = getRawConstantByte(descIdx, 3);
+        int len = getUtf8ConstantLength(descIdx);
+        int i;
+        if (b == '(') {
+            // it's a method
+            // scan it twice
+            int cnt = getTypesArrayLength(descIdx, 1, 0);
+            // first get the number of parameters
+            if (cnt == 0) {
+                methodParamInfo[descIdx] = vm.getParameterizedExecutableDescriptor();
+                i = 2; // "()"
+            } else {
+                Type[] types = new Type[cnt];
+                i = populateTypesArray(descIdx, types, 1, 0) + 1;
+                methodParamInfo[descIdx] = vm.getParameterizedExecutableDescriptor(types);
+            }
+        } else {
+            i = 0;
+        }
+        // now the remaining string (starting at i) is the type (or return type)
+        int descOffs = cpOffsets[descIdx];
+        types[descIdx] = resolveSingleDescriptor(descOffs + 3 + i, getShort(descOffs + 1) - i);
+    }
+
+    public ConstructorDescriptor resolveConstructorDescriptor(final int argument) throws ResolutionFailedException {
+        return getConstructorDescriptor(getShort(methodOffsets[argument] + 4));
+    }
+
+    public ConstructorDescriptor getConstructorDescriptor(final int descIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        populateTypeInfo(descIdx);
+        return JavaVM.requireCurrent().getConstructorDescriptor(methodParamInfo[descIdx]);
+    }
+
+    public MethodDescriptor resolveMethodDescriptor(final int argument) throws ResolutionFailedException {
+        // we have the method index but we have to get the descriptor index
+        return getMethodDescriptor(getShort(methodOffsets[argument] + 4));
+    }
+
+    public MethodDescriptor getMethodDescriptor(final int descIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        populateTypeInfo(descIdx);
+        return JavaVM.requireCurrent().getMethodDescriptor(types[descIdx], methodParamInfo[descIdx]);
+    }
+
+    int getTypesArrayLength(int descIdx, int pos, int idx) {
+        int b = getRawConstantByte(descIdx, 3 + pos);
+        switch (b) {
+            case 'B':
+            case 'C':
+            case 'D':
+            case 'F':
+            case 'I':
+            case 'J':
+            case 'S':
+            case 'V':
+            case 'Z': {
+                return getTypesArrayLength(descIdx, pos + 1, idx + 1);
+            }
+            case '[': {
+                return getTypesArrayLength(descIdx, pos + 1, idx);
+            }
+            case 'L': {
+                while (getRawConstantByte(descIdx, ++pos + 3) != ';');
+                return getTypesArrayLength(descIdx, pos + 1, idx + 1);
+            }
+            case ')': {
+                return idx;
+            }
+            default: {
+                throw new InvalidTypeDescriptorException("Invalid type descriptor character '" + (char) b + "'");
+            }
+        }
+    }
+
+    int populateTypesArray(int descIdx, Type[] types, int pos, int idx) {
+        if (idx == types.length) {
+            return pos;
+        }
+        int b = getRawConstantByte(descIdx, 3 + pos);
+        switch (b) {
+            case 'B':
+            case 'C':
+            case 'D':
+            case 'F':
+            case 'I':
+            case 'J':
+            case 'S':
+            case 'V':
+            case 'Z': {
+                types[idx] = forSimpleDescriptor(b);
+                pos ++;
+                break;
+            }
+            case '[': {
+                int res = populateTypesArray(descIdx, types, pos + 1, idx);
+                types[idx] = Type.arrayOf(types[idx]);
+                return res;
+            }
+            case 'L': {
+                int start = ++pos;
+                while (getRawConstantByte(descIdx, 3 + pos++) != ';');
+                types[idx] = loadClass(cpOffsets[descIdx] + 3 + start, pos - start - 1, true);
+                break;
+            }
+            default: {
+                throw new InvalidTypeDescriptorException("Invalid type descriptor character '" + (char) b + "'");
+            }
+        }
+        return populateTypesArray(descIdx, types, pos, idx + 1);
+    }
+
     Type resolveSingleDescriptor(int cpIdx) {
         int cpOffset = cpOffsets[cpIdx];
         return resolveSingleDescriptor(cpOffset + 3, getShort(cpOffset + 1));
     }
 
-    Type resolveSingleDescriptor(final int offs, final int maxLen) {
-        if (maxLen < 1) {
-            throw new InvalidTypeDescriptorException("Invalid empty type descriptor");
-        }
-        int b = getByte(offs);
-        switch (b) {
+    Type forSimpleDescriptor(int ch) {
+        switch (ch) {
             case 'B': return Type.S8;
             case 'C': return Type.U16;
             case 'D': return Type.F64;
@@ -289,6 +414,25 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             case 'S': return Type.S16;
             case 'V': return Type.VOID;
             case 'Z': return Type.BOOL;
+            default: throw new InvalidTypeDescriptorException("Invalid type descriptor character '" + (char) ch + "'");
+        }
+    }
+
+    Type resolveSingleDescriptor(final int offs, final int maxLen) {
+        if (maxLen < 1) {
+            throw new InvalidTypeDescriptorException("Invalid empty type descriptor");
+        }
+        int b = getByte(offs);
+        switch (b) {
+            case 'B':
+            case 'C':
+            case 'D':
+            case 'F':
+            case 'I':
+            case 'J':
+            case 'S':
+            case 'V':
+            case 'Z': return forSimpleDescriptor(b);
             //
             case '[': return Type.arrayOf(resolveSingleDescriptor(offs + 1, maxLen - 1));
             //
@@ -324,9 +468,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         return loadClass(offset + 3, getShort(offset + 1), false);
     }
 
-    private ClassType loadClass(final int offs, final int maxLen, final boolean expectTerminator) {
+    private ClassType loadClass(final int offs, final int len, final boolean expectTerminator) {
         JavaVM vm = JavaVM.requireCurrent();
-        return vm.loadClass(definingClassLoader, vm.deduplicate(definingClassLoader, buffer, offs, maxLen, expectTerminator)).verify().getClassType();
+        return vm.loadClass(definingClassLoader, vm.deduplicate(definingClassLoader, buffer, offs, len, expectTerminator)).verify().getClassType();
     }
 
     public int getAccess() {
@@ -599,6 +743,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         }
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
+        builder.setMethodTypeResolver(this, index);
         return builder.build();
     }
 
@@ -630,21 +775,11 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         return resolveSingleDescriptor(getShort(fo + 4));
     }
 
-    public Type resolveMethodReturnType(final long argument) throws ResolutionFailedException {
-        int mo = methodOffsets[(int) (argument >> 16)];
-        int descIdx = getShort(mo + 4);
-        int offs = cpOffsets[descIdx] + 3 + (((int)argument) & 0xffff);
-        return resolveSingleDescriptor(offs, 1024);
+    public Type resolveParameterType(final int methodIdx, final int paramIdx) throws ResolutionFailedException {
+        return getMethodDescriptor(getShort(methodOffsets[methodIdx] + 4)).getParameterType(paramIdx);
     }
 
-    public Type resolveParameterType(final long argument) throws ResolutionFailedException {
-        int mo = methodOffsets[(int) (argument >> 16)];
-        int descIdx = getShort(mo + 4);
-        int offs = cpOffsets[descIdx] + 3 + (((int)argument) & 0xffff);
-        return resolveSingleDescriptor(offs, 1024);
-    }
-
-    private void addExactBody(ExactExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
+    private void addExactBody(ExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
         int attrCount = getMethodAttributeCount(index);
         for (int i = 0; i < attrCount; i ++) {
             if (methodAttributeNameEquals(index, i, "Code")) {
@@ -654,16 +789,17 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         }
     }
 
-    private void addExactBody(final ExactExecutableElement.Builder builder, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing) {
+    private void addExactBody(final ExecutableElement.Builder builder, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing) {
         int modifiers = getShort(methodOffsets[index]);
         builder.setExactMethodBody(new ExactMethodHandleImpl(this, modifiers, index, codeAttr, enclosing));
     }
 
-    private int addParameters(ParameterizedExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
+    private void addParameters(ParameterizedExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
         int base = methodOffsets[index];
         int descIdx = getShort(base + 4);
         int descLen = getShort(cpOffsets[descIdx] + 1);
         int attrCnt = getMethodAttributeCount(index);
+        int realCnt = getTypesArrayLength(descIdx, 1, 0);
         ByteBuffer visibleAnn = null;
         ByteBuffer invisibleAnn = null;
         ByteBuffer methodParams = null;
@@ -676,79 +812,42 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
                 methodParams = getMethodRawAttributeContent(index, i);
             }
         }
+        // we're making an assumption that annotations and params match the end of the list (due to inner classes);
+        // if this doesn't work, we might need to use an alt. strategy e.g. skip ACC_MANDATED params
         int vaCnt = visibleAnn == null ? 0 : visibleAnn.get() & 0xff;
+        int vaOffs = realCnt - vaCnt;
         int iaCnt = invisibleAnn == null ? 0 : invisibleAnn.get() & 0xff;
+        int iaOffs = realCnt - iaCnt;
         int mpCnt = methodParams == null ? 0 : methodParams.get() & 0xff;
-        // todo: it would be nice if there was a way to do this without the array list
-        List<ParameterElement.Builder> paramBuilders = new ArrayList<>();
-        if (utf8ConstantByteAt(descIdx, 0) != '(') {
-            throw new InvalidTypeDescriptorException("Invalid method descriptor character");
-        }
-        int offs;
-        for (offs = 1; offs < descLen; offs++) {
-            int v = utf8ConstantByteAt(descIdx, offs);
-            if (v == ')') {
-                break;
-            }
+        int mpOffs = realCnt - mpCnt;
+        for (int i = 0; i < realCnt; i ++) {
             ParameterElement.Builder paramBuilder = ParameterElement.builder();
-            paramBuilders.add(paramBuilder);
             paramBuilder.setEnclosingType(enclosing);
-            paramBuilder.setResolver(this, (index << 16) | offs);
-            while (v == '[' && offs < descLen) {
-                v = utf8ConstantByteAt(descIdx, ++offs);
-            }
-            if (v == 'L') {
-                do {
-                    v = utf8ConstantByteAt(descIdx, ++offs);
-                } while (v != ';' && offs < descLen);
-            } else {
-                if (v != 'B' && v != 'C' && v != 'D' && v != 'F' &&
-                    v != 'I' && v != 'J' && v != 'S' && v != 'Z') {
-                    throw new InvalidTypeDescriptorException("Invalid method descriptor character");
+            paramBuilder.setIndex(i);
+            paramBuilder.setResolver(this, index, i);
+            if (i >= vaOffs && i < vaOffs + vaCnt) {
+                int annCnt = visibleAnn.getShort() & 0xffff;
+                paramBuilder.expectVisibleAnnotationCount(annCnt);
+                for (int j = 0; j < annCnt; j ++) {
+                    paramBuilder.addVisibleAnnotation(buildAnnotation(visibleAnn));
                 }
             }
-        }
-        if (utf8ConstantByteAt(descIdx, offs++) != ')') {
-            throw new InvalidTypeDescriptorException("Invalid method descriptor character");
-        }
-        int actCnt = paramBuilders.size();
-        if (mpCnt > 0 && mpCnt == actCnt) {
-            for (ParameterElement.Builder paramBuilder : paramBuilders) {
+            if (i >= iaOffs && i < iaOffs + iaCnt) {
+                int annCnt = invisibleAnn.getShort() & 0xffff;
+                paramBuilder.expectInvisibleAnnotationCount(annCnt);
+                for (int j = 0; j < annCnt; j ++) {
+                    paramBuilder.addInvisibleAnnotation(buildAnnotation(invisibleAnn));
+                }
+            }
+            if (i >= mpOffs && i < mpOffs + mpCnt) {
                 int nameIdx = methodParams.getShort() & 0xffff;
                 if (nameIdx != 0) {
                     paramBuilder.setName(getUtf8Constant(nameIdx));
                 }
                 paramBuilder.setModifiers(methodParams.getShort() & 0xffff);
             }
-        }
-        if (iaCnt > 0 && iaCnt == actCnt) {
-            for (ParameterElement.Builder paramBuilder : paramBuilders) {
-                int annCnt = invisibleAnn.getShort() & 0xffff;
-                for (int j = 0; j < annCnt; j ++) {
-                    paramBuilder.addInvisibleAnnotation(buildAnnotation(invisibleAnn));
-                }
-            }
-        }
-        if (vaCnt > 0 && vaCnt == actCnt) {
-            for (ParameterElement.Builder paramBuilder : paramBuilders) {
-                int annCnt = visibleAnn.getShort() & 0xffff;
-                for (int j = 0; j < annCnt; j ++) {
-                    paramBuilder.addVisibleAnnotation(buildAnnotation(visibleAnn));
-                }
-            }
-        }
-        if (builder instanceof MethodElement.Builder) {
-            // go ahead and do the return type too, because we have that info
-            ((MethodElement.Builder) builder).setReturnTypeResolver(this, (index << 16) | offs);
-        } else {
-            if (utf8ConstantByteAt(descIdx, offs) != 'V' || offs != descLen - 1) {
-                throw new InvalidTypeDescriptorException("Invalid method descriptor character");
-            }
-        }
-        for (ParameterElement.Builder paramBuilder : paramBuilders) {
             builder.addParameter(paramBuilder.build());
         }
-        return 0;
     }
 
     private void addMethodAnnotations(final int index, AnnotatedElement.Builder builder) {

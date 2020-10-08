@@ -13,8 +13,8 @@ import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
-import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 
 final class PatcherGraphFactory extends DelegatingGraphFactory implements GraphFactory {
     /**
@@ -29,6 +29,10 @@ final class PatcherGraphFactory extends DelegatingGraphFactory implements GraphF
      * A mapping of patched fields to accessors.
      */
     private final Map<ClassType, Map<String, ClassType>> accessors = new ConcurrentHashMap<>();
+    /**
+     * A mapping of methods to their replacements.
+     */
+    private final Map<ParameterizedExecutableElement, ParameterizedExecutableElement> patchMethods = new ConcurrentHashMap<>();
 
     PatcherGraphFactory(final GraphFactory delegate) {
         super(delegate);
@@ -44,33 +48,8 @@ final class PatcherGraphFactory extends DelegatingGraphFactory implements GraphF
         }
     }
 
-    private MethodIdentifier remapMethod(MethodIdentifier original) {
-        Type orig = original.getReturnType();
-        Type remapped = remapType(orig);
-        if (orig != remapped) {
-            return MethodIdentifier.of(original.getName(), remapDescriptor(original));
-        }
-        final int cnt = original.getParameterCount();
-        for (int i = 0; i < cnt; i++) {
-            orig = original.getParameterType(i);
-            remapped = remapType(orig);
-            if (orig != remapped) {
-                return MethodIdentifier.of(original.getName(), remapDescriptor(original));
-            }
-        }
-        return original;
-    }
-
-    private MethodTypeDescriptor remapDescriptor(final MethodTypeDescriptor original) {
-        final int cnt = original.getParameterCount();
-        if (cnt == 0) {
-            return MethodTypeDescriptor.of(remapType(original.getReturnType()));
-        }
-        Type[] types = new Type[cnt];
-        for (int i = 0; i < cnt; i++) {
-            types[i] = remapType(original.getParameterType(i));
-        }
-        return MethodTypeDescriptor.of(remapType(original.getReturnType()), types);
+    private ParameterizedExecutableElement remapMethod(ParameterizedExecutableElement original) {
+        return patchMethods.getOrDefault(original, original);
     }
 
     public Value instanceOf(final Context ctxt, final Value v, final ClassType type) {
@@ -141,20 +120,20 @@ final class PatcherGraphFactory extends DelegatingGraphFactory implements GraphF
         }
     }
 
-    public Node invokeMethod(final Context ctxt, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return super.invokeMethod(ctxt, remapType(owner), remapMethod(method), arguments);
+    public Node invokeMethod(final Context ctxt, final ParameterizedExecutableElement target, final List<Value> arguments) {
+        return super.invokeMethod(ctxt, remapMethod(target), arguments);
     }
 
-    public Node invokeInstanceMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return super.invokeInstanceMethod(ctxt, instance, kind, remapType(owner), remapMethod(method), arguments);
+    public Node invokeInstanceMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ParameterizedExecutableElement target, final List<Value> arguments) {
+        return super.invokeInstanceMethod(ctxt, instance, kind, remapMethod(target), arguments);
     }
 
-    public Value invokeValueMethod(final Context ctxt, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return super.invokeValueMethod(ctxt, remapType(owner), remapMethod(method), arguments);
+    public Value invokeValueMethod(final Context ctxt, final MethodElement target, final List<Value> arguments) {
+        return super.invokeValueMethod(ctxt, (MethodElement) remapMethod(target), arguments);
     }
 
-    public Value invokeInstanceValueMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return super.invokeInstanceValueMethod(ctxt, instance, kind, remapType(owner), remapMethod(method), arguments);
+    public Value invokeInstanceValueMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
+        return super.invokeInstanceValueMethod(ctxt, instance, kind, (MethodElement) remapMethod(target), arguments);
     }
 
     static final class MappedField {

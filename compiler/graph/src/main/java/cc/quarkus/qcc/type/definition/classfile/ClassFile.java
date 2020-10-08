@@ -10,6 +10,8 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.FieldResolver;
 import cc.quarkus.qcc.type.definition.InitializerResolver;
 import cc.quarkus.qcc.type.definition.MethodResolver;
+import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
  * A class file that was defined, with basic validation performed.  The constant pool is available.
@@ -370,11 +372,6 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
         return getNameAndTypeConstantName(getRawConstantShort(idx, 3));
     }
 
-    default String getFieldrefConstantDescriptor(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
-        checkConstantType(idx, CONSTANT_Fieldref);
-        return getNameAndTypeConstantDescriptor(getRawConstantShort(idx, 3));
-    }
-
     default int getFieldrefConstantDescriptorIdx(final int idx) {
         checkConstantType(idx, CONSTANT_Fieldref);
         return getNameAndTypeConstantDescriptorIdx(getRawConstantShort(idx, 3));
@@ -385,14 +382,19 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
         return getClassConstantName(getRawConstantShort(idx, 1));
     }
 
+    default int getMethodrefNameAndTypeIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_Methodref);
+        return getRawConstantShort(idx, 3);
+    }
+
     default String getMethodrefConstantName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_Methodref);
         return getNameAndTypeConstantName(getRawConstantShort(idx, 3));
     }
 
-    default String getMethodrefConstantDescriptor(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+    default boolean methodrefConstantNameEquals(int idx, String expected) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_Methodref);
-        return getNameAndTypeConstantDescriptor(getRawConstantShort(idx, 3));
+        return nameAndTypeConstantNameEquals(getRawConstantShort(idx, 3), expected);
     }
 
     default String getInterfaceMethodrefConstantClassName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
@@ -405,19 +407,19 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
         return getNameAndTypeConstantName(getRawConstantShort(idx, 3));
     }
 
-    default String getInterfaceMethodrefConstantDescriptor(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
-        checkConstantType(idx, CONSTANT_InterfaceMethodref);
-        return getNameAndTypeConstantDescriptor(getRawConstantShort(idx, 3));
-    }
-
     default String getNameAndTypeConstantName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_NameAndType);
         return getUtf8Constant(getRawConstantShort(idx, 1));
     }
 
-    default String getNameAndTypeConstantDescriptor(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
-        return getUtf8Constant(getNameAndTypeConstantDescriptorIdx(idx));
+    default boolean nameAndTypeConstantNameEquals(int idx, String expected) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_NameAndType);
+        return utf8ConstantEquals(getRawConstantShort(idx, 1), expected);
     }
+
+    ConstructorDescriptor getConstructorDescriptor(int descIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
+
+    MethodDescriptor getMethodDescriptor(int descIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
 
     default int getNameAndTypeConstantDescriptorIdx(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_NameAndType);
@@ -436,6 +438,11 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
     boolean utf8ConstantEquals(int idx, String expected) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
 
     String getUtf8Constant(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
+
+    default int getUtf8ConstantLength(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_Utf8);
+        return getRawConstantShort(idx, 1);
+    }
 
     void checkConstantType(int idx, int expectedType) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
 

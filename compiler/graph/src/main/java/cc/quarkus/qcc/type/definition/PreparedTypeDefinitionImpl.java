@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.type.definition;
 
 import cc.quarkus.qcc.graph.ClassType;
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.interpreter.Thrown;
@@ -9,6 +10,7 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
  *
@@ -135,6 +137,10 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
         return delegate.getInvisibleAnnotation(index);
     }
 
+    public MethodDescriptor resolveMethodDescriptor(final int argument) throws ResolutionFailedException {
+        return delegate.resolveMethodDescriptor(argument);
+    }
+
     public InitializedTypeDefinition initialize() throws InitializationFailedException {
         PreparedTypeDefinition initialized = this.initialized;
         if (initialized != null) {
@@ -158,7 +164,7 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
                 this.initializing = initialized = new InitializedTypeDefinitionImpl(this);
                 JavaVM vm = JavaVM.requireCurrent();
                 try {
-                    vm.invoke(getInitializer().getExactMethodBody());
+                    vm.invokeInitializer(getInitializer());
                 } catch (Thrown t) {
                     InitializationFailedException ex = new InitializationFailedException(t);
                     this.initialized = new InitializationFailedDefinitionImpl(this, ex);

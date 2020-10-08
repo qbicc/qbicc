@@ -7,20 +7,17 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
  *
  */
 final class ResolvedTypeDefinitionImpl implements ResolvedTypeDefinition {
     private final VerifiedTypeDefinition delegate;
-    private final FieldSet staticFieldSet;
-    private final FieldSet instanceFieldSet;
     private volatile PreparedTypeDefinitionImpl prepared;
 
     ResolvedTypeDefinitionImpl(final VerifiedTypeDefinition delegate) {
         this.delegate = delegate;
-        instanceFieldSet = new FieldSet(delegate, false);
-        staticFieldSet = new FieldSet(delegate, true);
     }
 
     // delegation
@@ -39,11 +36,11 @@ final class ResolvedTypeDefinitionImpl implements ResolvedTypeDefinition {
     }
 
     public FieldSet getInstanceFieldSet() {
-        return instanceFieldSet;
+        return delegate.getInstanceFieldSet();
     }
 
     public FieldSet getStaticFieldSet() {
-        return staticFieldSet;
+        return delegate.getStaticFieldSet();
     }
 
     public String getInternalName() {
@@ -121,13 +118,17 @@ final class ResolvedTypeDefinitionImpl implements ResolvedTypeDefinition {
     public Annotation getVisibleAnnotation(final int index) {
         return delegate.getVisibleAnnotation(index);
     }
-    public int getInvisibleAnnotationCount() {
 
+    public int getInvisibleAnnotationCount() {
         return delegate.getInvisibleAnnotationCount();
     }
 
     public Annotation getInvisibleAnnotation(final int index) {
         return delegate.getInvisibleAnnotation(index);
+    }
+
+    public MethodDescriptor resolveMethodDescriptor(final int argument) throws ResolutionFailedException {
+        return delegate.resolveMethodDescriptor(argument);
     }
 
     // next phase

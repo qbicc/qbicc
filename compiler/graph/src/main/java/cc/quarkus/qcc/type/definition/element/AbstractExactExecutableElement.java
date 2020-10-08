@@ -2,7 +2,7 @@ package cc.quarkus.qcc.type.definition.element;
 
 import cc.quarkus.qcc.type.definition.MethodHandle;
 
-abstract class AbstractExactExecutableElement extends AbstractAnnotatedElement implements ExactExecutableElement {
+abstract class AbstractExactExecutableElement extends AbstractAnnotatedElement implements ExecutableElement {
     private final MethodHandle exactMethodBody;
 
     AbstractExactExecutableElement(final Builder builder) {
@@ -10,15 +10,15 @@ abstract class AbstractExactExecutableElement extends AbstractAnnotatedElement i
         exactMethodBody = builder.exactMethodBody;
     }
 
-    public boolean hasExactMethodBody() {
+    public boolean hasMethodBody() {
         return exactMethodBody != null;
     }
 
-    public MethodHandle getExactMethodBody() {
+    public MethodHandle getMethodBody() {
         return exactMethodBody;
     }
 
-    static abstract class Builder extends AbstractAnnotatedElement.Builder implements ExactExecutableElement.Builder {
+    static abstract class Builder extends AbstractAnnotatedElement.Builder implements ExecutableElement.Builder {
         private MethodHandle exactMethodBody;
 
         public void setExactMethodBody(final MethodHandle methodHandle) {

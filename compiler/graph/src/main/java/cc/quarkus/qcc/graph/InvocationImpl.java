@@ -4,12 +4,21 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Set;
 
-import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
+import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
+import io.smallrye.common.constraint.Assert;
 
 class InvocationImpl extends DependentNodeImpl implements Invocation {
     ClassType owner;
-    MethodIdentifier invocationTarget;
+    ParameterizedExecutableElement invocationTarget;
     Value[] arguments = Value.NO_VALUES;
+
+    public ParameterizedExecutableElement getInvocationTarget() {
+        return invocationTarget;
+    }
+
+    void setInvocationTarget(final ParameterizedExecutableElement target) {
+        invocationTarget = Assert.checkNotNullParam("target", target);
+    }
 
     public ClassType getMethodOwner() {
         return owner;
@@ -17,15 +26,6 @@ class InvocationImpl extends DependentNodeImpl implements Invocation {
 
     public void setMethodOwner(final ClassType owner) {
         this.owner = owner;
-    }
-
-    public MethodIdentifier getInvocationTarget() {
-        return invocationTarget;
-    }
-
-    public void setInvocationTarget(final MethodIdentifier descriptor) {
-        this.invocationTarget = descriptor;
-        setArgumentCount(descriptor.getParameterCount());
     }
 
     public int getArgumentCount() {

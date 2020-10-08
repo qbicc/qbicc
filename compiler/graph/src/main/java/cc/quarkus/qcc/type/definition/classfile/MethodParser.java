@@ -32,8 +32,14 @@ import cc.quarkus.qcc.graph.TryInvocationValue;
 import cc.quarkus.qcc.graph.TryThrow;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
-import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
+import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
+import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
+import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 final class MethodParser {
     static final ConstantValue INT_SHIFT_MASK = Value.const_(0x1f);
@@ -232,7 +238,7 @@ final class MethodParser {
 
     void restoreStack(Value[] stack) {
         if (sp > stack.length) {
-            Arrays.fill(this.stack, sp, stack.length, null);
+            Arrays.fill(this.stack, sp, this.stack.length, null);
         }
         System.arraycopy(stack, 0, this.stack, 0, stack.length);
         sp = stack.length;
@@ -995,36 +1001,52 @@ final class MethodParser {
                 case OP_INVOKESPECIAL:
                 case OP_INVOKESTATIC:
                 case OP_INVOKEINTERFACE:
-                    // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int methodRef = buffer.getShort() & 0xffff;
-                    MethodIdentifier id = getIdentifierOfMethodRef(methodRef);
-                    Type[] argTypes;
+                    // todo: try/catch, replace with error node
+                    // todo: swap this so that the owner is returned as a ResolvedTypeDefinition
+                    ClassType ownerType = getOwnerOfMethodRef(methodRef);
+                    VerifiedTypeDefinition owner = ownerType.getDefinition();
+                    int nameAndType = getNameAndTypeOfMethodRef(methodRef);
+                    ParameterizedExecutableElement target = resolveTargetOfMethodNameAndType(owner, nameAndType);
+                    if (target == null) {
+                        // todo
+                        throw new UnsupportedOperationException("Insert no such method node here");
+                    }
+                    cnt = target.getParameterCount();
                     if (opcode != OP_INVOKESTATIC) {
                         // pop the receiver
-                        v1 = pop(getOwnerOfMethodRef(methodRef));
+                        v1 = pop(ownerType);
                     } else {
                         // definite initialization
                         v1 = null;
                     }
-                    argTypes = id.getParameterTypesAsArray();
-                    cnt = id.getParameterCount();
                     Value[] args = new Value[cnt];
-                    for (int i = 0; i < cnt; i ++) {
-                        args[i] = pop(argTypes[i]);
+                    for (int i = cnt - 1; i >= 0; i --) {
+                        args[i] = pop(target.getParameter(i).getType());
                     }
-                    if (opcode == OP_INVOKESTATIC) {
-                        if (id.getReturnType() == Type.VOID) {
-                            // return type is implicitly void
-                            gf.invokeMethod(ctxt, getOwnerOfMethodRef(methodRef), id, List.of(args));
-                        } else {
-                            push(gf.invokeValueMethod(ctxt, getOwnerOfMethodRef(methodRef), id, List.of(args)));
+                    if (target instanceof ConstructorElement) {
+                        if (opcode != OP_INVOKESPECIAL) {
+                            throw new InvalidByteCodeException();
                         }
+                        gf.invokeInstanceMethod(ctxt, v1, InstanceInvocation.Kind.EXACT, target, List.of(args));
                     } else {
-                        if (id.getReturnType() == Type.VOID) {
-                            // return type is implicitly void
-                            gf.invokeInstanceMethod(ctxt, v1, InstanceInvocation.Kind.fromOpcode(opcode), getOwnerOfMethodRef(methodRef), id, List.of(args));
+                        assert target instanceof MethodElement;
+                        MethodElement method = (MethodElement) target;
+                        Type returnType = method.getReturnType();
+                        if (opcode == OP_INVOKESTATIC) {
+                            if (returnType == Type.VOID) {
+                                // return type is implicitly void
+                                gf.invokeMethod(ctxt, method, List.of(args));
+                            } else {
+                                push(gf.invokeValueMethod(ctxt, method, List.of(args)));
+                            }
                         } else {
-                            push(gf.invokeInstanceValueMethod(ctxt, v1, InstanceInvocation.Kind.fromOpcode(opcode), getOwnerOfMethodRef(methodRef), id, List.of(args)));
+                            if (returnType == Type.VOID) {
+                                // return type is implicitly void
+                                gf.invokeInstanceMethod(ctxt, v1, InstanceInvocation.Kind.fromOpcode(opcode), method, List.of(args));
+                            } else {
+                                push(gf.invokeInstanceValueMethod(ctxt, v1, InstanceInvocation.Kind.fromOpcode(opcode), method, List.of(args)));
+                            }
                         }
                     }
                     break;
@@ -1072,9 +1094,14 @@ final class MethodParser {
                     gf.if_(ctxt, gf.instanceOf(ctxt, v1, clazz), okHandle, castFailedHandle);
                     ctxt.setCurrentBlock(castFailedHandle);
                     ClassType cce = resolveClass("java/lang/ClassCastException");
+                    ResolvedTypeDefinition resolvedCce = cce.getDefinition().resolve();
                     // do not change stack depth starting here
                     v1 = gf.new_(ctxt, cce);
-                    gf.invokeInstanceMethod(ctxt, v1, InstanceInvocation.Kind.EXACT, cce, MethodIdentifier.of("<init>", MethodTypeDescriptor.of(Type.VOID)), List.of());
+                    // todo: look these up ahead of time on the VM instance?
+                    int constructorIndex = resolvedCce.findConstructorIndex(JavaVM.requireCurrent().getConstructorDescriptor());
+                    assert constructorIndex != -1;
+                    ConstructorElement invTarget = resolvedCce.getConstructor(constructorIndex);
+                    gf.invokeInstanceMethod(ctxt, v1, InstanceInvocation.Kind.EXACT, invTarget, List.of());
                     gf.throw_(ctxt, v1);
                     // do not change stack depth ending here
                     ctxt.setCurrentBlock(okHandle);
@@ -1178,13 +1205,33 @@ final class MethodParser {
         return getClassFile().getMethodrefConstantName(methodRef);
     }
 
+    private boolean nameOfMethodRefEquals(final int methodRef, final String expected) {
+        return getClassFile().methodrefConstantNameEquals(methodRef, expected);
+    }
+
     private ClassType getOwnerOfMethodRef(final int methodRef) {
         return resolveClass(getClassFile().getMethodrefConstantClassName(methodRef));
     }
 
-    private MethodIdentifier getIdentifierOfMethodRef(final int methodRef) {
-        // todo
-        throw new UnsupportedOperationException();
+    private int getNameAndTypeOfMethodRef(final int methodRef) {
+        return getClassFile().getMethodrefNameAndTypeIndex(methodRef);
+    }
+
+    private ParameterizedExecutableElement resolveTargetOfMethodNameAndType(final VerifiedTypeDefinition owner, final int nameAndTypeRef) {
+        int idx;
+        ClassFileImpl classFile = getClassFile();
+        int descIdx = classFile.getNameAndTypeConstantDescriptorIdx(nameAndTypeRef);
+        if (classFile.nameAndTypeConstantNameEquals(nameAndTypeRef, "<init>")) {
+            // constructor
+            ConstructorDescriptor desc = classFile.getConstructorDescriptor(descIdx);
+            idx = owner.resolve().findConstructorIndex(desc);
+            return idx == -1 ? null : owner.getConstructor(idx);
+        } else {
+            // method
+            MethodDescriptor desc = classFile.getMethodDescriptor(descIdx);
+            idx = owner.resolve().findMethodIndex(classFile.getNameAndTypeConstantName(nameAndTypeRef), desc);
+            return idx == -1 ? null : owner.getMethod(idx);
+        }
     }
 
     private Type resolveDescriptor(int cpIdx) {

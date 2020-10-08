@@ -5,11 +5,12 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 
 /**
  *
  */
-public interface ParameterizedExecutableElement extends ExactExecutableElement {
+public interface ParameterizedExecutableElement extends ExecutableElement {
     int getParameterCount();
 
     ParameterElement getParameter(int index) throws IndexOutOfBoundsException;
@@ -54,7 +55,9 @@ public interface ParameterizedExecutableElement extends ExactExecutableElement {
         return true;
     }
 
-    interface Builder extends ExactExecutableElement.Builder {
+    ParameterizedExecutableDescriptor getDescriptor();
+
+    interface Builder extends ExecutableElement.Builder {
         void expectParameterCount(int count);
 
         void addParameter(ParameterElement parameter);

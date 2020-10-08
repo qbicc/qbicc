@@ -12,6 +12,8 @@ import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterElement;
+import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -19,7 +21,7 @@ import io.smallrye.common.constraint.Assert;
  */
 public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldResolver,
                                                MethodElement.TypeResolver, MethodResolver,
-                                               ConstructorResolver,
+                                               ConstructorElement.TypeResolver, ConstructorResolver,
                                                ParameterElement.TypeResolver,
                                                InitializerResolver {
 
@@ -136,16 +138,16 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
         }
     }
 
-    default Type resolveMethodReturnType(long argument) throws ResolutionFailedException {
-        return verify().getField((int) argument).getType();
-    }
-
-    default Type resolveParameterType(long argument) throws ResolutionFailedException {
-        return resolveMethod((int) (argument << 8), this).getParameter((int) (argument & 0xff)).getType();
+    default Type resolveParameterType(int methodIdx, int paramIdx) throws ResolutionFailedException {
+        return resolveMethod(methodIdx, this).getParameter(paramIdx).getType();
     }
 
     default MethodElement resolveMethod(int index, final DefinedTypeDefinition enclosing) {
         return verify().getMethod(index);
+    }
+
+    default MethodDescriptor resolveMethodDescriptor(int argument) throws ResolutionFailedException {
+        return resolveMethod(argument, this).getDescriptor();
     }
 
     default long encodeParameterIndex(int index, int paramIndex) {
@@ -170,6 +172,10 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
 
     default ConstructorElement resolveConstructor(int index, final DefinedTypeDefinition enclosing) {
         return verify().getConstructor(index);
+    }
+
+    default ConstructorDescriptor resolveConstructorDescriptor(int argument) throws ResolutionFailedException {
+        return resolveConstructor(argument, this).getDescriptor();
     }
 
     // ==================

@@ -3,7 +3,6 @@ package cc.quarkus.qcc.type.definition;
 import java.util.function.Consumer;
 
 import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.interpreter.JavaClass;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
@@ -38,6 +37,10 @@ public interface VerifiedTypeDefinition extends DefinedTypeDefinition {
         }
         return false;
     }
+
+    FieldSet getInstanceFieldSet();
+
+    FieldSet getStaticFieldSet();
 
     FieldElement getField(int index);
 

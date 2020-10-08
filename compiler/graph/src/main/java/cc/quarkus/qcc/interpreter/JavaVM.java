@@ -10,10 +10,14 @@ import java.util.Map;
 import cc.quarkus.qcc.graph.ArrayClassType;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.GraphFactory;
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -128,6 +132,8 @@ public interface JavaVM extends AutoCloseable {
      */
     Object invokeExact(MethodElement method, Object... args);
 
+    Object invokeInitializer(InitializerElement initializer);
+
     /**
      * Invoke a method reflectively.  Primitive arguments should be boxed.
      *
@@ -136,8 +142,6 @@ public interface JavaVM extends AutoCloseable {
      * @return the result
      */
     Object invokeVirtual(MethodElement method, Object... args);
-
-    Object invoke(MethodHandle handle, Object... args);
 
     /**
      * Deliver a "signal" to the target environment.
@@ -164,6 +168,16 @@ public interface JavaVM extends AutoCloseable {
     String deduplicate(JavaObject classLoader, String string);
 
     String deduplicate(JavaObject classLoader, ByteBuffer buffer, int offset, int length, boolean expectTerminator);
+
+    MethodDescriptor getMethodDescriptor(Type returnType, Type... paramTypes);
+
+    MethodDescriptor getMethodDescriptor(Type returnType, ParameterizedExecutableDescriptor paramDesc);
+
+    ConstructorDescriptor getConstructorDescriptor(Type... paramTypes);
+
+    ConstructorDescriptor getConstructorDescriptor(ParameterizedExecutableDescriptor paramDesc);
+
+    ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor(Type... paramTypes);
 
     /**
      * Allocate a direct byte buffer object with the given backing buffer.  The backing content will be determined

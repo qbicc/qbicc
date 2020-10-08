@@ -8,22 +8,26 @@ import io.smallrye.common.constraint.Assert;
 final class ParameterElementImpl extends AbstractAnnotatedElement implements ParameterElement {
     private final String name;
     private final TypeResolver typeResolver;
-    private final long typeResolverArg;
-    private volatile Type type;
+    private final int typeResolverMethodArg;
+    private final int typeResolverParamArg;
+    private final int index;
 
     ParameterElementImpl(Builder builder) {
         super(builder);
         name = builder.name;
         typeResolver = Assert.checkNotNullParam("builder.typeResolver", builder.typeResolver);
-        typeResolverArg = builder.typeResolverArg;
+        typeResolverMethodArg = builder.methodArg;
+        typeResolverParamArg = builder.paramArg;
+        index = builder.index;
+    }
+
+    public int getIndex() {
+        return index;
     }
 
     public Type getType() {
-        Type type = this.type;
-        if (type == null) {
-            type = this.type = typeResolver.resolveParameterType(typeResolverArg);
-        }
-        return type;
+        // this is expected to be efficient so we do not need to cache
+        return typeResolver.resolveParameterType(typeResolverMethodArg, typeResolverParamArg);
     }
 
     public boolean hasName() {
@@ -41,15 +45,22 @@ final class ParameterElementImpl extends AbstractAnnotatedElement implements Par
     static final class Builder extends AbstractAnnotatedElement.Builder implements ParameterElement.Builder {
         String name;
         TypeResolver typeResolver;
-        long typeResolverArg;
+        int index;
+        int methodArg;
+        int paramArg;
 
         public void setName(final String name) {
             this.name = name;
         }
 
-        public void setResolver(final TypeResolver resolver, final long argument) {
+        public void setResolver(final TypeResolver resolver, final int methodArg, final int paramArg) {
             this.typeResolver = Assert.checkNotNullParam("resolver", resolver);
-            this.typeResolverArg = argument;
+            this.methodArg = methodArg;
+            this.paramArg = paramArg;
+        }
+
+        public void setIndex(final int index) {
+            this.index = index;
         }
 
         public ParameterElementImpl build() {

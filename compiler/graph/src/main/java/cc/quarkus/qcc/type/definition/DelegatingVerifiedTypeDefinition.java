@@ -26,6 +26,14 @@ public abstract class DelegatingVerifiedTypeDefinition extends DelegatingDefined
         return getDelegate().getInterface(index);
     }
 
+    public FieldSet getInstanceFieldSet() {
+        return getDelegate().getInstanceFieldSet();
+    }
+
+    public FieldSet getStaticFieldSet() {
+        return getDelegate().getStaticFieldSet();
+    }
+
     public VerifiedTypeDefinition verify() {
         return this;
     }

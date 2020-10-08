@@ -4,14 +4,15 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.definition.MethodHandle;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 final class MethodElementImpl extends AbstractParameterizedExecutableElement implements MethodElement {
     private final String name;
     private final TypeResolver typeResolver;
-    private final long typeResolverArg;
+    private final int typeResolverArg;
     private final MethodHandle virtualMethodBody;
-    private volatile Type returnType;
+    private volatile MethodDescriptor descriptor;
 
     MethodElementImpl(final Builder builder) {
         super(builder);
@@ -22,11 +23,15 @@ final class MethodElementImpl extends AbstractParameterizedExecutableElement imp
     }
 
     public Type getReturnType() {
-        Type returnType = this.returnType;
-        if (returnType == null) {
-            returnType = this.returnType = typeResolver.resolveMethodReturnType(typeResolverArg);
+        return getDescriptor().getReturnType();
+    }
+
+    public MethodDescriptor getDescriptor() {
+        MethodDescriptor descriptor = this.descriptor;
+        if (descriptor == null) {
+            descriptor = this.descriptor = typeResolver.resolveMethodDescriptor(typeResolverArg);
         }
-        return returnType;
+        return descriptor;
     }
 
     public boolean hasName() {
@@ -52,14 +57,14 @@ final class MethodElementImpl extends AbstractParameterizedExecutableElement imp
     static final class Builder extends AbstractParameterizedExecutableElement.Builder implements MethodElement.Builder {
         String name;
         TypeResolver typeResolver;
-        long typeResolverArg;
+        int typeResolverArg;
         MethodHandle virtualMethodBody;
 
         public void setName(final String name) {
             this.name = name;
         }
 
-        public void setReturnTypeResolver(final TypeResolver resolver, final long argument) {
+        public void setMethodTypeResolver(final TypeResolver resolver, final int argument) {
             typeResolver = Assert.checkNotNullParam("resolver", resolver);
             typeResolverArg = argument;
         }

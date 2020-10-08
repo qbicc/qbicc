@@ -3,8 +3,11 @@ package cc.quarkus.qcc.type.definition;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -44,10 +47,6 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
     // ==================
     // Fields
     // ==================
-
-    FieldSet getInstanceFieldSet();
-
-    FieldSet getStaticFieldSet();
 
     /**
      * Resolve a field by name and type.
@@ -117,33 +116,30 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
      * {@code -1} is returned.
      *
      * @param name       the method name (must not be {@code null})
-     * @param returnType the method return type (must not be {@code null})
-     * @param paramTypes the method parameter types (must not be {@code null})
+     * @param descriptor the method descriptor (must not be {@code null})
      * @return the index of the method, or {@code -1} if it is not present on this class
      */
-    default int findMethodIndex(String name, Type returnType, Type... paramTypes) {
+    default int findMethodIndex(String name, MethodDescriptor descriptor) {
         int cnt = getMethodCount();
         for (int i = 0; i < cnt; i ++) {
             MethodElement method = getMethod(i);
             if (method.nameEquals(name)) {
                 if ((method.getModifiers() & ClassFile.I_ACC_SIGNATURE_POLYMORPHIC) != 0) {
                     return i;
-                } else if (method.getReturnType() == returnType) {
-                    if (method.parameterTypesEqual(paramTypes)) {
-                        return i;
-                    }
+                } else if (method.getDescriptor().equals(descriptor)) {
+                    return i;
                 }
             }
         }
         return -1;
     }
 
-    default MethodHandle resolveMethodHandleExact(String name, Type returnType, Type... paramTypes) {
-        int idx = findMethodIndex(name, returnType, paramTypes);
-        return idx == -1 ? null : getMethod(idx).getExactMethodBody();
+    default MethodElement resolveMethodElementExact(String name, MethodDescriptor descriptor) {
+        int idx = findMethodIndex(name, descriptor);
+        return idx == -1 ? null : getMethod(idx);
     }
 
-    default MethodHandle resolveMethodHandleVirtual(String name, Type returnType, Type... paramTypes) {
+    default MethodElement resolveMethodElementVirtual(String name, MethodDescriptor descriptor) {
         // JVMS 5.4.4.3
 
         // 1. If C is an interface, method resolution throws an IncompatibleClassChangeError.
@@ -165,9 +161,9 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
         // 2.b Otherwise, if C declares a method with the name and descriptor specified by
         // the method reference, method lookup succeeds.
 
-        int result = findMethodIndex(name, returnType, paramTypes);
+        int result = findMethodIndex(name, descriptor);
         if (result != -1) {
-            return getMethod(result).getVirtualMethodBody();
+            return getMethod(result);
         }
 
         // 2.c Otherwise, if C has a superclass, step 2 of method resolution is recursively
@@ -175,7 +171,7 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
 
         ResolvedTypeDefinition superClass = getSuperClass();
         if ( superClass != null ) {
-            MethodHandle superCandidate = superClass.resolveMethodHandleVirtual(name, returnType, paramTypes);
+            MethodElement superCandidate = superClass.resolveMethodElementVirtual(name, descriptor);
             if ( superCandidate != null ) {
                 return superCandidate;
             }
@@ -183,7 +179,7 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
 
         int interfaceCount = getInterfaceCount();
         for (int i = 0; i < interfaceCount; i ++) {
-            MethodHandle interfaceCandidate = getInterface(i).resolveMethodHandleInterface(name, returnType, paramTypes);
+            MethodElement interfaceCandidate = getInterface(i).resolveMethodElementInterface(name, descriptor);
             if (interfaceCandidate != null) {
                 return interfaceCandidate;
             }
@@ -194,11 +190,11 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
         return null;
     }
 
-    default MethodHandle resolveMethodHandleInterface(String name, Type returnType, Type... paramTypes) {
-        return resolveMethodHandleInterface(false, name, returnType, paramTypes);
+    default MethodElement resolveMethodElementInterface(String name, MethodDescriptor descriptor) {
+        return resolveMethodElementInterface(false, name, descriptor);
     }
 
-    default MethodHandle resolveMethodHandleInterface(boolean virtualOnly, String name, Type returnType, Type... paramTypes) {
+    default MethodElement resolveMethodElementInterface(boolean virtualOnly, String name, MethodDescriptor descriptor) {
         // 5.4.3.4. Interface Method Resolution
 
         // 1. If C is not an interface, interface method resolution throws an IncompatibleClassChangeError.
@@ -210,16 +206,9 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
         // 2. Otherwise, if C declares a method with the name and descriptor specified
         // by the interface method reference, method lookup succeeds.
 
-        int result = findMethodIndex(name, returnType, paramTypes);
+        int result = findMethodIndex(name, descriptor);
         if (result != -1) {
-            MethodElement method = getMethod(result);
-            boolean isVirtual = (method.getModifiers() & (ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC)) == 0;
-            if (isVirtual) {
-                return method.getVirtualMethodBody();
-            }
-            if (! virtualOnly) {
-                return method.getExactMethodBody();
-            }
+            return getMethod(result);
         }
 
         // 3. Otherwise, if the class Object declares a method with the name and descriptor
@@ -227,13 +216,13 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
         // and does not have its ACC_STATIC flag set, method lookup succeeds.
         if (! virtualOnly) {
             ResolvedTypeDefinition object = JavaVM.currentThread().getVM().getObjectTypeDefinition().verify().resolve();
-            result = object.findMethodIndex(name, returnType, paramTypes);
+            result = object.findMethodIndex(name, descriptor);
             if (result != -1) {
                 MethodElement method = object.getMethod(result);
                 int modifiers = method.getModifiers();
                 if ((modifiers & (ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC)) == ClassFile.ACC_PUBLIC) {
                     // it might be overridden in the implementation subclass
-                    return method.getVirtualMethodBody();
+                    return method;
                 }
             }
         }
@@ -245,7 +234,7 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
 
         // Impl: To find the set of maximally-specific methods, we have to perform the dreaded breadth-first search.
         // We also do not want to maintain a set, so we need to fail fast once a second candidate is encountered.
-        MethodHandle candidate = resolveMaximallySpecificMethodInterface(name, returnType, paramTypes);
+        MethodElement candidate = resolveMaximallySpecificMethodInterface(name, descriptor);
         if (candidate != null) {
             return candidate;
         }
@@ -257,7 +246,7 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
         // Impl: Simple depth-first search.
         int cnt = getInterfaceCount();
         for (int i = 0; i < cnt; i ++) {
-            candidate = getInterface(i).resolveMethodHandleInterface(true, name, returnType, paramTypes);
+            candidate = getInterface(i).resolveMethodElementInterface(true, name, descriptor);
             if ( candidate != null ) {
                 return candidate;
             }
@@ -266,10 +255,10 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
         return null;
     }
 
-    private MethodHandle resolveMaximallySpecificMethodInterface(String name, Type returnType, Type... paramTypes) {
-        MethodHandle found;
+    private MethodElement resolveMaximallySpecificMethodInterface(String name, MethodDescriptor descriptor) {
+        MethodElement found;
         for (int d = 0; ; d ++) {
-            found = resolveMaximallySpecificMethodInterface(d, name, returnType, paramTypes);
+            found = resolveMaximallySpecificMethodInterface(d, name, descriptor);
             if (found == ResolvedTypeDefinitionUtil.NOT_FOUND || found == ResolvedTypeDefinitionUtil.END_OF_SEARCH) {
                 return null;
             }
@@ -285,19 +274,18 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
      *
      * @param depth the recursion depth (how many supertype levels to search)
      * @param name the method name
-     * @param returnType the return type
-     * @param paramTypes the parameter types
+     * @param descriptor the method descriptor
      * @return the handle, or {@code null} if it isn't found at this depth, or {@code NOT_FOUND} if there are conflicting
      * candidates, or {@code END_OF_SEARCH} if there are no more superinterfaces of this interface at this depth
      */
-    private MethodHandle resolveMaximallySpecificMethodInterface(int depth, String name, Type returnType, Type... paramTypes) {
-        MethodHandle candidate = null;
-        MethodHandle found;
+    private MethodElement resolveMaximallySpecificMethodInterface(int depth, String name, MethodDescriptor descriptor) {
+        MethodElement candidate = null;
+        MethodElement found;
         if (depth > 0) {
             int cnt = getInterfaceCount();
             boolean end = true;
             for (int i = 0; i < cnt; i ++) {
-                found = getInterface(i).resolveMaximallySpecificMethodInterface(depth - 1, name, returnType, paramTypes);
+                found = getInterface(i).resolveMaximallySpecificMethodInterface(depth - 1, name, descriptor);
                 if (found != null && candidate != null || found == ResolvedTypeDefinitionUtil.NOT_FOUND) {
                     return ResolvedTypeDefinitionUtil.NOT_FOUND;
                 }
@@ -312,10 +300,10 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
             return candidate;
         } else {
             // search *our* interface
-            int idx = findMethodIndex(name, returnType, paramTypes);
+            int idx = findMethodIndex(name, descriptor);
             if (idx != -1 && (getMethod(idx).getModifiers() & (ClassFile.ACC_ABSTRACT | ClassFile.ACC_STATIC | ClassFile.ACC_PRIVATE)) == 0) {
                 // just one possible candidate at this depth, but it might be overridden so get the virtual handle
-                return getMethod(idx).getVirtualMethodBody();
+                return getMethod(idx);
             } else if (getInterfaceCount() == 0) {
                 return ResolvedTypeDefinitionUtil.END_OF_SEARCH;
             } else {
@@ -328,22 +316,18 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
     // Constructors
     // ==================
 
-    default MethodHandle getConstructorHandle(int index) throws IndexOutOfBoundsException {
-        return getConstructor(index).getExactMethodBody();
-    }
-
-    default MethodHandle resolveConstructorHandle(Type... paramTypes) {
-        int idx = findConstructorIndex(paramTypes);
-        return idx == -1 ? null : getConstructorHandle(idx);
-    }
-
-    default int findConstructorIndex(Type... paramTypes) {
+    default int findConstructorIndex(ConstructorDescriptor descriptor) {
         int cnt = getConstructorCount();
         for (int i = 0; i < cnt; i ++) {
-            if (getConstructor(i).parameterTypesEqual(paramTypes)) {
+            if (getConstructor(i).getDescriptor().equals(descriptor)) {
                 return i;
             }
         }
         return -1;
+    }
+
+    default ConstructorElement resolveConstructorElement(ConstructorDescriptor descriptor) {
+        int idx = findConstructorIndex(descriptor);
+        return idx == -1 ? null : getConstructor(idx);
     }
 }

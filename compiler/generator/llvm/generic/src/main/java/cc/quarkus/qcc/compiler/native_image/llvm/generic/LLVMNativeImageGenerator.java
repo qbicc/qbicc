@@ -72,14 +72,15 @@ import cc.quarkus.qcc.tool.llvm.LlcToolImpl;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
-import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
+import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 final class LLVMNativeImageGenerator implements NativeImageGenerator {
     private final Module module = Module.newModule();
-    private final Map<Type, Map<MethodIdentifier, FunctionDefinition>> functionsByType = new HashMap<>();
+    private final Map<ResolvedTypeDefinition, Map<ParameterizedExecutableElement, FunctionDefinition>> functionsByType = new HashMap<>();
     private final ArrayDeque<MethodElement> methodQueue = new ArrayDeque<>();
     private final Map<Type, cc.quarkus.qcc.machine.llvm.Value> types = new HashMap<>();
     private final LlcTool llc;
@@ -174,34 +175,40 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         return;
     }
 
-    FunctionDefinition getMethod(final ClassType ownerType, final MethodIdentifier identifier) {
-        Map<MethodIdentifier, FunctionDefinition> typeMap = functionsByType.computeIfAbsent(ownerType, t -> new HashMap<>());
-        FunctionDefinition def = typeMap.get(identifier);
+    FunctionDefinition getMethod(final ResolvedTypeDefinition ownerType, final ParameterizedExecutableElement element) {
+        Map<ParameterizedExecutableElement, FunctionDefinition> typeMap = functionsByType.computeIfAbsent(ownerType, t -> new HashMap<>());
+        FunctionDefinition def = typeMap.get(element);
         if (def != null) {
             return def;
         }
         StringBuilder b = new StringBuilder();
         b.append(".exact.");
-        mangle(ownerType.getClassName(), b);
+        mangle(ownerType.getInternalName(), b);
         b.append(".");
-        mangle(identifier.getName(), b);
+        if (element instanceof MethodElement) {
+            mangle(((MethodElement) element).getName(), b);
+        } else {
+            mangle("<init>", b);
+        }
         b.append(".");
-        mangle(identifier, b);
+        mangle(element, b);
         def = module.define(b.toString());
-        typeMap.put(identifier, def);
+        typeMap.put(element, def);
         return def;
     }
 
-    void mangle(MethodTypeDescriptor desc, StringBuilder b) {
+    void mangle(ParameterizedExecutableElement desc, StringBuilder b) {
         mangle("(", b);
         int parameterCount = desc.getParameterCount();
         for (int i = 0; i < parameterCount; i ++) {
             // todo: not quite right...
-            mangle(desc.getParameterType(i).toString(), b);
+            mangle(desc.getParameter(i).getType().toString(), b);
             b.append('_');
         }
-        // todo: not quite right...
-        mangle(desc.getReturnType().toString(), b);
+        if (desc instanceof MethodElement) {
+            // todo: not quite right...
+            mangle(((MethodElement) desc).getReturnType().toString(), b);
+        }
     }
 
     void mangle(String str, StringBuilder b) {
@@ -243,12 +250,15 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         }
     }
 
-    void compileMethod(final MethodElement definition, final boolean virtual) {
+    void compileMethod(final ParameterizedExecutableElement definition, final boolean virtual) {
         ArrayDeque<MethodElement> mq = methodQueue;
         Module module = this.module;
-        final FunctionDefinition func = getMethod(definition.getEnclosingType().verify().getClassType(), definition.getMethodIdentifier()).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL);
+        final FunctionDefinition func = getMethod(definition.getEnclosingType().verify().resolve(), definition).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL);
         int idx = 0;
-        MethodHandle methodHandle = virtual ? definition.getVirtualMethodBody() : definition.getExactMethodBody();
+        if (virtual) {
+            throw new UnsupportedOperationException("Virtual dispatch");
+        }
+        MethodHandle methodHandle = definition.getMethodBody();
         if (methodHandle == null) {
             // nothing to do
             return;
@@ -258,7 +268,11 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         Set<BasicBlock> reachableBlocks = entryBlock.calculateReachableBlocks();
         Schedule schedule = Schedule.forMethod(entryBlock);
         final MethodContext cache = new MethodContext(definition, func, reachableBlocks, schedule);
-        func.returns(typeOf(definition.getReturnType()));
+        if (definition instanceof MethodDescriptor) {
+            func.returns(typeOf(((MethodDescriptor) definition).getReturnType()));
+        } else {
+            func.returns(void_);
+        }
         int cnt = methodBody.getParameterCount();
         for (int i = 0; i < cnt; i ++) {
             cache.values.put(methodBody.getParameterValue(i), func.param(typeOf(definition.getParameter(i).getType())).name("p" + idx++).asValue());
@@ -391,8 +405,8 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 return;
             }
             visitDependencies(param, node);
-            Type returnType = node.getInvocationTarget().getReturnType();
-            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget(), node.getKind()));
+            ParameterizedExecutableElement target = node.getInvocationTarget();
+            Call call = getBlock(param, node).call(void_, getFunctionOf(param, target.getEnclosingType().verify().resolve(), target, node.getKind()));
             cc.quarkus.qcc.graph.Value instance = node.getInstance();
             call.arg(typeOf(instance.getType()), getValue(param, instance));
             int cnt = node.getArgumentCount();
@@ -407,8 +421,9 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 return;
             }
             visitDependencies(param, node);
-            Type returnType = node.getInvocationTarget().getReturnType();
-            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget(), node.getKind()));
+            ParameterizedExecutableElement target = node.getInvocationTarget();
+            Type returnType = ((MethodElement) target).getReturnType();
+            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, target.getEnclosingType().verify().resolve(), target, node.getKind()));
             param.values.put(node, call.asLocal());
             cc.quarkus.qcc.graph.Value instance = node.getInstance();
             call.arg(typeOf(instance.getType()), getValue(param, instance));
@@ -424,8 +439,8 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 return;
             }
             visitDependencies(param, node);
-            Type returnType = node.getInvocationTarget().getReturnType();
-            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget(), InstanceInvocation.Kind.EXACT));
+            ParameterizedExecutableElement target = node.getInvocationTarget();
+            Call call = getBlock(param, node).call(void_, getFunctionOf(param, target.getEnclosingType().verify().resolve(), target, InstanceInvocation.Kind.EXACT));
             int cnt = node.getArgumentCount();
             for (int i = 0; i < cnt; i++) {
                 cc.quarkus.qcc.graph.Value arg = node.getArgument(i);
@@ -438,8 +453,9 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 return;
             }
             visitDependencies(param, node);
-            Type returnType = node.getInvocationTarget().getReturnType();
-            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, node.getMethodOwner(), node.getInvocationTarget(), InstanceInvocation.Kind.EXACT));
+            ParameterizedExecutableElement target = node.getInvocationTarget();
+            Type returnType = ((MethodElement) target).getReturnType();
+            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, target.getEnclosingType().verify().resolve(), target, InstanceInvocation.Kind.EXACT));
             param.values.put(node, call.asLocal());
             int cnt = node.getArgumentCount();
             for (int i = 0; i < cnt; i++) {
@@ -619,15 +635,17 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         return inputType instanceof SignedIntegerType;
     }
 
-    private Value getFunctionOf(final MethodContext cache, final ClassType owner, final MethodIdentifier invocationTarget, final InstanceInvocation.Kind kind) {
-        ResolvedTypeDefinition resolvedType = owner.getDefinition().resolve();
-        final int index = resolvedType.findMethodIndex(invocationTarget.getName(), invocationTarget.getReturnType(), invocationTarget.getParameterTypesAsArray());
-        if (index == -1) {
-            throw new IllegalStateException("Unexpected unresolved method");
+    private Value getFunctionOf(final MethodContext cache, final ResolvedTypeDefinition owner, final ParameterizedExecutableElement invocationTarget, final InstanceInvocation.Kind kind) {
+        if (invocationTarget instanceof MethodElement) {
+            MethodElement methodElement = (MethodElement) invocationTarget;
+            compileMethod(methodElement, kind != InstanceInvocation.Kind.EXACT);
+        } else {
+            assert invocationTarget instanceof ConstructorElement;
+            ConstructorElement constructorElement = (ConstructorElement) invocationTarget;
+            compileMethod(constructorElement, kind != InstanceInvocation.Kind.EXACT);
         }
-
-        compileMethod(resolvedType.getMethod(index), kind != InstanceInvocation.Kind.EXACT);
         return getMethod(owner, invocationTarget).asGlobal();
+
     }
 
     private cc.quarkus.qcc.machine.llvm.BasicBlock getBlock(final MethodContext cache, final Node node) {
@@ -644,7 +662,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
     }
 
     static final class MethodContext {
-        final MethodElement currentMethod;
+        final ParameterizedExecutableElement currentMethod;
         final FunctionDefinition def;
         final Map<cc.quarkus.qcc.graph.Value, cc.quarkus.qcc.machine.llvm.Value> values = new HashMap<>();
         final Map<cc.quarkus.qcc.graph.BasicBlock, cc.quarkus.qcc.machine.llvm.BasicBlock> blocks = new HashMap<>();
@@ -653,7 +671,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         final Schedule schedule;
         final Set<Node> built = new HashSet<>();
 
-        MethodContext(final MethodElement currentMethod, final FunctionDefinition def, final Set<BasicBlock> knownBlocks, final Schedule schedule) {
+        MethodContext(final ParameterizedExecutableElement currentMethod, final FunctionDefinition def, final Set<BasicBlock> knownBlocks, final Schedule schedule) {
             this.currentMethod = currentMethod;
             this.def = def;
             this.knownBlocks = knownBlocks;

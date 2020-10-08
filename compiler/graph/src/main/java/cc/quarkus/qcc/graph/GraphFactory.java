@@ -2,7 +2,8 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
-import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -124,13 +125,13 @@ public interface GraphFactory {
 
     // method invocation
 
-    Node invokeMethod(Context ctxt, ClassType owner, MethodIdentifier method, List<Value> arguments);
+    Node invokeMethod(Context ctxt, ParameterizedExecutableElement target, List<Value> arguments);
 
-    Node invokeInstanceMethod(Context ctxt, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments);
+    Node invokeInstanceMethod(Context ctxt, Value instance, InstanceInvocation.Kind kind, ParameterizedExecutableElement target, List<Value> arguments);
 
-    Value invokeValueMethod(Context ctxt, ClassType owner, MethodIdentifier method, List<Value> arguments);
+    Value invokeValueMethod(Context ctxt, MethodElement target, List<Value> arguments);
 
-    Value invokeInstanceValueMethod(Context ctxt, Value instance, InstanceInvocation.Kind kind, ClassType owner, MethodIdentifier method, List<Value> arguments);
+    Value invokeInstanceValueMethod(Context ctxt, Value instance, InstanceInvocation.Kind kind, MethodElement target, List<Value> arguments);
 
     // control flow - terminalBlock is updated to point to this terminator
 
@@ -539,7 +540,7 @@ public interface GraphFactory {
             throw new UnsupportedOperationException("Monitors");
         }
 
-        public Node invokeMethod(Context ctxt, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        public Node invokeMethod(Context ctxt, final ParameterizedExecutableElement target, final List<Value> arguments) {
             NodeHandle catch_ = ctxt.getCatch();
             InvocationImpl op;
             if (catch_ == null) {
@@ -560,18 +561,18 @@ public interface GraphFactory {
             for (Value argument : arguments) {
                 op.setArgument(idx, argument);
             }
-            op.setMethodOwner(owner);
-            op.setInvocationTarget(method);
+            op.setInvocationTarget(target);
             return op;
         }
 
-        public Node invokeInstanceMethod(Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        public Node invokeInstanceMethod(Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ParameterizedExecutableElement target, final List<Value> arguments) {
             NodeHandle catch_ = ctxt.getCatch();
             InstanceInvocation op;
             if (catch_ == null) {
                 InstanceInvocationImpl plainOp = new InstanceInvocationImpl();
                 plainOp.setBasicDependency(ctxt.setDependency(plainOp));
                 op = plainOp;
+                plainOp.setInvocationTarget(target);
             } else {
                 TryInstanceInvocationImpl tryOp = new TryInstanceInvocationImpl();
                 tryOp.setBasicDependency(ctxt.setDependency(null));
@@ -580,6 +581,7 @@ public interface GraphFactory {
                 NodeHandle nextBlock = new NodeHandle();
                 ctxt.getAndSetCurrentBlock(nextBlock).setTarget(block(tryOp));
                 tryOp.setNextBlock(nextBlock);
+                tryOp.setInvocationTarget(target);
                 op = tryOp;
             }
             op.setArgumentCount(arguments.size());
@@ -587,23 +589,23 @@ public interface GraphFactory {
             for (Value argument : arguments) {
                 op.setArgument(idx, argument);
             }
-            op.setMethodOwner(owner);
-            op.setInvocationTarget(method);
             op.setInstance(instance);
             op.setKind(kind);
             return op;
         }
 
-        public Value invokeValueMethod(Context ctxt, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        public Value invokeValueMethod(Context ctxt, final MethodElement target, final List<Value> arguments) {
             NodeHandle catch_ = ctxt.getCatch();
             InvocationValue value;
             if (catch_ == null) {
                 InvocationValueImpl plainValue = new InvocationValueImpl();
                 plainValue.setBasicDependency(ctxt.setDependency(plainValue));
+                plainValue.setInvocationTarget(target);
                 value = plainValue;
             } else {
                 TryInvocationValueImpl tryValue = new TryInvocationValueImpl();
                 tryValue.setBasicDependency(ctxt.setDependency(null));
+                tryValue.setInvocationTarget(target);
                 tryValue.setCatchHandler(catch_);
                 // end the current block with the try/invoke, and start a new block
                 NodeHandle nextBlock = new NodeHandle();
@@ -616,21 +618,21 @@ public interface GraphFactory {
             for (Value argument : arguments) {
                 value.setArgument(idx, argument);
             }
-            value.setMethodOwner(owner);
-            value.setInvocationTarget(method);
             return value;
         }
 
-        public Value invokeInstanceValueMethod(Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
+        public Value invokeInstanceValueMethod(Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
             NodeHandle catch_ = ctxt.getCatch();
             InstanceInvocationValue value;
             if (catch_ == null) {
                 InstanceInvocationValueImpl plainValue = new InstanceInvocationValueImpl();
                 plainValue.setBasicDependency(ctxt.setDependency(plainValue));
+                plainValue.setInvocationTarget(target);
                 value = plainValue;
             } else {
                 TryInstanceInvocationValueImpl tryValue = new TryInstanceInvocationValueImpl();
                 tryValue.setBasicDependency(ctxt.setDependency(null));
+                tryValue.setInvocationTarget(target);
                 tryValue.setCatchHandler(catch_);
                 // end the current block with the try/invoke, and start a new block
                 NodeHandle nextBlock = new NodeHandle();
@@ -643,8 +645,6 @@ public interface GraphFactory {
             for (Value argument : arguments) {
                 value.setArgument(idx, argument);
             }
-            value.setMethodOwner(owner);
-            value.setInvocationTarget(method);
             value.setInstance(instance);
             value.setKind(kind);
             return value;

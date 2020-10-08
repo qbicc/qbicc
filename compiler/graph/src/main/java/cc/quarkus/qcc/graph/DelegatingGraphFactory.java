@@ -2,7 +2,8 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
-import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 
 /**
  * A graph factory which delegates all operations to another graph factory.  Can be used as a base class for graph
@@ -103,20 +104,20 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().monitorExit(ctxt, obj);
     }
 
-    public Node invokeMethod(final Context ctxt, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeMethod(ctxt, owner, method, arguments);
+    public Node invokeMethod(final Context ctxt, final ParameterizedExecutableElement target, final List<Value> arguments) {
+        return getDelegate().invokeMethod(ctxt, target, arguments);
     }
 
-    public Node invokeInstanceMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeInstanceMethod(ctxt, instance, kind, owner, method, arguments);
+    public Node invokeInstanceMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ParameterizedExecutableElement target, final List<Value> arguments) {
+        return getDelegate().invokeInstanceMethod(ctxt, instance, kind, target, arguments);
     }
 
-    public Value invokeValueMethod(final Context ctxt, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeValueMethod(ctxt, owner, method, arguments);
+    public Value invokeValueMethod(final Context ctxt, final MethodElement target, final List<Value> arguments) {
+        return getDelegate().invokeValueMethod(ctxt, target, arguments);
     }
 
-    public Value invokeInstanceValueMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ClassType owner, final MethodIdentifier method, final List<Value> arguments) {
-        return getDelegate().invokeInstanceValueMethod(ctxt, instance, kind, owner, method, arguments);
+    public Value invokeInstanceValueMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
+        return getDelegate().invokeInstanceValueMethod(ctxt, instance, kind, target, arguments);
     }
 
     public BasicBlock goto_(final Context ctxt, final NodeHandle targetHandle) {

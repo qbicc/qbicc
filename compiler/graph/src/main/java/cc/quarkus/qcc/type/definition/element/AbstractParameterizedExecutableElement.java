@@ -2,6 +2,10 @@ package cc.quarkus.qcc.type.definition.element;
 
 import java.util.Arrays;
 
+import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
+
 abstract class AbstractParameterizedExecutableElement extends AbstractExactExecutableElement implements ParameterizedExecutableElement {
     private final ParameterElement[] parameters;
 
@@ -45,6 +49,15 @@ abstract class AbstractParameterizedExecutableElement extends AbstractExactExecu
             }
             parameters[cnt] = parameter;
             this.parameterCount = cnt + 1;
+        }
+
+        ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor() {
+            int cnt = this.parameterCount;
+            Type[] types = new Type[cnt];
+            for (int i = 0; i < cnt; i ++) {
+                types[i] = parameters[i].getType();
+            }
+            return JavaVM.requireCurrent().getParameterizedExecutableDescriptor(types);
         }
 
         public abstract AbstractParameterizedExecutableElement build();

@@ -9,10 +9,12 @@ import cc.quarkus.qcc.type.definition.ResolutionFailedException;
 public interface ParameterElement extends NamedElement, AnnotatedElement {
     ParameterElement[] NO_PARAMETERS = new ParameterElement[0];
 
+    int getIndex();
+
     Type getType();
 
     interface TypeResolver {
-        Type resolveParameterType(long argument) throws ResolutionFailedException;
+        Type resolveParameterType(int methodArg, int paramArg) throws ResolutionFailedException;
 
         // todo: generic/annotated type
     }
@@ -22,7 +24,9 @@ public interface ParameterElement extends NamedElement, AnnotatedElement {
     }
 
     interface Builder extends NamedElement.Builder, AnnotatedElement.Builder {
-        void setResolver(TypeResolver resolver, long argument);
+        void setResolver(TypeResolver resolver, int methodArg, int paramArg);
+
+        void setIndex(int index);
 
         ParameterElement build();
     }

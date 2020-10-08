@@ -24,6 +24,8 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
     private final MethodElement[] methods;
     private final ConstructorElement[] ctors;
     private final InitializerElement init;
+    private final FieldSet staticFieldSet;
+    private final FieldSet instanceFieldSet;
     private volatile ResolvedTypeDefinition resolved;
 
     VerifiedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final VerifiedTypeDefinition superType, final VerifiedTypeDefinition[] interfaces, final FieldElement[] fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init) {
@@ -48,6 +50,8 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
         } else {
             classType = Type.classType(this, superType == null ? null : superType.getClassType(), interfaceTypes);
         }
+        instanceFieldSet = new FieldSet(this, false);
+        staticFieldSet = new FieldSet(this, true);
         javaClass = null; // TODO: chicken/egg situation
     }
 
@@ -133,6 +137,14 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
 
     public VerifiedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
         return interfaces[index];
+    }
+
+    public FieldSet getStaticFieldSet() {
+        return staticFieldSet;
+    }
+
+    public FieldSet getInstanceFieldSet() {
+        return instanceFieldSet;
     }
 
     public FieldElement getField(final int index) {

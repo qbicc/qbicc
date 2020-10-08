@@ -1,7 +1,9 @@
 package cc.quarkus.qcc.type.definition;
 
+import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.type.annotation.Annotation;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
  *
@@ -81,5 +83,9 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
 
     public Annotation getInvisibleAnnotation(final int index) {
         return getDelegate().getInvisibleAnnotation(index);
+    }
+
+    public MethodDescriptor resolveMethodDescriptor(final int argument) throws ResolutionFailedException {
+        return getDelegate().resolveMethodDescriptor(argument);
     }
 }

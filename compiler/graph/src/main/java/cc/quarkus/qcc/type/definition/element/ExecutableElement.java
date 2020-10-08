@@ -5,14 +5,14 @@ import cc.quarkus.qcc.type.definition.MethodHandle;
 /**
  *
  */
-public interface ExactExecutableElement extends BasicElement {
-    boolean hasExactMethodBody();
+public interface ExecutableElement extends BasicElement {
+    boolean hasMethodBody();
 
-    MethodHandle getExactMethodBody();
+    MethodHandle getMethodBody();
 
     interface Builder extends BasicElement.Builder {
         void setExactMethodBody(MethodHandle methodHandle);
 
-        ExactExecutableElement build();
+        ExecutableElement build();
     }
 }

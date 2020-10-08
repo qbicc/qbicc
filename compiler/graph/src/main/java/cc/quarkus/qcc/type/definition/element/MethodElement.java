@@ -3,13 +3,12 @@ package cc.quarkus.qcc.type.definition.element;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.type.definition.ResolutionFailedException;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
-import cc.quarkus.qcc.type.descriptor.MethodTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
  *
  */
-public interface MethodElement extends ExactExecutableElement, VirtualExecutableElement, ParameterizedExecutableElement,
+public interface MethodElement extends ExecutableElement, VirtualExecutableElement, ParameterizedExecutableElement,
                                        AnnotatedElement, NamedElement {
     MethodElement[] NO_METHODS = new MethodElement[0];
 
@@ -19,21 +18,25 @@ public interface MethodElement extends ExactExecutableElement, VirtualExecutable
 
     Type getReturnType();
 
-    default MethodTypeDescriptor getMethodTypeDescriptor() {
-        int cnt = getParameterCount();
-        Type[] args = new Type[cnt];
-        for (int i = 0; i < cnt; i ++) {
-            args[i] = getParameter(i).getType();
+    default boolean overrides(MethodElement other) {
+        if (other.getReturnType() == getReturnType()) {
+            int cnt = getParameterCount();
+            if (other.getParameterCount() == cnt) {
+                for (int i = 0; i < cnt; i ++) {
+                    if (other.getParameter(i).getType() != getParameter(i).getType()) {
+                        return false;
+                    }
+                }
+                return true;
+            }
         }
-        return MethodTypeDescriptor.of(getReturnType(), args);
+        return false;
     }
 
-    default MethodIdentifier getMethodIdentifier() {
-        return MethodIdentifier.of(getName(), getMethodTypeDescriptor());
-    }
+    MethodDescriptor getDescriptor();
 
     interface TypeResolver {
-        Type resolveMethodReturnType(long argument) throws ResolutionFailedException;
+        MethodDescriptor resolveMethodDescriptor(int argument) throws ResolutionFailedException;
 
         // todo: generic/annotated type
     }
@@ -42,9 +45,9 @@ public interface MethodElement extends ExactExecutableElement, VirtualExecutable
         return new MethodElementImpl.Builder();
     }
 
-    interface Builder extends ExactExecutableElement.Builder, VirtualExecutableElement.Builder, ParameterizedExecutableElement.Builder,
+    interface Builder extends VirtualExecutableElement.Builder, ParameterizedExecutableElement.Builder,
                               AnnotatedElement.Builder, NamedElement.Builder {
-        void setReturnTypeResolver(TypeResolver resolver, long argument);
+        void setMethodTypeResolver(TypeResolver resolver, int argument);
 
         MethodElement build();
     }

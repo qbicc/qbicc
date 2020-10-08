@@ -70,8 +70,12 @@ import cc.quarkus.qcc.type.definition.ModuleDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.MethodIdentifier;
+import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
+import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 final class JavaVMImpl implements JavaVM {
@@ -90,6 +94,9 @@ final class JavaVMImpl implements JavaVM {
     private final ConcurrentMap<Dictionary, JavaObject> loaderClassLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<ClassType, JavaClassImpl> loadedClasses = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodBody, Map<BasicBlock, List<Node>>> schedules = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ParameterizedExecutableDescriptor, ConcurrentMap<Type, MethodDescriptor>> methodDescriptorCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ParameterizedExecutableDescriptor, ConstructorDescriptor> constructorDescriptorCache = new ConcurrentHashMap<>();
+    private final ConcurrentTrie<Type, ParameterizedExecutableDescriptor> descriptorCache = new ConcurrentTrie<>();
     private final Map<String, BootModule> bootstrapModules;
     private final GraphFactory graphFactory;
     private final JavaObject mainThreadGroup;
@@ -187,7 +194,6 @@ final class JavaVMImpl implements JavaVM {
         final ByteBuffer buffer;
         JarEntry jarEntry = jarFile.getJarEntry(fileName);
         if (jarEntry == null) {
-            jarFile.close();
             return null;
         }
         try (InputStream inputStream = jarFile.getInputStream(jarEntry)) {
@@ -228,23 +234,21 @@ final class JavaVMImpl implements JavaVM {
         JavaThread javaThread = JavaVM.requireCurrentThread();
         ResolvedTypeDefinition resolvedCL = classLoaderClass.verify().resolve();
         VerifiedTypeDefinition stringClassVerified = stringClass.verify();
-        MethodHandle loadClass = resolvedCL.resolveMethodHandleVirtual("loadClass", stringClassVerified.getClassType(),
-            classClass.verify().getClassType());
+        MethodElement loadClass = resolvedCL.resolveMethodElementVirtual("loadClass", getMethodDescriptor(resolvedCL.getClassType(), stringClassVerified.getClassType()));
         int length = name.length();
         JavaArray array = allocateArray(Type.JAVA_CHAR_ARRAY, length);
         for (int i = 0; i < length; i++) {
             array.putArray(i, name.charAt(i));
         }
-        MethodHandle initString = stringClassVerified.resolve().resolveConstructorHandle(Type.JAVA_CHAR_ARRAY);
+        ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(Type.JAVA_CHAR_ARRAY));
         JavaObject nameInstance = allocateObject(stringClassVerified.getClassType());
-        invoke(initString, array);
-        return ((JavaClass) invoke(loadClass, nameInstance)).getTypeDefinition();
+        invokeExact(initString, array);
+        return ((JavaClass) invokeVirtual(loadClass, nameInstance)).getTypeDefinition();
     }
 
     public DefinedTypeDefinition findLoadedBootstrapClass(final String name) {
         return bootstrapDictionary.findLoadedClass(name);
     }
-
 
     public DefinedTypeDefinition loadBootstrapClass(final String name) {
         DefinedTypeDefinition loadedClass = findLoadedBootstrapClass(name);
@@ -276,9 +280,9 @@ final class JavaVMImpl implements JavaVM {
 
     private JavaObject newException(DefinedTypeDefinition type, String arg) {
         JavaObject e = allocateObject(type.verify().getClassType());
-        MethodHandle ctor = type.verify().resolve().resolveConstructorHandle(stringClass.verify().getClassType());
+        ConstructorElement ctor = type.verify().resolve().resolveConstructorElement(getConstructorDescriptor(stringClass.verify().getClassType()));
         // todo: backtrace should be set to thread.tos
-        invoke(ctor, e, newString(arg));
+        invokeExact(ctor, e, newString(arg));
         return e;
     }
 
@@ -289,8 +293,10 @@ final class JavaVMImpl implements JavaVM {
         for (int i = 0; i < length; i++) {
             array.putArray(i, str.charAt(i));
         }
-        MethodHandle initString = stringClassVerified.resolve().resolveConstructorHandle(Type.JAVA_CHAR_ARRAY);
-        return allocateObject(stringClassVerified.getClassType());
+        ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(Type.JAVA_CHAR_ARRAY));
+        JavaObject res = allocateObject(stringClassVerified.getClassType());
+        invokeExact(initString, array);
+        return res;
     }
 
     public DefinedTypeDefinition findLoadedClass(final JavaObject classLoader, final String name) {
@@ -314,7 +320,7 @@ final class JavaVMImpl implements JavaVM {
     }
 
     public void invokeExact(final ConstructorElement method, final Object... args) {
-        MethodHandle exactHandle = method.getExactMethodBody();
+        MethodHandle exactHandle = method.getMethodBody();
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
         }
@@ -322,11 +328,19 @@ final class JavaVMImpl implements JavaVM {
     }
 
     public Object invokeExact(final MethodElement method, final Object... args) {
-        MethodHandle exactHandle = method.getExactMethodBody();
+        MethodHandle exactHandle = method.getMethodBody();
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
         }
         return invokeWith(exactHandle.getResolvedMethodBody(), args);
+    }
+
+    public Object invokeInitializer(final InitializerElement initializer) {
+        MethodHandle exactHandle = initializer.getMethodBody();
+        if (exactHandle == null) {
+            throw new IllegalArgumentException("Method has no body");
+        }
+        return invokeWith(exactHandle.getResolvedMethodBody());
     }
 
     public Object invokeVirtual(final MethodElement method, final Object... args) {
@@ -418,22 +432,19 @@ final class JavaVMImpl implements JavaVM {
                     frame.bindValue(phiValue, frame.getValue(phiValue.getValueForBlock(predecessor)));
                 } else if (node instanceof Invocation) {
                     Invocation op = (Invocation) node;
-                    MethodIdentifier it = op.getInvocationTarget();
-                    ResolvedTypeDefinition owner = op.getMethodOwner().getDefinition().resolve();
-                    int methodIndex = owner.findMethodIndex(it.getName(), it.getReturnType(), it.getParameterTypesAsArray());
-                    if (methodIndex == - 1) {
-                        throw new Thrown(newException(noSuchMethodErrorClass, null));
+                    if (op instanceof InstanceInvocation) {
+                        InstanceInvocation instanceInvocation = (InstanceInvocation) op;
+                        if (instanceInvocation.getKind() != InstanceInvocation.Kind.EXACT) {
+                            throw new UnsupportedOperationException("Virtual dispatch");
+                        }
                     }
-                    MethodHandle target = computeInvocationTarget(op, owner, methodIndex);
-                    if (target == null) {
-                        // todo: not exactly right but good enough for now
-                        throw new Thrown(newException(abstractMethodErrorClass, null));
-                    }
+                    ParameterizedExecutableElement it = op.getInvocationTarget();
+                    ResolvedTypeDefinition owner = it.getEnclosingType().verify().resolve();
                     Object[] args = computeInvocationArguments(frame, op);
                     if (op instanceof InvocationValue) {
-                        frame.bindValue((Value) op, invoke(target, args));
+                        frame.bindValue((Value) op, invoke(it.getMethodBody(), args));
                     } else {
-                        invoke(target, args);
+                        invoke(it.getMethodBody(), args);
                     }
                 } else if (node instanceof Throw) {
                     throw new Thrown((JavaObject) frame.getValue(((Throw) node).getThrownValue()));
@@ -461,27 +472,20 @@ final class JavaVMImpl implements JavaVM {
                 throw new Thrown((JavaObject) frame.getValue(((Throw) terminator).getThrownValue()));
             } else if (terminator instanceof TryInvocation) {
                 TryInvocation op = (TryInvocation) terminator;
-                MethodIdentifier it = op.getInvocationTarget();
-                ResolvedTypeDefinition owner = op.getMethodOwner().getDefinition().resolve();
-                int methodIndex = owner.findMethodIndex(it.getName(), it.getReturnType(), it.getParameterTypesAsArray());
-                if (methodIndex == - 1) {
-                    frame.bindValue(op.getCatchValue(), newException(noSuchMethodErrorClass, null));
-                    block = op.getCatchHandler();
-                    continue;
+                if (op instanceof InstanceInvocation) {
+                    InstanceInvocation instanceInvocation = (InstanceInvocation) op;
+                    if (instanceInvocation.getKind() != InstanceInvocation.Kind.EXACT) {
+                        throw new UnsupportedOperationException("Virtual dispatch");
+                    }
                 }
-                MethodHandle target = computeInvocationTarget(op, owner, methodIndex);
-                if (target == null) {
-                    // todo: not exactly right but good enough for now
-                    frame.bindValue(op.getCatchValue(), newException(abstractMethodErrorClass, null));
-                    block = op.getCatchHandler();
-                    continue;
-                }
+                ParameterizedExecutableElement it = op.getInvocationTarget();
+                ResolvedTypeDefinition owner = it.getEnclosingType().verify().resolve();
                 Object[] args = computeInvocationArguments(frame, op);
                 try {
                     if (op instanceof InvocationValue) {
-                        frame.bindValue((Value) op, invoke(target, args));
+                        frame.bindValue((Value) op, invoke(it.getMethodBody(), args));
                     } else {
-                        invoke(target, args);
+                        invoke(it.getMethodBody(), args);
                     }
                     block = op.getTarget();
                 } catch (Thrown t) {
@@ -616,13 +620,13 @@ final class JavaVMImpl implements JavaVM {
             Value instanceVal = iOp.getInstance();
             InstanceInvocation.Kind kind = iOp.getKind();
             if (kind == InstanceInvocation.Kind.EXACT) {
-                target = owner.getMethod(methodIndex).getExactMethodBody();
+                target = owner.getMethod(methodIndex).getMethodBody();
             } else {
                 target = owner.getMethod(methodIndex).getVirtualMethodBody();
             }
         } else {
             // static invocation
-            target = owner.getMethod(methodIndex).getExactMethodBody();
+            target = owner.getMethod(methodIndex).getMethodBody();
         }
         return target;
     }
@@ -733,6 +737,41 @@ final class JavaVMImpl implements JavaVM {
         byte[] bytes = new byte[length];
         buffer.duplicate().position(offset).get(bytes);
         return new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    public ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor(final Type... paramTypes) {
+        ConcurrentTrie<Type, ParameterizedExecutableDescriptor> current = this.descriptorCache;
+        for (Type paramType : paramTypes) {
+            current = current.computeIfAbsent(paramType, t -> new ConcurrentTrie<>());
+        }
+        ParameterizedExecutableDescriptor val = current.get();
+        if (val != null) {
+            return val;
+        }
+        ParameterizedExecutableDescriptor newVal = ParameterizedExecutableDescriptor.of(paramTypes);
+        while (! current.compareAndSet(null, newVal)) {
+            val = current.get();
+            if (val != null) {
+                return val;
+            }
+        }
+        return newVal;
+    }
+
+    public MethodDescriptor getMethodDescriptor(final Type returnType, final Type... paramTypes) {
+        return getMethodDescriptor(returnType, getParameterizedExecutableDescriptor(paramTypes));
+    }
+
+    public MethodDescriptor getMethodDescriptor(final Type returnType, final ParameterizedExecutableDescriptor paramDesc) {
+        return methodDescriptorCache.computeIfAbsent(paramDesc, k -> new ConcurrentHashMap<>()).computeIfAbsent(returnType, r -> MethodDescriptor.of(paramDesc, returnType));
+    }
+
+    public ConstructorDescriptor getConstructorDescriptor(final Type... paramTypes) {
+        return getConstructorDescriptor(getParameterizedExecutableDescriptor(paramTypes));
+    }
+
+    public ConstructorDescriptor getConstructorDescriptor(final ParameterizedExecutableDescriptor paramDesc) {
+        return constructorDescriptorCache.computeIfAbsent(paramDesc, k -> ConstructorDescriptor.of(paramDesc));
     }
 
     public JavaObject allocateDirectBuffer(final ByteBuffer backingBuffer) {
