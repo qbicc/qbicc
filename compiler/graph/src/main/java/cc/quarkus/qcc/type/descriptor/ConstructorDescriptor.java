@@ -29,6 +29,18 @@ public interface ConstructorDescriptor extends ParameterizedExecutableDescriptor
             public Type[] getParameterTypesAsArray() {
                 return pd.getParameterTypesAsArray();
             }
+
+            public int hashCode() {
+                return 13 * getParameterizedExecutableDescriptor().hashCode();
+            }
+
+            public boolean equals(final Object obj) {
+                return obj instanceof ConstructorDescriptor && equals((ConstructorDescriptor) obj);
+            }
+
+            boolean equals(final ConstructorDescriptor other) {
+                return this == other || getParameterizedExecutableDescriptor().equals(other.getParameterizedExecutableDescriptor());
+            }
         };
     }
 

@@ -69,6 +69,7 @@ import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -88,7 +89,7 @@ final class JavaVMImpl implements JavaVM {
     private final Condition signalCondition = vmLock.newCondition();
     private final ArrayDeque<Signal> signalQueue = new ArrayDeque<>();
     private final Set<JavaThread> threads = ConcurrentHashMap.newKeySet();
-    private final ThreadLocal<JavaThreadImpl> attachedThread = new ThreadLocal<>();
+    final ThreadLocal<JavaThreadImpl> attachedThread = new ThreadLocal<>();
     private final Dictionary bootstrapDictionary;
     private final ConcurrentMap<JavaObject, Dictionary> classLoaderLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Dictionary, JavaObject> loaderClassLoaders = new ConcurrentHashMap<>();
@@ -109,6 +110,7 @@ final class JavaVMImpl implements JavaVM {
     final DefinedTypeDefinition classNotFoundExceptionClass;
     final DefinedTypeDefinition noSuchMethodErrorClass;
     final DefinedTypeDefinition abstractMethodErrorClass;
+    final DefinedTypeDefinition unsatisfiedLinkErrorClass;
 
     JavaVMImpl(final Builder builder) {
         Map<String, BootModule> bootstrapModules = new LinkedHashMap<>();
@@ -183,6 +185,7 @@ final class JavaVMImpl implements JavaVM {
             // run time linkage errors
             noSuchMethodErrorClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/NoSuchMethodError");
             abstractMethodErrorClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/AbstractMethodError");
+            unsatisfiedLinkErrorClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/UnsatisfiedLinkError");
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
@@ -319,8 +322,9 @@ final class JavaVMImpl implements JavaVM {
         throw new UnsupportedOperationException();
     }
 
-    public void invokeExact(final ConstructorElement method, final Object... args) {
-        MethodHandle exactHandle = method.getMethodBody();
+    public void invokeExact(final ConstructorElement ctor, final Object... args) {
+        Assert.checkNotNullParam("ctor", ctor);
+        MethodHandle exactHandle = ctor.getMethodBody();
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
         }
@@ -328,8 +332,12 @@ final class JavaVMImpl implements JavaVM {
     }
 
     public Object invokeExact(final MethodElement method, final Object... args) {
+        Assert.checkNotNullParam("method", method);
         MethodHandle exactHandle = method.getMethodBody();
         if (exactHandle == null) {
+            if (method.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+                throw new Thrown(newException(unsatisfiedLinkErrorClass, method.getName()));
+            }
             throw new IllegalArgumentException("Method has no body");
         }
         return invokeWith(exactHandle.getResolvedMethodBody(), args);
@@ -444,7 +452,11 @@ final class JavaVMImpl implements JavaVM {
                     if (op instanceof InvocationValue) {
                         frame.bindValue((Value) op, invoke(it.getMethodBody(), args));
                     } else {
-                        invoke(it.getMethodBody(), args);
+                        if (it instanceof MethodElement) {
+                            invokeExact((MethodElement) it, args);
+                        } else {
+                            invokeExact((ConstructorElement) it, args);
+                        }
                     }
                 } else if (node instanceof Throw) {
                     throw new Thrown((JavaObject) frame.getValue(((Throw) node).getThrownValue()));
@@ -643,7 +655,7 @@ final class JavaVMImpl implements JavaVM {
         if (existing == this) {
             return false;
         }
-        if (existing != null) {
+        if (existing != this && existing != null) {
             throw new IllegalStateException("Another JVM is already attached");
         }
         currentVm.set(this);
@@ -666,14 +678,19 @@ final class JavaVMImpl implements JavaVM {
     }
 
     public void doAttached(final Runnable r) {
-        if (currentVm.get() != null) {
+        JavaVMImpl currentVm = JavaVMImpl.currentVm.get();
+        if (currentVm == this) {
+            r.run();
+            return;
+        }
+        if (currentVm != null) {
             throw new IllegalStateException("Another JVM is already attached");
         }
-        currentVm.set(this);
+        JavaVMImpl.currentVm.set(this);
         try {
             r.run();
         } finally {
-            currentVm.remove();
+            JavaVMImpl.currentVm.remove();
         }
     }
 

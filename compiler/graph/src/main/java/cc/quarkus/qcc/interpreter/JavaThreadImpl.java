@@ -20,31 +20,37 @@ final class JavaThreadImpl implements JavaThread {
     }
 
     public void doAttached(final Runnable r) {
-        boolean detach;
-        threadLock.lock();
-        try {
-            if (state != State.RUNNING) {
-                throw new IllegalStateException("Thread is not running");
+        vm.doAttached(() -> {
+            JavaThreadImpl currentlyAttached = vm.attachedThread.get();
+            if (currentlyAttached == this) {
+                r.run();
+                return;
             }
-            if (attachedThread != null) {
-                throw new IllegalStateException("Thread is already attached");
+            if (currentlyAttached != null) {
+                throw new IllegalStateException("Another thread is already attached");
             }
-            detach = vm.tryAttach(this);
-            attachedThread = Thread.currentThread();
-        } finally {
-            threadLock.unlock();
-        }
-        try {
-            r.run();
-        } finally {
             threadLock.lock();
-            if (detach) {
-                vm.detach(this);
+            try {
+                if (state != State.RUNNING) {
+                    throw new IllegalStateException("Thread is not running");
+                }
+                if (attachedThread != null) {
+                    throw new IllegalStateException("Thread is already attached");
+                }
+                attachedThread = Thread.currentThread();
+            } finally {
+                threadLock.unlock();
             }
-            assert attachedThread == Thread.currentThread();
-            attachedThread = null;
-            threadLock.unlock();
-        }
+            vm.attachedThread.set(this);
+            try {
+                r.run();
+            } finally {
+                vm.attachedThread.remove();
+                threadLock.lock();
+                attachedThread = null;
+                threadLock.unlock();
+            }
+        });
     }
 
     JavaVMImpl.StackFrame pushNewFrame(Invocation caller) {

@@ -1072,7 +1072,7 @@ final class MethodParser {
                     push(gf.newArray(ctxt, type, pop(Type.S32)));
                     break;
                 case OP_ANEWARRAY:
-                    type = (ArrayClassType) Type.arrayOf(getClassFile().resolveSingleDescriptor(buffer.getShort() & 0xffff));
+                    type = (ArrayClassType) getClassFile().resolveSingleDescriptor(buffer.getShort() & 0xffff).getArrayClassType();
                     // todo: check for negative array size
                     push(gf.newArray(ctxt, type, pop(Type.S32)));
                     break;
@@ -1139,7 +1139,7 @@ final class MethodParser {
                     for (int i = 0; i < dims.length; i ++) {
                         dims[i] = pop(Type.S32/*.nonNegative()*/);
                     }
-                    push(gf.multiNewArray(ctxt, Type.arrayOf(resolveDescriptor(cpIdx)), dims));
+                    push(gf.multiNewArray(ctxt, resolveDescriptor(cpIdx).getArrayClassType(), dims));
                     break;
                 case OP_IFNULL:
                     processIf(buffer, ctxt, gf.cmpEq(ctxt, pop(), Value.NULL), buffer.getShort() + src, buffer.position());

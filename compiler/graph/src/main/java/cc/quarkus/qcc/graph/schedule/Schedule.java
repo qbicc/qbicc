@@ -16,7 +16,6 @@ import io.smallrye.common.constraint.Assert;
  * A linear schedule for basic block instructions.
  */
 public interface Schedule {
-    Schedule EMPTY = forMethod(BasicBlock.VOID_EMPTY);
 
     /**
      * Get the basic block for the given node.
@@ -42,6 +41,14 @@ public interface Schedule {
         BlockInfo root = new BlockInfo(entryBlock, 0);
         root.computeIndices(blockInfos, indexHolder);
         final int graphSize = indexHolder[0];
+        if (graphSize == 1) {
+            // trivial schedule
+            return new Schedule() {
+                public BasicBlock getBlockForNode(final Node node) {
+                    return entryBlock;
+                }
+            };
+        }
         BlockInfo[] allBlocks = new BlockInfo[graphSize];
         // a. Map blocks into the array
         for (BlockInfo value : blockInfos.values()) {

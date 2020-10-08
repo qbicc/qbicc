@@ -20,6 +20,10 @@ final class ReferenceTypeImpl extends NodeImpl implements ReferenceType {
         return null;
     }
 
+    public ArrayClassType getArrayClassType() {
+        return null;
+    }
+
     public int getParameterCount() {
         return 0;
     }

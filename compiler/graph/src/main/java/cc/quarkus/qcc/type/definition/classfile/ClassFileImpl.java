@@ -24,7 +24,6 @@ import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
 import cc.quarkus.qcc.type.definition.ClassFileUtil;
 import cc.quarkus.qcc.type.definition.DefineFailedException;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ResolutionFailedException;
 import cc.quarkus.qcc.type.definition.element.AnnotatedElement;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -382,7 +381,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             }
             case '[': {
                 int res = populateTypesArray(descIdx, types, pos + 1, idx);
-                types[idx] = Type.arrayOf(types[idx]);
+                types[idx] = types[idx].getArrayClassType();
                 return res;
             }
             case 'L': {
@@ -434,7 +433,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             case 'V':
             case 'Z': return forSimpleDescriptor(b);
             //
-            case '[': return Type.arrayOf(resolveSingleDescriptor(offs + 1, maxLen - 1));
+            case '[':
+                return resolveSingleDescriptor(offs + 1, maxLen - 1).getArrayClassType();
             //
             case 'L': {
                 for (int i = 0; i < maxLen; i ++) {
@@ -755,6 +755,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         addExactBody(builder, index, enclosing);
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
+        builder.setConstructorTypeResolver(this, index);
         return builder.build();
     }
 
@@ -763,7 +764,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         builder.setEnclosingType(enclosing);
         builder.setModifiers(ACC_STATIC);
         if (index == 0) {
-            builder.setExactMethodBody(MethodHandle.VOID_EMPTY);
+            builder.setExactMethodBody(null);
         } else {
             addExactBody(builder, index, enclosing);
         }

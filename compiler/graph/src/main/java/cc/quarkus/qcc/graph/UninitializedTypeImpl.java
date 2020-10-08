@@ -16,6 +16,10 @@ final class UninitializedTypeImpl extends NodeImpl implements UninitializedType 
         return classType;
     }
 
+    public ArrayClassType getArrayClassType() {
+        throw new UnsupportedOperationException();
+    }
+
     public boolean isAssignableFrom(final Type otherType) {
         return false;
     }

@@ -35,7 +35,7 @@ public interface ClassType extends Type {
      *
      * @return the type that is an array of this type
      */
-    ArrayClassType getArrayType();
+    ArrayClassType getArrayClassType();
 
     static ClassType highest(ClassType t1, ClassType t2) {
         if (t1.isSuperTypeOf(t2)) {

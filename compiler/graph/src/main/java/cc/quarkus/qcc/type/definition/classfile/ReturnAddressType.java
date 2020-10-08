@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import cc.quarkus.qcc.constraint.Constraint;
+import cc.quarkus.qcc.graph.ArrayClassType;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Type;
@@ -15,6 +16,10 @@ public final class ReturnAddressType implements Type {
     static final ReturnAddressType INSTANCE = new ReturnAddressType();
 
     private ReturnAddressType() {}
+
+    public ArrayClassType getArrayClassType() {
+        throw new UnsupportedOperationException();
+    }
 
     public boolean isAssignableFrom(final Type otherType) {
         return otherType == this;

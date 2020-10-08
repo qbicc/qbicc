@@ -13,4 +13,8 @@ final class ClassLiteralTypeImpl extends NodeImpl implements ClassLiteralType {
     public void setIdForGraph(final int id) {
 
     }
+
+    public ArrayClassType getArrayClassType() {
+        throw new IllegalArgumentException("Convert to object type first");
+    }
 }

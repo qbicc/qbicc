@@ -113,7 +113,7 @@ public class Dictionary {
                 String className = descriptor.substring(idx + 1, term);
                 return findClass(className).verify().getClassType();
             case '[':
-                return Type.arrayOf(parseSingleDescriptor(descriptor, idx + 1));
+                return parseSingleDescriptor(descriptor, idx + 1).getArrayClassType();
             default:
                 throw new RuntimeException("Unable to parse: " + descriptor + " at " + idx );
         }

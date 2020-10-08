@@ -16,6 +16,10 @@ final class ArrayTypeImpl extends NodeImpl implements ArrayType {
         return elementType;
     }
 
+    public ArrayClassType getArrayClassType() {
+        throw new UnsupportedOperationException();
+    }
+
     public int getParameterCount() {
         return 0;
     }

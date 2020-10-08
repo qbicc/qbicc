@@ -21,6 +21,10 @@ final class EitherTypeImpl extends NodeImpl implements EitherType {
         return secondType;
     }
 
+    public ArrayClassType getArrayClassType() {
+        return null;
+    }
+
     public int getParameterCount() {
         return 0;
     }

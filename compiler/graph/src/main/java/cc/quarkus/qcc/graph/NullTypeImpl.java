@@ -4,6 +4,10 @@ import cc.quarkus.qcc.constraint.Constraint;
 import io.smallrye.common.constraint.Assert;
 
 final class NullTypeImpl extends NodeImpl implements NullType {
+    public ArrayClassType getArrayClassType() {
+        throw new UnsupportedOperationException();
+    }
+
     public int getParameterCount() {
         return 0;
     }

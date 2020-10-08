@@ -4,6 +4,10 @@ import cc.quarkus.qcc.constraint.Constraint;
 import io.smallrye.common.constraint.Assert;
 
 final class VoidTypeImpl extends NodeImpl implements VoidType {
+    public ArrayClassType getArrayClassType() {
+        throw new UnsupportedOperationException();
+    }
+
     public int getParameterCount() {
         return 0;
     }

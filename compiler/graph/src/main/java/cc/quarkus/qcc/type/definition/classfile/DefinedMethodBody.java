@@ -706,7 +706,7 @@ final class DefinedMethodBody {
 
     int getEntryPointIndex(final int target) {
         int low = 0;
-        int high = getEntryPointCount();
+        int high = getEntryPointCount() - 1;
         while (low <= high) {
             int mid = (low + high) >>> 1;
             int midVal = entryPoints[mid << 1];
@@ -727,7 +727,7 @@ final class DefinedMethodBody {
 
     int getLineNumber(int bci) {
         int low = 0;
-        int high = lineNumbers.length - 1;
+        int high = (lineNumbers.length >>> 1) - 1;
 
         while (low <= high) {
             int mid = (low + high) >>> 1;

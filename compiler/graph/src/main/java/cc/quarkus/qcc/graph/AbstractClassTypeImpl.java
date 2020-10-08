@@ -17,7 +17,7 @@ abstract class AbstractClassTypeImpl extends NodeImpl implements ClassType {
         return uninitializedType;
     }
 
-    public ArrayClassType getArrayType() {
+    public ArrayClassType getArrayClassType() {
         ArrayClassType arrayType = this.arrayType;
         if (arrayType == null) {
             synchronized (this) {

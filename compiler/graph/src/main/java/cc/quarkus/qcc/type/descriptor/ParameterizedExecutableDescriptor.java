@@ -29,6 +29,18 @@ public interface ParameterizedExecutableDescriptor {
             public Type[] getParameterTypesAsArray() {
                 return paramTypes.toArray(Type[]::new);
             }
+
+            public int hashCode() {
+                return paramTypes.hashCode();
+            }
+
+            public boolean equals(final Object obj) {
+                return obj instanceof ParameterizedExecutableDescriptor && equals((ParameterizedExecutableDescriptor) obj);
+            }
+
+            boolean equals(final ParameterizedExecutableDescriptor other) {
+                return this == other || getParameterTypes().equals(other.getParameterTypes());
+            }
         };
     }
 

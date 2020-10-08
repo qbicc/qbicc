@@ -20,9 +20,7 @@ public interface Type extends Node {
         // no operation
     }
 
-    static ArrayType arrayOf(Type elementType) {
-        return new ArrayTypeImpl(elementType);
-    }
+    ArrayClassType getArrayClassType();
 
     static ClassType classType(VerifiedTypeDefinition definition, ClassType superType, InterfaceType... interfaceTypes) {
         return new ClassTypeImpl(definition, superType, interfaceTypes.length == 0 ? InterfaceType.NO_INTERFACES : interfaceTypes.clone());
@@ -60,17 +58,17 @@ public interface Type extends Node {
 
     // primitive array types
 
-    ArrayClassType JAVA_BYTE_ARRAY = new ArrayClassTypeImpl(S8);
-    ArrayClassType JAVA_SHORT_ARRAY = new ArrayClassTypeImpl(S16);
-    ArrayClassType JAVA_INT_ARRAY = new ArrayClassTypeImpl(S32);
-    ArrayClassType JAVA_LONG_ARRAY = new ArrayClassTypeImpl(S64);
+    ArrayClassType JAVA_BYTE_ARRAY = S8.getArrayClassType();
+    ArrayClassType JAVA_SHORT_ARRAY = S16.getArrayClassType();
+    ArrayClassType JAVA_INT_ARRAY = S32.getArrayClassType();
+    ArrayClassType JAVA_LONG_ARRAY = S64.getArrayClassType();
 
-    ArrayClassType JAVA_CHAR_ARRAY = new ArrayClassTypeImpl(U16);
+    ArrayClassType JAVA_CHAR_ARRAY = U16.getArrayClassType();
 
-    ArrayClassType JAVA_FLOAT_ARRAY = new ArrayClassTypeImpl(F32);
-    ArrayClassType JAVA_DOUBLE_ARRAY = new ArrayClassTypeImpl(F64);
+    ArrayClassType JAVA_FLOAT_ARRAY = F32.getArrayClassType();
+    ArrayClassType JAVA_DOUBLE_ARRAY = F64.getArrayClassType();
 
-    ArrayClassType JAVA_BOOLEAN_ARRAY = new ArrayClassTypeImpl(BOOL);
+    ArrayClassType JAVA_BOOLEAN_ARRAY = BOOL.getArrayClassType();
 
     default boolean isClass2Type() {
         return false;
