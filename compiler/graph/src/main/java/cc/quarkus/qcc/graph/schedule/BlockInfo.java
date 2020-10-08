@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph.schedule;
 import java.util.Map;
 
 import cc.quarkus.qcc.graph.BasicBlock;
+import io.smallrye.common.constraint.Assert;
 
 final class BlockInfo {
     final BasicBlock block;
@@ -11,7 +12,7 @@ final class BlockInfo {
     int domDepth = -1;
 
     BlockInfo(final BasicBlock block, final int index) {
-        this.block = block;
+        this.block = Assert.checkNotNullParam("block", block);
         this.index = index;
     }
 

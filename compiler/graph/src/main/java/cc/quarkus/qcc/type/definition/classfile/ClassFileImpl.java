@@ -233,6 +233,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     public String getUtf8Constant(final int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        if (idx == 0) {
+            return null;
+        }
         // TODO: deduplication
         String result = getVolatile(strings, idx);
         if (result != null) {
@@ -398,6 +401,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     Type resolveSingleDescriptor(int cpIdx) {
+        checkConstantType(cpIdx, CONSTANT_Utf8);
         int cpOffset = cpOffsets[cpIdx];
         return resolveSingleDescriptor(cpOffset + 3, getShort(cpOffset + 1));
     }
@@ -471,6 +475,16 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     private ClassType loadClass(final int offs, final int len, final boolean expectTerminator) {
         JavaVM vm = JavaVM.requireCurrent();
         return vm.loadClass(definingClassLoader, vm.deduplicate(definingClassLoader, buffer, offs, len, expectTerminator)).verify().getClassType();
+    }
+
+    ClassType loadClass(final int classIdx) {
+        int idx = getClassConstantNameIdx(classIdx);
+        int len = getUtf8ConstantLength(idx);
+        // handle arrays specially
+        if (getByte(cpOffsets[idx] + 3) == '[') {
+            return (ClassType) resolveSingleDescriptor(idx);
+        }
+        return loadClass(cpOffsets[idx] + 3, len, false);
     }
 
     public int getAccess() {

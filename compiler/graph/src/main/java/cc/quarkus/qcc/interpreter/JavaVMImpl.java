@@ -393,6 +393,10 @@ final class JavaVMImpl implements JavaVM {
     }
 
     private void scheduleNode(final Map<BasicBlock, LinkedHashSet<Node>> nodes, final Schedule schedule, final Node node) {
+        if (node == null) {
+            // end of dependency chain
+            return;
+        }
         LinkedHashSet<Node> set = nodes.computeIfAbsent(schedule.getBlockForNode(node), b -> new LinkedHashSet<>());
         if (set.contains(node)) {
             return;

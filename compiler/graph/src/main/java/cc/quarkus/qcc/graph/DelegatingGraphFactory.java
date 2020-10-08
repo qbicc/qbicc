@@ -263,4 +263,8 @@ public class DelegatingGraphFactory implements GraphFactory {
     public BasicBlock ret(final Context ctxt, final Value address) {
         return getDelegate().ret(ctxt, address);
     }
+
+    public ThisValue receiver(final ClassType type) {
+        return getDelegate().receiver(type);
+    }
 }

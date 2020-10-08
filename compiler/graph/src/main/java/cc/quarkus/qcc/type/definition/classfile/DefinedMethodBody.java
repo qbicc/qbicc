@@ -65,9 +65,9 @@ final class DefinedMethodBody {
         int entryPointLen = 0;
         int entryPointSourcesLen = 0;
         // process bytecodes for entry points
-        int src = 0;
         int target;
         while (bc.position() < bc.limit()) {
+            int src = bc.position();
             int opcode = bc.get() & 0xff;
             switch (opcode) {
                 // interesting cases first
@@ -85,7 +85,7 @@ final class DefinedMethodBody {
                 case OP_IFNONNULL:
                 case OP_IFNULL: {
                     // just like GOTO except we also need to fall through
-                    target = src + 2;
+                    target = src + 3;
                     int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
                         entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
@@ -102,7 +102,7 @@ final class DefinedMethodBody {
                 }
                 case OP_JSR_W: {
                     // just like GOTO_W except we also need to fall through
-                    target = src + 4;
+                    target = src + 5;
                     int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
                         entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
@@ -189,6 +189,9 @@ final class DefinedMethodBody {
                     throw new InvalidAttributeLengthException();
                 }
                 // add some line numbers; this attribute can appear more than once
+                if ((lineNumberTable.length >>> 1) - lineNumberTableLen < cnt) {
+                    lineNumberTable = Arrays.copyOf(lineNumberTable, lineNumberTableLen + (cnt << 1));
+                }
                 for (int j = 0; j < cnt; j ++) {
                     int startPc = codeAttr.getShort() & 0xffff;
                     int lineNumber = codeAttr.getShort() & 0xffff;
@@ -202,10 +205,6 @@ final class DefinedMethodBody {
                             // ignore
                         } else {
                             idx = -idx - 1;
-                            // grow table if needed
-                            if (lineNumberTableLen == lineNumberTable.length) {
-                                lineNumberTable = Arrays.copyOf(lineNumberTable, lineNumberTableLen << 1);
-                            }
                             if (idx < lineNumberTableLen) {
                                 // make a hole
                                 System.arraycopy(lineNumberTable, idx << 1, lineNumberTable, 1 + (idx << 1), (lineNumberTableLen - idx) << 1);
@@ -582,11 +581,11 @@ final class DefinedMethodBody {
     static short[] insertNewEntryPoint(short[] entryPoints, int idx, final int entryPointLen, final int target) {
         assert idx < 0;
         idx = -idx - 1;
-        if (entryPointLen == entryPoints.length) {
-            entryPoints = Arrays.copyOf(entryPoints, entryPointLen << 1);
+        if (entryPointLen << 1 == entryPoints.length) {
+            entryPoints = Arrays.copyOf(entryPoints, entryPointLen == 0 ? 4 : entryPointLen << 2);
         }
         int base = idx << 1;
-        if (idx < entryPointLen) {
+        if (base < entryPointLen) {
             // make a hole
             System.arraycopy(entryPoints, base, entryPoints, base + 2, (entryPointLen - idx) << 1);
         }
@@ -610,8 +609,9 @@ final class DefinedMethodBody {
             } else if (midVal > target) {
                 high = mid - 1;
             } else {
-                // target matches; bump the count
+                // target matches; bump the count and return it
                 entryPoints[(mid << 1) + 1]++;
+                return mid;
             }
         }
         // not present

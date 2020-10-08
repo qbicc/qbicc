@@ -3,6 +3,7 @@ package cc.quarkus.qcc.type.definition.classfile;
 import java.nio.ByteBuffer;
 
 import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.GraphFactory;
 import cc.quarkus.qcc.graph.NodeHandle;
 import cc.quarkus.qcc.graph.ParameterValue;
@@ -26,6 +27,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
     private final ByteBuffer byteCode;
     private final int maxStack;
     private final int maxLocals;
+    private volatile MethodBody resolved;
 
     ExactMethodHandleImpl(final ClassFileImpl classFile, final int modifiers, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing) {
         super(codeAttr);
@@ -59,35 +61,52 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
     }
 
     public MethodBody getResolvedMethodBody() throws ResolutionFailedException {
-        DefinedMethodBody dmb = new DefinedMethodBody(classFile, modifiers, index, getBackingBuffer().duplicate());
-        VerifiedMethodBody vmb;
-        MethodElement methodElement = classFile.resolveMethod(index, enclosing);
-        int paramCount = methodElement.getParameterCount();
-        if (classFile.compareVersion(50, 0) >= 0) {
-            if (dmb.getStackMapTableOffs() != - 1) {
-                // verify by type checking
-                vmb = new TypeCheckedVerifiedMethodBody(dmb, methodElement);
+        MethodBody resolved = this.resolved;
+        if (resolved != null) {
+            return resolved;
+        }
+        synchronized (this) {
+            resolved = this.resolved;
+            if (resolved != null) {
+                return resolved;
+            }
+            DefinedMethodBody dmb = new DefinedMethodBody(classFile, modifiers, index, getBackingBuffer().duplicate());
+            VerifiedMethodBody vmb;
+            MethodElement methodElement = classFile.resolveMethod(index, enclosing);
+            int paramCount = methodElement.getParameterCount();
+            if (classFile.compareVersion(50, 0) >= 0) {
+                if (dmb.getStackMapTableOffs() != - 1) {
+                    // verify by type checking
+                    vmb = new TypeCheckedVerifiedMethodBody(dmb, methodElement);
+                } else {
+                    vmb = new SimpleMethodBody(dmb, methodElement);
+                }
             } else {
-                vmb = new SimpleMethodBody(dmb, methodElement);
+                throw new UnsupportedOperationException("todo");
             }
-        } else {
-            throw new UnsupportedOperationException("todo");
-        }
-        GraphFactory gf = JavaVM.requireCurrent().createGraphFactory();
-        MethodParser methodParser = new MethodParser(vmb, gf);
-        ParameterValue[] parameters = new ParameterValue[paramCount];
-        for (int i = 0, j = 0; i < paramCount; i ++) {
-            Type type = methodElement.getParameter(i).getType();
-            methodParser.setLocal(j, parameters[i] = gf.parameter(type, i));
-            j++;
-            if (type.isClass2Type()) {
+            GraphFactory gf = JavaVM.requireCurrent().createGraphFactory();
+            MethodParser methodParser = new MethodParser(vmb, gf);
+            ParameterValue[] parameters = new ParameterValue[paramCount];
+            int j = 0;
+            if ((modifiers & ClassFile.ACC_STATIC) == 0) {
+                // instance method or constructor
+                ClassType type = enclosing.verify().getClassType();
+                methodParser.setLocal(j++, gf.receiver(type));
+                assert ! type.isClass2Type();
+            }
+            for (int i = 0; i < paramCount; i ++) {
+                Type type = methodElement.getParameter(i).getType();
+                methodParser.setLocal(j, parameters[i] = gf.parameter(type, i));
                 j++;
+                if (type.isClass2Type()) {
+                    j++;
+                }
             }
+            NodeHandle entryBlockHandle = new NodeHandle();
+            methodParser.processNewBlock(byteCode, entryBlockHandle);
+            BasicBlock entryBlock = NodeHandle.getTargetOf(entryBlockHandle);
+            Schedule schedule = Schedule.forMethod(entryBlock);
+            return this.resolved = new ResolvedMethodBody(parameters, entryBlock, schedule);
         }
-        NodeHandle entryBlockHandle = new NodeHandle();
-        methodParser.processNewBlock(byteCode, entryBlockHandle);
-        BasicBlock entryBlock = NodeHandle.getTargetOf(entryBlockHandle);
-        Schedule schedule = Schedule.forMethod(entryBlock);
-        return new ResolvedMethodBody(parameters, entryBlock, schedule);
     }
 }

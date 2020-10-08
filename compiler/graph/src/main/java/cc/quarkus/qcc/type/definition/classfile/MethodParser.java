@@ -32,6 +32,7 @@ import cc.quarkus.qcc.graph.TryInvocationValue;
 import cc.quarkus.qcc.graph.TryThrow;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.WordType;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
@@ -168,6 +169,32 @@ final class MethodParser {
         Value v1 = pop1();
         push(v2);
         push(v1);
+    }
+
+    Value promote(GraphFactory.Context ctxt, Value value) {
+        // we must automatically promote values we push on the stack
+        Type type = value.getType();
+        if (type == Type.S8 || type == Type.S16) {
+            return gf.extend(ctxt, value, Type.S32);
+        } else if (type == Type.U16) {
+            return gf.bitCast(ctxt, gf.extend(ctxt, value, Type.U32), Type.S32);
+        } else if (type == Type.BOOL) {
+            return gf.if_(ctxt, value, Value.const_(1), Value.const_(0));
+        } else {
+            return value;
+        }
+    }
+
+    Value demote(GraphFactory.Context ctxt, Value value, Type toType) {
+        Type type = value.getType();
+        if (type == Type.S32) {
+            if (toType == Type.S8 || toType == Type.S16 || toType == Type.U16) {
+                return gf.truncate(ctxt, value, (WordType) toType);
+            } else if (toType == Type.BOOL) {
+                return gf.cmpNe(ctxt, value, Value.const_(0, type));
+            }
+        }
+        return value;
     }
 
     <V extends Value> V push(V value) {
@@ -461,19 +488,19 @@ final class MethodParser {
                     }
                     v2 = pop1();
                     v1 = gf.readArrayValue(ctxt, v1, v2, JavaAccessMode.PLAIN);
-                    push(v1);
+                    push(promote(ctxt, v1));
                     break;
                 case OP_CALOAD:
                     v1 = pop(Type.JAVA_CHAR_ARRAY);
                     v2 = pop1();
                     v1 = gf.readArrayValue(ctxt, v1, v2, JavaAccessMode.PLAIN);
-                    push(v1);
+                    push(promote(ctxt, v1));
                     break;
                 case OP_SALOAD:
                     v1 = pop(Type.JAVA_SHORT_ARRAY);
                     v2 = pop1();
                     v1 = gf.readArrayValue(ctxt, v1, v2, JavaAccessMode.PLAIN);
-                    push(v1);
+                    push(promote(ctxt, v1));
                     break;
                 case OP_ISTORE:
                     setLocal(getWidenableValue(buffer, wide), pop(Type.S32));
@@ -536,13 +563,14 @@ final class MethodParser {
                     gf.writeArrayValue(ctxt, pop(/* Object[] */), pop(Type.S32), pop(/* Object */), JavaAccessMode.PLAIN);
                     break;
                 case OP_BASTORE:
-                    gf.writeArrayValue(ctxt, pop(), pop(Type.S32), pop(Type.S32), JavaAccessMode.PLAIN);
+                    v1 = pop();
+                    gf.writeArrayValue(ctxt, v1, pop(Type.S32), demote(ctxt, pop(Type.S32), ((ArrayClassType)v1.getType()).getElementType()), JavaAccessMode.PLAIN);
                     break;
                 case OP_CASTORE:
-                    gf.writeArrayValue(ctxt, pop(Type.JAVA_CHAR_ARRAY), pop(Type.S32), pop(Type.S32), JavaAccessMode.PLAIN);
+                    gf.writeArrayValue(ctxt, pop(Type.JAVA_CHAR_ARRAY), pop(Type.S32), demote(ctxt, pop(Type.S32), Type.U16), JavaAccessMode.PLAIN);
                     break;
                 case OP_SASTORE:
-                    gf.writeArrayValue(ctxt, pop(Type.JAVA_SHORT_ARRAY), pop(Type.S32), pop(Type.S32), JavaAccessMode.PLAIN);
+                    gf.writeArrayValue(ctxt, pop(Type.JAVA_SHORT_ARRAY), pop(Type.S32), demote(ctxt, pop(Type.S32), Type.S16), JavaAccessMode.PLAIN);
                     break;
                 case OP_POP:
                     pop1();
@@ -977,24 +1005,25 @@ final class MethodParser {
                 case OP_GETSTATIC:
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
-                    push(gf.readStaticField(ctxt, getOwnerOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef), JavaAccessMode.DETECT));
+                    push(promote(ctxt, gf.readStaticField(ctxt, getOwnerOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef), JavaAccessMode.DETECT)));
                     break;
                 case OP_PUTSTATIC:
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     fieldRef = buffer.getShort() & 0xffff;
-                    gf.writeStaticField(ctxt, getOwnerOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef), pop(getTypeOfFieldRef(fieldRef)), JavaAccessMode.DETECT);
+                    Type type = getTypeOfFieldRef(fieldRef);
+                    gf.writeStaticField(ctxt, getOwnerOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef), demote(ctxt, pop(), type), JavaAccessMode.DETECT);
                     break;
                 case OP_GETFIELD:
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     fieldRef = buffer.getShort() & 0xffff;
                     v1 = pop(getOwnerOfFieldRef(fieldRef));
-                    push(gf.readInstanceField(ctxt, v1, getOwnerOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef), JavaAccessMode.DETECT));
+                    push(promote(ctxt, gf.readInstanceField(ctxt, v1, getOwnerOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef), JavaAccessMode.DETECT)));
                     break;
                 case OP_PUTFIELD:
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     fieldRef = buffer.getShort() & 0xffff;
+                    v2 = demote(ctxt, pop(), getTypeOfFieldRef(fieldRef));
                     v1 = pop(getOwnerOfFieldRef(fieldRef));
-                    v2 = pop(getTypeOfFieldRef(fieldRef));
                     gf.writeInstanceField(ctxt, v1, getOwnerOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef), v2, JavaAccessMode.DETECT);
                     break;
                 case OP_INVOKEVIRTUAL:
@@ -1013,16 +1042,16 @@ final class MethodParser {
                         throw new UnsupportedOperationException("Insert no such method node here");
                     }
                     cnt = target.getParameterCount();
+                    Value[] args = new Value[cnt];
+                    for (int i = cnt - 1; i >= 0; i --) {
+                        args[i] = pop(target.getParameter(i).getType());
+                    }
                     if (opcode != OP_INVOKESTATIC) {
                         // pop the receiver
                         v1 = pop(ownerType);
                     } else {
                         // definite initialization
                         v1 = null;
-                    }
-                    Value[] args = new Value[cnt];
-                    for (int i = cnt - 1; i >= 0; i --) {
-                        args[i] = pop(target.getParameter(i).getType());
                     }
                     if (target instanceof ConstructorElement) {
                         if (opcode != OP_INVOKESPECIAL) {
@@ -1038,14 +1067,14 @@ final class MethodParser {
                                 // return type is implicitly void
                                 gf.invokeMethod(ctxt, method, List.of(args));
                             } else {
-                                push(gf.invokeValueMethod(ctxt, method, List.of(args)));
+                                push(promote(ctxt, gf.invokeValueMethod(ctxt, method, List.of(args))));
                             }
                         } else {
                             if (returnType == Type.VOID) {
                                 // return type is implicitly void
                                 gf.invokeInstanceMethod(ctxt, v1, InstanceInvocation.Kind.fromOpcode(opcode), method, List.of(args));
                             } else {
-                                push(gf.invokeInstanceValueMethod(ctxt, v1, InstanceInvocation.Kind.fromOpcode(opcode), method, List.of(args)));
+                                push(promote(ctxt, gf.invokeInstanceValueMethod(ctxt, v1, InstanceInvocation.Kind.fromOpcode(opcode), method, List.of(args))));
                             }
                         }
                     }
@@ -1056,25 +1085,25 @@ final class MethodParser {
                     push(gf.new_(ctxt, getClassFile().resolveSingleType(buffer.getShort() & 0xffff)));
                     break;
                 case OP_NEWARRAY:
-                    ArrayClassType type;
+                    ArrayClassType arrayType;
                     switch (buffer.get() & 0xff) {
-                        case T_BOOLEAN: type = Type.JAVA_BOOLEAN_ARRAY; break;
-                        case T_CHAR: type = Type.JAVA_CHAR_ARRAY; break;
-                        case T_FLOAT: type = Type.JAVA_FLOAT_ARRAY; break;
-                        case T_DOUBLE: type = Type.JAVA_DOUBLE_ARRAY; break;
-                        case T_BYTE: type = Type.JAVA_BYTE_ARRAY; break;
-                        case T_SHORT: type = Type.JAVA_SHORT_ARRAY; break;
-                        case T_INT: type = Type.JAVA_INT_ARRAY; break;
-                        case T_LONG: type = Type.JAVA_LONG_ARRAY; break;
+                        case T_BOOLEAN: arrayType = Type.JAVA_BOOLEAN_ARRAY; break;
+                        case T_CHAR: arrayType = Type.JAVA_CHAR_ARRAY; break;
+                        case T_FLOAT: arrayType = Type.JAVA_FLOAT_ARRAY; break;
+                        case T_DOUBLE: arrayType = Type.JAVA_DOUBLE_ARRAY; break;
+                        case T_BYTE: arrayType = Type.JAVA_BYTE_ARRAY; break;
+                        case T_SHORT: arrayType = Type.JAVA_SHORT_ARRAY; break;
+                        case T_INT: arrayType = Type.JAVA_INT_ARRAY; break;
+                        case T_LONG: arrayType = Type.JAVA_LONG_ARRAY; break;
                         default: throw new InvalidByteCodeException();
                     }
                     // todo: check for negative array size
-                    push(gf.newArray(ctxt, type, pop(Type.S32)));
+                    push(gf.newArray(ctxt, arrayType, pop(Type.S32)));
                     break;
                 case OP_ANEWARRAY:
-                    type = (ArrayClassType) getClassFile().resolveSingleDescriptor(buffer.getShort() & 0xffff).getArrayClassType();
+                    arrayType = getClassFile().resolveSingleDescriptor(buffer.getShort() & 0xffff).getArrayClassType();
                     // todo: check for negative array size
-                    push(gf.newArray(ctxt, type, pop(Type.S32)));
+                    push(gf.newArray(ctxt, arrayType, pop(Type.S32)));
                     break;
                 case OP_ARRAYLENGTH:
                     push(gf.lengthOfArray(ctxt, pop(/* any array type */)));

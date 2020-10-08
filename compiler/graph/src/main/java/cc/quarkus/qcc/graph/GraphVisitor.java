@@ -132,6 +132,10 @@ public interface GraphVisitor<P> {
         visitUnknown(param, node);
     }
 
+    default void visit(P param, ThisValue node) {
+        visitUnknown(param, node);
+    }
+
     default void visit(P param, Throw node) {
         visitUnknown(param, node);
     }

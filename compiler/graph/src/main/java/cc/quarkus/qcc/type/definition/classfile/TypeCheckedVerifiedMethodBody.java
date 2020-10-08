@@ -39,7 +39,7 @@ final class TypeCheckedVerifiedMethodBody extends VerifiedMethodBody {
                 typeLocals[lc++] = methodElement.getParameter(i).getType();
             }
             int cnt = definedBody.getStackMapTableLen();
-            StackMapFrame[] frames = new StackMapFrame[cnt];
+            StackMapFrame[] frames = new StackMapFrame[cnt + 1]; // reserve one spot for initial frame
             frames[fp++] = new FullFrame(0, buildLocalsArray(classFile, typeLocals, 0, lc, 0), Type.NO_TYPES);
             int epIdx = 0;
             int epStart;
@@ -164,9 +164,9 @@ final class TypeCheckedVerifiedMethodBody extends VerifiedMethodBody {
         if (idx == cnt) {
             return realIdx == 0 ? Type.NO_TYPES : new Type[realIdx];
         }
-        Type t = original[realIdx];
+        Type t = original[idx];
         boolean class2Type = t.isClass2Type();
-        Type[] array = buildLocalsArray(classFile, original, idx + 1, cnt, class2Type ? realIdx + 2 : realIdx);
+        Type[] array = buildLocalsArray(classFile, original, idx + 1, cnt, class2Type ? realIdx + 2 : realIdx + 1);
         array[realIdx] = t;
         if (class2Type) {
             array[realIdx + 1] = Type.VOID;
@@ -180,7 +180,7 @@ final class TypeCheckedVerifiedMethodBody extends VerifiedMethodBody {
         }
         Type t = parseType(classFile, codeAttr);
         boolean class2Type = t.isClass2Type();
-        Type[] array = buildLocalsArray(classFile, codeAttr, idx + 1, cnt, class2Type ? realIdx + 2 : realIdx);
+        Type[] array = buildLocalsArray(classFile, codeAttr, idx + 1, cnt, class2Type ? realIdx + 2 : realIdx + 1);
         array[realIdx] = t;
         if (class2Type) {
             array[realIdx + 1] = Type.VOID;
@@ -198,7 +198,7 @@ final class TypeCheckedVerifiedMethodBody extends VerifiedMethodBody {
             case 4: return Type.S64;
             case 5: return Type.NULL_TYPE;
             case 6: return classFile.resolveType().uninitialized();
-            case 7: return classFile.resolveSingleDescriptor(codeAttr.getShort() & 0xffff);
+            case 7: return classFile.loadClass(codeAttr.getShort() & 0xffff);
             case 8: return ((ClassType)classFile.resolveSingleDescriptor(codeAttr.getShort() & 0xffff)).uninitialized();
             default: throw new InvalidStackMapFrameEntry();
         }

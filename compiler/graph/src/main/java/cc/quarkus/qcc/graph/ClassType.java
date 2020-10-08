@@ -27,7 +27,7 @@ public interface ClassType extends Type {
     boolean isSuperTypeOf(ClassType other);
 
     default boolean isAssignableFrom(ClassType otherType) {
-        return otherType == this || otherType instanceof EitherType && ((EitherType) otherType).bothAreAssignableTo(this);
+        return otherType == this || isSuperTypeOf(otherType);
     }
 
     /**
@@ -50,7 +50,7 @@ public interface ClassType extends Type {
 
     default boolean isAssignableFrom(Type otherType) {
         return otherType instanceof ClassType && isAssignableFrom((ClassType) otherType)
-            || otherType instanceof EitherType && ((EitherType) otherType).bothAreAssignableTo(this);
+            || otherType instanceof NullType;
     }
 
     default Value zero() {

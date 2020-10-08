@@ -27,6 +27,11 @@ public interface Value extends Node {
     }
 
     static ConstantValue const_(int operand, Type type) {
+        if (type == Type.BOOL) {
+            return operand == 0 ? Value.FALSE : Value.TRUE;
+        } else if (operand == 0 && type == Type.S32) {
+            return ICONST_0;
+        }
         // todo: cache
         return new ConstantValue32(operand, type);
     }

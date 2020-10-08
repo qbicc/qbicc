@@ -13,6 +13,8 @@ public interface GraphFactory {
 
     // values
 
+    ThisValue receiver(ClassType type);
+
     ParameterValue parameter(Type type, int index);
 
     // phi
@@ -404,6 +406,10 @@ public interface GraphFactory {
             ArrayLengthValueImpl value = new ArrayLengthValueImpl();
             value.setInstance(array);
             return value;
+        }
+
+        public ThisValue receiver(final ClassType type) {
+            return new ThisValueImpl(type);
         }
 
         public ParameterValue parameter(final Type type, final int index) {
