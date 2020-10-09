@@ -6,11 +6,11 @@ import cc.quarkus.qcc.graph.Type;
 /**
  *
  */
-final class JavaCharArray implements JavaArray {
-    private final char[] elements;
+final class JavaByteArray implements JavaArray {
+    private final byte[] elements;
 
-    JavaCharArray(final int length) {
-        elements = new char[length];
+    JavaByteArray(final int length) {
+        elements = new byte[length];
     }
 
     public int getLength() {
@@ -42,7 +42,7 @@ final class JavaCharArray implements JavaArray {
     }
 
     public void putArray(final int index, final int value) {
-        elements[index] = (char) value;
+        elements[index] = (byte) value;
     }
 
     public void putArray(final int index, final long value) {
@@ -54,6 +54,6 @@ final class JavaCharArray implements JavaArray {
     }
 
     public ClassType getObjectType() {
-        return Type.JAVA_CHAR_ARRAY;
+        return Type.JAVA_BYTE_ARRAY;
     }
 }

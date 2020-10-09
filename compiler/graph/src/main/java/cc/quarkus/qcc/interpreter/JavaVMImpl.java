@@ -43,6 +43,7 @@ import cc.quarkus.qcc.graph.InstanceInvocation;
 import cc.quarkus.qcc.graph.InstanceOfValue;
 import cc.quarkus.qcc.graph.Invocation;
 import cc.quarkus.qcc.graph.InvocationValue;
+import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Jsr;
 import cc.quarkus.qcc.graph.NewArrayValue;
 import cc.quarkus.qcc.graph.NewValue;
@@ -62,8 +63,11 @@ import cc.quarkus.qcc.graph.UnaryValue;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.WordCastValue;
+import cc.quarkus.qcc.graph.WordType;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.FieldContainer;
+import cc.quarkus.qcc.type.definition.FieldSet;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
@@ -97,6 +101,7 @@ final class JavaVMImpl implements JavaVM {
     private final ConcurrentMap<MethodBody, Map<BasicBlock, List<Node>>> schedules = new ConcurrentHashMap<>();
     private final ConcurrentMap<ParameterizedExecutableDescriptor, ConcurrentMap<Type, MethodDescriptor>> methodDescriptorCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<ParameterizedExecutableDescriptor, ConstructorDescriptor> constructorDescriptorCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, JavaObject> stringInstanceCache = new ConcurrentHashMap<>();
     private final ConcurrentTrie<Type, ParameterizedExecutableDescriptor> descriptorCache = new ConcurrentTrie<>();
     private final Map<String, BootModule> bootstrapModules;
     private final GraphFactory graphFactory;
@@ -245,7 +250,7 @@ final class JavaVMImpl implements JavaVM {
         }
         ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(Type.JAVA_CHAR_ARRAY));
         JavaObject nameInstance = allocateObject(stringClassVerified.getClassType());
-        invokeExact(initString, array);
+        invokeExact(initString, nameInstance, array);
         return ((JavaClass) invokeVirtual(loadClass, nameInstance)).getTypeDefinition();
     }
 
@@ -292,13 +297,14 @@ final class JavaVMImpl implements JavaVM {
     private JavaObject newString(String str) {
         VerifiedTypeDefinition stringClassVerified = stringClass.verify();
         int length = str.length();
-        JavaArray array = allocateArray(Type.JAVA_CHAR_ARRAY, length);
+        JavaArray array = allocateArray(Type.JAVA_BYTE_ARRAY, length << 1);
         for (int i = 0; i < length; i++) {
-            array.putArray(i, str.charAt(i));
+            array.putArray(i << 1, str.charAt(i) >>> 8);
+            array.putArray((i << 1) + 1, str.charAt(i));
         }
-        ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(Type.JAVA_CHAR_ARRAY));
+        ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(Type.JAVA_BYTE_ARRAY, Type.S8));
         JavaObject res = allocateObject(stringClassVerified.getClassType());
-        invokeExact(initString, array);
+        invokeExact(initString, res, array, Byte.valueOf((byte) 1 /* UTF16 */));
         return res;
     }
 
@@ -318,20 +324,23 @@ final class JavaVMImpl implements JavaVM {
             // todo
         } else if (elementType == Type.U16) {
             return new JavaCharArray(length);
-        } // ...
+        } else if (elementType == Type.S8) {
+            return new JavaByteArray(length);
+        }
         throw new UnsupportedOperationException();
     }
 
-    public void invokeExact(final ConstructorElement ctor, final Object... args) {
+    public void invokeExact(final ConstructorElement ctor, final JavaObject instance, final Object... args) {
         Assert.checkNotNullParam("ctor", ctor);
+        Assert.checkNotNullParam("instance", instance);
         MethodHandle exactHandle = ctor.getMethodBody();
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
         }
-        invokeWith(exactHandle.getResolvedMethodBody(), args);
+        invokeWith(exactHandle.getResolvedMethodBody(), instance, args);
     }
 
-    public Object invokeExact(final MethodElement method, final Object... args) {
+    public Object invokeExact(final MethodElement method, final JavaObject instance, final Object... args) {
         Assert.checkNotNullParam("method", method);
         MethodHandle exactHandle = method.getMethodBody();
         if (exactHandle == null) {
@@ -340,7 +349,7 @@ final class JavaVMImpl implements JavaVM {
             }
             throw new IllegalArgumentException("Method has no body");
         }
-        return invokeWith(exactHandle.getResolvedMethodBody(), args);
+        return invokeWith(exactHandle.getResolvedMethodBody(), instance, args);
     }
 
     public Object invokeInitializer(final InitializerElement initializer) {
@@ -348,31 +357,33 @@ final class JavaVMImpl implements JavaVM {
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
         }
-        return invokeWith(exactHandle.getResolvedMethodBody());
+        return invokeWith(exactHandle.getResolvedMethodBody(), null);
     }
 
-    public Object invokeVirtual(final MethodElement method, final Object... args) {
+    public Object invokeVirtual(final MethodElement method, final JavaObject instance, final Object... args) {
         MethodHandle exactHandle = method.getVirtualMethodBody();
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
         }
-        return invokeWith(exactHandle.getResolvedMethodBody(), args);
+        return invokeWith(exactHandle.getResolvedMethodBody(), instance, args);
     }
 
-    public Object invoke(final MethodHandle handle, final Object... args) {
-        return invokeWith(handle.getResolvedMethodBody(), args);
+    public Object invoke(final MethodHandle handle, final JavaObject instance, final Object... args) {
+        return invokeWith(handle.getResolvedMethodBody(), instance, args);
     }
 
-    private Object invokeWith(final MethodBody methodBody, final Object... args) {
+    private Object invokeWith(final MethodBody methodBody, final JavaObject instance, final Object... args) {
         int cnt = methodBody.getParameterCount();
         if (cnt != args.length) {
             throw new IllegalArgumentException("Invalid method parameter count");
         }
         BasicBlock entryBlock = methodBody.getEntryBlock();
         StackFrame frame = ((JavaThreadImpl) JavaVM.requireCurrentThread()).pushNewFrame(/* TODO */null);
+        if (instance != null) {
+            frame.bindValue(methodBody.getInstanceValue(), instance);
+        }
         for (int i = 0; i < cnt; i ++) {
             ParameterValue paramValue = methodBody.getParameterValue(i);
-            Type paramType = paramValue.getType();
             frame.bindValue(paramValue, args[i]);
         }
         return execute(methodBody);
@@ -453,17 +464,92 @@ final class JavaVMImpl implements JavaVM {
                     ParameterizedExecutableElement it = op.getInvocationTarget();
                     ResolvedTypeDefinition owner = it.getEnclosingType().verify().resolve();
                     Object[] args = computeInvocationArguments(frame, op);
+                    JavaObject instance;
+                    if (op instanceof InstanceInvocation) {
+                        instance = (JavaObject) frame.getValue(((InstanceInvocation) op).getInstance());
+                    } else {
+                        instance = null;
+                    }
                     if (op instanceof InvocationValue) {
-                        frame.bindValue((Value) op, invoke(it.getMethodBody(), args));
+                        frame.bindValue((Value) op, invoke(it.getMethodBody(), instance, args));
                     } else {
                         if (it instanceof MethodElement) {
-                            invokeExact((MethodElement) it, args);
+                            invokeExact((MethodElement) it, instance, args);
                         } else {
-                            invokeExact((ConstructorElement) it, args);
+                            invokeExact((ConstructorElement) it, instance, args);
                         }
                     }
                 } else if (node instanceof Throw) {
                     throw new Thrown((JavaObject) frame.getValue(((Throw) node).getThrownValue()));
+                } else if (node instanceof FieldWrite) {
+                    FieldWrite op = (FieldWrite) node;
+                    String fieldName = op.getFieldName();
+                    FieldContainer container;
+                    if (op instanceof InstanceFieldWrite) {
+                        JavaObjectImpl instance = (JavaObjectImpl) frame.getValue(((InstanceFieldWrite) op).getInstance());
+                        container = instance.getFields();
+                    } else {
+                        container = op.getFieldOwner().getDefinition().resolve().prepare().initialize().getStaticFields();
+                    }
+                    Object value = frame.getValue(op.getWriteValue());
+                    // todo: improve this
+                    JavaAccessMode mode = op.getMode();
+                    if (mode == JavaAccessMode.DETECT) {
+                        mode = container.getFieldSet().getField(fieldName).isVolatile() ? JavaAccessMode.VOLATILE : JavaAccessMode.PLAIN;
+                    }
+                    switch (mode) {
+                        case PLAIN: {
+                            if (value == null || value instanceof JavaObject) {
+                                container.setFieldPlain(fieldName, (JavaObject) value);
+                            } else if (value instanceof Long) {
+                                container.setFieldPlain(fieldName, ((Long) value).longValue());
+                            } else if (value instanceof Double) {
+                                container.setFieldPlain(fieldName, Double.doubleToRawLongBits(((Double) value).doubleValue()));
+                            } else if (value instanceof Float) {
+                                container.setFieldPlain(fieldName, Float.floatToRawIntBits(((Float) value).floatValue()));
+                            } else if (value instanceof Number) {
+                                container.setFieldPlain(fieldName, ((Number) value).intValue());
+                            } else {
+                                throw new IllegalStateException("Unknown value type");
+                            }
+                            break;
+                        }
+                        case ORDERED: {
+                            if (value == null || value instanceof JavaObject) {
+                                container.setFieldRelease(fieldName, (JavaObject) value);
+                            } else if (value instanceof Long) {
+                                container.setFieldRelease(fieldName, ((Long) value).longValue());
+                            } else if (value instanceof Double) {
+                                container.setFieldRelease(fieldName, Double.doubleToRawLongBits(((Double) value).doubleValue()));
+                            } else if (value instanceof Float) {
+                                container.setFieldRelease(fieldName, Float.floatToRawIntBits(((Float) value).floatValue()));
+                            } else if (value instanceof Number) {
+                                container.setFieldRelease(fieldName, ((Number) value).intValue());
+                            } else {
+                                throw new IllegalStateException("Unknown value type");
+                            }
+                            break;
+                        }
+                        case VOLATILE: {
+                            if (value == null || value instanceof JavaObject) {
+                                container.setFieldVolatile(fieldName, (JavaObject) value);
+                            } else if (value instanceof Long) {
+                                container.setFieldVolatile(fieldName, ((Long) value).longValue());
+                            } else if (value instanceof Double) {
+                                container.setFieldVolatile(fieldName, Double.doubleToRawLongBits(((Double) value).doubleValue()));
+                            } else if (value instanceof Float) {
+                                container.setFieldVolatile(fieldName, Float.floatToRawIntBits(((Float) value).floatValue()));
+                            } else if (value instanceof Number) {
+                                container.setFieldVolatile(fieldName, ((Number) value).intValue());
+                            } else {
+                                throw new IllegalStateException("Unknown value type");
+                            }
+                            break;
+                        }
+                        default: {
+                            throw new IllegalStateException("Unknown access mode");
+                        }
+                    }
                 } else if (node instanceof Value) {
                     node.accept(computer, frame);
                 } else if (node instanceof Terminator) {
@@ -498,10 +584,16 @@ final class JavaVMImpl implements JavaVM {
                 ResolvedTypeDefinition owner = it.getEnclosingType().verify().resolve();
                 Object[] args = computeInvocationArguments(frame, op);
                 try {
-                    if (op instanceof InvocationValue) {
-                        frame.bindValue((Value) op, invoke(it.getMethodBody(), args));
+                    JavaObject instance;
+                    if (op instanceof InstanceInvocation) {
+                        instance = (JavaObject) frame.getValue(((InstanceInvocation) op).getInstance());
                     } else {
-                        invoke(it.getMethodBody(), args);
+                        instance = null;
+                    }
+                    if (op instanceof InvocationValue) {
+                        frame.bindValue((Value) op, invoke(it.getMethodBody(), instance, args));
+                    } else {
+                        invoke(it.getMethodBody(), instance, args);
                     }
                     block = op.getTarget();
                 } catch (Thrown t) {
@@ -596,8 +688,7 @@ final class JavaVMImpl implements JavaVM {
         }
 
         public void visit(final StackFrame param, final ParameterValue node) {
-            // todo
-            throw new IllegalStateException();
+            // no operation
         }
 
         public void visit(final StackFrame param, final PhiValue node) {
@@ -612,19 +703,10 @@ final class JavaVMImpl implements JavaVM {
     }
 
     private Object[] computeInvocationArguments(final StackFrame frame, final Invocation op) {
-        final Object[] args;
         int cnt = op.getArgumentCount();
-        if (op instanceof InstanceInvocation) {
-            args = new Object[cnt + 1];
-            args[0] = ((InstanceInvocation) op).getInstance();
-            for (int i = 0; i < cnt; i++) {
-                args[i + 1] = frame.getValue(op.getArgument(i));
-            }
-        } else {
-            args = cnt == 0 ? NO_OBJECTS : new Object[cnt];
-            for (int i = 0; i < cnt; i++) {
-                args[i] = frame.getValue(op.getArgument(i));
-            }
+        final Object[] args = cnt == 0 ? NO_OBJECTS : new Object[cnt];
+        for (int i = 0; i < cnt; i++) {
+            args[i] = frame.getValue(op.getArgument(i));
         }
         return args;
     }
@@ -777,6 +859,10 @@ final class JavaVMImpl implements JavaVM {
             }
         }
         return newVal;
+    }
+
+    public JavaObject getSharedString(final String string) {
+        return stringInstanceCache.computeIfAbsent(deduplicate(null, string), this::newString);
     }
 
     public MethodDescriptor getMethodDescriptor(final Type returnType, final Type... paramTypes) {

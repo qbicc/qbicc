@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.interpreter;
 
+import cc.quarkus.qcc.graph.ClassType;
+
 /**
  * A Java object handle.
  */
@@ -28,4 +30,6 @@ public interface JavaObject {
     default JavaPrimitiveClass asPrimitiveClass() {
         throw new ClassCastException();
     }
+
+    ClassType getObjectType();
 }

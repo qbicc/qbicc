@@ -30,7 +30,7 @@ public final class FieldSet {
         }
     }
 
-    int getIndex(String name) {
+    public int getIndex(String name) {
         Integer index = fieldIndices.get(name);
 
         if (index == null) {
@@ -40,11 +40,11 @@ public final class FieldSet {
         return index.intValue();
     }
 
-    FieldElement getType(String name) {
+    public FieldElement getField(String name) {
         return sortedFields[getIndex(name)];
     }
 
-    int getSize() {
+    public int getSize() {
         return sortedFields.length;
     }
 }

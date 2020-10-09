@@ -324,7 +324,11 @@ final class MethodParser {
         // complete phis
         for (int i = 0; i < locals.length; i ++) {
             if (locals[i] != null) {
-                entryLocalsArray[i].setValueForBlock(from, locals[i]);
+                PhiValue phiValue = entryLocalsArray[i];
+                // some local slots will be empty
+                if (phiValue != null) {
+                    phiValue.setValueForBlock(from, locals[i]);
+                }
             }
         }
         for (int i = 0; i < sp; i ++) {
@@ -336,6 +340,7 @@ final class MethodParser {
     }
 
     void processNewBlock(ByteBuffer buffer, final NodeHandle block) {
+        assert ! block.hasTarget() : "Block entered twice";
         GraphFactory.Context ctxt = new GraphFactory.Context(block);
         Value v1, v2, v3, v4;
         int opcode;
@@ -407,7 +412,7 @@ final class MethodParser {
                     push(v1);
                     break;
                 case OP_ILOAD:
-                    push(getLocal(getWidenableValue(buffer, wide), Type.S32));
+                    push(promote(ctxt, getLocal(getWidenableValue(buffer, wide))));
                     break;
                 case OP_LLOAD:
                     push(getLocal(getWidenableValue(buffer, wide), Type.S64));
@@ -425,7 +430,7 @@ final class MethodParser {
                 case OP_ILOAD_1:
                 case OP_ILOAD_2:
                 case OP_ILOAD_3:
-                    push(getLocal(opcode - OP_ILOAD_0, Type.S32));
+                    push(promote(ctxt, getLocal(opcode - OP_ILOAD_0)));
                     break;
                 case OP_LLOAD_0:
                 case OP_LLOAD_1:
@@ -1172,10 +1177,10 @@ final class MethodParser {
                     break;
                 case OP_IFNULL:
                     processIf(buffer, ctxt, gf.cmpEq(ctxt, pop(), Value.NULL), buffer.getShort() + src, buffer.position());
-                    break;
+                    return;
                 case OP_IFNONNULL:
                     processIf(buffer, ctxt, gf.cmpNe(ctxt, pop(), Value.NULL), buffer.getShort() + src, buffer.position());
-                    break;
+                    return;
                 default:
                     throw new InvalidByteCodeException();
             }

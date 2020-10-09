@@ -722,7 +722,7 @@ final class DefinedMethodBody {
     }
 
     int getEntryPointSourceCount(final int epIdx) {
-        return entryPoints[(index << 1) + 1] & 0xffff;
+        return entryPoints[(epIdx << 1) + 1] & 0xffff;
     }
 
     int getLineNumber(int bci) {

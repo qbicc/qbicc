@@ -117,20 +117,21 @@ public interface JavaVM extends AutoCloseable {
 
     /**
      * Invoke a constructor reflectively.  Primitive arguments should be boxed.
-     *
-     * @param method the constructor to invoke
+     *  @param method the constructor to invoke
+     * @param instance
      * @param args the arguments, whose times must match the constructor's expectations
      */
-    void invokeExact(ConstructorElement method, Object... args);
+    void invokeExact(ConstructorElement method, final JavaObject instance, Object... args);
 
     /**
      * Invoke a method reflectively.  Primitive arguments should be boxed.
      *
      * @param method the method to invoke
+     * @param instance
      * @param args the arguments, whose times must match the method's expectations
      * @return the result
      */
-    Object invokeExact(MethodElement method, Object... args);
+    Object invokeExact(MethodElement method, final JavaObject instance, Object... args);
 
     Object invokeInitializer(InitializerElement initializer);
 
@@ -138,10 +139,11 @@ public interface JavaVM extends AutoCloseable {
      * Invoke a method reflectively.  Primitive arguments should be boxed.
      *
      * @param method the method to invoke
+     * @param instance
      * @param args the arguments, whose times must match the method's expectations
      * @return the result
      */
-    Object invokeVirtual(MethodElement method, Object... args);
+    Object invokeVirtual(MethodElement method, final JavaObject instance, Object... args);
 
     /**
      * Deliver a "signal" to the target environment.
@@ -178,6 +180,14 @@ public interface JavaVM extends AutoCloseable {
     ConstructorDescriptor getConstructorDescriptor(ParameterizedExecutableDescriptor paramDesc);
 
     ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor(Type... paramTypes);
+
+    /**
+     * Get a shared string instance.  The same string object will be reused for a given input string.
+     *
+     * @param string the input string (must not be {@code null})
+     * @return the instance
+     */
+    JavaObject getSharedString(String string);
 
     /**
      * Allocate a direct byte buffer object with the given backing buffer.  The backing content will be determined
