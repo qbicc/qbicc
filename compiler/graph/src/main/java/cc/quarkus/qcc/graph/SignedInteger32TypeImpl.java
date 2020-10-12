@@ -123,8 +123,4 @@ final class SignedInteger32TypeImpl extends SignedIntegerTypeImpl {
     public long modulus(final long v1, final long v2) throws ArithmeticException {
         return (int) v1 % (int) v2;
     }
-
-    public String getLabelForGraph() {
-        return "signed32";
-    }
 }

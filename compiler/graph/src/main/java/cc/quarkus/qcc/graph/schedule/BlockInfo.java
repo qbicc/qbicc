@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph.schedule;
 import java.util.Map;
 
 import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.Terminator;
 import io.smallrye.common.constraint.Assert;
 
 final class BlockInfo {
@@ -18,9 +19,10 @@ final class BlockInfo {
 
     void computeIndices(final Map<BasicBlock, BlockInfo> blockInfos, int[] holder) {
         blockInfos.put(block, this);
-        int cnt = block.getSuccessorCount();
+        Terminator terminator = block.getTerminator();
+        int cnt = terminator.getSuccessorCount();
         for (int i = 0; i < cnt; i ++) {
-            processBlock(blockInfos, holder, block.getSuccessor(i));
+            processBlock(blockInfos, holder, terminator.getSuccessor(i));
         }
     }
 

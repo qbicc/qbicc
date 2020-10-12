@@ -5,10 +5,9 @@ import java.nio.ByteBuffer;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.GraphFactory;
-import cc.quarkus.qcc.graph.NodeHandle;
-import cc.quarkus.qcc.graph.ParameterValue;
-import cc.quarkus.qcc.graph.ThisValue;
+import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -87,9 +86,9 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             }
             GraphFactory gf = JavaVM.requireCurrent().createGraphFactory();
             MethodParser methodParser = new MethodParser(vmb, gf);
-            ParameterValue[] parameters = new ParameterValue[paramCount];
+            Value[] parameters = new Value[paramCount];
             int j = 0;
-            ThisValue thisValue;
+            Value thisValue;
             if ((modifiers & ClassFile.ACC_STATIC) == 0) {
                 // instance method or constructor
                 ClassType type = enclosing.verify().getClassType();
@@ -107,9 +106,10 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
                     j++;
                 }
             }
-            NodeHandle entryBlockHandle = new NodeHandle();
-            methodParser.processNewBlock(byteCode, entryBlockHandle);
-            BasicBlock entryBlock = NodeHandle.getTargetOf(entryBlockHandle);
+            BlockLabel entryBlockHandle = new BlockLabel();
+            GraphFactory.Context ctxt = new GraphFactory.Context(entryBlockHandle);
+            methodParser.processNewBlock(byteCode, ctxt);
+            BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
             Schedule schedule = Schedule.forMethod(entryBlock);
             return this.resolved = new ResolvedMethodBody(thisValue, parameters, entryBlock, schedule);
         }

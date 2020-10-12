@@ -127,8 +127,4 @@ final class SignedInteger64TypeImpl extends SignedIntegerTypeImpl {
     public long modulus(final long v1, final long v2) throws ArithmeticException {
         return v1 % v2;
     }
-
-    public String getLabelForGraph() {
-        return "signed64";
-    }
 }

@@ -126,8 +126,4 @@ final class UnsignedInteger16TypeImpl extends UnsignedIntegerTypeImpl {
     public long modulus(final long v1, final long v2) throws ArithmeticException {
         return ((v1 & MASK) % (v2 & MASK)) & MASK;
     }
-
-    public String getLabelForGraph() {
-        return "unsigned16";
-    }
 }

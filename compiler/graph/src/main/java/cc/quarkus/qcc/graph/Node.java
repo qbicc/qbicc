@@ -1,22 +1,9 @@
 package cc.quarkus.qcc.graph;
 
-import java.io.IOException;
-import java.util.Set;
-
 /**
  *
  */
 public interface Node {
-    void replaceWith(Node node);
-
-    void writeToGraph(Set<Node> visited, Appendable graph, Set<BasicBlock> knownBlocks) throws IOException;
-
-    String getLabelForGraph();
-
-    int getIdForGraph();
-
-    void setIdForGraph(int id);
-
     int getSourceLine();
 
     void setSourceLine(int sourceLine);
@@ -24,8 +11,6 @@ public interface Node {
     int getBytecodeIndex();
 
     void setBytecodeIndex(int bytecodeIndex);
-
-    <P> void accept(GraphVisitor<P> visitor, P param);
 
     default int getValueDependencyCount() {
         return 0;

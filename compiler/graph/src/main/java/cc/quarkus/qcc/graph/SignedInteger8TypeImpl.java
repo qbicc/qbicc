@@ -123,8 +123,4 @@ final class SignedInteger8TypeImpl extends SignedIntegerTypeImpl {
     public long modulus(final long v1, final long v2) throws ArithmeticException {
         return (byte) v1 % (byte) v2;
     }
-
-    public String getLabelForGraph() {
-        return "signed8";
-    }
 }

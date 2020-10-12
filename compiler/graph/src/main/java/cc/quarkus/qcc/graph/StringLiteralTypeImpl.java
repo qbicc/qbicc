@@ -1,18 +1,6 @@
 package cc.quarkus.qcc.graph;
 
-final class StringLiteralTypeImpl extends NodeImpl implements StringLiteralType {
-
-    public String getLabelForGraph() {
-        return "string literal";
-    }
-
-    public int getIdForGraph() {
-        return 0;
-    }
-
-    public void setIdForGraph(final int id) {
-
-    }
+final class StringLiteralTypeImpl extends AbstractType implements StringLiteralType {
 
     public ArrayClassType getArrayClassType() {
         throw new IllegalArgumentException("Convert to object type first");

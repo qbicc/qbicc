@@ -5,10 +5,8 @@ package cc.quarkus.qcc.graph;
  */
 public interface CastValue extends Value {
     Value getInput();
-    void setInput(Value value);
 
     Type getType();
-    void setType(Type targetType);
 
     default int getValueDependencyCount() {
         return 1;

@@ -1,18 +1,17 @@
 package cc.quarkus.qcc.type.definition.classfile;
 
 import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.ParameterValue;
-import cc.quarkus.qcc.graph.ThisValue;
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.type.definition.MethodBody;
 
 final class ResolvedMethodBody implements MethodBody {
-    private final ThisValue thisValue;
-    private final ParameterValue[] parameterValues;
+    private final Value thisValue;
+    private final Value[] parameterValues;
     private final BasicBlock entryBlock;
     private final Schedule schedule;
 
-    ResolvedMethodBody(final ThisValue thisValue, final ParameterValue[] parameterValues, final BasicBlock entryBlock, final Schedule schedule) {
+    ResolvedMethodBody(final Value thisValue, final Value[] parameterValues, final BasicBlock entryBlock, final Schedule schedule) {
         this.thisValue = thisValue;
         this.parameterValues = parameterValues;
         this.entryBlock = entryBlock;
@@ -23,7 +22,7 @@ final class ResolvedMethodBody implements MethodBody {
         return parameterValues.length;
     }
 
-    public ParameterValue getParameterValue(final int index) throws IndexOutOfBoundsException {
+    public Value getParameterValue(final int index) throws IndexOutOfBoundsException {
         return parameterValues[index];
     }
 
@@ -35,7 +34,7 @@ final class ResolvedMethodBody implements MethodBody {
         return schedule;
     }
 
-    public ThisValue getInstanceValue() {
+    public Value getThisValue() {
         return thisValue;
     }
 }

@@ -1,10 +1,8 @@
 package cc.quarkus.qcc.graph;
 
-import java.util.Arrays;
-
 import io.smallrye.common.constraint.Assert;
 
-final class ConstantValueBig extends ValueImpl implements ConstantValue {
+final class ConstantValueBig extends AbstractValue implements ConstantValue {
     private final byte[] value;
     private final Type type;
 
@@ -15,10 +13,6 @@ final class ConstantValueBig extends ValueImpl implements ConstantValue {
 
     byte[] getValue() {
         return value;
-    }
-
-    public String getLabelForGraph() {
-        return "Big:" + Arrays.toString(value);
     }
 
     public Type getType() {
@@ -76,10 +70,6 @@ final class ConstantValueBig extends ValueImpl implements ConstantValue {
 
     public ConstantValue withTypeRaw(final Type type) {
         return new ConstantValueBig(value, type);
-    }
-
-    public <P> void accept(GraphVisitor<P> visitor, P param) {
-        visitor.visit(param, this);
     }
 
     public int compareTo(final ConstantValue other) throws IllegalArgumentException {

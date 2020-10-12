@@ -33,8 +33,7 @@ public interface ReferenceType extends Type {
     }
 
     default boolean isAssignableFrom(Type otherType) {
-        return otherType instanceof ReferenceType && isAssignableFrom((ReferenceType) otherType)
-            || otherType instanceof EitherType && ((EitherType) otherType).bothAreAssignableTo(this);
+        return otherType instanceof ReferenceType && isAssignableFrom((ReferenceType) otherType);
     }
 
     default boolean isAssignableFrom(ReferenceType otherType) {

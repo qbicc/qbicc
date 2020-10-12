@@ -1,14 +1,10 @@
 package cc.quarkus.qcc.graph;
 
-final class ConstantValueEmpty extends ValueImpl implements ConstantValue {
+final class ConstantValueEmpty extends AbstractValue implements ConstantValue {
     private final Type type;
 
     ConstantValueEmpty(final Type type) {
         this.type = type;
-    }
-
-    public String getLabelForGraph() {
-        return "Empty";
     }
 
     public Type getType() {
@@ -61,10 +57,6 @@ final class ConstantValueEmpty extends ValueImpl implements ConstantValue {
 
     public ConstantValue withTypeRaw(final Type type) {
         return new ConstantValueEmpty(type);
-    }
-
-    public <P> void accept(GraphVisitor<P> visitor, P param) {
-        visitor.visit(param, this);
     }
 
     public int compareTo(final ConstantValue other) throws IllegalArgumentException {

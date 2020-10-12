@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph;
 
-final class ClassLiteralValue extends ValueImpl implements ConstantValue {
+final class ClassLiteralValue extends AbstractValue implements ConstantValue {
     private final ClassType classType;
 
     ClassLiteralValue(final ClassType classType) {
@@ -59,15 +59,7 @@ final class ClassLiteralValue extends ValueImpl implements ConstantValue {
         throw new UnsupportedOperationException();
     }
 
-    public <P> void accept(GraphVisitor<P> visitor, P param) {
-        visitor.visit(param, this);
-    }
-
     public int compareTo(final ConstantValue other) throws IllegalArgumentException {
         throw new UnsupportedOperationException();
-    }
-
-    public String getLabelForGraph() {
-        return "class literal";
     }
 }

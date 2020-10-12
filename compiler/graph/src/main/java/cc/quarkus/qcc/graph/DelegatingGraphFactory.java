@@ -2,8 +2,9 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 
 /**
  * A graph factory which delegates all operations to another graph factory.  Can be used as a base class for graph
@@ -20,28 +21,24 @@ public class DelegatingGraphFactory implements GraphFactory {
         return delegate;
     }
 
-    public ParameterValue parameter(final Type type, final int index) {
+    public Value parameter(final Type type, final int index) {
         return getDelegate().parameter(type, index);
     }
 
-    public PhiValue phi(final Type type, final BasicBlock basicBlock) {
-        return getDelegate().phi(type, basicBlock);
-    }
-
-    public PhiValue phi(final Type type, final NodeHandle basicBlockHandle) {
-        return getDelegate().phi(type, basicBlockHandle);
+    public PhiValue phi(final Context ctxt, final Type type) {
+        return getDelegate().phi(ctxt, type);
     }
 
     public Value if_(final Context ctxt, final Value condition, final Value trueValue, final Value falseValue) {
         return getDelegate().if_(ctxt, condition, trueValue, falseValue);
     }
 
-    public Value lengthOfArray(final Context ctxt, final Value array) {
-        return getDelegate().lengthOfArray(ctxt, array);
+    public Value arrayLength(final Context ctxt, final Value array) {
+        return getDelegate().arrayLength(ctxt, array);
     }
 
-    public Value instanceOf(final Context ctxt, final Value v, final ClassType type) {
-        return getDelegate().instanceOf(ctxt, v, type);
+    public Value instanceOf(final Context ctxt, final Value value, final ClassType type) {
+        return getDelegate().instanceOf(ctxt, value, type);
     }
 
     public Value new_(final Context ctxt, final ClassType type) {
@@ -64,12 +61,12 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().pointerLoad(ctxt, pointer, accessMode, atomicityMode);
     }
 
-    public Value readInstanceField(final Context ctxt, final Value instance, final ClassType owner, final String name, final JavaAccessMode mode) {
-        return getDelegate().readInstanceField(ctxt, instance, owner, name, mode);
+    public Value readInstanceField(final Context ctxt, final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
+        return getDelegate().readInstanceField(ctxt, instance, fieldElement, mode);
     }
 
-    public Value readStaticField(final Context ctxt, final ClassType owner, final String name, final JavaAccessMode mode) {
-        return getDelegate().readStaticField(ctxt, owner, name, mode);
+    public Value readStaticField(final Context ctxt, final FieldElement fieldElement, final JavaAccessMode mode) {
+        return getDelegate().readStaticField(ctxt, fieldElement, mode);
     }
 
     public Value readArrayValue(final Context ctxt, final Value array, final Value index, final JavaAccessMode mode) {
@@ -80,12 +77,12 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().pointerStore(ctxt, pointer, value, accessMode, atomicityMode);
     }
 
-    public Node writeInstanceField(final Context ctxt, final Value instance, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeInstanceField(ctxt, instance, owner, name, value, mode);
+    public Node writeInstanceField(final Context ctxt, final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+        return getDelegate().writeInstanceField(ctxt, instance, fieldElement, value, mode);
     }
 
-    public Node writeStaticField(final Context ctxt, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeStaticField(ctxt, owner, name, value, mode);
+    public Node writeStaticField(final Context ctxt, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+        return getDelegate().writeStaticField(ctxt, fieldElement, value, mode);
     }
 
     public Node writeArrayValue(final Context ctxt, final Value array, final Value index, final Value value, final JavaAccessMode mode) {
@@ -104,27 +101,31 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().monitorExit(ctxt, obj);
     }
 
-    public Node invokeMethod(final Context ctxt, final ParameterizedExecutableElement target, final List<Value> arguments) {
-        return getDelegate().invokeMethod(ctxt, target, arguments);
+    public Node invokeStatic(final Context ctxt, final MethodElement target, final List<Value> arguments) {
+        return getDelegate().invokeStatic(ctxt, target, arguments);
     }
 
-    public Node invokeInstanceMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ParameterizedExecutableElement target, final List<Value> arguments) {
-        return getDelegate().invokeInstanceMethod(ctxt, instance, kind, target, arguments);
+    public Node invokeInstance(final Context ctxt, final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        return getDelegate().invokeInstance(ctxt, kind, instance, target, arguments);
     }
 
-    public Value invokeValueMethod(final Context ctxt, final MethodElement target, final List<Value> arguments) {
-        return getDelegate().invokeValueMethod(ctxt, target, arguments);
+    public Value invokeValueStatic(final Context ctxt, final MethodElement target, final List<Value> arguments) {
+        return getDelegate().invokeValueStatic(ctxt, target, arguments);
     }
 
-    public Value invokeInstanceValueMethod(final Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
+    public Value invokeInstanceValueMethod(final Context ctxt, final Value instance, final DispatchInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
         return getDelegate().invokeInstanceValueMethod(ctxt, instance, kind, target, arguments);
     }
 
-    public BasicBlock goto_(final Context ctxt, final NodeHandle targetHandle) {
-        return getDelegate().goto_(ctxt, targetHandle);
+    public Node begin(final Context ctxt, final BlockLabel blockLabel) {
+        return getDelegate().begin(ctxt, blockLabel);
     }
 
-    public BasicBlock if_(final Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
+    public BasicBlock goto_(final Context ctxt, final BlockLabel resumeLabel) {
+        return getDelegate().goto_(ctxt, resumeLabel);
+    }
+
+    public BasicBlock if_(final Context ctxt, final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
         return getDelegate().if_(ctxt, condition, trueTarget, falseTarget);
     }
 
@@ -140,7 +141,7 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().throw_(ctxt, value);
     }
 
-    public BasicBlock switch_(final Context ctxt, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
+    public BasicBlock switch_(final Context ctxt, final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {
         return getDelegate().switch_(ctxt, value, checkValues, targets, defaultTarget);
     }
 
@@ -256,15 +257,23 @@ public class DelegatingGraphFactory implements GraphFactory {
         return getDelegate().populationCount(ctxt, v);
     }
 
-    public BasicBlock jsr(final Context ctxt, final NodeHandle target, final NodeHandle ret) {
-        return getDelegate().jsr(ctxt, target, ret);
+    public BasicBlock jsr(final Context ctxt, final BlockLabel subLabel, final BlockLabel resumeLabel) {
+        return getDelegate().jsr(ctxt, subLabel, resumeLabel);
     }
 
     public BasicBlock ret(final Context ctxt, final Value address) {
         return getDelegate().ret(ctxt, address);
     }
 
-    public ThisValue receiver(final ClassType type) {
+    public Value receiver(final ClassType type) {
         return getDelegate().receiver(type);
+    }
+
+    public Value catch_(final Context ctxt, final ClassType type) {
+        return getDelegate().catch_(ctxt, type);
+    }
+
+    public Value invokeConstructor(final Context ctxt, final Value instance, final ConstructorElement target, final List<Value> arguments) {
+        return getDelegate().invokeConstructor(ctxt, instance, target, arguments);
     }
 }

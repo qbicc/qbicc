@@ -6,8 +6,6 @@ package cc.quarkus.qcc.graph;
 public interface InstanceOperation extends Node {
     Value getInstance();
 
-    void setInstance(Value value);
-
     default int getValueDependencyCount() {
         return 1;
     }

@@ -1,12 +1,11 @@
 package cc.quarkus.qcc.graph;
 
-import cc.quarkus.qcc.constraint.Constraint;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 
 /**
  *
  */
-public interface Type extends Node {
+public interface Type {
 
     Type[] NO_TYPES = new Type[0];
 
@@ -14,11 +13,6 @@ public interface Type extends Node {
     VoidType VOID = new VoidTypeImpl();
 
     NullType NULL_TYPE = new NullTypeImpl();
-
-    // TODO: Type isn't really a Node, or...?
-    default <P> void accept(GraphVisitor<P> visitor, P param) {
-        // no operation
-    }
 
     ArrayClassType getArrayClassType();
 
@@ -32,11 +26,7 @@ public interface Type extends Node {
 
     boolean isAssignableFrom(Type otherType);
 
-    int getParameterCount();
-
-    String getParameterName(int index) throws IndexOutOfBoundsException;
-
-    Constraint getParameterConstraint(int index) throws IndexOutOfBoundsException;
+    Type RETURN_ADDRESS = ReturnAddressType.INSTANCE;
 
     WordType BOOL = new BooleanTypeImpl();
 

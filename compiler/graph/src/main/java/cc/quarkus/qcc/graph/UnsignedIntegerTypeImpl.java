@@ -26,28 +26,4 @@ abstract class UnsignedIntegerTypeImpl extends NativeObjectTypeImpl implements U
         }
         throw new IllegalArgumentException("Cannot bitcast from " + other + " to " + this);
     }
-
-    public int getParameterCount() {
-        return 1;
-    }
-
-    public String getParameterName(final int index) throws IndexOutOfBoundsException {
-        if (index == 0) {
-            return "value";
-        } else {
-            throw new IndexOutOfBoundsException(index);
-        }
-    }
-
-    public Constraint getParameterConstraint(final int index) throws IndexOutOfBoundsException {
-        if (index == 0) {
-            return constraint;
-        } else {
-            throw new IndexOutOfBoundsException(index);
-        }
-    }
-
-    public void replaceWith(final Node node) {
-        throw new UnsupportedOperationException("Cannot replace core word types");
-    }
 }

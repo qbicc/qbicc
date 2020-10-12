@@ -6,9 +6,5 @@ package cc.quarkus.qcc.graph;
 public interface ArrayElementOperation extends InstanceOperation {
     Value getIndex();
 
-    void setIndex(Value value);
-
     JavaAccessMode getMode();
-
-    void setMode(JavaAccessMode mode);
 }

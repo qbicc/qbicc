@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.graph;
 
-import cc.quarkus.qcc.constraint.Constraint;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 
 /**
@@ -33,22 +32,6 @@ final class InterfaceTypeImpl extends AbstractClassTypeImpl implements Interface
 
     public InterfaceType getInterface(final int index) throws IndexOutOfBoundsException {
         return interfaces[index];
-    }
-
-    public int getParameterCount() {
-        return 0;
-    }
-
-    public String getParameterName(final int index) throws IndexOutOfBoundsException {
-        throw new IndexOutOfBoundsException(index);
-    }
-
-    public Constraint getParameterConstraint(final int index) throws IndexOutOfBoundsException {
-        throw new IndexOutOfBoundsException(index);
-    }
-
-    public String getLabelForGraph() {
-        return "interface[" + getClassName() + "]";
     }
 
     @Override

@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.graph;
 
-abstract class AbstractClassTypeImpl extends NodeImpl implements ClassType {
-    private volatile ArrayClassType arrayType;
+abstract class AbstractClassTypeImpl extends AbstractType implements ClassType {
     private volatile UninitializedType uninitializedType;
 
     public UninitializedType uninitialized() {
@@ -16,18 +15,4 @@ abstract class AbstractClassTypeImpl extends NodeImpl implements ClassType {
         }
         return uninitializedType;
     }
-
-    public ArrayClassType getArrayClassType() {
-        ArrayClassType arrayType = this.arrayType;
-        if (arrayType == null) {
-            synchronized (this) {
-                arrayType = this.arrayType;
-                if (arrayType == null) {
-                    this.arrayType = arrayType = new ArrayClassTypeImpl(this);
-                }
-            }
-        }
-        return arrayType;
-    }
-
 }

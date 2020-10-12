@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph;
 
-final class ConstantValue64 extends ValueImpl implements ConstantValue {
+final class ConstantValue64 extends AbstractValue implements ConstantValue {
     private final long value;
     private final Type type;
 
@@ -11,10 +11,6 @@ final class ConstantValue64 extends ValueImpl implements ConstantValue {
 
     long getValue() {
         return value;
-    }
-
-    public String getLabelForGraph() {
-        return "Long:" + value;
     }
 
     public Type getType() {
@@ -67,10 +63,6 @@ final class ConstantValue64 extends ValueImpl implements ConstantValue {
 
     public ConstantValue withTypeRaw(final Type type) {
         return new ConstantValue64(value, type);
-    }
-
-    public <P> void accept(GraphVisitor<P> visitor, P param) {
-        visitor.visit(param, this);
     }
 
     public int compareTo(final ConstantValue other) throws IllegalArgumentException {

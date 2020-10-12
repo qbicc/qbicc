@@ -25,49 +25,35 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
+import cc.quarkus.qcc.graph.Add;
 import cc.quarkus.qcc.graph.ArrayClassType;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.graph.CommutativeBinaryValue;
 import cc.quarkus.qcc.graph.ConstantValue;
-import cc.quarkus.qcc.graph.FieldReadValue;
+import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.FieldWrite;
 import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.GraphFactory;
-import cc.quarkus.qcc.graph.GraphVisitor;
 import cc.quarkus.qcc.graph.If;
-import cc.quarkus.qcc.graph.IfValue;
-import cc.quarkus.qcc.graph.InstanceFieldReadValue;
 import cc.quarkus.qcc.graph.InstanceFieldWrite;
 import cc.quarkus.qcc.graph.InstanceInvocation;
-import cc.quarkus.qcc.graph.InstanceOfValue;
 import cc.quarkus.qcc.graph.Invocation;
-import cc.quarkus.qcc.graph.InvocationValue;
 import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Jsr;
-import cc.quarkus.qcc.graph.NewArrayValue;
-import cc.quarkus.qcc.graph.NewValue;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.NonCommutativeBinaryValue;
-import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Ret;
 import cc.quarkus.qcc.graph.Return;
+import cc.quarkus.qcc.graph.StaticInvocationValue;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.Throw;
-import cc.quarkus.qcc.graph.Try;
-import cc.quarkus.qcc.graph.TryInvocation;
-import cc.quarkus.qcc.graph.TryThrow;
 import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.graph.UnaryValue;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
-import cc.quarkus.qcc.graph.WordCastValue;
-import cc.quarkus.qcc.graph.WordType;
+import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.FieldContainer;
-import cc.quarkus.qcc.type.definition.FieldSet;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
@@ -75,6 +61,7 @@ import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
@@ -380,10 +367,10 @@ final class JavaVMImpl implements JavaVM {
         BasicBlock entryBlock = methodBody.getEntryBlock();
         StackFrame frame = ((JavaThreadImpl) JavaVM.requireCurrentThread()).pushNewFrame(/* TODO */null);
         if (instance != null) {
-            frame.bindValue(methodBody.getInstanceValue(), instance);
+            frame.bindValue(methodBody.getThisValue(), instance);
         }
         for (int i = 0; i < cnt; i ++) {
-            ParameterValue paramValue = methodBody.getParameterValue(i);
+            Value paramValue = methodBody.getParameterValue(i);
             frame.bindValue(paramValue, args[i]);
         }
         return execute(methodBody);
@@ -423,20 +410,10 @@ final class JavaVMImpl implements JavaVM {
         }
         set.add(node);
         if (node instanceof Terminator) {
-            // todo improve: general "successor" property?
-            if (node instanceof Try) {
-                scheduleNode(nodes, schedule, ((Try) node).getCatchHandler());
-            }
-            if (node instanceof Goto) {
-                scheduleNode(nodes, schedule, ((Goto) node).getTarget());
-            }
-            if (node instanceof If) {
-                scheduleNode(nodes, schedule, ((If) node).getTrueBranch());
-                scheduleNode(nodes, schedule, ((If) node).getFalseBranch());
-            }
-            if (node instanceof Jsr) {
-                scheduleNode(nodes, schedule, ((Jsr) node).getTarget());
-                scheduleNode(nodes, schedule, ((Jsr) node).getReturn());
+            Terminator terminator = (Terminator) node;
+            int sc = terminator.getSuccessorCount();
+            for (int i = 0; i < sc; i ++) {
+                scheduleNode(nodes, schedule, terminator.getSuccessor(i).getTerminator());
             }
         }
     }
@@ -451,13 +428,15 @@ final class JavaVMImpl implements JavaVM {
             // run the block by executing each node in scheduled order
             for (Node node : scheduledNodes) {
                 if (node instanceof PhiValue) {
+                    // no phi in entry block
+                    assert predecessor != null;
                     PhiValue phiValue = (PhiValue) node;
                     frame.bindValue(phiValue, frame.getValue(phiValue.getValueForBlock(predecessor)));
                 } else if (node instanceof Invocation) {
                     Invocation op = (Invocation) node;
                     if (op instanceof InstanceInvocation) {
                         InstanceInvocation instanceInvocation = (InstanceInvocation) op;
-                        if (instanceInvocation.getKind() != InstanceInvocation.Kind.EXACT) {
+                        if (instanceInvocation.getKind() != DispatchInvocation.Kind.EXACT) {
                             throw new UnsupportedOperationException("Virtual dispatch");
                         }
                     }
@@ -470,8 +449,8 @@ final class JavaVMImpl implements JavaVM {
                     } else {
                         instance = null;
                     }
-                    if (op instanceof InvocationValue) {
-                        frame.bindValue((Value) op, invoke(it.getMethodBody(), instance, args));
+                    if (op instanceof StaticInvocationValue) {
+                        frame.bindValue((Value) op, invoke(it.getMethodBody(), null, args));
                     } else {
                         if (it instanceof MethodElement) {
                             invokeExact((MethodElement) it, instance, args);
@@ -483,13 +462,14 @@ final class JavaVMImpl implements JavaVM {
                     throw new Thrown((JavaObject) frame.getValue(((Throw) node).getThrownValue()));
                 } else if (node instanceof FieldWrite) {
                     FieldWrite op = (FieldWrite) node;
-                    String fieldName = op.getFieldName();
+                    FieldElement fieldElement = op.getFieldElement();
+                    String fieldName = fieldElement.getName();
                     FieldContainer container;
                     if (op instanceof InstanceFieldWrite) {
                         JavaObjectImpl instance = (JavaObjectImpl) frame.getValue(((InstanceFieldWrite) op).getInstance());
                         container = instance.getFields();
                     } else {
-                        container = op.getFieldOwner().getDefinition().resolve().prepare().initialize().getStaticFields();
+                        container = fieldElement.getEnclosingType().verify().resolve().prepare().initialize().getStaticFields();
                     }
                     Object value = frame.getValue(op.getWriteValue());
                     // todo: improve this
@@ -551,7 +531,7 @@ final class JavaVMImpl implements JavaVM {
                         }
                     }
                 } else if (node instanceof Value) {
-                    node.accept(computer, frame);
+//                    node.accept(computer, frame);
                 } else if (node instanceof Terminator) {
                     // todo: assert node is last in list
                     break;
@@ -566,48 +546,16 @@ final class JavaVMImpl implements JavaVM {
                 return frame.getValue(((ValueReturn) terminator).getReturnValue());
             } else if (terminator instanceof Return) {
                 return null;
-            } else if (terminator instanceof TryThrow) {
-                TryThrow tryThrow = (TryThrow) terminator;
-                frame.bindValue(tryThrow.getCatchValue(), frame.getValue(tryThrow.getThrownValue()));
-                block = tryThrow.getCatchHandler();
             } else if (terminator instanceof Throw) {
                 throw new Thrown((JavaObject) frame.getValue(((Throw) terminator).getThrownValue()));
-            } else if (terminator instanceof TryInvocation) {
-                TryInvocation op = (TryInvocation) terminator;
-                if (op instanceof InstanceInvocation) {
-                    InstanceInvocation instanceInvocation = (InstanceInvocation) op;
-                    if (instanceInvocation.getKind() != InstanceInvocation.Kind.EXACT) {
-                        throw new UnsupportedOperationException("Virtual dispatch");
-                    }
-                }
-                ParameterizedExecutableElement it = op.getInvocationTarget();
-                ResolvedTypeDefinition owner = it.getEnclosingType().verify().resolve();
-                Object[] args = computeInvocationArguments(frame, op);
-                try {
-                    JavaObject instance;
-                    if (op instanceof InstanceInvocation) {
-                        instance = (JavaObject) frame.getValue(((InstanceInvocation) op).getInstance());
-                    } else {
-                        instance = null;
-                    }
-                    if (op instanceof InvocationValue) {
-                        frame.bindValue((Value) op, invoke(it.getMethodBody(), instance, args));
-                    } else {
-                        invoke(it.getMethodBody(), instance, args);
-                    }
-                    block = op.getTarget();
-                } catch (Thrown t) {
-                    frame.bindValue(op.getCatchValue(), t.getThrowable());
-                    block = op.getCatchHandler();
-                }
             } else if (terminator instanceof Jsr) {
                 Jsr jsr = (Jsr) terminator;
-                frame.bindValue(jsr.getReturnAddressValue(), jsr.getReturn());
-                block = jsr.getTarget();
+                frame.bindValue(jsr.getReturnAddressValue(), jsr.getReturnAddressValue());
+                block = jsr.getJsrTarget();
             } else if (terminator instanceof Ret) {
                 block = (BasicBlock) frame.getValue(((Ret) terminator).getReturnAddressValue());
             } else if (terminator instanceof Goto) {
-                block = ((Goto) terminator).getTarget();
+                block = ((Goto) terminator).getResumeTarget();
             } else if (terminator instanceof If) {
                 If if_ = (If) terminator;
                 Object value = frame.getValue(if_.getCondition());
@@ -622,83 +570,14 @@ final class JavaVMImpl implements JavaVM {
 
     private final Computer computer = new Computer();
 
-    final class Computer implements GraphVisitor<StackFrame> {
-        public void visit(final StackFrame frame, final CommutativeBinaryValue node) {
-            // todo: individual types?
-            switch (node.getKind()) {
-                case ADD: {
-                    frame.bindValue(node, node.getType().interpAdd(frame.getValue(node.getLeftInput()), frame.getValue(node.getRightInput())));
-                    break;
-                }
-                // todo: remaining cases
-                default: {
-                    throw new IllegalStateException();
-                }
-            }
-        }
-
-        public void visit(final StackFrame param, final NonCommutativeBinaryValue node) {
-            // todo
+    final class Computer implements ValueVisitor<StackFrame, Void> {
+        public Void visitUnknown(final StackFrame param, final Value node) {
             throw new IllegalStateException();
         }
 
-        public void visit(final StackFrame param, final UnaryValue node) {
-            // todo
-            throw new IllegalStateException();
-        }
-
-        public void visit(final StackFrame param, final FieldReadValue node) {
-            // todo
-            throw new IllegalStateException();
-        }
-
-        public void visit(final StackFrame param, final FieldWrite node) {
-            // todo
-            throw new IllegalStateException();
-        }
-
-        public void visit(final StackFrame param, final IfValue node) {
-            // todo
-            throw new IllegalStateException();
-        }
-
-        public void visit(final StackFrame param, final InstanceFieldReadValue node) {
-            // todo
-            throw new IllegalStateException();
-        }
-
-        public void visit(final StackFrame param, final InstanceFieldWrite node) {
-            // todo
-            throw new IllegalStateException();
-        }
-
-        public void visit(final StackFrame param, final InstanceOfValue node) {
-            // todo
-            throw new IllegalStateException();
-        }
-
-        public void visit(final StackFrame param, final NewArrayValue node) {
-            // todo
-            throw new IllegalStateException();
-        }
-
-        public void visit(final StackFrame param, final NewValue node) {
-            // todo
-            throw new IllegalStateException();
-        }
-
-        public void visit(final StackFrame param, final ParameterValue node) {
-            // no operation
-        }
-
-        public void visit(final StackFrame param, final PhiValue node) {
-            // todo
-            throw new IllegalStateException();
-        }
-
-        public void visit(final StackFrame param, final WordCastValue node) {
-            // todo
-            throw new IllegalStateException();
+        public Void visit(final StackFrame frame, final Add node) {
+            frame.bindValue(node, node.getType().interpAdd(frame.getValue(node.getLeftInput()), frame.getValue(node.getRightInput())));
+            return null;
         }
     }
 
@@ -716,8 +595,8 @@ final class JavaVMImpl implements JavaVM {
         if (op instanceof InstanceInvocation) {
             InstanceInvocation iOp = (InstanceInvocation) op;
             Value instanceVal = iOp.getInstance();
-            InstanceInvocation.Kind kind = iOp.getKind();
-            if (kind == InstanceInvocation.Kind.EXACT) {
+            DispatchInvocation.Kind kind = iOp.getKind();
+            if (kind == DispatchInvocation.Kind.EXACT) {
                 target = owner.getMethod(methodIndex).getMethodBody();
             } else {
                 target = owner.getMethod(methodIndex).getVirtualMethodBody();

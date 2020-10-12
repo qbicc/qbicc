@@ -1,81 +1,58 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 /**
  *
  */
-public interface BasicBlock extends Node {
+public final class BasicBlock {
+    private final Terminator terminator;
+    private BlockLabel myLabel;
+    // used by phi nodes
+    Map<PhiValue.Key, Value> outboundValues = Map.of();
 
-    Terminator getTerminator();
-    void setTerminator(Terminator terminator);
-
-    Set<BasicBlock> calculateReachableBlocks();
-
-    default <P> void accept(GraphVisitor<P> visitor, P param) {
-        // no operation
+    BasicBlock(final Terminator terminator) {
+        this.terminator = terminator;
     }
 
-    default int getSuccessorCount() {
-        Terminator terminator = getTerminator();
-        if (terminator == null) {
-            return 0;
-        }
-        int cnt = 0;
-        if (terminator instanceof Goto) {
-            cnt ++;
-        }
-        if (terminator instanceof Try) {
-            cnt ++;
-        }
-        if (terminator instanceof If) {
-            cnt += 2;
-        }
-        if (terminator instanceof Switch) {
-            cnt += 1 + ((Switch) terminator).getNumberOfValues();
-        }
-        return cnt;
+    public Terminator getTerminator() {
+        return terminator;
     }
 
-    default BasicBlock getSuccessor(int index) {
-        int cnt = index;
-        Terminator terminator = getTerminator();
-        if (terminator == null) {
-            throw new IndexOutOfBoundsException(index);
-        }
-        if (terminator instanceof Goto) {
-            if (cnt == 0) {
-                return ((Goto) terminator).getTarget();
-            } else {
-                cnt--;
+    public Set<BasicBlock> calculateReachableBlocks() {
+        Set<BasicBlock> set = new LinkedHashSet<>();
+        findReachable(set);
+        return set;
+    }
+
+    private void findReachable(final Set<BasicBlock> set) {
+        if (set.add(this)) {
+            Terminator ti = terminator;
+            int cnt = ti.getSuccessorCount();
+            for (int i = 0; i < cnt; i ++) {
+                ti.getSuccessor(i).findReachable(set);
             }
         }
-        if (terminator instanceof Try) {
-            if (cnt == 0) {
-                return ((Try) terminator).getCatchHandler();
-            } else {
-                cnt --;
-            }
+    }
+
+    // nodes contain links to handles, not to nodes
+    BlockLabel getHandle() {
+        BlockLabel myHandle = this.myLabel;
+        if (myHandle == null) {
+            myHandle = this.myLabel = new BlockLabel();
+            myHandle.setTarget(this);
         }
-        if (terminator instanceof If) {
-            if (cnt == 0) {
-                return ((If) terminator).getTrueBranch();
-            } else if (cnt == 1) {
-                return ((If) terminator).getFalseBranch();
-            } else {
-                cnt -= 2;
-            }
-        }
-        if (terminator instanceof Switch) {
-            Switch switch_ = (Switch) terminator;
-            if (cnt == 0) {
-                return switch_.getDefaultTarget();
-            }
-            cnt--;
-            if (cnt < switch_.getNumberOfValues()) {
-                return switch_.getTargetForValue(switch_.getValue(cnt));
-            }
-        }
-        throw new IndexOutOfBoundsException(index);
+        return myHandle;
+    }
+
+    BlockLabel getHandleIfExists() {
+        return myLabel;
+    }
+
+    void setHandle(BlockLabel newHandle) {
+        assert myLabel == null;
+        myLabel = newHandle;
     }
 }

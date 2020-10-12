@@ -95,4 +95,8 @@ public interface ConstantValue extends Value {
      * @throws IllegalArgumentException if the types are not exactly the same
      */
     int compareTo(ConstantValue other) throws IllegalArgumentException;
+
+    default <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
 }

@@ -8,11 +8,11 @@ public class SimpleOptGraphFactory extends DelegatingGraphFactory {
         super(delegate);
     }
 
-    public Value lengthOfArray(final Context ctxt, final Value array) {
-        if (array instanceof NewArrayValue) {
-            return ((NewArrayValue) array).getSize();
+    public Value arrayLength(final Context ctxt, final Value array) {
+        if (array instanceof NewArray) {
+            return ((NewArray) array).getSize();
         } else {
-            return getDelegate().lengthOfArray(ctxt, array);
+            return getDelegate().arrayLength(ctxt, array);
         }
     }
 
@@ -26,8 +26,8 @@ public class SimpleOptGraphFactory extends DelegatingGraphFactory {
         }
     }
 
-    public Value instanceOf(final Context ctxt, final Value v, final ClassType type) {
-        Type inType = v.getType();
+    public Value instanceOf(final Context ctxt, final Value value, final ClassType type) {
+        Type inType = value.getType();
         if (inType instanceof ReferenceType) {
             ReferenceType referenceType = (ReferenceType) inType;
             if (type.isSuperTypeOf(referenceType.getUpperBound())) {
@@ -41,12 +41,12 @@ public class SimpleOptGraphFactory extends DelegatingGraphFactory {
                 }
             }
         }
-        return getDelegate().instanceOf(ctxt, v, type);
+        return getDelegate().instanceOf(ctxt, value, type);
     }
 
-    public BasicBlock if_(final Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
+    public BasicBlock if_(final Context ctxt, final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
         if (condition instanceof ConstantValue) {
-            NodeHandle h = new NodeHandle();
+            BlockLabel h = new BlockLabel();
             if (((ConstantValue) condition).isTrue()) {
                 BasicBlock node = goto_(ctxt, trueTarget);
                 ctxt.setCurrentBlock(h);

@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.graph;
 
-import cc.quarkus.qcc.constraint.Constraint;
-
 final class Pointer32Type extends NativeObjectTypeImpl implements PointerType {
     private final NativeObjectType pointeeType;
 
@@ -27,21 +25,5 @@ final class Pointer32Type extends NativeObjectTypeImpl implements PointerType {
             }
         }
         throw new UnsupportedOperationException("Invalid cast operation");
-    }
-
-    public int getParameterCount() {
-        return 0;
-    }
-
-    public String getParameterName(final int index) throws IndexOutOfBoundsException {
-        return null;
-    }
-
-    public Constraint getParameterConstraint(final int index) throws IndexOutOfBoundsException {
-        return null;
-    }
-
-    public String getLabelForGraph() {
-        return "pointer32";
     }
 }

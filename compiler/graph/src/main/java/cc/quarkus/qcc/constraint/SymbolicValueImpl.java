@@ -1,11 +1,6 @@
 package cc.quarkus.qcc.constraint;
 
-import java.io.IOException;
-import java.util.Set;
-
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.GraphVisitor;
-import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.ValueVisitor;
 
 public class SymbolicValueImpl implements SymbolicValue {
 
@@ -22,32 +17,16 @@ public class SymbolicValueImpl implements SymbolicValue {
 
     }
 
+    public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
+        return null;
+    }
+
     @Override
     public String toString() {
         return this.label;
     }
 
     private final String label;
-
-    public void replaceWith(final Node node) {
-
-    }
-
-    public void writeToGraph(final Set<Node> visited, final Appendable graph, final Set<BasicBlock> knownBlocks) throws IOException {
-
-    }
-
-    public String getLabelForGraph() {
-        return null;
-    }
-
-    public int getIdForGraph() {
-        return 0;
-    }
-
-    public void setIdForGraph(final int id) {
-
-    }
 
     public int getSourceLine() {
         return 0;
@@ -62,10 +41,6 @@ public class SymbolicValueImpl implements SymbolicValue {
     }
 
     public void setBytecodeIndex(final int bytecodeIndex) {
-
-    }
-
-    public <P> void accept(final GraphVisitor<P> visitor, final P param) {
 
     }
 }

@@ -120,8 +120,4 @@ final class UnsignedInteger64TypeImpl extends UnsignedIntegerTypeImpl {
     public long modulus(final long v1, final long v2) throws ArithmeticException {
         return Long.remainderUnsigned(v1, v2);
     }
-
-    public String getLabelForGraph() {
-        return "unsigned64";
-    }
 }

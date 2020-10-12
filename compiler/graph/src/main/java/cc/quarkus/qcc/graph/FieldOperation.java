@@ -1,18 +1,12 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.definition.element.FieldElement;
+
 /**
  * An operation on a field.
  */
 public interface FieldOperation extends Node {
-    ClassType getFieldOwner();
-
-    void setFieldOwner(ClassType fieldOwner);
-
-    String getFieldName();
-
-    void setFieldName(String fieldName);
+    FieldElement getFieldElement();
 
     JavaAccessMode getMode();
-
-    void setMode(JavaAccessMode mode);
 }

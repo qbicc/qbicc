@@ -13,6 +13,8 @@ public interface Value extends Node {
 
     void setConstraint(Constraint constraint);
 
+    <T, R> R accept(ValueVisitor<T, R> visitor, T param);
+
     Value[] NO_VALUES = new Value[0];
 
     ConstantValue FALSE = ((BooleanTypeImpl)Type.BOOL).false_;
@@ -69,5 +71,9 @@ public interface Value extends Node {
     static ConstantValue const_(ClassType classType) {
         // todo: cache
         return new ClassLiteralValue(classType);
+    }
+
+    static ConstantValue const_(BlockLabel blockLabel) {
+        return new BlockLiteralValue(blockLabel);
     }
 }

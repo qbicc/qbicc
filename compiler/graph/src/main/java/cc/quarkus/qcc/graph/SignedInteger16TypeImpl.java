@@ -119,8 +119,4 @@ final class SignedInteger16TypeImpl extends SignedIntegerTypeImpl {
     public long modulus(final long v1, final long v2) throws ArithmeticException {
         return (short) v1 % (short) v2;
     }
-
-    public String getLabelForGraph() {
-        return "signed16";
-    }
 }

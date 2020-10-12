@@ -2,8 +2,9 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -13,15 +14,15 @@ public interface GraphFactory {
 
     // values
 
-    ThisValue receiver(ClassType type);
+    Value receiver(ClassType type);
 
-    ParameterValue parameter(Type type, int index);
+    Value parameter(Type type, int index);
+
+    Value catch_(Context ctxt, ClassType type);
 
     // phi
 
-    PhiValue phi(Type type, BasicBlock basicBlock);
-
-    PhiValue phi(Type type, NodeHandle basicBlockHandle);
+    PhiValue phi(Context ctxt, Type type);
 
     // ternary
 
@@ -79,11 +80,11 @@ public interface GraphFactory {
 
     Value populationCount(Context ctxt, Value v);
 
-    Value lengthOfArray(Context ctxt, Value array);
+    Value arrayLength(Context ctxt, Value array);
 
     // typed
 
-    Value instanceOf(Context ctxt, Value v, ClassType type);
+    Value instanceOf(Context ctxt, Value value, ClassType type);
 
     Value truncate(Context ctxt, Value value, WordType toType);
 
@@ -105,17 +106,17 @@ public interface GraphFactory {
 
     Value pointerLoad(Context ctxt, Value pointer, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
 
-    Value readInstanceField(Context ctxt, Value instance, ClassType owner, String name, JavaAccessMode mode);
+    Value readInstanceField(Context ctxt, Value instance, FieldElement fieldElement, JavaAccessMode mode);
 
-    Value readStaticField(Context ctxt, ClassType owner, String name, JavaAccessMode mode);
+    Value readStaticField(Context ctxt, FieldElement fieldElement, JavaAccessMode mode);
 
     Value readArrayValue(Context ctxt, Value array, Value index, JavaAccessMode mode);
 
     Node pointerStore(Context ctxt, Value pointer, Value value, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
 
-    Node writeInstanceField(Context ctxt, Value instance, ClassType owner, String name, Value value, JavaAccessMode mode);
+    Node writeInstanceField(Context ctxt, Value instance, FieldElement fieldElement, Value value, JavaAccessMode mode);
 
-    Node writeStaticField(Context ctxt, ClassType owner, String name, Value value, JavaAccessMode mode);
+    Node writeStaticField(Context ctxt, FieldElement fieldElement, Value value, JavaAccessMode mode);
 
     Node writeArrayValue(Context ctxt, Value array, Value index, Value value, JavaAccessMode mode);
 
@@ -127,13 +128,36 @@ public interface GraphFactory {
 
     // method invocation
 
-    Node invokeMethod(Context ctxt, ParameterizedExecutableElement target, List<Value> arguments);
+    Node invokeStatic(Context ctxt, MethodElement target, List<Value> arguments);
 
-    Node invokeInstanceMethod(Context ctxt, Value instance, InstanceInvocation.Kind kind, ParameterizedExecutableElement target, List<Value> arguments);
+    Node invokeInstance(Context ctxt, DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
 
-    Value invokeValueMethod(Context ctxt, MethodElement target, List<Value> arguments);
+    Value invokeValueStatic(Context ctxt, MethodElement target, List<Value> arguments);
 
-    Value invokeInstanceValueMethod(Context ctxt, Value instance, InstanceInvocation.Kind kind, MethodElement target, List<Value> arguments);
+    Value invokeInstanceValueMethod(Context ctxt, Value instance, DispatchInvocation.Kind kind, MethodElement target, List<Value> arguments);
+
+    /**
+     * Invoke an object instance initializer.  The value returned has an initialized type.  The returned value should
+     * replace all occurrences of the uninitialized value when processing bytecode.
+     *
+     * @param ctxt the current context (must not be {@code null})
+     * @param instance the uninitialized instance to initialize (must not be {@code null})
+     * @param target the constructor to invoke (must not be {@code null})
+     * @param arguments the constructor arguments (must not be {@code null})
+     * @return the initialized value
+     */
+    Value invokeConstructor(Context ctxt, Value instance, ConstructorElement target, List<Value> arguments);
+
+    // misc
+
+    /**
+     * Begin a new block.  The returned node will be a dependency (usually the topmost dependency) of the terminator.
+     *
+     * @param ctxt the current context (must not be {@code null})
+     * @param blockLabel the label of the new block (must not be {@code null} or resolved)
+     * @return the node representing the block entry
+     */
+    Node begin(Context ctxt, BlockLabel blockLabel);
 
     // control flow - terminalBlock is updated to point to this terminator
 
@@ -141,10 +165,10 @@ public interface GraphFactory {
      * Generate a {@code goto} termination node.  The terminated block is returned.
      *
      * @param ctxt the current context (must not be {@code null})
-     * @param targetHandle the handle of the jump target (must not be {@code null})
+     * @param resumeLabel the handle of the jump target (must not be {@code null})
      * @return the terminated block
      */
-    BasicBlock goto_(Context ctxt, NodeHandle targetHandle);
+    BasicBlock goto_(Context ctxt, BlockLabel resumeLabel);
 
     /**
      * Construct an {@code if} node.  If the condition is true, the {@code trueTarget} will receive control.  Otherwise,
@@ -158,7 +182,7 @@ public interface GraphFactory {
      * @param falseTarget the execution target to use when {@code condition} is {@code false}
      * @return the terminated block
      */
-    BasicBlock if_(Context ctxt, Value condition, NodeHandle trueTarget, NodeHandle falseTarget);
+    BasicBlock if_(Context ctxt, Value condition, BlockLabel trueTarget, BlockLabel falseTarget);
 
     BasicBlock return_(Context ctxt);
 
@@ -166,7 +190,7 @@ public interface GraphFactory {
 
     BasicBlock throw_(Context ctxt, Value value);
 
-    BasicBlock switch_(Context ctxt, Value value, int[] checkValues, NodeHandle[] targets, NodeHandle defaultTarget);
+    BasicBlock switch_(Context ctxt, Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget);
 
     /**
      * Construct a {@code jsr} node which must be returned from.  Before lowering, {@code jsr} nodes are inlined,
@@ -175,11 +199,11 @@ public interface GraphFactory {
      * Terminates the current block.
      *
      * @param ctxt the context (must not be {@code null})
-     * @param target the subroutine call target (must not be {@code null})
-     * @param ret the block to return to (must not be {@code null})
+     * @param subLabel the subroutine call target (must not be {@code null})
+     * @param resumeLabel the block to return to (must not be {@code null})
      * @return the terminated block
      */
-    BasicBlock jsr(Context ctxt, NodeHandle target, final NodeHandle ret);
+    BasicBlock jsr(Context ctxt, BlockLabel subLabel, final BlockLabel resumeLabel);
 
     /**
      * Return from a {@code jsr} subroutine call.
@@ -196,158 +220,80 @@ public interface GraphFactory {
      * A basic factory which produces each kind of node.
      */
     GraphFactory BASIC_FACTORY = new GraphFactory() {
-
-        // todo: separate interfaces/impl classes
-
         public Value add(final Context ctxt, final Value v1, final Value v2) {
-            CommutativeBinaryValueImpl value = new CommutativeBinaryValueImpl();
-            value.setKind(CommutativeBinaryValue.Kind.ADD);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new Add(v1, v2);
         }
 
         public Value multiply(final Context ctxt, final Value v1, final Value v2) {
-            CommutativeBinaryValueImpl value = new CommutativeBinaryValueImpl();
-            value.setKind(CommutativeBinaryValue.Kind.MULTIPLY);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new Multiply(v1, v2);
         }
 
         public Value and(final Context ctxt, final Value v1, final Value v2) {
-            CommutativeBinaryValueImpl value = new CommutativeBinaryValueImpl();
-            value.setKind(CommutativeBinaryValue.Kind.AND);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new And(v1, v2);
         }
 
         public Value or(final Context ctxt, final Value v1, final Value v2) {
-            CommutativeBinaryValueImpl value = new CommutativeBinaryValueImpl();
-            value.setKind(CommutativeBinaryValue.Kind.OR);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new Or(v1, v2);
         }
 
         public Value xor(final Context ctxt, final Value v1, final Value v2) {
-            CommutativeBinaryValueImpl value = new CommutativeBinaryValueImpl();
-            value.setKind(CommutativeBinaryValue.Kind.XOR);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new Xor(v1, v2);
         }
 
         public Value cmpEq(final Context ctxt, final Value v1, final Value v2) {
-            CommutativeBinaryValueImpl value = new CommutativeBinaryValueImpl();
-            value.setKind(CommutativeBinaryValue.Kind.CMP_EQ);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new CmpEq(v1, v2);
         }
 
         public Value cmpNe(final Context ctxt, final Value v1, final Value v2) {
-            CommutativeBinaryValueImpl value = new CommutativeBinaryValueImpl();
-            value.setKind(CommutativeBinaryValue.Kind.CMP_NE);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new CmpNe(v1, v2);
         }
 
         public Value shr(final Context ctxt, final Value v1, final Value v2) {
-            NonCommutativeBinaryValueImpl value = new NonCommutativeBinaryValueImpl();
-            value.setKind(NonCommutativeBinaryValue.Kind.SHR);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new Shr(v1, v2);
         }
 
         public Value shl(final Context ctxt, final Value v1, final Value v2) {
-            NonCommutativeBinaryValueImpl value = new NonCommutativeBinaryValueImpl();
-            value.setKind(NonCommutativeBinaryValue.Kind.SHL);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new Shl(v1, v2);
         }
 
         public Value sub(final Context ctxt, final Value v1, final Value v2) {
-            NonCommutativeBinaryValueImpl value = new NonCommutativeBinaryValueImpl();
-            value.setKind(NonCommutativeBinaryValue.Kind.SUB);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new Sub(v1, v2);
         }
 
         public Value divide(final Context ctxt, final Value v1, final Value v2) {
-            NonCommutativeBinaryValueImpl value = new NonCommutativeBinaryValueImpl();
-            value.setKind(NonCommutativeBinaryValue.Kind.DIV);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new Div(v1, v2);
         }
 
         public Value remainder(final Context ctxt, final Value v1, final Value v2) {
-            NonCommutativeBinaryValueImpl value = new NonCommutativeBinaryValueImpl();
-            value.setKind(NonCommutativeBinaryValue.Kind.MOD);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new Mod(v1, v2);
         }
 
         public Value cmpLt(final Context ctxt, final Value v1, final Value v2) {
-            NonCommutativeBinaryValueImpl value = new NonCommutativeBinaryValueImpl();
-            value.setKind(NonCommutativeBinaryValue.Kind.CMP_LT);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new CmpLt(v1, v2);
         }
 
         public Value cmpGt(final Context ctxt, final Value v1, final Value v2) {
-            NonCommutativeBinaryValueImpl value = new NonCommutativeBinaryValueImpl();
-            value.setKind(NonCommutativeBinaryValue.Kind.CMP_GT);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new CmpGt(v1, v2);
         }
 
         public Value cmpLe(final Context ctxt, final Value v1, final Value v2) {
-            NonCommutativeBinaryValueImpl value = new NonCommutativeBinaryValueImpl();
-            value.setKind(NonCommutativeBinaryValue.Kind.CMP_LE);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new CmpLe(v1, v2);
         }
 
         public Value cmpGe(final Context ctxt, final Value v1, final Value v2) {
-            NonCommutativeBinaryValueImpl value = new NonCommutativeBinaryValueImpl();
-            value.setKind(NonCommutativeBinaryValue.Kind.CMP_GE);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new CmpGe(v1, v2);
         }
 
         public Value rol(final Context ctxt, final Value v1, final Value v2) {
-            NonCommutativeBinaryValueImpl value = new NonCommutativeBinaryValueImpl();
-            value.setKind(NonCommutativeBinaryValue.Kind.ROL);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new Rol(v1, v2);
         }
 
         public Value ror(final Context ctxt, final Value v1, final Value v2) {
-            NonCommutativeBinaryValueImpl value = new NonCommutativeBinaryValueImpl();
-            value.setKind(NonCommutativeBinaryValue.Kind.ROR);
-            value.setLeftInput(v1);
-            value.setRightInput(v2);
-            return value;
+            return new Ror(v1, v2);
         }
 
         public Value negate(final Context ctxt, final Value v) {
-            UnaryValueImpl value = new UnaryValueImpl();
-            value.setKind(UnaryValue.Kind.NEGATE);
-            value.setInput(v);
-            return value;
+            return new Neg(v);
         }
 
         public Value byteSwap(final Context ctxt, final Value v) {
@@ -366,378 +312,190 @@ public interface GraphFactory {
             throw Assert.unsupported();
         }
 
+        public Value populationCount(final Context ctxt, final Value v) {
+            throw Assert.unsupported();
+        }
+
+        public Value arrayLength(final Context ctxt, final Value array) {
+            return new ArrayLength(array);
+        }
+
         public Value truncate(final Context ctxt, final Value value, final WordType toType) {
-            WordCastValueImpl op = new WordCastValueImpl();
-            op.setType(toType);
-            op.setInput(value);
-            op.setKind(WordCastValue.Kind.TRUNCATE);
-            return op;
+            return new Truncate(value, toType);
         }
 
         public Value extend(final Context ctxt, final Value value, final WordType toType) {
-            WordCastValueImpl op = new WordCastValueImpl();
-            op.setType(toType);
-            op.setInput(value);
-            op.setKind(WordCastValue.Kind.EXTEND);
-            return op;
+            return new Extend(value, toType);
         }
 
         public Value bitCast(final Context ctxt, final Value value, final WordType toType) {
-            WordCastValueImpl op = new WordCastValueImpl();
-            op.setType(toType);
-            op.setInput(value);
-            op.setKind(WordCastValue.Kind.BIT_CAST);
-            return op;
+            return new BitCast(value, toType);
         }
 
         public Value valueConvert(final Context ctxt, final Value value, final WordType toType) {
-            WordCastValueImpl op = new WordCastValueImpl();
-            op.setType(toType);
-            op.setInput(value);
-            op.setKind(WordCastValue.Kind.VALUE_CONVERT);
-            return op;
+            return new Convert(value, toType);
         }
 
-        public Value populationCount(final Context ctxt, final Value v) {
-            throw new UnsupportedOperationException();
+        public Value receiver(final ClassType type) {
+            return new ThisValue(type);
         }
 
-        public Value lengthOfArray(final Context ctxt, final Value array) {
-            ArrayLengthValueImpl value = new ArrayLengthValueImpl();
-            value.setInstance(array);
-            return value;
+        public Value parameter(final Type type, final int index) {
+            return new ParameterValue(type, index);
         }
 
-        public ThisValue receiver(final ClassType type) {
-            return new ThisValueImpl(type);
+        public Value catch_(final Context ctxt, final ClassType type) {
+            return new Catch(ctxt.getCurrentBlock(), type);
         }
 
-        public ParameterValue parameter(final Type type, final int index) {
-            ParameterValueImpl value = new ParameterValueImpl();
-            value.setType(type);
-            value.setIndex(index);
-            return value;
-        }
-
-        public PhiValue phi(final Type type, final BasicBlock basicBlock) {
-            return phi(type, NodeHandle.of(basicBlock));
-        }
-
-        public PhiValue phi(final Type type, final NodeHandle basicBlockHandle) {
-            PhiValueImpl phiValue = new PhiValueImpl(basicBlockHandle);
-            phiValue.setType(type);
-            return phiValue;
+        public PhiValue phi(final Context ctxt, final Type type) {
+            return new PhiValue(type, ctxt.getCurrentBlock());
         }
 
         public Value if_(final Context ctxt, final Value condition, final Value trueValue, final Value falseValue) {
-            IfValueImpl value = new IfValueImpl();
-            value.setCond(condition);
-            value.setTrueValue(trueValue);
-            value.setFalseValue(falseValue);
-            return value;
+            return new Select(condition, trueValue, falseValue);
         }
 
-        public Value instanceOf(final Context ctxt, final Value v, final ClassType type) {
-            InstanceOfValueImpl value = new InstanceOfValueImpl();
-            value.setInstance(v);
-            value.setInstanceType(type);
-            return value;
+        public Value instanceOf(final Context ctxt, final Value value, final ClassType type) {
+            return new InstanceOf(value, type);
         }
 
         public Value new_(Context ctxt, final ClassType type) {
-            NewValueImpl value = new NewValueImpl();
-            value.setBasicDependency(ctxt.setDependency(value));
-            value.setType(type);
-            return value;
+            return new New(ctxt, type);
         }
 
         public Value newArray(Context ctxt, final ArrayType type, final Value size) {
-            NewArrayValueImpl value = new NewArrayValueImpl();
-            value.setBasicDependency(ctxt.setDependency(value));
-            value.setType((ArrayClassType) type); // todo
-            value.setSize(size);
-            return value;
+            return new NewArray(ctxt, type, size);
         }
 
         public Value multiNewArray(final Context ctxt, final ArrayType type, final Value... dimensions) {
-            throw new UnsupportedOperationException("Multi new array");
+            throw Assert.unsupported();
         }
 
         public Value clone(final Context ctxt, final Value object) {
-            throw new UnsupportedOperationException("Clone");
+            throw Assert.unsupported();
         }
 
         public Value pointerLoad(Context ctxt, final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-            throw new UnsupportedOperationException("Pointers");
+            throw Assert.unsupported();
         }
 
-        public Value readInstanceField(Context ctxt, final Value instance, final ClassType owner, final String name, final JavaAccessMode mode) {
-            InstanceFieldReadValueImpl value = new InstanceFieldReadValueImpl();
-            value.setBasicDependency(ctxt.setDependency(value));
-            value.setInstance(instance);
-            value.setFieldOwner(owner);
-            value.setFieldName(name);
-            value.setMode(mode);
-            return value;
+        public Value readInstanceField(Context ctxt, final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
+            return new InstanceFieldRead(ctxt, instance, fieldElement, mode);
         }
 
-        public Value readStaticField(Context ctxt, final ClassType owner, final String name, final JavaAccessMode mode) {
-            StaticFieldReadValueImpl value = new StaticFieldReadValueImpl();
-            value.setBasicDependency(ctxt.setDependency(value));
-            value.setFieldOwner(owner);
-            value.setFieldName(name);
-            value.setMode(mode);
-            return value;
+        public Value readStaticField(Context ctxt, final FieldElement fieldElement, final JavaAccessMode mode) {
+            return new StaticFieldRead(ctxt, fieldElement, mode);
         }
 
         public Value readArrayValue(Context ctxt, final Value array, final Value index, final JavaAccessMode mode) {
-            ArrayElementReadValueImpl value = new ArrayElementReadValueImpl();
-            value.setBasicDependency(ctxt.setDependency(value));
-            value.setInstance(array);
-            value.setIndex(index);
-            value.setMode(mode);
-            return value;
+            return new ArrayElementRead(ctxt, array, index, mode);
         }
 
         public Node pointerStore(Context ctxt, final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-            throw new UnsupportedOperationException("Pointers");
+            throw Assert.unsupported();
         }
 
-        public Node writeInstanceField(Context ctxt, final Value instance, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
-            InstanceFieldWriteImpl op = new InstanceFieldWriteImpl();
-            op.setBasicDependency(ctxt.setDependency(op));
-            op.setInstance(instance);
-            op.setFieldOwner(owner);
-            op.setFieldName(name);
-            op.setWriteValue(value);
-            op.setMode(mode);
-            return op;
+        public Node writeInstanceField(Context ctxt, final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+            return new InstanceFieldWrite(ctxt, instance, fieldElement, value, mode);
         }
 
-        public Node writeStaticField(Context ctxt, final ClassType owner, final String name, final Value value, final JavaAccessMode mode) {
-            StaticFieldWriteImpl op = new StaticFieldWriteImpl();
-            op.setBasicDependency(ctxt.setDependency(op));
-            op.setFieldOwner(owner);
-            op.setFieldName(name);
-            op.setWriteValue(value);
-            op.setMode(mode);
-            return op;
+        public Node writeStaticField(Context ctxt, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+            return new StaticFieldWrite(ctxt, fieldElement, value, mode);
         }
 
         public Node writeArrayValue(Context ctxt, final Value array, final Value index, final Value value, final JavaAccessMode mode) {
-            ArrayElementWriteImpl op = new ArrayElementWriteImpl();
-            op.setBasicDependency(ctxt.setDependency(op));
-            op.setInstance(array);
-            op.setIndex(index);
-            op.setWriteValue(value);
-            op.setMode(mode);
-            return op;
+            return new ArrayElementWrite(ctxt, array, index, value, mode);
         }
 
         public Node fence(Context ctxt, final MemoryAtomicityMode fenceType) {
-            throw new UnsupportedOperationException("Fence");
+            throw Assert.unsupported();
         }
 
         public Node monitorEnter(final Context ctxt, final Value obj) {
-            throw new UnsupportedOperationException("Monitors");
+            throw Assert.unsupported();
         }
 
         public Node monitorExit(final Context ctxt, final Value obj) {
-            throw new UnsupportedOperationException("Monitors");
+            throw Assert.unsupported();
         }
 
-        public Node invokeMethod(Context ctxt, final ParameterizedExecutableElement target, final List<Value> arguments) {
-            NodeHandle catch_ = ctxt.getCatch();
-            InvocationImpl op;
-            if (catch_ == null) {
-                op = new InvocationImpl();
-                op.setBasicDependency(ctxt.setDependency(op));
-            } else {
-                TryInvocationImpl tryOp = new TryInvocationImpl();
-                tryOp.setBasicDependency(ctxt.setDependency(null));
-                tryOp.setCatchHandler(catch_);
-                // end the current block with the try/invoke, and start a new block
-                NodeHandle nextBlock = new NodeHandle();
-                ctxt.getAndSetCurrentBlock(nextBlock).setTarget(block(tryOp));
-                tryOp.setNextBlock(nextBlock);
-                op = tryOp;
-            }
-            op.setArgumentCount(arguments.size());
-            int idx = 0;
-            for (Value argument : arguments) {
-                op.setArgument(idx, argument);
-            }
-            op.setInvocationTarget(target);
-            return op;
+        public Node invokeStatic(Context ctxt, final MethodElement target, final List<Value> arguments) {
+            return new StaticInvocation(ctxt, target, arguments);
         }
 
-        public Node invokeInstanceMethod(Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final ParameterizedExecutableElement target, final List<Value> arguments) {
-            NodeHandle catch_ = ctxt.getCatch();
-            InstanceInvocation op;
-            if (catch_ == null) {
-                InstanceInvocationImpl plainOp = new InstanceInvocationImpl();
-                plainOp.setBasicDependency(ctxt.setDependency(plainOp));
-                op = plainOp;
-                plainOp.setInvocationTarget(target);
-            } else {
-                TryInstanceInvocationImpl tryOp = new TryInstanceInvocationImpl();
-                tryOp.setBasicDependency(ctxt.setDependency(null));
-                tryOp.setCatchHandler(catch_);
-                // end the current block with the try/invoke, and start a new block
-                NodeHandle nextBlock = new NodeHandle();
-                ctxt.getAndSetCurrentBlock(nextBlock).setTarget(block(tryOp));
-                tryOp.setNextBlock(nextBlock);
-                tryOp.setInvocationTarget(target);
-                op = tryOp;
-            }
-            op.setArgumentCount(arguments.size());
-            int idx = 0;
-            for (Value argument : arguments) {
-                op.setArgument(idx, argument);
-            }
-            op.setInstance(instance);
-            op.setKind(kind);
-            return op;
+        public Node invokeInstance(Context ctxt, final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+            return new InstanceInvocation(ctxt, kind, instance, target, arguments);
         }
 
-        public Value invokeValueMethod(Context ctxt, final MethodElement target, final List<Value> arguments) {
-            NodeHandle catch_ = ctxt.getCatch();
-            InvocationValue value;
-            if (catch_ == null) {
-                InvocationValueImpl plainValue = new InvocationValueImpl();
-                plainValue.setBasicDependency(ctxt.setDependency(plainValue));
-                plainValue.setInvocationTarget(target);
-                value = plainValue;
-            } else {
-                TryInvocationValueImpl tryValue = new TryInvocationValueImpl();
-                tryValue.setBasicDependency(ctxt.setDependency(null));
-                tryValue.setInvocationTarget(target);
-                tryValue.setCatchHandler(catch_);
-                // end the current block with the try/invoke, and start a new block
-                NodeHandle nextBlock = new NodeHandle();
-                ctxt.getAndSetCurrentBlock(nextBlock).setTarget(block(tryValue));
-                tryValue.setNextBlock(nextBlock);
-                value = tryValue;
-            }
-            value.setArgumentCount(arguments.size());
-            int idx = 0;
-            for (Value argument : arguments) {
-                value.setArgument(idx, argument);
-            }
-            return value;
+        public Value invokeValueStatic(Context ctxt, final MethodElement target, final List<Value> arguments) {
+            return new StaticInvocationValue(ctxt, target, arguments);
         }
 
-        public Value invokeInstanceValueMethod(Context ctxt, final Value instance, final InstanceInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
-            NodeHandle catch_ = ctxt.getCatch();
-            InstanceInvocationValue value;
-            if (catch_ == null) {
-                InstanceInvocationValueImpl plainValue = new InstanceInvocationValueImpl();
-                plainValue.setBasicDependency(ctxt.setDependency(plainValue));
-                plainValue.setInvocationTarget(target);
-                value = plainValue;
-            } else {
-                TryInstanceInvocationValueImpl tryValue = new TryInstanceInvocationValueImpl();
-                tryValue.setBasicDependency(ctxt.setDependency(null));
-                tryValue.setInvocationTarget(target);
-                tryValue.setCatchHandler(catch_);
-                // end the current block with the try/invoke, and start a new block
-                NodeHandle nextBlock = new NodeHandle();
-                ctxt.getAndSetCurrentBlock(nextBlock).setTarget(block(tryValue));
-                tryValue.setNextBlock(nextBlock);
-                value = tryValue;
-            }
-            value.setArgumentCount(arguments.size());
-            int idx = 0;
-            for (Value argument : arguments) {
-                value.setArgument(idx, argument);
-            }
-            value.setInstance(instance);
-            value.setKind(kind);
-            return value;
+        public Value invokeInstanceValueMethod(Context ctxt, final Value instance, final DispatchInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
+            return new InstanceInvocationValue(ctxt, kind, instance, target, arguments);
         }
 
-        public BasicBlock goto_(Context ctxt, final NodeHandle targetHandle) {
-            GotoImpl op = new GotoImpl();
-            op.setBasicDependency(ctxt.setDependency(null));
-            op.setTarget(targetHandle);
-            BasicBlock block = block(op);
-            ctxt.getAndSetCurrentBlock(null).setTarget(block);
-            return block;
+        public Value invokeConstructor(final Context ctxt, final Value instance, final ConstructorElement target, final List<Value> arguments) {
+            return new ConstructorInvocation(ctxt, instance, target, arguments);
         }
 
-        public BasicBlock if_(Context ctxt, final Value condition, final NodeHandle trueTarget, final NodeHandle falseTarget) {
-            IfImpl op = new IfImpl();
-            op.setBasicDependency(ctxt.setDependency(null));
-            op.setCondition(condition);
-            op.setTrueBranch(trueTarget);
-            op.setFalseBranch(falseTarget);
-            BasicBlock block = block(op);
-            ctxt.getAndSetCurrentBlock(null).setTarget(block);
-            return block;
+        public Node begin(final Context ctxt, final BlockLabel blockLabel) {
+            Assert.checkNotNullParam("ctxt", ctxt);
+            Assert.checkNotNullParam("blockLabel", blockLabel);
+            if (blockLabel.hasTarget()) {
+                throw new IllegalStateException("Block already terminated");
+            }
+            ctxt.setNewCurrentBlock(blockLabel);
+            return new BlockEntry(blockLabel);
+        }
+
+        public BasicBlock goto_(Context ctxt, final BlockLabel resumeLabel) {
+            BlockLabel block = ctxt.getCurrentBlock();
+            Goto.create(ctxt, resumeLabel);
+            return BlockLabel.getTargetOf(block);
+        }
+
+        public BasicBlock if_(Context ctxt, final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
+            BlockLabel block = ctxt.getCurrentBlock();
+            If.create(ctxt, condition, trueTarget, falseTarget);
+            return BlockLabel.getTargetOf(block);
         }
 
         public BasicBlock return_(Context ctxt) {
-            ReturnImpl op = new ReturnImpl();
-            op.setBasicDependency(ctxt.setDependency(null));
-            BasicBlock block = block(op);
-            ctxt.getAndSetCurrentBlock(null).setTarget(block);
-            return block;
+            BlockLabel block = ctxt.getCurrentBlock();
+            Return.create(ctxt);
+            return BlockLabel.getTargetOf(block);
         }
 
         public BasicBlock return_(Context ctxt, final Value value) {
-            ValueReturnImpl op = new ValueReturnImpl();
-            op.setBasicDependency(ctxt.setDependency(null));
-            op.setReturnValue(value);
-            BasicBlock block = block(op);
-            ctxt.getAndSetCurrentBlock(null).setTarget(block);
-            return block;
+            BlockLabel block = ctxt.getCurrentBlock();
+            ValueReturn.create(ctxt, value);
+            return BlockLabel.getTargetOf(block);
         }
 
         public BasicBlock throw_(Context ctxt, final Value value) {
-            NodeHandle catch_ = ctxt.getCatch();
-            ThrowImpl op;
-            if (catch_ == null) {
-                op = new ThrowImpl();
-            } else {
-                TryThrowImpl tryOp = new TryThrowImpl();
-                tryOp.setCatchHandler(catch_);
-                op = tryOp;
-            }
-            op.setBasicDependency(ctxt.setDependency(op));
-            op.setThrownValue(value);
-            BasicBlock block = block(op);
-            ctxt.getAndSetCurrentBlock(null).setTarget(block);
-            return block;
+            BlockLabel block = ctxt.getCurrentBlock();
+            Throw.create(ctxt, value);
+            return BlockLabel.getTargetOf(block);
         }
 
-        public BasicBlock jsr(final Context ctxt, final NodeHandle target, final NodeHandle ret) {
-            throw new UnsupportedOperationException();
+        public BasicBlock jsr(final Context ctxt, final BlockLabel subLabel, final BlockLabel resumeLabel) {
+            BlockLabel block = ctxt.getCurrentBlock();
+            Jsr.create(ctxt, subLabel, resumeLabel);
+            return BlockLabel.getTargetOf(block);
         }
 
         public BasicBlock ret(final Context ctxt, final Value address) {
-            throw new UnsupportedOperationException();
+            BlockLabel block = ctxt.getCurrentBlock();
+            Ret.create(ctxt, address);
+            return BlockLabel.getTargetOf(block);
         }
 
-        public BasicBlock switch_(Context ctxt, final Value value, final int[] checkValues, final NodeHandle[] targets, final NodeHandle defaultTarget) {
-            SwitchImpl op = new SwitchImpl();
-            op.setBasicDependency(ctxt.setDependency(op));
-            op.setDefaultTarget(defaultTarget);
-            int length = checkValues.length;
-            if (targets.length != length) {
-                throw new IllegalArgumentException("Target values length does not match check values length");
-            }
-            for (int i = 0; i < length; i ++) {
-                op.setTargetForValue(checkValues[i], targets[i]);
-            }
-            BasicBlock block = block(op);
-            ctxt.getAndSetCurrentBlock(null).setTarget(block);
-            return block;
-        }
-
-        BasicBlock block(final Terminator term) {
-            BasicBlockImpl block = new BasicBlockImpl();
-            block.setTerminator(term);
-            return block;
+        public BasicBlock switch_(Context ctxt, final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {
+            BlockLabel block = ctxt.getCurrentBlock();
+            Switch.create(ctxt, value, checkValues, targets, defaultTarget);
+            return BlockLabel.getTargetOf(block);
         }
     };
 
@@ -746,14 +504,13 @@ public interface GraphFactory {
      */
     final class Context implements Cloneable {
         private Node dependency;
-        private NodeHandle catch_;
-        private NodeHandle currentBlock;
+        private BlockLabel currentBlock;
 
         public Context() {
-            currentBlock = new NodeHandle();
+            currentBlock = new BlockLabel();
         }
 
-        public Context(final NodeHandle currentBlock) {
+        public Context(final BlockLabel currentBlock) {
             this.currentBlock = currentBlock;
         }
 
@@ -765,7 +522,7 @@ public interface GraphFactory {
             try {
                 return this.dependency;
             } finally {
-                this.dependency = dependency;
+                this.dependency = Assert.checkNotNullParam("dependency", dependency);
             }
         }
 
@@ -778,38 +535,28 @@ public interface GraphFactory {
             }
         }
 
-        public NodeHandle getCatch() {
-            return catch_;
-        }
-
-        /**
-         * Set the catch block.  Setting the catch block affects whether the created node has exception
-         * handling configured.
-         *
-         * @param newCatch the new catch block (or {@code null} for none)
-         * @return the old catch block, or {@code null} if there was none
-         */
-        public NodeHandle setCatch(final NodeHandle newCatch) {
-            try {
-                return this.catch_;
-            } finally {
-                this.catch_ = newCatch;
-            }
-        }
-
-        public NodeHandle getCurrentBlock() {
-            NodeHandle currentBlock = this.currentBlock;
+        public BlockLabel getCurrentBlock() {
+            BlockLabel currentBlock = this.currentBlock;
             if (currentBlock == null) {
                 throw new IllegalStateException("No current block");
             }
             return currentBlock;
         }
 
-        public void setCurrentBlock(final NodeHandle currentBlock) {
+        public void setCurrentBlock(final BlockLabel currentBlock) {
+            dependency = null;
             this.currentBlock = currentBlock;
         }
 
-        public NodeHandle getAndSetCurrentBlock(final NodeHandle currentBlock) {
+        void setNewCurrentBlock(final BlockLabel currentBlock) {
+            BlockLabel oldBlock = this.currentBlock;
+            if (oldBlock != null) {
+                throw new IllegalStateException("Current block unterminated");
+            }
+            this.currentBlock = currentBlock;
+        }
+
+        public BlockLabel getAndSetCurrentBlock(final BlockLabel currentBlock) {
             try {
                 return getCurrentBlock();
             } finally {

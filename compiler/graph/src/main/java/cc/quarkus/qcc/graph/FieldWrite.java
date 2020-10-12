@@ -3,9 +3,8 @@ package cc.quarkus.qcc.graph;
 /**
  * A field write.
  */
-public interface FieldWrite extends FieldOperation {
+public interface FieldWrite extends FieldOperation, WriteOperation {
     Value getWriteValue();
-    void setWriteValue(Value value);
 
     default int getValueDependencyCount() {
         return 1;

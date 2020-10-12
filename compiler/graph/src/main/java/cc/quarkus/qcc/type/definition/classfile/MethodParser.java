@@ -6,30 +6,24 @@ import static cc.quarkus.qcc.type.definition.classfile.DefinedMethodBody.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import cc.quarkus.qcc.graph.ArrayClassType;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.ConstantValue;
-import cc.quarkus.qcc.graph.Goto;
+import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.GraphFactory;
-import cc.quarkus.qcc.graph.GraphVisitor;
-import cc.quarkus.qcc.graph.If;
-import cc.quarkus.qcc.graph.InstanceInvocation;
 import cc.quarkus.qcc.graph.JavaAccessMode;
-import cc.quarkus.qcc.graph.Jsr;
 import cc.quarkus.qcc.graph.LineNumberGraphFactory;
-import cc.quarkus.qcc.graph.NodeHandle;
+import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Ret;
-import cc.quarkus.qcc.graph.Switch;
-import cc.quarkus.qcc.graph.TryInstanceInvocation;
-import cc.quarkus.qcc.graph.TryInstanceInvocationValue;
-import cc.quarkus.qcc.graph.TryInvocation;
-import cc.quarkus.qcc.graph.TryInvocationValue;
-import cc.quarkus.qcc.graph.TryThrow;
+import cc.quarkus.qcc.graph.Terminator;
+import cc.quarkus.qcc.graph.TerminatorVisitor;
 import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.WordType;
@@ -37,6 +31,7 @@ import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
@@ -48,12 +43,12 @@ final class MethodParser {
     final VerifiedMethodBody verifiedMethodBody;
     final Value[] stack;
     final Value[] locals;
-    final NodeHandle[] blockHandles;
+    final BlockLabel[] blockHandles;
     private Map<BasicBlock, Value[]> retStacks;
     private Map<BasicBlock, Value[]> retLocals;
     private final LineNumberGraphFactory gf;
     int sp;
-    NodeHandle currentBlockHandle;
+    BlockLabel currentBlockHandle;
 
     MethodParser(final VerifiedMethodBody verifiedMethodBody, final GraphFactory graphFactory) {
         this.verifiedMethodBody = verifiedMethodBody;
@@ -61,15 +56,15 @@ final class MethodParser {
         stack = new Value[definedBody.getMaxStack()];
         locals = new Value[definedBody.getMaxLocals()];
         int cnt = definedBody.getEntryPointCount();
-        NodeHandle[] blockHandles = new NodeHandle[cnt];
+        BlockLabel[] blockHandles = new BlockLabel[cnt];
         int dest = -1;
         // make a "canonical" node handle for each block
         for (int i = 0; i < cnt; i ++) {
-            blockHandles[i] = new NodeHandle();
+            blockHandles[i] = new BlockLabel();
         }
         this.blockHandles = blockHandles;
         // it's not an entry point
-        currentBlockHandle = new NodeHandle();
+        currentBlockHandle = new BlockLabel();
         gf = new LineNumberGraphFactory(graphFactory);
     }
 
@@ -251,7 +246,7 @@ final class MethodParser {
         }
     }
 
-    NodeHandle getBlockForIndex(int target) {
+    BlockLabel getBlockForIndex(int target) {
         int idx = verifiedMethodBody.getDefinedBody().getEntryPointIndex(target);
         if (idx < 0) {
             throw new IllegalStateException("Block not found");
@@ -280,8 +275,8 @@ final class MethodParser {
         System.arraycopy(locals, 0, this.locals, 0, locals.length);
     }
 
-    Map<NodeHandle, PhiValue[]> entryLocalsArrays = new HashMap<>();
-    Map<NodeHandle, PhiValue[]> entryStacks = new HashMap<>();
+    Map<BlockLabel, PhiValue[]> entryLocalsArrays = new HashMap<>();
+    Map<BlockLabel, PhiValue[]> entryStacks = new HashMap<>();
 
     /**
      * Process a single block.  The current stack and locals are used as a template for the phi value types within
@@ -292,7 +287,7 @@ final class MethodParser {
      */
     void processBlock(ByteBuffer buffer, BasicBlock from) {
         // this is the canonical map key handle
-        NodeHandle block = getBlockForIndex(buffer.position());
+        BlockLabel block = getBlockForIndex(buffer.position());
         assert block != null : "No block registered for BCI " + buffer.position();
         PhiValue[] entryLocalsArray;
         PhiValue[] entryStack;
@@ -303,23 +298,25 @@ final class MethodParser {
             entryStack = entryStacks.get(block);
         } else {
             // not registered yet; process new block first
+            assert ! block.hasTarget();
+            GraphFactory.Context ctxt = new GraphFactory.Context(block);
             entryLocalsArray = new PhiValue[locals.length];
             entryStack = new PhiValue[sp];
             for (int i = 0; i < locals.length; i ++) {
                 if (locals[i] != null) {
-                    entryLocalsArray[i] = gf.phi(locals[i].getType(), block);
+                    entryLocalsArray[i] = gf.phi(ctxt, locals[i].getType());
                 }
             }
             for (int i = 0; i < sp; i ++) {
                 if (stack[i] != null) {
-                    entryStack[i] = gf.phi(stack[i].getType(), block);
+                    entryStack[i] = gf.phi(ctxt, stack[i].getType());
                 }
             }
             entryLocalsArrays.put(block, entryLocalsArray);
             entryStacks.put(block, entryStack);
             restoreStack(entryStack);
             restoreLocals(entryLocalsArray);
-            processNewBlock(buffer, block);
+            processNewBlock(buffer, ctxt);
         }
         // complete phis
         for (int i = 0; i < locals.length; i ++) {
@@ -339,9 +336,7 @@ final class MethodParser {
         }
     }
 
-    void processNewBlock(ByteBuffer buffer, final NodeHandle block) {
-        assert ! block.hasTarget() : "Block entered twice";
-        GraphFactory.Context ctxt = new GraphFactory.Context(block);
+    void processNewBlock(ByteBuffer buffer, final GraphFactory.Context ctxt) {
         Value v1, v2, v3, v4;
         int opcode;
         int src;
@@ -908,32 +903,21 @@ final class MethodParser {
                     int target = src + (opcode == OP_JSR ? buffer.getShort() : buffer.getInt());
                     int ret = buffer.position();
                     // jsr destination
-                    NodeHandle dest = getBlockForIndex(target);
-                    // return address is really the target, used to compute the exit state
-                    ConstantValue ra = Value.const_(target, ReturnAddressType.INSTANCE);
-                    push(ra);
-                    NodeHandle retBlock = getBlockForIndex(ret);
+                    BlockLabel dest = getBlockForIndex(target);
+                    BlockLabel retBlock = getBlockForIndex(ret);
+                    push(Value.const_(retBlock));
                     // the jsr call
                     BasicBlock termBlock = gf.jsr(ctxt, dest, retBlock);
-                    int pos = buffer.position();
-                    // process the jsr call target block
+                    // process the jsr call target block with our current stack
                     processBlock(buffer.position(target), termBlock);
-                    BasicBlock jsrTargetBlock = NodeHandle.getTargetOf(dest);
-                    // traverse the JSR target block to find the exit state, if any
-                    RetPhiComputingVisitor jv = new RetPhiComputingVisitor();
-                    jv.handleBlock(NodeHandle.getTargetOf(dest), jsrTargetBlock);
-                    // if we never exit (e.g. throw from all paths) then we don't need to continue
-                    if (jv.exited) {
-                        restoreStack(jv.exitStack);
-                        restoreLocals(jv.exitLocals);
-                        buffer.position(pos);
-                        processBlock(buffer.position(pos), termBlock);
-                    }
+                    // now process the return block once for each returning path (as if the ret is a goto);
+                    // the ret visitor will continue parsing if the jsr returns (as opposed to throwing)
+                    new RetVisitor(buffer, ret).handleBlock(BlockLabel.getTargetOf(dest));
                     return;
                 }
                 case OP_RET:
                     // each ret records the output stack and locals at the point of the ret, and then exits.
-                    Value rat = pop(ReturnAddressType.INSTANCE);
+                    Value rat = pop(Type.RETURN_ADDRESS);
                     setJsrExitState(gf.ret(ctxt, rat), saveStack(), saveLocals());
                     // exit one level of recursion
                     return;
@@ -945,7 +929,7 @@ final class MethodParser {
                     int cnt = high - low;
                     int[] dests = new int[cnt];
                     int[] vals = new int[cnt];
-                    NodeHandle[] handles = new NodeHandle[cnt];
+                    BlockLabel[] handles = new BlockLabel[cnt];
                     for (int i = 0; i < cnt; i ++) {
                         vals[i] = low + i;
                         handles[i] = getBlockForIndex(dests[i] = buffer.getInt() + src);
@@ -967,7 +951,7 @@ final class MethodParser {
                     cnt = buffer.getInt();
                     dests = new int[cnt];
                     vals = new int[cnt];
-                    handles = new NodeHandle[cnt];
+                    handles = new BlockLabel[cnt];
                     for (int i = 0; i < cnt; i ++) {
                         vals[i] = buffer.getInt();
                         handles[i] = getBlockForIndex(dests[i] = buffer.getInt() + src);
@@ -1007,30 +991,37 @@ final class MethodParser {
                     gf.return_(ctxt);
                     // block complete
                     return;
-                case OP_GETSTATIC:
+                case OP_GETSTATIC: {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
-                    push(promote(ctxt, gf.readStaticField(ctxt, getOwnerOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef), JavaAccessMode.DETECT)));
+                    FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
+                    push(promote(ctxt, gf.readStaticField(ctxt, fieldElement, JavaAccessMode.DETECT)));
                     break;
-                case OP_PUTSTATIC:
+                }
+                case OP_PUTSTATIC: {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
-                    fieldRef = buffer.getShort() & 0xffff;
+                    int fieldRef = buffer.getShort() & 0xffff;
+                    FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
                     Type type = getTypeOfFieldRef(fieldRef);
-                    gf.writeStaticField(ctxt, getOwnerOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef), demote(ctxt, pop(), type), JavaAccessMode.DETECT);
+                    gf.writeStaticField(ctxt, fieldElement, demote(ctxt, pop(), type), JavaAccessMode.DETECT);
                     break;
-                case OP_GETFIELD:
+                }
+                case OP_GETFIELD: {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
-                    fieldRef = buffer.getShort() & 0xffff;
-                    v1 = pop(getOwnerOfFieldRef(fieldRef));
-                    push(promote(ctxt, gf.readInstanceField(ctxt, v1, getOwnerOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef), JavaAccessMode.DETECT)));
+                    int fieldRef = buffer.getShort() & 0xffff;
+                    FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
+                    push(promote(ctxt, gf.readInstanceField(ctxt, pop(), fieldElement, JavaAccessMode.DETECT)));
                     break;
-                case OP_PUTFIELD:
+                }
+                case OP_PUTFIELD: {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
-                    fieldRef = buffer.getShort() & 0xffff;
+                    int fieldRef = buffer.getShort() & 0xffff;
+                    FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
                     v2 = demote(ctxt, pop(), getTypeOfFieldRef(fieldRef));
-                    v1 = pop(getOwnerOfFieldRef(fieldRef));
-                    gf.writeInstanceField(ctxt, v1, getOwnerOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef), v2, JavaAccessMode.DETECT);
+                    v1 = pop();
+                    gf.writeInstanceField(ctxt, v1, fieldElement, v2, JavaAccessMode.DETECT);
                     break;
+                }
                 case OP_INVOKEVIRTUAL:
                 case OP_INVOKESPECIAL:
                 case OP_INVOKESTATIC:
@@ -1053,7 +1044,7 @@ final class MethodParser {
                     }
                     if (opcode != OP_INVOKESTATIC) {
                         // pop the receiver
-                        v1 = pop(ownerType);
+                        v1 = pop();
                     } else {
                         // definite initialization
                         v1 = null;
@@ -1062,7 +1053,7 @@ final class MethodParser {
                         if (opcode != OP_INVOKESPECIAL) {
                             throw new InvalidByteCodeException();
                         }
-                        gf.invokeInstanceMethod(ctxt, v1, InstanceInvocation.Kind.EXACT, target, List.of(args));
+                        gf.invokeConstructor(ctxt, v1, (ConstructorElement) target, List.of(args));
                     } else {
                         assert target instanceof MethodElement;
                         MethodElement method = (MethodElement) target;
@@ -1070,16 +1061,16 @@ final class MethodParser {
                         if (opcode == OP_INVOKESTATIC) {
                             if (returnType == Type.VOID) {
                                 // return type is implicitly void
-                                gf.invokeMethod(ctxt, method, List.of(args));
+                                gf.invokeStatic(ctxt, method, List.of(args));
                             } else {
-                                push(promote(ctxt, gf.invokeValueMethod(ctxt, method, List.of(args))));
+                                push(promote(ctxt, gf.invokeValueStatic(ctxt, method, List.of(args))));
                             }
                         } else {
                             if (returnType == Type.VOID) {
                                 // return type is implicitly void
-                                gf.invokeInstanceMethod(ctxt, v1, InstanceInvocation.Kind.fromOpcode(opcode), method, List.of(args));
+                                gf.invokeInstance(ctxt, DispatchInvocation.Kind.fromOpcode(opcode), v1, method, List.of(args));
                             } else {
-                                push(promote(ctxt, gf.invokeInstanceValueMethod(ctxt, v1, InstanceInvocation.Kind.fromOpcode(opcode), method, List.of(args))));
+                                push(promote(ctxt, gf.invokeInstanceValueMethod(ctxt, v1, DispatchInvocation.Kind.fromOpcode(opcode), method, List.of(args))));
                             }
                         }
                     }
@@ -1111,7 +1102,7 @@ final class MethodParser {
                     push(gf.newArray(ctxt, arrayType, pop(Type.S32)));
                     break;
                 case OP_ARRAYLENGTH:
-                    push(gf.lengthOfArray(ctxt, pop(/* any array type */)));
+                    push(gf.arrayLength(ctxt, pop(/* any array type */)));
                     break;
                 case OP_ATHROW:
                     gf.throw_(ctxt, pop());
@@ -1120,11 +1111,11 @@ final class MethodParser {
                 case OP_CHECKCAST:
                     ClassType clazz = resolveClass(buffer.getShort() & 0xffff);
                     v1 = pop();
-                    NodeHandle okHandle = new NodeHandle();
-                    NodeHandle notNullHandle = new NodeHandle();
+                    BlockLabel okHandle = new BlockLabel();
+                    BlockLabel notNullHandle = new BlockLabel();
                     gf.if_(ctxt, gf.cmpEq(ctxt, v1, Value.NULL), okHandle, notNullHandle);
                     ctxt.setCurrentBlock(notNullHandle);
-                    NodeHandle castFailedHandle = new NodeHandle();
+                    BlockLabel castFailedHandle = new BlockLabel();
                     gf.if_(ctxt, gf.instanceOf(ctxt, v1, clazz), okHandle, castFailedHandle);
                     ctxt.setCurrentBlock(castFailedHandle);
                     ClassType cce = resolveClass("java/lang/ClassCastException");
@@ -1135,7 +1126,7 @@ final class MethodParser {
                     int constructorIndex = resolvedCce.findConstructorIndex(JavaVM.requireCurrent().getConstructorDescriptor());
                     assert constructorIndex != -1;
                     ConstructorElement invTarget = resolvedCce.getConstructor(constructorIndex);
-                    gf.invokeInstanceMethod(ctxt, v1, InstanceInvocation.Kind.EXACT, invTarget, List.of());
+                    v1 = gf.invokeConstructor(ctxt, v1, invTarget, List.of());
                     gf.throw_(ctxt, v1);
                     // do not change stack depth ending here
                     ctxt.setCurrentBlock(okHandle);
@@ -1143,17 +1134,17 @@ final class MethodParser {
                 case OP_INSTANCEOF:
                     clazz = resolveClass(buffer.getShort() & 0xffff);
                     v1 = pop();
-                    NodeHandle nullHandle = new NodeHandle();
-                    notNullHandle = new NodeHandle();
+                    BlockLabel nullHandle = new BlockLabel();
+                    notNullHandle = new BlockLabel();
                     gf.if_(ctxt, gf.cmpEq(ctxt, v1, Value.NULL), nullHandle, notNullHandle);
                     ctxt.setCurrentBlock(notNullHandle);
                     v1 = gf.instanceOf(ctxt, v1, clazz);
-                    NodeHandle mergeHandle = new NodeHandle();
+                    BlockLabel mergeHandle = new BlockLabel();
                     BasicBlock t1 = gf.goto_(ctxt, mergeHandle);
                     ctxt.setCurrentBlock(nullHandle);
                     BasicBlock t2 = gf.goto_(ctxt, mergeHandle);
                     ctxt.setCurrentBlock(mergeHandle);
-                    PhiValue phi = gf.phi(Type.BOOL, mergeHandle);
+                    PhiValue phi = gf.phi(ctxt, Type.BOOL);
                     phi.setValueForBlock(t2, Value.FALSE);
                     phi.setValueForBlock(t1, v1);
                     push(phi);
@@ -1208,8 +1199,8 @@ final class MethodParser {
     }
 
     private void processIf(final ByteBuffer buffer, final GraphFactory.Context ctxt, final Value cond, final int dest1, final int dest2) {
-        NodeHandle b1 = getBlockForIndex(dest1);
-        NodeHandle b2 = getBlockForIndex(dest2);
+        BlockLabel b1 = getBlockForIndex(dest1);
+        BlockLabel b2 = getBlockForIndex(dest2);
         BasicBlock from = gf.if_(ctxt, cond, b1, b2);
         Value[] varSnap = saveLocals();
         Value[] stackSnap = saveStack();
@@ -1251,6 +1242,16 @@ final class MethodParser {
         return getClassFile().getMethodrefNameAndTypeIndex(methodRef);
     }
 
+    private FieldElement resolveTargetOfFieldRef(final int fieldRef) {
+        VerifiedTypeDefinition definition = getOwnerOfFieldRef(fieldRef).getDefinition();
+        FieldElement field = definition.resolve().findField(getNameOfFieldRef(fieldRef));
+        if (field == null) {
+            // todo
+            throw new IllegalStateException();
+        }
+        return field;
+    }
+
     private ParameterizedExecutableElement resolveTargetOfMethodNameAndType(final VerifiedTypeDefinition owner, final int nameAndTypeRef) {
         int idx;
         ClassFileImpl classFile = getClassFile();
@@ -1288,90 +1289,36 @@ final class MethodParser {
         return wide ? buffer.getShort() : buffer.get();
     }
 
-    private class RetPhiComputingVisitor implements GraphVisitor<BasicBlock> {
-        PhiValue[] exitStack;
-        PhiValue[] exitLocals;
+    class RetVisitor implements TerminatorVisitor<Void, Void> {
+        private final Set<BasicBlock> visited = new HashSet<>();
+        private final ByteBuffer buffer;
+        private final int ret;
         boolean exited;
 
-        void handleBlock(final BasicBlock returnBlock, final BasicBlock block) {
-            if (block.getTerminator() instanceof Ret) {
-                Value[] stack = retStacks.get(block);
-                Value[] locals = retLocals.get(block);
-                PhiValue[] phiStack;
-                PhiValue[] phiLocals;
-                if (exitStack == null) {
-                    // make phis
-                    phiStack = new PhiValue[stack.length];
-                    phiLocals = new PhiValue[locals.length];
-                    for (int i = 0; i < stack.length; i ++) {
-                        phiStack[i] = gf.phi(stack[i].getType(), returnBlock);
-                        phiStack[i].setValueForBlock(block, stack[i]);
-                    }
-                    for (int i = 0; i < locals.length; i ++) {
-                        phiLocals[i] = gf.phi(locals[i].getType(), returnBlock);
-                        phiLocals[i].setValueForBlock(block, locals[i]);
-                    }
-                    exitStack = phiStack;
-                    exitLocals = phiLocals;
-                    exited = true;
+        RetVisitor(final ByteBuffer buffer, final int ret) {
+            this.buffer = buffer;
+            this.ret = ret;
+        }
+
+        void handleBlock(final BasicBlock block) {
+            if (visited.add(block)) {
+                if (block.getTerminator() instanceof Ret) {
+                    // goto the return block
+                    restoreLocals(retLocals.get(block));
+                    restoreStack(retStacks.get(block));
+                    processBlock(buffer.position(ret), block);
                 } else {
-                    phiStack = exitStack;
-                    phiLocals = exitLocals;
-                    for (int i = 0; i < stack.length; i ++) {
-                        phiStack[i].setValueForBlock(block, stack[i]);
-                    }
-                    for (int i = 0; i < locals.length; i ++) {
-                        phiLocals[i].setValueForBlock(block, locals[i]);
-                    }
+                    block.getTerminator().accept(this, null);
                 }
-            } else {
-                block.getTerminator().accept(this, returnBlock);
             }
         }
 
-        public void visit(final BasicBlock returnBlock, final If node) {
-            handleBlock(returnBlock, node.getTrueBranch());
-            handleBlock(returnBlock, node.getFalseBranch());
-        }
-
-        public void visit(final BasicBlock returnBlock, final Goto node) {
-            handleBlock(returnBlock, node.getTarget());
-        }
-
-        public void visit(final BasicBlock returnBlock, final Jsr node) {
-            handleBlock(returnBlock, node.getReturn());
-        }
-
-        public void visit(final BasicBlock returnBlock, final Switch node) {
-            handleBlock(returnBlock, node.getDefaultTarget());
-            int cnt = node.getNumberOfValues();
-            for (int i = 0; i < cnt; i ++) {
-                handleBlock(returnBlock, node.getTargetForValue(i));
+        public Void visitUnknown(final Void param, final Terminator node) {
+            int s = node.getSuccessorCount();
+            for (int i = 0; i < s; i ++) {
+                handleBlock(node.getSuccessor(i));
             }
-        }
-
-        public void visit(final BasicBlock returnBlock, final TryInstanceInvocation node) {
-            handleBlock(returnBlock, node.getCatchHandler());
-            handleBlock(returnBlock, node.getTarget());
-        }
-
-        public void visit(final BasicBlock returnBlock, final TryInstanceInvocationValue node) {
-            handleBlock(returnBlock, node.getCatchHandler());
-            handleBlock(returnBlock, node.getTarget());
-        }
-
-        public void visit(final BasicBlock returnBlock, final TryInvocation node) {
-            handleBlock(returnBlock, node.getCatchHandler());
-            handleBlock(returnBlock, node.getTarget());
-        }
-
-        public void visit(final BasicBlock returnBlock, final TryInvocationValue node) {
-            handleBlock(returnBlock, node.getCatchHandler());
-            handleBlock(returnBlock, node.getTarget());
-        }
-
-        public void visit(final BasicBlock returnBlock, final TryThrow node) {
-            handleBlock(returnBlock, node.getCatchHandler());
+            return null;
         }
     }
 }

@@ -80,9 +80,9 @@ public interface Schedule {
         // fix the terminator on its block
         scheduledNodes.put(terminator, blockInfos.get(block));
         scheduleEarly(root, blockInfos, scheduledNodes, terminator);
-        int cnt = block.getSuccessorCount();
+        int cnt = terminator.getSuccessorCount();
         for (int i = 0; i < cnt; i ++) {
-            scheduleEarly(root, blockInfos, scheduledNodes, block.getSuccessor(i));
+            scheduleEarly(root, blockInfos, scheduledNodes, terminator.getSuccessor(i));
         }
     }
 
@@ -114,7 +114,7 @@ public interface Schedule {
         BlockInfo selected;
         if (node instanceof PinnedNode) {
             // pinned to a block; always select that block.
-            BasicBlock basicBlock = ((PinnedNode) node).getBasicBlock();
+            BasicBlock basicBlock = ((PinnedNode) node).getPinnedBlock();
             selected = blockInfos.get(basicBlock);
             scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
             if (node instanceof PhiValue) {
