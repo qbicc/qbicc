@@ -5,15 +5,15 @@ package cc.quarkus.qcc.graph;
  */
 public final class New extends AbstractValue {
     private final Node dependency;
-    private final ClassType type;
+    private final UninitializedType type;
 
     New(final GraphFactory.Context ctxt, final ClassType type) {
         this.dependency = ctxt.getDependency();
         ctxt.setDependency(this);
-        this.type = type;
+        this.type = new UninitializedTypeImpl(type);
     }
 
-    public ClassType getType() {
+    public UninitializedType getType() {
         return type;
     }
 

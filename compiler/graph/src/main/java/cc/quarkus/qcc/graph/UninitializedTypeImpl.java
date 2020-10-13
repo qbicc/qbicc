@@ -4,9 +4,9 @@ package cc.quarkus.qcc.graph;
  *
  */
 final class UninitializedTypeImpl extends AbstractType implements UninitializedType {
-    private final AbstractClassTypeImpl classType;
+    private final ClassType classType;
 
-    UninitializedTypeImpl(final AbstractClassTypeImpl classType) {
+    UninitializedTypeImpl(final ClassType classType) {
         this.classType = classType;
     }
 

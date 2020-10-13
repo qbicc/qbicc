@@ -254,6 +254,19 @@ final class MethodParser {
         return blockHandles[idx];
     }
 
+    void replaceAll(Value from, Value to) {
+        for (int i = 0; i < sp; i ++) {
+            if (stack[i] == from) {
+                stack[i] = to;
+            }
+        }
+        for (int i = 0; i < locals.length; i ++) {
+            if (locals[i] == from) {
+                locals[i] = to;
+            }
+        }
+    }
+
     Value[] saveStack() {
         return Arrays.copyOfRange(stack, 0, sp);
     }
@@ -1053,7 +1066,8 @@ final class MethodParser {
                         if (opcode != OP_INVOKESPECIAL) {
                             throw new InvalidByteCodeException();
                         }
-                        gf.invokeConstructor(ctxt, v1, (ConstructorElement) target, List.of(args));
+                        v2 = gf.invokeConstructor(ctxt, v1, (ConstructorElement) target, List.of(args));
+                        replaceAll(v1, v2);
                     } else {
                         assert target instanceof MethodElement;
                         MethodElement method = (MethodElement) target;
