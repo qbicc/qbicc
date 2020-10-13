@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.ValueType;
+
 /**
  *
  */
@@ -26,7 +28,7 @@ public final class Select extends AbstractValue {
         return falseValue;
     }
 
-    public Type getType() {
+    public ValueType getType() {
         return getTrueValue().getType();
     }
 

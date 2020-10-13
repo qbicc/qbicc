@@ -10,13 +10,12 @@ public final class ArrayElementWrite extends AbstractNode implements ArrayElemen
     private final Value value;
     private final JavaAccessMode mode;
 
-    ArrayElementWrite(final GraphFactory.Context ctxt, final Value instance, final Value index, final Value value, final JavaAccessMode mode) {
+    ArrayElementWrite(final Node dependency, final Value instance, final Value index, final Value value, final JavaAccessMode mode) {
+        this.dependency = dependency;
         this.instance = instance;
         this.index = index;
         this.value = value;
         this.mode = mode;
-        this.dependency = ctxt.getDependency();
-        ctxt.setDependency(this);
     }
 
     public Value getInstance() {

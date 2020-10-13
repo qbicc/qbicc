@@ -14,13 +14,12 @@ public final class InstanceInvocation extends AbstractNode implements InstanceOp
     private final MethodElement target;
     private final List<Value> arguments;
 
-    InstanceInvocation(final GraphFactory.Context ctxt, final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+    InstanceInvocation(final Node dependency, final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        this.dependency = dependency;
         this.kind = kind;
         this.instance = instance;
         this.target = target;
         this.arguments = arguments;
-        this.dependency = ctxt.getDependency();
-        ctxt.setDependency(this);
     }
 
     public MethodElement getInvocationTarget() {

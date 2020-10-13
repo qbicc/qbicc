@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.WordType;
+
 /**
  *
  */

@@ -1,19 +1,21 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
+
 /**
  * An operation which may throw an exception.
  */
 public final class Try extends AbstractNode implements Resume {
     private final Node dependency;
     private final Triable delegateOperation;
-    private final ClassType[] catchTypes;
+    private final ClassTypeIdLiteral[] catchTypeIds;
     private final BlockLabel[] catchTargetLabels;
     private final BlockLabel resumeTargetLabel;
 
-    Try(final Node dependency, final Triable delegateOperation, final ClassType[] catchTypes, final BlockLabel[] catchTargetLabels, final BlockLabel resumeTargetLabel) {
+    Try(final Node dependency, final Triable delegateOperation, final ClassTypeIdLiteral[] catchTypeIds, final BlockLabel[] catchTargetLabels, final BlockLabel resumeTargetLabel) {
         this.dependency = dependency;
         this.delegateOperation = delegateOperation;
-        this.catchTypes = catchTypes;
+        this.catchTypeIds = catchTypeIds;
         this.catchTargetLabels = catchTargetLabels;
         this.resumeTargetLabel = resumeTargetLabel;
     }
@@ -22,12 +24,12 @@ public final class Try extends AbstractNode implements Resume {
         return delegateOperation;
     }
 
-    public int getCatchTypeCount() {
-        return catchTypes.length;
+    public int getCatchTypeIdCount() {
+        return catchTypeIds.length;
     }
 
-    public ClassType getCatchType(int index) {
-        return catchTypes[index];
+    public ClassTypeIdLiteral getCatchTypeId(int index) {
+        return catchTypeIds[index];
     }
 
     public BasicBlock getCatchTarget(int index) {

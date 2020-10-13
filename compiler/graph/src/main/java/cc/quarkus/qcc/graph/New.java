@@ -1,20 +1,29 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.ValueType;
+
 /**
  * A {@code new} allocation operation.
  */
 public final class New extends AbstractValue {
     private final Node dependency;
-    private final UninitializedType type;
+    private final ReferenceType type;
+    private final Literal instanceTypeId;
 
-    New(final GraphFactory.Context ctxt, final ClassType type) {
-        this.dependency = ctxt.getDependency();
-        ctxt.setDependency(this);
-        this.type = new UninitializedTypeImpl(type);
+    New(final Node dependency, final ReferenceType type, final Literal instanceTypeId) {
+        this.dependency = dependency;
+        this.type = type;
+        this.instanceTypeId = instanceTypeId;
     }
 
-    public UninitializedType getType() {
+    public ValueType getType() {
         return type;
+    }
+
+    public Literal getInstanceTypeId() {
+        return instanceTypeId;
     }
 
     public int getBasicDependencyCount() {

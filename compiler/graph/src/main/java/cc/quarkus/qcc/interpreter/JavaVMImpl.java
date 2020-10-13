@@ -25,15 +25,11 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
-import cc.quarkus.qcc.graph.Add;
-import cc.quarkus.qcc.graph.ArrayClassType;
 import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.graph.ConstantValue;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.FieldWrite;
 import cc.quarkus.qcc.graph.Goto;
-import cc.quarkus.qcc.graph.GraphFactory;
 import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.InstanceFieldWrite;
 import cc.quarkus.qcc.graph.InstanceInvocation;
@@ -47,11 +43,22 @@ import cc.quarkus.qcc.graph.Return;
 import cc.quarkus.qcc.graph.StaticInvocationValue;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.Throw;
-import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.ValueVisitor;
+import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.SignedIntegerType;
+import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.UnsignedIntegerType;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.FieldContainer;
 import cc.quarkus.qcc.type.definition.MethodBody;
@@ -62,7 +69,6 @@ import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
@@ -82,16 +88,19 @@ final class JavaVMImpl implements JavaVM {
     private final Set<JavaThread> threads = ConcurrentHashMap.newKeySet();
     final ThreadLocal<JavaThreadImpl> attachedThread = new ThreadLocal<>();
     private final Dictionary bootstrapDictionary;
+    private final TypeSystem typeSystem;
+    private final LiteralFactory literalFactory;
     private final ConcurrentMap<JavaObject, Dictionary> classLoaderLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Dictionary, JavaObject> loaderClassLoaders = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ClassType, JavaClassImpl> loadedClasses = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ClassTypeIdLiteral, JavaClassImpl> loadedClasses = new ConcurrentHashMap<>();
+    private final ConcurrentMap<InterfaceTypeIdLiteral, JavaClassImpl> loadedInterfaces = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodBody, Map<BasicBlock, List<Node>>> schedules = new ConcurrentHashMap<>();
     private final ConcurrentMap<ParameterizedExecutableDescriptor, ConcurrentMap<Type, MethodDescriptor>> methodDescriptorCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<ParameterizedExecutableDescriptor, ConstructorDescriptor> constructorDescriptorCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, JavaObject> stringInstanceCache = new ConcurrentHashMap<>();
     private final ConcurrentTrie<Type, ParameterizedExecutableDescriptor> descriptorCache = new ConcurrentTrie<>();
     private final Map<String, BootModule> bootstrapModules;
-    private final GraphFactory graphFactory;
+    private final BasicBlockBuilder.Factory graphFactory;
     private final JavaObject mainThreadGroup;
     final DefinedTypeDefinition classLoaderClass;
     final DefinedTypeDefinition classClass;
@@ -106,7 +115,9 @@ final class JavaVMImpl implements JavaVM {
 
     JavaVMImpl(final Builder builder) {
         Map<String, BootModule> bootstrapModules = new LinkedHashMap<>();
-        Dictionary bootstrapDictionary = new Dictionary();
+        Dictionary bootstrapDictionary = new Dictionary(this);
+        typeSystem = Assert.checkNotNullParam("builder.typeSystem", builder.typeSystem);
+        literalFactory = Assert.checkNotNullParam("builder.literalFactory", builder.literalFactory);
         for (Path path : builder.bootstrapModules) {
             // open all bootstrap JARs (MR bootstrap JARs not supported)
             JarFile jarFile;
@@ -147,7 +158,9 @@ final class JavaVMImpl implements JavaVM {
         try {
             currentVm.set(this);
             objectClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Object");
+            ClassTypeIdLiteral objClassId = literalFactory.literalOfClass(null);
             classClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Class");
+
             classLoaderClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ClassLoader");
             stringClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/String");
             classNotFoundExceptionClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ClassNotFoundException");
@@ -214,7 +227,7 @@ final class JavaVMImpl implements JavaVM {
 
     public DefinedTypeDefinition defineAnonymousClass(final DefinedTypeDefinition hostClass, final ByteBuffer bytes) {
         String newName = hostClass.getInternalName() + "/" + anonCounter.getAndIncrement();
-        return defineClass(newName, hostClass.getDefiningClassLoader(), bytes);
+        return defineClass(newName, ((Dictionary)hostClass.getContext()).getClassLoader(), bytes);
     }
 
     public DefinedTypeDefinition loadClass(JavaObject classLoader, final String name) throws Thrown {
@@ -229,20 +242,23 @@ final class JavaVMImpl implements JavaVM {
         JavaThread javaThread = JavaVM.requireCurrentThread();
         ResolvedTypeDefinition resolvedCL = classLoaderClass.verify().resolve();
         VerifiedTypeDefinition stringClassVerified = stringClass.verify();
-        MethodElement loadClass = resolvedCL.resolveMethodElementVirtual("loadClass", getMethodDescriptor(resolvedCL.getClassType(), stringClassVerified.getClassType()));
+        UnsignedIntegerType u16 = typeSystem.getUnsignedInteger16Type();
+        ValueArrayTypeIdLiteral u16Array = literalFactory.literalOfArrayType(u16);
+        MethodElement loadClass = resolvedCL.resolveMethodElementVirtual("loadClass", getMethodDescriptor(typeSystem.getReferenceType(resolvedCL.getTypeId()), typeSystem.getReferenceType(stringClassVerified.getTypeId())));
         int length = name.length();
-        JavaArray array = allocateArray(Type.JAVA_CHAR_ARRAY, length);
+        JavaArray array = allocateArray(u16Array, length);
         for (int i = 0; i < length; i++) {
             array.putArray(i, name.charAt(i));
         }
-        ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(Type.JAVA_CHAR_ARRAY));
-        JavaObject nameInstance = allocateObject(stringClassVerified.getClassType());
+        ReferenceType u16ArrayType = typeSystem.getReferenceType(u16Array);
+        ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(u16ArrayType));
+        JavaObject nameInstance = allocateObject((ClassTypeIdLiteral) stringClassVerified.getTypeId());
         invokeExact(initString, nameInstance, array);
         return ((JavaClass) invokeVirtual(loadClass, nameInstance)).getTypeDefinition();
     }
 
     public DefinedTypeDefinition findLoadedBootstrapClass(final String name) {
-        return bootstrapDictionary.findLoadedClass(name);
+        return bootstrapDictionary.findLoadedType(name);
     }
 
     public DefinedTypeDefinition loadBootstrapClass(final String name) {
@@ -274,8 +290,8 @@ final class JavaVMImpl implements JavaVM {
     }
 
     private JavaObject newException(DefinedTypeDefinition type, String arg) {
-        JavaObject e = allocateObject(type.verify().getClassType());
-        ConstructorElement ctor = type.verify().resolve().resolveConstructorElement(getConstructorDescriptor(stringClass.verify().getClassType()));
+        JavaObject e = allocateObject((ClassTypeIdLiteral) type.verify().getTypeId());
+        ConstructorElement ctor = type.verify().resolve().resolveConstructorElement(getConstructorDescriptor(typeSystem.getReferenceType(stringClass.verify().getTypeId())));
         // todo: backtrace should be set to thread.tos
         invokeExact(ctor, e, newString(arg));
         return e;
@@ -284,36 +300,29 @@ final class JavaVMImpl implements JavaVM {
     private JavaObject newString(String str) {
         VerifiedTypeDefinition stringClassVerified = stringClass.verify();
         int length = str.length();
-        JavaArray array = allocateArray(Type.JAVA_BYTE_ARRAY, length << 1);
+        SignedIntegerType s8 = typeSystem.getSignedInteger8Type();
+        ValueArrayTypeIdLiteral s8Array = literalFactory.literalOfArrayType(s8);
+        JavaArray array = allocateArray(s8Array, length << 1);
         for (int i = 0; i < length; i++) {
             array.putArray(i << 1, str.charAt(i) >>> 8);
             array.putArray((i << 1) + 1, str.charAt(i));
         }
-        ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(Type.JAVA_BYTE_ARRAY, Type.S8));
-        JavaObject res = allocateObject(stringClassVerified.getClassType());
+        ReferenceType byteArrayType = typeSystem.getReferenceType(s8Array);
+        ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(byteArrayType, s8));
+        JavaObject res = allocateObject((ClassTypeIdLiteral) stringClassVerified.getTypeId());
         invokeExact(initString, res, array, Byte.valueOf((byte) 1 /* UTF16 */));
         return res;
     }
 
     public DefinedTypeDefinition findLoadedClass(final JavaObject classLoader, final String name) {
-        return getDictionaryFor(classLoader).findLoadedClass(name);
+        return getDictionaryFor(classLoader).findLoadedType(name);
     }
 
-    public JavaObject allocateObject(final ClassType type) {
-        return new JavaObjectImpl(type.getDefinition());
+    public JavaObject allocateObject(final ClassTypeIdLiteral literalType) {
+        return new JavaObjectImpl(loadedClasses.get(literalType).getTypeDefinition());
     }
 
-    public JavaArray allocateArray(final ArrayClassType type, final int length) {
-        Type elementType = type.getElementType();
-        if (elementType instanceof ClassType) {
-            // todo
-        } else if (elementType == Type.BOOL) {
-            // todo
-        } else if (elementType == Type.U16) {
-            return new JavaCharArray(length);
-        } else if (elementType == Type.S8) {
-            return new JavaByteArray(length);
-        }
+    public JavaArray allocateArray(final ArrayTypeIdLiteral type, final int length) {
         throw new UnsupportedOperationException();
     }
 
@@ -339,12 +348,8 @@ final class JavaVMImpl implements JavaVM {
         return invokeWith(exactHandle.getResolvedMethodBody(), instance, args);
     }
 
-    public Object invokeInitializer(final InitializerElement initializer) {
-        MethodHandle exactHandle = initializer.getMethodBody();
-        if (exactHandle == null) {
-            throw new IllegalArgumentException("Method has no body");
-        }
-        return invokeWith(exactHandle.getResolvedMethodBody(), null);
+    public void initialize(final TypeIdLiteral typeId) {
+        throw Assert.unsupported();
     }
 
     public Object invokeVirtual(final MethodElement method, final JavaObject instance, final Object... args) {
@@ -570,14 +575,17 @@ final class JavaVMImpl implements JavaVM {
 
     private final Computer computer = new Computer();
 
+    LiteralFactory getLiteralFactory() {
+        return literalFactory;
+    }
+
+    TypeSystem getTypeSystem() {
+        return typeSystem;
+    }
+
     final class Computer implements ValueVisitor<StackFrame, Void> {
         public Void visitUnknown(final StackFrame param, final Value node) {
             throw new IllegalStateException();
-        }
-
-        public Void visit(final StackFrame frame, final Add node) {
-            frame.bindValue(node, node.getType().interpAdd(frame.getValue(node.getLeftInput()), frame.getValue(node.getRightInput())));
-            return null;
         }
     }
 
@@ -721,7 +729,7 @@ final class JavaVMImpl implements JavaVM {
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
-    public ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor(final Type... paramTypes) {
+    public ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor(final ValueType... paramTypes) {
         ConcurrentTrie<Type, ParameterizedExecutableDescriptor> current = this.descriptorCache;
         for (Type paramType : paramTypes) {
             current = current.computeIfAbsent(paramType, t -> new ConcurrentTrie<>());
@@ -744,15 +752,15 @@ final class JavaVMImpl implements JavaVM {
         return stringInstanceCache.computeIfAbsent(deduplicate(null, string), this::newString);
     }
 
-    public MethodDescriptor getMethodDescriptor(final Type returnType, final Type... paramTypes) {
+    public MethodDescriptor getMethodDescriptor(final ValueType returnType, final ValueType... paramTypes) {
         return getMethodDescriptor(returnType, getParameterizedExecutableDescriptor(paramTypes));
     }
 
-    public MethodDescriptor getMethodDescriptor(final Type returnType, final ParameterizedExecutableDescriptor paramDesc) {
+    public MethodDescriptor getMethodDescriptor(final ValueType returnType, final ParameterizedExecutableDescriptor paramDesc) {
         return methodDescriptorCache.computeIfAbsent(paramDesc, k -> new ConcurrentHashMap<>()).computeIfAbsent(returnType, r -> MethodDescriptor.of(paramDesc, returnType));
     }
 
-    public ConstructorDescriptor getConstructorDescriptor(final Type... paramTypes) {
+    public ConstructorDescriptor getConstructorDescriptor(final ValueType... paramTypes) {
         return getConstructorDescriptor(getParameterizedExecutableDescriptor(paramTypes));
     }
 
@@ -799,13 +807,21 @@ final class JavaVMImpl implements JavaVM {
     public DefinedTypeDefinition.Builder newTypeDefinitionBuilder(final JavaObject classLoader) {
         // TODO: use plugins to get a builder
         DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
-        builder.setDefiningClassLoader(classLoader);
+        builder.setContext(getDictionaryFor(classLoader));
         return builder;
     }
 
-    public GraphFactory createGraphFactory() {
+    public BasicBlockBuilder newBasicBlockBuilder() {
         // TODO: new instance per call?
-        return graphFactory;
+        return graphFactory.construct(new BasicBlockBuilder.Factory.Context() {
+            public TypeSystem getTypeSystem() {
+                return typeSystem;
+            }
+
+            public LiteralFactory getLiteralFactory() {
+                return literalFactory;
+            }
+        }, BasicBlockBuilder.simpleBuilder(typeSystem));
     }
 
     public JavaObject getMainThreadGroup() {
@@ -818,7 +834,7 @@ final class JavaVMImpl implements JavaVM {
         }
         Dictionary dictionary = classLoaderLoaders.get(classLoader);
         if (dictionary == null) {
-            Dictionary appearing = classLoaderLoaders.putIfAbsent(classLoader, dictionary = new Dictionary(classLoader));
+            Dictionary appearing = classLoaderLoaders.putIfAbsent(classLoader, dictionary = new Dictionary(classLoader, this));
             if (appearing != null) {
                 dictionary = appearing;
             }
@@ -832,25 +848,6 @@ final class JavaVMImpl implements JavaVM {
             throw new IllegalStateException("Class loader object is unknown");
         }
         return classLoader;
-    }
-
-    JavaClassImpl getJavaClassOf(final ClassType type) {
-        return loadedClasses.get(type);
-    }
-
-    void registerJavaClassOf(final ClassType classType, final JavaClassImpl javaClass) {
-        if (loadedClasses.putIfAbsent(classType, javaClass) != null) {
-            throw new IllegalStateException("Class registered twice");
-        }
-    }
-
-    void registerDictionaryFor(final JavaObject classLoader, final Dictionary dictionary) {
-        if (classLoaderLoaders.putIfAbsent(classLoader, dictionary) != null) {
-            throw new IllegalStateException("Class loader already registered");
-        }
-        if (loaderClassLoaders.putIfAbsent(dictionary, classLoader) != null) {
-            throw new IllegalStateException("Class loader already registered (partially)");
-        }
     }
 
     static final class BootModule implements Closeable {
@@ -878,7 +875,7 @@ final class JavaVMImpl implements JavaVM {
         }
 
         Object getValue(Value v) {
-            return v instanceof ConstantValue ? v.getType().boxValue((ConstantValue) v) : values.get(v);
+            throw Assert.unsupported();
         }
 
         void bindValue(Value v, Object value) {

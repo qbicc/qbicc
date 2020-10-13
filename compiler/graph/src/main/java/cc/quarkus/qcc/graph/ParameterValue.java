@@ -1,18 +1,20 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.ValueType;
+
 /**
  *
  */
 public final class ParameterValue extends AbstractValue {
-    private final Type type;
+    private final ValueType type;
     private final int index;
 
-    ParameterValue(final Type type, final int index) {
+    ParameterValue(final ValueType type, final int index) {
         this.type = type;
         this.index = index;
     }
 
-    public Type getType() {
+    public ValueType getType() {
         return type;
     }
 

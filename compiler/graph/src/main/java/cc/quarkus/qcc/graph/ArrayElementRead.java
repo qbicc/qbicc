@@ -1,5 +1,8 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.ArrayType;
+import cc.quarkus.qcc.type.ValueType;
+
 /**
  * A read of an array element.
  */
@@ -9,12 +12,11 @@ public final class ArrayElementRead extends AbstractValue implements ArrayElemen
     private final Value index;
     private final JavaAccessMode mode;
 
-    ArrayElementRead(final GraphFactory.Context ctxt, final Value instance, final Value index, final JavaAccessMode mode) {
+    ArrayElementRead(final Node dependency, final Value instance, final Value index, final JavaAccessMode mode) {
+        this.dependency = dependency;
         this.instance = instance;
         this.index = index;
         this.mode = mode;
-        this.dependency = ctxt.getDependency();
-        ctxt.setDependency(this);
     }
 
     public JavaAccessMode getMode() {
@@ -29,7 +31,7 @@ public final class ArrayElementRead extends AbstractValue implements ArrayElemen
         return index;
     }
 
-    public Type getType() {
+    public ValueType getType() {
         return ((ArrayType)instance.getType()).getElementType();
     }
 

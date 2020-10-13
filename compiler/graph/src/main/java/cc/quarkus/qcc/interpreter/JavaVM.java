@@ -7,13 +7,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import cc.quarkus.qcc.graph.ArrayClassType;
-import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.graph.GraphFactory;
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -111,35 +113,36 @@ public interface JavaVM extends AutoCloseable {
      * @param type the type to allocate (must not be {@code null})
      * @return the allocated object (not {@code null})
      */
-    JavaObject allocateObject(ClassType type);
+    JavaObject allocateObject(ClassTypeIdLiteral type);
 
-    JavaArray allocateArray(ArrayClassType type, int length);
+    JavaArray allocateArray(ArrayTypeIdLiteral type, int length);
 
     /**
      * Invoke a constructor reflectively.  Primitive arguments should be boxed.
-     *  @param method the constructor to invoke
-     * @param instance
+     *
+     * @param method the constructor to invoke
+     * @param instance the instance to invoke upon
      * @param args the arguments, whose times must match the constructor's expectations
      */
-    void invokeExact(ConstructorElement method, final JavaObject instance, Object... args);
+    void invokeExact(ConstructorElement method, JavaObject instance, Object... args);
 
     /**
      * Invoke a method reflectively.  Primitive arguments should be boxed.
      *
      * @param method the method to invoke
-     * @param instance
+     * @param instance the instance to invoke upon
      * @param args the arguments, whose times must match the method's expectations
      * @return the result
      */
-    Object invokeExact(MethodElement method, final JavaObject instance, Object... args);
+    Object invokeExact(MethodElement method, JavaObject instance, Object... args);
 
-    Object invokeInitializer(InitializerElement initializer);
+    void initialize(TypeIdLiteral typeId);
 
     /**
      * Invoke a method reflectively.  Primitive arguments should be boxed.
      *
      * @param method the method to invoke
-     * @param instance
+     * @param instance the instance to invoke upon
      * @param args the arguments, whose times must match the method's expectations
      * @return the result
      */
@@ -171,15 +174,15 @@ public interface JavaVM extends AutoCloseable {
 
     String deduplicate(JavaObject classLoader, ByteBuffer buffer, int offset, int length, boolean expectTerminator);
 
-    MethodDescriptor getMethodDescriptor(Type returnType, Type... paramTypes);
+    MethodDescriptor getMethodDescriptor(ValueType returnType, ValueType... paramTypes);
 
-    MethodDescriptor getMethodDescriptor(Type returnType, ParameterizedExecutableDescriptor paramDesc);
+    MethodDescriptor getMethodDescriptor(ValueType returnType, ParameterizedExecutableDescriptor paramDesc);
 
-    ConstructorDescriptor getConstructorDescriptor(Type... paramTypes);
+    ConstructorDescriptor getConstructorDescriptor(ValueType... paramTypes);
 
     ConstructorDescriptor getConstructorDescriptor(ParameterizedExecutableDescriptor paramDesc);
 
-    ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor(Type... paramTypes);
+    ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor(ValueType... paramTypes);
 
     /**
      * Get a shared string instance.  The same string object will be reused for a given input string.
@@ -228,7 +231,7 @@ public interface JavaVM extends AutoCloseable {
      *
      * @return the graph factory
      */
-    GraphFactory createGraphFactory();
+    BasicBlockBuilder newBasicBlockBuilder();
 
     /**
      * Get the main (root) thread group for the VM.
@@ -241,12 +244,29 @@ public interface JavaVM extends AutoCloseable {
      * A builder for the VM.
      */
     class Builder {
+        TypeSystem typeSystem;
+        LiteralFactory literalFactory;
         final List<Path> bootstrapModules = new ArrayList<>();
         final List<Path> platformModules = new ArrayList<>();
-        GraphFactory graphFactory = GraphFactory.BASIC_FACTORY;
+        BasicBlockBuilder.Factory graphFactory;
         final Map<String, String> systemProperties = new HashMap<>();
 
         Builder() {
+        }
+
+        /**
+         * Set the type system for this instance.
+         *
+         * @param typeSystem the type system for this instance
+         */
+        public Builder setTypeSystem(final TypeSystem typeSystem) {
+            this.typeSystem = Assert.checkNotNullParam("typeSystem", typeSystem);
+            return this;
+        }
+
+        public Builder setLiteralFactory(final LiteralFactory literalFactory) {
+            this.literalFactory = Assert.checkNotNullParam("literalFactory", literalFactory);
+            return this;
         }
 
         /**
@@ -300,7 +320,7 @@ public interface JavaVM extends AutoCloseable {
          * @param graphFactory the graph factory to use (must not be {@code null})
          * @return this builder
          */
-        public Builder setGraphFactory(final GraphFactory graphFactory) {
+        public Builder setGraphFactory(final BasicBlockBuilder.Factory graphFactory) {
             this.graphFactory = Assert.checkNotNullParam("graphFactory", graphFactory);
             return this;
         }

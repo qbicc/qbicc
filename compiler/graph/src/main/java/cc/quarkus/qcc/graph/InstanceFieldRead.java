@@ -11,12 +11,11 @@ public final class InstanceFieldRead extends AbstractValue implements FieldRead,
     private final FieldElement fieldElement;
     private final JavaAccessMode mode;
 
-    InstanceFieldRead(final GraphFactory.Context ctxt, final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
+    InstanceFieldRead(final Node dependency, final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
+        this.dependency = dependency;
         this.instance = instance;
         this.fieldElement = fieldElement;
         this.mode = mode;
-        this.dependency = ctxt.getDependency();
-        ctxt.setDependency(this);
     }
 
     public FieldElement getFieldElement() {

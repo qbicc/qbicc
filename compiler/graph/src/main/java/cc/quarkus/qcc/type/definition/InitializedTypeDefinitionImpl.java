@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -15,8 +14,8 @@ final class InitializedTypeDefinitionImpl implements InitializedTypeDefinition {
         this.delegate = delegate;
     }
 
-    public ClassType getClassType() {
-        return delegate.getClassType();
+    public TypeIdLiteral getTypeId() {
+        return delegate.getTypeId();
     }
 
     public InitializedTypeDefinition getSuperClass() {
@@ -55,8 +54,8 @@ final class InitializedTypeDefinitionImpl implements InitializedTypeDefinition {
         return delegate.getInitializer();
     }
 
-    public JavaObject getDefiningClassLoader() {
-        return delegate.getDefiningClassLoader();
+    public ClassContext getContext() {
+        return delegate.getContext();
     }
 
     public String getInternalName() {

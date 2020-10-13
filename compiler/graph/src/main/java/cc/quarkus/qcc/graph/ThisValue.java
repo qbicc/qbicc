@@ -1,16 +1,19 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.ValueType;
+
 /**
  *
  */
 public final class ThisValue extends AbstractValue {
-    private final ClassType type;
+    private final ReferenceType type;
 
-    ThisValue(final ClassType type) {
+    ThisValue(final ReferenceType type) {
         this.type = type;
     }
 
-    public ClassType getType() {
+    public ValueType getType() {
         return type;
     }
 

@@ -1,11 +1,12 @@
 package cc.quarkus.qcc.interpreter;
 
-import cc.quarkus.qcc.graph.BooleanType;
-import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.graph.FloatType;
-import cc.quarkus.qcc.graph.IntegerType;
-import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.graph.WordType;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.BooleanType;
+import cc.quarkus.qcc.type.FloatType;
+import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.FieldContainer;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
@@ -29,19 +30,19 @@ public class PrototypeGenerator {
 
     private static Prototype generate(DefinedTypeDefinition defined) {
         VerifiedTypeDefinition verified = defined.verify();
-        ClassType classType = verified.getClassType();
-        String className = classType.getClassName();
+        TypeIdLiteral classType = verified.getTypeId();
+        String className = verified.getInternalName();
 
         // prepend qcc so they're isolated from containing VM
         className = "qcc/" + className;
 
-        ClassType superType = classType.getSuperClass();
+        TypeIdLiteral superType = classType.getSuperClass();
         String superName;
 
         if (superType == null) {
             superName = "java/lang/Object";
         } else {
-            Prototype superProto = generate(superType.getDefinition());
+            Prototype superProto = generate(verified.getSuperClass());
             superName = superProto.getClassName();
         }
 
@@ -60,7 +61,7 @@ public class PrototypeGenerator {
 
         byte[] bytecode = proto.toByteArray();
 
-        return new PrototypeImpl(classType, className, bytecode, cdcl);
+        return new PrototypeImpl(className, bytecode, cdcl);
     }
 
     private static class ClassDefiningClassLoader extends ClassLoader {
@@ -72,14 +73,12 @@ public class PrototypeGenerator {
     }
 
     public static class PrototypeImpl implements Prototype {
-        private final ClassType classType;
         private final String className;
         private final byte[] bytecode;
         private final ClassDefiningClassLoader cdcl;
         private final Class<? extends FieldContainer>  cls;
 
-        PrototypeImpl(ClassType classType, String className, byte[] bytecode, ClassDefiningClassLoader cdcl) {
-            this.classType = classType;
+        PrototypeImpl(String className, byte[] bytecode, ClassDefiningClassLoader cdcl) {
             this.className = className;
             this.bytecode = bytecode;
             this.cdcl = cdcl;
@@ -121,7 +120,7 @@ public class PrototypeGenerator {
     private static Class javaTypeFromFieldType(Type type) {
         Class fieldType;
 
-        if (type instanceof ClassType) {
+        if (type instanceof ReferenceType) {
             // reference type
             fieldType = Object.class;
         } else if (type instanceof WordType) {
@@ -138,7 +137,7 @@ public class PrototypeGenerator {
         if (wordType instanceof BooleanType) {
             return boolean.class;
         } else if (wordType instanceof IntegerType) {
-            switch (wordType.getSize()) {
+            switch ((int) wordType.getSize()) {
                 case 1:
                     return byte.class;
                 case 2:
@@ -149,7 +148,7 @@ public class PrototypeGenerator {
                     return long.class;
             }
         } else if (wordType instanceof FloatType) {
-            switch (wordType.getSize()) {
+            switch ((int) wordType.getSize()) {
                 case 4:
                     return float.class;
                 case 8:

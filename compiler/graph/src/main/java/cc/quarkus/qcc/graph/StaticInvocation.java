@@ -12,11 +12,10 @@ public final class StaticInvocation extends AbstractNode implements MethodInvoca
     private final MethodElement target;
     private final List<Value> arguments;
 
-    StaticInvocation(final GraphFactory.Context ctxt, final MethodElement target, final List<Value> arguments) {
+    StaticInvocation(final Node dependency, final MethodElement target, final List<Value> arguments) {
+        this.dependency = dependency;
         this.target = target;
         this.arguments = arguments;
-        this.dependency = ctxt.getDependency();
-        ctxt.setDependency(this);
     }
 
     public MethodElement getInvocationTarget() {

@@ -9,7 +9,7 @@ public final class If extends AbstractNode implements Terminator {
     private final BlockLabel trueBranchLabel;
     private final BlockLabel falseBranchLabel;
 
-    private If(final Node dependency, final Value condition, final BlockLabel trueBranchLabel, final BlockLabel falseBranchLabel) {
+    If(final Node dependency, final Value condition, final BlockLabel trueBranchLabel, final BlockLabel falseBranchLabel) {
         this.dependency = dependency;
         this.condition = condition;
         this.trueBranchLabel = trueBranchLabel;
@@ -62,11 +62,5 @@ public final class If extends AbstractNode implements Terminator {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
-    }
-
-    static void create(GraphFactory.Context ctxt, Value condition, BlockLabel trueBranchLabel, BlockLabel falseBranchLabel) {
-        If if_ = new If(ctxt.getDependency(), condition, trueBranchLabel, falseBranchLabel);
-        ctxt.getCurrentBlock().setTarget(new BasicBlock(if_));
-        ctxt.setCurrentBlock(null);
     }
 }

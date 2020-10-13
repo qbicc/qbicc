@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -22,8 +21,8 @@ final class ResolvedTypeDefinitionImpl implements ResolvedTypeDefinition {
 
     // delegation
 
-    public ClassType getClassType() {
-        return delegate.getClassType();
+    public TypeIdLiteral getTypeId() {
+        return delegate.getTypeId();
     }
 
     public ResolvedTypeDefinition getSuperClass() {
@@ -41,6 +40,10 @@ final class ResolvedTypeDefinitionImpl implements ResolvedTypeDefinition {
 
     public FieldSet getStaticFieldSet() {
         return delegate.getStaticFieldSet();
+    }
+
+    public ClassContext getContext() {
+        return delegate.getContext();
     }
 
     public String getInternalName() {
@@ -85,10 +88,6 @@ final class ResolvedTypeDefinitionImpl implements ResolvedTypeDefinition {
 
     public InitializerElement getInitializer() {
         return delegate.getInitializer();
-    }
-
-    public JavaObject getDefiningClassLoader() {
-        return delegate.getDefiningClassLoader();
     }
 
     public boolean internalNameEquals(final String internalName) {

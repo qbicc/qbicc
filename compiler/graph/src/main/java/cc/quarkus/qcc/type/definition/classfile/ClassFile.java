@@ -3,8 +3,7 @@ package cc.quarkus.qcc.type.definition.classfile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ClassFileUtil;
 import cc.quarkus.qcc.type.definition.ConstructorResolver;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -535,9 +534,9 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
      */
     void accept(DefinedTypeDefinition.Builder builder) throws ClassFormatException;
 
-    static ClassFile of(ByteBuffer orig, JavaObject definingClassLoader) {
+    static ClassFile of(final ClassContext ctxt, ByteBuffer orig) {
         orig.order(ByteOrder.BIG_ENDIAN);
         ByteBuffer buffer = orig.duplicate();
-        return new ClassFileImpl(definingClassLoader, buffer);
+        return new ClassFileImpl(ctxt, buffer);
     }
 }

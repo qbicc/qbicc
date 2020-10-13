@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.graph.ClassType;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
@@ -14,8 +14,12 @@ public abstract class DelegatingVerifiedTypeDefinition extends DelegatingDefined
 
     protected abstract VerifiedTypeDefinition getDelegate();
 
-    public ClassType getClassType() {
-        return getDelegate().getClassType();
+    public TypeIdLiteral getTypeId() {
+        return getDelegate().getTypeId();
+    }
+
+    public ClassContext getContext() {
+        return getDelegate().getContext();
     }
 
     public VerifiedTypeDefinition getSuperClass() {

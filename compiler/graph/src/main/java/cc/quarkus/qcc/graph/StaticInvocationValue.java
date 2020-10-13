@@ -2,21 +2,21 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
  * An invoke instruction which returns a value.
  */
-public final class StaticInvocationValue extends AbstractValue implements MethodInvocation, Value, Triable {
+public final class StaticInvocationValue extends AbstractValue implements MethodInvocation, Triable {
     private final Node dependency;
     private final MethodElement target;
     private final List<Value> arguments;
 
-    StaticInvocationValue(final GraphFactory.Context ctxt, final MethodElement target, final List<Value> arguments) {
+    StaticInvocationValue(final Node dependency, final MethodElement target, final List<Value> arguments) {
+        this.dependency = dependency;
         this.target = target;
         this.arguments = arguments;
-        this.dependency = ctxt.getDependency();
-        ctxt.setDependency(this);
     }
 
     public MethodElement getInvocationTarget() {
@@ -31,7 +31,7 @@ public final class StaticInvocationValue extends AbstractValue implements Method
         return arguments.get(index);
     }
 
-    public Type getType() {
+    public ValueType getType() {
         return target.getReturnType();
     }
 

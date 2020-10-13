@@ -13,10 +13,6 @@ public class SymbolicValueImpl implements SymbolicValue {
         return null;
     }
 
-    public void setConstraint(final Constraint constraint) {
-
-    }
-
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return null;
     }

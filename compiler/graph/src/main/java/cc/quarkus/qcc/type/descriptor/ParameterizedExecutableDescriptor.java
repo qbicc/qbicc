@@ -2,19 +2,19 @@ package cc.quarkus.qcc.type.descriptor;
 
 import java.util.List;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.ValueType;
 
 /**
  *
  */
 public interface ParameterizedExecutableDescriptor {
-    static ParameterizedExecutableDescriptor of(Type... paramTypes) {
+    static ParameterizedExecutableDescriptor of(ValueType... paramTypes) {
         return of(List.of(paramTypes));
     }
 
-    static ParameterizedExecutableDescriptor of(List<Type> paramTypes) {
+    static ParameterizedExecutableDescriptor of(List<ValueType> paramTypes) {
         return new ParameterizedExecutableDescriptor() {
-            public List<Type> getParameterTypes() {
+            public List<ValueType> getParameterTypes() {
                 return paramTypes;
             }
 
@@ -22,12 +22,12 @@ public interface ParameterizedExecutableDescriptor {
                 return paramTypes.size();
             }
 
-            public Type getParameterType(final int index) {
+            public ValueType getParameterType(final int index) {
                 return paramTypes.get(index);
             }
 
-            public Type[] getParameterTypesAsArray() {
-                return paramTypes.toArray(Type[]::new);
+            public ValueType[] getParameterTypesAsArray() {
+                return paramTypes.toArray(ValueType[]::new);
             }
 
             public int hashCode() {
@@ -44,11 +44,11 @@ public interface ParameterizedExecutableDescriptor {
         };
     }
 
-    List<Type> getParameterTypes();
+    List<ValueType> getParameterTypes();
 
     int getParameterCount();
 
-    Type getParameterType(int index);
+    ValueType getParameterType(int index);
 
-    Type[] getParameterTypesAsArray();
+    ValueType[] getParameterTypesAsArray();
 }

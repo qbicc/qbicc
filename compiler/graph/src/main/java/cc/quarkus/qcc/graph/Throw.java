@@ -8,7 +8,7 @@ public final class Throw extends AbstractNode implements Terminator {
     private final Node dependency;
     private final Value thrownValue;
 
-    private Throw(final Node dependency, final Value thrownValue) {
+    Throw(final Node dependency, final Value thrownValue) {
         this.dependency = dependency;
         this.thrownValue = thrownValue;
     }
@@ -35,11 +35,5 @@ public final class Throw extends AbstractNode implements Terminator {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
-    }
-
-    static void create(GraphFactory.Context ctxt, Value thrownValue) {
-        Throw throw_ = new Throw(ctxt.getDependency(), thrownValue);
-        ctxt.getCurrentBlock().setTarget(new BasicBlock(throw_));
-        ctxt.setCurrentBlock(null);
     }
 }

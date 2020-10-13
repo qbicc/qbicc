@@ -4,25 +4,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import cc.quarkus.qcc.graph.ArrayType;
-import cc.quarkus.qcc.graph.ClassType;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingGraphFactory;
 import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.GraphFactory;
 import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 
-final class PatcherGraphFactory extends DelegatingGraphFactory implements GraphFactory {
+final class PatcherGraphFactory extends DelegatingGraphFactory implements BasicBlockBuilder {
     /**
      * A mapping of patch-to-patched class types.
      */
-    private final Map<ClassType, ClassType> patchTypes = new ConcurrentHashMap<>();
+    private final Map<ClassTypeIdLiteral, ClassTypeIdLiteral> patchTypes = new ConcurrentHashMap<>();
     /**
      * A mapping of patch-to-patched fields.
      */
@@ -30,21 +33,37 @@ final class PatcherGraphFactory extends DelegatingGraphFactory implements GraphF
     /**
      * A mapping of patched fields to accessors.
      */
-    private final Map<FieldElement, ClassType> accessors = new ConcurrentHashMap<>();
+    private final Map<FieldElement, ClassTypeIdLiteral> accessors = new ConcurrentHashMap<>();
     /**
      * A mapping of methods to their replacements.
      */
     private final Map<ParameterizedExecutableElement, ParameterizedExecutableElement> patchMethods = new ConcurrentHashMap<>();
+    private final BasicBlockBuilder.Factory.Context ctxt;
 
-    PatcherGraphFactory(final GraphFactory delegate) {
+    PatcherGraphFactory(final Factory.Context ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
+        this.ctxt = ctxt;
     }
 
     @SuppressWarnings("unchecked")
     private <T extends Type> T remapType(T original) {
-        if (original instanceof ClassType) {
-            final ClassType classType = (ClassType) original;
-            return (T) patchTypes.getOrDefault(classType, classType);
+        if (original instanceof ReferenceType) {
+            final ReferenceType classType = (ReferenceType) original;
+            TypeIdLiteral upperBound = classType.getUpperBound();
+            TypeSystem ts = ctxt.getTypeSystem();
+            return (T) ts.getReferenceType(remapTypeId(upperBound));
+        } else {
+            return original;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends TypeIdLiteral> T remapTypeId(T original) {
+        if (original instanceof ClassTypeIdLiteral) {
+            return (T) patchTypes.getOrDefault(original, (ClassTypeIdLiteral) original);
+        } else if (original instanceof ArrayTypeIdLiteral) {
+            ArrayTypeIdLiteral arrayTypeIdLiteral = (ArrayTypeIdLiteral) original;
+            return (T) ctxt.getLiteralFactory().literalOfArrayType(remapType(arrayTypeIdLiteral.getElementType()));
         } else {
             return original;
         }
@@ -54,91 +73,87 @@ final class PatcherGraphFactory extends DelegatingGraphFactory implements GraphF
         return patchMethods.getOrDefault(original, original);
     }
 
-    public Value instanceOf(final Context ctxt, final Value value, final ClassType type) {
-        return super.instanceOf(ctxt, value, remapType(type));
+    public Value new_(final ClassTypeIdLiteral typeId) {
+        return super.new_(remapTypeId(typeId));
     }
 
-    public Value new_(final Context ctxt, final ClassType type) {
-        return super.new_(ctxt, remapType(type));
+    public Value newArray(final ArrayTypeIdLiteral arrayTypeId, final Value size) {
+        return super.newArray(remapTypeId(arrayTypeId), size);
     }
 
-    public Value newArray(final Context ctxt, final ArrayType type, final Value size) {
-        return super.newArray(ctxt, remapType(type), size);
-    }
-
-    public Value readInstanceField(final Context ctxt, final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
-        ClassType accessor = accessors.get(fieldElement);
+    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
+        ClassTypeIdLiteral accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             FieldElement mapped = patchFields.get(fieldElement);
             if (mapped != null) {
-                return readInstanceField(ctxt, instance, mapped, mode);
+                return readInstanceField(instance, mapped, mode);
             } else {
-                return super.readInstanceField(ctxt, instance, fieldElement, mode);
+                return super.readInstanceField(instance, fieldElement, mode);
             }
         }
     }
 
-    public Value readStaticField(final Context ctxt, final FieldElement fieldElement, final JavaAccessMode mode) {
-        ClassType accessor = accessors.get(fieldElement);
+    public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
+        ClassTypeIdLiteral accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             FieldElement mapped = patchFields.get(fieldElement);
             if (mapped != null) {
-                return readStaticField(ctxt, mapped, mode);
+                return readStaticField(mapped, mode);
             } else {
-                return super.readStaticField(ctxt, fieldElement, mode);
+                return super.readStaticField(fieldElement, mode);
             }
         }
     }
 
-    public Node writeInstanceField(final Context ctxt, final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        ClassType accessor = accessors.get(fieldElement);
+    public Node writeInstanceField(final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+        ClassTypeIdLiteral accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             FieldElement mapped = patchFields.get(fieldElement);
             if (mapped != null) {
-                return writeInstanceField(ctxt, instance, mapped, value, mode);
+                return writeInstanceField(instance, mapped, value, mode);
             } else {
-                return super.writeInstanceField(ctxt, instance, fieldElement, value, mode);
+                return super.writeInstanceField(instance, fieldElement, value, mode);
             }
         }
     }
 
-    public Node writeStaticField(final Context ctxt, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        ClassType accessor = accessors.get(fieldElement);
+    public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+        ClassTypeIdLiteral accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             FieldElement mapped = patchFields.get(fieldElement);
             if (mapped != null) {
-                return writeStaticField(ctxt, fieldElement, value, mode);
+                return writeStaticField(fieldElement, value, mode);
             } else {
-                return super.writeStaticField(ctxt, fieldElement, value, mode);
+                return super.writeStaticField(fieldElement, value, mode);
             }
         }
     }
 
-    public Node invokeStatic(final Context ctxt, final MethodElement target, final List<Value> arguments) {
-        return super.invokeStatic(ctxt, (MethodElement) remapMethod(target), arguments);
+    public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
+        return super.invokeStatic((MethodElement) remapMethod(target), arguments);
     }
 
-    public Node invokeInstance(final Context ctxt, final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        return super.invokeInstance(ctxt, kind, instance, (MethodElement) remapMethod(target), arguments);
+    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        return super.invokeInstance(kind, instance, (MethodElement) remapMethod(target), arguments);
     }
 
-    public Value invokeValueStatic(final Context ctxt, final MethodElement target, final List<Value> arguments) {
-        return super.invokeValueStatic(ctxt, (MethodElement) remapMethod(target), arguments);
+    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
+        return super.invokeValueStatic((MethodElement) remapMethod(target), arguments);
     }
 
-    public Value invokeInstanceValueMethod(final Context ctxt, final Value instance, final DispatchInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
-        return super.invokeInstanceValueMethod(ctxt, instance, kind, (MethodElement) remapMethod(target), arguments);
+    public Value invokeInstanceValueMethod(final Value instance, final DispatchInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
+        return super.invokeInstanceValueMethod(instance, kind, (MethodElement) remapMethod(target), arguments);
     }
 
-    public Value invokeConstructor(final Context ctxt, final Value instance, final ConstructorElement target, final List<Value> arguments) {
-        return super.invokeConstructor(ctxt, instance, (ConstructorElement) remapMethod(target), arguments);
+    public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
+        return super.invokeConstructor(instance, (ConstructorElement) remapMethod(target), arguments);
     }
 }

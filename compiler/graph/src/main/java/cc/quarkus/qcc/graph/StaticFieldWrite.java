@@ -11,12 +11,11 @@ public final class StaticFieldWrite extends AbstractNode implements FieldWrite, 
     private final Value value;
     private final JavaAccessMode mode;
 
-    StaticFieldWrite(final GraphFactory.Context ctxt, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+    StaticFieldWrite(final Node dependency, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+        this.dependency = dependency;
         this.fieldElement = fieldElement;
         this.value = value;
         this.mode = mode;
-        this.dependency = ctxt.getDependency();
-        ctxt.setDependency(this);
     }
 
     public FieldElement getFieldElement() {

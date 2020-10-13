@@ -1,13 +1,16 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.ValueType;
+
 /**
  * A caught value.
  */
-public final class Catch extends AbstractValue implements Value, PinnedNode {
+public final class Catch extends AbstractValue implements PinnedNode {
     private final BlockLabel pinnedBlockLabel;
-    private final ClassType throwableType;
+    private final ReferenceType throwableType;
 
-    Catch(final BlockLabel pinnedBlockLabel, final ClassType throwableType) {
+    Catch(final BlockLabel pinnedBlockLabel, final ReferenceType throwableType) {
         this.pinnedBlockLabel = pinnedBlockLabel;
         this.throwableType = throwableType;
     }
@@ -16,7 +19,7 @@ public final class Catch extends AbstractValue implements Value, PinnedNode {
         return pinnedBlockLabel;
     }
 
-    public ClassType getType() {
+    public ValueType getType() {
         return throwableType;
     }
 

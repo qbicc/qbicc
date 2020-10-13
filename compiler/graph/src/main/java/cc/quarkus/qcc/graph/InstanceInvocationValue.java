@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
@@ -14,20 +15,19 @@ public final class InstanceInvocationValue extends AbstractValue implements Inst
     private final MethodElement target;
     private final List<Value> arguments;
 
-    InstanceInvocationValue(final GraphFactory.Context ctxt, final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+    InstanceInvocationValue(final Node dependency, final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        this.dependency = dependency;
         this.kind = kind;
         this.instance = instance;
         this.target = target;
         this.arguments = arguments;
-        this.dependency = ctxt.getDependency();
-        ctxt.setDependency(this);
     }
 
     public MethodElement getInvocationTarget() {
         return target;
     }
 
-    public Type getType() {
+    public ValueType getType() {
         return target.getReturnType();
     }
 

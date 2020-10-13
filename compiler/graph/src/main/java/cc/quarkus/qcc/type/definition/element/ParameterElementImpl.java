@@ -2,7 +2,7 @@ package cc.quarkus.qcc.type.definition.element;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.ValueType;
 import io.smallrye.common.constraint.Assert;
 
 final class ParameterElementImpl extends AbstractAnnotatedElement implements ParameterElement {
@@ -25,7 +25,7 @@ final class ParameterElementImpl extends AbstractAnnotatedElement implements Par
         return index;
     }
 
-    public Type getType() {
+    public ValueType getType() {
         // this is expected to be efficient so we do not need to cache
         return typeResolver.resolveParameterType(typeResolverMethodArg, typeResolverParamArg);
     }

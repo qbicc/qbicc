@@ -2,9 +2,7 @@ package cc.quarkus.qcc.type.definition;
 
 import java.util.function.ObjIntConsumer;
 
-import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.interpreter.JavaClass;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -27,13 +25,7 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
 
     VerifiedTypeDefinition verify() throws VerifyFailedException;
 
-    /**
-     * Get the defining class loader object for this type.  The {@code null} value is used to indicate
-     * the bootstrap class loader.
-     *
-     * @return the defining class loader, or {@code null} for the bootstrap class loader
-     */
-    JavaObject getDefiningClassLoader();
+    ClassContext getContext();
 
     String getInternalName();
 
@@ -117,7 +109,7 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
         }
     }
 
-    default Type resolveFieldType(long argument) throws ResolutionFailedException {
+    default ValueType resolveFieldType(long argument) throws ResolutionFailedException {
         return resolveField((int) argument, this).getType();
     }
 
@@ -138,7 +130,7 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
         }
     }
 
-    default Type resolveParameterType(int methodIdx, int paramIdx) throws ResolutionFailedException {
+    default ValueType resolveParameterType(int methodIdx, int paramIdx) throws ResolutionFailedException {
         return resolveMethod(methodIdx, this).getParameter(paramIdx).getType();
     }
 
@@ -199,9 +191,7 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
     Annotation getInvisibleAnnotation(int index);
 
     interface Builder {
-        void setJavaClass(final JavaClass javaClass);
-
-        void setDefiningClassLoader(JavaObject classLoader);
+        void setContext(ClassContext context);
 
         void setInitializer(InitializerResolver resolver, int index);
 

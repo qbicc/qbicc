@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;

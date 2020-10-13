@@ -2,7 +2,7 @@ package cc.quarkus.qcc.type.definition;
 
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.graph.ClassType;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
@@ -16,14 +16,14 @@ public interface VerifiedTypeDefinition extends DefinedTypeDefinition {
         return this;
     }
 
-    ClassType getClassType();
+    TypeIdLiteral getTypeId();
 
     VerifiedTypeDefinition getSuperClass();
 
     VerifiedTypeDefinition getInterface(int index) throws IndexOutOfBoundsException;
 
     default boolean isSubtypeOf(VerifiedTypeDefinition other) {
-        if (other.getClassType() == this.getClassType()) {
+        if (other.getTypeId() == this.getTypeId()) {
             return true;
         }
         if (hasSuperClass() && getSuperClass().isSubtypeOf(other)) {

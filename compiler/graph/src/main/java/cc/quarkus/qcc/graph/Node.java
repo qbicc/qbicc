@@ -28,7 +28,7 @@ public interface Node {
         throw new IndexOutOfBoundsException(index);
     }
 
-    default Node getSingleDependency(GraphFactory graphFactory, Node defaultValue) {
+    default Node getSingleDependency(BasicBlockBuilder graphFactory, Node defaultValue) {
         int cnt = getValueDependencyCount();
         if (cnt == 0) {
             return defaultValue;

@@ -1,8 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.interpreter.Thrown;
 import cc.quarkus.qcc.type.annotation.Annotation;
@@ -28,8 +26,8 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
 
     // delegations
 
-    public ClassType getClassType() {
-        return delegate.getClassType();
+    public TypeIdLiteral getTypeId() {
+        return delegate.getTypeId();
     }
 
     public PreparedTypeDefinition getSuperClass() {
@@ -67,10 +65,6 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
 
     public InitializerElement getInitializer() {
         return delegate.getInitializer();
-    }
-
-    public JavaObject getDefiningClassLoader() {
-        return delegate.getDefiningClassLoader();
     }
 
     public String getInternalName() {
@@ -141,6 +135,10 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
         return delegate.resolveMethodDescriptor(argument);
     }
 
+    public ClassContext getContext() {
+        return delegate.getContext();
+    }
+
     public InitializedTypeDefinition initialize() throws InitializationFailedException {
         PreparedTypeDefinition initialized = this.initialized;
         if (initialized != null) {
@@ -164,7 +162,7 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
                 this.initializing = initialized = new InitializedTypeDefinitionImpl(this);
                 JavaVM vm = JavaVM.requireCurrent();
                 try {
-                    vm.invokeInitializer(getInitializer());
+                    vm.initialize(getTypeId());
                 } catch (Thrown t) {
                     InitializationFailedException ex = new InitializationFailedException(t);
                     this.initialized = new InitializationFailedDefinitionImpl(this, ex);

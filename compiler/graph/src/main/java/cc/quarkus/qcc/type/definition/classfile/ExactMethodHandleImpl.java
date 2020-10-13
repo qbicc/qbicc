@@ -1,15 +1,16 @@
 package cc.quarkus.qcc.type.definition.classfile;
 
+import static cc.quarkus.qcc.graph.FatValue.*;
+
 import java.nio.ByteBuffer;
 
 import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.graph.GraphFactory;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodHandle;
@@ -74,41 +75,31 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             VerifiedMethodBody vmb;
             MethodElement methodElement = classFile.resolveMethod(index, enclosing);
             int paramCount = methodElement.getParameterCount();
-            if (classFile.compareVersion(50, 0) >= 0) {
-                if (dmb.getStackMapTableOffs() != - 1) {
-                    // verify by type checking
-                    vmb = new TypeCheckedVerifiedMethodBody(dmb, methodElement);
-                } else {
-                    vmb = new SimpleMethodBody(dmb, methodElement);
-                }
-            } else {
-                throw new UnsupportedOperationException("todo");
-            }
-            GraphFactory gf = JavaVM.requireCurrent().createGraphFactory();
-            MethodParser methodParser = new MethodParser(vmb, gf);
+            vmb = new SimpleMethodBody(dmb, methodElement);
+            BasicBlockBuilder gf = JavaVM.requireCurrent().newBasicBlockBuilder();
+            MethodParser methodParser = new MethodParser(enclosing.getContext(), vmb, gf);
             Value[] parameters = new Value[paramCount];
             int j = 0;
             Value thisValue;
             if ((modifiers & ClassFile.ACC_STATIC) == 0) {
                 // instance method or constructor
-                ClassType type = enclosing.verify().getClassType();
-                thisValue = gf.receiver(type);
+                thisValue = gf.receiver(enclosing.verify().getTypeId());
                 methodParser.setLocal(j++, thisValue);
-                assert ! type.isClass2Type();
             } else {
                 thisValue = null;
             }
             for (int i = 0; i < paramCount; i ++) {
-                Type type = methodElement.getParameter(i).getType();
-                methodParser.setLocal(j, parameters[i] = gf.parameter(type, i));
-                j++;
+                ValueType type = methodElement.getParameter(i).getType();
                 if (type.isClass2Type()) {
+                    methodParser.setLocal(++j, parameters[i] = fatten(gf.parameter(type, i)));
+                    j+=2;
+                } else {
+                    methodParser.setLocal(j, parameters[i] = gf.parameter(type, i));
                     j++;
                 }
             }
             BlockLabel entryBlockHandle = new BlockLabel();
-            GraphFactory.Context ctxt = new GraphFactory.Context(entryBlockHandle);
-            methodParser.processNewBlock(byteCode, ctxt);
+            methodParser.processNewBlock(byteCode);
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
             Schedule schedule = Schedule.forMethod(entryBlock);
             return this.resolved = new ResolvedMethodBody(thisValue, parameters, entryBlock, schedule);

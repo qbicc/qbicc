@@ -1,63 +1,42 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.graph.literal.BooleanLiteral;
+
 /**
  * A graph factory which performs simple optimizations opportunistically.
  */
 public class SimpleOptGraphFactory extends DelegatingGraphFactory {
-    public SimpleOptGraphFactory(final GraphFactory delegate) {
+    public SimpleOptGraphFactory(final BasicBlockBuilder delegate) {
         super(delegate);
     }
 
-    public Value arrayLength(final Context ctxt, final Value array) {
+    public Value arrayLength(final Value array) {
         if (array instanceof NewArray) {
             return ((NewArray) array).getSize();
         } else {
-            return getDelegate().arrayLength(ctxt, array);
+            return getDelegate().arrayLength(array);
         }
     }
 
-    public Value if_(final Context ctxt, final Value condition, final Value trueValue, final Value falseValue) {
-        if (condition instanceof ConstantValue) {
-            return ((ConstantValue) condition).isTrue() ? trueValue : falseValue;
+    public Value select(final Value condition, final Value trueValue, final Value falseValue) {
+        if (condition instanceof BooleanLiteral) {
+            return ((BooleanLiteral) condition).booleanValue() ? trueValue : falseValue;
         } else if (trueValue.equals(falseValue)) {
             return trueValue;
         } else {
-            return getDelegate().if_(ctxt, condition, trueValue, falseValue);
+            return getDelegate().select(condition, trueValue, falseValue);
         }
     }
 
-    public Value instanceOf(final Context ctxt, final Value value, final ClassType type) {
-        Type inType = value.getType();
-        if (inType instanceof ReferenceType) {
-            ReferenceType referenceType = (ReferenceType) inType;
-            if (type.isSuperTypeOf(referenceType.getUpperBound())) {
-                // always true
-                return Value.TRUE;
+    public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
+        if (condition instanceof BooleanLiteral) {
+            if (((BooleanLiteral) condition).booleanValue()) {
+                return goto_(trueTarget);
             } else {
-                ClassType lowerBound = referenceType.getLowerBound();
-                if (lowerBound != null && lowerBound.isSuperTypeOf(type) && lowerBound != type) {
-                    // always false
-                    return Value.FALSE;
-                }
-            }
-        }
-        return getDelegate().instanceOf(ctxt, value, type);
-    }
-
-    public BasicBlock if_(final Context ctxt, final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
-        if (condition instanceof ConstantValue) {
-            BlockLabel h = new BlockLabel();
-            if (((ConstantValue) condition).isTrue()) {
-                BasicBlock node = goto_(ctxt, trueTarget);
-                ctxt.setCurrentBlock(h);
-                return node;
-            } else {
-                BasicBlock node = goto_(ctxt, h);
-                ctxt.setCurrentBlock(h);
-                return node;
+                return goto_(falseTarget);
             }
         } else {
-            return getDelegate().if_(ctxt, condition, trueTarget, falseTarget);
+            return getDelegate().if_(condition, trueTarget, falseTarget);
         }
     }
 }

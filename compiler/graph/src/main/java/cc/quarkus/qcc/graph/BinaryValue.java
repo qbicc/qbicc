@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.ValueType;
+
 /**
  *
  */
@@ -7,7 +9,7 @@ public interface BinaryValue extends Value {
     Value getLeftInput();
     Value getRightInput();
 
-    default Type getType() {
+    default ValueType getType() {
         return getLeftInput().getType();
     }
 

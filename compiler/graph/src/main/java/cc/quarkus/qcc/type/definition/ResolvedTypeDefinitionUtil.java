@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterElement;
@@ -33,7 +33,7 @@ final class ResolvedTypeDefinitionUtil {
             return null;
         }
 
-        public Type getReturnType() {
+        public ValueType getReturnType() {
             return null;
         }
 

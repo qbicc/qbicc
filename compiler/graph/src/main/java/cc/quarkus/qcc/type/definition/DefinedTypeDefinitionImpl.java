@@ -5,9 +5,6 @@ import java.lang.invoke.VarHandle;
 import java.util.Arrays;
 import java.util.Objects;
 
-import cc.quarkus.qcc.interpreter.JavaClass;
-import cc.quarkus.qcc.interpreter.JavaObject;
-import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -20,7 +17,7 @@ import io.smallrye.common.constraint.Assert;
  *
  */
 final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
-    private final JavaObject definingClassLoader;
+    private final ClassContext context;
     private final String internalName;
     private final String superClassName;
     private final int modifiers;
@@ -48,7 +45,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private static final Annotation[][][] NO_ANNOTATION_ARRAY_ARRAYS = new Annotation[0][][];
 
     DefinedTypeDefinitionImpl(final BuilderImpl builder) {
-        this.definingClassLoader = builder.definingClassLoader;
+        this.context = builder.context;
         this.internalName = Assert.checkNotNullParam("builder.internalName", builder.internalName);
         this.superClassName = builder.superClassName;
         this.modifiers = builder.modifiers;
@@ -69,6 +66,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         this.invisibleAnnotations = annotationCount == 0 ? Annotation.NO_ANNOTATIONS : Arrays.copyOf(builder.invisibleAnnotations, annotationCount);
         this.initializerResolver = Assert.checkNotNullParam("builder.initializerResolver", builder.initializerResolver);
         this.initializerIndex = builder.initializerIndex;
+    }
+
+    public ClassContext getContext() {
+        return context;
     }
 
     public String getInternalName() {
@@ -110,14 +111,14 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         }
         VerifiedTypeDefinition superType;
         if (superClassName != null) {
-            superType = JavaVM.requireCurrent().loadClass(definingClassLoader, superClassName).verify();
+            superType = context.findDefinedType(superClassName).verify();
         } else {
             superType = null;
         }
         int cnt = getInterfaceCount();
         VerifiedTypeDefinition[] interfaces = new VerifiedTypeDefinition[cnt];
         for (int i = 0; i < cnt; i ++) {
-            interfaces[i] = JavaVM.requireCurrent().loadClass(definingClassLoader, getInterfaceInternalName(i)).verify();
+            interfaces[i] = context.findDefinedType(getInterfaceInternalName(i)).verify();
         }
         cnt = getFieldCount();
         FieldElement[] fields = cnt == 0 ? FieldElement.NO_FIELDS : new FieldElement[cnt];
@@ -151,10 +152,6 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             this.verified = verified;
             return verified.verify();
         }
-    }
-
-    public JavaObject getDefiningClassLoader() {
-        return definingClassLoader;
     }
 
     public int getFieldCount() {
@@ -192,8 +189,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     // internal
 
     static class BuilderImpl implements Builder {
-        JavaObject definingClassLoader;
-        JavaClass javaClass;
+        ClassContext context;
         String internalName;
         String superClassName = "java/lang/Object";
         int modifiers = ClassFile.ACC_SUPER;
@@ -215,8 +211,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int invisibleAnnotationCount;
         Annotation[] invisibleAnnotations;
 
-        public void setJavaClass(final JavaClass javaClass) {
-            this.javaClass = Assert.checkNotNullParam("javaClass", javaClass);
+        public void setContext(final ClassContext context) {
+            this.context = context;
         }
 
         public void setInitializer(final InitializerResolver resolver, final int index) {
@@ -407,10 +403,6 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             }
             annotations[annotationCount] = annotation;
             this.invisibleAnnotationCount = annotationCount + 1;
-        }
-
-        public void setDefiningClassLoader(JavaObject definingClassLoader) {
-            this.definingClassLoader = definingClassLoader;
         }
 
         public void setName(final String internalName) {

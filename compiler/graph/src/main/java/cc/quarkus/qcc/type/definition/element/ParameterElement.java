@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type.definition.element;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ResolutionFailedException;
 
 /**
@@ -11,10 +11,10 @@ public interface ParameterElement extends NamedElement, AnnotatedElement {
 
     int getIndex();
 
-    Type getType();
+    ValueType getType();
 
     interface TypeResolver {
-        Type resolveParameterType(int methodArg, int paramArg) throws ResolutionFailedException;
+        ValueType resolveParameterType(int methodArg, int paramArg) throws ResolutionFailedException;
 
         // todo: generic/annotated type
     }

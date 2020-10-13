@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 
 /**

@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.ConstantValue;
+import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.PinnedNode;
@@ -127,7 +127,7 @@ public interface Schedule {
                     }
                 }
             }
-        } else if (node instanceof ConstantValue) {
+        } else if (node instanceof Literal) {
             // always considered available; do not schedule
             return root;
         } else {

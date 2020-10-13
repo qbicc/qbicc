@@ -2,7 +2,7 @@ package cc.quarkus.qcc.type.definition.element;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import io.smallrye.common.constraint.Assert;
@@ -22,7 +22,7 @@ final class MethodElementImpl extends AbstractParameterizedExecutableElement imp
         virtualMethodBody = builder.virtualMethodBody;
     }
 
-    public Type getReturnType() {
+    public ValueType getReturnType() {
         return getDescriptor().getReturnType();
     }
 

@@ -2,9 +2,8 @@ package cc.quarkus.plugin.patcher.impl;
 
 import java.util.List;
 
-import cc.quarkus.qcc.driver.GraphFactoryPlugin;
 import cc.quarkus.qcc.driver.Plugin;
-import cc.quarkus.qcc.graph.GraphFactory;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
 
 /**
  * The QCC patcher plugin.
@@ -14,19 +13,11 @@ public class PatcherPlugin implements Plugin {
         return "qcc.patcher";
     }
 
-    public List<GraphFactoryPlugin> getGraphFactoryPlugins() {
+    public List<BasicBlockBuilder.Factory> getBasicBlockBuilderFactoryPlugins() {
         return List.of(GRAPH_PLUGIN);
     }
 
     // todo: register a jandex hook of some sort...
 
-    private static final GraphFactoryPlugin GRAPH_PLUGIN = new GraphFactoryPlugin() {
-        public int getPriority() {
-            return 1000;
-        }
-
-        public GraphFactory construct(final GraphFactory delegate) {
-            return new PatcherGraphFactory(delegate);
-        }
-    };
+    private static final BasicBlockBuilder.Factory GRAPH_PLUGIN = PatcherGraphFactory::new;
 }

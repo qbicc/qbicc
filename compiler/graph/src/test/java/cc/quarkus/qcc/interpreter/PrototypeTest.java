@@ -25,7 +25,7 @@ public class PrototypeTest {
 
             defineInitialClass(dictionary, classWithFields);
 
-            DefinedTypeDefinition myClass = dictionary.findClass(classWithFields);
+            DefinedTypeDefinition myClass = dictionary.findDefinedType(classWithFields);
 
             Prototype proto = PrototypeGenerator.getPrototype(myClass);
 
@@ -47,7 +47,7 @@ public class PrototypeTest {
         Context context = new Context(false);
 
         context.run(() -> {
-            Dictionary dictionary = new Dictionary();
+            Dictionary dictionary = new Dictionary(null);
 
             initialize(dictionary);
 

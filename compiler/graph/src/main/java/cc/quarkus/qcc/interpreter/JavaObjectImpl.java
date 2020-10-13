@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.interpreter;
 
-import cc.quarkus.qcc.graph.ClassType;
+import cc.quarkus.qcc.graph.literal.RealTypeIdLiteral;
 import cc.quarkus.qcc.type.definition.FieldContainer;
 import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
 
@@ -13,8 +13,8 @@ class JavaObjectImpl implements JavaObject {
         fields = FieldContainer.forInstanceFieldsOf(definition);
     }
 
-    public ClassType getObjectType() {
-        return definition.getClassType();
+    public RealTypeIdLiteral getObjectType() {
+        return (RealTypeIdLiteral) definition.getTypeId();
     }
 
     FieldContainer getFields() {

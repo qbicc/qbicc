@@ -2,7 +2,7 @@ package cc.quarkus.qcc.type.definition.element;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ResolutionFailedException;
 import io.smallrye.common.constraint.Assert;
 
@@ -10,7 +10,7 @@ final class FieldElementImpl extends AbstractAnnotatedElement implements FieldEl
     private final String name;
     private final TypeResolver typeResolver;
     private final long typeResolverArg;
-    private volatile Type type;
+    private volatile ValueType type;
 
     FieldElementImpl(final Builder builder) {
         super(builder);
@@ -31,8 +31,8 @@ final class FieldElementImpl extends AbstractAnnotatedElement implements FieldEl
         return Objects.equals(this.name, name);
     }
 
-    public Type getType() throws ResolutionFailedException {
-        Type type = this.type;
+    public ValueType getType() throws ResolutionFailedException {
+        ValueType type = this.type;
         if (type == null) {
             this.type = type = typeResolver.resolveFieldType(typeResolverArg);
         }

@@ -1,19 +1,19 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.graph.literal.BlockLiteral;
+
 /**
  *
  */
 public final class Jsr extends AbstractNode implements Resume, Terminator {
     private final Node dependency;
     private final BlockLabel jsrTargetLabel;
-    private final BlockLabel resumeTargetLabel;
-    private final Value returnAddressValue;
+    private final BlockLiteral returnAddress;
 
-    private Jsr(final Node dependency, final BlockLabel jsrTargetLabel, final BlockLabel resumeTargetLabel) {
+    Jsr(final Node dependency, final BlockLabel jsrTargetLabel, final BlockLiteral returnAddress) {
         this.dependency = dependency;
         this.jsrTargetLabel = jsrTargetLabel;
-        this.resumeTargetLabel = resumeTargetLabel;
-        returnAddressValue = Value.const_(resumeTargetLabel);
+        this.returnAddress = returnAddress;
     }
 
     public BlockLabel getJsrTargetLabel() {
@@ -25,11 +25,11 @@ public final class Jsr extends AbstractNode implements Resume, Terminator {
     }
 
     public BlockLabel getResumeTargetLabel() {
-        return resumeTargetLabel;
+        return returnAddress.getBlockLabel();
     }
 
     public Value getReturnAddressValue() {
-        return returnAddressValue;
+        return returnAddress;
     }
 
     public int getBasicDependencyCount() {
@@ -50,11 +50,5 @@ public final class Jsr extends AbstractNode implements Resume, Terminator {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
-    }
-
-    static void create(final GraphFactory.Context ctxt, BlockLabel targetLabel, BlockLabel returnLabel) {
-        Jsr jsr = new Jsr(ctxt.getDependency(), targetLabel, returnLabel);
-        ctxt.getCurrentBlock().setTarget(new BasicBlock(jsr));
-        ctxt.setCurrentBlock(null);
     }
 }

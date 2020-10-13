@@ -2,7 +2,6 @@ package cc.quarkus.qcc.driver;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -10,10 +9,12 @@ import java.util.function.Consumer;
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGenerator;
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGeneratorFactory;
 import cc.quarkus.qcc.context.Context;
-import cc.quarkus.qcc.graph.GraphFactory;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.interpreter.JavaThread;
 import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.type.TypeSystem;
 import io.smallrye.common.constraint.Assert;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 
@@ -63,14 +64,26 @@ public class Driver {
             };
             // ▪ Load and initialize plugins
             List<Plugin> allPlugins = Plugin.findAllPlugins(List.of(classLoader), Set.of());
-            List<GraphFactoryPlugin> graphFactoryPlugins = new ArrayList<>();
+            List<BasicBlockBuilder.Factory> graphFactoryPlugins = new ArrayList<>();
             for (Plugin plugin : allPlugins) {
-                graphFactoryPlugins.addAll(plugin.getGraphFactoryPlugins());
+                graphFactoryPlugins.addAll(plugin.getBasicBlockBuilderFactoryPlugins());
             }
-            graphFactoryPlugins.sort(Comparator.comparingInt(GraphFactoryPlugin::getPriority).thenComparing(a -> a.getClass().getName()).reversed());
-            GraphFactory factory = GraphFactory.BASIC_FACTORY;
-            for (GraphFactoryPlugin graphFactoryPlugin : graphFactoryPlugins) {
-                factory = graphFactoryPlugin.construct(factory);
+            // todo: order
+            // todo: actually configure
+            final TypeSystem typeSystem = TypeSystem.builder().build();
+            final LiteralFactory literalFactory = LiteralFactory.create(typeSystem);
+            BasicBlockBuilder factory = BasicBlockBuilder.simpleBuilder(typeSystem);
+            BasicBlockBuilder.Factory.Context factoryContext = new BasicBlockBuilder.Factory.Context() {
+                public TypeSystem getTypeSystem() {
+                    return typeSystem;
+                }
+
+                public LiteralFactory getLiteralFactory() {
+                    return literalFactory;
+                }
+            };
+            for (BasicBlockBuilder.Factory graphFactoryPlugin : graphFactoryPlugins) {
+                factory = graphFactoryPlugin.construct(factoryContext, factory);
             }
 
             // ▫ Additive section ▫ Classes may be loaded and initialized
@@ -81,7 +94,7 @@ public class Driver {
                     consumer.accept(builder);
                 }
             }
-            builder.setGraphFactory(factory);
+            builder.setGraphFactory((context1, delegate) -> delegate);
             JavaVM javaVM = builder.addBootstrapModules(List.of(javaBase)).build();
             // Initialize the VM
             JavaObject mainThreadGroup = javaVM.getMainThreadGroup();

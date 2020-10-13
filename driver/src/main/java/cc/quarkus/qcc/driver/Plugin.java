@@ -8,6 +8,7 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Consumer;
 
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingGraphFactory;
 import cc.quarkus.qcc.interpreter.JavaVM;
 
@@ -31,7 +32,7 @@ public interface Plugin {
      *
      * @see DelegatingGraphFactory
      */
-    default List<GraphFactoryPlugin> getGraphFactoryPlugins() {
+    default List<BasicBlockBuilder.Factory> getBasicBlockBuilderFactoryPlugins() {
         return List.of();
     }
 

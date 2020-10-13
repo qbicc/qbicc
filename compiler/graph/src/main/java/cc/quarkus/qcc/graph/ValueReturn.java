@@ -7,7 +7,7 @@ public final class ValueReturn extends AbstractNode implements Terminator {
     private final Node dependency;
     private final Value returnValue;
 
-    private ValueReturn(final Node dependency, final Value returnValue) {
+    ValueReturn(final Node dependency, final Value returnValue) {
         this.dependency = dependency;
         this.returnValue = returnValue;
     }
@@ -34,11 +34,5 @@ public final class ValueReturn extends AbstractNode implements Terminator {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
-    }
-
-    static void create(final GraphFactory.Context ctxt, final Value value) {
-        ValueReturn return_ = new ValueReturn(ctxt.getDependency(), value);
-        ctxt.getCurrentBlock().setTarget(new BasicBlock(return_));
-        ctxt.setCurrentBlock(null);
     }
 }

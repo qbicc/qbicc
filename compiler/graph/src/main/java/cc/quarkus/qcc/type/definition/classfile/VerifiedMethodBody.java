@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type.definition.classfile;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**

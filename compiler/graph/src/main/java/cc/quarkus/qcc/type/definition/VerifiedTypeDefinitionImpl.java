@@ -1,10 +1,8 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.graph.InterfaceType;
-import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.interpreter.JavaClass;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -15,9 +13,8 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
  *
  */
 final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
+    private final TypeIdLiteral typeId;
     private final DefinedTypeDefinitionImpl delegate;
-    private final JavaClass javaClass;
-    private final ClassType classType;
     private final VerifiedTypeDefinition superType;
     private final VerifiedTypeDefinition[] interfaces;
     private final FieldElement[] fields;
@@ -37,25 +34,28 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
         this.ctors = ctors;
         this.init = init;
         int interfaceCnt = interfaces.length;
-        InterfaceType[] interfaceTypes = new InterfaceType[interfaceCnt];
+        InterfaceTypeIdLiteral[] interfaceTypes = new InterfaceTypeIdLiteral[interfaceCnt];
         for (int i = 0; i < interfaceCnt; i ++) {
-            ClassType classType = interfaces[i].getClassType();
-            if (! (classType instanceof InterfaceType)) {
-                throw new VerifyFailedException("Type " + classType.getClassName() + " is not an interface");
+            TypeIdLiteral classType = interfaces[i].getTypeId();
+            if (! (classType instanceof InterfaceTypeIdLiteral)) {
+                throw new VerifyFailedException("Type " + getContext().resolveDefinedTypeLiteral(classType).getInternalName() + " is not an interface");
             }
-            interfaceTypes[i] = (InterfaceType) classType;
+            interfaceTypes[i] = (InterfaceTypeIdLiteral) classType;
         }
         if (isInterface()) {
-            classType = Type.interfaceType(this, interfaceTypes);
+            typeId = getContext().getLiteralFactory().literalOfInterface(interfaceTypes);
         } else {
-            classType = Type.classType(this, superType == null ? null : superType.getClassType(), interfaceTypes);
+            typeId = getContext().getLiteralFactory().literalOfClass((ClassTypeIdLiteral) superType.getTypeId(), interfaceTypes);
         }
         instanceFieldSet = new FieldSet(this, false);
         staticFieldSet = new FieldSet(this, true);
-        javaClass = null; // TODO: chicken/egg situation
     }
 
     // delegates
+
+    public ClassContext getContext() {
+        return delegate.getContext();
+    }
 
     public String getInternalName() {
         return delegate.getInternalName();
@@ -87,10 +87,6 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
 
     public boolean interfaceInternalNameEquals(final int index, final String internalName) throws IndexOutOfBoundsException {
         return delegate.interfaceInternalNameEquals(index, internalName);
-    }
-
-    public JavaObject getDefiningClassLoader() {
-        return delegate.getDefiningClassLoader();
     }
 
     public int getFieldCount() {
@@ -127,8 +123,8 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
 
     // local methods
 
-    public ClassType getClassType() {
-        return classType;
+    public TypeIdLiteral getTypeId() {
+        return typeId;
     }
 
     public VerifiedTypeDefinition getSuperClass() {

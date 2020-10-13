@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type.definition.element;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ResolutionFailedException;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -16,7 +16,7 @@ public interface MethodElement extends ExecutableElement, VirtualExecutableEleme
         return hasAllModifiersOf(ClassFile.ACC_ABSTRACT);
     }
 
-    Type getReturnType();
+    ValueType getReturnType();
 
     default boolean overrides(MethodElement other) {
         if (other.getReturnType() == getReturnType()) {

@@ -2,8 +2,8 @@ package cc.quarkus.qcc.type.definition.element;
 
 import java.util.Arrays;
 
-import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 
 abstract class AbstractParameterizedExecutableElement extends AbstractExactExecutableElement implements ParameterizedExecutableElement {
@@ -53,7 +53,7 @@ abstract class AbstractParameterizedExecutableElement extends AbstractExactExecu
 
         ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor() {
             int cnt = this.parameterCount;
-            Type[] types = new Type[cnt];
+            ValueType[] types = new ValueType[cnt];
             for (int i = 0; i < cnt; i ++) {
                 types[i] = parameters[i].getType();
             }

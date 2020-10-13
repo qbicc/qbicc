@@ -22,21 +22,21 @@ import cc.quarkus.qcc.graph.Add;
 import cc.quarkus.qcc.graph.And;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BitCast;
-import cc.quarkus.qcc.graph.BooleanType;
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
+import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.graph.Catch;
-import cc.quarkus.qcc.graph.ClassType;
 import cc.quarkus.qcc.graph.CmpEq;
 import cc.quarkus.qcc.graph.CmpGe;
 import cc.quarkus.qcc.graph.CmpGt;
 import cc.quarkus.qcc.graph.CmpLe;
 import cc.quarkus.qcc.graph.CmpLt;
 import cc.quarkus.qcc.graph.CmpNe;
-import cc.quarkus.qcc.graph.ConstantValue;
+import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.Convert;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Div;
 import cc.quarkus.qcc.graph.Extend;
-import cc.quarkus.qcc.graph.FloatType;
+import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.Mod;
@@ -45,21 +45,22 @@ import cc.quarkus.qcc.graph.Neg;
 import cc.quarkus.qcc.graph.Or;
 import cc.quarkus.qcc.graph.Select;
 import cc.quarkus.qcc.graph.InstanceInvocationValue;
-import cc.quarkus.qcc.graph.IntegerType;
+import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.graph.Shl;
 import cc.quarkus.qcc.graph.Shr;
 import cc.quarkus.qcc.graph.StaticInvocationValue;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Return;
-import cc.quarkus.qcc.graph.SignedIntegerType;
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.graph.Sub;
 import cc.quarkus.qcc.graph.TerminatorVisitor;
 import cc.quarkus.qcc.graph.Truncate;
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.graph.VoidType;
+import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.arch.Platform;
@@ -308,7 +309,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         } else if (type instanceof BooleanType) {
             res = i1;
         } else if (type instanceof IntegerType) {
-            int bytes = ((IntegerType) type).getSize();
+            int bytes = (int) ((IntegerType) type).getSize();
             if (bytes == 1) {
                 res = i8;
             } else if (bytes == 2) {
@@ -321,7 +322,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
                 throw Assert.unreachableCode();
             }
         } else if (type instanceof FloatType) {
-            int bytes = ((FloatType) type).getSize();
+            int bytes = (int) ((FloatType) type).getSize();
             if (bytes == 4) {
                 res = float32;
             } else if (bytes == 8) {
@@ -329,7 +330,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             } else {
                 throw Assert.unreachableCode();
             }
-        } else if (type instanceof ClassType) {
+        } else if (type instanceof ReferenceType) {
             // todo: lower class types to ref types at some earlier point
             res = ptrTo(i8);
         } else {
@@ -684,14 +685,10 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
     };
 
     private Value getValue(final MethodContext cache, final cc.quarkus.qcc.graph.Value input) {
-        if (input instanceof ConstantValue) {
-            if (input.getType() instanceof IntegerType) {
-                // todo: 128 bit integer types, handle signedness
-                return Values.intConstant(((ConstantValue) input).longValue());
-            } else {
-                // todo: floating point constants
-                throw new IllegalStateException();
-            }
+        if (input instanceof IntegerLiteral) {
+            return Values.intConstant(((IntegerLiteral) input).longValue());
+        } else if (input instanceof Literal) {
+            throw Assert.unsupported();
         } else {
             Value value = cache.values.get(input);
             if (value == null) {

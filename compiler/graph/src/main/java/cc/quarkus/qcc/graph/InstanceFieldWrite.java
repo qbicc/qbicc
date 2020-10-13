@@ -12,13 +12,12 @@ public final class InstanceFieldWrite extends AbstractNode implements FieldWrite
     private final Value value;
     private final JavaAccessMode mode;
 
-    InstanceFieldWrite(final GraphFactory.Context ctxt, final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+    InstanceFieldWrite(final Node dependency, final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+        this.dependency = dependency;
         this.instance = instance;
         this.fieldElement = fieldElement;
         this.value = value;
         this.mode = mode;
-        this.dependency = ctxt.getDependency();
-        ctxt.setDependency(this);
     }
 
     public FieldElement getFieldElement() {

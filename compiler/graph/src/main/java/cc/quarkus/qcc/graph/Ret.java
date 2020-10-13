@@ -7,7 +7,7 @@ public final class Ret extends AbstractNode implements Terminator {
     private final Node dependency;
     private final Value returnAddressValue;
 
-    private Ret(final Node dependency, final Value returnAddressValue) {
+    Ret(final Node dependency, final Value returnAddressValue) {
         this.dependency = dependency;
         this.returnAddressValue = returnAddressValue;
     }
@@ -34,11 +34,5 @@ public final class Ret extends AbstractNode implements Terminator {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
-    }
-
-    static void create(final GraphFactory.Context ctxt, final Value address) {
-        Ret ret = new Ret(ctxt.getDependency(), address);
-        ctxt.getCurrentBlock().setTarget(new BasicBlock(ret));
-        ctxt.setCurrentBlock(null);
     }
 }

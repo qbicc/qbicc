@@ -2,19 +2,19 @@ package cc.quarkus.qcc.type.descriptor;
 
 import java.util.List;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.ValueType;
 
 /**
  *
  */
 public interface MethodDescriptor extends ParameterizedExecutableDescriptor {
-    static MethodDescriptor of(ParameterizedExecutableDescriptor pd, Type returnType) {
+    static MethodDescriptor of(ParameterizedExecutableDescriptor pd, ValueType returnType) {
         return new MethodDescriptor() {
-            public Type getReturnType() {
+            public ValueType getReturnType() {
                 return returnType;
             }
 
-            public List<Type> getParameterTypes() {
+            public List<ValueType> getParameterTypes() {
                 return pd.getParameterTypes();
             }
 
@@ -22,11 +22,11 @@ public interface MethodDescriptor extends ParameterizedExecutableDescriptor {
                 return pd.getParameterCount();
             }
 
-            public Type getParameterType(final int index) {
+            public ValueType getParameterType(final int index) {
                 return pd.getParameterType(index);
             }
 
-            public Type[] getParameterTypesAsArray() {
+            public ValueType[] getParameterTypesAsArray() {
                 return pd.getParameterTypesAsArray();
             }
 
@@ -48,7 +48,7 @@ public interface MethodDescriptor extends ParameterizedExecutableDescriptor {
         };
     }
 
-    Type getReturnType();
+    ValueType getReturnType();
 
     ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor();
 }

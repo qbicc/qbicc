@@ -6,14 +6,6 @@ package cc.quarkus.qcc.interpreter;
 public interface JavaArray extends JavaObject {
     int getLength();
 
-    default boolean isArray() {
-        return true;
-    }
-
-    default JavaArray asArray() {
-        return this;
-    }
-
     JavaClass getNestedType();
 
     boolean getArrayBoolean(int index);

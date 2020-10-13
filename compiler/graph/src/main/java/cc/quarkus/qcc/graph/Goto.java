@@ -7,7 +7,7 @@ public final class Goto extends AbstractNode implements Resume {
     private final Node dependency;
     private final BlockLabel targetLabel;
 
-    private Goto(Node dependency, BlockLabel targetLabel) {
+    Goto(Node dependency, BlockLabel targetLabel) {
         this.dependency = dependency;
         this.targetLabel = targetLabel;
     }
@@ -34,11 +34,5 @@ public final class Goto extends AbstractNode implements Resume {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
-    }
-
-    static void create(final GraphFactory.Context ctxt, final BlockLabel targetHandle) {
-        Goto goto_ = new Goto(ctxt.getDependency(), targetHandle);
-        ctxt.getCurrentBlock().setTarget(new BasicBlock(goto_));
-        ctxt.setCurrentBlock(null);
     }
 }

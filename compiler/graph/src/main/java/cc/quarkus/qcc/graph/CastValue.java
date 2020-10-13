@@ -1,12 +1,14 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.ValueType;
+
 /**
  *
  */
 public interface CastValue extends Value {
     Value getInput();
 
-    Type getType();
+    ValueType getType();
 
     default int getValueDependencyCount() {
         return 1;

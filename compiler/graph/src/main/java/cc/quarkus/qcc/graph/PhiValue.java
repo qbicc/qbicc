@@ -2,14 +2,15 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Map;
 
+import cc.quarkus.qcc.type.ValueType;
 import io.smallrye.common.constraint.Assert;
 
-public final class PhiValue extends AbstractValue implements PinnedNode, Value {
+public final class PhiValue extends AbstractValue implements PinnedNode {
     private final Key key = new Key();
-    private final Type type;
+    private final ValueType type;
     private final BlockLabel blockLabel;
 
-    PhiValue(final Type type, final BlockLabel blockLabel) {
+    PhiValue(final ValueType type, final BlockLabel blockLabel) {
         this.type = type;
         this.blockLabel = blockLabel;
     }
@@ -34,7 +35,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode, Value {
         setValueForBlock(BlockLabel.getTargetOf(input), value);
     }
 
-    public Type getType() {
+    public ValueType getType() {
         return type;
     }
 

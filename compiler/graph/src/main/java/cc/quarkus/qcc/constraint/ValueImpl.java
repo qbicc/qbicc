@@ -1,8 +1,8 @@
 package cc.quarkus.qcc.constraint;
 
-import cc.quarkus.qcc.graph.Type;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueVisitor;
+import cc.quarkus.qcc.type.ValueType;
 
 public class ValueImpl implements Value {
 
@@ -36,7 +36,7 @@ public class ValueImpl implements Value {
 
     private Constraint constraint;
 
-    public Type getType() {
+    public ValueType getType() {
         return null;
     }
 

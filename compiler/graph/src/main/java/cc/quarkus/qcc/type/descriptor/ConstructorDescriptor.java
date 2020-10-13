@@ -2,7 +2,7 @@ package cc.quarkus.qcc.type.descriptor;
 
 import java.util.List;
 
-import cc.quarkus.qcc.graph.Type;
+import cc.quarkus.qcc.type.ValueType;
 
 /**
  *
@@ -14,7 +14,7 @@ public interface ConstructorDescriptor extends ParameterizedExecutableDescriptor
                 return pd;
             }
 
-            public List<Type> getParameterTypes() {
+            public List<ValueType> getParameterTypes() {
                 return pd.getParameterTypes();
             }
 
@@ -22,11 +22,11 @@ public interface ConstructorDescriptor extends ParameterizedExecutableDescriptor
                 return pd.getParameterCount();
             }
 
-            public Type getParameterType(final int index) {
+            public ValueType getParameterType(final int index) {
                 return pd.getParameterType(index);
             }
 
-            public Type[] getParameterTypesAsArray() {
+            public ValueType[] getParameterTypesAsArray() {
                 return pd.getParameterTypesAsArray();
             }
 

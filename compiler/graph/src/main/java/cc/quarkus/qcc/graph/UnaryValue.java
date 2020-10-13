@@ -1,12 +1,14 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.ValueType;
+
 /**
  * Unary operations.
  */
 public interface UnaryValue extends Value {
     Value getInput();
 
-    default Type getType() {
+    default ValueType getType() {
         return getInput().getType();
     }
 

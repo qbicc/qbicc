@@ -15,7 +15,7 @@ public final class Switch extends AbstractNode implements Terminator {
     private final BlockLabel[] targetLabels;
     private final Value switchValue;
 
-    private Switch(final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue) {
+    Switch(final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue) {
         this.dependency = dependency;
         this.defaultTargetLabel = defaultTargetLabel;
         // check values to make sure they're in order
@@ -111,11 +111,5 @@ public final class Switch extends AbstractNode implements Terminator {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
-    }
-
-    static void create(final GraphFactory.Context ctxt, final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {
-        Switch switch_ = new Switch(ctxt.getDependency(), defaultTarget, checkValues, targets, value);
-        ctxt.getCurrentBlock().setTarget(new BasicBlock(switch_));
-        ctxt.setCurrentBlock(null);
     }
 }

@@ -5,10 +5,12 @@ import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import cc.quarkus.qcc.graph.ClassType;
-import cc.quarkus.qcc.graph.Type;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.AnnotationValue;
 import cc.quarkus.qcc.type.annotation.BooleanAnnotationValue;
@@ -21,6 +23,7 @@ import cc.quarkus.qcc.type.annotation.IntAnnotationValue;
 import cc.quarkus.qcc.type.annotation.LongAnnotationValue;
 import cc.quarkus.qcc.type.annotation.ShortAnnotationValue;
 import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
+import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ClassFileUtil;
 import cc.quarkus.qcc.type.definition.DefineFailedException;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -44,6 +47,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
                                                                   ParameterElement.TypeResolver {
     private static final VarHandle intArrayHandle = MethodHandles.arrayElementVarHandle(int[].class);
     private static final VarHandle intArrayArrayHandle = MethodHandles.arrayElementVarHandle(int[][].class);
+    private static final VarHandle literalArrayHandle = MethodHandles.arrayElementVarHandle(Literal[].class);
     private static final VarHandle stringArrayHandle = MethodHandles.arrayElementVarHandle(String[].class);
     private static final VarHandle annotationArrayHandle = MethodHandles.arrayElementVarHandle(Annotation[].class);
     private static final VarHandle annotationArrayArrayHandle = MethodHandles.arrayElementVarHandle(Annotation[][].class);
@@ -51,9 +55,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     private static final int[] NO_INTS = new int[0];
     private static final int[][] NO_INT_ARRAYS = new int[0][];
 
-    private final JavaObject definingClassLoader;
     private final int[] cpOffsets;
     private final String[] strings;
+    private final Literal[] literals;
     /**
      * This is the method parameter part of every method descriptor.
      */
@@ -61,7 +65,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     /**
      * This is the type of every field descriptor or the return type of every method descriptor.
      */
-    private final Type[] types;
+    private final ValueType[] types;
     private final int interfacesOffset;
     private final int[] fieldOffsets;
     private final int[][] fieldAttributeOffsets;
@@ -69,9 +73,15 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     private final int[][] methodAttributeOffsets;
     private final int[] attributeOffsets;
     private final int thisClassIdx;
+    private final TypeSystem typeSystem;
+    private final LiteralFactory literalFactory;
+    private final ClassContext ctxt;
 
-    ClassFileImpl(final JavaObject definingClassLoader, final ByteBuffer buffer) {
+    ClassFileImpl(final ClassContext ctxt, final ByteBuffer buffer) {
         super(buffer);
+        this.ctxt = ctxt;
+        typeSystem = ctxt.getTypeSystem();
+        literalFactory = ctxt.getLiteralFactory();
         // scan the file to build up offset tables
         ByteBuffer scanBuf = buffer.duplicate();
         // do some basic pieces of verification
@@ -196,13 +206,13 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         this.fieldAttributeOffsets = fieldAttributeOffsets;
         this.methodOffsets = methodOffsets;
         this.methodAttributeOffsets = methodAttributeOffsets;
-        this.definingClassLoader = definingClassLoader;
         this.attributeOffsets = attributeOffsets;
         this.cpOffsets = cpOffsets;
         this.thisClassIdx = thisClassIdx;
         strings = new String[cpOffsets.length];
+        literals = new Literal[cpOffsets.length];
         methodParamInfo = new ParameterizedExecutableDescriptor[cpOffsets.length];
-        types = new Type[cpOffsets.length];
+        types = new ValueType[cpOffsets.length];
     }
 
     public ClassFile getClassFile() {
@@ -263,6 +273,29 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         }
     }
 
+    public Literal getConstantValue(int idx) {
+        Literal lit = getVolatile(literals, idx);
+        if (lit != null) {
+            return lit;
+        }
+        int constantType = getConstantType(idx);
+        switch (constantType) {
+            case CONSTANT_Class: return setIfNull(literals, idx, resolveSingleType(idx));
+            case CONSTANT_String:
+                return setIfNull(literals, idx, literalFactory.literalOf(getStringConstant(idx)));
+            case CONSTANT_Integer:
+                return setIfNull(literals, idx, literalFactory.literalOf(getIntConstant(idx)));
+            case CONSTANT_Float:
+                return setIfNull(literals, idx, literalFactory.literalOf(getFloatConstant(idx)));
+            case CONSTANT_Long:
+                return setIfNull(literals, idx, literalFactory.literalOf(getLongConstant(idx)));
+            case CONSTANT_Double:
+                return setIfNull(literals, idx, literalFactory.literalOf(getDoubleConstant(idx)));
+            default: {
+                throw new IllegalArgumentException("Unexpected constant type at index " + idx);
+            }
+        }
+    }
     public int getRawConstantByte(final int idx, final int offset) throws IndexOutOfBoundsException {
         int cpOffset = cpOffsets[idx];
         return cpOffset == 0 ? 0 : getByte(cpOffset + offset);
@@ -302,7 +335,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
                 methodParamInfo[descIdx] = vm.getParameterizedExecutableDescriptor();
                 i = 2; // "()"
             } else {
-                Type[] types = new Type[cnt];
+                ValueType[] types = new ValueType[cnt];
                 i = populateTypesArray(descIdx, types, 1, 0) + 1;
                 methodParamInfo[descIdx] = vm.getParameterizedExecutableDescriptor(types);
             }
@@ -363,7 +396,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         }
     }
 
-    int populateTypesArray(int descIdx, Type[] types, int pos, int idx) {
+    int populateTypesArray(int descIdx, ValueType[] types, int pos, int idx) {
         if (idx == types.length) {
             return pos;
         }
@@ -384,13 +417,13 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             }
             case '[': {
                 int res = populateTypesArray(descIdx, types, pos + 1, idx);
-                types[idx] = types[idx].getArrayClassType();
+                types[idx] = typeSystem.getReferenceType(literalFactory.literalOfArrayType(types[idx]));
                 return res;
             }
             case 'L': {
                 int start = ++pos;
                 while (getRawConstantByte(descIdx, 3 + pos++) != ';');
-                types[idx] = loadClass(cpOffsets[descIdx] + 3 + start, pos - start - 1, true);
+                types[idx] = typeSystem.getReferenceType(loadClass(cpOffsets[descIdx] + 3 + start, pos - start - 1, true));
                 break;
             }
             default: {
@@ -400,28 +433,28 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         return populateTypesArray(descIdx, types, pos, idx + 1);
     }
 
-    Type resolveSingleDescriptor(int cpIdx) {
+    ValueType resolveSingleDescriptor(int cpIdx) {
         checkConstantType(cpIdx, CONSTANT_Utf8);
         int cpOffset = cpOffsets[cpIdx];
         return resolveSingleDescriptor(cpOffset + 3, getShort(cpOffset + 1));
     }
 
-    Type forSimpleDescriptor(int ch) {
+    ValueType forSimpleDescriptor(int ch) {
         switch (ch) {
-            case 'B': return Type.S8;
-            case 'C': return Type.U16;
-            case 'D': return Type.F64;
-            case 'F': return Type.F32;
-            case 'I': return Type.S32;
-            case 'J': return Type.S64;
-            case 'S': return Type.S16;
-            case 'V': return Type.VOID;
-            case 'Z': return Type.BOOL;
+            case 'B': return typeSystem.getSignedInteger8Type();
+            case 'C': return typeSystem.getUnsignedInteger16Type();
+            case 'D': return typeSystem.getFloat64Type();
+            case 'F': return typeSystem.getFloat32Type();
+            case 'I': return typeSystem.getSignedInteger32Type();
+            case 'J': return typeSystem.getSignedInteger64Type();
+            case 'S': return typeSystem.getSignedInteger16Type();
+            case 'V': return typeSystem.getVoidType();
+            case 'Z': return typeSystem.getBooleanType();
             default: throw new InvalidTypeDescriptorException("Invalid type descriptor character '" + (char) ch + "'");
         }
     }
 
-    Type resolveSingleDescriptor(final int offs, final int maxLen) {
+    ValueType resolveSingleDescriptor(final int offs, final int maxLen) {
         if (maxLen < 1) {
             throw new InvalidTypeDescriptorException("Invalid empty type descriptor");
         }
@@ -438,12 +471,12 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             case 'Z': return forSimpleDescriptor(b);
             //
             case '[':
-                return resolveSingleDescriptor(offs + 1, maxLen - 1).getArrayClassType();
+                return typeSystem.getReferenceType(literalFactory.literalOfArrayType(resolveSingleDescriptor(offs + 1, maxLen - 1)));
             //
             case 'L': {
                 for (int i = 0; i < maxLen; i ++) {
                     if (getByte(offs + 1 + i) == ';') {
-                        return loadClass(offs + 1, i, true);
+                        return typeSystem.getReferenceType(loadClass(offs + 1, i, true));
                     }
                 }
                 // fall thru
@@ -452,39 +485,27 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         }
     }
 
-    ClassType resolveSingleType(int cpIdx) {
+    TypeIdLiteral resolveSingleType(int cpIdx) {
         int cpOffset = cpOffsets[cpIdx];
         return resolveSingleType(cpOffset + 3, getShort(cpOffset + 1));
     }
 
-    ClassType resolveSingleType(int offs, int maxLen) {
+    TypeIdLiteral resolveSingleType(int offs, int maxLen) {
         return loadClass(offs + 1, maxLen - 1, false);
     }
 
-    ClassType resolveSingleType(String name) {
-        JavaVM vm = JavaVM.requireCurrent();
-        return vm.loadClass(definingClassLoader, name).verify().getClassType();
+    TypeIdLiteral resolveSingleType(String name) {
+        return ctxt.findDefinedType(name).verify().getTypeId();
     }
 
-    public ClassType resolveType() {
+    public TypeIdLiteral resolveType() {
         int nameIdx = getShort(cpOffsets[thisClassIdx] + 1);
         int offset = cpOffsets[nameIdx];
         return loadClass(offset + 3, getShort(offset + 1), false);
     }
 
-    private ClassType loadClass(final int offs, final int len, final boolean expectTerminator) {
-        JavaVM vm = JavaVM.requireCurrent();
-        return vm.loadClass(definingClassLoader, vm.deduplicate(definingClassLoader, buffer, offs, len, expectTerminator)).verify().getClassType();
-    }
-
-    ClassType loadClass(final int classIdx) {
-        int idx = getClassConstantNameIdx(classIdx);
-        int len = getUtf8ConstantLength(idx);
-        // handle arrays specially
-        if (getByte(cpOffsets[idx] + 3) == '[') {
-            return (ClassType) resolveSingleDescriptor(idx);
-        }
-        return loadClass(cpOffsets[idx] + 3, len, false);
+    private TypeIdLiteral loadClass(final int offs, final int len, final boolean expectTerminator) {
+        return ctxt.findDefinedType(ctxt.deduplicate(buffer, offs, len)).verify().getTypeId();
     }
 
     public int getAccess() {
@@ -667,7 +688,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     public void accept(final DefinedTypeDefinition.Builder builder) throws ClassFormatException {
         builder.setName(getName());
-        builder.setDefiningClassLoader(definingClassLoader);
+        builder.setContext(ctxt);
         int access = getAccess();
         builder.setSuperClassName(getSuperClassName());
         int cnt = getInterfaceNameCount();
@@ -785,12 +806,12 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         return builder.build();
     }
 
-    public Type resolveFieldType(final long argument) throws ResolutionFailedException {
+    public ValueType resolveFieldType(final long argument) throws ResolutionFailedException {
         int fo = fieldOffsets[(int) argument];
         return resolveSingleDescriptor(getShort(fo + 4));
     }
 
-    public Type resolveParameterType(final int methodIdx, final int paramIdx) throws ResolutionFailedException {
+    public ValueType resolveParameterType(final int methodIdx, final int paramIdx) throws ResolutionFailedException {
         return getMethodDescriptor(getShort(methodOffsets[methodIdx] + 4)).getParameterType(paramIdx);
     }
 
@@ -917,8 +938,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         if (ch != ';') {
             throw new InvalidTypeDescriptorException("Unterminated annotation type descriptor");
         }
-        JavaVM vm = JavaVM.requireCurrent();
-        String name = vm.deduplicate(definingClassLoader, this.buffer, cpOffsets[typeIndex] + 3, typeLen, true);
+        String name = ctxt.deduplicate(buffer, cpOffsets[typeIndex] + 3, typeLen);
         builder.setClassName(name);
         int cnt = buffer.getShort() & 0xffff;
         for (int i = 0; i < cnt; i ++) {
@@ -983,6 +1003,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     // concurrency
 
+    private static Literal getVolatile(Literal[] array, int index) {
+        return (Literal) literalArrayHandle.getVolatile(array, index);
+    }
+
     private static String getVolatile(String[] array, int index) {
         return (String) stringArrayHandle.getVolatile(array, index);
     }
@@ -1001,6 +1025,16 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     private static Annotation getVolatile(Annotation[] array, int index) {
         return (Annotation) annotationArrayHandle.getVolatile(array, index);
+    }
+
+    private static Literal setIfNull(Literal[] array, int index, Literal newVal) {
+        while (! literalArrayHandle.compareAndSet(array, index, null, newVal)) {
+            Literal appearing = getVolatile(array, index);
+            if (appearing != null) {
+                return appearing;
+            }
+        }
+        return newVal;
     }
 
     private static String setIfNull(String[] array, int index, String newVal) {

@@ -6,7 +6,7 @@ package cc.quarkus.qcc.graph;
 public final class Return extends AbstractNode implements Terminator {
     private final Node dependency;
 
-    private Return(Node dependency) {
+    Return(Node dependency) {
         this.dependency = dependency;
     }
 
@@ -21,11 +21,4 @@ public final class Return extends AbstractNode implements Terminator {
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
-
-    static void create(final GraphFactory.Context ctxt) {
-        Return return_ = new Return(ctxt.getDependency());
-        ctxt.getCurrentBlock().setTarget(new BasicBlock(return_));
-        ctxt.setCurrentBlock(null);
-    }
-
 }

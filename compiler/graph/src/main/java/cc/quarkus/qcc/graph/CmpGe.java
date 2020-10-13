@@ -1,11 +1,13 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.BooleanType;
+
 /**
  *
  */
 public final class CmpGe extends AbstractCmp implements NonCommutativeBinaryValue {
-    CmpGe(final Value v1, final Value v2) {
-        super(v1, v2);
+    CmpGe(final Value v1, final Value v2, final BooleanType booleanType) {
+        super(v1, v2, booleanType);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
