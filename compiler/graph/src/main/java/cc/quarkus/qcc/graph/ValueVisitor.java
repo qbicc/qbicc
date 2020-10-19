@@ -124,6 +124,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, Narrow node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, Neg node) {
         return visitUnknown(param, node);
     }

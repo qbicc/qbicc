@@ -44,4 +44,9 @@ public interface TerminatorVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    // Errors
+
+    default R visit(T param, ClassCastErrorNode node) {
+        return visitUnknown(param, node);
+    }
 }

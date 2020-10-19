@@ -27,6 +27,7 @@ import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockEntry;
 import cc.quarkus.qcc.graph.CastValue;
 import cc.quarkus.qcc.graph.Catch;
+import cc.quarkus.qcc.graph.ClassCastErrorNode;
 import cc.quarkus.qcc.graph.CmpEq;
 import cc.quarkus.qcc.graph.CmpGe;
 import cc.quarkus.qcc.graph.CmpGt;
@@ -50,6 +51,7 @@ import cc.quarkus.qcc.graph.Invocation;
 import cc.quarkus.qcc.graph.Jsr;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.Multiply;
+import cc.quarkus.qcc.graph.Narrow;
 import cc.quarkus.qcc.graph.Neg;
 import cc.quarkus.qcc.graph.New;
 import cc.quarkus.qcc.graph.NewArray;
@@ -105,10 +107,11 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
  * A generator for GraphViz-style {@code dot} representations of the graph of a method, given its entry block.
  */
 public class GraphDotGenerator {
-    public static StringBuilder graph(BasicBlock entryBlock, StringBuilder target) {
+    public static StringBuilder graph(final String label, BasicBlock entryBlock, StringBuilder target) {
         Set<BasicBlock> reachable = entryBlock.calculateReachableBlocks();
         target.append("digraph {\n");
         target.append("rankdir=BT;\n");
+        target.append("label=\"").append("\";\n");
         entryBlock.getTerminator().accept(new OuterVisitor(target), new Visitor(target, reachable));
         target.append("}\n");
         return target;
@@ -155,7 +158,7 @@ public class GraphDotGenerator {
             MethodElement method = definedType.validate().getMethod(methodIdx);
             MethodHandle methodHandle = method.getMethodBody();
             MethodBody methodBody = methodHandle.createMethodBody();
-            String s = graph(methodBody.getEntryBlock(), new StringBuilder()).toString();
+            String s = graph(method.getName() + ":" + method.getDescriptor(), methodBody.getEntryBlock(), new StringBuilder()).toString();
             System.out.println(s);
         }
     }
@@ -260,6 +263,12 @@ public class GraphDotGenerator {
 
         public String visit(final Void param, final ValueReturn node) {
             return node("return", node);
+        }
+
+        // errors
+
+        public String visit(final Void param, final ClassCastErrorNode node) {
+            return node("cast error", node);
         }
 
         // binary ops
@@ -430,6 +439,10 @@ public class GraphDotGenerator {
             return node("trunc", node);
         }
 
+        public String visit(final Void param, final Narrow node) {
+            return node("narrow", node);
+        }
+
         // query
 
         public String visit(final Void param, final ArrayLength node) {
@@ -519,6 +532,7 @@ public class GraphDotGenerator {
             target.append(name).append(' ').append('[');
             appendAttr("label", label).append(',');
             appendAttr("shape", "rectangle").append(',');
+            appendAttr("fixedsize", "shape").append(',');
             appendAttr("style", "filled,rounded");
             target.append(']');
             target.append('\n');
@@ -532,7 +546,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", label).append(',');
-            appendAttr("shape", "circle");
+            appendAttr("shape", "circle").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -545,7 +560,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", label).append(',');
-            appendAttr("shape", "circle");
+            appendAttr("shape", "circle").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -558,7 +574,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", label + " to " + node.getType()).append(',');
-            appendAttr("shape", "circle");
+            appendAttr("shape", "circle").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -571,7 +588,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", label).append(',');
-            appendAttr("shape", "circle");
+            appendAttr("shape", "circle").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -590,7 +608,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", label + "\\n" + node.getInvocationTarget()).append(',');
-            appendAttr("shape", "hexagon");
+            appendAttr("shape", "hexagon").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -603,7 +622,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", "read array").append(',');
-            appendAttr("shape", "trapezium");
+            appendAttr("shape", "trapezium").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -616,7 +636,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", "write array").append(',');
-            appendAttr("shape", "invtrapezium");
+            appendAttr("shape", "invtrapezium").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -629,7 +650,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", "read field \"" + node.getFieldElement().getName() + "\"\\nof " + node.getFieldElement().getEnclosingType().getInternalName()).append(',');
-            appendAttr("shape", "trapezium");
+            appendAttr("shape", "trapezium").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -642,7 +664,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", "write field \"" + node.getFieldElement().getName() + "\"\\nof " + node.getFieldElement().getEnclosingType().getInternalName()).append(',');
-            appendAttr("shape", "invtrapezium");
+            appendAttr("shape", "invtrapezium").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -655,7 +678,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", "new " + node.getInstanceTypeId()).append(',');
-            appendAttr("shape", "house");
+            appendAttr("shape", "house").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -668,7 +692,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", "new array " + node.getElementTypeId()).append(',');
-            appendAttr("shape", "house");
+            appendAttr("shape", "house").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -681,7 +706,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", node.toString()).append(',');
-            appendAttr("shape", "Mcircle");
+            appendAttr("shape", "Mcircle").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             return name;
@@ -691,7 +717,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", "arg" + node.getIndex()).append(',');
-            appendAttr("shape", "Msquare");
+            appendAttr("shape", "Msquare").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             return name;
@@ -701,7 +728,8 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", "this").append(',');
-            appendAttr("shape", "Msquare");
+            appendAttr("shape", "Msquare").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             return name;
@@ -712,7 +740,8 @@ public class GraphDotGenerator {
             target.append(name).append(' ').append('[');
             appendAttr("label", "catch").append(',');
             appendAttr("shape", "trapezium").append(',');
-            appendAttr("style", "diagonals");
+            appendAttr("style", "diagonals").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             return name;
@@ -722,6 +751,7 @@ public class GraphDotGenerator {
             String name = register(node);
             target.append(name).append(' ').append('[');
             appendAttr("label", "φ").append(',');
+            appendAttr("fixedsize", "shape").append(',');
             appendAttr("shape", "circle");
             target.append(']');
             target.append('\n');

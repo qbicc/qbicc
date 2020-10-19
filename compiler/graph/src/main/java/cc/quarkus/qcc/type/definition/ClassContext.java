@@ -67,6 +67,7 @@ public interface ClassContext {
         }
 
         return new Basic() {
+            final ConcurrentHashMap<String, DefinedTypeDefinition> loaded = new ConcurrentHashMap<>();
             final ConcurrentHashMap<String, String> cache = new ConcurrentHashMap<>();
             final TypeSystem ts = TypeSystem.builder().build();
             final LiteralFactory lf = LiteralFactory.create(ts);
@@ -81,18 +82,21 @@ public interface ClassContext {
             }
 
             public DefinedTypeDefinition findDefinedType(final String typeName) {
-                for (JarFile jarFile : jarFiles) {
-                    JarEntry entry = jarFile.getJarEntry(typeName + ".class");
-                    if (entry != null) try {
-                        byte[] content = jarFile.getInputStream(entry).readAllBytes();
-                        DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
-                        ClassFile.of(this, ByteBuffer.wrap(content)).accept(builder);
-                        return builder.build();
-                    } catch (IOException e) {
-                        throw new DefineFailedException(e);
+                return loaded.computeIfAbsent(typeName, name -> {
+                    String nameStr = name + ".class";
+                    for (JarFile jarFile : jarFiles) {
+                        JarEntry entry = jarFile.getJarEntry(nameStr);
+                        if (entry != null) try {
+                            byte[] content = jarFile.getInputStream(entry).readAllBytes();
+                            DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
+                            ClassFile.of(this, ByteBuffer.wrap(content)).accept(builder);
+                            return builder.build();
+                        } catch (IOException e) {
+                            throw new DefineFailedException(e);
+                        }
                     }
-                }
-                return null;
+                    return null;
+                });
             }
 
             public DefinedTypeDefinition resolveDefinedTypeLiteral(final TypeIdLiteral typeId) {

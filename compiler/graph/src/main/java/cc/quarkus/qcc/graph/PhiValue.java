@@ -7,7 +7,7 @@ import io.smallrye.common.constraint.Assert;
 
 public final class PhiValue extends AbstractValue implements PinnedNode {
     private final Key key = new Key();
-    private final ValueType type;
+    private ValueType type;
     private final BlockLabel blockLabel;
 
     PhiValue(final ValueType type, final BlockLabel blockLabel) {
@@ -21,8 +21,8 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
 
     public void setValueForBlock(final BasicBlock input, final Value value) {
         Assert.checkNotNullParam("value", value);
-        if (value.getType() != getType()) {
-            throw new IllegalStateException("Phi type mismatch");
+        if (! value.getType().equals(getType())) {
+            type = value.getType().join(getType());
         }
         Map<Key, Value> ov = input.outboundValues;
         if (ov.containsKey(key)) {

@@ -385,7 +385,7 @@ public interface BasicBlockBuilder {
             }
 
             public Value narrow(final Value value, final TypeIdLiteral toType) {
-                throw Assert.unsupported();
+                return new Narrow(value, typeSystem.getReferenceType(toType));
             }
 
             public Value receiver(final TypeIdLiteral upperBound) {
@@ -546,7 +546,7 @@ public interface BasicBlockBuilder {
             }
 
             public BasicBlock classCastException(final Value fromType, final Value toType) {
-                return null;
+                return terminate(requireCurrentBlock(), new ClassCastErrorNode(dependency, fromType, toType));
             }
 
             public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {

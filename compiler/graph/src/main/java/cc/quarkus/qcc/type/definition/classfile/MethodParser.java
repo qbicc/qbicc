@@ -28,7 +28,6 @@ import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
@@ -340,7 +339,7 @@ final class MethodParser {
                 case OP_NOP:
                     break;
                 case OP_ACONST_NULL:
-                    push(lf.literalOf((JavaObject) null));
+                    push(lf.literalOfNull());
                     break;
                 case OP_ICONST_M1:
                 case OP_ICONST_0:
@@ -1054,10 +1053,10 @@ final class MethodParser {
                     return;
                 case OP_CHECKCAST: {
                     TypeIdLiteral expected = getConstantValue(buffer.getShort() & 0xffff, TypeIdLiteral.class);
-                    v1 = pop1();
+                    v1 = peek();
                     BlockLabel okHandle = new BlockLabel();
                     BlockLabel notNullHandle = new BlockLabel();
-                    gf.if_(gf.cmpEq(v1, lf.literalOf((JavaObject) null)), okHandle, notNullHandle);
+                    gf.if_(gf.cmpEq(v1, lf.literalOfNull()), okHandle, notNullHandle);
                     gf.begin(notNullHandle);
                     BlockLabel castFailedHandle = new BlockLabel();
                     v2 = gf.typeIdOf(v1);
@@ -1106,10 +1105,10 @@ final class MethodParser {
                     push(gf.multiNewArray(getConstantValue(cpIdx, ArrayTypeIdLiteral.class), dims));
                     break;
                 case OP_IFNULL:
-                    processIf(buffer, gf.cmpEq(pop(), lf.literalOf((JavaObject) null)), buffer.getShort() + src, buffer.position());
+                    processIf(buffer, gf.cmpEq(pop(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IFNONNULL:
-                    processIf(buffer, gf.cmpNe(pop(), lf.literalOf((JavaObject) null)), buffer.getShort() + src, buffer.position());
+                    processIf(buffer, gf.cmpNe(pop(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
                     return;
                 default:
                     throw new InvalidByteCodeException();

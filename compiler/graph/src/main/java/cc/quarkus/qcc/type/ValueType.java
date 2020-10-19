@@ -59,6 +59,14 @@ public abstract class ValueType extends Type {
         return this == other || super.equals(other) && isConst() == other.isConst();
     }
 
+    public ValueType join(final ValueType other) {
+        boolean const_ = isConst() || other.isConst();
+        if (asConst() == other.asConst()) {
+            return const_ ? asConst() : this;
+        }
+        throw new IllegalArgumentException("Types " + this + " and " + other + " do not join");
+    }
+
     public StringBuilder toString(final StringBuilder b) {
         if (! isComplete()) b.append("incomplete ");
         if (isConst()) b.append("const ");

@@ -56,7 +56,26 @@ public final class ReferenceType extends ValueType {
         return this == other || other != null && size == other.size && align == other.align && upperBound.equals(other.upperBound);
     }
 
+    public ValueType join(final ValueType other) {
+        if (other instanceof ReferenceType) {
+            return join(((ReferenceType) other));
+        } else {
+            return super.join(other);
+        }
+    }
+
+    public ReferenceType join(final ReferenceType other) {
+        boolean const_ = isConst() || other.isConst();
+        if (upperBound.isSupertypeOf(other.upperBound)) {
+            return const_ ? this.asConst() : this;
+        } else if (upperBound.isSubtypeOf(other.upperBound)) {
+            return const_ ? other.asConst() : other;
+        } else {
+            return (ReferenceType) super.join(other);
+        }
+    }
+
     public StringBuilder toString(final StringBuilder b) {
-        return super.toString(b).append("reference");
+        return super.toString(b).append("reference(").append(upperBound).append(")");
     }
 }
