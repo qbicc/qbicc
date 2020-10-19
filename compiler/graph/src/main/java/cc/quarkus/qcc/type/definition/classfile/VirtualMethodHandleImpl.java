@@ -19,7 +19,7 @@ final class VirtualMethodHandleImpl implements MethodHandle {
         throw new UnsupportedOperationException();
     }
 
-    public MethodBody getResolvedMethodBody() throws ResolutionFailedException {
+    public MethodBody createMethodBody() throws ResolutionFailedException {
         throw new UnsupportedOperationException();
     }
 }

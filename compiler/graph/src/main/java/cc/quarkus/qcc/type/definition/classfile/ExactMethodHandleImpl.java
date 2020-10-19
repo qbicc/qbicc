@@ -61,7 +61,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
         return classFile.resolveMethod(index, enclosing).getParameterCount();
     }
 
-    public MethodBody getResolvedMethodBody() throws ResolutionFailedException {
+    public MethodBody createMethodBody() throws ResolutionFailedException {
         MethodBody resolved = this.resolved;
         if (resolved != null) {
             return resolved;
@@ -71,13 +71,11 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             if (resolved != null) {
                 return resolved;
             }
-            DefinedMethodBody dmb = new DefinedMethodBody(classFile, modifiers, index, getBackingBuffer().duplicate());
-            VerifiedMethodBody vmb;
+            ClassMethodInfo classMethodInfo = new ClassMethodInfo(classFile, modifiers, index, getBackingBuffer().duplicate());
             MethodElement methodElement = classFile.resolveMethod(index, enclosing);
             int paramCount = methodElement.getParameterCount();
-            vmb = new SimpleMethodBody(dmb, methodElement);
             BasicBlockBuilder gf = JavaVM.requireCurrent().newBasicBlockBuilder();
-            MethodParser methodParser = new MethodParser(enclosing.getContext(), vmb, gf);
+            MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, gf);
             Value[] parameters = new Value[paramCount];
             int j = 0;
             Value thisValue;
@@ -102,7 +100,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             methodParser.processNewBlock(byteCode);
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
             Schedule schedule = Schedule.forMethod(entryBlock);
-            return this.resolved = new ResolvedMethodBody(thisValue, parameters, entryBlock, schedule);
+            return this.resolved = MethodBody.of(entryBlock, schedule, thisValue, parameters);
         }
     }
 }

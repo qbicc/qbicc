@@ -2,7 +2,7 @@ package cc.quarkus.qcc.type.definition.classfile;
 
 import static cc.quarkus.qcc.graph.FatValue.*;
 import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
-import static cc.quarkus.qcc.type.definition.classfile.DefinedMethodBody.*;
+import static cc.quarkus.qcc.type.definition.classfile.ClassMethodInfo.*;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -46,7 +46,7 @@ import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 final class MethodParser {
-    final VerifiedMethodBody verifiedMethodBody;
+    final ClassMethodInfo info;
     final Value[] stack;
     final Value[] locals;
     final BlockLabel[] blockHandles;
@@ -59,15 +59,14 @@ final class MethodParser {
     int sp;
     BlockLabel currentBlockHandle;
 
-    MethodParser(final ClassContext ctxt, final VerifiedMethodBody verifiedMethodBody, final BasicBlockBuilder graphFactory) {
+    MethodParser(final ClassContext ctxt, final ClassMethodInfo info, final BasicBlockBuilder graphFactory) {
         this.ctxt = ctxt;
         lf = ctxt.getLiteralFactory();
         ts = ctxt.getTypeSystem();
-        this.verifiedMethodBody = verifiedMethodBody;
-        DefinedMethodBody definedBody = verifiedMethodBody.getDefinedBody();
-        stack = new Value[definedBody.getMaxStack()];
-        locals = new Value[definedBody.getMaxLocals()];
-        int cnt = definedBody.getEntryPointCount();
+        this.info = info;
+        stack = new Value[info.getMaxStack()];
+        locals = new Value[info.getMaxLocals()];
+        int cnt = info.getEntryPointCount();
         BlockLabel[] blockHandles = new BlockLabel[cnt];
         int dest = -1;
         // make a "canonical" node handle for each block
@@ -215,7 +214,7 @@ final class MethodParser {
     }
 
     BlockLabel getBlockForIndex(int target) {
-        int idx = verifiedMethodBody.getDefinedBody().getEntryPointIndex(target);
+        int idx = info.getEntryPointIndex(target);
         if (idx < 0) {
             throw new IllegalStateException("Block not found");
         }
@@ -321,11 +320,11 @@ final class MethodParser {
         int opcode;
         int src;
         boolean wide;
-        DefinedMethodBody definedBody = verifiedMethodBody.getDefinedBody();
+        ClassMethodInfo info = this.info;
         while (buffer.hasRemaining()) {
             src = buffer.position();
             gf.setBytecodeIndex(src);
-            gf.setLineNumber(definedBody.getLineNumber(src));
+            gf.setLineNumber(info.getLineNumber(src));
             opcode = buffer.get() & 0xff;
             wide = opcode == OP_WIDE;
             if (wide) {
@@ -1110,8 +1109,8 @@ final class MethodParser {
                     throw new InvalidByteCodeException();
             }
             // now check to see if the new position is an entry point
-            int epIdx = definedBody.getEntryPointIndex(buffer.position());
-            if (epIdx >= 0 && definedBody.getEntryPointSourceCount(epIdx) > 1) {
+            int epIdx = info.getEntryPointIndex(buffer.position());
+            if (epIdx >= 0 && info.getEntryPointSourceCount(epIdx) > 1) {
                 // two or more blocks enter here; start a new block via goto
                 processBlock(buffer, gf.goto_(blockHandles[epIdx]));
                 return;
@@ -1145,7 +1144,7 @@ final class MethodParser {
     }
 
     private ClassFileImpl getClassFile() {
-        return verifiedMethodBody.getDefinedBody().getClassFile();
+        return info.getClassFile();
     }
 
     private Type getTypeOfFieldRef(final int fieldRef) {

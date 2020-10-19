@@ -279,7 +279,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             // nothing to do
             return;
         }
-        MethodBody methodBody = methodHandle.getResolvedMethodBody();
+        MethodBody methodBody = methodHandle.createMethodBody();
         BasicBlock entryBlock = methodBody.getEntryBlock();
         Set<BasicBlock> reachableBlocks = entryBlock.calculateReachableBlocks();
         Schedule schedule = Schedule.forMethod(entryBlock);

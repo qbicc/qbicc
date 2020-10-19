@@ -5,10 +5,12 @@ import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import cc.quarkus.qcc.type.Type;
+
 /**
- * The defined method body content, before verification.
+ * The defined method information.
  */
-final class DefinedMethodBody {
+final class ClassMethodInfo {
     private static final short[] NO_SHORTS = new short[0];
 
     private final ClassFileImpl classFile;
@@ -45,7 +47,9 @@ final class DefinedMethodBody {
     private final int invisibleTypeAnnotationsOffs;
     private final int invisibleTypeAnnotationsLen;
 
-    DefinedMethodBody(final ClassFileImpl classFile, final int modifiers, final int index, final ByteBuffer codeAttr) {
+    private final Type[][] variableTypes;
+
+    ClassMethodInfo(final ClassFileImpl classFile, final int modifiers, final int index, final ByteBuffer codeAttr) {
         this.classFile = classFile;
         this.modifiers = modifiers;
         this.index = index;
@@ -307,6 +311,19 @@ final class DefinedMethodBody {
         this.invisibleTypeAnnotationsLen = invisibleTypeAnnotationsLen;
         this.entryPoints = entryPoints;
         codeAttr.position(save);
+        Type[][] variableTypes1 = new Type[maxLocals][];
+        for (int i = 0; i < maxLocals; i ++) {
+            int cnt = getLocalVarEntryCount(i);
+            Type[] array = variableTypes1[i] = new Type[cnt];
+            for (int j = 0; j < cnt; j ++) {
+                int idx = getLocalVarDescriptorIndex(i, j);
+                if (idx == 0) {
+                    throw new MissingLocalVariableDescriptorException();
+                }
+                array[j] = classFile.resolveSingleDescriptor(idx);
+            }
+        }
+        this.variableTypes = variableTypes1;
     }
 
     private void skipInstruction(final ByteBuffer codeAttr, final int opcode) {

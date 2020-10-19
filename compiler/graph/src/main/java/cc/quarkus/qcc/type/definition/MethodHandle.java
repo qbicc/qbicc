@@ -9,5 +9,5 @@ public interface MethodHandle {
 
     int getParameterCount();
 
-    MethodBody getResolvedMethodBody() throws ResolutionFailedException;
+    MethodBody createMethodBody() throws ResolutionFailedException;
 }

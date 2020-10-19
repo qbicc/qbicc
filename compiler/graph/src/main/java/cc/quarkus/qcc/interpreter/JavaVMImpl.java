@@ -333,7 +333,7 @@ final class JavaVMImpl implements JavaVM {
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
         }
-        invokeWith(exactHandle.getResolvedMethodBody(), instance, args);
+        invokeWith(exactHandle.createMethodBody(), instance, args);
     }
 
     public Object invokeExact(final MethodElement method, final JavaObject instance, final Object... args) {
@@ -345,7 +345,7 @@ final class JavaVMImpl implements JavaVM {
             }
             throw new IllegalArgumentException("Method has no body");
         }
-        return invokeWith(exactHandle.getResolvedMethodBody(), instance, args);
+        return invokeWith(exactHandle.createMethodBody(), instance, args);
     }
 
     public void initialize(final TypeIdLiteral typeId) {
@@ -357,11 +357,11 @@ final class JavaVMImpl implements JavaVM {
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
         }
-        return invokeWith(exactHandle.getResolvedMethodBody(), instance, args);
+        return invokeWith(exactHandle.createMethodBody(), instance, args);
     }
 
     public Object invoke(final MethodHandle handle, final JavaObject instance, final Object... args) {
-        return invokeWith(handle.getResolvedMethodBody(), instance, args);
+        return invokeWith(handle.createMethodBody(), instance, args);
     }
 
     private Object invokeWith(final MethodBody methodBody, final JavaObject instance, final Object... args) {
