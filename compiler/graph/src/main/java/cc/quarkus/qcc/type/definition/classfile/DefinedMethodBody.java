@@ -4,7 +4,6 @@ import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.NoSuchElementException;
 
 /**
  * The defined method body content, before verification.
@@ -89,6 +88,10 @@ final class DefinedMethodBody {
                     int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
                         entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
+                        if (opcode == OP_JSR) {
+                            // bump it again to support multi-ret blocks
+                            entryPoints[(idx << 1) + 1]++;
+                        }
                     }
                     //goto case OP_GOTO;
                 }
@@ -106,6 +109,8 @@ final class DefinedMethodBody {
                     int idx = findEntryPoint(entryPoints, entryPointLen, target);
                     if (idx < 0) {
                         entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
+                        // bump it again to support multi-ret blocks
+                        entryPoints[(idx << 1) + 1]++;
                     }
                     //goto case OP_GOTO_W;
                 }
