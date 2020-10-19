@@ -34,6 +34,10 @@ public final class InterfaceTypeIdLiteral extends TypeIdLiteral {
         return false;
     }
 
+    public String getInternalName() {
+        return typeName;
+    }
+
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }

@@ -30,6 +30,10 @@ public final class ClassTypeIdLiteral extends RealTypeIdLiteral {
         return false;
     }
 
+    public String getInternalName() {
+        return typeName;
+    }
+
     public boolean isClass() {
         return true;
     }
