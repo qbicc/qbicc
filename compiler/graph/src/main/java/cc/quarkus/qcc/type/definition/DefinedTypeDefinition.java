@@ -23,7 +23,7 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
                                                ParameterElement.TypeResolver,
                                                InitializerResolver {
 
-    VerifiedTypeDefinition verify() throws VerifyFailedException;
+    ValidatedTypeDefinition validate() throws VerifyFailedException;
 
     ClassContext getContext();
 
@@ -114,7 +114,7 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
     }
 
     default FieldElement resolveField(int index, final DefinedTypeDefinition enclosing) {
-        return verify().getField(index);
+        return validate().getField(index);
     }
 
     // ==================
@@ -135,7 +135,7 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
     }
 
     default MethodElement resolveMethod(int index, final DefinedTypeDefinition enclosing) {
-        return verify().getMethod(index);
+        return validate().getMethod(index);
     }
 
     default MethodDescriptor resolveMethodDescriptor(int argument) throws ResolutionFailedException {
@@ -163,7 +163,7 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
     }
 
     default ConstructorElement resolveConstructor(int index, final DefinedTypeDefinition enclosing) {
-        return verify().getConstructor(index);
+        return validate().getConstructor(index);
     }
 
     default ConstructorDescriptor resolveConstructorDescriptor(int argument) throws ResolutionFailedException {
@@ -175,7 +175,7 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
     // ==================
 
     default InitializerElement resolveInitializer(int index, final DefinedTypeDefinition enclosing) {
-        return verify().getInitializer();
+        return validate().getInitializer();
     }
 
     // ==================

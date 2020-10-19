@@ -12,11 +12,11 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 /**
  *
  */
-final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
+final class ValidatedTypeDefinitionImpl implements ValidatedTypeDefinition {
     private final TypeIdLiteral typeId;
     private final DefinedTypeDefinitionImpl delegate;
-    private final VerifiedTypeDefinition superType;
-    private final VerifiedTypeDefinition[] interfaces;
+    private final ValidatedTypeDefinition superType;
+    private final ValidatedTypeDefinition[] interfaces;
     private final FieldElement[] fields;
     private final MethodElement[] methods;
     private final ConstructorElement[] ctors;
@@ -25,7 +25,7 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
     private final FieldSet instanceFieldSet;
     private volatile ResolvedTypeDefinition resolved;
 
-    VerifiedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final VerifiedTypeDefinition superType, final VerifiedTypeDefinition[] interfaces, final FieldElement[] fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init) {
+    ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final FieldElement[] fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init) {
         this.delegate = delegate;
         this.superType = superType;
         this.interfaces = interfaces;
@@ -127,11 +127,11 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
         return typeId;
     }
 
-    public VerifiedTypeDefinition getSuperClass() {
+    public ValidatedTypeDefinition getSuperClass() {
         return superType;
     }
 
-    public VerifiedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
+    public ValidatedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
         return interfaces[index];
     }
 
@@ -166,7 +166,7 @@ final class VerifiedTypeDefinitionImpl implements VerifiedTypeDefinition {
         if (resolved != null) {
             return resolved;
         }
-        VerifiedTypeDefinition superClass = getSuperClass();
+        ValidatedTypeDefinition superClass = getSuperClass();
         if (superClass != null) {
             superClass.resolve();
         }

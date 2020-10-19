@@ -12,7 +12,7 @@ public abstract class DelegatingPreparedTypeDefinition extends DelegatingResolve
         return this;
     }
 
-    public PreparedTypeDefinition verify() {
+    public PreparedTypeDefinition validate() {
         return this;
     }
 

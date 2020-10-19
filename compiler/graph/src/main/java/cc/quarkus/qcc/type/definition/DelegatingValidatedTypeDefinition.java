@@ -9,10 +9,10 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 /**
  *
  */
-public abstract class DelegatingVerifiedTypeDefinition extends DelegatingDefinedTypeDefinition implements VerifiedTypeDefinition {
-    protected DelegatingVerifiedTypeDefinition() {}
+public abstract class DelegatingValidatedTypeDefinition extends DelegatingDefinedTypeDefinition implements ValidatedTypeDefinition {
+    protected DelegatingValidatedTypeDefinition() {}
 
-    protected abstract VerifiedTypeDefinition getDelegate();
+    protected abstract ValidatedTypeDefinition getDelegate();
 
     public TypeIdLiteral getTypeId() {
         return getDelegate().getTypeId();
@@ -22,11 +22,11 @@ public abstract class DelegatingVerifiedTypeDefinition extends DelegatingDefined
         return getDelegate().getContext();
     }
 
-    public VerifiedTypeDefinition getSuperClass() {
+    public ValidatedTypeDefinition getSuperClass() {
         return getDelegate().getSuperClass();
     }
 
-    public VerifiedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
+    public ValidatedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
         return getDelegate().getInterface(index);
     }
 
@@ -38,7 +38,7 @@ public abstract class DelegatingVerifiedTypeDefinition extends DelegatingDefined
         return getDelegate().getStaticFieldSet();
     }
 
-    public VerifiedTypeDefinition verify() {
+    public ValidatedTypeDefinition validate() {
         return this;
     }
 

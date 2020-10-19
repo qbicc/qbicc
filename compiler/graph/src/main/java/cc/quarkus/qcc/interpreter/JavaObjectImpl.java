@@ -2,13 +2,13 @@ package cc.quarkus.qcc.interpreter;
 
 import cc.quarkus.qcc.graph.literal.RealTypeIdLiteral;
 import cc.quarkus.qcc.type.definition.FieldContainer;
-import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 
 class JavaObjectImpl implements JavaObject {
-    final VerifiedTypeDefinition definition;
+    final ValidatedTypeDefinition definition;
     final FieldContainer fields;
 
-    JavaObjectImpl(final VerifiedTypeDefinition definition) {
+    JavaObjectImpl(final ValidatedTypeDefinition definition) {
         this.definition = definition;
         fields = FieldContainer.forInstanceFieldsOf(definition);
     }

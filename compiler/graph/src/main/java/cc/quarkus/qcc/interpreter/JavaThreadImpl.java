@@ -15,7 +15,7 @@ final class JavaThreadImpl implements JavaThread {
 
     JavaThreadImpl(final String threadName, final JavaObject threadGroup, final boolean daemon, final JavaVMImpl vm) {
         this.vm = vm;
-        instance = new JavaObjectImpl(vm.threadClass.verify());
+        instance = new JavaObjectImpl(vm.threadClass.validate());
         // todo: initialize thread fields...
     }
 

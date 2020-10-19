@@ -9,7 +9,7 @@ import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.FieldContainer;
-import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 
@@ -29,7 +29,7 @@ public class PrototypeGenerator {
     }
 
     private static Prototype generate(DefinedTypeDefinition defined) {
-        VerifiedTypeDefinition verified = defined.verify();
+        ValidatedTypeDefinition verified = defined.validate();
         TypeIdLiteral classType = verified.getTypeId();
         String className = verified.getInternalName();
 

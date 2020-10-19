@@ -36,7 +36,7 @@ public class Dictionary implements ClassContext {
         if (loaded == null) {
             loaded = vm.loadClass(classLoader, name);
             typesByName.put(name, loaded);
-            typesByLiteral.put(loaded.verify().getTypeId(), loaded);
+            typesByLiteral.put(loaded.validate().getTypeId(), loaded);
         }
         return loaded;
     }

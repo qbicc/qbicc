@@ -13,12 +13,12 @@ import io.smallrye.common.constraint.Assert;
 /**
  *
  */
-public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
+public interface ResolvedTypeDefinition extends ValidatedTypeDefinition {
     // ==================
     // Lifecycle
     // ==================
 
-    default ResolvedTypeDefinition verify() {
+    default ResolvedTypeDefinition validate() {
         return this;
     }
 
@@ -215,7 +215,7 @@ public interface ResolvedTypeDefinition extends VerifiedTypeDefinition {
         // specified by the interface method reference, which has its ACC_PUBLIC flag set
         // and does not have its ACC_STATIC flag set, method lookup succeeds.
         if (! virtualOnly) {
-            ResolvedTypeDefinition object = JavaVM.currentThread().getVM().getObjectTypeDefinition().verify().resolve();
+            ResolvedTypeDefinition object = JavaVM.currentThread().getVM().getObjectTypeDefinition().validate().resolve();
             result = object.findMethodIndex(name, descriptor);
             if (result != -1) {
                 MethodElement method = object.getMethod(result);

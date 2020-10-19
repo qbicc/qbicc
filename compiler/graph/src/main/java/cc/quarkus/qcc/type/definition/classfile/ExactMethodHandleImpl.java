@@ -83,7 +83,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             Value thisValue;
             if ((modifiers & ClassFile.ACC_STATIC) == 0) {
                 // instance method or constructor
-                thisValue = gf.receiver(enclosing.verify().getTypeId());
+                thisValue = gf.receiver(enclosing.validate().getTypeId());
                 methodParser.setLocal(j++, thisValue);
             } else {
                 thisValue = null;

@@ -269,7 +269,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
     void compileMethod(final ParameterizedExecutableElement definition, final boolean virtual) {
         ArrayDeque<MethodElement> mq = methodQueue;
         Module module = this.module;
-        final FunctionDefinition func = getMethod(definition.getEnclosingType().verify().resolve(), definition).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL);
+        final FunctionDefinition func = getMethod(definition.getEnclosingType().validate().resolve(), definition).callingConvention(CallingConvention.C).linkage(Linkage.EXTERNAL);
         int idx = 0;
         if (virtual) {
             throw new UnsupportedOperationException("Virtual dispatch");
@@ -504,7 +504,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         public Value visit(final MethodContext param, final InstanceInvocationValue node) {
             MethodElement target = node.getInvocationTarget();
             Type returnType = target.getReturnType();
-            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, target.getEnclosingType().verify().resolve(), target, node.getKind()));
+            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, target.getEnclosingType().validate().resolve(), target, node.getKind()));
             param.values.put(node, call.asLocal());
             cc.quarkus.qcc.graph.Value instance = node.getInstance();
             call.arg(typeOf(instance.getType()), getValue(param, instance));
@@ -519,7 +519,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         public Value visit(final MethodContext param, final StaticInvocationValue node) {
             MethodElement target = node.getInvocationTarget();
             Type returnType = target.getReturnType();
-            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, target.getEnclosingType().verify().resolve(), target, DispatchInvocation.Kind.EXACT));
+            Call call = getBlock(param, node).call(typeOf(returnType), getFunctionOf(param, target.getEnclosingType().validate().resolve(), target, DispatchInvocation.Kind.EXACT));
             param.values.put(node, call.asLocal());
             int cnt = node.getArgumentCount();
             for (int i = 0; i < cnt; i++) {

@@ -12,10 +12,10 @@ import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
  *
  */
 final class ResolvedTypeDefinitionImpl implements ResolvedTypeDefinition {
-    private final VerifiedTypeDefinition delegate;
+    private final ValidatedTypeDefinition delegate;
     private volatile PreparedTypeDefinitionImpl prepared;
 
-    ResolvedTypeDefinitionImpl(final VerifiedTypeDefinition delegate) {
+    ResolvedTypeDefinitionImpl(final ValidatedTypeDefinition delegate) {
         this.delegate = delegate;
     }
 
@@ -26,7 +26,7 @@ final class ResolvedTypeDefinitionImpl implements ResolvedTypeDefinition {
     }
 
     public ResolvedTypeDefinition getSuperClass() {
-        VerifiedTypeDefinition superClass = delegate.getSuperClass();
+        ValidatedTypeDefinition superClass = delegate.getSuperClass();
         return superClass == null ? null : superClass.resolve();
     }
 

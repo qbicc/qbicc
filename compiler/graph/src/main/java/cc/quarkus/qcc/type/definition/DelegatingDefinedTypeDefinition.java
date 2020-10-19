@@ -11,8 +11,8 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
 
     protected abstract DefinedTypeDefinition getDelegate();
 
-    public VerifiedTypeDefinition verify() throws VerifyFailedException {
-        return getDelegate().verify();
+    public ValidatedTypeDefinition validate() throws VerifyFailedException {
+        return getDelegate().validate();
     }
 
     public ClassContext getContext() {

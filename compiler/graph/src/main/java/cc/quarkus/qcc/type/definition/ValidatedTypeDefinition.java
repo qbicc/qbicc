@@ -11,18 +11,18 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 /**
  *
  */
-public interface VerifiedTypeDefinition extends DefinedTypeDefinition {
-    default VerifiedTypeDefinition verify() {
+public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
+    default ValidatedTypeDefinition validate() {
         return this;
     }
 
     TypeIdLiteral getTypeId();
 
-    VerifiedTypeDefinition getSuperClass();
+    ValidatedTypeDefinition getSuperClass();
 
-    VerifiedTypeDefinition getInterface(int index) throws IndexOutOfBoundsException;
+    ValidatedTypeDefinition getInterface(int index) throws IndexOutOfBoundsException;
 
-    default boolean isSubtypeOf(VerifiedTypeDefinition other) {
+    default boolean isSubtypeOf(ValidatedTypeDefinition other) {
         if (other.getTypeId() == this.getTypeId()) {
             return true;
         }

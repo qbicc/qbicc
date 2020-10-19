@@ -65,7 +65,7 @@ import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
-import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -186,7 +186,7 @@ final class JavaVMImpl implements JavaVM {
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Thread$UncaughtExceptionHandler");
             threadGroupClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ThreadGroup");
             threadClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Thread");
-            mainThreadGroup = new JavaObjectImpl(threadGroupClass.verify());
+            mainThreadGroup = new JavaObjectImpl(threadGroupClass.validate());
             // run time linkage errors
             noSuchMethodErrorClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/NoSuchMethodError");
             abstractMethodErrorClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/AbstractMethodError");
@@ -220,7 +220,7 @@ final class JavaVMImpl implements JavaVM {
 
     public DefinedTypeDefinition defineClass(final String name, final JavaObject classLoader, final ByteBuffer bytes) {
         Dictionary dictionary = getDictionaryFor(classLoader);
-        return dictionary.defineClass(name, bytes).verify();
+        return dictionary.defineClass(name, bytes).validate();
     }
 
     private static final AtomicLong anonCounter = new AtomicLong();
@@ -240,8 +240,8 @@ final class JavaVMImpl implements JavaVM {
             return loaded;
         }
         JavaThread javaThread = JavaVM.requireCurrentThread();
-        ResolvedTypeDefinition resolvedCL = classLoaderClass.verify().resolve();
-        VerifiedTypeDefinition stringClassVerified = stringClass.verify();
+        ResolvedTypeDefinition resolvedCL = classLoaderClass.validate().resolve();
+        ValidatedTypeDefinition stringClassVerified = stringClass.validate();
         UnsignedIntegerType u16 = typeSystem.getUnsignedInteger16Type();
         ValueArrayTypeIdLiteral u16Array = literalFactory.literalOfArrayType(u16);
         MethodElement loadClass = resolvedCL.resolveMethodElementVirtual("loadClass", getMethodDescriptor(typeSystem.getReferenceType(resolvedCL.getTypeId()), typeSystem.getReferenceType(stringClassVerified.getTypeId())));
@@ -290,15 +290,15 @@ final class JavaVMImpl implements JavaVM {
     }
 
     private JavaObject newException(DefinedTypeDefinition type, String arg) {
-        JavaObject e = allocateObject((ClassTypeIdLiteral) type.verify().getTypeId());
-        ConstructorElement ctor = type.verify().resolve().resolveConstructorElement(getConstructorDescriptor(typeSystem.getReferenceType(stringClass.verify().getTypeId())));
+        JavaObject e = allocateObject((ClassTypeIdLiteral) type.validate().getTypeId());
+        ConstructorElement ctor = type.validate().resolve().resolveConstructorElement(getConstructorDescriptor(typeSystem.getReferenceType(stringClass.validate().getTypeId())));
         // todo: backtrace should be set to thread.tos
         invokeExact(ctor, e, newString(arg));
         return e;
     }
 
     private JavaObject newString(String str) {
-        VerifiedTypeDefinition stringClassVerified = stringClass.verify();
+        ValidatedTypeDefinition stringClassVerified = stringClass.validate();
         int length = str.length();
         SignedIntegerType s8 = typeSystem.getSignedInteger8Type();
         ValueArrayTypeIdLiteral s8Array = literalFactory.literalOfArrayType(s8);
@@ -446,7 +446,7 @@ final class JavaVMImpl implements JavaVM {
                         }
                     }
                     ParameterizedExecutableElement it = op.getInvocationTarget();
-                    ResolvedTypeDefinition owner = it.getEnclosingType().verify().resolve();
+                    ResolvedTypeDefinition owner = it.getEnclosingType().validate().resolve();
                     Object[] args = computeInvocationArguments(frame, op);
                     JavaObject instance;
                     if (op instanceof InstanceInvocation) {
@@ -474,7 +474,7 @@ final class JavaVMImpl implements JavaVM {
                         JavaObjectImpl instance = (JavaObjectImpl) frame.getValue(((InstanceFieldWrite) op).getInstance());
                         container = instance.getFields();
                     } else {
-                        container = fieldElement.getEnclosingType().verify().resolve().prepare().initialize().getStaticFields();
+                        container = fieldElement.getEnclosingType().validate().resolve().prepare().initialize().getStaticFields();
                     }
                     Object value = frame.getValue(op.getWriteValue());
                     // todo: improve this

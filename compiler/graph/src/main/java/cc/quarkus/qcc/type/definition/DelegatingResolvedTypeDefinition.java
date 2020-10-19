@@ -3,7 +3,7 @@ package cc.quarkus.qcc.type.definition;
 /**
  *
  */
-public abstract class DelegatingResolvedTypeDefinition extends DelegatingVerifiedTypeDefinition implements ResolvedTypeDefinition {
+public abstract class DelegatingResolvedTypeDefinition extends DelegatingValidatedTypeDefinition implements ResolvedTypeDefinition {
     DelegatingResolvedTypeDefinition() {}
 
     protected abstract ResolvedTypeDefinition getDelegate();
@@ -12,7 +12,7 @@ public abstract class DelegatingResolvedTypeDefinition extends DelegatingVerifie
         return getDelegate().prepare();
     }
 
-    public ResolvedTypeDefinition verify() {
+    public ResolvedTypeDefinition validate() {
         return this;
     }
 

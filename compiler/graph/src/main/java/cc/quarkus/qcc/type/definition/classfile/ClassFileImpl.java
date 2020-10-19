@@ -495,7 +495,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     TypeIdLiteral resolveSingleType(String name) {
-        return ctxt.findDefinedType(name).verify().getTypeId();
+        return ctxt.findDefinedType(name).validate().getTypeId();
     }
 
     public TypeIdLiteral resolveType() {
@@ -505,7 +505,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     private TypeIdLiteral loadClass(final int offs, final int len, final boolean expectTerminator) {
-        return ctxt.findDefinedType(ctxt.deduplicate(buffer, offs, len)).verify().getTypeId();
+        return ctxt.findDefinedType(ctxt.deduplicate(buffer, offs, len)).validate().getTypeId();
     }
 
     public int getAccess() {

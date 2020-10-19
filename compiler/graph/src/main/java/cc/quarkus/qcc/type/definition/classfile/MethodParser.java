@@ -37,7 +37,7 @@ import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
-import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -1177,7 +1177,7 @@ final class MethodParser {
     }
 
     private FieldElement resolveTargetOfFieldRef(final int fieldRef) {
-        VerifiedTypeDefinition definition = ctxt.resolveDefinedTypeLiteral(getOwnerOfFieldRef(fieldRef)).verify();
+        ValidatedTypeDefinition definition = ctxt.resolveDefinedTypeLiteral(getOwnerOfFieldRef(fieldRef)).validate();
         FieldElement field = definition.resolve().findField(getNameOfFieldRef(fieldRef));
         if (field == null) {
             // todo
@@ -1190,7 +1190,7 @@ final class MethodParser {
         int idx;
         ClassFileImpl classFile = getClassFile();
         int descIdx = classFile.getNameAndTypeConstantDescriptorIdx(nameAndTypeRef);
-        ResolvedTypeDefinition resolved = ctxt.resolveDefinedTypeLiteral(owner).verify().resolve();
+        ResolvedTypeDefinition resolved = ctxt.resolveDefinedTypeLiteral(owner).validate().resolve();
         if (classFile.nameAndTypeConstantNameEquals(nameAndTypeRef, "<init>")) {
             // constructor
             ConstructorDescriptor desc = classFile.getConstructorDescriptor(descIdx);

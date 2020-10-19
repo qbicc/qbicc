@@ -1,11 +1,11 @@
 package cc.quarkus.qcc.interpreter;
 
-import cc.quarkus.qcc.type.definition.VerifiedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 
 /**
  *
  */
 public interface JavaClass extends JavaObject {
 
-    VerifiedTypeDefinition getTypeDefinition();
+    ValidatedTypeDefinition getTypeDefinition();
 }

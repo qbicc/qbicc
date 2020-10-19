@@ -100,7 +100,7 @@ public class Driver {
             JavaObject mainThreadGroup = javaVM.getMainThreadGroup();
             javaVM.doAttached(() -> {
                 JavaThread main = javaVM.newThread("main", mainThreadGroup, false);
-                main.doAttached(() -> javaVM.loadClass(null, "java/lang/System").verify().resolve().prepare().initialize());
+                main.doAttached(() -> javaVM.loadClass(null, "java/lang/System").validate().resolve().prepare().initialize());
                 // XXX
                 // ▪ instantiate agent class loader(s)
                 // XXX

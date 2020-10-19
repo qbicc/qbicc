@@ -19,7 +19,7 @@ final class VerificationFailedDefinitionImpl extends DelegatingDefinedTypeDefini
         return delegate;
     }
 
-    public VerifiedTypeDefinition verify() {
+    public ValidatedTypeDefinition validate() {
         throw new VerifyFailedException(msg, cause);
     }
 }

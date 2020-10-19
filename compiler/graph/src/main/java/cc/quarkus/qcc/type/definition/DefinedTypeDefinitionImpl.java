@@ -33,7 +33,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final Annotation[] visibleAnnotations;
     private final Annotation[] invisibleAnnotations;
 
-    private volatile DefinedTypeDefinition verified;
+    private volatile DefinedTypeDefinition validated;
 
     private static final String[] NO_INTERFACES = new String[0];
     private static final int[] NO_INTS = new int[0];
@@ -104,21 +104,21 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         return getInterfaceInternalName(index).equals(internalName);
     }
 
-    public VerifiedTypeDefinition verify() throws VerifyFailedException {
-        DefinedTypeDefinition verified = this.verified;
-        if (verified != null) {
-            return verified.verify();
+    public ValidatedTypeDefinition validate() throws VerifyFailedException {
+        DefinedTypeDefinition validated = this.validated;
+        if (validated != null) {
+            return validated.validate();
         }
-        VerifiedTypeDefinition superType;
+        ValidatedTypeDefinition superType;
         if (superClassName != null) {
-            superType = context.findDefinedType(superClassName).verify();
+            superType = context.findDefinedType(superClassName).validate();
         } else {
             superType = null;
         }
         int cnt = getInterfaceCount();
-        VerifiedTypeDefinition[] interfaces = new VerifiedTypeDefinition[cnt];
+        ValidatedTypeDefinition[] interfaces = new ValidatedTypeDefinition[cnt];
         for (int i = 0; i < cnt; i ++) {
-            interfaces[i] = context.findDefinedType(getInterfaceInternalName(i)).verify();
+            interfaces[i] = context.findDefinedType(getInterfaceInternalName(i)).validate();
         }
         cnt = getFieldCount();
         FieldElement[] fields = cnt == 0 ? FieldElement.NO_FIELDS : new FieldElement[cnt];
@@ -137,20 +137,20 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         }
         InitializerElement init = initializerResolver.resolveInitializer(initializerIndex, this);
         synchronized (this) {
-            verified = this.verified;
-            if (verified != null) {
-                return verified.verify();
+            validated = this.validated;
+            if (validated != null) {
+                return validated.validate();
             }
             try {
-                verified = new VerifiedTypeDefinitionImpl(this, superType, interfaces, fields, methods, ctors, init);
+                validated = new ValidatedTypeDefinitionImpl(this, superType, interfaces, fields, methods, ctors, init);
             } catch (VerifyFailedException e) {
-                this.verified = new VerificationFailedDefinitionImpl(this, e.getMessage(), e.getCause());
+                this.validated = new VerificationFailedDefinitionImpl(this, e.getMessage(), e.getCause());
                 throw e;
             }
             // replace in the map *first*, *then* replace our local ref
 //            definingLoader.replaceTypeDefinition(name, this, verified);
-            this.verified = verified;
-            return verified.verify();
+            this.validated = validated;
+            return validated.validate();
         }
     }
 

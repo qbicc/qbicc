@@ -4,7 +4,7 @@ package cc.quarkus.qcc.type.definition;
  *
  */
 public interface InitializedTypeDefinition extends PreparedTypeDefinition {
-    default InitializedTypeDefinition verify() {
+    default InitializedTypeDefinition validate() {
         return this;
     }
 

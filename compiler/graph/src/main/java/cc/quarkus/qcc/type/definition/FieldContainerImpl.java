@@ -5,12 +5,12 @@ import cc.quarkus.qcc.interpreter.JavaObject;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 final class FieldContainerImpl implements FieldContainer {
-    private final VerifiedTypeDefinition type;
+    private final ValidatedTypeDefinition type;
     final FieldSet fieldSet;
     // todo: autoboxing is really a terrible idea
     final AtomicReferenceArray<Object> objects;
 
-    FieldContainerImpl(VerifiedTypeDefinition type, final boolean statics) {
+    FieldContainerImpl(ValidatedTypeDefinition type, final boolean statics) {
         this.type = type;
         if (statics) {
             this.fieldSet = type.getStaticFieldSet();

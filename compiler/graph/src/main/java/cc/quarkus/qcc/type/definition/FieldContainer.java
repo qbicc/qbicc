@@ -4,11 +4,11 @@ import cc.quarkus.qcc.interpreter.JavaObject;
 import io.smallrye.common.constraint.Assert;
 
 public interface FieldContainer {
-    static FieldContainer forInstanceFieldsOf(VerifiedTypeDefinition definition) {
+    static FieldContainer forInstanceFieldsOf(ValidatedTypeDefinition definition) {
         return new FieldContainerImpl(Assert.checkNotNullParam("definition", definition), false);
     }
 
-    static FieldContainer forStaticFieldsOf(VerifiedTypeDefinition definition) {
+    static FieldContainer forStaticFieldsOf(ValidatedTypeDefinition definition) {
         return new FieldContainerImpl(Assert.checkNotNullParam("definition", definition), true);
     }
 
