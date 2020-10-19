@@ -54,6 +54,10 @@ final class MethodElementImpl extends AbstractParameterizedExecutableElement imp
         return virtualMethodBody;
     }
 
+    public String toString() {
+        return getName() + ":" + getEnclosingType().getInternalName();
+    }
+
     static final class Builder extends AbstractParameterizedExecutableElement.Builder implements MethodElement.Builder {
         String name;
         TypeResolver typeResolver;

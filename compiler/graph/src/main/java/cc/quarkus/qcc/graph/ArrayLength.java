@@ -15,7 +15,7 @@ public final class ArrayLength extends AbstractValue implements InstanceOperatio
     }
 
     public Value getInstance() {
-        return null;
+        return instance;
     }
 
     public SignedIntegerType getType() {

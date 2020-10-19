@@ -111,11 +111,15 @@ public interface Schedule {
 
     private static BlockInfo scheduleEarly(BlockInfo root, Map<BasicBlock, BlockInfo> blockInfos, Map<Node, BlockInfo> scheduledNodes, Node node) {
         assert node != null;
-        BlockInfo selected;
+        BlockInfo selected = scheduledNodes.get(node);
+        if (selected != null) {
+            return selected;
+        }
         if (node instanceof PinnedNode) {
             // pinned to a block; always select that block.
             BasicBlock basicBlock = ((PinnedNode) node).getPinnedBlock();
             selected = blockInfos.get(basicBlock);
+            scheduledNodes.put(node, selected);
             scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
             if (node instanceof PhiValue) {
                 // make sure phi entries were scheduled
@@ -127,6 +131,8 @@ public interface Schedule {
                     }
                 }
             }
+            // all dependencies have been scheduled
+            return selected;
         } else if (node instanceof Literal) {
             // always considered available; do not schedule
             return root;
@@ -136,9 +142,9 @@ public interface Schedule {
             if (selected == null) {
                 selected = candidate;
             }
+            // all dependencies have been scheduled
+            scheduledNodes.put(node, selected);
+            return selected;
         }
-        // all dependencies have been scheduled
-        scheduledNodes.put(node, selected);
-        return selected;
     }
 }

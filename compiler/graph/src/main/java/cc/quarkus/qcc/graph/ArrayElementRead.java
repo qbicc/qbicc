@@ -35,6 +35,14 @@ public final class ArrayElementRead extends AbstractValue implements ArrayElemen
         return ((ArrayType)instance.getType()).getElementType();
     }
 
+    public int getValueDependencyCount() {
+        return 2;
+    }
+
+    public Value getValueDependency(final int index) throws IndexOutOfBoundsException {
+        return index == 0 ? instance : index == 1 ? this.index : Util.throwIndexOutOfBounds(index);
+    }
+
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }

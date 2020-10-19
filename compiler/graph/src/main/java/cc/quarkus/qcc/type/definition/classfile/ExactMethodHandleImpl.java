@@ -9,7 +9,6 @@ import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.schedule.Schedule;
-import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
@@ -74,7 +73,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             ClassMethodInfo classMethodInfo = new ClassMethodInfo(classFile, modifiers, index, getBackingBuffer().duplicate());
             MethodElement methodElement = classFile.resolveMethod(index, enclosing);
             int paramCount = methodElement.getParameterCount();
-            BasicBlockBuilder gf = JavaVM.requireCurrent().newBasicBlockBuilder();
+            BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder();
             MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, gf);
             Value[] parameters = new Value[paramCount];
             int j = 0;
@@ -97,6 +96,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
                 }
             }
             BlockLabel entryBlockHandle = new BlockLabel();
+            gf.begin(entryBlockHandle);
             methodParser.processNewBlock(byteCode);
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
             Schedule schedule = Schedule.forMethod(entryBlock);

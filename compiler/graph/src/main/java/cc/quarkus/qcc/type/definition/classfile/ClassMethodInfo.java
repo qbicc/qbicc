@@ -66,7 +66,6 @@ final class ClassMethodInfo {
         codeAttr.position(codeOffs + codeLen);
         short[] entryPoints = NO_SHORTS;
         int entryPointLen = 0;
-        int entryPointSourcesLen = 0;
         // process bytecodes for entry points
         int target;
         while (bc.position() < bc.limit()) {
@@ -85,6 +84,10 @@ final class ClassMethodInfo {
                 case OP_IF_ICMPLE:
                 case OP_IFEQ:
                 case OP_IFNE:
+                case OP_IFLT:
+                case OP_IFLE:
+                case OP_IFGT:
+                case OP_IFGE:
                 case OP_IFNONNULL:
                 case OP_IFNULL: {
                     // just like GOTO except we also need to fall through
@@ -309,7 +312,7 @@ final class ClassMethodInfo {
         this.visibleTypeAnnotationsLen = visibleTypeAnnotationsLen;
         this.invisibleTypeAnnotationsOffs = invisibleTypeAnnotationsOffs;
         this.invisibleTypeAnnotationsLen = invisibleTypeAnnotationsLen;
-        this.entryPoints = entryPoints;
+        this.entryPoints = Arrays.copyOf(entryPoints, entryPointLen << 1);
         codeAttr.position(save);
         Type[][] variableTypes1 = new Type[maxLocals][];
         for (int i = 0; i < maxLocals; i ++) {
@@ -607,7 +610,7 @@ final class ClassMethodInfo {
             entryPoints = Arrays.copyOf(entryPoints, entryPointLen == 0 ? 4 : entryPointLen << 2);
         }
         int base = idx << 1;
-        if (base < entryPointLen) {
+        if (idx < entryPointLen) {
             // make a hole
             System.arraycopy(entryPoints, base, entryPoints, base + 2, (entryPointLen - idx) << 1);
         }

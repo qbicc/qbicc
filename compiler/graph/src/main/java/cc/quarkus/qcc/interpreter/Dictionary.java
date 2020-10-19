@@ -3,6 +3,7 @@ package cc.quarkus.qcc.interpreter;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -102,6 +103,10 @@ public class Dictionary implements ClassContext {
 
     public LiteralFactory getLiteralFactory() {
         return vm.getLiteralFactory();
+    }
+
+    public BasicBlockBuilder newBasicBlockBuilder() {
+        return vm.newBasicBlockBuilder();
     }
 
     public JavaObject getClassLoader() {

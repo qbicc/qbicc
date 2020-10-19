@@ -12,6 +12,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
@@ -36,6 +37,8 @@ public interface ClassContext {
 
     LiteralFactory getLiteralFactory();
 
+    BasicBlockBuilder newBasicBlockBuilder();
+
     /**
      * Create a basic class context which can be used to produce type definitions.
      *
@@ -50,7 +53,7 @@ public interface ClassContext {
             while (i < jarPaths.size()) {
                 Path path = jarPaths.get(i);
                 JarFile jarFile = new JarFile(path.toFile(), false, ZipFile.OPEN_READ, JarFile.runtimeVersion());
-                jarFiles.set(i++, jarFile);
+                jarFiles.add(i++, jarFile);
             }
         } catch (Throwable t) {
             while (i > 0) {
@@ -124,6 +127,10 @@ public interface ClassContext {
 
             public LiteralFactory getLiteralFactory() {
                 return lf;
+            }
+
+            public BasicBlockBuilder newBasicBlockBuilder() {
+                return BasicBlockBuilder.simpleBuilder(ts);
             }
         };
     }

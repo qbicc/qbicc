@@ -57,7 +57,6 @@ final class MethodParser {
     private final LiteralFactory lf;
     private final TypeSystem ts;
     int sp;
-    BlockLabel currentBlockHandle;
 
     MethodParser(final ClassContext ctxt, final ClassMethodInfo info, final BasicBlockBuilder graphFactory) {
         this.ctxt = ctxt;
@@ -75,7 +74,6 @@ final class MethodParser {
         }
         this.blockHandles = blockHandles;
         // it's not an entry point
-        currentBlockHandle = new BlockLabel();
         gf = new LineNumberGraphFactory(graphFactory);
     }
 
@@ -216,7 +214,7 @@ final class MethodParser {
     BlockLabel getBlockForIndex(int target) {
         int idx = info.getEntryPointIndex(target);
         if (idx < 0) {
-            throw new IllegalStateException("Block not found");
+            throw new IllegalStateException("Block not found for target bci " + target);
         }
         return blockHandles[idx];
     }
@@ -276,19 +274,43 @@ final class MethodParser {
             // already registered
             entryLocalsArray = entryLocalsArrays.get(block);
             entryStack = entryStacks.get(block);
-        } else {
-            // not registered yet; process new block first
-            assert ! block.hasTarget();
-            entryLocalsArray = new PhiValue[locals.length];
-            entryStack = new PhiValue[sp];
+            // complete phis
             for (int i = 0; i < locals.length; i ++) {
-                if (locals[i] != null) {
-                    entryLocalsArray[i] = gf.phi(locals[i].getType());
+                Value val = locals[i];
+                if (val != null) {
+                    PhiValue phiValue = entryLocalsArray[i];
+                    // some local slots will be empty
+                    if (phiValue != null) {
+                        phiValue.setValueForBlock(from, val);
+                    }
                 }
             }
             for (int i = 0; i < sp; i ++) {
-                if (stack[i] != null) {
-                    entryStack[i] = gf.phi(stack[i].getType());
+                Value val = stack[i];
+                if (val != null) {
+                    entryStack[i].setValueForBlock(from, val);
+                }
+            }
+        } else {
+            // not registered yet; process new block first
+            assert ! block.hasTarget();
+            gf.begin(block);
+            entryLocalsArray = new PhiValue[locals.length];
+            entryStack = new PhiValue[sp];
+            for (int i = 0; i < locals.length; i ++) {
+                Value val = locals[i];
+                if (val != null) {
+                    PhiValue phiValue = gf.phi(val.getType());
+                    entryLocalsArray[i] = phiValue;
+                    phiValue.setValueForBlock(from, val);
+                }
+            }
+            for (int i = 0; i < sp; i ++) {
+                Value val = stack[i];
+                if (val != null) {
+                    PhiValue phiValue = gf.phi(val.getType());
+                    entryStack[i] = phiValue;
+                    phiValue.setValueForBlock(from, val);
                 }
             }
             entryLocalsArrays.put(block, entryLocalsArray);
@@ -296,22 +318,6 @@ final class MethodParser {
             restoreStack(entryStack);
             restoreLocals(entryLocalsArray);
             processNewBlock(buffer);
-        }
-        // complete phis
-        for (int i = 0; i < locals.length; i ++) {
-            if (locals[i] != null) {
-                PhiValue phiValue = entryLocalsArray[i];
-                // some local slots will be empty
-                if (phiValue != null) {
-                    phiValue.setValueForBlock(from, locals[i]);
-                }
-            }
-        }
-        for (int i = 0; i < sp; i ++) {
-            Value old = stack[i];
-            if (old != null) {
-                entryStack[i].setValueForBlock(from, old);
-            }
         }
     }
 

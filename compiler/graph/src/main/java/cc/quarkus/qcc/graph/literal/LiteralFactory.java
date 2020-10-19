@@ -123,7 +123,6 @@ public interface LiteralFactory {
             }
 
             public ClassTypeIdLiteral literalOfClass(final String className, final ClassTypeIdLiteral superClass, final InterfaceTypeIdLiteral... interfaces) {
-                Assert.checkNotNullParam("superClass", superClass);
                 Assert.checkNotNullParam("interfaces", interfaces);
                 return new ClassTypeIdLiteral(className, superClass, interfaces, typeSystem.getTypeIdType());
             }

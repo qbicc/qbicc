@@ -17,6 +17,10 @@ final class ConstructorElementImpl extends AbstractParameterizedExecutableElemen
         return resolver.resolveConstructorDescriptor(argument);
     }
 
+    public String toString() {
+        return "<init>:" + getEnclosingType().getInternalName();
+    }
+
     static final class Builder extends AbstractParameterizedExecutableElement.Builder implements ConstructorElement.Builder {
         TypeResolver resolver;
         int argument;
