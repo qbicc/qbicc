@@ -79,10 +79,12 @@ public interface Schedule {
         Terminator terminator = block.getTerminator();
         // fix the terminator on its block
         scheduledNodes.put(terminator, blockInfos.get(block));
-        scheduleEarly(root, blockInfos, scheduledNodes, terminator);
-        int cnt = terminator.getSuccessorCount();
-        for (int i = 0; i < cnt; i ++) {
-            scheduleEarly(root, blockInfos, scheduledNodes, terminator.getSuccessor(i));
+        if (! scheduledNodes.containsKey(terminator)) {
+            scheduleEarly(root, blockInfos, scheduledNodes, terminator);
+            int cnt = terminator.getSuccessorCount();
+            for (int i = 0; i < cnt; i ++) {
+                scheduleEarly(root, blockInfos, scheduledNodes, terminator.getSuccessor(i));
+            }
         }
     }
 
