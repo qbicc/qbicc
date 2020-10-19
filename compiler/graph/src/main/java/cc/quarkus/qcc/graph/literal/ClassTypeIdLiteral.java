@@ -8,8 +8,8 @@ import cc.quarkus.qcc.type.TypeIdType;
  */
 public final class ClassTypeIdLiteral extends RealTypeIdLiteral {
 
-    ClassTypeIdLiteral(final ClassTypeIdLiteral superClass, final InterfaceTypeIdLiteral[] interfaces, final TypeIdType type) {
-        super(superClass, interfaces, type);
+    ClassTypeIdLiteral(final String className, final ClassTypeIdLiteral superClass, final InterfaceTypeIdLiteral[] interfaces, final TypeIdType type) {
+        super(className, superClass, interfaces, type);
     }
 
     public boolean isSubtypeOf(final TypeIdLiteral other) {

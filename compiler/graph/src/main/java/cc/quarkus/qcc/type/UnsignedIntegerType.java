@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.type;
 
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -24,6 +25,10 @@ public final class UnsignedIntegerType extends IntegerType {
 
     public UnsignedIntegerType asUnsigned() {
         return this;
+    }
+
+    public String toString(final IntegerLiteral literal) {
+        return Long.toUnsignedString(literal.longValue());
     }
 
     public SignedIntegerType asSigned() {

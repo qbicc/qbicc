@@ -9,11 +9,13 @@ import cc.quarkus.qcc.type.ValueType;
  */
 public abstract class TypeIdLiteral extends Literal {
 
+    final String typeName;
     final ClassTypeIdLiteral superClass;
     final InterfaceTypeIdLiteral[] interfaces;
     final TypeIdType type;
 
-    TypeIdLiteral(final ClassTypeIdLiteral superClass, final InterfaceTypeIdLiteral[] interfaces, final TypeIdType type) {
+    TypeIdLiteral(final String typeName, final ClassTypeIdLiteral superClass, final InterfaceTypeIdLiteral[] interfaces, final TypeIdType type) {
+        this.typeName = typeName;
         this.superClass = superClass;
         this.interfaces = interfaces;
         this.type = type;
@@ -65,5 +67,9 @@ public abstract class TypeIdLiteral extends Literal {
     public boolean equals(final Literal other) {
         // every instance is unique
         return this == other;
+    }
+
+    public String toString() {
+        return typeName;
     }
 }

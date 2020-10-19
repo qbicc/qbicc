@@ -7,8 +7,8 @@ import cc.quarkus.qcc.type.TypeIdType;
  */
 public abstract class RealTypeIdLiteral extends TypeIdLiteral {
 
-    RealTypeIdLiteral(final ClassTypeIdLiteral superClass, final InterfaceTypeIdLiteral[] interfaces, final TypeIdType type) {
-        super(superClass, interfaces, type);
+    RealTypeIdLiteral(final String typeName, final ClassTypeIdLiteral superClass, final InterfaceTypeIdLiteral[] interfaces, final TypeIdType type) {
+        super(typeName, superClass, interfaces, type);
     }
 
     public boolean isInterface() {

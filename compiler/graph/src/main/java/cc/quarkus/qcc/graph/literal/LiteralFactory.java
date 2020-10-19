@@ -41,16 +41,16 @@ public interface LiteralFactory {
 
     ClassTypeIdLiteral baseClassLiteral();
 
-    ClassTypeIdLiteral literalOfClass(ClassTypeIdLiteral superClass, InterfaceTypeIdLiteral... interfaces);
+    ClassTypeIdLiteral literalOfClass(String className, ClassTypeIdLiteral superClass, InterfaceTypeIdLiteral... interfaces);
 
-    InterfaceTypeIdLiteral literalOfInterface(InterfaceTypeIdLiteral... interfaces);
+    InterfaceTypeIdLiteral literalOfInterface(String interfaceName, InterfaceTypeIdLiteral... interfaces);
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
             private final BooleanLiteral TRUE = new BooleanLiteral(typeSystem.getBooleanType().asConst(), true);
             private final BooleanLiteral FALSE = new BooleanLiteral(typeSystem.getBooleanType().asConst(), false);
             private final NullLiteral NULL = new NullLiteral(typeSystem.getNullType());
-            private final ClassTypeIdLiteral baseClassLiteral = new ClassTypeIdLiteral(null, InterfaceTypeIdLiteral.NONE, typeSystem.getTypeIdType());
+            private final ClassTypeIdLiteral baseClassLiteral = new ClassTypeIdLiteral("java/lang/Object", null, InterfaceTypeIdLiteral.NONE, typeSystem.getTypeIdType());
             private final ConcurrentMap<ValueType, ValueArrayTypeIdLiteral> primitiveArrayLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<TypeIdLiteral, ReferenceArrayTypeIdLiteral> arrayObjectTypeIdLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<String, StringLiteral> stringLiterals = new ConcurrentHashMap<>();
@@ -122,15 +122,15 @@ public interface LiteralFactory {
                 return baseClassLiteral;
             }
 
-            public ClassTypeIdLiteral literalOfClass(final ClassTypeIdLiteral superClass, final InterfaceTypeIdLiteral... interfaces) {
+            public ClassTypeIdLiteral literalOfClass(final String className, final ClassTypeIdLiteral superClass, final InterfaceTypeIdLiteral... interfaces) {
                 Assert.checkNotNullParam("superClass", superClass);
                 Assert.checkNotNullParam("interfaces", interfaces);
-                return new ClassTypeIdLiteral(superClass, interfaces, typeSystem.getTypeIdType());
+                return new ClassTypeIdLiteral(className, superClass, interfaces, typeSystem.getTypeIdType());
             }
 
-            public InterfaceTypeIdLiteral literalOfInterface(final InterfaceTypeIdLiteral... interfaces) {
+            public InterfaceTypeIdLiteral literalOfInterface(final String interfaceName, final InterfaceTypeIdLiteral... interfaces) {
                 Assert.checkNotNullParam("interfaces", interfaces);
-                return new InterfaceTypeIdLiteral(interfaces, typeSystem.getTypeIdType());
+                return new InterfaceTypeIdLiteral(interfaceName, interfaces, typeSystem.getTypeIdType());
             }
         };
     }

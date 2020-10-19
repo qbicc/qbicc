@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.type;
 
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
+
 /**
  * An integer type.
  */
@@ -36,4 +38,6 @@ public abstract class IntegerType extends NumericType {
     public int getMinBits() {
         return minBits;
     }
+
+    public abstract String toString(final IntegerLiteral literal);
 }

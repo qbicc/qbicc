@@ -38,4 +38,6 @@ public interface Node {
             throw new IllegalStateException();
         }
     }
+
+    <T, R> R accept(NodeVisitor<T, R> visitor, T param);
 }

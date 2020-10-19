@@ -14,4 +14,8 @@ public interface Value extends Node {
     // static
 
     Value[] NO_VALUES = new Value[0];
+
+    default <T, R> R accept(NodeVisitor<T, R> visitor, T param) {
+        return visitor.visit(param, this);
+    }
 }

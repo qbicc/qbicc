@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.type;
 
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -40,5 +41,9 @@ public final class SignedIntegerType extends IntegerType {
                 throw Assert.impossibleSwitchCase(minBits);
             }
         }
+    }
+
+    public String toString(final IntegerLiteral literal) {
+        return Long.toString(literal.longValue());
     }
 }

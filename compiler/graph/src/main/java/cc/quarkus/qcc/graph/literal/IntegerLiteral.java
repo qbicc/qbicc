@@ -78,4 +78,8 @@ public final class IntegerLiteral extends Literal {
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
+
+    public String toString() {
+        return type.toString(this);
+    }
 }

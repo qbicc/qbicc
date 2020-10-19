@@ -13,7 +13,7 @@ public final class ValueArrayTypeIdLiteral extends ArrayTypeIdLiteral {
     private final ValueType elementType;
 
     ValueArrayTypeIdLiteral(final ClassTypeIdLiteral objectClass, final TypeIdType type, final ValueType elementType) {
-        super(objectClass, InterfaceTypeIdLiteral.NONE, type);
+        super("[" + elementType, objectClass, InterfaceTypeIdLiteral.NONE, type);
         assert ! objectClass.hasSuperClass();
         assert ! (elementType instanceof ReferenceType);
         this.elementType = elementType;

@@ -12,7 +12,7 @@ public final class ReferenceArrayTypeIdLiteral extends ArrayTypeIdLiteral {
     private final ReferenceType elementType;
 
     ReferenceArrayTypeIdLiteral(final ClassTypeIdLiteral objectClass, final TypeIdType type, final ReferenceType elementType, final TypeIdLiteral elementUpperBound) {
-        super(objectClass, InterfaceTypeIdLiteral.NONE, type);
+        super("[L" + elementUpperBound + ";", objectClass, InterfaceTypeIdLiteral.NONE, type);
         this.elementType = elementType;
     }
 

@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Locale;
+
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 
 /**
@@ -22,6 +24,10 @@ public interface DispatchInvocation extends Invocation {
                     throw new IllegalArgumentException("Unknown opcode " + opcode);
                 }
             }
+        }
+
+        public String toString() {
+            return name().toLowerCase(Locale.ROOT);
         }
     }
 }

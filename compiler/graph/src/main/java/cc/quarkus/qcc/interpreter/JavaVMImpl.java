@@ -158,7 +158,7 @@ final class JavaVMImpl implements JavaVM {
         try {
             currentVm.set(this);
             objectClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Object");
-            ClassTypeIdLiteral objClassId = literalFactory.literalOfClass(null);
+            ClassTypeIdLiteral objClassId = literalFactory.literalOfClass("java/lang/Object", null);
             classClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Class");
 
             classLoaderClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ClassLoader");
