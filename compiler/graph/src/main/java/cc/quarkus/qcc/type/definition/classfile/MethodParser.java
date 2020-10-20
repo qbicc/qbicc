@@ -42,6 +42,7 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 
 final class MethodParser {
     final ClassMethodInfo info;
@@ -1003,10 +1004,14 @@ final class MethodParser {
                         nameAndType = getNameAndTypeOfMethodRef(methodRef);
                     }
                     // todo: try/catch, replace with error node
-                    ParameterizedExecutableElement target = resolveTargetOfMethodNameAndType(owner, nameAndType);
+                    ResolvedTypeDefinition resolved = ctxt.resolveDefinedTypeLiteral(owner).validate().resolve();
+                    ParameterizedExecutableDescriptor desc = resolveMethodDescriptor(owner, nameAndType);
+                    ParameterizedExecutableElement target = resolveTargetOfDescriptor(resolved, desc, nameAndType);
                     if (target == null) {
-                        // todo
-                        throw new UnsupportedOperationException("Insert no such method node here");
+                        String methodName = getClassFile().getNameAndTypeConstantName(nameAndType);
+                        gf.noSuchMethodError(owner, desc, methodName);
+                        // end block
+                        return;
                     }
                     cnt = target.getParameterCount();
                     Value[] args = new Value[cnt];
@@ -1264,6 +1269,31 @@ final class MethodParser {
             throw new IllegalStateException();
         }
         return field;
+    }
+
+    private ParameterizedExecutableDescriptor resolveMethodDescriptor(final TypeIdLiteral owner, final int nameAndTypeRef) {
+        int idx;
+        ClassFileImpl classFile = getClassFile();
+        int descIdx = classFile.getNameAndTypeConstantDescriptorIdx(nameAndTypeRef);
+        ResolvedTypeDefinition resolved = ctxt.resolveDefinedTypeLiteral(owner).validate().resolve();
+        if (classFile.nameAndTypeConstantNameEquals(nameAndTypeRef, "<init>")) {
+            // constructor
+            return classFile.getConstructorDescriptor(descIdx);
+        } else {
+            // method
+            return classFile.getMethodDescriptor(descIdx);
+        }
+    }
+
+    private ParameterizedExecutableElement resolveTargetOfDescriptor(ResolvedTypeDefinition resolved, final ParameterizedExecutableDescriptor desc, final int nameAndTypeRef) {
+        int idx;
+        if (desc instanceof ConstructorDescriptor) {
+            idx = resolved.findConstructorIndex((ConstructorDescriptor) desc);
+            return idx == -1 ? null : resolved.getConstructor(idx);
+        } else {
+            idx = resolved.findMethodIndex(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), (MethodDescriptor) desc);
+            return idx == -1 ? null : resolved.getMethod(idx);
+        }
     }
 
     private ParameterizedExecutableElement resolveTargetOfMethodNameAndType(final TypeIdLiteral owner, final int nameAndTypeRef) {

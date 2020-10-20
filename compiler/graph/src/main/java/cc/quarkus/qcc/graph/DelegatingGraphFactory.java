@@ -11,6 +11,7 @@ import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 
 /**
  * A graph factory which delegates all operations to another graph factory.  Can be used as a base class for graph
@@ -41,6 +42,10 @@ public class DelegatingGraphFactory implements BasicBlockBuilder {
 
     public BasicBlock classCastException(final Value fromType, final Value toType) {
         return getDelegate().classCastException(fromType, toType);
+    }
+
+    public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final ParameterizedExecutableDescriptor desc, final String name) {
+        return getDelegate().noSuchMethodError(owner, desc, name);
     }
 
     public BlockEntry getBlockEntry() {

@@ -57,6 +57,7 @@ import cc.quarkus.qcc.graph.Narrow;
 import cc.quarkus.qcc.graph.Neg;
 import cc.quarkus.qcc.graph.New;
 import cc.quarkus.qcc.graph.NewArray;
+import cc.quarkus.qcc.graph.NoSuchMethodErrorNode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NodeVisitor;
 import cc.quarkus.qcc.graph.Or;
@@ -295,6 +296,10 @@ public class GraphDotGenerator {
 
         public String visit(final Void param, final ClassCastErrorNode node) {
             return node("cast error", node);
+        }
+
+        public String visit(final Void param, final NoSuchMethodErrorNode node) {
+            return node("no such method", node);
         }
 
         // binary ops

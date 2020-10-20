@@ -15,6 +15,7 @@ import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -268,6 +269,8 @@ public interface BasicBlockBuilder {
      * @return the terminated block
      */
     BasicBlock classCastException(Value fromType, Value toType);
+
+    BasicBlock noSuchMethodError(TypeIdLiteral owner, ParameterizedExecutableDescriptor desc, final String name);
 
     /**
      * Get the current block's entry node.
@@ -591,6 +594,10 @@ public interface BasicBlockBuilder {
 
             public BasicBlock classCastException(final Value fromType, final Value toType) {
                 return terminate(requireCurrentBlock(), new ClassCastErrorNode(line, bci, dependency, fromType, toType));
+            }
+
+            public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final ParameterizedExecutableDescriptor desc, final String name) {
+                return terminate(requireCurrentBlock(), new NoSuchMethodErrorNode(line, bci, dependency, owner, desc, name));
             }
 
             public BlockEntry getBlockEntry() {

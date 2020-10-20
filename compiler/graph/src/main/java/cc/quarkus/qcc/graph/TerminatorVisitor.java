@@ -55,6 +55,10 @@ public interface TerminatorVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, NoSuchMethodErrorNode node) {
+        return visitUnknown(param, node);
+    }
+
     /**
      * A terminator visitor base interface which recursively copies the given terminators.
      * <p>
@@ -184,6 +188,10 @@ public interface TerminatorVisitor<T, R> {
 
         default BasicBlock visit(T param, ClassCastErrorNode node) {
             return getBuilder(param).classCastException(copy(param, node.getFromType()), copy(param, node.getToType()));
+        }
+
+        default BasicBlock visit(T param, NoSuchMethodErrorNode node) {
+            return getBuilder(param).noSuchMethodError(node.getOwner(), node.getDescriptor(), node.getName());
         }
     }
 }
