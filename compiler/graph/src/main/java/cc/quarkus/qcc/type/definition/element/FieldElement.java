@@ -12,12 +12,16 @@ public interface FieldElement extends AnnotatedElement, NamedElement {
 
     ValueType getType() throws ResolutionFailedException;
 
+    boolean hasClass2Type();
+
     default boolean isVolatile() {
         return hasAllModifiersOf(ClassFile.ACC_VOLATILE);
     }
 
     interface TypeResolver {
         ValueType resolveFieldType(long argument) throws ResolutionFailedException;
+
+        boolean hasClass2FieldType(long argument);
 
         // todo: generic/annotated type
     }

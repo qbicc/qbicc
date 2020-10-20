@@ -13,8 +13,12 @@ public interface ParameterElement extends NamedElement, AnnotatedElement {
 
     ValueType getType();
 
+    boolean hasClass2Type();
+
     interface TypeResolver {
         ValueType resolveParameterType(int methodArg, int paramArg) throws ResolutionFailedException;
+
+        boolean hasClass2ParameterType(int methodArg, int paramArg);
 
         // todo: generic/annotated type
     }

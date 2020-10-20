@@ -30,6 +30,10 @@ final class ParameterElementImpl extends AbstractAnnotatedElement implements Par
         return typeResolver.resolveParameterType(typeResolverMethodArg, typeResolverParamArg);
     }
 
+    public boolean hasClass2Type() {
+        return typeResolver.hasClass2ParameterType(typeResolverMethodArg, typeResolverParamArg);
+    }
+
     public boolean hasName() {
         return name != null;
     }

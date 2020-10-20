@@ -18,6 +18,8 @@ public interface MethodElement extends ExecutableElement, VirtualExecutableEleme
 
     ValueType getReturnType();
 
+    boolean hasClass2ReturnType();
+
     default boolean overrides(MethodElement other) {
         if (other.getReturnType() == getReturnType()) {
             int cnt = getParameterCount();
@@ -37,6 +39,8 @@ public interface MethodElement extends ExecutableElement, VirtualExecutableEleme
 
     interface TypeResolver {
         MethodDescriptor resolveMethodDescriptor(int argument) throws ResolutionFailedException;
+
+        boolean hasClass2ReturnType(int argument);
 
         // todo: generic/annotated type
     }

@@ -63,10 +63,12 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
      * This is the method parameter part of every method descriptor.
      */
     private final ParameterizedExecutableDescriptor[] methodParamInfo;
+    private final boolean[][] methodParamClass2;
     /**
      * This is the type of every field descriptor or the return type of every method descriptor.
      */
     private final ValueType[] types;
+    private final boolean[] class2;
     private final int interfacesOffset;
     private final int[] fieldOffsets;
     private final int[][] fieldAttributeOffsets;
@@ -213,7 +215,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         strings = new String[cpOffsets.length];
         literals = new Literal[cpOffsets.length];
         methodParamInfo = new ParameterizedExecutableDescriptor[cpOffsets.length];
+        methodParamClass2 = new boolean[cpOffsets.length][];
         types = new ValueType[cpOffsets.length];
+        class2 = new boolean[cpOffsets.length];
     }
 
     public ClassFile getClassFile() {
@@ -353,8 +357,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
                 i = 2; // "()"
             } else {
                 ValueType[] types = new ValueType[cnt];
-                i = populateTypesArray(descIdx, types, 1, 0) + 1;
+                boolean[] class2params = new boolean[cnt];
+                i = populateTypesArray(descIdx, types, class2params, 1, 0) + 1;
                 methodParamInfo[descIdx] = ParameterizedExecutableDescriptor.of(types);
+                methodParamClass2[descIdx] = class2params;
             }
         } else {
             i = 0;
@@ -362,6 +368,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         // now the remaining string (starting at i) is the type (or return type)
         int descOffs = cpOffsets[descIdx];
         types[descIdx] = resolveSingleDescriptor(descOffs + 3 + i, getShort(descOffs + 1) - i);
+        int c = getByte(descOffs + 3 + i);
+        class2[descIdx] = c == 'J' || c == 'D';
     }
 
     public ConstructorDescriptor resolveConstructorDescriptor(final int argument) throws ResolutionFailedException {
@@ -376,6 +384,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     public MethodDescriptor resolveMethodDescriptor(final int argument) throws ResolutionFailedException {
         // we have the method index but we have to get the descriptor index
         return getMethodDescriptor(getShort(methodOffsets[argument] + 4));
+    }
+
+    public boolean hasClass2ReturnType(final int argument) {
+        return class2[getShort(methodOffsets[argument] + 4)];
     }
 
     public MethodDescriptor getMethodDescriptor(final int descIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
@@ -413,18 +425,21 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         }
     }
 
-    int populateTypesArray(int descIdx, ValueType[] types, int pos, int idx) {
+    int populateTypesArray(int descIdx, ValueType[] types, final boolean[] class2Params, int pos, int idx) {
         if (idx == types.length) {
             return pos;
         }
         int b = getRawConstantByte(descIdx, 3 + pos);
         switch (b) {
+            case 'D':
+            case 'J': {
+                class2Params[idx] = true;
+                // fall through
+            }
             case 'B':
             case 'C':
-            case 'D':
             case 'F':
             case 'I':
-            case 'J':
             case 'S':
             case 'V':
             case 'Z': {
@@ -433,7 +448,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
                 break;
             }
             case '[': {
-                int res = populateTypesArray(descIdx, types, pos + 1, idx);
+                int res = populateTypesArray(descIdx, types, class2Params, pos + 1, idx);
                 ArrayTypeIdLiteral arrayType;
                 if (types[idx] instanceof ReferenceType) {
                     arrayType = literalFactory.literalOfArrayType((ReferenceType) types[idx]);
@@ -453,7 +468,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
                 throw new InvalidTypeDescriptorException("Invalid type descriptor character '" + (char) b + "'");
             }
         }
-        return populateTypesArray(descIdx, types, pos, idx + 1);
+        return populateTypesArray(descIdx, types, class2Params, pos, idx + 1);
     }
 
     ValueType resolveSingleDescriptor(int cpIdx) {
@@ -841,8 +856,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         return resolveSingleDescriptor(getShort(fo + 4));
     }
 
+    public boolean hasClass2FieldType(final long argument) {
+        return class2[getShort(fieldOffsets[(int) argument] + 4)];
+    }
+
     public ValueType resolveParameterType(final int methodIdx, final int paramIdx) throws ResolutionFailedException {
         return getMethodDescriptor(getShort(methodOffsets[methodIdx] + 4)).getParameterType(paramIdx);
+    }
+
+    public boolean hasClass2ParameterType(final int methodIdx, final int paramIdx) {
+        int realIdx = getShort(methodOffsets[methodIdx] + 4);
+        populateTypeInfo(realIdx);
+        return methodParamClass2[realIdx][paramIdx];
     }
 
     private void addExactBody(ExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {

@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.type.definition.classfile;
 
-import static cc.quarkus.qcc.graph.FatValue.*;
-
 import java.nio.ByteBuffer;
 
 import cc.quarkus.qcc.graph.BasicBlock;
@@ -87,13 +85,10 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             }
             for (int i = 0; i < paramCount; i ++) {
                 ValueType type = methodElement.getParameter(i).getType();
-                if (type.isClass2Type()) {
-                    methodParser.setLocal(j, parameters[i] = fatten(gf.parameter(type, i)));
-                    j+=2;
-                } else {
-                    methodParser.setLocal(j, parameters[i] = gf.parameter(type, i));
-                    j++;
-                }
+                parameters[i] = gf.parameter(type, i);
+                boolean class2 = methodElement.getParameter(i).hasClass2Type();
+                methodParser.setLocal(j, class2 ? methodParser.fatten(parameters[i]) : parameters[i]);
+                j += class2 ? 2 : 1;
             }
             BlockLabel entryBlockHandle = new BlockLabel();
             gf.begin(entryBlockHandle);

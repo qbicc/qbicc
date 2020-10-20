@@ -117,6 +117,10 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
         return validate().getField(index);
     }
 
+    default boolean hasClass2FieldType(long argument) {
+        return resolveField((int) argument, this).hasClass2Type();
+    }
+
     // ==================
     // Methods
     // ==================
@@ -134,12 +138,20 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
         return resolveMethod(methodIdx, this).getParameter(paramIdx).getType();
     }
 
+    default boolean hasClass2ParameterType(int methodArg, int paramArg) {
+        return resolveMethod(methodArg, this).getParameter(paramArg).hasClass2Type();
+    }
+
     default MethodElement resolveMethod(int index, final DefinedTypeDefinition enclosing) {
         return validate().getMethod(index);
     }
 
     default MethodDescriptor resolveMethodDescriptor(int argument) throws ResolutionFailedException {
         return resolveMethod(argument, this).getDescriptor();
+    }
+
+    default boolean hasClass2ReturnType(int argument) {
+        return resolveMethod(argument, this).hasClass2ReturnType();
     }
 
     default long encodeParameterIndex(int index, int paramIndex) {

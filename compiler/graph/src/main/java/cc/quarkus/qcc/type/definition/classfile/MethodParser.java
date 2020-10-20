@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.type.definition.classfile;
 
-import static cc.quarkus.qcc.graph.FatValue.*;
 import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
 import static cc.quarkus.qcc.type.definition.classfile.ClassMethodInfo.*;
 
@@ -48,6 +47,7 @@ final class MethodParser {
     final ClassMethodInfo info;
     final Value[] stack;
     final Value[] locals;
+    final HashSet<Value> fatValues;
     final BlockLabel[] blockHandles;
     private Map<BasicBlock, Value[]> retStacks;
     private Map<BasicBlock, Value[]> retLocals;
@@ -74,6 +74,26 @@ final class MethodParser {
         this.blockHandles = blockHandles;
         // it's not an entry point
         gf = graphFactory;
+        fatValues = new HashSet<>();
+        for (Value local : locals) {
+
+        }
+    }
+
+    // fat values
+
+    boolean isFat(Value value) {
+        return fatValues.contains(value);
+    }
+
+    Value fatten(Value value) {
+        fatValues.add(value);
+        return value;
+    }
+
+    Value unfatten(Value value) {
+        fatValues.remove(value);
+        return value;
     }
 
     // stack manipulation
@@ -991,7 +1011,11 @@ final class MethodParser {
                     cnt = target.getParameterCount();
                     Value[] args = new Value[cnt];
                     for (int i = cnt - 1; i >= 0; i --) {
-                        args[i] = pop();
+                        if (target.getParameter(i).hasClass2Type()) {
+                            args[i] = pop2();
+                        } else {
+                            args[i] = pop1();
+                        }
                         // narrow arguments if needed
                         ValueType argType = args[i].getType();
                         if (argType instanceof IntegerType) {
@@ -1003,7 +1027,7 @@ final class MethodParser {
                     }
                     if (opcode != OP_INVOKESTATIC) {
                         // pop the receiver
-                        v1 = pop();
+                        v1 = pop1();
                     } else {
                         // definite initialization
                         v1 = null;
@@ -1046,7 +1070,7 @@ final class MethodParser {
                                     }
                                 }
                             }
-                            if (returnType.isClass2Type()) {
+                            if (method.hasClass2ReturnType()) {
                                 result = fatten(result);
                             }
                             push(result);

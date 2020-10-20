@@ -26,6 +26,10 @@ final class MethodElementImpl extends AbstractParameterizedExecutableElement imp
         return getDescriptor().getReturnType();
     }
 
+    public boolean hasClass2ReturnType() {
+        return typeResolver.hasClass2ReturnType(typeResolverArg);
+    }
+
     public MethodDescriptor getDescriptor() {
         MethodDescriptor descriptor = this.descriptor;
         if (descriptor == null) {

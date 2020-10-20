@@ -37,6 +37,10 @@ final class ResolvedTypeDefinitionUtil {
             return null;
         }
 
+        public boolean hasClass2ReturnType() {
+            return false;
+        }
+
         public MethodDescriptor getDescriptor() {
             return null;
         }
