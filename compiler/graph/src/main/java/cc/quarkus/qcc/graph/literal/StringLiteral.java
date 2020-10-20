@@ -48,4 +48,8 @@ public final class StringLiteral extends Literal {
     public boolean equals(final StringLiteral other) {
         return this == other || other != null && type.equals(other.type) && value.equals(other.value);
     }
+
+    public String toString() {
+        return "\"" + value + "\"";
+    }
 }
