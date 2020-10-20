@@ -1072,11 +1072,12 @@ final class MethodParser {
                     // todo: check for negative array size
                     push(gf.newArray(arrayType, pop1()));
                     break;
-                case OP_ANEWARRAY:
-                    arrayType = getConstantValue(buffer.getShort() & 0xffff, ArrayTypeIdLiteral.class);
+                case OP_ANEWARRAY: {
+                    arrayType = lf.literalOfArrayType(ts.getReferenceType(getConstantValue(buffer.getShort() & 0xffff, TypeIdLiteral.class)));
                     // todo: check for negative array size
                     push(gf.newArray(arrayType, pop1()));
                     break;
+                }
                 case OP_ARRAYLENGTH:
                     push(gf.arrayLength(pop1()));
                     break;

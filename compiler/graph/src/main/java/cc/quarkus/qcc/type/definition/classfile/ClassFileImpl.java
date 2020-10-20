@@ -9,7 +9,6 @@ import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -300,7 +299,19 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     TypeIdLiteral getClassConstant(int idx) {
-        return ctxt.findDefinedType(getUtf8Constant(getClassConstantNameIdx(idx))).validate().getTypeId();
+        int nameIdx = getClassConstantNameIdx(idx);
+        String name = getUtf8Constant(nameIdx);
+        assert name != null;
+        if (name.startsWith("[")) {
+            ValueType type = resolveSingleDescriptor(nameIdx);
+            return ((ReferenceType) type).getUpperBound();
+        } else {
+            DefinedTypeDefinition definedType = ctxt.findDefinedType(name);
+            if (definedType == null) {
+                throw new DefineFailedException("No class named " + name + " found");
+            }
+            return definedType.validate().getTypeId();
+        }
     }
 
     public int getRawConstantByte(final int idx, final int offset) throws IndexOutOfBoundsException {
