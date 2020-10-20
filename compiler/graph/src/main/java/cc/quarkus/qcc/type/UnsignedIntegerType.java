@@ -27,6 +27,10 @@ public final class UnsignedIntegerType extends IntegerType {
         return this;
     }
 
+    public StringBuilder toString(final StringBuilder b) {
+        return super.toString(b).append("u").append(minBits);
+    }
+
     public String toString(final IntegerLiteral literal) {
         return Long.toUnsignedString(literal.longValue());
     }

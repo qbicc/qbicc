@@ -43,6 +43,10 @@ public final class SignedIntegerType extends IntegerType {
         }
     }
 
+    public StringBuilder toString(final StringBuilder b) {
+        return super.toString(b).append("s").append(minBits);
+    }
+
     public String toString(final IntegerLiteral literal) {
         return Long.toString(literal.longValue());
     }
