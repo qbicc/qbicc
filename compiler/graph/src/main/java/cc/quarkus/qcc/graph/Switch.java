@@ -58,6 +58,10 @@ public final class Switch extends AbstractNode implements Terminator {
         return idx < 0 ? -1 : idx;
     }
 
+    public int[] getValues() {
+        return values;
+    }
+
     public BlockLabel getTargetLabelForIndex(int index) {
         return targetLabels[index];
     }

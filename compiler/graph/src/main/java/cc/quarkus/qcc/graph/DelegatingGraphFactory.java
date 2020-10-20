@@ -35,6 +35,10 @@ public class DelegatingGraphFactory implements BasicBlockBuilder {
         return getDelegate().classCastException(fromType, toType);
     }
 
+    public BlockEntry getBlockEntry() {
+        return getDelegate().getBlockEntry();
+    }
+
     public Value parameter(final ValueType type, final int index) {
         return getDelegate().parameter(type, index);
     }
@@ -295,7 +299,7 @@ public class DelegatingGraphFactory implements BasicBlockBuilder {
         return getDelegate().typeIdOf(value);
     }
 
-    public BasicBlock try_(final Triable operation, final ClassTypeIdLiteral[] catchTypeIds, final BlockLabel[] catchTargetLabels, final BlockLabel resumeLabel) {
+    public BasicBlock try_(final Triable operation, final List<ClassTypeIdLiteral> catchTypeIds, final List<BlockLabel> catchTargetLabels, final BlockLabel resumeLabel) {
         return getDelegate().try_(operation, catchTypeIds, catchTargetLabels, resumeLabel);
     }
 }

@@ -2,7 +2,6 @@ package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.ValueType;
 
 /**
  * A {@code new} allocation operation for array objects.
@@ -20,7 +19,7 @@ public final class NewArray extends AbstractValue {
         this.size = size;
     }
 
-    public ValueType getType() {
+    public ReferenceType getType() {
         return type;
     }
 

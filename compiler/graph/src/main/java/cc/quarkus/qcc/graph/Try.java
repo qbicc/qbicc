@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.List;
+
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 
 /**
@@ -8,11 +10,11 @@ import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 public final class Try extends AbstractNode implements Resume {
     private final Node dependency;
     private final Triable delegateOperation;
-    private final ClassTypeIdLiteral[] catchTypeIds;
-    private final BlockLabel[] catchTargetLabels;
+    private final List<ClassTypeIdLiteral> catchTypeIds;
+    private final List<BlockLabel> catchTargetLabels;
     private final BlockLabel resumeTargetLabel;
 
-    Try(final Node dependency, final Triable delegateOperation, final ClassTypeIdLiteral[] catchTypeIds, final BlockLabel[] catchTargetLabels, final BlockLabel resumeTargetLabel) {
+    Try(final Node dependency, final Triable delegateOperation, final List<ClassTypeIdLiteral> catchTypeIds, final List<BlockLabel> catchTargetLabels, final BlockLabel resumeTargetLabel) {
         this.dependency = dependency;
         this.delegateOperation = delegateOperation;
         this.catchTypeIds = catchTypeIds;
@@ -25,23 +27,31 @@ public final class Try extends AbstractNode implements Resume {
     }
 
     public int getCatchTypeIdCount() {
-        return catchTypeIds.length;
+        return catchTypeIds.size();
     }
 
     public ClassTypeIdLiteral getCatchTypeId(int index) {
-        return catchTypeIds[index];
+        return catchTypeIds.get(index);
+    }
+
+    public List<ClassTypeIdLiteral> getCatchTypeIds() {
+        return catchTypeIds;
     }
 
     public BasicBlock getCatchTarget(int index) {
-        return BlockLabel.getTargetOf(catchTargetLabels[index]);
+        return BlockLabel.getTargetOf(catchTargetLabels.get(index));
     }
 
     public BlockLabel getCatchTargetLabel(int index) {
-        return catchTargetLabels[index];
+        return catchTargetLabels.get(index);
     }
 
     public BlockLabel getResumeTargetLabel() {
         return resumeTargetLabel;
+    }
+
+    public List<BlockLabel> getCatchTargetLabels() {
+        return catchTargetLabels;
     }
 
     public int getBasicDependencyCount() {
@@ -53,11 +63,11 @@ public final class Try extends AbstractNode implements Resume {
     }
 
     public int getSuccessorCount() {
-        return 1 + catchTargetLabels.length;
+        return 1 + catchTargetLabels.size();
     }
 
     public BasicBlock getSuccessor(final int index) {
-        int length = catchTargetLabels.length;
+        int length = catchTargetLabels.size();
         return index < length ? getCatchTarget(index) : index == length ? getResumeTarget() : Util.throwIndexOutOfBounds(index);
     }
 

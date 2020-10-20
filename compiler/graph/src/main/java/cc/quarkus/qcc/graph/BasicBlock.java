@@ -8,13 +8,19 @@ import java.util.Set;
  *
  */
 public final class BasicBlock {
+    private final BlockEntry blockEntry;
     private final Terminator terminator;
     private BlockLabel myLabel;
     // used by phi nodes
     Map<PhiValue.Key, Value> outboundValues = Map.of();
 
-    BasicBlock(final Terminator terminator) {
+    BasicBlock(final BlockEntry blockEntry, final Terminator terminator) {
+        this.blockEntry = blockEntry;
         this.terminator = terminator;
+    }
+
+    public BlockEntry getBlockEntry() {
+        return blockEntry;
     }
 
     public Terminator getTerminator() {

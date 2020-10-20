@@ -30,6 +30,10 @@ public final class StaticInvocation extends AbstractNode implements MethodInvoca
         return arguments.get(index);
     }
 
+    public List<Value> getArguments() {
+        return arguments;
+    }
+
     public int getBasicDependencyCount() {
         return 1;
     }

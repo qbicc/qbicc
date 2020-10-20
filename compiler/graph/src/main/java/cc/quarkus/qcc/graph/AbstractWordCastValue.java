@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.graph;
 
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 
 abstract class AbstractWordCastValue extends AbstractValue implements WordCastValue {
@@ -16,7 +15,7 @@ abstract class AbstractWordCastValue extends AbstractValue implements WordCastVa
         return value;
     }
 
-    public ValueType getType() {
+    public WordType getType() {
         return toType;
     }
 }

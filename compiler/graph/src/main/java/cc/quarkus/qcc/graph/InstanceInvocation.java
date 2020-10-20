@@ -34,6 +34,10 @@ public final class InstanceInvocation extends AbstractNode implements InstanceOp
         return arguments.get(index);
     }
 
+    public List<Value> getArguments() {
+        return arguments;
+    }
+
     public DispatchInvocation.Kind getKind() {
         return kind;
     }

@@ -37,6 +37,10 @@ public final class ConstructorInvocation extends AbstractValue implements Instan
         return arguments.get(index);
     }
 
+    public List<Value> getArguments() {
+        return arguments;
+    }
+
     public Value getInstance() {
         return instance;
     }

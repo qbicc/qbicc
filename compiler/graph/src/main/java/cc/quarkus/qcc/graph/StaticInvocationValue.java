@@ -31,6 +31,10 @@ public final class StaticInvocationValue extends AbstractValue implements Method
         return arguments.get(index);
     }
 
+    public List<Value> getArguments() {
+        return arguments;
+    }
+
     public ValueType getType() {
         return target.getReturnType();
     }

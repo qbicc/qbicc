@@ -242,7 +242,7 @@ public interface BasicBlockBuilder {
      */
     BasicBlock ret(Value address);
 
-    BasicBlock try_(Triable operation, ClassTypeIdLiteral[] catchTypeIds, BlockLabel[] catchTargetLabels, BlockLabel resumeLabel);
+    BasicBlock try_(Triable operation, List<ClassTypeIdLiteral> catchTypeIds, List<BlockLabel> catchTargetLabels, BlockLabel resumeLabel);
 
     /**
      * Terminate the block with a class cast exception.
@@ -252,6 +252,13 @@ public interface BasicBlockBuilder {
      * @return the terminated block
      */
     BasicBlock classCastException(Value fromType, Value toType);
+
+    /**
+     * Get the current block's entry node.
+     *
+     * @return the current block's entry node
+     */
+    BlockEntry getBlockEntry();
 
     interface Factory {
         BasicBlockBuilder construct(Context context, BasicBlockBuilder delegate);
@@ -266,6 +273,7 @@ public interface BasicBlockBuilder {
     static BasicBlockBuilder simpleBuilder(final TypeSystem typeSystem) {
         return new BasicBlockBuilder() {
             private Node dependency;
+            private BlockEntry blockEntry;
             private BlockLabel currentBlock;
 
             public Value add(final Value v1, final Value v2) {
@@ -512,7 +520,7 @@ public interface BasicBlockBuilder {
                     throw new IllegalStateException("Block already in progress");
                 }
                 currentBlock = blockLabel;
-                return dependency = new BlockEntry(blockLabel);
+                return dependency = blockEntry = new BlockEntry(blockLabel);
             }
 
             public BasicBlock goto_(final BlockLabel resumeLabel) {
@@ -543,7 +551,7 @@ public interface BasicBlockBuilder {
                 return terminate(requireCurrentBlock(), new Ret(dependency, address));
             }
 
-            public BasicBlock try_(final Triable operation, final ClassTypeIdLiteral[] catchTypeIds, final BlockLabel[] catchTargetLabels, final BlockLabel resumeLabel) {
+            public BasicBlock try_(final Triable operation, final List<ClassTypeIdLiteral> catchTypeIds, final List<BlockLabel> catchTargetLabels, final BlockLabel resumeLabel) {
                 return terminate(requireCurrentBlock(), new Try(dependency, operation, catchTypeIds, catchTargetLabels, resumeLabel));
             }
 
@@ -551,13 +559,19 @@ public interface BasicBlockBuilder {
                 return terminate(requireCurrentBlock(), new ClassCastErrorNode(dependency, fromType, toType));
             }
 
+            public BlockEntry getBlockEntry() {
+                requireCurrentBlock();
+                return blockEntry;
+            }
+
             public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {
                 return terminate(requireCurrentBlock(), new Switch(dependency, defaultTarget, checkValues, targets, value));
             }
 
             private BasicBlock terminate(final BlockLabel block, final Terminator op) {
-                BasicBlock realBlock = new BasicBlock(op);
+                BasicBlock realBlock = new BasicBlock(blockEntry, op);
                 block.setTarget(realBlock);
+                blockEntry = null;
                 currentBlock = null;
                 dependency = null;
                 return realBlock;

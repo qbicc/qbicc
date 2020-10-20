@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph;
 
-import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 
@@ -10,9 +10,9 @@ import cc.quarkus.qcc.type.ValueType;
 public final class New extends AbstractValue {
     private final Node dependency;
     private final ReferenceType type;
-    private final Literal instanceTypeId;
+    private final ClassTypeIdLiteral instanceTypeId;
 
-    New(final Node dependency, final ReferenceType type, final Literal instanceTypeId) {
+    New(final Node dependency, final ReferenceType type, final ClassTypeIdLiteral instanceTypeId) {
         this.dependency = dependency;
         this.type = type;
         this.instanceTypeId = instanceTypeId;
@@ -22,7 +22,7 @@ public final class New extends AbstractValue {
         return type;
     }
 
-    public Literal getInstanceTypeId() {
+    public ClassTypeIdLiteral getInstanceTypeId() {
         return instanceTypeId;
     }
 

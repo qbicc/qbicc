@@ -39,6 +39,10 @@ public final class InstanceInvocationValue extends AbstractValue implements Inst
         return arguments.get(index);
     }
 
+    public List<Value> getArguments() {
+        return arguments;
+    }
+
     public DispatchInvocation.Kind getKind() {
         return kind;
     }

@@ -87,6 +87,7 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.graph.Xor;
+import cc.quarkus.qcc.graph.opt.PhiOptimizer;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
@@ -126,6 +127,7 @@ public class GraphDotGenerator {
      * @param args the arguments
      */
     public static void main(String[] args) throws IOException {
+        boolean doOpt = false;
         Iterator<String> it = Arrays.asList(args).iterator();
         List<Path> jarPath = new ArrayList<>();
         String className = null;
@@ -139,6 +141,8 @@ public class GraphDotGenerator {
                     for (String jar : jars) {
                         jarPath.add(Path.of(jar));
                     }
+                } else if (arg.equals("--optimize-phis")) {
+                    doOpt = true;
                 } else {
                     throw new IllegalArgumentException("Unrecognized option \"" + arg + "\"");
                 }
@@ -170,7 +174,13 @@ public class GraphDotGenerator {
                 System.exit(1);
             }
             MethodBody methodBody = methodHandle.createMethodBody();
-            String s = graph(method.getName() + ":" + method.getDescriptor(), methodBody.getEntryBlock(), new StringBuilder()).toString();
+            BasicBlock block = methodBody.getEntryBlock();
+            if (doOpt) {
+                // try to phi-reduce it
+                PhiOptimizer opt = new PhiOptimizer(ctxt.newBasicBlockBuilder());
+                block = opt.transform(block);
+            }
+            String s = graph(method.getName() + ":" + method.getDescriptor(), block, new StringBuilder()).toString();
             System.out.println(s);
         }
     }
@@ -636,9 +646,13 @@ public class GraphDotGenerator {
         }
 
         private String register(final Node node) {
-            String name = "n" + cnt.getAndIncrement();
+            String name = nextName();
             visited.put(node, name);
             return name;
+        }
+
+        private String nextName() {
+            return "n" + cnt.getAndIncrement();
         }
 
         String node(String label, Invocation node) {
@@ -740,7 +754,8 @@ public class GraphDotGenerator {
         }
 
         String node(Literal node) {
-            String name = register(node);
+            // don't coalesce literals
+            String name = nextName();
             target.append(name).append(' ').append('[');
             appendAttr("label", node.toString()).append(',');
             appendAttr("shape", "Mcircle").append(',');
