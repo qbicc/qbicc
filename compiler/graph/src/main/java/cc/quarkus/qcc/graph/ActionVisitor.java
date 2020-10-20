@@ -75,7 +75,15 @@ public interface ActionVisitor<T, R> {
             for (int i = 0; i < cnt; i++) {
                 copy(param, original.getBasicDependency(i));
             }
-            return original.accept(this, param);
+            BasicBlockBuilder builder = getBuilder(param);
+            int oldLine = builder.setLineNumber(original.getSourceLine());
+            int oldBci = builder.setBytecodeIndex(original.getBytecodeIndex());
+            try {
+                return original.accept(this, param);
+            } finally {
+                builder.setBytecodeIndex(oldBci);
+                builder.setLineNumber(oldLine);
+            }
         }
 
         /**
