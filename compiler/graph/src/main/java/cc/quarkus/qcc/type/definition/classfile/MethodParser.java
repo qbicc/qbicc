@@ -33,6 +33,7 @@ import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
@@ -992,6 +993,14 @@ final class MethodParser {
                     Value[] args = new Value[cnt];
                     for (int i = cnt - 1; i >= 0; i --) {
                         args[i] = pop();
+                        // narrow arguments if needed
+                        ValueType argType = args[i].getType();
+                        if (argType instanceof IntegerType) {
+                            IntegerType intType = (IntegerType) argType;
+                            if (intType.getMinBits() < 32) {
+                                args[i] = gf.truncate(args[i], intType);
+                            }
+                        }
                     }
                     if (opcode != OP_INVOKESTATIC) {
                         // pop the receiver
@@ -1010,20 +1019,35 @@ final class MethodParser {
                         assert target instanceof MethodElement;
                         MethodElement method = (MethodElement) target;
                         Type returnType = method.getReturnType();
-                        if (opcode == OP_INVOKESTATIC) {
-                            if (returnType == ts.getVoidType()) {
+                        if (returnType == ts.getVoidType()) {
+                            if (opcode == OP_INVOKESTATIC) {
                                 // return type is implicitly void
                                 gf.invokeStatic(method, List.of(args));
                             } else {
-                                push(gf.invokeValueStatic(method, List.of(args)));
-                            }
-                        } else {
-                            if (returnType == ts.getVoidType()) {
                                 // return type is implicitly void
                                 gf.invokeInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, method, List.of(args));
-                            } else {
-                                push(gf.invokeInstanceValueMethod(v1, DispatchInvocation.Kind.fromOpcode(opcode), method, List.of(args)));
                             }
+                        } else {
+                            Value result;
+                            if (opcode == OP_INVOKESTATIC) {
+                                result = gf.invokeValueStatic(method, List.of(args));
+                            } else {
+                                result = gf.invokeInstanceValueMethod(v1, DispatchInvocation.Kind.fromOpcode(opcode), method, List.of(args));
+                            }
+                            if (returnType instanceof IntegerType) {
+                                IntegerType intType = (IntegerType) returnType;
+                                if (intType.getMinBits() < 32) {
+                                    // extend it back out again
+                                    if (intType instanceof UnsignedIntegerType) {
+                                        // first extend, then cast
+                                        result = gf.extend(result, ts.getUnsignedInteger32Type());
+                                        result = gf.bitCast(result, ts.getSignedInteger32Type());
+                                    } else {
+                                        result = gf.extend(result, ts.getSignedInteger32Type());
+                                    }
+                                }
+                            }
+                            push(result);
                         }
                     }
                     break;
