@@ -88,7 +88,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             for (int i = 0; i < paramCount; i ++) {
                 ValueType type = methodElement.getParameter(i).getType();
                 if (type.isClass2Type()) {
-                    methodParser.setLocal(++j, parameters[i] = fatten(gf.parameter(type, i)));
+                    methodParser.setLocal(j, parameters[i] = fatten(gf.parameter(type, i)));
                     j+=2;
                 } else {
                     methodParser.setLocal(j, parameters[i] = gf.parameter(type, i));
