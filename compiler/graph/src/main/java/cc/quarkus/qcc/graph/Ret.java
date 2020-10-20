@@ -7,7 +7,8 @@ public final class Ret extends AbstractNode implements Terminator {
     private final Node dependency;
     private final Value returnAddressValue;
 
-    Ret(final Node dependency, final Value returnAddressValue) {
+    Ret(final int line, final int bci, final Node dependency, final Value returnAddressValue) {
+        super(line, bci);
         this.dependency = dependency;
         this.returnAddressValue = returnAddressValue;
     }

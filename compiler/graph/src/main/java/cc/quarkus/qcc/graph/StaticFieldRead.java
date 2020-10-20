@@ -10,7 +10,8 @@ public final class StaticFieldRead extends AbstractValue implements FieldRead {
     private final FieldElement fieldElement;
     private final JavaAccessMode mode;
 
-    StaticFieldRead(final Node dependency, final FieldElement fieldElement, final JavaAccessMode mode) {
+    StaticFieldRead(final int line, final int bci, final Node dependency, final FieldElement fieldElement, final JavaAccessMode mode) {
+        super(line, bci);
         this.dependency = dependency;
         this.fieldElement = fieldElement;
         this.mode = mode;

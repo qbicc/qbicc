@@ -12,7 +12,8 @@ public final class StaticInvocation extends AbstractNode implements MethodInvoca
     private final MethodElement target;
     private final List<Value> arguments;
 
-    StaticInvocation(final Node dependency, final MethodElement target, final List<Value> arguments) {
+    StaticInvocation(final int line, final int bci, final Node dependency, final MethodElement target, final List<Value> arguments) {
+        super(line, bci);
         this.dependency = dependency;
         this.target = target;
         this.arguments = arguments;

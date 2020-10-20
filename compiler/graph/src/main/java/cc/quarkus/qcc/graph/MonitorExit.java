@@ -7,7 +7,8 @@ public class MonitorExit extends AbstractNode implements Action, InstanceOperati
     private final Node dependency;
     private final Value instance;
 
-    MonitorExit(final Node dependency, final Value instance) {
+    MonitorExit(final int line, final int bci, final Node dependency, final Value instance) {
+        super(line, bci);
         this.dependency = dependency;
         this.instance = instance;
     }

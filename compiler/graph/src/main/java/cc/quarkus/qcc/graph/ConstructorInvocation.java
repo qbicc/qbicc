@@ -14,7 +14,8 @@ public final class ConstructorInvocation extends AbstractValue implements Instan
     private final ConstructorElement target;
     private final List<Value> arguments;
 
-    ConstructorInvocation(final Node dependency, final Value instance, final ConstructorElement target, final List<Value> arguments) {
+    ConstructorInvocation(final int line, final int bci, final Node dependency, final Value instance, final ConstructorElement target, final List<Value> arguments) {
+        super(line, bci);
         this.dependency = dependency;
         this.instance = instance;
         this.target = target;

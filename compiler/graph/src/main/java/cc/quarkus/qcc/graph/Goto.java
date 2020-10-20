@@ -7,7 +7,8 @@ public final class Goto extends AbstractNode implements Resume {
     private final Node dependency;
     private final BlockLabel targetLabel;
 
-    Goto(Node dependency, BlockLabel targetLabel) {
+    Goto(final int line, final int bci, Node dependency, BlockLabel targetLabel) {
+        super(line, bci);
         this.dependency = dependency;
         this.targetLabel = targetLabel;
     }

@@ -12,7 +12,8 @@ public final class NewArray extends AbstractValue {
     private final Literal elementTypeId;
     private final Value size;
 
-    NewArray(final Node dependency, final Literal elementTypeId, final ReferenceType type, final Value size) {
+    NewArray(final int line, final int bci, final Node dependency, final Literal elementTypeId, final ReferenceType type, final Value size) {
+        super(line, bci);
         this.dependency = dependency;
         this.elementTypeId = elementTypeId;
         this.type = type;

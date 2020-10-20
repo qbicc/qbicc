@@ -22,6 +22,22 @@ import io.smallrye.common.constraint.Assert;
  */
 public interface BasicBlockBuilder {
 
+    /**
+     * Set the line number to use for subsequently built nodes.  Use {@code 0} for no line number.
+     *
+     * @param newLineNumber the line number
+     * @return the previously set line number
+     */
+    int setLineNumber(int newLineNumber);
+
+    /**
+     * Set the bytecode index to use for subsequently built nodes.  Use {@code -1} for no bytecode index.
+     *
+     * @param newBytecodeIndex the bytecode index
+     * @return the previously set bytecode index
+     */
+    int setBytecodeIndex(int newBytecodeIndex);
+
     // values
 
     Value receiver(TypeIdLiteral upperBound);
@@ -272,84 +288,102 @@ public interface BasicBlockBuilder {
 
     static BasicBlockBuilder simpleBuilder(final TypeSystem typeSystem) {
         return new BasicBlockBuilder() {
+            private int line;
+            private int bci;
             private Node dependency;
             private BlockEntry blockEntry;
             private BlockLabel currentBlock;
 
+            public int setLineNumber(final int newLineNumber) {
+                try {
+                    return line;
+                } finally {
+                    line = newLineNumber;
+                }
+            }
+
+            public int setBytecodeIndex(final int newBytecodeIndex) {
+                try {
+                    return bci;
+                } finally {
+                    bci = newBytecodeIndex;
+                }
+            }
+
             public Value add(final Value v1, final Value v2) {
-                return new Add(v1, v2);
+                return new Add(line, bci, v1, v2);
             }
 
             public Value multiply(final Value v1, final Value v2) {
-                return new Multiply(v1, v2);
+                return new Multiply(line, bci, v1, v2);
             }
 
             public Value and(final Value v1, final Value v2) {
-                return new And(v1, v2);
+                return new And(line, bci, v1, v2);
             }
 
             public Value or(final Value v1, final Value v2) {
-                return new Or(v1, v2);
+                return new Or(line, bci, v1, v2);
             }
 
             public Value xor(final Value v1, final Value v2) {
-                return new Xor(v1, v2);
+                return new Xor(line, bci, v1, v2);
             }
 
             public Value cmpEq(final Value v1, final Value v2) {
-                return new CmpEq(v1, v2, typeSystem.getBooleanType());
+                return new CmpEq(line, bci, v1, v2, typeSystem.getBooleanType());
             }
 
             public Value cmpNe(final Value v1, final Value v2) {
-                return new CmpNe(v1, v2, typeSystem.getBooleanType());
+                return new CmpNe(line, bci, v1, v2, typeSystem.getBooleanType());
             }
 
             public Value shr(final Value v1, final Value v2) {
-                return new Shr(v1, v2);
+                return new Shr(line, bci, v1, v2);
             }
 
             public Value shl(final Value v1, final Value v2) {
-                return new Shl(v1, v2);
+                return new Shl(line, bci, v1, v2);
             }
 
             public Value sub(final Value v1, final Value v2) {
-                return new Sub(v1, v2);
+                return new Sub(line, bci, v1, v2);
             }
 
             public Value divide(final Value v1, final Value v2) {
-                return new Div(v1, v2);
+                return new Div(line, bci, v1, v2);
             }
 
             public Value remainder(final Value v1, final Value v2) {
-                return new Mod(v1, v2);
+                return new Mod(line, bci, v1, v2);
             }
 
             public Value cmpLt(final Value v1, final Value v2) {
-                return new CmpLt(v1, v2, typeSystem.getBooleanType());
+                return new CmpLt(line, bci, v1, v2, typeSystem.getBooleanType());
             }
 
             public Value cmpGt(final Value v1, final Value v2) {
-                return new CmpGt(v1, v2, typeSystem.getBooleanType());
+                return new CmpGt(line, bci, v1, v2, typeSystem.getBooleanType());
             }
 
             public Value cmpLe(final Value v1, final Value v2) {
-                return new CmpLe(v1, v2, typeSystem.getBooleanType());
+                return new CmpLe(line, bci, v1, v2, typeSystem.getBooleanType());
             }
 
             public Value cmpGe(final Value v1, final Value v2) {
-                return new CmpGe(v1, v2, typeSystem.getBooleanType());
+                return new CmpGe(line, bci, v1, v2, typeSystem.getBooleanType());
             }
 
             public Value rol(final Value v1, final Value v2) {
-                return new Rol(v1, v2);
+                return new Rol(line, bci, v1, v2);
             }
 
             public Value ror(final Value v1, final Value v2) {
-                return new Ror(v1, v2);
+                return new Ror(line, bci, v1, v2);
             }
 
             public Value negate(final Value v) {
-                return new Neg(v);
+                return new Neg(line, bci, v);
             }
 
             public Value byteSwap(final Value v) {
@@ -373,27 +407,27 @@ public interface BasicBlockBuilder {
             }
 
             public Value arrayLength(final Value array) {
-                return new ArrayLength(array, typeSystem.getSignedInteger32Type());
+                return new ArrayLength(line, bci, array, typeSystem.getSignedInteger32Type());
             }
 
             public Value truncate(final Value value, final WordType toType) {
-                return new Truncate(value, toType);
+                return new Truncate(line, bci, value, toType);
             }
 
             public Value extend(final Value value, final WordType toType) {
-                return new Extend(value, toType);
+                return new Extend(line, bci, value, toType);
             }
 
             public Value bitCast(final Value value, final WordType toType) {
-                return new BitCast(value, toType);
+                return new BitCast(line, bci, value, toType);
             }
 
             public Value valueConvert(final Value value, final WordType toType) {
-                return new Convert(value, toType);
+                return new Convert(line, bci, value, toType);
             }
 
             public Value narrow(final Value value, final TypeIdLiteral toType) {
-                return new Narrow(value, typeSystem.getReferenceType(toType));
+                return new Narrow(line, bci, value, typeSystem.getReferenceType(toType));
             }
 
             public Value receiver(final TypeIdLiteral upperBound) {
@@ -413,19 +447,19 @@ public interface BasicBlockBuilder {
             }
 
             public Value select(final Value condition, final Value trueValue, final Value falseValue) {
-                return new Select(condition, trueValue, falseValue);
+                return new Select(line, bci, condition, trueValue, falseValue);
             }
 
             public Value typeIdOf(final Value value) {
-                return new TypeIdOf(typeSystem.getTypeIdType(), value);
+                return new TypeIdOf(line, bci, typeSystem.getTypeIdType(), value);
             }
 
             public Value new_(final ClassTypeIdLiteral typeId) {
-                return asDependency(new New(requireDependency(), typeSystem.getReferenceType(typeId), typeId));
+                return asDependency(new New(line, bci, requireDependency(), typeSystem.getReferenceType(typeId), typeId));
             }
 
             public Value newArray(final ArrayTypeIdLiteral arrayTypeId, final Value size) {
-                return asDependency(new NewArray(requireDependency(), arrayTypeId, typeSystem.getReferenceType(arrayTypeId), size));
+                return asDependency(new NewArray(line, bci, requireDependency(), arrayTypeId, typeSystem.getReferenceType(arrayTypeId), size));
             }
 
             public Value multiNewArray(final ArrayTypeIdLiteral arrayTypeId, final Value... dimensions) {
@@ -441,17 +475,17 @@ public interface BasicBlockBuilder {
             }
 
             public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
-                return asDependency(new InstanceFieldRead(requireDependency(), instance, fieldElement, mode));
+                return asDependency(new InstanceFieldRead(line, bci, requireDependency(), instance, fieldElement, mode));
             }
 
             public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
-                return asDependency(new StaticFieldRead(requireDependency(), fieldElement, mode));
+                return asDependency(new StaticFieldRead(line, bci, requireDependency(), fieldElement, mode));
             }
 
             public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
                 ArrayTypeIdLiteral arrayTypeBound = (ArrayTypeIdLiteral) ((ReferenceType) array.getType()).getUpperBound();
                 ValueType type = arrayTypeBound.getElementType();
-                return asDependency(new ArrayElementRead(requireDependency(), type, array, index, mode));
+                return asDependency(new ArrayElementRead(line, bci, requireDependency(), type, array, index, mode));
             }
 
             public Node pointerStore(final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
@@ -459,15 +493,15 @@ public interface BasicBlockBuilder {
             }
 
             public Node writeInstanceField(final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-                return asDependency(new InstanceFieldWrite(requireDependency(), instance, fieldElement, value, mode));
+                return asDependency(new InstanceFieldWrite(line, bci, requireDependency(), instance, fieldElement, value, mode));
             }
 
             public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-                return asDependency(new StaticFieldWrite(requireDependency(), fieldElement, value, mode));
+                return asDependency(new StaticFieldWrite(line, bci, requireDependency(), fieldElement, value, mode));
             }
 
             public Node writeArrayValue(final Value array, final Value index, final Value value, final JavaAccessMode mode) {
-                return asDependency(new ArrayElementWrite(requireDependency(), array, index, value, mode));
+                return asDependency(new ArrayElementWrite(line, bci, requireDependency(), array, index, value, mode));
             }
 
             public Node fence(final MemoryAtomicityMode fenceType) {
@@ -475,31 +509,31 @@ public interface BasicBlockBuilder {
             }
 
             public Node monitorEnter(final Value obj) {
-                return asDependency(new MonitorEnter(requireDependency(), Assert.checkNotNullParam("obj", obj)));
+                return asDependency(new MonitorEnter(line, bci, requireDependency(), Assert.checkNotNullParam("obj", obj)));
             }
 
             public Node monitorExit(final Value obj) {
-                return asDependency(new MonitorExit(requireDependency(), Assert.checkNotNullParam("obj", obj)));
+                return asDependency(new MonitorExit(line, bci, requireDependency(), Assert.checkNotNullParam("obj", obj)));
             }
 
             public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
-                return asDependency(new StaticInvocation(requireDependency(), target, arguments));
+                return asDependency(new StaticInvocation(line, bci, requireDependency(), target, arguments));
             }
 
             public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-                return asDependency(new InstanceInvocation(requireDependency(), kind, instance, target, arguments));
+                return asDependency(new InstanceInvocation(line, bci, requireDependency(), kind, instance, target, arguments));
             }
 
             public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-                return asDependency(new StaticInvocationValue(requireDependency(), target, arguments));
+                return asDependency(new StaticInvocationValue(line, bci, requireDependency(), target, arguments));
             }
 
             public Value invokeInstanceValueMethod(final Value instance, final DispatchInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
-                return asDependency(new InstanceInvocationValue(requireDependency(), kind, instance, target, arguments));
+                return asDependency(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, arguments));
             }
 
             public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
-                return asDependency(new ConstructorInvocation(requireDependency(), instance, target, arguments));
+                return asDependency(new ConstructorInvocation(line, bci, requireDependency(), instance, target, arguments));
             }
 
             public Node nop() {
@@ -524,31 +558,31 @@ public interface BasicBlockBuilder {
             }
 
             public BasicBlock goto_(final BlockLabel resumeLabel) {
-                return terminate(requireCurrentBlock(), new Goto(dependency, resumeLabel));
+                return terminate(requireCurrentBlock(), new Goto(line, bci, dependency, resumeLabel));
             }
 
             public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
-                return terminate(requireCurrentBlock(), new If(dependency, condition, trueTarget, falseTarget));
+                return terminate(requireCurrentBlock(), new If(line, bci, dependency, condition, trueTarget, falseTarget));
             }
 
             public BasicBlock return_() {
-                return terminate(requireCurrentBlock(), new Return(dependency));
+                return terminate(requireCurrentBlock(), new Return(line, bci, dependency));
             }
 
             public BasicBlock return_(final Value value) {
-                return terminate(requireCurrentBlock(), new ValueReturn(dependency, value));
+                return terminate(requireCurrentBlock(), new ValueReturn(line, bci, dependency, value));
             }
 
             public BasicBlock throw_(final Value value) {
-                return terminate(requireCurrentBlock(), new Throw(dependency, value));
+                return terminate(requireCurrentBlock(), new Throw(line, bci, dependency, value));
             }
 
             public BasicBlock jsr(final BlockLabel subLabel, final BlockLiteral returnAddress) {
-                return terminate(requireCurrentBlock(), new Jsr(dependency, subLabel, returnAddress));
+                return terminate(requireCurrentBlock(), new Jsr(line, bci, dependency, subLabel, returnAddress));
             }
 
             public BasicBlock ret(final Value address) {
-                return terminate(requireCurrentBlock(), new Ret(dependency, address));
+                return terminate(requireCurrentBlock(), new Ret(line, bci, dependency, address));
             }
 
             public BasicBlock try_(final Triable operation, final List<ClassTypeIdLiteral> catchTypeIds, final List<BlockLabel> catchTargetLabels, final BlockLabel resumeLabel) {
@@ -556,7 +590,7 @@ public interface BasicBlockBuilder {
             }
 
             public BasicBlock classCastException(final Value fromType, final Value toType) {
-                return terminate(requireCurrentBlock(), new ClassCastErrorNode(dependency, fromType, toType));
+                return terminate(requireCurrentBlock(), new ClassCastErrorNode(line, bci, dependency, fromType, toType));
             }
 
             public BlockEntry getBlockEntry() {
@@ -565,7 +599,7 @@ public interface BasicBlockBuilder {
             }
 
             public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {
-                return terminate(requireCurrentBlock(), new Switch(dependency, defaultTarget, checkValues, targets, value));
+                return terminate(requireCurrentBlock(), new Switch(line, bci, dependency, defaultTarget, checkValues, targets, value));
             }
 
             private BasicBlock terminate(final BlockLabel block, final Terminator op) {

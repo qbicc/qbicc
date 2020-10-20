@@ -12,7 +12,8 @@ public final class InstanceFieldWrite extends AbstractNode implements FieldWrite
     private final Value value;
     private final JavaAccessMode mode;
 
-    InstanceFieldWrite(final Node dependency, final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+    InstanceFieldWrite(final int line, final int bci, final Node dependency, final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+        super(line, bci);
         this.dependency = dependency;
         this.instance = instance;
         this.fieldElement = fieldElement;

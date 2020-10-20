@@ -6,7 +6,8 @@ package cc.quarkus.qcc.graph;
 public final class Return extends AbstractNode implements Terminator {
     private final Node dependency;
 
-    Return(Node dependency) {
+    Return(final int line, final int bci, Node dependency) {
+        super(line, bci);
         this.dependency = dependency;
     }
 

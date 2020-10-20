@@ -15,7 +15,8 @@ public final class Switch extends AbstractNode implements Terminator {
     private final BlockLabel[] targetLabels;
     private final Value switchValue;
 
-    Switch(final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue) {
+    Switch(final int line, final int bci, final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue) {
+        super(line, bci);
         this.dependency = dependency;
         this.defaultTargetLabel = defaultTargetLabel;
         // check values to make sure they're in order

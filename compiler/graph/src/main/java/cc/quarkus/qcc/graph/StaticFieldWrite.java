@@ -11,7 +11,8 @@ public final class StaticFieldWrite extends AbstractNode implements FieldWrite, 
     private final Value value;
     private final JavaAccessMode mode;
 
-    StaticFieldWrite(final Node dependency, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+    StaticFieldWrite(final int line, final int bci, final Node dependency, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+        super(line, bci);
         this.dependency = dependency;
         this.fieldElement = fieldElement;
         this.value = value;

@@ -7,6 +7,7 @@ public final class BlockEntry extends AbstractNode implements PinnedNode, Action
     private final BlockLabel blockLabel;
 
     BlockEntry(final BlockLabel blockLabel) {
+        super(0, -1);
         this.blockLabel = blockLabel;
     }
 

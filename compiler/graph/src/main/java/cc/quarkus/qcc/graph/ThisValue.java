@@ -10,6 +10,7 @@ public final class ThisValue extends AbstractValue {
     private final ReferenceType type;
 
     ThisValue(final ReferenceType type) {
+        super(0, -1);
         this.type = type;
     }
 

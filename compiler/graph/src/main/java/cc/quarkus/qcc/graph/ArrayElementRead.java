@@ -12,7 +12,8 @@ public final class ArrayElementRead extends AbstractValue implements ArrayElemen
     private final Value index;
     private final JavaAccessMode mode;
 
-    ArrayElementRead(final Node dependency, final ValueType type, final Value instance, final Value index, final JavaAccessMode mode) {
+    ArrayElementRead(final int line, final int bci, final Node dependency, final ValueType type, final Value instance, final Value index, final JavaAccessMode mode) {
+        super(line, bci);
         this.dependency = dependency;
         this.type = type;
         this.instance = instance;

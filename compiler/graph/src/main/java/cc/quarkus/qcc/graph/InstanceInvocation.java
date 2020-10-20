@@ -14,7 +14,8 @@ public final class InstanceInvocation extends AbstractNode implements InstanceOp
     private final MethodElement target;
     private final List<Value> arguments;
 
-    InstanceInvocation(final Node dependency, final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+    InstanceInvocation(final int line, final int bci, final Node dependency, final Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        super(line, bci);
         this.dependency = dependency;
         this.kind = kind;
         this.instance = instance;

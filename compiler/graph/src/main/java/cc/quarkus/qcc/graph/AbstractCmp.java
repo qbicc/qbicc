@@ -9,8 +9,8 @@ import cc.quarkus.qcc.type.ValueType;
 public abstract class AbstractCmp extends AbstractBinaryValue {
     private final BooleanType booleanType;
 
-    AbstractCmp(final Value left, final Value right, final BooleanType booleanType) {
-        super(left, right);
+    AbstractCmp(final int line, final int bci, final Value left, final Value right, final BooleanType booleanType) {
+        super(line, bci, left, right);
         this.booleanType = booleanType;
     }
 

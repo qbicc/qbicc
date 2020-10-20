@@ -15,7 +15,8 @@ public final class InstanceInvocationValue extends AbstractValue implements Inst
     private final MethodElement target;
     private final List<Value> arguments;
 
-    InstanceInvocationValue(final Node dependency, final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+    InstanceInvocationValue(final int line, final int bci, final Node dependency, final Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        super(line, bci);
         this.dependency = dependency;
         this.kind = kind;
         this.instance = instance;

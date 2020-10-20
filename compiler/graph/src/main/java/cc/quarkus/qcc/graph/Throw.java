@@ -8,7 +8,8 @@ public final class Throw extends AbstractNode implements Terminator {
     private final Node dependency;
     private final Value thrownValue;
 
-    Throw(final Node dependency, final Value thrownValue) {
+    Throw(final int line, final int bci, final Node dependency, final Value thrownValue) {
+        super(line, bci);
         this.dependency = dependency;
         this.thrownValue = thrownValue;
     }

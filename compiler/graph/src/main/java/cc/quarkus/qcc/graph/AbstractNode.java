@@ -1,22 +1,19 @@
 package cc.quarkus.qcc.graph;
 
 abstract class AbstractNode implements Node {
-    private int sourceLine;
-    private int bytecodeIndex;
+    private final int line;
+    private final int bci;
 
-    public int getSourceLine() {
-        return sourceLine;
+    AbstractNode(final int line, final int bci) {
+        this.line = line;
+        this.bci = bci;
     }
 
-    public void setSourceLine(final int sourceLine) {
-        this.sourceLine = sourceLine;
+    public int getSourceLine() {
+        return line;
     }
 
     public int getBytecodeIndex() {
-        return bytecodeIndex;
-    }
-
-    public void setBytecodeIndex(final int bytecodeIndex) {
-        this.bytecodeIndex = bytecodeIndex;
+        return bci;
     }
 }

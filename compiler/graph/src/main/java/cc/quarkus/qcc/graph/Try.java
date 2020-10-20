@@ -15,6 +15,7 @@ public final class Try extends AbstractNode implements Resume {
     private final BlockLabel resumeTargetLabel;
 
     Try(final Node dependency, final Triable delegateOperation, final List<ClassTypeIdLiteral> catchTypeIds, final List<BlockLabel> catchTargetLabels, final BlockLabel resumeTargetLabel) {
+        super(0, -1);
         this.dependency = dependency;
         this.delegateOperation = delegateOperation;
         this.catchTypeIds = catchTypeIds;

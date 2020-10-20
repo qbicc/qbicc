@@ -6,8 +6,8 @@ import cc.quarkus.qcc.type.WordType;
  *
  */
 public final class Truncate extends AbstractWordCastValue {
-    Truncate(final Value value, final WordType toType) {
-        super(value, toType);
+    Truncate(final int line, final int bci, final Value value, final WordType toType) {
+        super(line, bci, value, toType);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

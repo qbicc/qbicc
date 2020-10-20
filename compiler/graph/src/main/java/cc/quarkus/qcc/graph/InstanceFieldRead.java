@@ -11,7 +11,8 @@ public final class InstanceFieldRead extends AbstractValue implements FieldRead,
     private final FieldElement fieldElement;
     private final JavaAccessMode mode;
 
-    InstanceFieldRead(final Node dependency, final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
+    InstanceFieldRead(final int line, final int bci, final Node dependency, final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
+        super(line, bci);
         this.dependency = dependency;
         this.instance = instance;
         this.fieldElement = fieldElement;

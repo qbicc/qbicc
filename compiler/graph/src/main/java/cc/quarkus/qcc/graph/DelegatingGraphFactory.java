@@ -23,6 +23,14 @@ public class DelegatingGraphFactory implements BasicBlockBuilder {
         this.delegate = delegate;
     }
 
+    public int setLineNumber(final int newLineNumber) {
+        return getDelegate().setLineNumber(newLineNumber);
+    }
+
+    public int setBytecodeIndex(final int newBytecodeIndex) {
+        return getDelegate().setBytecodeIndex(newBytecodeIndex);
+    }
+
     public BasicBlockBuilder getDelegate() {
         return delegate;
     }

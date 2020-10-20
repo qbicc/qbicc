@@ -7,7 +7,8 @@ abstract class AbstractBinaryValue extends AbstractValue implements BinaryValue 
     final Value left;
     final Value right;
 
-    AbstractBinaryValue(final Value left, final Value right) {
+    AbstractBinaryValue(final int line, final int bci, final Value left, final Value right) {
+        super(line, bci);
         this.left = left;
         this.right = right;
     }

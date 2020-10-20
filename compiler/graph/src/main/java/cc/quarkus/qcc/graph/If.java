@@ -9,7 +9,8 @@ public final class If extends AbstractNode implements Terminator {
     private final BlockLabel trueBranchLabel;
     private final BlockLabel falseBranchLabel;
 
-    If(final Node dependency, final Value condition, final BlockLabel trueBranchLabel, final BlockLabel falseBranchLabel) {
+    If(final int line, final int bci, final Node dependency, final Value condition, final BlockLabel trueBranchLabel, final BlockLabel falseBranchLabel) {
+        super(line, bci);
         this.dependency = dependency;
         this.condition = condition;
         this.trueBranchLabel = trueBranchLabel;

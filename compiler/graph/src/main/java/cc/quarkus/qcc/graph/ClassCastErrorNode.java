@@ -8,7 +8,8 @@ public final class ClassCastErrorNode extends AbstractNode implements Error {
     private final Value fromType;
     private final Value toType;
 
-    ClassCastErrorNode(final Node dependency, final Value fromType, final Value toType) {
+    ClassCastErrorNode(final int line, final int bci, final Node dependency, final Value fromType, final Value toType) {
+        super(line, bci);
         this.dependency = dependency;
         this.fromType = fromType;
         this.toType = toType;

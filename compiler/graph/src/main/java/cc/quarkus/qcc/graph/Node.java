@@ -6,11 +6,7 @@ package cc.quarkus.qcc.graph;
 public interface Node {
     int getSourceLine();
 
-    void setSourceLine(int sourceLine);
-
     int getBytecodeIndex();
-
-    void setBytecodeIndex(int bytecodeIndex);
 
     default int getValueDependencyCount() {
         return 0;

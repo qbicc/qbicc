@@ -10,6 +10,7 @@ public final class FatValue extends AbstractValue {
     private final Value delegate;
 
     FatValue(final Value delegate) {
+        super(delegate.getSourceLine(), delegate.getBytecodeIndex());
         this.delegate = delegate;
     }
 
@@ -57,16 +58,8 @@ public final class FatValue extends AbstractValue {
         return delegate.getSourceLine();
     }
 
-    public void setSourceLine(final int sourceLine) {
-        delegate.setSourceLine(sourceLine);
-    }
-
     public int getBytecodeIndex() {
         return delegate.getBytecodeIndex();
-    }
-
-    public void setBytecodeIndex(final int bytecodeIndex) {
-        delegate.setBytecodeIndex(bytecodeIndex);
     }
 
     public String toString() {

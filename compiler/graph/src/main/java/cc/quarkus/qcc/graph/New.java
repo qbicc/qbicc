@@ -12,7 +12,8 @@ public final class New extends AbstractValue {
     private final ReferenceType type;
     private final ClassTypeIdLiteral instanceTypeId;
 
-    New(final Node dependency, final ReferenceType type, final ClassTypeIdLiteral instanceTypeId) {
+    New(final int line, final int bci, final Node dependency, final ReferenceType type, final ClassTypeIdLiteral instanceTypeId) {
+        super(line, bci);
         this.dependency = dependency;
         this.type = type;
         this.instanceTypeId = instanceTypeId;

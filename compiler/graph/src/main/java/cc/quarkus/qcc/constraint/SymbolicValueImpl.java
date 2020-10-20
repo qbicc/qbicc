@@ -28,15 +28,7 @@ public class SymbolicValueImpl implements SymbolicValue {
         return 0;
     }
 
-    public void setSourceLine(final int sourceLine) {
-
-    }
-
     public int getBytecodeIndex() {
         return 0;
-    }
-
-    public void setBytecodeIndex(final int bytecodeIndex) {
-
     }
 }

@@ -6,7 +6,8 @@ abstract class AbstractWordCastValue extends AbstractValue implements WordCastVa
     final Value value;
     final WordType toType;
 
-    AbstractWordCastValue(final Value value, final WordType toType) {
+    AbstractWordCastValue(final int line, final int bci, final Value value, final WordType toType) {
+        super(line, bci);
         this.value = value;
         this.toType = toType;
     }

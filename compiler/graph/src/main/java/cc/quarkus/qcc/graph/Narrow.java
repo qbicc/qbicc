@@ -9,7 +9,8 @@ public final class Narrow extends AbstractValue implements CastValue {
     private final Value input;
     private final ReferenceType type;
 
-    Narrow(final Value input, final ReferenceType type) {
+    Narrow(final int line, final int bci, final Value input, final ReferenceType type) {
+        super(line, bci);
         this.input = input;
         this.type = type;
     }

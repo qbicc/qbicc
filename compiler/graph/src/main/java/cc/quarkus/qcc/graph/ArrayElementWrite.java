@@ -10,7 +10,8 @@ public final class ArrayElementWrite extends AbstractNode implements ArrayElemen
     private final Value value;
     private final JavaAccessMode mode;
 
-    ArrayElementWrite(final Node dependency, final Value instance, final Value index, final Value value, final JavaAccessMode mode) {
+    ArrayElementWrite(final int line, final int bci, final Node dependency, final Value instance, final Value index, final Value value, final JavaAccessMode mode) {
+        super(line, bci);
         this.dependency = dependency;
         this.instance = instance;
         this.index = index;

@@ -10,7 +10,8 @@ public final class Jsr extends AbstractNode implements Resume, Terminator {
     private final BlockLabel jsrTargetLabel;
     private final BlockLiteral returnAddress;
 
-    Jsr(final Node dependency, final BlockLabel jsrTargetLabel, final BlockLiteral returnAddress) {
+    Jsr(final int line, final int bci, final Node dependency, final BlockLabel jsrTargetLabel, final BlockLiteral returnAddress) {
+        super(line, bci);
         this.dependency = dependency;
         this.jsrTargetLabel = jsrTargetLabel;
         this.returnAddress = returnAddress;

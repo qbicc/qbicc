@@ -17,7 +17,6 @@ import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.JavaAccessMode;
-import cc.quarkus.qcc.graph.LineNumberGraphFactory;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Ret;
 import cc.quarkus.qcc.graph.Terminator;
@@ -52,7 +51,7 @@ final class MethodParser {
     final BlockLabel[] blockHandles;
     private Map<BasicBlock, Value[]> retStacks;
     private Map<BasicBlock, Value[]> retLocals;
-    private final LineNumberGraphFactory gf;
+    private final BasicBlockBuilder gf;
     private final ClassContext ctxt;
     private final LiteralFactory lf;
     private final TypeSystem ts;
@@ -74,7 +73,7 @@ final class MethodParser {
         }
         this.blockHandles = blockHandles;
         // it's not an entry point
-        gf = new LineNumberGraphFactory(graphFactory);
+        gf = graphFactory;
     }
 
     // stack manipulation

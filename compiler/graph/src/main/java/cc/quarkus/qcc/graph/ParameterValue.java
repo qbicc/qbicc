@@ -10,6 +10,7 @@ public final class ParameterValue extends AbstractValue {
     private final int index;
 
     ParameterValue(final ValueType type, final int index) {
+        super(0, -1);
         this.type = type;
         this.index = index;
     }

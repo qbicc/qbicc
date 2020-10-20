@@ -10,7 +10,8 @@ public final class TypeIdOf extends AbstractValue implements InstanceOperation {
     private final TypeIdType type;
     private final Value instance;
 
-    TypeIdOf(final TypeIdType type, final Value instance) {
+    TypeIdOf(final int line, final int bci, final TypeIdType type, final Value instance) {
+        super(line, bci);
         this.type = type;
         this.instance = instance;
     }

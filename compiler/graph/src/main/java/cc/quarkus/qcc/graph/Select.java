@@ -10,7 +10,8 @@ public final class Select extends AbstractValue {
     private final Value trueValue;
     private final Value falseValue;
 
-    Select(final Value condition, final Value trueValue, final Value falseValue) {
+    Select(final int line, final int bci, final Value condition, final Value trueValue, final Value falseValue) {
+        super(line, bci);
         this.condition = condition;
         this.trueValue = trueValue;
         this.falseValue = falseValue;

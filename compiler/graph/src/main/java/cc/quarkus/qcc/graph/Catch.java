@@ -10,6 +10,7 @@ public final class Catch extends AbstractValue implements PinnedNode {
     private final ReferenceType throwableType;
 
     Catch(final BlockLabel pinnedBlockLabel, final ReferenceType throwableType) {
+        super(0, -1);
         this.pinnedBlockLabel = pinnedBlockLabel;
         this.throwableType = throwableType;
     }

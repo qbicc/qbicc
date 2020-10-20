@@ -9,7 +9,8 @@ public final class ArrayLength extends AbstractValue implements InstanceOperatio
     private final Value instance;
     private final SignedIntegerType type;
 
-    ArrayLength(final Value instance, final SignedIntegerType type) {
+    ArrayLength(final int line, final int bci, final Value instance, final SignedIntegerType type) {
+        super(line, bci);
         this.instance = instance;
         this.type = type;
     }

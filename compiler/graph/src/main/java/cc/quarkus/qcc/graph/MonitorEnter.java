@@ -7,7 +7,8 @@ public class MonitorEnter extends AbstractNode implements Action, InstanceOperat
     private final Node dependency;
     private final Value instance;
 
-    MonitorEnter(final Node dependency, final Value instance) {
+    MonitorEnter(final int line, final int bci, final Node dependency, final Value instance) {
+        super(line, bci);
         this.dependency = dependency;
         this.instance = instance;
     }
