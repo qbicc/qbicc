@@ -103,6 +103,7 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodHandle;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
@@ -157,8 +158,17 @@ public class GraphDotGenerator {
         }
         try (ClassContext.Basic ctxt = ClassContext.createBasic(jarPath)) {
             DefinedTypeDefinition definedType = ctxt.findDefinedType(className);
-            MethodElement method = definedType.validate().getMethod(methodIdx);
+            ValidatedTypeDefinition validated = definedType.validate();
+            if (methodIdx < 0 || methodIdx >= validated.getMethodCount()) {
+                System.err.println("Method index is out of range");
+                System.exit(1);
+            }
+            MethodElement method = validated.getMethod(methodIdx);
             MethodHandle methodHandle = method.getMethodBody();
+            if (methodHandle == null) {
+                System.err.println("Method has no body");
+                System.exit(1);
+            }
             MethodBody methodBody = methodHandle.createMethodBody();
             String s = graph(method.getName() + ":" + method.getDescriptor(), methodBody.getEntryBlock(), new StringBuilder()).toString();
             System.out.println(s);
