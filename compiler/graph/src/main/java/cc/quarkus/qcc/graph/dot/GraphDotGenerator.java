@@ -162,6 +162,10 @@ public class GraphDotGenerator {
         }
         try (ClassContext.Basic ctxt = ClassContext.createBasic(jarPath)) {
             DefinedTypeDefinition definedType = ctxt.findDefinedType(className);
+            if (definedType == null) {
+                System.err.println("No class found named \"" + className + "\"");
+                System.exit(1);
+            }
             ValidatedTypeDefinition validated = definedType.validate();
             if (methodIdx < 0 || methodIdx >= validated.getMethodCount()) {
                 System.err.println("Method index is out of range");
