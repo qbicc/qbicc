@@ -1046,6 +1046,9 @@ final class MethodParser {
                                     }
                                 }
                             }
+                            if (returnType.isClass2Type()) {
+                                result = fatten(result);
+                            }
                             push(result);
                         }
                     }
