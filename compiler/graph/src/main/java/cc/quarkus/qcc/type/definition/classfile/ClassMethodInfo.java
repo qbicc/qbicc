@@ -246,7 +246,7 @@ final class ClassMethodInfo {
                     }
                     short[] array = localVariables[varIndex];
                     if (array.length == 0) {
-                        localVariables[varIndex] = array = new short[8];
+                        localVariables[varIndex] = array = new short[10];
                         array[0] = (short) startPc;
                         array[1] = (short) length;
                         array[2] = (short) varNameIdx;
@@ -255,8 +255,8 @@ final class ClassMethodInfo {
                     } else {
                         int lvtLength = lvtLengths[varIndex];
                         int idx = findLocalVariableEntry(array, lvtLength, startPc, length);
-                        int base = idx * 5;
                         if (idx >= 0) {
+                            int base = idx * 5;
                             // merge
                             if (array[base + (lvt ? 3 : 4)] != 0 || varNameIdx != array[base + 2]) {
                                 // already have an entry for it
@@ -266,9 +266,10 @@ final class ClassMethodInfo {
                         } else {
                             // insert
                             idx = -idx - 1;
-                            if (lvtLength == array.length) {
+                            int base = idx * 5;
+                            if (lvtLength * 5 == array.length) {
                                 // grow
-                                localVariables[varIndex] = array = Arrays.copyOf(array, lvtLength << 1);
+                                localVariables[varIndex] = array = Arrays.copyOf(array, (lvtLength << 1) * 5);
                             }
                             if (idx < lvtLength) {
                                 // make a hole
