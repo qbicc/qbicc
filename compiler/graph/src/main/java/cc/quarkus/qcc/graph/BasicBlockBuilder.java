@@ -441,7 +441,9 @@ public interface BasicBlockBuilder {
             }
 
             public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
-                return asDependency(new ArrayElementRead(requireDependency(), array, index, mode));
+                ArrayTypeIdLiteral arrayTypeBound = (ArrayTypeIdLiteral) ((ReferenceType) array.getType()).getUpperBound();
+                ValueType type = arrayTypeBound.getElementType();
+                return asDependency(new ArrayElementRead(requireDependency(), type, array, index, mode));
             }
 
             public Node pointerStore(final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {

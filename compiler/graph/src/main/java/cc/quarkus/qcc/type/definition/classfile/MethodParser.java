@@ -430,8 +430,8 @@ final class MethodParser {
                     break;
                 case OP_DALOAD:
                 case OP_LALOAD: {
-                    v1 = pop1();
                     v2 = pop1();
+                    v1 = pop1();
                     v1 = gf.readArrayValue(v1, v2, JavaAccessMode.PLAIN);
                     push(fatten(v1));
                     break;
@@ -442,8 +442,8 @@ final class MethodParser {
                 case OP_BALOAD:
                 case OP_SALOAD:
                 case OP_CALOAD: {
-                    v1 = pop1();
                     v2 = pop1();
+                    v1 = pop1();
                     v1 = gf.readArrayValue(v1, v2, JavaAccessMode.PLAIN);
                     push(unfatten(v1));
                     break;

@@ -115,7 +115,7 @@ public interface LiteralFactory {
 
             public ReferenceArrayTypeIdLiteral literalOfArrayType(final ReferenceType elementType) {
                 Assert.checkNotNullParam("elementType", elementType);
-                return arrayObjectTypeIdLiterals.computeIfAbsent(elementType.getUpperBound(), t -> new ReferenceArrayTypeIdLiteral(baseClassLiteral, typeSystem.getTypeIdType(), elementType, null));
+                return arrayObjectTypeIdLiterals.computeIfAbsent(elementType.getUpperBound(), t -> new ReferenceArrayTypeIdLiteral(baseClassLiteral, typeSystem.getTypeIdType(), elementType));
             }
 
             public ClassTypeIdLiteral baseClassLiteral() {

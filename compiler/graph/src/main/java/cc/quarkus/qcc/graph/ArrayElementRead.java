@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.graph;
 
-import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ValueType;
 
 /**
@@ -8,12 +7,14 @@ import cc.quarkus.qcc.type.ValueType;
  */
 public final class ArrayElementRead extends AbstractValue implements ArrayElementOperation {
     private final Node dependency;
+    private final ValueType type;
     private final Value instance;
     private final Value index;
     private final JavaAccessMode mode;
 
-    ArrayElementRead(final Node dependency, final Value instance, final Value index, final JavaAccessMode mode) {
+    ArrayElementRead(final Node dependency, final ValueType type, final Value instance, final Value index, final JavaAccessMode mode) {
         this.dependency = dependency;
+        this.type = type;
         this.instance = instance;
         this.index = index;
         this.mode = mode;
@@ -32,7 +33,7 @@ public final class ArrayElementRead extends AbstractValue implements ArrayElemen
     }
 
     public ValueType getType() {
-        return ((ArrayType)instance.getType()).getElementType();
+        return type;
     }
 
     public int getValueDependencyCount() {
