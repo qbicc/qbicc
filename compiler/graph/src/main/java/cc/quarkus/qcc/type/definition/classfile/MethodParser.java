@@ -971,8 +971,17 @@ final class MethodParser {
                 case OP_INVOKESTATIC:
                 case OP_INVOKEINTERFACE:
                     int methodRef = buffer.getShort() & 0xffff;
-                    TypeIdLiteral owner = getOwnerOfMethodRef(methodRef);
-                    int nameAndType = getNameAndTypeOfMethodRef(methodRef);
+                    TypeIdLiteral owner;
+                    int nameAndType;
+                    if (opcode == OP_INVOKEINTERFACE) {
+                        owner = getOwnerOfInterfaceMethodRef(methodRef);
+                        nameAndType = getNameAndTypeOfInterfaceMethodRef(methodRef);
+                        int checkCount = buffer.get() & 0xff;
+                        buffer.get(); // discard 0
+                    } else {
+                        owner = getOwnerOfMethodRef(methodRef);
+                        nameAndType = getNameAndTypeOfMethodRef(methodRef);
+                    }
                     // todo: try/catch, replace with error node
                     ParameterizedExecutableElement target = resolveTargetOfMethodNameAndType(owner, nameAndType);
                     if (target == null) {
@@ -1178,6 +1187,22 @@ final class MethodParser {
 
     private int getNameAndTypeOfMethodRef(final int methodRef) {
         return getClassFile().getMethodrefNameAndTypeIndex(methodRef);
+    }
+
+    private String getNameOfInterfaceMethodRef(final int methodRef) {
+        return getClassFile().getInterfaceMethodrefConstantName(methodRef);
+    }
+
+    private boolean nameOfInterfaceMethodRefEquals(final int methodRef, final String expected) {
+        return getClassFile().interfaceMethodrefConstantNameEquals(methodRef, expected);
+    }
+
+    private TypeIdLiteral getOwnerOfInterfaceMethodRef(final int methodRef) {
+        return resolveClass(getClassFile().getInterfaceMethodrefConstantClassName(methodRef));
+    }
+
+    private int getNameAndTypeOfInterfaceMethodRef(final int methodRef) {
+        return getClassFile().getInterfaceMethodrefNameAndTypeIndex(methodRef);
     }
 
     private FieldElement resolveTargetOfFieldRef(final int fieldRef) {

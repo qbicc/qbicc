@@ -406,9 +406,19 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
         return getClassConstantName(getRawConstantShort(idx, 1));
     }
 
+    default int getInterfaceMethodrefNameAndTypeIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_InterfaceMethodref);
+        return getRawConstantShort(idx, 3);
+    }
+
     default String getInterfaceMethodrefConstantName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_InterfaceMethodref);
         return getNameAndTypeConstantName(getRawConstantShort(idx, 3));
+    }
+
+    default boolean interfaceMethodrefConstantNameEquals(int idx, String expected) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_InterfaceMethodref);
+        return nameAndTypeConstantNameEquals(getRawConstantShort(idx, 3), expected);
     }
 
     default String getNameAndTypeConstantName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
