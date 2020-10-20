@@ -1006,7 +1006,15 @@ final class MethodParser {
                     // todo: try/catch, replace with error node
                     ResolvedTypeDefinition resolved = ctxt.resolveDefinedTypeLiteral(owner).validate().resolve();
                     ParameterizedExecutableDescriptor desc = resolveMethodDescriptor(owner, nameAndType);
-                    ParameterizedExecutableElement target = resolveTargetOfDescriptor(resolved, desc, nameAndType);
+                    ParameterizedExecutableElement target;
+                    if (opcode == OP_INVOKESTATIC || opcode == OP_INVOKESPECIAL) {
+                        target = resolveTargetOfDescriptor(resolved, desc, nameAndType);
+                    } else if (opcode == OP_INVOKEVIRTUAL) {
+                        target = resolveVirtualTargetOfDescriptor(resolved, desc, nameAndType);
+                    } else {
+                        assert opcode == OP_INVOKEINTERFACE;
+                        target = resolveInterfaceTargetOfDescriptor(resolved, desc, nameAndType);
+                    }
                     if (target == null) {
                         String methodName = getClassFile().getNameAndTypeConstantName(nameAndType);
                         gf.noSuchMethodError(owner, desc, methodName);
@@ -1294,6 +1302,14 @@ final class MethodParser {
             idx = resolved.findMethodIndex(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), (MethodDescriptor) desc);
             return idx == -1 ? null : resolved.getMethod(idx);
         }
+    }
+
+    private MethodElement resolveVirtualTargetOfDescriptor(ResolvedTypeDefinition resolved, final ParameterizedExecutableDescriptor desc, final int nameAndTypeRef) {
+        return resolved.resolveMethodElementVirtual(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), (MethodDescriptor) desc);
+    }
+
+    private MethodElement resolveInterfaceTargetOfDescriptor(ResolvedTypeDefinition resolved, final ParameterizedExecutableDescriptor desc, final int nameAndTypeRef) {
+        return resolved.resolveMethodElementInterface(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), (MethodDescriptor) desc);
     }
 
     private ParameterizedExecutableElement resolveTargetOfMethodNameAndType(final TypeIdLiteral owner, final int nameAndTypeRef) {
