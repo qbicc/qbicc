@@ -16,19 +16,27 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, StaticFieldWrite node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, StaticInvocation node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, InstanceFieldWrite node) {
         return visitUnknown(param, node);
     }
 
     default R visit(T param, InstanceInvocation node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, MonitorEnter node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, MonitorExit node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, StaticFieldWrite node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, StaticInvocation node) {
         return visitUnknown(param, node);
     }
 

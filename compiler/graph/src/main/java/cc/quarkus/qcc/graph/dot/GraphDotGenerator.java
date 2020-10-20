@@ -50,6 +50,8 @@ import cc.quarkus.qcc.graph.InstanceOperation;
 import cc.quarkus.qcc.graph.Invocation;
 import cc.quarkus.qcc.graph.Jsr;
 import cc.quarkus.qcc.graph.Mod;
+import cc.quarkus.qcc.graph.MonitorEnter;
+import cc.quarkus.qcc.graph.MonitorExit;
 import cc.quarkus.qcc.graph.Multiply;
 import cc.quarkus.qcc.graph.Narrow;
 import cc.quarkus.qcc.graph.Neg;
@@ -474,7 +476,7 @@ public class GraphDotGenerator {
         }
 
         public String visit(final Void param, final InstanceInvocation node) {
-            return node("invoke" + node.getKind(), node);
+            return node("invoke" + node.getKind(), (Invocation) node);
         }
 
         public String visit(final Void param, final InstanceInvocationValue node) {
@@ -519,12 +521,37 @@ public class GraphDotGenerator {
             return node(node);
         }
 
+        // monitor
+
+        public String visit(final Void param, final MonitorEnter node) {
+            return node("monitorenter", node);
+        }
+
+        public String visit(final Void param, final MonitorExit node) {
+            return node("monitorexit", node);
+        }
+
         String getNodeName(Node node) {
             String name = visited.get(node);
             if (name != null) {
                 return name;
             }
             return node.accept(this, null);
+        }
+
+        <N extends Action & InstanceOperation> String node(String label, N node) {
+            String name = register(node);
+            target.append(name).append(' ').append('[');
+            appendAttr("label", label).append(',');
+            appendAttr("shape", "rectangle").append(',');
+            appendAttr("fixedsize", "shape").append(',');
+            appendAttr("style", "filled");
+            target.append(']');
+            target.append('\n');
+            // add edges
+            addBasicDeps(name, node);
+            addValueDeps(name, node);
+            return name;
         }
 
         String node(String label, Terminator node) {

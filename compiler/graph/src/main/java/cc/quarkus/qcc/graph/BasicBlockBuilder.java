@@ -465,11 +465,11 @@ public interface BasicBlockBuilder {
             }
 
             public Node monitorEnter(final Value obj) {
-                throw Assert.unsupported();
+                return asDependency(new MonitorEnter(requireDependency(), Assert.checkNotNullParam("obj", obj)));
             }
 
             public Node monitorExit(final Value obj) {
-                throw Assert.unsupported();
+                return asDependency(new MonitorExit(requireDependency(), Assert.checkNotNullParam("obj", obj)));
             }
 
             public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
