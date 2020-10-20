@@ -51,11 +51,11 @@ public final class InstanceInvocation extends AbstractNode implements InstanceOp
     }
 
     public int getValueDependencyCount() {
-        return super.getValueDependencyCount() + 1;
+        return MethodInvocation.super.getValueDependencyCount() + 1;
     }
 
     public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return index == 0 ? getInstance() : super.getValueDependency(index - 1);
+        return index == 0 ? getInstance() : MethodInvocation.super.getValueDependency(index - 1);
     }
 
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {

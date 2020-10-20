@@ -50,11 +50,11 @@ public final class ConstructorInvocation extends AbstractValue implements Instan
     }
 
     public int getValueDependencyCount() {
-        return super.getValueDependencyCount() + 1;
+        return Invocation.super.getValueDependencyCount() + 1;
     }
 
     public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return index == 0 ? getInstance() : super.getValueDependency(index - 1);
+        return index == 0 ? getInstance() : Invocation.super.getValueDependency(index - 1);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

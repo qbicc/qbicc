@@ -56,11 +56,11 @@ public final class InstanceInvocationValue extends AbstractValue implements Inst
     }
 
     public int getValueDependencyCount() {
-        return super.getValueDependencyCount() + 1;
+        return MethodInvocation.super.getValueDependencyCount() + 1;
     }
 
     public Value getValueDependency(int index) throws IndexOutOfBoundsException {
-        return index == 0 ? getInstance() : super.getValueDependency(index - 1);
+        return index == 0 ? getInstance() : MethodInvocation.super.getValueDependency(index - 1);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
