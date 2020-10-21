@@ -4,14 +4,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.Context;
-
 /**
  * The cache for things that get parsed.  TODO: replace lambdas with putIfAbsent
  */
 final class ParsingCache {
-    static final AttachmentKey<ParsingCache> key = new AttachmentKey<>();
 
     private final ConcurrentMap<String, String> stringCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, TypeVariableSignature> typeVarCache = new ConcurrentHashMap<>();
@@ -35,10 +31,6 @@ final class ParsingCache {
     private final ConcurrentMap<MethodDeclarationSignature, ConcurrentMap<TypeParameter, MethodDeclarationSignature>> methodSigWithTypeParam = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodDeclarationSignature, ConcurrentMap<ThrowableTypeSignature, MethodDeclarationSignature>> methodSigWithThrows = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodDeclarationSignature, ConcurrentMap<TypeSignature, MethodDeclarationSignature>> methodSigWithReturnType = new ConcurrentHashMap<>();
-
-    static ParsingCache get() {
-        return Context.requireCurrent().computeAttachmentIfAbsent(key, ParsingCache::new);
-    }
 
     String getCachedName(final String str, final int start, final int end) {
         // todo optimize to avoid string and lambda construction

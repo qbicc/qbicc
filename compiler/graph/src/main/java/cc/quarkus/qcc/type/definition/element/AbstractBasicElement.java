@@ -8,11 +8,17 @@ import io.smallrye.common.constraint.Assert;
  */
 abstract class AbstractBasicElement implements BasicElement {
     private final DefinedTypeDefinition enclosingType;
+    private final String sourceFile;
     private final int access;
 
     AbstractBasicElement(Builder builder) {
-        this.access = builder.access;
         this.enclosingType = Assert.checkNotNullParam("builder.enclosingType", builder.enclosingType);
+        this.sourceFile = builder.sourceFile;
+        this.access = builder.access;
+    }
+
+    public String getSourceFileName() {
+        return sourceFile;
     }
 
     public DefinedTypeDefinition getEnclosingType() {
@@ -24,8 +30,13 @@ abstract class AbstractBasicElement implements BasicElement {
     }
 
     static abstract class Builder implements BasicElement.Builder {
+        String sourceFile;
         int access;
         DefinedTypeDefinition enclosingType;
+
+        public void setSourceFile(final String sourceFile) {
+            this.sourceFile = sourceFile;
+        }
 
         public void setModifiers(final int access) {
             this.access = access;

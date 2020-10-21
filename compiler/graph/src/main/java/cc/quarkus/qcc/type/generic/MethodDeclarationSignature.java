@@ -25,7 +25,7 @@ public interface MethodDeclarationSignature {
 
     ThrowableTypeSignature getThrowsType(int index);
 
-    static MethodDeclarationSignature parseMethodDeclarationSignature(String signature) {
-        return Parsing.parseMethodDeclarationSignature(signature);
+    static MethodDeclarationSignature parseMethodDeclarationSignature(ParsingCache cache, String signature) {
+        return Parsing.parseMethodDeclarationSignature(cache, signature);
     }
 }

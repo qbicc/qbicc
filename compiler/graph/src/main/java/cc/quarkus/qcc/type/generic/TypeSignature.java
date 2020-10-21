@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.type.generic;
 
-import cc.quarkus.qcc.context.Context;
-
 /**
  * The base type for all JVM-defined generic signature types.
  */
@@ -55,18 +53,18 @@ public interface TypeSignature {
     }
 
     /**
-     * Parse a type signature.  Requires an active {@link Context}.
+     * Parse a type signature.
      *
+     * @param cache the parsing cache
      * @param signature the signature string
      * @return the signature object
      * @throws IllegalArgumentException if the string is not valid
      */
-    static TypeSignature parseTypeSignature(String signature) {
-        return Parsing.parseTypeSignature(signature);
+    static TypeSignature parseTypeSignature(ParsingCache cache, String signature) {
+        return Parsing.parseTypeSignature(cache, signature);
     }
 
-    static TypeSignature forClass(Class<?> clazz) {
-        final ParsingCache pc = ParsingCache.get();
+    static TypeSignature forClass(ParsingCache pc, Class<?> clazz) {
         if (clazz.isPrimitive()) {
             final BaseTypeSignature res = BaseTypeSignature.forClass(clazz);
             if (res == null) {
@@ -74,13 +72,13 @@ public interface TypeSignature {
             }
             return res;
         } else if (clazz.isArray()) {
-            return pc.getArrayOf(forClass(clazz.getComponentType()));
+            return pc.getArrayOf(forClass(pc, clazz.getComponentType()));
         } else {
             final Class<?> enclosingClass = clazz.getEnclosingClass();
             ClassTypeSignature enclosing;
             PackageName packageName = null;
             if (enclosingClass != null) {
-                enclosing = (ClassTypeSignature) forClass(enclosingClass);
+                enclosing = (ClassTypeSignature) forClass(pc, enclosingClass);
                 packageName = null;
             } else {
                 enclosing = null;

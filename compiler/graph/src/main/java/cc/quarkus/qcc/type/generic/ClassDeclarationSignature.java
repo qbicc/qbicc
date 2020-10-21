@@ -16,8 +16,8 @@ public interface ClassDeclarationSignature {
 
     ClassTypeSignature getInterface(int index) throws IndexOutOfBoundsException;
 
-    static ClassDeclarationSignature parseClassDeclarationSignature(String signature) {
-        return Parsing.parseClassDeclarationSignature(signature);
+    static ClassDeclarationSignature parseClassDeclarationSignature(ParsingCache cache, String signature) {
+        return Parsing.parseClassDeclarationSignature(cache, signature);
     }
 
     static ClassDeclarationSignature getRoot() {

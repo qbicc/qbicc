@@ -323,6 +323,9 @@ final class MethodParser {
                     PhiValue phiValue = gf.phi(val.getType(), block);
                     entryLocalsArray[i] = phiValue;
                     phiValue.setValueForBlock(from, val);
+                    if (isFat(val)) {
+                        fatten(phiValue);
+                    }
                 }
             }
             for (int i = 0; i < sp; i ++) {
@@ -331,6 +334,9 @@ final class MethodParser {
                     PhiValue phiValue = gf.phi(val.getType(), block);
                     entryStack[i] = phiValue;
                     phiValue.setValueForBlock(from, val);
+                    if (isFat(val)) {
+                        fatten(phiValue);
+                    }
                 }
             }
             entryLocalsArrays.put(block, entryLocalsArray);

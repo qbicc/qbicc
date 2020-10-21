@@ -7,6 +7,8 @@ import cc.quarkus.qcc.type.definition.classfile.ClassFile;
  *
  */
 public interface BasicElement {
+    String getSourceFileName();
+
     DefinedTypeDefinition getEnclosingType();
 
     int getModifiers();
@@ -40,6 +42,8 @@ public interface BasicElement {
     }
 
     interface Builder {
+        void setSourceFile(String fileName);
+
         void setModifiers(int flags);
 
         void setEnclosingType(final DefinedTypeDefinition enclosingType);

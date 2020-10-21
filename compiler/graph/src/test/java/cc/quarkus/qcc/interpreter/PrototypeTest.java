@@ -1,20 +1,18 @@
 package cc.quarkus.qcc.interpreter;
 
-import cc.quarkus.qcc.context.Context;
+import static cc.quarkus.qcc.TestUtil.*;
+import static cc.quarkus.qcc.interpreter.CodegenUtils.*;
+import static org.fest.assertions.api.Assertions.*;
+
+import java.lang.reflect.Field;
+import java.util.Arrays;
+
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.FieldContainer;
 import io.smallrye.common.function.ExceptionConsumer;
 import org.fest.assertions.core.Condition;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-
-import java.lang.reflect.Field;
-import java.util.Arrays;
-
-import static cc.quarkus.qcc.TestUtil.defineInitialClass;
-import static cc.quarkus.qcc.TestUtil.initialize;
-import static cc.quarkus.qcc.interpreter.CodegenUtils.p;
-import static org.fest.assertions.api.Assertions.assertThat;
 
 public class PrototypeTest {
     @Test
@@ -44,15 +42,11 @@ public class PrototypeTest {
     }
 
     private static void withRootDictionary(ExceptionConsumer<Dictionary, Exception> runner) throws Exception {
-        Context context = new Context(false);
+        Dictionary dictionary = new Dictionary(null);
 
-        context.run(() -> {
-            Dictionary dictionary = new Dictionary(null);
+        initialize(dictionary);
 
-            initialize(dictionary);
-
-            runner.accept(dictionary);
-        });
+        runner.accept(dictionary);
     }
 
     private static Condition<Class<?>> sizeEquivalent(Class<?> expected) {

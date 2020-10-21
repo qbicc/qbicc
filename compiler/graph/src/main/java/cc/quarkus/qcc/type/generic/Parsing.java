@@ -12,12 +12,11 @@ final class Parsing {
 
     private Parsing() {}
 
-    static TypeSignature parseTypeSignature(String signature) {
-        final ParsingCache parsingCache = ParsingCache.get();
+    static TypeSignature parseTypeSignature(ParsingCache cache, String signature) {
         final ParsingContext pc = PC_TL.get();
         int old = pc.pos;
         try {
-            return parseTypeSignature(parsingCache, signature, pc);
+            return parseTypeSignature(cache, signature, pc);
         } finally {
             pc.pos = old;
         }
@@ -142,12 +141,11 @@ final class Parsing {
         }
     }
 
-    static ClassDeclarationSignature parseClassDeclarationSignature(final String signature) {
-        final ParsingCache parsingCache = ParsingCache.get();
+    static ClassDeclarationSignature parseClassDeclarationSignature(final ParsingCache cache, final String signature) {
         final ParsingContext pc = PC_TL.get();
         int old = pc.pos;
         try {
-            return parseClassDeclarationSignature(parsingCache, signature, pc);
+            return parseClassDeclarationSignature(cache, signature, pc);
         } finally {
             pc.pos = old;
         }
@@ -224,18 +222,17 @@ final class Parsing {
         return tp;
     }
 
-    static MethodDeclarationSignature parseMethodDeclarationSignature(final String signature) {
-        final ParsingCache parsingCache = ParsingCache.get();
+    static MethodDeclarationSignature parseMethodDeclarationSignature(final ParsingCache cache, final String signature) {
         final ParsingContext pc = PC_TL.get();
         int old = pc.pos;
         try {
-            return parseMethodDeclarationSignature(parsingCache, signature, pc);
+            return parseMethodDeclarationSignature(cache, signature, pc);
         } finally {
             pc.pos = old;
         }
     }
 
-    static MethodDeclarationSignature parseMethodDeclarationSignature(final ParsingCache parsingCache, final String signature, final ParsingContext pc) {
+    static MethodDeclarationSignature parseMethodDeclarationSignature(final ParsingCache cache, final String signature, final ParsingContext pc) {
         char ch;
         ch = signature.charAt(pc.pos);
         // unfortunately we need a temporary array
@@ -243,7 +240,7 @@ final class Parsing {
         if (ch == '<') {
             pc.pos++;
             // begin type parameters
-            params = parseTypeParameters(parsingCache, signature, pc, 0);
+            params = parseTypeParameters(cache, signature, pc, 0);
         } else {
             params = NO_PARAMS;
         }
@@ -254,13 +251,13 @@ final class Parsing {
         pc.pos++;
         MethodDeclarationSignature ms = RootMethodDeclarationSignature.INSTANCE;
         while (signature.charAt(pc.pos) != ')') {
-            final TypeSignature argSig = parseTypeSignature(parsingCache, signature, pc);
-            ms = parsingCache.getMethodSignatureWithParamSignature(ms, argSig);
+            final TypeSignature argSig = parseTypeSignature(cache, signature, pc);
+            ms = cache.getMethodSignatureWithParamSignature(ms, argSig);
         }
         pc.pos ++;
         if (signature.charAt(pc.pos) != 'V') {
-            final TypeSignature retSig = parseTypeSignature(parsingCache, signature, pc);
-            ms = parsingCache.getMethodSignatureWithReturnType(ms, retSig);
+            final TypeSignature retSig = parseTypeSignature(cache, signature, pc);
+            ms = cache.getMethodSignatureWithReturnType(ms, retSig);
         } else {
             pc.pos ++;
         }
@@ -269,11 +266,11 @@ final class Parsing {
                 throw new IllegalArgumentException("Unrecognized character at index " + pc.pos);
             }
             pc.pos ++;
-            final ThrowableTypeSignature throwable = parseReferenceTypeSignature(parsingCache, signature, pc).asThrowable();
-            ms = parsingCache.getMethodSignatureWithThrowable(ms, throwable);
+            final ThrowableTypeSignature throwable = parseReferenceTypeSignature(cache, signature, pc).asThrowable();
+            ms = cache.getMethodSignatureWithThrowable(ms, throwable);
         }
         for (TypeParameter param : params) {
-            ms = parsingCache.getMethodSignatureWithTypeParameter(ms, param);
+            ms = cache.getMethodSignatureWithTypeParameter(ms, param);
         }
         return ms;
     }

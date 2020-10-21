@@ -37,6 +37,10 @@ final class ResolvedTypeDefinitionUtil {
             return null;
         }
 
+        public String getSourceFileName() {
+            return null;
+        }
+
         public boolean hasClass2ReturnType() {
             return false;
         }

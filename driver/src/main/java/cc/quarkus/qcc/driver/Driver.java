@@ -2,26 +2,35 @@ package cc.quarkus.qcc.driver;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.compiler.native_image.api.NativeImageGenerator;
-import cc.quarkus.qcc.compiler.native_image.api.NativeImageGeneratorFactory;
-import cc.quarkus.qcc.context.Context;
+import cc.quarkus.qcc.context.AdditivePhaseContext;
+import cc.quarkus.qcc.context.AnalyticPhaseContext;
+import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.interpreter.JavaObject;
-import cc.quarkus.qcc.interpreter.JavaThread;
 import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.machine.arch.Platform;
+import cc.quarkus.qcc.machine.tool.CCompiler;
+import cc.quarkus.qcc.tool.llvm.LlvmTool;
 import cc.quarkus.qcc.type.TypeSystem;
-import io.smallrye.common.constraint.Assert;
-import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 
 /**
  * A simple driver to run all the stages of compilation.
  */
 public class Driver {
+
+    final BaseContext baseContext;
+    final AdditivePhaseContext additivePhaseContext;
+    final AnalyticPhaseContext analyticPhaseContext;
+    final List<Consumer<? super AdditivePhaseContext>> preAdditiveHooks;
+    final List<Consumer<? super AdditivePhaseContext>> postAdditiveHooks;
+    final List<Consumer<? super AnalyticPhaseContext>> preAnalyticHooks;
+    final List<Consumer<? super AnalyticPhaseContext>> postAnalyticHooks;
 
     /*
         Reachability (Run Time)
@@ -40,10 +49,43 @@ public class Driver {
         A static field is reachable when it can be accessed by a reachable method.
      */
 
-    private final Context context;
-
     Driver(final Builder builder) {
-        this.context = new Context(false);
+        // type system
+        final TypeSystem typeSystem = builder.typeSystem;
+        final LiteralFactory literalFactory = LiteralFactory.create(typeSystem);
+
+        // this is shared by all phases
+        final BaseContext baseContext = new BaseContext(typeSystem, literalFactory);
+        this.baseContext = baseContext;
+
+        // phase contexts
+
+        ArrayList<BasicBlockBuilder.Factory> additivePhaseFactories = new ArrayList<>();
+        for (List<BasicBlockBuilder.Factory> list : builder.factories.getOrDefault(Phase.ADDITIVE, Map.of()).values()) {
+            additivePhaseFactories.addAll(list);
+        }
+        // last of all...
+        additivePhaseFactories.add((ctxt, delegate) -> BasicBlockBuilder.simpleBuilder(ctxt.getTypeSystem()));
+        Collections.reverse(additivePhaseFactories);
+        additivePhaseFactories.trimToSize();
+        additivePhaseContext = new AdditivePhaseContextImpl(baseContext, additivePhaseFactories);
+
+        ArrayList<BasicBlockBuilder.Factory> analyticPhaseFactories = new ArrayList<>();
+        for (List<BasicBlockBuilder.Factory> list : builder.factories.getOrDefault(Phase.ANALYTIC, Map.of()).values()) {
+            analyticPhaseFactories.addAll(list);
+        }
+        // last of all...
+        analyticPhaseFactories.add((ctxt, delegate) -> BasicBlockBuilder.simpleBuilder(ctxt.getTypeSystem()));
+        Collections.reverse(analyticPhaseFactories);
+        analyticPhaseFactories.trimToSize();
+        analyticPhaseContext = new AnalyticPhaseContextImpl(baseContext, analyticPhaseFactories);
+
+        // hooks
+
+        preAdditiveHooks = List.copyOf(builder.preAdditiveHooks);
+        postAdditiveHooks = List.copyOf(builder.postAdditiveHooks);
+        preAnalyticHooks = List.copyOf(builder.preAnalyticHooks);
+        postAnalyticHooks = List.copyOf(builder.postAnalyticHooks);
     }
 
     /**
@@ -52,78 +94,71 @@ public class Driver {
      * @return {@code true} if compilation succeeded, {@code false} otherwise
      */
     public boolean execute() {
-        Boolean result = context.run(() -> {
-            final ClassLoader classLoader = Main.class.getClassLoader();
-
-            Path javaBase = Maven.resolver().resolve("cc.quarkus:qccrt-java.base:jar:11.0.0").withTransitivity().asSingleFile().toPath();
-            // todo: map args to configurations
-            DriverConfig driverConfig = new DriverConfig() {
-                public String nativeImageGenerator() {
-                    return "llvm-generic";
+        // TODO: start VM *here*
+        try {
+            for (Consumer<? super AdditivePhaseContext> hook : preAdditiveHooks) {
+                try {
+                    hook.accept(additivePhaseContext);
+                } catch (Throwable t) {
+                    baseContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Pre-additive hook failed: %s", t));
                 }
-            };
-            // ▪ Load and initialize plugins
-            List<Plugin> allPlugins = Plugin.findAllPlugins(List.of(classLoader), Set.of());
-            List<BasicBlockBuilder.Factory> graphFactoryPlugins = new ArrayList<>();
-            for (Plugin plugin : allPlugins) {
-                graphFactoryPlugins.addAll(plugin.getBasicBlockBuilderFactoryPlugins());
-            }
-            // todo: order
-            // todo: actually configure
-            final TypeSystem typeSystem = TypeSystem.builder().build();
-            final LiteralFactory literalFactory = LiteralFactory.create(typeSystem);
-            BasicBlockBuilder factory = BasicBlockBuilder.simpleBuilder(typeSystem);
-            BasicBlockBuilder.Factory.Context factoryContext = new BasicBlockBuilder.Factory.Context() {
-                public TypeSystem getTypeSystem() {
-                    return typeSystem;
-                }
-
-                public LiteralFactory getLiteralFactory() {
-                    return literalFactory;
-                }
-            };
-            for (BasicBlockBuilder.Factory graphFactoryPlugin : graphFactoryPlugins) {
-                factory = graphFactoryPlugin.construct(factoryContext, factory);
-            }
-
-            // ▫ Additive section ▫ Classes may be loaded and initialized
-            // ▪ initialize the JVM
-            JavaVM.Builder builder = JavaVM.builder();
-            for (Plugin plugin : allPlugins) {
-                for (Consumer<JavaVM.Builder> consumer : plugin.getJavaVMConfigurationPlugins()) {
-                    consumer.accept(builder);
+                if (baseContext.errors() > 0) {
+                    // bail out
+                    return false;
                 }
             }
-            builder.setGraphFactory((context1, delegate) -> delegate);
-            JavaVM javaVM = builder.addBootstrapModules(List.of(javaBase)).build();
-            // Initialize the VM
-            JavaObject mainThreadGroup = javaVM.getMainThreadGroup();
-            javaVM.doAttached(() -> {
-                JavaThread main = javaVM.newThread("main", mainThreadGroup, false);
-                main.doAttached(() -> javaVM.loadClass(null, "java/lang/System").validate().resolve().prepare().initialize());
-                // XXX
-                // ▪ instantiate agent class loader(s)
-                // XXX
-                // ▪ initialize agent(s)
-                // XXX
-                // ▪ instantiate application class loader(s)
-                // XXX
-                // ▪ trace execution from entry points and collect reachable classes
-                //   (initializing along the way)
-
-
-                // ▪ terminate JVM and wait for all JVM threads to exit
-
-
-
-            });
-            // load the native image generator
-            final NativeImageGeneratorFactory generatorFactory = NativeImageGeneratorFactory.getInstance(driverConfig.nativeImageGenerator(), classLoader);
-            NativeImageGenerator generator = generatorFactory.createGenerator();
-            generator.compile();
-            return Boolean.valueOf(context.errors() == 0);
-        });
-        return result.booleanValue();
+            // TODO: trace *here*
+            if (baseContext.errors() > 0) {
+                // bail out
+                return false;
+            }
+            for (Consumer<? super AdditivePhaseContext> hook : postAdditiveHooks) {
+                try {
+                    hook.accept(additivePhaseContext);
+                } catch (Throwable t) {
+                    baseContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-additive hook failed: %s", t));
+                }
+                if (baseContext.errors() > 0) {
+                    // bail out
+                    return false;
+                }
+            }
+        } finally {
+            // TODO: exit VM *here*
+        }
+        if (baseContext.errors() > 0) {
+            // bail out
+            return false;
+        }
+        for (Consumer<? super AnalyticPhaseContext> hook : preAnalyticHooks) {
+            try {
+                hook.accept(analyticPhaseContext);
+            } catch (Throwable t) {
+                baseContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Pre-analytic hook failed: %s", t));
+            }
+            if (baseContext.errors() > 0) {
+                // bail out
+                return false;
+            }
+        }
+        // TODO: re-trace/copy classes *here*
+        if (baseContext.errors() > 0) {
+            // bail out
+            return false;
+        }
+        for (Consumer<? super AnalyticPhaseContext> hook : postAnalyticHooks) {
+            try {
+                hook.accept(analyticPhaseContext);
+            } catch (Throwable t) {
+                baseContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-analytic hook failed: %s", t));
+            }
+            if (baseContext.errors() > 0) {
+                // bail out
+                return false;
+            }
+        }
+        // TODO: trace/emit *here*
+        return baseContext.errors() == 0;
     }
 
     /**
@@ -135,25 +170,108 @@ public class Driver {
         return new Builder();
     }
 
+    public Iterable<Diagnostic> getDiagnostics() {
+        return baseContext.getDiagnostics();
+    }
+
     public static final class Builder {
-        final List<ClassLoader> searchLoaders = new ArrayList<>();
-        final List<Consumer<JavaVM.Builder>> vmConfigurators = new ArrayList<>();
+        final List<Path> bootModules = new ArrayList<>();
+        final Map<Phase, Map<Stage, List<BasicBlockBuilder.Factory>>> factories = new EnumMap<>(Phase.class);
+        final List<Consumer<? super AdditivePhaseContext>> preAdditiveHooks = new ArrayList<>();
+        final List<Consumer<? super AdditivePhaseContext>> postAdditiveHooks = new ArrayList<>();
+        final List<Consumer<? super AnalyticPhaseContext>> preAnalyticHooks = new ArrayList<>();
+        final List<Consumer<? super AnalyticPhaseContext>> postAnalyticHooks = new ArrayList<>();
+
+        Platform targetPlatform;
+        TypeSystem typeSystem;
+        JavaVM vm;
+        CCompiler toolChain;
+        LlvmTool llvmTool;
 
         Builder() {}
 
-        /**
-         * Add a class loader to the search path for plugins and implementations.
-         *
-         * @param loader the class loader (must not be {@code null})
-         * @return this builder
-         */
-        public Builder addSearchClassLoader(ClassLoader loader) {
-            searchLoaders.add(Assert.checkNotNullParam("loader", loader));
+        public Builder addBootModule(Path modulePath) {
+            if (modulePath != null) {
+                bootModules.add(modulePath);
+            }
             return this;
         }
 
-        public Builder addVMConfigurator(Consumer<JavaVM.Builder> configurator) {
-            vmConfigurators.add(Assert.checkNotNullParam("configurator", configurator));
+        public Builder addBlockBuilderFactory(Phase phase, Stage stage, BasicBlockBuilder.Factory factory) {
+            factories.computeIfAbsent(phase, p -> new EnumMap<>(Stage.class)).computeIfAbsent(stage, s -> new ArrayList<>()).add(factory);
+            return this;
+        }
+
+        public Builder addPreAdditiveHook(Consumer<? super AdditivePhaseContext> hook) {
+            if (hook != null) {
+                preAdditiveHooks.add(hook);
+            }
+            return this;
+        }
+
+        public Builder addPostAdditiveHook(Consumer<? super AdditivePhaseContext> hook) {
+            if (hook != null) {
+                preAdditiveHooks.add(hook);
+            }
+            return this;
+        }
+
+        public Builder addPreAnalyticHook(Consumer<? super AnalyticPhaseContext> hook) {
+            if (hook != null) {
+                preAnalyticHooks.add(hook);
+            }
+            return this;
+        }
+
+        public Builder addPostAnalyticHook(Consumer<? super AnalyticPhaseContext> hook) {
+            if (hook != null) {
+                preAnalyticHooks.add(hook);
+            }
+            return this;
+        }
+
+        public Platform getTargetPlatform() {
+            return targetPlatform;
+        }
+
+        public Builder setTargetPlatform(final Platform targetPlatform) {
+            this.targetPlatform = targetPlatform;
+            return this;
+        }
+
+        public TypeSystem getTypeSystem() {
+            return typeSystem;
+        }
+
+        public Builder setTypeSystem(final TypeSystem typeSystem) {
+            this.typeSystem = typeSystem;
+            return this;
+        }
+
+        public JavaVM getVm() {
+            return vm;
+        }
+
+        public Builder setVm(final JavaVM vm) {
+            this.vm = vm;
+            return this;
+        }
+
+        public CCompiler getToolChain() {
+            return toolChain;
+        }
+
+        public Builder setToolChain(final CCompiler toolChain) {
+            this.toolChain = toolChain;
+            return this;
+        }
+
+        public LlvmTool getLlvmTool() {
+            return llvmTool;
+        }
+
+        public Builder setLlvmTool(final LlvmTool llvmTool) {
+            this.llvmTool = llvmTool;
             return this;
         }
 

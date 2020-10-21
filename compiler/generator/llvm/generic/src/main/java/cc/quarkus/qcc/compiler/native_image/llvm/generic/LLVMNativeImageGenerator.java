@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGenerator;
-import cc.quarkus.qcc.context.Context;
+import cc.quarkus.qcc.context.AnalyticPhaseContext;
 import cc.quarkus.qcc.graph.Add;
 import cc.quarkus.qcc.graph.And;
 import cc.quarkus.qcc.graph.BasicBlock;
@@ -102,10 +102,10 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
     private final LlcTool llc;
     private final CCompiler cc;
     private final ObjectFileProvider objProvider;
+    private final AnalyticPhaseContext context;
 
-    LLVMNativeImageGenerator() {
-        // fail fast if there's no context
-        Context.requireCurrent();
+    LLVMNativeImageGenerator(final AnalyticPhaseContext context) {
+        this.context = context;
         // todo: get config from context
         LLVMNativeImageGeneratorConfig config = new LLVMNativeImageGeneratorConfig() {
             public Optional<List<String>> entryPointClassNames() {
@@ -156,18 +156,18 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             }
         }, StandardCharsets.UTF_8));
         llcInv.setDestination(OutputDestination.of(programPath));
-        llcInv.setMessageHandler(ToolMessageHandler.REPORTING);
+        llcInv.setMessageHandler(ToolMessageHandler.reporting(context));
         try {
             llcInv.invoke();
         } catch (IOException e) {
-            Context.error(null, "LLVM compilation failed: %s", e);
+            context.error("LLVM compilation failed: %s", e);
             return;
         }
         // ▪ analyze the written object file
         try (ObjectFile program = objProvider.openObjectFile(programPath)) {
 
         } catch (IOException e) {
-            Context.error(null, "Failed to read object file \"%s\": %s", programPath, e);
+            context.error("Failed to read object file \"%s\": %s", programPath, e);
             return;
         }
         // XXX
@@ -181,12 +181,12 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
         final Path execPath = Path.of("/tmp/a.out");
         final LinkerInvoker ldInv = cc.newLinkerInvoker();
         ldInv.setOutputPath(execPath);
-        ldInv.setMessageHandler(ToolMessageHandler.REPORTING);
+        ldInv.setMessageHandler(ToolMessageHandler.reporting(context));
         ldInv.addObjectFiles(objects);
         try {
             ldInv.invoke();
         } catch (IOException e) {
-            Context.error(null, "Linking failed: %s", e);
+            context.error("Linking failed: %s", e);
         }
         return;
     }

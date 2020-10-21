@@ -79,6 +79,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     private final TypeSystem typeSystem;
     private final LiteralFactory literalFactory;
     private final ClassContext ctxt;
+    private final String sourceFile;
 
     ClassFileImpl(final ClassContext ctxt, final ByteBuffer buffer) {
         super(buffer);
@@ -218,6 +219,16 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         methodParamClass2 = new boolean[cpOffsets.length][];
         types = new ValueType[cpOffsets.length];
         class2 = new boolean[cpOffsets.length];
+        // read globally-relevant attributes
+        String sourceFile = null;
+        int cnt = getAttributeCount();
+        for (int i = 0; i < cnt; i ++) {
+            if (attributeNameEquals(i, "SourceFile")) {
+                sourceFile = getUtf8Constant(getRawAttributeShort(i, 0));
+                break;
+            }
+        }
+        this.sourceFile = sourceFile;
     }
 
     public ClassFile getClassFile() {
@@ -803,6 +814,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         builder.setTypeResolver(this, index);
         builder.setModifiers(getShort(fieldOffsets[index]));
         builder.setName(getUtf8Constant(getShort(fieldOffsets[index] + 2)));
+        builder.setSourceFile(sourceFile);
         addFieldAnnotations(index, builder);
         return builder.build();
     }
@@ -824,6 +836,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
         builder.setMethodTypeResolver(this, index);
+        builder.setSourceFile(sourceFile);
         return builder.build();
     }
 
@@ -836,6 +849,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
         builder.setConstructorTypeResolver(this, index);
+        builder.setSourceFile(sourceFile);
         return builder.build();
     }
 
@@ -848,6 +862,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         } else {
             addExactBody(builder, index, enclosing);
         }
+        builder.setSourceFile(sourceFile);
         return builder.build();
     }
 
@@ -937,6 +952,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
                 }
                 paramBuilder.setModifiers(methodParams.getShort() & 0xffff);
             }
+            paramBuilder.setSourceFile(sourceFile);
             builder.addParameter(paramBuilder.build());
         }
     }

@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.machine.tool;
 
-import cc.quarkus.qcc.context.Context;
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
 
 /**
@@ -12,24 +12,26 @@ public interface ToolMessageHandler {
         }
     };
 
-    ToolMessageHandler REPORTING = new ToolMessageHandler() {
-        public void handleMessage(final Tool tool, final Level level, final String file, final int line, final int column, final String message) {
-            switch (level) {
-                case ERROR:
-                    Context.error(new Location(file, line), "%s: %s", tool.getProgramName(), message);
-                    return;
-                case WARNING:
-                    Context.warning(new Location(file, line), "%s: %s", tool.getProgramName(), message);
-                    return;
-                case INFO:
-                    Context.note(new Location(file, line), "%s: %s", tool.getProgramName(), message);
-                    return;
-                default:
-                    Context.debug(new Location(file, line), "%s: %s", tool.getProgramName(), message);
-                    return;
+    static ToolMessageHandler reporting(CompilationContext context) {
+        return new ToolMessageHandler() {
+            public void handleMessage(final Tool tool, final Level level, final String file, final int line, final int column, final String message) {
+                switch (level) {
+                    case ERROR:
+                        context.error(Location.builder().setSourceFilePath(file).setLineNumber(line).build(), "%s: %s", tool.getProgramName(), message);
+                        return;
+                    case WARNING:
+                        context.warning(Location.builder().setSourceFilePath(file).setLineNumber(line).build(), "%s: %s", tool.getProgramName(), message);
+                        return;
+                    case INFO:
+                        context.note(Location.builder().setSourceFilePath(file).setLineNumber(line).build(), "%s: %s", tool.getProgramName(), message);
+                        return;
+                    default:
+                        context.debug(Location.builder().setSourceFilePath(file).setLineNumber(line).build(), "%s: %s", tool.getProgramName(), message);
+                        return;
+                }
             }
-        }
-    };
+        };
+    }
 
     void handleMessage(Tool tool, Level level, String file, int line, int column, String message);
 

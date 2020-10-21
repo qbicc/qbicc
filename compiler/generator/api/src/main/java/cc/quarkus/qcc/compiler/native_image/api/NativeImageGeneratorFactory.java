@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 
+import cc.quarkus.qcc.context.AnalyticPhaseContext;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -22,8 +23,9 @@ public interface NativeImageGeneratorFactory {
      * Create a new native image generator.
      *
      * @return the new native image generator
+     * @param context
      */
-    NativeImageGenerator createGenerator();
+    NativeImageGenerator createGenerator(final AnalyticPhaseContext context);
 
     /**
      * Find the named back end.
