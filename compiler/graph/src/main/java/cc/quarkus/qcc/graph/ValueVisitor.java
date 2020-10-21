@@ -244,6 +244,15 @@ public interface ValueVisitor<T, R> {
         BasicBlockBuilder getBuilder(T param);
 
         /**
+         * Copy the label for the given block.
+         *
+         * @param param the parameter to pass to the visitor methods
+         * @param block the block to copy
+         * @return the copied label
+         */
+        BlockLabel copy(T param, BasicBlock block);
+
+        /**
          * Entry point to copy the given value.  Subclasses may introduce caching or mapping at this point.  The
          * default implementation always makes a copy and returns it.
          *
@@ -421,7 +430,7 @@ public interface ValueVisitor<T, R> {
         }
 
         default Value visit(final T param, final PhiValue node) {
-            return getBuilder(param).phi(node.getType());
+            return getBuilder(param).phi(node.getType(), copy(param, node.getPinnedBlock()));
         }
 
         default Value visit(final T param, final ReferenceArrayTypeIdLiteral node) {

@@ -49,7 +49,7 @@ public interface BasicBlockBuilder {
 
     // phi
 
-    PhiValue phi(ValueType type);
+    PhiValue phi(ValueType type, BlockLabel owner);
 
     // ternary
 
@@ -445,8 +445,8 @@ public interface BasicBlockBuilder {
                 return new Catch(requireCurrentBlock(), typeSystem.getReferenceType(Assert.checkNotNullParam("upperBound", upperBound)));
             }
 
-            public PhiValue phi(final ValueType type) {
-                return new PhiValue(type, requireCurrentBlock());
+            public PhiValue phi(final ValueType type, final BlockLabel owner) {
+                return new PhiValue(type, owner);
             }
 
             public Value select(final Value condition, final Value trueValue, final Value falseValue) {

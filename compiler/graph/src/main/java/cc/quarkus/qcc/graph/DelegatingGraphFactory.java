@@ -56,8 +56,8 @@ public class DelegatingGraphFactory implements BasicBlockBuilder {
         return getDelegate().parameter(type, index);
     }
 
-    public PhiValue phi(final ValueType type) {
-        return getDelegate().phi(type);
+    public PhiValue phi(final ValueType type, final BlockLabel owner) {
+        return getDelegate().phi(type, owner);
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {

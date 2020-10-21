@@ -320,7 +320,7 @@ final class MethodParser {
             for (int i = 0; i < locals.length; i ++) {
                 Value val = locals[i];
                 if (val != null) {
-                    PhiValue phiValue = gf.phi(val.getType());
+                    PhiValue phiValue = gf.phi(val.getType(), block);
                     entryLocalsArray[i] = phiValue;
                     phiValue.setValueForBlock(from, val);
                 }
@@ -328,7 +328,7 @@ final class MethodParser {
             for (int i = 0; i < sp; i ++) {
                 Value val = stack[i];
                 if (val != null) {
-                    PhiValue phiValue = gf.phi(val.getType());
+                    PhiValue phiValue = gf.phi(val.getType(), block);
                     entryStack[i] = phiValue;
                     phiValue.setValueForBlock(from, val);
                 }
@@ -1154,7 +1154,7 @@ final class MethodParser {
                     gf.begin(nullHandle);
                     BasicBlock t2 = gf.goto_(mergeHandle);
                     gf.begin(mergeHandle);
-                    PhiValue phi = gf.phi(ts.getBooleanType());
+                    PhiValue phi = gf.phi(ts.getBooleanType(), mergeHandle);
                     phi.setValueForBlock(t2, lf.literalOf(false));
                     phi.setValueForBlock(t1, v1);
                     push(phi);
