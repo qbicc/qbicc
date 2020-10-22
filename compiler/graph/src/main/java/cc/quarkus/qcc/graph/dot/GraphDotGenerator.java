@@ -116,7 +116,7 @@ public class GraphDotGenerator {
         Set<BasicBlock> reachable = entryBlock.calculateReachableBlocks();
         target.append("digraph {\n");
         target.append("rankdir=BT;\n");
-        target.append("label=\"").append("\";\n");
+        target.append("label=\"").append(label).append("\";\n");
         entryBlock.getTerminator().accept(new OuterVisitor(target), new Visitor(target, reachable));
         target.append("}\n");
         return target;
@@ -431,7 +431,7 @@ public class GraphDotGenerator {
         // ternary
 
         public String visit(final Void param, final Select node) {
-            return null;
+            return node(node);
         }
 
         // parameter
@@ -590,6 +590,20 @@ public class GraphDotGenerator {
             appendAttr("shape", "rectangle").append(',');
             appendAttr("fixedsize", "shape").append(',');
             appendAttr("style", "filled,rounded");
+            target.append(']');
+            target.append('\n');
+            // add edges
+            addBasicDeps(name, node);
+            addValueDeps(name, node);
+            return name;
+        }
+
+        String node(Select node) {
+            String name = register(node);
+            target.append(name).append(' ').append('[');
+            appendAttr("label", "select").append(',');
+            appendAttr("shape", "circle").append(',');
+            appendAttr("fixedsize", "shape");
             target.append(']');
             target.append('\n');
             // add edges
@@ -766,7 +780,7 @@ public class GraphDotGenerator {
             // don't coalesce literals
             String name = nextName();
             target.append(name).append(' ').append('[');
-            appendAttr("label", node.toString()).append(',');
+            appendAttr("label", node.getType().toString() + " " + node.toString()).append(',');
             appendAttr("shape", "Mcircle").append(',');
             appendAttr("fixedsize", "shape");
             target.append(']');
@@ -775,7 +789,7 @@ public class GraphDotGenerator {
         }
 
         String node(ParameterValue node) {
-            String name = register(node);
+            String name = nextName();
             target.append(name).append(' ').append('[');
             appendAttr("label", "arg" + node.getIndex()).append(',');
             appendAttr("shape", "Msquare").append(',');
@@ -786,7 +800,7 @@ public class GraphDotGenerator {
         }
 
         String node(ThisValue node) {
-            String name = register(node);
+            String name = nextName();
             target.append(name).append(' ').append('[');
             appendAttr("label", "this").append(',');
             appendAttr("shape", "Msquare").append(',');
