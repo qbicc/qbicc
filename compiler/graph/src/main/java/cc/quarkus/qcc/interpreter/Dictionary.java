@@ -4,6 +4,8 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -101,12 +103,24 @@ public class Dictionary implements ClassContext {
         return vm.getTypeSystem();
     }
 
+    public void registerClassLiteral(final ClassTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
+
+    }
+
+    public void registerInterfaceLiteral(final InterfaceTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
+
+    }
+
     public LiteralFactory getLiteralFactory() {
         return vm.getLiteralFactory();
     }
 
     public BasicBlockBuilder newBasicBlockBuilder() {
-        return vm.newBasicBlockBuilder();
+        return BasicBlockBuilder.simpleBuilder(getTypeSystem());
+    }
+
+    public void defineClass(final String name, final DefinedTypeDefinition definition) {
+
     }
 
     public JavaObject getClassLoader() {

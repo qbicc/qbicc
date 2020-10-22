@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingGraphFactory;
 import cc.quarkus.qcc.graph.DispatchInvocation;
@@ -38,9 +39,9 @@ final class PatcherGraphFactory extends DelegatingGraphFactory implements BasicB
      * A mapping of methods to their replacements.
      */
     private final Map<ParameterizedExecutableElement, ParameterizedExecutableElement> patchMethods = new ConcurrentHashMap<>();
-    private final BasicBlockBuilder.Factory.Context ctxt;
+    private final CompilationContext ctxt;
 
-    PatcherGraphFactory(final Factory.Context ctxt, final BasicBlockBuilder delegate) {
+    PatcherGraphFactory(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
     }

@@ -7,12 +7,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -227,13 +225,6 @@ public interface JavaVM extends AutoCloseable {
     }
 
     /**
-     * Create a new graph factory.
-     *
-     * @return the graph factory
-     */
-    BasicBlockBuilder newBasicBlockBuilder();
-
-    /**
      * Get the main (root) thread group for the VM.
      *
      * @return the thread group (not {@code null})
@@ -244,29 +235,12 @@ public interface JavaVM extends AutoCloseable {
      * A builder for the VM.
      */
     class Builder {
-        TypeSystem typeSystem;
-        LiteralFactory literalFactory;
         final List<Path> bootstrapModules = new ArrayList<>();
         final List<Path> platformModules = new ArrayList<>();
-        BasicBlockBuilder.Factory graphFactory;
         final Map<String, String> systemProperties = new HashMap<>();
+        CompilationContext context;
 
         Builder() {
-        }
-
-        /**
-         * Set the type system for this instance.
-         *
-         * @param typeSystem the type system for this instance
-         */
-        public Builder setTypeSystem(final TypeSystem typeSystem) {
-            this.typeSystem = Assert.checkNotNullParam("typeSystem", typeSystem);
-            return this;
-        }
-
-        public Builder setLiteralFactory(final LiteralFactory literalFactory) {
-            this.literalFactory = Assert.checkNotNullParam("literalFactory", literalFactory);
-            return this;
         }
 
         /**
@@ -310,18 +284,12 @@ public interface JavaVM extends AutoCloseable {
          * @return this builder
          */
         public Builder setSystemProperty(String propertyName, String propertyValue) {
-            systemProperties.put(Assert.checkNotNullParam("propertyName", propertyName), Assert.checkNotNullParam("propertyValue)", propertyValue));
+            systemProperties.put(Assert.checkNotNullParam("propertyName", propertyName), Assert.checkNotNullParam("propertyValue", propertyValue));
             return this;
         }
 
-        /**
-         * Set the graph factory to use for bytecode parsing.
-         *
-         * @param graphFactory the graph factory to use (must not be {@code null})
-         * @return this builder
-         */
-        public Builder setGraphFactory(final BasicBlockBuilder.Factory graphFactory) {
-            this.graphFactory = Assert.checkNotNullParam("graphFactory", graphFactory);
+        public Builder setContext(final CompilationContext context) {
+            this.context = Assert.checkNotNullParam("context", context);
             return this;
         }
 

@@ -279,16 +279,6 @@ public interface BasicBlockBuilder {
      */
     BlockEntry getBlockEntry();
 
-    interface Factory {
-        BasicBlockBuilder construct(Context context, BasicBlockBuilder delegate);
-
-        interface Context {
-            TypeSystem getTypeSystem();
-
-            LiteralFactory getLiteralFactory();
-        }
-    }
-
     static BasicBlockBuilder simpleBuilder(final TypeSystem typeSystem) {
         return new BasicBlockBuilder() {
             private int line;

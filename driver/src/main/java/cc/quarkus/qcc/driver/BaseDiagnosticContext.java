@@ -10,26 +10,21 @@ import java.util.function.Supplier;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.Diagnostic;
+import cc.quarkus.qcc.context.DiagnosticContext;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.element.BasicElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
-final class BaseContext {
-    private final ConcurrentHashMap<AttachmentKey<?>, Object> attachmentsMap = new ConcurrentHashMap<>();
-    private final ConcurrentLinkedDeque<Diagnostic> diagnostics = new ConcurrentLinkedDeque<>();
-    private final ConcurrentHashMap<String, String> stringCache = new ConcurrentHashMap<>();
-    private final AtomicInteger errorCnt = new AtomicInteger(0);
-    private final AtomicInteger warnCnt = new AtomicInteger(0);
-    private final TypeSystem typeSystem;
-    private final LiteralFactory literalFactory;
+final class BaseDiagnosticContext implements DiagnosticContext  {
+    final ConcurrentHashMap<AttachmentKey<?>, Object> attachmentsMap = new ConcurrentHashMap<AttachmentKey<?>, Object>();
+    final ConcurrentLinkedDeque<Diagnostic> diagnostics = new ConcurrentLinkedDeque<Diagnostic>();
+    final ConcurrentHashMap<String, String> stringCache = new ConcurrentHashMap<String, String>();
+    final AtomicInteger errorCnt = new AtomicInteger(0);
+    final AtomicInteger warnCnt = new AtomicInteger(0);
 
-    BaseContext(final TypeSystem typeSystem, final LiteralFactory literalFactory) {
-        this.typeSystem = typeSystem;
-        this.literalFactory = literalFactory;
+    BaseDiagnosticContext() {
     }
 
     @SuppressWarnings("unchecked")
@@ -135,15 +130,7 @@ final class BaseContext {
         return Collections.unmodifiableCollection(diagnostics);
     }
 
-    public TypeSystem getTypeSystem() {
-        return typeSystem;
-    }
-
-    public LiteralFactory getLiteralFactory() {
-        return literalFactory;
-    }
-
-    public String deduplicate(final ByteBuffer buffer, final int offset, final int length) {
+    String deduplicate(final ByteBuffer buffer, final int offset, final int length) {
         byte[] array = new byte[length];
         int pos = buffer.position();
         buffer.position(offset);
@@ -155,7 +142,7 @@ final class BaseContext {
         }
     }
 
-    public String deduplicate(final String original) {
+    String deduplicate(final String original) {
         return stringCache.computeIfAbsent(original, Function.identity());
     }
 }

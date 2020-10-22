@@ -242,9 +242,5 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
         static Builder basic() {
             return new DefinedTypeDefinitionImpl.BuilderImpl();
         }
-
-        interface Factory {
-            Builder construct(Builder delegate);
-        }
     }
 }

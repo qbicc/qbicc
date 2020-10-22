@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import cc.quarkus.qcc.compiler.native_image.api.NativeImageGenerator;
-import cc.quarkus.qcc.context.AnalyticPhaseContext;
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.Add;
 import cc.quarkus.qcc.graph.And;
 import cc.quarkus.qcc.graph.BasicBlock;
@@ -102,9 +102,9 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
     private final LlcTool llc;
     private final CCompiler cc;
     private final ObjectFileProvider objProvider;
-    private final AnalyticPhaseContext context;
+    private final CompilationContext context;
 
-    LLVMNativeImageGenerator(final AnalyticPhaseContext context) {
+    LLVMNativeImageGenerator(final CompilationContext context) {
         this.context = context;
         // todo: get config from context
         LLVMNativeImageGeneratorConfig config = new LLVMNativeImageGeneratorConfig() {
@@ -279,7 +279,7 @@ final class LLVMNativeImageGenerator implements NativeImageGenerator {
             // nothing to do
             return;
         }
-        MethodBody methodBody = methodHandle.createMethodBody();
+        MethodBody methodBody = methodHandle.getOrCreateMethodBody();
         BasicBlock entryBlock = methodBody.getEntryBlock();
         Set<BasicBlock> reachableBlocks = entryBlock.calculateReachableBlocks();
         Schedule schedule = Schedule.forMethod(entryBlock);

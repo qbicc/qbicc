@@ -830,9 +830,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         if (mayHaveExact) {
             addExactBody(builder, index, enclosing);
         }
-        if (hasVirtual) {
-            builder.setVirtualMethodBody(new VirtualMethodHandleImpl(this, index));
-        }
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
         builder.setMethodTypeResolver(this, index);

@@ -162,11 +162,11 @@ public class PhiOptimizer {
             while (iterator.hasNext()) {
                 BasicBlock b1 = iterator.next();
                 Value v1 = node.getValueForBlock(b1);
-                if (v1 != null) {
+                if (v1 != null && ! v1.equals(node)) {
                     while (iterator.hasNext()) {
                         BasicBlock b2 = iterator.next();
                         Value v2 = node.getValueForBlock(b2);
-                        if (v2 != null && ! v2.equals(v1)) {
+                        if (v2 != null && ! v2.equals(v1) && ! v2.equals(node)) {
                             // multiple values; process as phi node
                             PhiValue copy = (PhiValue) ValueVisitor.Copying.super.visit(param, node);
                             // add early to avoid looping problems

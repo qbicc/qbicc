@@ -2,15 +2,14 @@ package cc.quarkus.qcc.type.definition;
 
 import java.nio.ByteBuffer;
 
-import cc.quarkus.qcc.interpreter.Dictionary;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 
 /**
  * A module definition.
  */
 public interface ModuleDefinition {
-    static ModuleDefinition create(final Dictionary dictionary, ByteBuffer buffer) {
-        return new ModuleDefinitionImpl(dictionary, buffer);
+    static ModuleDefinition create(ByteBuffer buffer) {
+        return new ModuleDefinitionImpl(buffer);
     }
 
     String getName();

@@ -25,8 +25,8 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.FieldWrite;
 import cc.quarkus.qcc.graph.Goto;
@@ -88,8 +88,6 @@ final class JavaVMImpl implements JavaVM {
     private final Set<JavaThread> threads = ConcurrentHashMap.newKeySet();
     final ThreadLocal<JavaThreadImpl> attachedThread = new ThreadLocal<>();
     private final Dictionary bootstrapDictionary;
-    private final TypeSystem typeSystem;
-    private final LiteralFactory literalFactory;
     private final ConcurrentMap<JavaObject, Dictionary> classLoaderLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Dictionary, JavaObject> loaderClassLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<ClassTypeIdLiteral, JavaClassImpl> loadedClasses = new ConcurrentHashMap<>();
@@ -100,8 +98,8 @@ final class JavaVMImpl implements JavaVM {
     private final ConcurrentMap<String, JavaObject> stringInstanceCache = new ConcurrentHashMap<>();
     private final ConcurrentTrie<Type, ParameterizedExecutableDescriptor> descriptorCache = new ConcurrentTrie<>();
     private final Map<String, BootModule> bootstrapModules;
-    private final BasicBlockBuilder.Factory graphFactory;
     private final JavaObject mainThreadGroup;
+    private final CompilationContext context;
     final DefinedTypeDefinition classLoaderClass;
     final DefinedTypeDefinition classClass;
     final DefinedTypeDefinition objectClass;
@@ -116,8 +114,7 @@ final class JavaVMImpl implements JavaVM {
     JavaVMImpl(final Builder builder) {
         Map<String, BootModule> bootstrapModules = new LinkedHashMap<>();
         Dictionary bootstrapDictionary = new Dictionary(this);
-        typeSystem = Assert.checkNotNullParam("builder.typeSystem", builder.typeSystem);
-        literalFactory = Assert.checkNotNullParam("builder.literalFactory", builder.literalFactory);
+        context = Assert.checkNotNullParam("builder.context", builder.context);
         for (Path path : builder.bootstrapModules) {
             // open all bootstrap JARs (MR bootstrap JARs not supported)
             JarFile jarFile;
@@ -144,7 +141,7 @@ final class JavaVMImpl implements JavaVM {
                 }
                 throw new RuntimeException(e);
             }
-            ModuleDefinition moduleDefinition = ModuleDefinition.create(bootstrapDictionary, buffer);
+            ModuleDefinition moduleDefinition = ModuleDefinition.create(buffer);
             bootstrapModules.put(moduleDefinition.getName(), new BootModule(jarFile, moduleDefinition));
         }
         BootModule javaBase = bootstrapModules.get("java.base");
@@ -153,12 +150,11 @@ final class JavaVMImpl implements JavaVM {
         }
         this.bootstrapModules = bootstrapModules;
         this.bootstrapDictionary = bootstrapDictionary;
-        this.graphFactory = builder.graphFactory;
         JavaVMImpl old = currentVm.get();
         try {
             currentVm.set(this);
             objectClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Object");
-            ClassTypeIdLiteral objClassId = literalFactory.literalOfClass("java/lang/Object", null);
+            ClassTypeIdLiteral objClassId = context.getLiteralFactory().literalOfClass("java/lang/Object", null);
             classClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Class");
 
             classLoaderClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ClassLoader");
@@ -227,7 +223,7 @@ final class JavaVMImpl implements JavaVM {
 
     public DefinedTypeDefinition defineAnonymousClass(final DefinedTypeDefinition hostClass, final ByteBuffer bytes) {
         String newName = hostClass.getInternalName() + "/" + anonCounter.getAndIncrement();
-        return defineClass(newName, ((Dictionary)hostClass.getContext()).getClassLoader(), bytes);
+        return defineClass(newName, hostClass.getContext().getClassLoader(), bytes);
     }
 
     public DefinedTypeDefinition loadClass(JavaObject classLoader, final String name) throws Thrown {
@@ -242,8 +238,9 @@ final class JavaVMImpl implements JavaVM {
         JavaThread javaThread = JavaVM.requireCurrentThread();
         ResolvedTypeDefinition resolvedCL = classLoaderClass.validate().resolve();
         ValidatedTypeDefinition stringClassVerified = stringClass.validate();
+        TypeSystem typeSystem = context.getTypeSystem();
         UnsignedIntegerType u16 = typeSystem.getUnsignedInteger16Type();
-        ValueArrayTypeIdLiteral u16Array = literalFactory.literalOfArrayType(u16);
+        ValueArrayTypeIdLiteral u16Array = context.getLiteralFactory().literalOfArrayType(u16);
         MethodElement loadClass = resolvedCL.resolveMethodElementVirtual("loadClass", getMethodDescriptor(typeSystem.getReferenceType(resolvedCL.getTypeId()), typeSystem.getReferenceType(stringClassVerified.getTypeId())));
         int length = name.length();
         JavaArray array = allocateArray(u16Array, length);
@@ -291,7 +288,7 @@ final class JavaVMImpl implements JavaVM {
 
     private JavaObject newException(DefinedTypeDefinition type, String arg) {
         JavaObject e = allocateObject((ClassTypeIdLiteral) type.validate().getTypeId());
-        ConstructorElement ctor = type.validate().resolve().resolveConstructorElement(getConstructorDescriptor(typeSystem.getReferenceType(stringClass.validate().getTypeId())));
+        ConstructorElement ctor = type.validate().resolve().resolveConstructorElement(getConstructorDescriptor(context.getTypeSystem().getReferenceType(stringClass.validate().getTypeId())));
         // todo: backtrace should be set to thread.tos
         invokeExact(ctor, e, newString(arg));
         return e;
@@ -300,8 +297,9 @@ final class JavaVMImpl implements JavaVM {
     private JavaObject newString(String str) {
         ValidatedTypeDefinition stringClassVerified = stringClass.validate();
         int length = str.length();
+        TypeSystem typeSystem = context.getTypeSystem();
         SignedIntegerType s8 = typeSystem.getSignedInteger8Type();
-        ValueArrayTypeIdLiteral s8Array = literalFactory.literalOfArrayType(s8);
+        ValueArrayTypeIdLiteral s8Array = context.getLiteralFactory().literalOfArrayType(s8);
         JavaArray array = allocateArray(s8Array, length << 1);
         for (int i = 0; i < length; i++) {
             array.putArray(i << 1, str.charAt(i) >>> 8);
@@ -333,7 +331,7 @@ final class JavaVMImpl implements JavaVM {
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
         }
-        invokeWith(exactHandle.createMethodBody(), instance, args);
+        invokeWith(exactHandle.getOrCreateMethodBody(), instance, args);
     }
 
     public Object invokeExact(final MethodElement method, final JavaObject instance, final Object... args) {
@@ -345,7 +343,7 @@ final class JavaVMImpl implements JavaVM {
             }
             throw new IllegalArgumentException("Method has no body");
         }
-        return invokeWith(exactHandle.createMethodBody(), instance, args);
+        return invokeWith(exactHandle.getOrCreateMethodBody(), instance, args);
     }
 
     public void initialize(final TypeIdLiteral typeId) {
@@ -357,11 +355,11 @@ final class JavaVMImpl implements JavaVM {
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
         }
-        return invokeWith(exactHandle.createMethodBody(), instance, args);
+        return invokeWith(exactHandle.getOrCreateMethodBody(), instance, args);
     }
 
     public Object invoke(final MethodHandle handle, final JavaObject instance, final Object... args) {
-        return invokeWith(handle.createMethodBody(), instance, args);
+        return invokeWith(handle.getOrCreateMethodBody(), instance, args);
     }
 
     private Object invokeWith(final MethodBody methodBody, final JavaObject instance, final Object... args) {
@@ -576,11 +574,11 @@ final class JavaVMImpl implements JavaVM {
     private final Computer computer = new Computer();
 
     LiteralFactory getLiteralFactory() {
-        return literalFactory;
+        return context.getLiteralFactory();
     }
 
     TypeSystem getTypeSystem() {
-        return typeSystem;
+        return context.getTypeSystem();
     }
 
     final class Computer implements ValueVisitor<StackFrame, Void> {
@@ -809,19 +807,6 @@ final class JavaVMImpl implements JavaVM {
         DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
         builder.setContext(getDictionaryFor(classLoader));
         return builder;
-    }
-
-    public BasicBlockBuilder newBasicBlockBuilder() {
-        // TODO: new instance per call?
-        return graphFactory.construct(new BasicBlockBuilder.Factory.Context() {
-            public TypeSystem getTypeSystem() {
-                return typeSystem;
-            }
-
-            public LiteralFactory getLiteralFactory() {
-                return literalFactory;
-            }
-        }, BasicBlockBuilder.simpleBuilder(typeSystem));
     }
 
     public JavaObject getMainThreadGroup() {

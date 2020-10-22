@@ -17,14 +17,23 @@ import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import io.smallrye.common.constraint.Assert;
 
 /**
  * A class and interface context, which can either be standalone (static) or can be integrated with an interpreter.  An
  * interpreter should have one instance per class loader.
  */
 public interface ClassContext {
+    /**
+     * Get the class loader object for this context.  The bootstrap class loader is {@code null}.
+     *
+     * @return the class loader object for this context
+     */
+    JavaObject getClassLoader();
+
     DefinedTypeDefinition findDefinedType(String typeName);
 
     DefinedTypeDefinition resolveDefinedTypeLiteral(TypeIdLiteral typeId);
@@ -35,9 +44,15 @@ public interface ClassContext {
 
     TypeSystem getTypeSystem();
 
+    void registerClassLiteral(ClassTypeIdLiteral literal, DefinedTypeDefinition typeDef);
+
+    void registerInterfaceLiteral(InterfaceTypeIdLiteral literal, DefinedTypeDefinition typeDef);
+
     LiteralFactory getLiteralFactory();
 
     BasicBlockBuilder newBasicBlockBuilder();
+
+    void defineClass(String name, DefinedTypeDefinition definition);
 
     /**
      * Create a basic class context which can be used to produce type definitions.
@@ -79,6 +94,10 @@ public interface ClassContext {
                     } catch (Throwable ignored) {
                     }
                 }
+            }
+
+            public JavaObject getClassLoader() {
+                return null;
             }
 
             public DefinedTypeDefinition findDefinedType(final String typeName) {
@@ -129,12 +148,24 @@ public interface ClassContext {
                 return ts;
             }
 
+            public void registerClassLiteral(final ClassTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
+                throw Assert.unsupported();
+            }
+
+            public void registerInterfaceLiteral(final InterfaceTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
+                throw Assert.unsupported();
+            }
+
             public LiteralFactory getLiteralFactory() {
                 return lf;
             }
 
             public BasicBlockBuilder newBasicBlockBuilder() {
                 return BasicBlockBuilder.simpleBuilder(ts);
+            }
+
+            public void defineClass(final String name, final DefinedTypeDefinition definition) {
+                throw Assert.unsupported();
             }
         };
     }

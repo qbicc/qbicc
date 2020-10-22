@@ -178,7 +178,7 @@ public class GraphDotGenerator {
                 System.err.println("Method has no body");
                 System.exit(1);
             }
-            MethodBody methodBody = methodHandle.createMethodBody();
+            MethodBody methodBody = methodHandle.getOrCreateMethodBody();
             BasicBlock block = methodBody.getEntryBlock();
             if (doOpt) {
                 // try to phi-reduce it

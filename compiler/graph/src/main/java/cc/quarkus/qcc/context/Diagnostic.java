@@ -60,8 +60,11 @@ public final class Diagnostic {
     }
 
     public StringBuilder appendTo(StringBuilder builder) {
-        location.appendBaseString(builder);
-        builder.append(": ");
+        if (location.hasLocation()) {
+            location.appendBaseString(builder);
+            builder.append(": ");
+        }
+        builder.append(level).append(": ");
         builder.append(getFormatted());
         builder.append('\n');
         if (location.hasMemberName()) {

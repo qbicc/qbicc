@@ -1,36 +1,60 @@
 package cc.quarkus.qcc.driver;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.zip.ZipFile;
 
-import cc.quarkus.qcc.context.AdditivePhaseContext;
-import cc.quarkus.qcc.context.AnalyticPhaseContext;
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Diagnostic;
+import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.tool.CCompiler;
 import cc.quarkus.qcc.tool.llvm.LlvmTool;
 import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ModuleDefinition;
+import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
+import io.smallrye.common.constraint.Assert;
 
 /**
  * A simple driver to run all the stages of compilation.
  */
-public class Driver {
+public class Driver implements Closeable {
 
-    final BaseContext baseContext;
-    final AdditivePhaseContext additivePhaseContext;
-    final AnalyticPhaseContext analyticPhaseContext;
-    final List<Consumer<? super AdditivePhaseContext>> preAdditiveHooks;
-    final List<Consumer<? super AdditivePhaseContext>> postAdditiveHooks;
-    final List<Consumer<? super AnalyticPhaseContext>> preAnalyticHooks;
-    final List<Consumer<? super AnalyticPhaseContext>> postAnalyticHooks;
+    final BaseDiagnosticContext initialContext;
+    final CompilationContextImpl compilationContext;
+    final List<Consumer<? super CompilationContext>> preAdditiveHooks;
+    final List<Consumer<? super CompilationContext>> postAdditiveHooks;
+    final List<Consumer<? super CompilationContext>> preAnalyticHooks;
+    final List<Consumer<? super CompilationContext>> postAnalyticHooks;
+    final Map<String, BootModule> bootModules;
+    final AtomicReference<Phase> phaseSwitch = new AtomicReference<>(Phase.ADDITIVE);
+    final String mainClass;
 
     /*
         Reachability (Run Time)
@@ -50,35 +74,91 @@ public class Driver {
      */
 
     Driver(final Builder builder) {
+        initialContext = Assert.checkNotNullParam("builder.initialContext", builder.initialContext);
+        mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
         // type system
         final TypeSystem typeSystem = builder.typeSystem;
         final LiteralFactory literalFactory = LiteralFactory.create(typeSystem);
 
-        // this is shared by all phases
-        final BaseContext baseContext = new BaseContext(typeSystem, literalFactory);
-        this.baseContext = baseContext;
+        // boot modules
+        Map<String, BootModule> bootModules = new HashMap<>();
+        for (Path path : builder.bootModules) {
+            // open all bootstrap JARs (MR bootstrap JARs not supported)
+            JarFile jarFile;
+            try {
+                jarFile = new JarFile(path.toFile(), true, ZipFile.OPEN_READ);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            String moduleInfo = "module-info.class";
+            ByteBuffer buffer;
+            try {
+                buffer = getJarEntryBuffer(jarFile, moduleInfo);
+                if (buffer == null) {
+                    // ignore non-module
+                    continue;
+                }
+            } catch (IOException e) {
+                for (BootModule toClose : bootModules.values()) {
+                    try {
+                        toClose.close();
+                    } catch (IOException e2) {
+                        e.addSuppressed(e2);
+                    }
+                }
+                throw new RuntimeException(e);
+            }
+            ModuleDefinition moduleDefinition = ModuleDefinition.create(buffer);
+            bootModules.put(moduleDefinition.getName(), new BootModule(jarFile, moduleDefinition));
+        }
+        BootModule javaBase = bootModules.get("java.base");
+        if (javaBase == null) {
+            initialContext.error("Bootstrap failed: no java.base module found");
+        }
+        this.bootModules = bootModules;
 
         // phase contexts
 
-        ArrayList<BasicBlockBuilder.Factory> additivePhaseFactories = new ArrayList<>();
-        for (List<BasicBlockBuilder.Factory> list : builder.factories.getOrDefault(Phase.ADDITIVE, Map.of()).values()) {
+        ArrayList<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> additivePhaseFactories = new ArrayList<>();
+        for (List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> list : builder.additiveFactories.values()) {
             additivePhaseFactories.addAll(list);
         }
-        // last of all...
-        additivePhaseFactories.add((ctxt, delegate) -> BasicBlockBuilder.simpleBuilder(ctxt.getTypeSystem()));
         Collections.reverse(additivePhaseFactories);
         additivePhaseFactories.trimToSize();
-        additivePhaseContext = new AdditivePhaseContextImpl(baseContext, additivePhaseFactories);
 
-        ArrayList<BasicBlockBuilder.Factory> analyticPhaseFactories = new ArrayList<>();
-        for (List<BasicBlockBuilder.Factory> list : builder.factories.getOrDefault(Phase.ANALYTIC, Map.of()).values()) {
+        ArrayList<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> analyticPhaseFactories = new ArrayList<>();
+        for (List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> list : builder.analyticFactories.values()) {
             analyticPhaseFactories.addAll(list);
         }
-        // last of all...
-        analyticPhaseFactories.add((ctxt, delegate) -> BasicBlockBuilder.simpleBuilder(ctxt.getTypeSystem()));
         Collections.reverse(analyticPhaseFactories);
         analyticPhaseFactories.trimToSize();
-        analyticPhaseContext = new AnalyticPhaseContextImpl(baseContext, analyticPhaseFactories);
+
+        Function<CompilationContext, BasicBlockBuilder> finalFactory = ctxt -> {
+            List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> list;
+            Phase phase = phaseSwitch.get();
+            if (phase == Phase.ADDITIVE) {
+                list = additivePhaseFactories;
+            } else {
+                assert phase == Phase.ANALYTIC;
+                list = analyticPhaseFactories;
+            }
+            BasicBlockBuilder result = BasicBlockBuilder.simpleBuilder(typeSystem);
+            for (BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> item : list) {
+                result = item.apply(ctxt, result);
+            }
+            return result;
+        };
+
+        final BiFunction<JavaObject, String, DefinedTypeDefinition> finder;
+        JavaVM vm = builder.vm;
+        if (vm != null) {
+            finder = vm::loadClass;
+        } else {
+            // use a simple finder instead
+            finder = this::defaultFinder;
+        }
+
+        compilationContext = new CompilationContextImpl(initialContext, typeSystem, literalFactory, finalFactory, finder);
 
         // hooks
 
@@ -88,77 +168,159 @@ public class Driver {
         postAnalyticHooks = List.copyOf(builder.postAnalyticHooks);
     }
 
+    private DefinedTypeDefinition defaultFinder(JavaObject classLoader, String name) {
+        if (classLoader != null) {
+            return null;
+        }
+        String fileName = name + ".class";
+        for (BootModule bootModule : bootModules.values()) {
+            ByteBuffer buffer;
+            try {
+                buffer = getJarEntryBuffer(bootModule.jarFile, fileName);
+            } catch (IOException e) {
+                initialContext.warning(Location.builder().setSourceFilePath(bootModule.jarFile.getName()).build(), "Failed to read entry \"%s\" from JAR file: %s", e);
+                return null;
+            }
+            if (buffer != null) {
+                ClassContext ctxt = compilationContext.getBootstrapClassContext();
+                ClassFile classFile = ClassFile.of(ctxt, buffer);
+                DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
+                classFile.accept(builder);
+                DefinedTypeDefinition def = builder.build();
+                ctxt.defineClass(name, def);
+                return def;
+            }
+        }
+        return null;
+    }
+
+    public CompilationContext getCompilationContext() {
+        return compilationContext;
+    }
+
+    private ResolvedTypeDefinition loadAndResolveBootstrapClass(String name) {
+        DefinedTypeDefinition clazz = compilationContext.getBootstrapClassContext().findDefinedType(name);
+        if (clazz == null) {
+            compilationContext.error("Required bootstrap class \"%s\" was not found", name);
+            return null;
+        }
+        try {
+            return clazz.validate().resolve();
+        } catch (Exception ex) {
+            compilationContext.error("Failed to resolve bootstrap class \"%s\": %s", name, ex);
+            return null;
+        }
+    }
+
     /**
      * Execute the compilation.
      *
      * @return {@code true} if compilation succeeded, {@code false} otherwise
      */
     public boolean execute() {
-        // TODO: start VM *here*
-        try {
-            for (Consumer<? super AdditivePhaseContext> hook : preAdditiveHooks) {
-                try {
-                    hook.accept(additivePhaseContext);
-                } catch (Throwable t) {
-                    baseContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Pre-additive hook failed: %s", t));
-                }
-                if (baseContext.errors() > 0) {
-                    // bail out
-                    return false;
-                }
-            }
-            // TODO: trace *here*
-            if (baseContext.errors() > 0) {
-                // bail out
-                return false;
-            }
-            for (Consumer<? super AdditivePhaseContext> hook : postAdditiveHooks) {
-                try {
-                    hook.accept(additivePhaseContext);
-                } catch (Throwable t) {
-                    baseContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-additive hook failed: %s", t));
-                }
-                if (baseContext.errors() > 0) {
-                    // bail out
-                    return false;
-                }
-            }
-        } finally {
-            // TODO: exit VM *here*
-        }
-        if (baseContext.errors() > 0) {
-            // bail out
-            return false;
-        }
-        for (Consumer<? super AnalyticPhaseContext> hook : preAnalyticHooks) {
+        CompilationContextImpl compilationContext = this.compilationContext;
+        for (Consumer<? super CompilationContext> hook : preAdditiveHooks) {
             try {
-                hook.accept(analyticPhaseContext);
+                hook.accept(compilationContext);
             } catch (Throwable t) {
-                baseContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Pre-analytic hook failed: %s", t));
+                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Pre-additive hook failed: %s", t));
             }
-            if (baseContext.errors() > 0) {
+            if (compilationContext.errors() > 0) {
                 // bail out
                 return false;
             }
         }
-        // TODO: re-trace/copy classes *here*
-        if (baseContext.errors() > 0) {
+        // find all the entry points
+        // todo: for now it's just the one main method
+        ResolvedTypeDefinition resolvedMainClass = loadAndResolveBootstrapClass(this.mainClass);
+        if (resolvedMainClass == null) {
+            return false;
+        }
+        ResolvedTypeDefinition stringClass = loadAndResolveBootstrapClass("java/lang/String");
+        if (stringClass == null) {
+            return false;
+        }
+        TypeIdLiteral stringId = stringClass.getTypeId();
+        TypeSystem ts = compilationContext.getTypeSystem();
+        LiteralFactory lf = compilationContext.getLiteralFactory();
+        int idx = resolvedMainClass.findMethodIndex("main", MethodDescriptor.of(ParameterizedExecutableDescriptor.of(ts.getReferenceType(lf.literalOfArrayType(ts.getReferenceType(stringId)))), ts.getVoidType()));
+        if (idx == -1) {
+            compilationContext.error("No valid main method found on \"%s\"", this.mainClass);
+            return false;
+        }
+        MethodElement mainMethod = resolvedMainClass.getMethod(idx);
+        if (! mainMethod.hasAllModifiersOf(ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC)) {
+            compilationContext.error("Main method must be declared public static on \"%s\"", this.mainClass);
+            return false;
+        }
+        compilationContext.registerEntryPoint(mainMethod);
+
+        // trace out the program graph, enqueueing each item one time and then processing every item in the queue recursively
+//        processQueue();
+        if (compilationContext.errors() > 0) {
             // bail out
             return false;
         }
-        for (Consumer<? super AnalyticPhaseContext> hook : postAnalyticHooks) {
+        for (Consumer<? super CompilationContext> hook : postAdditiveHooks) {
             try {
-                hook.accept(analyticPhaseContext);
+                hook.accept(compilationContext);
             } catch (Throwable t) {
-                baseContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-analytic hook failed: %s", t));
+                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-additive hook failed: %s", t));
             }
-            if (baseContext.errors() > 0) {
+            if (compilationContext.errors() > 0) {
+                // bail out
+                return false;
+            }
+        }
+        if (compilationContext.errors() > 0) {
+            // bail out
+            return false;
+        }
+        phaseSwitch.set(Phase.ANALYTIC);
+        for (Consumer<? super CompilationContext> hook : preAnalyticHooks) {
+            try {
+                hook.accept(compilationContext);
+            } catch (Throwable t) {
+                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Pre-analytic hook failed: %s", t));
+            }
+            if (compilationContext.errors() > 0) {
+                // bail out
+                return false;
+            }
+        }
+
+
+
+        // trace out the program graph again, enqueueing each reachable item one time and then processing every item recursively
+
+//        processQueue();
+        if (compilationContext.errors() > 0) {
+            // bail out
+            return false;
+        }
+        for (Consumer<? super CompilationContext> hook : postAnalyticHooks) {
+            try {
+                hook.accept(compilationContext);
+            } catch (Throwable t) {
+                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-analytic hook failed: %s", t));
+            }
+            if (compilationContext.errors() > 0) {
                 // bail out
                 return false;
             }
         }
         // TODO: trace/emit *here*
-        return baseContext.errors() == 0;
+        return compilationContext.errors() == 0;
+    }
+
+    public void close() {
+        for (BootModule module : bootModules.values()) {
+            try {
+                module.close();
+            } catch (IOException e) {
+                compilationContext.warning(Location.builder().setSourceFilePath(module.jarFile.getName()).build(), "Failed to close boot JAR: %s", e);
+            }
+        }
     }
 
     /**
@@ -171,24 +333,34 @@ public class Driver {
     }
 
     public Iterable<Diagnostic> getDiagnostics() {
-        return baseContext.getDiagnostics();
+        return initialContext.getDiagnostics();
     }
 
     public static final class Builder {
         final List<Path> bootModules = new ArrayList<>();
-        final Map<Phase, Map<Stage, List<BasicBlockBuilder.Factory>>> factories = new EnumMap<>(Phase.class);
-        final List<Consumer<? super AdditivePhaseContext>> preAdditiveHooks = new ArrayList<>();
-        final List<Consumer<? super AdditivePhaseContext>> postAdditiveHooks = new ArrayList<>();
-        final List<Consumer<? super AnalyticPhaseContext>> preAnalyticHooks = new ArrayList<>();
-        final List<Consumer<? super AnalyticPhaseContext>> postAnalyticHooks = new ArrayList<>();
+        final Map<Stage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> additiveFactories = new EnumMap<>(Stage.class);
+        final Map<Stage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> analyticFactories = new EnumMap<>(Stage.class);
+        final List<BiFunction<? super CompilationContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories = new ArrayList<>();
+        final List<Consumer<? super CompilationContext>> preAdditiveHooks = new ArrayList<>();
+        final List<Consumer<? super CompilationContext>> postAdditiveHooks = new ArrayList<>();
+        final List<Consumer<? super CompilationContext>> preAnalyticHooks = new ArrayList<>();
+        final List<Consumer<? super CompilationContext>> postAnalyticHooks = new ArrayList<>();
 
+        BaseDiagnosticContext initialContext;
         Platform targetPlatform;
         TypeSystem typeSystem;
         JavaVM vm;
         CCompiler toolChain;
         LlvmTool llvmTool;
 
+        String mainClass;
+
         Builder() {}
+
+        public Builder setInitialContext(BaseDiagnosticContext initialContext) {
+            this.initialContext = Assert.checkNotNullParam("initialContext", initialContext);
+            return this;
+        }
 
         public Builder addBootModule(Path modulePath) {
             if (modulePath != null) {
@@ -197,33 +369,52 @@ public class Driver {
             return this;
         }
 
-        public Builder addBlockBuilderFactory(Phase phase, Stage stage, BasicBlockBuilder.Factory factory) {
-            factories.computeIfAbsent(phase, p -> new EnumMap<>(Stage.class)).computeIfAbsent(stage, s -> new ArrayList<>()).add(factory);
+        public String getMainClass() {
+            return mainClass;
+        }
+
+        public Builder setMainClass(final String mainClass) {
+            this.mainClass = Assert.checkNotNullParam("mainClass", mainClass);
             return this;
         }
 
-        public Builder addPreAdditiveHook(Consumer<? super AdditivePhaseContext> hook) {
+        public Builder addAdditivePhaseBlockBuilderFactory(Stage stage, BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> factory) {
+            additiveFactories.computeIfAbsent(stage, s -> new ArrayList<>()).add(Assert.checkNotNullParam("factory", factory));
+            return this;
+        }
+
+        public Builder addAnalyticPhaseBlockBuilderFactory(Stage stage, BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> factory) {
+            analyticFactories.computeIfAbsent(stage, s -> new ArrayList<>()).add(Assert.checkNotNullParam("factory", factory));
+            return this;
+        }
+
+        public Builder addTypeBuilderFactory(BiFunction<? super CompilationContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder> factory) {
+            typeBuilderFactories.add(Assert.checkNotNullParam("factory", factory));
+            return this;
+        }
+
+        public Builder addPreAdditiveHook(Consumer<? super CompilationContext> hook) {
             if (hook != null) {
                 preAdditiveHooks.add(hook);
             }
             return this;
         }
 
-        public Builder addPostAdditiveHook(Consumer<? super AdditivePhaseContext> hook) {
+        public Builder addPostAdditiveHook(Consumer<? super CompilationContext> hook) {
             if (hook != null) {
                 preAdditiveHooks.add(hook);
             }
             return this;
         }
 
-        public Builder addPreAnalyticHook(Consumer<? super AnalyticPhaseContext> hook) {
+        public Builder addPreAnalyticHook(Consumer<? super CompilationContext> hook) {
             if (hook != null) {
                 preAnalyticHooks.add(hook);
             }
             return this;
         }
 
-        public Builder addPostAnalyticHook(Consumer<? super AnalyticPhaseContext> hook) {
+        public Builder addPostAnalyticHook(Consumer<? super CompilationContext> hook) {
             if (hook != null) {
                 preAnalyticHooks.add(hook);
             }
@@ -278,5 +469,31 @@ public class Driver {
         public Driver build() {
             return new Driver(this);
         }
+    }
+
+    static final class BootModule implements Closeable {
+        private final JarFile jarFile;
+        private final ModuleDefinition moduleDefinition;
+
+        BootModule(final JarFile jarFile, final ModuleDefinition moduleDefinition) {
+            this.jarFile = jarFile;
+            this.moduleDefinition = moduleDefinition;
+        }
+
+        public void close() throws IOException {
+            jarFile.close();
+        }
+    }
+
+    private static ByteBuffer getJarEntryBuffer(final JarFile jarFile, final String fileName) throws IOException {
+        final ByteBuffer buffer;
+        JarEntry jarEntry = jarFile.getJarEntry(fileName);
+        if (jarEntry == null) {
+            return null;
+        }
+        try (InputStream inputStream = jarFile.getInputStream(jarEntry)) {
+            buffer = ByteBuffer.wrap(inputStream.readAllBytes());
+        }
+        return buffer;
     }
 }

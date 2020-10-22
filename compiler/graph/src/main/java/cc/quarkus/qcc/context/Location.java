@@ -76,6 +76,10 @@ public final class Location {
         return memberName != null;
     }
 
+    public boolean hasLocation() {
+        return sourceFilePath != null || classFilePath != null || classInternalName != null || lineNumber > 0;
+    }
+
     public int getByteCodeIndex() {
         return byteCodeIndex;
     }
