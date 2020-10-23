@@ -5,6 +5,10 @@ final class InitializerElementImpl extends AbstractExactExecutableElement implem
         super(builder);
     }
 
+    public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     static final class Builder extends AbstractExactExecutableElement.Builder implements InitializerElement.Builder {
         public InitializerElementImpl build() {
             return new InitializerElementImpl(this);

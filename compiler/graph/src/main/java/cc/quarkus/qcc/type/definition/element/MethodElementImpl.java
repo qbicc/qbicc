@@ -62,6 +62,10 @@ final class MethodElementImpl extends AbstractParameterizedExecutableElement imp
         return getName() + ":" + getEnclosingType().getInternalName();
     }
 
+    public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     static final class Builder extends AbstractParameterizedExecutableElement.Builder implements MethodElement.Builder {
         String name;
         TypeResolver typeResolver;

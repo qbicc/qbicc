@@ -2,6 +2,7 @@ package cc.quarkus.qcc.type.definition;
 
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
+import cc.quarkus.qcc.type.definition.element.ElementVisitor;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -19,6 +20,10 @@ final class ResolvedTypeDefinitionUtil {
 
         public int getModifiers() {
             return 0;
+        }
+
+        public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
+            return null;
         }
 
         public int getParameterCount() {

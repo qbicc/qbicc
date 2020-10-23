@@ -1,16 +1,17 @@
 package cc.quarkus.qcc.driver;
 
 /**
- * The overall build phase.  Each phase contains multiple {@linkplain Stage stages}.
+ * The overall build phase.  Each phase contains multiple {@linkplain BuilderStage stages}.
  */
 public enum Phase {
     /**
      * The first stage, where classes are loaded and initialized.
      */
-    ADDITIVE,
+    ADD,
     /**
-     * The second stage, where the execution tracer emits code to be included in the final image.
+     * The second stage, where the execution tracer emits nodes to be included in the final image, and these nodes
+     * are then visited by the back end generator(s).
      */
-    ANALYTIC,
+    GENERATE,
     ;
 }

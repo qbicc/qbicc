@@ -59,13 +59,67 @@ public interface TerminatorVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    interface Delegating<T, R> extends TerminatorVisitor<T, R> {
+        TerminatorVisitor<T, R> getDelegateTerminatorVisitor();
+
+        default R visitUnknown(T param, Terminator node) {
+            return node.accept(getDelegateTerminatorVisitor(), param);
+        }
+
+        default R visit(T param, Goto node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, If node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Jsr node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Ret node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Return node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Switch node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Throw node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Try node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ValueReturn node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ClassCastErrorNode node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, NoSuchMethodErrorNode node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+    }
+
     /**
      * A terminator visitor base interface which recursively copies the given terminators.
      * <p>
      * To transform certain terminator types, override the specific {@code visit()} method for that type.
      *
      * @param <T> the parameter type
+     * @deprecated Replace with {@link Node.Copier}.
      */
+    @Deprecated
     interface Copying<T> extends TerminatorVisitor<T, BasicBlock> {
 
         /**
@@ -76,6 +130,16 @@ public interface TerminatorVisitor<T, R> {
          * @return the builder
          */
         BasicBlockBuilder getBuilder(T param);
+
+        /**
+         * Get the visitor entry point to use for copying a terminator.  The visitor should ultimately delegate back
+         * to this visitor.
+         *
+         * @return the copying visitor
+         */
+        default TerminatorVisitor<T, BasicBlock> getCopyingTerminatorVisitor() {
+            return this;
+        }
 
         /**
          * Entry point to copy the given terminator.  Subclasses may introduce caching or mapping at this point.  The default
@@ -94,7 +158,7 @@ public interface TerminatorVisitor<T, R> {
             int oldLine = builder.setLineNumber(original.getSourceLine());
             int oldBci = builder.setBytecodeIndex(original.getBytecodeIndex());
             try {
-                return original.accept(this, param);
+                return original.accept(getCopyingTerminatorVisitor(), param);
             } finally {
                 builder.setBytecodeIndex(oldBci);
                 builder.setLineNumber(oldLine);

@@ -14,7 +14,7 @@ public interface Terminator extends Node {
         throw new IndexOutOfBoundsException(index);
     }
 
-    default <T, R> R accept(NodeVisitor<T, R> visitor, T param) {
+    default <T, R> R accept(OldNodeVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
 }

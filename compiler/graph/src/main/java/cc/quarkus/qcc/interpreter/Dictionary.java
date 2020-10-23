@@ -14,6 +14,7 @@ import cc.quarkus.qcc.type.definition.DefineFailedException;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.LinkageException;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 public class Dictionary implements ClassContext {
@@ -115,8 +116,8 @@ public class Dictionary implements ClassContext {
         return vm.getLiteralFactory();
     }
 
-    public BasicBlockBuilder newBasicBlockBuilder() {
-        return BasicBlockBuilder.simpleBuilder(getTypeSystem());
+    public BasicBlockBuilder newBasicBlockBuilder(final ExecutableElement element) {
+        return BasicBlockBuilder.simpleBuilder(getTypeSystem(), element);
     }
 
     public void defineClass(final String name, final DefinedTypeDefinition definition) {

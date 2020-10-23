@@ -13,6 +13,8 @@ public interface BasicElement {
 
     int getModifiers();
 
+    <T, R> R accept(ElementVisitor<T, R> visitor, T param);
+
     default boolean hasAllModifiersOf(int mask) {
         return (getModifiers() & mask) == mask;
     }

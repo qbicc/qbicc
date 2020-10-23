@@ -59,7 +59,7 @@ import cc.quarkus.qcc.graph.New;
 import cc.quarkus.qcc.graph.NewArray;
 import cc.quarkus.qcc.graph.NoSuchMethodErrorNode;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.NodeVisitor;
+import cc.quarkus.qcc.graph.OldNodeVisitor;
 import cc.quarkus.qcc.graph.Or;
 import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.PhiValue;
@@ -88,7 +88,6 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.graph.Xor;
-import cc.quarkus.qcc.graph.opt.PhiOptimizer;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
@@ -101,6 +100,7 @@ import cc.quarkus.qcc.graph.literal.ObjectLiteral;
 import cc.quarkus.qcc.graph.literal.ReferenceArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
+import cc.quarkus.qcc.graph.opt.DotGenerator;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
@@ -110,7 +110,10 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
  * A generator for GraphViz-style {@code dot} representations of the graph of a method, given its entry block.
+ *
+ * @deprecated To be replaced with {@link DotGenerator}.
  */
+@Deprecated
 public class GraphDotGenerator {
     public static StringBuilder graph(final String label, BasicBlock entryBlock, StringBuilder target) {
         Set<BasicBlock> reachable = entryBlock.calculateReachableBlocks();
@@ -182,8 +185,8 @@ public class GraphDotGenerator {
             BasicBlock block = methodBody.getEntryBlock();
             if (doOpt) {
                 // try to phi-reduce it
-                PhiOptimizer opt = new PhiOptimizer(ctxt.newBasicBlockBuilder());
-                block = opt.transform(block);
+//                PhiOptimizer opt = new PhiOptimizer(ctxt.newBasicBlockBuilder());
+//                block = opt.transform(block);
             }
             String s = graph(method.getName() + ":" + method.getDescriptor(), block, new StringBuilder()).toString();
             System.out.println(s);
@@ -214,7 +217,7 @@ public class GraphDotGenerator {
         }
     }
 
-    static final class Visitor implements TerminatorVisitor<Void, String>, ValueVisitor<Void, String>, ActionVisitor<Void, String>, NodeVisitor<Void, String> {
+    static final class Visitor implements TerminatorVisitor<Void, String>, ValueVisitor<Void, String>, ActionVisitor<Void, String>, OldNodeVisitor<Void, String> {
 
         final Map<Node, String> visited = new HashMap<>();
         final Set<BasicBlock> reachable;

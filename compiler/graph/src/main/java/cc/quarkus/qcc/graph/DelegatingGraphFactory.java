@@ -9,6 +9,7 @@ import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
@@ -22,6 +23,10 @@ public class DelegatingGraphFactory implements BasicBlockBuilder {
 
     public DelegatingGraphFactory(final BasicBlockBuilder delegate) {
         this.delegate = delegate;
+    }
+
+    public ExecutableElement getCurrentElement() {
+        return getDelegate().getCurrentElement();
     }
 
     public int setLineNumber(final int newLineNumber) {

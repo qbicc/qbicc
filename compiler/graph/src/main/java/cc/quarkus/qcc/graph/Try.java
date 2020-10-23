@@ -55,6 +55,10 @@ public final class Try extends AbstractNode implements Resume {
         return catchTargetLabels;
     }
 
+    public Node getDependency() {
+        return dependency;
+    }
+
     public int getBasicDependencyCount() {
         return 2;
     }

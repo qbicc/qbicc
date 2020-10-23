@@ -29,7 +29,7 @@ public class Main {
                     String[] path = argIter.next().split(Pattern.quote(File.pathSeparator));
                     for (String pathStr : path) {
                         if (! pathStr.isEmpty()) {
-                            builder.addBootModule(Path.of(pathStr));
+                            builder.addBootClassPathElement(Path.of(pathStr));
                         }
                     }
                 } else {

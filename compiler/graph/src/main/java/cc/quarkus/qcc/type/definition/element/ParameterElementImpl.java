@@ -46,6 +46,10 @@ final class ParameterElementImpl extends AbstractAnnotatedElement implements Par
         return Objects.equals(this.name, name);
     }
 
+    public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     static final class Builder extends AbstractAnnotatedElement.Builder implements ParameterElement.Builder {
         String name;
         TypeResolver typeResolver;

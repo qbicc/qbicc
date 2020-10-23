@@ -43,6 +43,46 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    interface Delegating<T, R> extends ActionVisitor<T, R> {
+        ActionVisitor<T, R> getDelegateActionVisitor();
+
+        default R visitUnknown(T param, Action node) {
+            return node.accept(getDelegateActionVisitor(), param);
+        }
+
+        default R visit(T param, ArrayElementWrite node) {
+            return getDelegateActionVisitor().visit(param, node);
+        }
+
+        default R visit(T param, BlockEntry node) {
+            return getDelegateActionVisitor().visit(param, node);
+        }
+
+        default R visit(T param, InstanceFieldWrite node) {
+            return getDelegateActionVisitor().visit(param, node);
+        }
+
+        default R visit(T param, InstanceInvocation node) {
+            return getDelegateActionVisitor().visit(param, node);
+        }
+
+        default R visit(T param, MonitorEnter node) {
+            return getDelegateActionVisitor().visit(param, node);
+        }
+
+        default R visit(T param, MonitorExit node) {
+            return getDelegateActionVisitor().visit(param, node);
+        }
+
+        default R visit(T param, StaticFieldWrite node) {
+            return getDelegateActionVisitor().visit(param, node);
+        }
+
+        default R visit(T param, StaticInvocation node) {
+            return getDelegateActionVisitor().visit(param, node);
+        }
+    }
+
     /**
      * An action visitor base interface which recursively copies the given actions.  Note that an action's copy may
      * be transformed to any node type.
@@ -50,7 +90,9 @@ public interface ActionVisitor<T, R> {
      * To transform certain action types, override the specific {@code visit()} method for that type.
      *
      * @param <T> the parameter type
+     * @deprecated Replace with {@link Node.Copier}.
      */
+    @Deprecated
     interface Copying<T> extends ActionVisitor<T, Node> {
 
         /**
@@ -61,6 +103,16 @@ public interface ActionVisitor<T, R> {
          * @return the builder
          */
         BasicBlockBuilder getBuilder(T param);
+
+        /**
+         * Get the visitor entry point to use for copying an action.  The visitor should ultimately delegate back
+         * to this visitor.
+         *
+         * @return the copying visitor
+         */
+        default ActionVisitor<T, Node> getCopyingActionVisitor() {
+            return this;
+        }
 
         /**
          * Entry point to copy the given value.  Subclasses may introduce caching or mapping at this point.  The default
@@ -79,7 +131,7 @@ public interface ActionVisitor<T, R> {
             int oldLine = builder.setLineNumber(original.getSourceLine());
             int oldBci = builder.setBytecodeIndex(original.getBytecodeIndex());
             try {
-                return original.accept(this, param);
+                return original.accept(getCopyingActionVisitor(), param);
             } finally {
                 builder.setBytecodeIndex(oldBci);
                 builder.setLineNumber(oldLine);

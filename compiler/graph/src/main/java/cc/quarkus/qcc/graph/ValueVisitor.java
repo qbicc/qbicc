@@ -224,14 +224,225 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    interface Delegating<T, R> extends ValueVisitor<T, R> {
+        ValueVisitor<T, R> getDelegateValueVisitor();
+
+        default R visitUnknown(final T param, Value node) {
+            return node.accept(getDelegateValueVisitor(), param);
+        }
+
+        default R visit(T param, Add node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, And node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ArrayElementRead node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ArrayLength node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, BitCast node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, BlockLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, BooleanLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Catch node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ClassTypeIdLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpEq node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpGe node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpGt node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpLe node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpLt node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpNe node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ConstructorInvocation node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Convert node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Div node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Extend node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, FloatLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, InstanceFieldRead node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, InstanceInvocationValue node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, IntegerLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, InterfaceTypeIdLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Mod node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Multiply node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Narrow node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Neg node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, New node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, NewArray node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, NullLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ObjectLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Or node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ParameterValue node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, PhiValue node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ReferenceArrayTypeIdLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Rol node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Ror node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Select node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Shl node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Shr node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, StaticFieldRead node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, StaticInvocationValue node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, StringLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Sub node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ThisValue node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Truncate node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, TypeIdOf node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ValueArrayTypeIdLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Xor node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+    }
+
     /**
-     * A value visitor base interface which recursively copies the given values.  Literals are not copied, or are parameter
-     * values. Also, {@code phi} nodes are not populated (this is the responsibility of the subclass).
+     * A value visitor base interface which recursively copies the given values.  Literals are not copied, nor are parameter
+     * values. Also, {@code phi} nodes are not populated (this is the responsibility of the subclass), though each
+     * encountered {@code phi} node is registered to the {@link #registerPhi(Object, PhiValue, PhiValue) registerPhi()} method.
      * <p>
      * To transform certain value types, override the specific {@code visit()} method for that type.
      *
      * @param <T> the parameter type
+     * @deprecated Replace with {@link Node.Copier}.
      */
+    @Deprecated
     interface Copying<T> extends ValueVisitor<T, Value> {
 
         /**
@@ -253,6 +464,16 @@ public interface ValueVisitor<T, R> {
         BlockLabel copy(T param, BasicBlock block);
 
         /**
+         * Get the visitor entry point to use for copying a value.  The visitor should ultimately delegate back
+         * to this visitor.
+         *
+         * @return the copying visitor
+         */
+        default ValueVisitor<T, Value> getCopyingValueVisitor() {
+            return this;
+        }
+
+        /**
          * Entry point to copy the given value.  Subclasses may introduce caching or mapping at this point.  The
          * default implementation always makes a copy and returns it.
          *
@@ -269,7 +490,7 @@ public interface ValueVisitor<T, R> {
             int oldLine = builder.setLineNumber(original.getSourceLine());
             int oldBci = builder.setBytecodeIndex(original.getBytecodeIndex());
             try {
-                return original.accept(this, param);
+                return original.accept(getCopyingValueVisitor(), param);
             } finally {
                 builder.setBytecodeIndex(oldBci);
                 builder.setLineNumber(oldLine);
@@ -292,6 +513,16 @@ public interface ValueVisitor<T, R> {
             }
             return toList;
         }
+
+        /**
+         * Register that a {@code phi} node was copied.  The visitor should take care to iterate the incoming
+         * values for the {@code phi} and ensure they are mapped and copied after the visitor returns.
+         *
+         * @param param the visitor parameter
+         * @param originalPhi the {@code phi} node that was copied
+         * @param newPhi the {@code phi} node that was created
+         */
+        void registerPhi(T param, PhiValue originalPhi, PhiValue newPhi);
 
         default Value visit(final T param, final Add node) {
             return getBuilder(param).add(copy(param, node.getLeftInput()), copy(param, node.getRightInput()));

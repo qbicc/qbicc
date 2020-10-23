@@ -75,7 +75,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             ClassMethodInfo classMethodInfo = new ClassMethodInfo(classFile, modifiers, index, getBackingBuffer().duplicate());
             MethodElement methodElement = classFile.resolveMethod(index, enclosing);
             int paramCount = methodElement.getParameterCount();
-            BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder();
+            BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder(methodElement);
             MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, gf);
             Value[] parameters = new Value[paramCount];
             int j = 0;

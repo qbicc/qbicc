@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.type.definition;
 
+import java.util.List;
+
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.schedule.Schedule;
@@ -13,6 +15,8 @@ public interface MethodBody {
 
     Value getParameterValue(int index) throws IndexOutOfBoundsException;
 
+    List<Value> getParameterValues();
+
     BasicBlock getEntryBlock();
 
     Schedule getSchedule();
@@ -20,13 +24,21 @@ public interface MethodBody {
     Value getThisValue();
 
     static MethodBody of(BasicBlock entryBlock, Schedule schedule, Value thisValue, Value... parameterValues) {
+        return of(entryBlock, schedule, thisValue, List.of(parameterValues));
+    }
+
+    static MethodBody of(BasicBlock entryBlock, Schedule schedule, Value thisValue, List<Value> paramValues) {
         return new MethodBody() {
             public int getParameterCount() {
-                return parameterValues.length;
+                return paramValues.size();
             }
 
             public Value getParameterValue(final int index) throws IndexOutOfBoundsException {
-                return parameterValues[index];
+                return paramValues.get(index);
+            }
+
+            public List<Value> getParameterValues() {
+                return paramValues;
             }
 
             public BasicBlock getEntryBlock() {

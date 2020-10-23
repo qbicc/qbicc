@@ -1,22 +1,23 @@
 package cc.quarkus.qcc.graph;
 
 /**
- * A general visitor for the different node types.
+ * A visitor that can visit any program node.
  */
-public interface NodeVisitor<T, R> {
-    default R visitUnknown(T param, Node node) {
-        return null;
-    }
+public interface NodeVisitor<C, V, A, T> extends ValueVisitor<C, V>, ActionVisitor<C, A>, TerminatorVisitor<C, T> {
 
-    default R visit(T param, Action node) {
-        return visitUnknown(param, node);
-    }
+    interface Delegating<C, V, A, T> extends NodeVisitor<C, V, A, T>, ValueVisitor.Delegating<C, V>, ActionVisitor.Delegating<C, A>, TerminatorVisitor.Delegating<C, T> {
+        NodeVisitor<C, V, A, T> getDelegateNodeVisitor();
 
-    default R visit(T param, Terminator node) {
-        return visitUnknown(param, node);
-    }
+        default ActionVisitor<C, A> getDelegateActionVisitor() {
+            return getDelegateNodeVisitor();
+        }
 
-    default R visit(T param, Value node) {
-        return visitUnknown(param, node);
+        default TerminatorVisitor<C, T> getDelegateTerminatorVisitor() {
+            return getDelegateNodeVisitor();
+        }
+
+        default ValueVisitor<C, V> getDelegateValueVisitor() {
+            return getDelegateNodeVisitor();
+        }
     }
 }

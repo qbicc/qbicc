@@ -43,6 +43,10 @@ final class FieldElementImpl extends AbstractAnnotatedElement implements FieldEl
         return typeResolver.hasClass2FieldType(typeResolverArg);
     }
 
+    public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     static final class Builder extends AbstractAnnotatedElement.Builder implements FieldElement.Builder {
         String name;
         TypeResolver typeResolver;

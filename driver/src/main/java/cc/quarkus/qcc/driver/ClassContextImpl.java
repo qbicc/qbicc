@@ -16,6 +16,7 @@ import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefineFailedException;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -96,8 +97,8 @@ final class ClassContextImpl implements ClassContext {
         return compilationContext.getLiteralFactory();
     }
 
-    public BasicBlockBuilder newBasicBlockBuilder() {
-        return compilationContext.getBlockFactory().apply(compilationContext);
+    public BasicBlockBuilder newBasicBlockBuilder(final ExecutableElement element) {
+        return compilationContext.getBlockFactory().apply(compilationContext, element);
     }
 
     public void defineClass(final String name, final DefinedTypeDefinition definition) {

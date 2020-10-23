@@ -5,7 +5,6 @@ import java.util.List;
 import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeIdType;
@@ -13,6 +12,7 @@ import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
@@ -22,6 +22,14 @@ import io.smallrye.common.constraint.Assert;
  * A program graph builder, which builds each basic block in succession and wires them together.
  */
 public interface BasicBlockBuilder {
+    // context
+
+    /**
+     * Get the element currently being built.
+     *
+     * @return the element currently being built
+     */
+    ExecutableElement getCurrentElement();
 
     /**
      * Set the line number to use for subsequently built nodes.  Use {@code 0} for no line number.
@@ -279,13 +287,17 @@ public interface BasicBlockBuilder {
      */
     BlockEntry getBlockEntry();
 
-    static BasicBlockBuilder simpleBuilder(final TypeSystem typeSystem) {
+    static BasicBlockBuilder simpleBuilder(final TypeSystem typeSystem, final ExecutableElement element) {
         return new BasicBlockBuilder() {
             private int line;
             private int bci;
             private Node dependency;
             private BlockEntry blockEntry;
             private BlockLabel currentBlock;
+
+            public ExecutableElement getCurrentElement() {
+                return element;
+            }
 
             public int setLineNumber(final int newLineNumber) {
                 try {

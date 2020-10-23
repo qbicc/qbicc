@@ -2,8 +2,8 @@ package cc.quarkus.qcc.driver;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,17 +14,21 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
+import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.context.Location;
+import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.NodeVisitor;
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.machine.arch.Platform;
@@ -33,9 +37,14 @@ import cc.quarkus.qcc.tool.llvm.LlvmTool;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.definition.element.ElementVisitor;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
@@ -46,14 +55,22 @@ import io.smallrye.common.constraint.Assert;
  */
 public class Driver implements Closeable {
 
+    static final String MODULE_INFO = "module-info.class";
+
+    private static final AttachmentKey<String> MAIN_CLASS_KEY = new AttachmentKey<>();
+
     final BaseDiagnosticContext initialContext;
     final CompilationContextImpl compilationContext;
-    final List<Consumer<? super CompilationContext>> preAdditiveHooks;
-    final List<Consumer<? super CompilationContext>> postAdditiveHooks;
-    final List<Consumer<? super CompilationContext>> preAnalyticHooks;
-    final List<Consumer<? super CompilationContext>> postAnalyticHooks;
+    final List<Consumer<? super CompilationContext>> preAddHooks;
+    final List<Consumer<? super CompilationContext>> postAddHooks;
+    final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> interStageCopy;
+    final List<Consumer<? super CompilationContext>> preCopyHooks;
+    final List<Consumer<? super CompilationContext>> preGenerateHooks;
+    final List<Consumer<? super CompilationContext>> postGenerateHooks;
+    final List<ElementVisitor<CompilationContext, Void>> generateVisitors;
     final Map<String, BootModule> bootModules;
-    final AtomicReference<Phase> phaseSwitch = new AtomicReference<>(Phase.ADDITIVE);
+    final List<ClassPathElement> bootClassPath;
+    final AtomicReference<Phase> phaseSwitch = new AtomicReference<>(Phase.ADD);
     final String mainClass;
 
     /*
@@ -76,48 +93,48 @@ public class Driver implements Closeable {
     Driver(final Builder builder) {
         initialContext = Assert.checkNotNullParam("builder.initialContext", builder.initialContext);
         mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
+        initialContext.putAttachment(MAIN_CLASS_KEY, mainClass);
         // type system
         final TypeSystem typeSystem = builder.typeSystem;
         final LiteralFactory literalFactory = LiteralFactory.create(typeSystem);
 
         // boot modules
         Map<String, BootModule> bootModules = new HashMap<>();
-        for (Path path : builder.bootModules) {
+        List<ClassPathElement> bootClassPath = new ArrayList<>();
+        for (Path path : builder.bootClassPathElements) {
             // open all bootstrap JARs (MR bootstrap JARs not supported)
-            JarFile jarFile;
-            try {
-                jarFile = new JarFile(path.toFile(), true, ZipFile.OPEN_READ);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            ClassPathElement element;
+            if (Files.isDirectory(path)) {
+                element = new DirectoryClassPathElement(path);
+            } else {
+                try {
+                    element = new JarFileClassPathElement(new JarFile(path.toFile(), true, ZipFile.OPEN_READ));
+                } catch (Exception e) {
+                    initialContext.error("Failed to open boot class path JAR \"%s\": %s", path, e);
+                    continue;
+                }
             }
-            String moduleInfo = "module-info.class";
-            ByteBuffer buffer;
-            try {
-                buffer = getJarEntryBuffer(jarFile, moduleInfo);
+            bootClassPath.add(element);
+            try (ClassPathElement.Resource moduleInfo = element.getResource(MODULE_INFO)) {
+                ByteBuffer buffer = moduleInfo.getBuffer();
                 if (buffer == null) {
                     // ignore non-module
                     continue;
                 }
-            } catch (IOException e) {
-                for (BootModule toClose : bootModules.values()) {
-                    try {
-                        toClose.close();
-                    } catch (IOException e2) {
-                        e.addSuppressed(e2);
-                    }
-                }
-                throw new RuntimeException(e);
+                ModuleDefinition moduleDefinition = ModuleDefinition.create(buffer);
+                bootModules.put(moduleDefinition.getName(), new BootModule(element, moduleDefinition));
+            } catch (Exception e) {
+                initialContext.error("Failed to read module from class path element \"%s\": %s", path, e);
             }
-            ModuleDefinition moduleDefinition = ModuleDefinition.create(buffer);
-            bootModules.put(moduleDefinition.getName(), new BootModule(jarFile, moduleDefinition));
         }
         BootModule javaBase = bootModules.get("java.base");
         if (javaBase == null) {
             initialContext.error("Bootstrap failed: no java.base module found");
         }
         this.bootModules = bootModules;
+        this.bootClassPath = bootClassPath;
 
-        // phase contexts
+        // phase factories
 
         ArrayList<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> additivePhaseFactories = new ArrayList<>();
         for (List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> list : builder.additiveFactories.values()) {
@@ -133,16 +150,25 @@ public class Driver implements Closeable {
         Collections.reverse(analyticPhaseFactories);
         analyticPhaseFactories.trimToSize();
 
-        Function<CompilationContext, BasicBlockBuilder> finalFactory = ctxt -> {
+        ArrayList<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>> copiedCopyFactories = new ArrayList<>(builder.copyFactories);
+        Collections.reverse(copiedCopyFactories);
+        this.interStageCopy = (c, res) -> {
+            for (BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> copiedCopyFactory : copiedCopyFactories) {
+                res = copiedCopyFactory.apply(c, res);
+            }
+            return res;
+        };
+
+        BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> finalFactory = (ctxt, element) -> {
             List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> list;
             Phase phase = phaseSwitch.get();
-            if (phase == Phase.ADDITIVE) {
+            if (phase == Phase.ADD) {
                 list = additivePhaseFactories;
             } else {
-                assert phase == Phase.ANALYTIC;
+                assert phase == Phase.GENERATE;
                 list = analyticPhaseFactories;
             }
-            BasicBlockBuilder result = BasicBlockBuilder.simpleBuilder(typeSystem);
+            BasicBlockBuilder result = BasicBlockBuilder.simpleBuilder(typeSystem, element);
             for (BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> item : list) {
                 result = item.apply(ctxt, result);
             }
@@ -160,12 +186,15 @@ public class Driver implements Closeable {
 
         compilationContext = new CompilationContextImpl(initialContext, typeSystem, literalFactory, finalFactory, finder);
 
+        generateVisitors = List.copyOf(builder.generateVisitors);
+
         // hooks
 
-        preAdditiveHooks = List.copyOf(builder.preAdditiveHooks);
-        postAdditiveHooks = List.copyOf(builder.postAdditiveHooks);
-        preAnalyticHooks = List.copyOf(builder.preAnalyticHooks);
-        postAnalyticHooks = List.copyOf(builder.postAnalyticHooks);
+        preAddHooks = List.copyOf(builder.preAddHooks);
+        postAddHooks = List.copyOf(builder.postAddHooks);
+        preCopyHooks = List.copyOf(builder.preGenerateHooks);
+        preGenerateHooks = List.copyOf(builder.preGenerateHooks);
+        postGenerateHooks = List.copyOf(builder.postGenerateHooks);
     }
 
     private DefinedTypeDefinition defaultFinder(JavaObject classLoader, String name) {
@@ -173,15 +202,14 @@ public class Driver implements Closeable {
             return null;
         }
         String fileName = name + ".class";
-        for (BootModule bootModule : bootModules.values()) {
-            ByteBuffer buffer;
-            try {
-                buffer = getJarEntryBuffer(bootModule.jarFile, fileName);
-            } catch (IOException e) {
-                initialContext.warning(Location.builder().setSourceFilePath(bootModule.jarFile.getName()).build(), "Failed to read entry \"%s\" from JAR file: %s", e);
-                return null;
-            }
-            if (buffer != null) {
+        ByteBuffer buffer;
+        for (ClassPathElement element : bootClassPath) {
+            try (ClassPathElement.Resource resource = element.getResource(fileName)) {
+                buffer = resource.getBuffer();
+                if (buffer == null) {
+                    // non existent
+                    continue;
+                }
                 ClassContext ctxt = compilationContext.getBootstrapClassContext();
                 ClassFile classFile = ClassFile.of(ctxt, buffer);
                 DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
@@ -189,6 +217,8 @@ public class Driver implements Closeable {
                 DefinedTypeDefinition def = builder.build();
                 ctxt.defineClass(name, def);
                 return def;
+            } catch (Exception e) {
+                return null;
             }
         }
         return null;
@@ -212,6 +242,10 @@ public class Driver implements Closeable {
         }
     }
 
+    public static String getMainClass(CompilationContext context) {
+        return context.getAttachment(MAIN_CLASS_KEY);
+    }
+
     /**
      * Execute the compilation.
      *
@@ -219,7 +253,7 @@ public class Driver implements Closeable {
      */
     public boolean execute() {
         CompilationContextImpl compilationContext = this.compilationContext;
-        for (Consumer<? super CompilationContext> hook : preAdditiveHooks) {
+        for (Consumer<? super CompilationContext> hook : preAddHooks) {
             try {
                 hook.accept(compilationContext);
             } catch (Throwable t) {
@@ -255,13 +289,34 @@ public class Driver implements Closeable {
         }
         compilationContext.registerEntryPoint(mainMethod);
 
-        // trace out the program graph, enqueueing each item one time and then processing every item in the queue recursively
-//        processQueue();
+        // trace out the program graph, enqueueing each item one time and then processing every item in the queue;
+        // in this stage we're just loading everything that *might* be reachable
+
+        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+            compilationContext.enqueue(entryPoint);
+        }
+
+        ExecutableElement element = compilationContext.dequeue();
+        if (element != null) do {
+            // make sure the initializer is enqueued
+            InitializerElement initializer = element.getEnclosingType().validate().resolve().getInitializer();
+            if (initializer != null) {
+                compilationContext.enqueue(initializer);
+            }
+            MethodHandle methodHandle = element.getMethodBody();
+            if (methodHandle != null) {
+                // cause method and field references to be resolved
+                methodHandle.getOrCreateMethodBody();
+            }
+            element = compilationContext.dequeue();
+        } while (element != null);
+
         if (compilationContext.errors() > 0) {
             // bail out
             return false;
         }
-        for (Consumer<? super CompilationContext> hook : postAdditiveHooks) {
+
+        for (Consumer<? super CompilationContext> hook : postAddHooks) {
             try {
                 hook.accept(compilationContext);
             } catch (Throwable t) {
@@ -272,16 +327,20 @@ public class Driver implements Closeable {
                 return false;
             }
         }
+
         if (compilationContext.errors() > 0) {
             // bail out
             return false;
         }
-        phaseSwitch.set(Phase.ANALYTIC);
-        for (Consumer<? super CompilationContext> hook : preAnalyticHooks) {
+
+        compilationContext.clearEnqueuedSet();
+        phaseSwitch.set(Phase.GENERATE);
+
+        for (Consumer<? super CompilationContext> hook : preCopyHooks) {
             try {
                 hook.accept(compilationContext);
-            } catch (Throwable t) {
-                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Pre-analytic hook failed: %s", t));
+            } catch (Exception e) {
+                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Pre-analytic hook failed: %s", e));
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -289,36 +348,94 @@ public class Driver implements Closeable {
             }
         }
 
+        // In this phase we start from the entry points again, and then copy (and filter) all of the nodes to a smaller reachable set
 
+        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+            compilationContext.enqueue(entryPoint);
+        }
 
-        // trace out the program graph again, enqueueing each reachable item one time and then processing every item recursively
+        element = compilationContext.dequeue();
+        if (element != null) do {
+            // make sure the initializer is enqueued
+            InitializerElement initializer = element.getEnclosingType().validate().resolve().getInitializer();
+            if (initializer != null) {
+                compilationContext.enqueue(initializer);
+            }
+            MethodHandle methodHandle = element.getMethodBody();
+            if (methodHandle != null) {
+                // rewrite the method body
+                ClassContext classContext = element.getEnclosingType().getContext();
+                MethodBody original = methodHandle.getOrCreateMethodBody();
+                BasicBlock entryBlock = original.getEntryBlock();
+                List<Value> paramValues = original.getParameterValues();
+                Value thisValue = original.getThisValue();
+                BasicBlock copyBlock = Node.Copier.execute(entryBlock, classContext.newBasicBlockBuilder(element), compilationContext, interStageCopy);
+                methodHandle.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), thisValue, paramValues));
+            }
+            element = compilationContext.dequeue();
+        } while (element != null);
 
-//        processQueue();
         if (compilationContext.errors() > 0) {
             // bail out
             return false;
         }
-        for (Consumer<? super CompilationContext> hook : postAnalyticHooks) {
+        for (Consumer<? super CompilationContext> hook : preGenerateHooks) {
             try {
                 hook.accept(compilationContext);
-            } catch (Throwable t) {
-                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-analytic hook failed: %s", t));
+            } catch (Exception e) {
+                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-copy hook failed: %s", e));
             }
             if (compilationContext.errors() > 0) {
                 // bail out
                 return false;
             }
         }
-        // TODO: trace/emit *here*
+
+        // Visit each reachable node to build the executable program
+
+        compilationContext.clearEnqueuedSet();
+
+        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+            compilationContext.enqueue(entryPoint);
+        }
+
+        List<ElementVisitor<CompilationContext, Void>> generateVisitors = this.generateVisitors;
+
+        element = compilationContext.dequeue();
+        if (element != null) do {
+            for (ElementVisitor<CompilationContext, Void> elementVisitor : generateVisitors) {
+                try {
+                    element.accept(elementVisitor, compilationContext);
+                } catch (Exception e) {
+                    compilationContext.error(element, "Element visitor threw an exception: %s", e);
+                }
+            }
+            element = compilationContext.dequeue();
+        } while (element != null);
+
+        // Finalize
+
+        for (Consumer<? super CompilationContext> hook : postGenerateHooks) {
+            try {
+                hook.accept(compilationContext);
+            } catch (Exception e) {
+                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-analytic hook failed: %s", e));
+            }
+            if (compilationContext.errors() > 0) {
+                // bail out
+                return false;
+            }
+        }
+
         return compilationContext.errors() == 0;
     }
 
     public void close() {
-        for (BootModule module : bootModules.values()) {
+        for (ClassPathElement element : bootClassPath) {
             try {
-                module.close();
+                element.close();
             } catch (IOException e) {
-                compilationContext.warning(Location.builder().setSourceFilePath(module.jarFile.getName()).build(), "Failed to close boot JAR: %s", e);
+                compilationContext.warning(Location.builder().setSourceFilePath(element.getName()).build(), "Failed to close boot class path element: %s", e);
             }
         }
     }
@@ -337,14 +454,17 @@ public class Driver implements Closeable {
     }
 
     public static final class Builder {
-        final List<Path> bootModules = new ArrayList<>();
-        final Map<Stage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> additiveFactories = new EnumMap<>(Stage.class);
-        final Map<Stage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> analyticFactories = new EnumMap<>(Stage.class);
+        final List<Path> bootClassPathElements = new ArrayList<>();
+        final Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> additiveFactories = new EnumMap<>(BuilderStage.class);
+        final Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> analyticFactories = new EnumMap<>(BuilderStage.class);
+        final List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>> copyFactories = new ArrayList<>();
         final List<BiFunction<? super CompilationContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories = new ArrayList<>();
-        final List<Consumer<? super CompilationContext>> preAdditiveHooks = new ArrayList<>();
-        final List<Consumer<? super CompilationContext>> postAdditiveHooks = new ArrayList<>();
-        final List<Consumer<? super CompilationContext>> preAnalyticHooks = new ArrayList<>();
-        final List<Consumer<? super CompilationContext>> postAnalyticHooks = new ArrayList<>();
+        final List<Consumer<? super CompilationContext>> preAddHooks = new ArrayList<>();
+        final List<Consumer<? super CompilationContext>> postAddHooks = new ArrayList<>();
+        final List<Consumer<? super CompilationContext>> preCopyHooks = new ArrayList<>();
+        final List<Consumer<? super CompilationContext>> preGenerateHooks = new ArrayList<>();
+        final List<Consumer<? super CompilationContext>> postGenerateHooks = new ArrayList<>();
+        final List<ElementVisitor<CompilationContext, Void>> generateVisitors = new ArrayList<>();
 
         BaseDiagnosticContext initialContext;
         Platform targetPlatform;
@@ -362,9 +482,9 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Builder addBootModule(Path modulePath) {
-            if (modulePath != null) {
-                bootModules.add(modulePath);
+        public Builder addBootClassPathElement(Path path) {
+            if (path != null) {
+                bootClassPathElements.add(path);
             }
             return this;
         }
@@ -378,13 +498,18 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Builder addAdditivePhaseBlockBuilderFactory(Stage stage, BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> factory) {
-            additiveFactories.computeIfAbsent(stage, s -> new ArrayList<>()).add(Assert.checkNotNullParam("factory", factory));
+        public Builder addAdditivePhaseBlockBuilderFactory(BuilderStage stage, BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> factory) {
+            additiveFactories.computeIfAbsent(Assert.checkNotNullParam("stage", stage), s -> new ArrayList<>()).add(Assert.checkNotNullParam("factory", factory));
             return this;
         }
 
-        public Builder addAnalyticPhaseBlockBuilderFactory(Stage stage, BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> factory) {
-            analyticFactories.computeIfAbsent(stage, s -> new ArrayList<>()).add(Assert.checkNotNullParam("factory", factory));
+        public Builder addAnalyticPhaseBlockBuilderFactory(BuilderStage stage, BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> factory) {
+            analyticFactories.computeIfAbsent(Assert.checkNotNullParam("stage", stage), s -> new ArrayList<>()).add(Assert.checkNotNullParam("factory", factory));
+            return this;
+        }
+
+        public Builder addCopyFactory(BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> factory) {
+            copyFactories.add(Assert.checkNotNullParam("factory", factory));
             return this;
         }
 
@@ -395,29 +520,34 @@ public class Driver implements Closeable {
 
         public Builder addPreAdditiveHook(Consumer<? super CompilationContext> hook) {
             if (hook != null) {
-                preAdditiveHooks.add(hook);
+                preAddHooks.add(hook);
             }
             return this;
         }
 
         public Builder addPostAdditiveHook(Consumer<? super CompilationContext> hook) {
             if (hook != null) {
-                preAdditiveHooks.add(hook);
+                preAddHooks.add(hook);
             }
             return this;
         }
 
         public Builder addPreAnalyticHook(Consumer<? super CompilationContext> hook) {
             if (hook != null) {
-                preAnalyticHooks.add(hook);
+                preGenerateHooks.add(hook);
             }
             return this;
         }
 
         public Builder addPostAnalyticHook(Consumer<? super CompilationContext> hook) {
             if (hook != null) {
-                preAnalyticHooks.add(hook);
+                preGenerateHooks.add(hook);
             }
+            return this;
+        }
+
+        public Builder addGenerateVisitor(ElementVisitor<CompilationContext, Void> visitor) {
+            generateVisitors.add(Assert.checkNotNullParam("visitor", visitor));
             return this;
         }
 
@@ -472,28 +602,16 @@ public class Driver implements Closeable {
     }
 
     static final class BootModule implements Closeable {
-        private final JarFile jarFile;
+        private final ClassPathElement element;
         private final ModuleDefinition moduleDefinition;
 
-        BootModule(final JarFile jarFile, final ModuleDefinition moduleDefinition) {
-            this.jarFile = jarFile;
+        BootModule(final ClassPathElement element, final ModuleDefinition moduleDefinition) {
+            this.element = element;
             this.moduleDefinition = moduleDefinition;
         }
 
         public void close() throws IOException {
-            jarFile.close();
+            element.close();
         }
-    }
-
-    private static ByteBuffer getJarEntryBuffer(final JarFile jarFile, final String fileName) throws IOException {
-        final ByteBuffer buffer;
-        JarEntry jarEntry = jarFile.getJarEntry(fileName);
-        if (jarEntry == null) {
-            return null;
-        }
-        try (InputStream inputStream = jarFile.getInputStream(jarEntry)) {
-            buffer = ByteBuffer.wrap(inputStream.readAllBytes());
-        }
-        return buffer;
     }
 }

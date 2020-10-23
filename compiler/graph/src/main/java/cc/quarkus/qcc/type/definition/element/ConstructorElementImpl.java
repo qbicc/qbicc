@@ -21,6 +21,10 @@ final class ConstructorElementImpl extends AbstractParameterizedExecutableElemen
         return "<init>:" + getEnclosingType().getInternalName();
     }
 
+    public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
     static final class Builder extends AbstractParameterizedExecutableElement.Builder implements ConstructorElement.Builder {
         TypeResolver resolver;
         int argument;

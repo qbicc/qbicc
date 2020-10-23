@@ -22,22 +22,22 @@ import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.BasicElement;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 
 final class CompilationContextImpl implements CompilationContext {
     private final TypeSystem typeSystem;
     private final LiteralFactory literalFactory;
     private final BaseDiagnosticContext baseDiagnosticContext;
     private final ConcurrentMap<JavaObject, ClassContext> classLoaderContexts = new ConcurrentHashMap<>();
-    final Set<ParameterizedExecutableElement> queued = ConcurrentHashMap.newKeySet();
-    final Queue<ParameterizedExecutableElement> queue = new ConcurrentLinkedDeque<>();
+    final Set<ExecutableElement> queued = ConcurrentHashMap.newKeySet();
+    final Queue<ExecutableElement> queue = new ConcurrentLinkedDeque<>();
     final Set<MethodElement> entryPoints = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext = new ClassContextImpl(this, null);
-    private final Function<CompilationContext, BasicBlockBuilder> blockFactory;
+    private final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
     private final BiFunction<JavaObject, String, DefinedTypeDefinition> finder;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final Function<CompilationContext, BasicBlockBuilder> blockFactory, final BiFunction<JavaObject, String, DefinedTypeDefinition> finder) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory, final BiFunction<JavaObject, String, DefinedTypeDefinition> finder) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.typeSystem = typeSystem;
         this.literalFactory = literalFactory;
@@ -137,33 +137,37 @@ final class CompilationContextImpl implements CompilationContext {
         return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> new ClassContextImpl(this, classLoader));
     }
 
-    public void enqueue(final ParameterizedExecutableElement element) {
+    public void enqueue(final ExecutableElement element) {
         if (queued.add(element)) {
             queue.add(element);
         }
     }
 
-    public boolean isEnqueued(final ParameterizedExecutableElement element) {
+    public boolean wasEnqueued(final ExecutableElement element) {
         return queued.contains(element);
     }
 
-    public ParameterizedExecutableElement dequeue() {
-        ParameterizedExecutableElement e = queue.poll();
-        if (e != null) {
-            queued.remove(e);
-        }
-        return e;
+    public ExecutableElement dequeue() {
+        return queue.poll();
+    }
+
+    void clearEnqueuedSet() {
+        queued.clear();
     }
 
     public void registerEntryPoint(final MethodElement method) {
         entryPoints.add(method);
     }
 
+    public Iterable<MethodElement> getEntryPoints() {
+        return entryPoints;
+    }
+
     BiFunction<JavaObject, String, DefinedTypeDefinition> getFinder() {
         return finder;
     }
 
-    Function<CompilationContext, BasicBlockBuilder> getBlockFactory() {
+    BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> getBlockFactory() {
         return blockFactory;
     }
 }

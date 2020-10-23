@@ -20,6 +20,7 @@ import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -50,7 +51,7 @@ public interface ClassContext {
 
     LiteralFactory getLiteralFactory();
 
-    BasicBlockBuilder newBasicBlockBuilder();
+    BasicBlockBuilder newBasicBlockBuilder(ExecutableElement element);
 
     void defineClass(String name, DefinedTypeDefinition definition);
 
@@ -160,8 +161,8 @@ public interface ClassContext {
                 return lf;
             }
 
-            public BasicBlockBuilder newBasicBlockBuilder() {
-                return BasicBlockBuilder.simpleBuilder(ts);
+            public BasicBlockBuilder newBasicBlockBuilder(final ExecutableElement element) {
+                return BasicBlockBuilder.simpleBuilder(ts, element);
             }
 
             public void defineClass(final String name, final DefinedTypeDefinition definition) {
