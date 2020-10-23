@@ -391,10 +391,10 @@ final class MethodParser {
                     push(fatten(lf.literalOf((double) opcode - OP_DCONST_0)));
                     break;
                 case OP_BIPUSH:
-                    push(lf.literalOf(buffer.get()));
+                    push(lf.literalOf((int) buffer.get()));
                     break;
                 case OP_SIPUSH:
-                    push(lf.literalOf(buffer.getShort()));
+                    push(lf.literalOf((int) buffer.getShort()));
                     break;
                 case OP_LDC:
                     push(unfatten(getConstantValue(buffer.get() & 0xff)));
@@ -617,62 +617,42 @@ final class MethodParser {
                     swap();
                     break;
                 case OP_IADD:
-                    push(gf.add(pop1(), pop1()));
-                    break;
-                case OP_LADD:
-                    push(fatten(gf.add(pop2(), pop2())));
-                    break;
                 case OP_FADD:
                     push(gf.add(pop1(), pop1()));
                     break;
+                case OP_LADD:
                 case OP_DADD:
                     push(fatten(gf.add(pop2(), pop2())));
                     break;
                 case OP_ISUB:
-                    push(gf.sub(pop1(), pop1()));
-                    break;
-                case OP_LSUB:
-                    push(fatten(gf.sub(pop2(), pop2())));
-                    break;
                 case OP_FSUB:
                     push(gf.sub(pop1(), pop1()));
                     break;
+                case OP_LSUB:
                 case OP_DSUB:
                     push(fatten(gf.sub(pop2(), pop2())));
                     break;
                 case OP_IMUL:
-                    push(gf.multiply(pop1(), pop1()));
-                    break;
-                case OP_LMUL:
-                    push(fatten(gf.multiply(pop2(), pop2())));
-                    break;
                 case OP_FMUL:
                     push(gf.multiply(pop1(), pop1()));
                     break;
+                case OP_LMUL:
                 case OP_DMUL:
                     push(fatten(gf.multiply(pop2(), pop2())));
                     break;
                 case OP_IDIV:
-                    push(gf.divide(pop1(), pop1()));
-                    break;
-                case OP_LDIV:
-                    push(fatten(gf.divide(pop2(), pop2())));
-                    break;
                 case OP_FDIV:
                     push(gf.divide(pop1(), pop1()));
                     break;
+                case OP_LDIV:
                 case OP_DDIV:
                     push(fatten(gf.divide(pop2(), pop2())));
                     break;
                 case OP_IREM:
-                    push(gf.remainder(pop1(), pop1()));
-                    break;
-                case OP_LREM:
-                    push(fatten(gf.remainder(pop2(), pop2())));
-                    break;
                 case OP_FREM:
                     push(gf.remainder(pop1(), pop1()));
                     break;
+                case OP_LREM:
                 case OP_DREM:
                     push(fatten(gf.remainder(pop2(), pop2())));
                     break;
@@ -801,29 +781,17 @@ final class MethodParser {
                     break;
                 case OP_LCMP:
                 case OP_DCMPL:
-                    v2 = pop2();
-                    v1 = pop2();
+                case OP_FCMPL:
+                    v2 = pop();
+                    v1 = pop();
                     v3 = gf.cmpLt(v1, v2);
                     v4 = gf.cmpGt(v1, v2);
                     push(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
                     break;
                 case OP_DCMPG:
-                    v2 = pop2();
-                    v1 = pop2();
-                    v3 = gf.cmpLt(v1, v2);
-                    v4 = gf.cmpGt(v1, v2);
-                    push(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
-                    break;
-                case OP_FCMPL:
-                    v2 = pop1();
-                    v1 = pop1();
-                    v3 = gf.cmpLt(v1, v2);
-                    v4 = gf.cmpGt(v1, v2);
-                    push(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
-                    break;
                 case OP_FCMPG:
-                    v2 = pop1();
-                    v1 = pop1();
+                    v2 = pop();
+                    v1 = pop();
                     v3 = gf.cmpLt(v1, v2);
                     v4 = gf.cmpGt(v1, v2);
                     push(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
@@ -847,9 +815,11 @@ final class MethodParser {
                     processIf(buffer, gf.cmpLe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPEQ:
+                case OP_IF_ACMPEQ:
                     processIf(buffer, gf.cmpEq(pop1(), pop1()), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPNE:
+                case OP_IF_ACMPNE:
                     processIf(buffer, gf.cmpNe(pop1(), pop1()), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPLT:
@@ -863,12 +833,6 @@ final class MethodParser {
                     return;
                 case OP_IF_ICMPLE:
                     processIf(buffer, gf.cmpLe(pop1(), pop1()), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IF_ACMPEQ:
-                    processIf(buffer, gf.cmpEq(pop(), pop()), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IF_ACMPNE:
-                    processIf(buffer, gf.cmpNe(pop(), pop()), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_GOTO:
                 case OP_GOTO_W: {
@@ -947,6 +911,7 @@ final class MethodParser {
                     // done
                     return;
                 case OP_IRETURN:
+                    // TODO: narrow the return type if it's narrower than i32
                 case OP_FRETURN:
                 case OP_ARETURN:
                     gf.return_(pop1());
@@ -1150,19 +1115,16 @@ final class MethodParser {
                 case OP_INSTANCEOF: {
                     TypeIdLiteral expected = getConstantValue(buffer.getShort() & 0xffff, TypeIdLiteral.class);
                     v1 = pop1();
-                    BlockLabel nullHandle = new BlockLabel();
+                    BlockLabel mergeHandle = new BlockLabel();
                     BlockLabel notNullHandle = new BlockLabel();
-                    gf.if_(gf.cmpEq(v1, lf.literalOfNull()), nullHandle, notNullHandle);
+                    BasicBlock t1 = gf.if_(gf.cmpEq(v1, lf.literalOfNull()), mergeHandle, notNullHandle);
                     gf.begin(notNullHandle);
                     v1 = gf.cmpGe(expected, gf.typeIdOf(v1));
-                    BlockLabel mergeHandle = new BlockLabel();
-                    BasicBlock t1 = gf.goto_(mergeHandle);
-                    gf.begin(nullHandle);
                     BasicBlock t2 = gf.goto_(mergeHandle);
                     gf.begin(mergeHandle);
                     PhiValue phi = gf.phi(ts.getBooleanType(), mergeHandle);
-                    phi.setValueForBlock(t2, lf.literalOf(false));
-                    phi.setValueForBlock(t1, v1);
+                    phi.setValueForBlock(t1, lf.literalOf(false));
+                    phi.setValueForBlock(t2, v1);
                     push(phi);
                     break;
                 }
