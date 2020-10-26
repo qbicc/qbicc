@@ -3,6 +3,7 @@ package cc.quarkus.qcc.interpreter;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
@@ -122,6 +123,10 @@ public class Dictionary implements ClassContext {
 
     public void defineClass(final String name, final DefinedTypeDefinition definition) {
 
+    }
+
+    public CompilationContext getCompilationContext() {
+        return null;
     }
 
     public JavaObject getClassLoader() {

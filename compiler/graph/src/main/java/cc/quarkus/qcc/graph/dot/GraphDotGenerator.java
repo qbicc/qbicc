@@ -28,6 +28,7 @@ import cc.quarkus.qcc.graph.BlockEntry;
 import cc.quarkus.qcc.graph.CastValue;
 import cc.quarkus.qcc.graph.Catch;
 import cc.quarkus.qcc.graph.ClassCastErrorNode;
+import cc.quarkus.qcc.graph.ClassNotFoundErrorNode;
 import cc.quarkus.qcc.graph.CmpEq;
 import cc.quarkus.qcc.graph.CmpGe;
 import cc.quarkus.qcc.graph.CmpGt;
@@ -303,6 +304,10 @@ public class GraphDotGenerator {
 
         public String visit(final Void param, final NoSuchMethodErrorNode node) {
             return node("no such method", node);
+        }
+
+        public String visit(final Void param, final ClassNotFoundErrorNode node) {
+            return node("no class", node);
         }
 
         // binary ops

@@ -9,6 +9,10 @@ final class InitializerElementImpl extends AbstractExactExecutableElement implem
         return visitor.visit(param, this);
     }
 
+    public String toString() {
+        return "initializer of " + getEnclosingType().getInternalName();
+    }
+
     static final class Builder extends AbstractExactExecutableElement.Builder implements InitializerElement.Builder {
         public InitializerElementImpl build() {
             return new InitializerElementImpl(this);

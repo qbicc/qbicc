@@ -47,7 +47,6 @@ public final class BlockLabel {
         return node == null ? null : node.getHandle().lastHandle();
     }
 
-    @SuppressWarnings("unchecked")
     public static BasicBlock getTargetOf(BlockLabel handle) {
         return handle == null ? null : (BasicBlock) handle.lastHandle().target;
     }

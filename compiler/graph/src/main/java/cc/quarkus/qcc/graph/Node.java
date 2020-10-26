@@ -106,6 +106,7 @@ public interface Node {
                 if (block != null) do {
                     // process and map all queued blocks - might enqueue more blocks or phis
                     blockBuilder.begin(copiedBlocks.get(block));
+                    copyTerminator(block.getTerminator());
                     block = blockQueue.poll();
                 } while (block != null);
                 PhiValue orig = phiQueue.poll();
@@ -292,6 +293,10 @@ public interface Node {
 
             public BasicBlock visit(Copier param, NoSuchMethodErrorNode node) {
                 return param.getBlockBuilder().noSuchMethodError(node.getOwner(), node.getDescriptor(), node.getName());
+            }
+
+            public BasicBlock visit(Copier param, ClassNotFoundErrorNode node) {
+                return param.getBlockBuilder().classNotFoundError(node.getName());
             }
 
             public Value visit(final Copier param, final Add node) {

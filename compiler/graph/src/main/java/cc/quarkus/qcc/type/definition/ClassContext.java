@@ -12,6 +12,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
@@ -28,6 +29,8 @@ import io.smallrye.common.constraint.Assert;
  * interpreter should have one instance per class loader.
  */
 public interface ClassContext {
+    CompilationContext getCompilationContext();
+
     /**
      * Get the class loader object for this context.  The bootstrap class loader is {@code null}.
      *
@@ -62,6 +65,7 @@ public interface ClassContext {
      * @return the class context
      * @throws IOException if one of the JAR paths could not be opened
      */
+    @Deprecated
     static Basic createBasic(List<Path> jarPaths) throws IOException {
         List<JarFile> jarFiles = new ArrayList<>(jarPaths.size());
         int i = 0;
@@ -95,6 +99,10 @@ public interface ClassContext {
                     } catch (Throwable ignored) {
                     }
                 }
+            }
+
+            public CompilationContext getCompilationContext() {
+                return null;
             }
 
             public JavaObject getClassLoader() {

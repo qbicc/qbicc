@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
@@ -33,6 +34,10 @@ final class ClassContextImpl implements ClassContext {
     ClassContextImpl(final CompilationContextImpl compilationContext, final JavaObject classLoader) {
         this.compilationContext = compilationContext;
         this.classLoader = classLoader;
+    }
+
+    public CompilationContext getCompilationContext() {
+        return compilationContext;
     }
 
     public JavaObject getClassLoader() {

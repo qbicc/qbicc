@@ -278,7 +278,9 @@ public interface BasicBlockBuilder {
      */
     BasicBlock classCastException(Value fromType, Value toType);
 
-    BasicBlock noSuchMethodError(TypeIdLiteral owner, ParameterizedExecutableDescriptor desc, final String name);
+    BasicBlock noSuchMethodError(TypeIdLiteral owner, ParameterizedExecutableDescriptor desc, String name);
+
+    BasicBlock classNotFoundError(String name);
 
     /**
      * Get the current block's entry node.
@@ -600,6 +602,10 @@ public interface BasicBlockBuilder {
 
             public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final ParameterizedExecutableDescriptor desc, final String name) {
                 return terminate(requireCurrentBlock(), new NoSuchMethodErrorNode(line, bci, dependency, owner, desc, name));
+            }
+
+            public BasicBlock classNotFoundError(final String name) {
+                return terminate(requireCurrentBlock(), new ClassNotFoundErrorNode(line, bci, dependency, name));
             }
 
             public BlockEntry getBlockEntry() {

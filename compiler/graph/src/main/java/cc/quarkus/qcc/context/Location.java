@@ -150,6 +150,22 @@ public final class Location {
         return new Builder();
     }
 
+    public static Location fromStackTrace(Throwable t) {
+        StackTraceElement[] elements = t.getStackTrace();
+        if (elements.length >= 1) {
+            StackTraceElement element = elements[0];
+            return builder()
+                .setSourceFilePath(element.getFileName())
+                .setClassInternalName(element.getClassName().replace('.', '/'))
+                .setLineNumber(element.getLineNumber())
+                .setMemberName(element.getMethodName())
+                .setMemberKind(MemberKind.METHOD)
+                .build();
+        } else {
+            return NO_LOC;
+        }
+    }
+
     public static final class Builder {
         private String classInternalName;
         private String classFilePath;

@@ -237,7 +237,7 @@ public class Driver implements Closeable {
         try {
             return clazz.validate().resolve();
         } catch (Exception ex) {
-            compilationContext.error("Failed to resolve bootstrap class \"%s\": %s", name, ex);
+            compilationContext.error(ex, "Failed to resolve bootstrap class \"%s\": %s", name, ex);
             return null;
         }
     }
@@ -256,8 +256,8 @@ public class Driver implements Closeable {
         for (Consumer<? super CompilationContext> hook : preAddHooks) {
             try {
                 hook.accept(compilationContext);
-            } catch (Throwable t) {
-                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Pre-additive hook failed: %s", t));
+            } catch (Exception e) {
+                compilationContext.error(e, "Pre-additive hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -306,7 +306,11 @@ public class Driver implements Closeable {
             MethodHandle methodHandle = element.getMethodBody();
             if (methodHandle != null) {
                 // cause method and field references to be resolved
-                methodHandle.getOrCreateMethodBody();
+                try {
+                    methodHandle.getOrCreateMethodBody();
+                } catch (Exception e) {
+                    compilationContext.error(e, element, "Exception while constructing method body: %s", e);
+                }
             }
             element = compilationContext.dequeue();
         } while (element != null);
@@ -319,8 +323,8 @@ public class Driver implements Closeable {
         for (Consumer<? super CompilationContext> hook : postAddHooks) {
             try {
                 hook.accept(compilationContext);
-            } catch (Throwable t) {
-                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-additive hook failed: %s", t));
+            } catch (Exception e) {
+                compilationContext.error(e, "Post-additive hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -340,7 +344,7 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Pre-analytic hook failed: %s", e));
+                compilationContext.error(e, "Pre-analytic hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -383,7 +387,7 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-copy hook failed: %s", e));
+                compilationContext.error(e, "Post-copy hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -407,7 +411,7 @@ public class Driver implements Closeable {
                 try {
                     element.accept(elementVisitor, compilationContext);
                 } catch (Exception e) {
-                    compilationContext.error(element, "Element visitor threw an exception: %s", e);
+                    compilationContext.error(e, element, "Element visitor threw an exception: %s", e);
                 }
             }
             element = compilationContext.dequeue();
@@ -419,7 +423,7 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.msg(new Diagnostic(null, null, Diagnostic.Level.ERROR, "Post-analytic hook failed: %s", e));
+                compilationContext.error(e, "Post-analytic hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out

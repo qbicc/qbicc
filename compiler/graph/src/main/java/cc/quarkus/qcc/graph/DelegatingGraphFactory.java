@@ -53,6 +53,10 @@ public class DelegatingGraphFactory implements BasicBlockBuilder {
         return getDelegate().noSuchMethodError(owner, desc, name);
     }
 
+    public BasicBlock classNotFoundError(final String name) {
+        return getDelegate().classNotFoundError(name);
+    }
+
     public BlockEntry getBlockEntry() {
         return getDelegate().getBlockEntry();
     }

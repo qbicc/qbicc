@@ -34,6 +34,7 @@ import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -975,7 +976,12 @@ final class MethodParser {
                         nameAndType = getNameAndTypeOfMethodRef(methodRef);
                     }
                     // todo: try/catch, replace with error node
-                    ResolvedTypeDefinition resolved = ctxt.resolveDefinedTypeLiteral(owner).validate().resolve();
+                    DefinedTypeDefinition found = ctxt.resolveDefinedTypeLiteral(owner);
+                    if (found == null) {
+                        gf.classNotFoundError(owner.toString());
+                        return;
+                    }
+                    ResolvedTypeDefinition resolved = found.validate().resolve();
                     ParameterizedExecutableDescriptor desc = resolveMethodDescriptor(owner, nameAndType);
                     ParameterizedExecutableElement target;
                     if (opcode == OP_INVOKESTATIC || opcode == OP_INVOKESPECIAL) {
