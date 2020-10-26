@@ -1,0 +1,91 @@
+= QCC: Overview
+
+There are several important components to the QCC system that play a part in the generation of a native executable application.
+
+
+== Graph
+
+The program graph is made up of _classes_ which contain _members_.
+Any _member_ which is executable contains a _program graph_.
+Each _program graph_ comprises one or more _basic blocks_.
+
+A _basic block_ is defined as a terminating operation, or _terminator_, each of which may have one or more dependencies on other nodes
+and which may have one or more _successor_ _basic blocks_;
+for example, an `if` node will have a _successor_ for its `true` condition and one for its `false` condition,
+whereas a `throw` node will have no _successors_.
+Since each _basic block_ has exactly one _terminator_, it can be said that the _successors_ of the _basic block_ are equal to the _successors_ of its _terminator_.
+Since each _basic block_ can thus have several _successors_, including itself, the _basic block_ graph may contain cycles.
+
+Each executable program element (method, constructor, or class initializer) has an _entry block_ which is the _basic block_ that is entered when that element is executed.
+
+Other than _terminators_, there are two other important categories of nodes: _values_ and _actions_.
+A _value_ node is a node for any operation which produces some result that can be consumed by another node;
+for example, the literal `123` and the expression `foo + bar` would be considered _values_.
+An _action_ node is a node which has a presence in the dependency graph of execution but neither yields a result nor terminates a block;
+for example, a method invocation to a `void` method or a field or array member write would be considered an _action_.
+
+A special _value_ type called a _phi value_ is used to represent a value whose interpretation depends on the predecessor _basic block_,
+having one different input _value_ for each possible predecessor.
+
+All three node types (_terminators_, _values_, and _actions_) may have a dependency on a predecessor node,
+as well as zero or more dependencies on consumed _values_ for that node type.
+The graph formed by the _terminator_ and its dependencies is a directed acyclic graph (DAG).
+
+=== Schedule
+
+Some nodes are _pinned_ to a specific _basic block_, such as _phi_ nodes, and a _terminator_ is always associated with a specific _basic block_.
+However, most other nodes are "floating", which is to say, not bound to any particular block.
+
+Before the program graph can be lowered to an executable binary file, each node is _scheduled_ to a specific _basic block_.
+In this way, the _generation_ phase has access to a linear sequence of instructions which it may process in order.
+
+== Driver
+
+The QCC compilation process flows through two _phases_: _add_ and _generate_.
+Each phase comprises multiple steps of processing.
+Broadly, the _add_ phase is when classes are loaded and initialized, and the _generate_ phase is when the loaded classes are traversed to emit the final image.
+
+The overall flow runs like this:
+
+.Driver flow
+image::driver-flow.svg[Driver flow]
+
+The steps can be broken down as follows:
+
+* Add phase:
+** _Pre-add hooks_: these hooks run before any class loading is done, and are implemented as a `Consumer<CompilationContext>`
+** _Add_: each entry point is recursively processed, method bytecodes are translated into program graphs, and classes are initialized; also, single-pass optimizations may be performed, and integrity checks are done on the resultant graph
+** _Post-add hooks_: these hooks run after all reachable members have been processed but before _copy_ takes place
+* Generate phase:
+** _Copy_: all reachable members are copied into the final lowered and optimized graph; also, the second pass of two-pass optimizations may be performed, and integrity checks are done on the resultant graph
+** _Pre-generate hooks_: these hooks run after copying is complete, generally to set up generation
+** _Generation_: each executable member is passed to a series of visitors implementing `ElementVisitor`, which are expected to produce the back end lowered program code for linkage
+** _Post-generate hooks_: these hooks run after generation to perform completion steps, such as generating supplemental object files and executing the toolchain linker
+
+If all steps complete without error, the compilation is successful; otherwise, compilation halts after the first step that produces an error.
+
+The `CompilationContext` interface provides a means for hooks and add steps to recursively enqueue additional reachable members for processing.
+In this way, every step of the process has the capability to add (during the add phase) or skip (during the add or generate phases) a member during processing.
+
+=== Add phase
+
+The _add_ phase is implemented by the `BasicBlockBuilder` interface.
+As bytecodes are parsed from each executable member, the builder is called for each operation to assemble the _basic block_ graph of the program.
+Multiple chained implementations of this interface are used to perform various optimizations, transformations, and checks;
+for example, a `BasicBlockBuilder` implementation may implement the `if` operation by examining the condition, determining whether it is constant, and if so, replacing the operation with a simple `goto`.
+Another implementation may examine the arguments of binary operations such as `add` to ensure that the argument types are compatible, and report an error if that is not the case.
+
+Implementations may delegate operations to the next step in the chain as needed.
+
+Once the phase is complete, each reachable executable member will have an associated directed graph of _basic blocks_.
+
+=== Generate phase
+
+The program is _lowered_ by copying the program graph of each reachable member, using the special `Copier` class.
+The copy process works by pairing a `NodeVisitor` with a `BasicBlockBuilder`.
+Each program graph is traversed by the visitor, resulting in a replacement _entry block_ for each program element.
+
+The resultant rewritten program graphs are then traversed in a backend-specific manner to produce object files and to ultimately link the final executable.
+
+The set of `BasicBlockBuilder` implementations which are used in the _generate_ phase will differ to an extent from what was used during the _add_ phase.
+For example, virtual method invocations may be lowered to function calls during this stage, using information gathered during the _add_ phase.
