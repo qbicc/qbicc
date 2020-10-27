@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.machine.llvm.BasicBlock;
+import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
@@ -31,7 +31,7 @@ import io.smallrye.common.constraint.Assert;
 /**
  *
  */
-final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
+final class BasicBlockImpl extends AbstractEmittable implements LLBasicBlock {
     final BasicBlockImpl prev;
     final FunctionDefinitionImpl func;
     final List<AbstractEmittable> phis = new ArrayList<>();
@@ -44,7 +44,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         this.func = func;
     }
 
-    public BasicBlock name(final String name) {
+    public LLBasicBlock name(final String name) {
         this.name = Assert.checkNotNullParam("name", name);
         return this;
     }
@@ -78,7 +78,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
 
     // terminators
 
-    public Branch br(final BasicBlock dest) {
+    public Branch br(final LLBasicBlock dest) {
         Assert.checkNotNullParam("dest", dest);
         checkTerminated();
         UnconditionalBranchImpl res = new UnconditionalBranchImpl((BasicBlockImpl) dest);
@@ -86,7 +86,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         return res;
     }
 
-    public Branch br(final LLValue cond, final BasicBlock ifTrue, final BasicBlock ifFalse) {
+    public Branch br(final LLValue cond, final LLBasicBlock ifTrue, final LLBasicBlock ifFalse) {
         Assert.checkNotNullParam("cond", cond);
         Assert.checkNotNullParam("ifTrue", ifTrue);
         Assert.checkNotNullParam("ifFalse", ifFalse);
@@ -116,7 +116,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         terminator = Unreachable.INSTANCE;
     }
 
-    public Call invoke(final LLValue type, final LLValue function, final BasicBlock normal, final BasicBlock unwind) {
+    public Call invoke(final LLValue type, final LLValue function, final LLBasicBlock normal, final LLBasicBlock unwind) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("function", function);
         Assert.checkNotNullParam("normal", normal);
@@ -386,7 +386,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         throw Assert.unsupported();
     }
 
-    public BasicBlock createBlock() {
+    public LLBasicBlock createBlock() {
         return func.createBlock();
     }
 

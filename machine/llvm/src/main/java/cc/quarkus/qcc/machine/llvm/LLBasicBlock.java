@@ -21,9 +21,9 @@ import cc.quarkus.qcc.machine.llvm.op.YieldingInstruction;
 /**
  *
  */
-public interface BasicBlock extends LLValue {
+public interface LLBasicBlock extends LLValue {
 
-    BasicBlock name(String name);
+    LLBasicBlock name(String name);
 
     FunctionDefinition functionDefinition();
 
@@ -33,9 +33,9 @@ public interface BasicBlock extends LLValue {
 
     // terminators
 
-    Branch br(BasicBlock dest);
+    Branch br(LLBasicBlock dest);
 
-    Branch br(LLValue cond, BasicBlock ifTrue, BasicBlock ifFalse);
+    Branch br(LLValue cond, LLBasicBlock ifTrue, LLBasicBlock ifFalse);
 
     Return ret();
 
@@ -113,7 +113,7 @@ public interface BasicBlock extends LLValue {
 
     Call call(LLValue type, LLValue function);
 
-    Call invoke(LLValue type, LLValue function, BasicBlock normal, BasicBlock unwind);
+    Call invoke(LLValue type, LLValue function, LLBasicBlock normal, LLBasicBlock unwind);
 
     Load load(LLValue type, LLValue pointeeType, LLValue pointer);
 
@@ -125,5 +125,5 @@ public interface BasicBlock extends LLValue {
 
     // create more blocks
 
-    BasicBlock createBlock();
+    LLBasicBlock createBlock();
 }

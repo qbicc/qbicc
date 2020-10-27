@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 
-import cc.quarkus.qcc.machine.llvm.BasicBlock;
+import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.FastMathFlag;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
@@ -30,7 +30,7 @@ final class PhiImpl extends AbstractYieldingInstruction implements Phi {
         return this;
     }
 
-    public Phi item(final LLValue data, final BasicBlock incoming) {
+    public Phi item(final LLValue data, final LLBasicBlock incoming) {
         Assert.checkNotNullParam("data", data);
         Assert.checkNotNullParam("incoming", incoming);
         lastItem = new Item(lastItem, (AbstractValue) data, incoming instanceof FunctionDefinitionImpl ? ((FunctionDefinitionImpl) incoming).rootBlock : (BasicBlockImpl) incoming);

@@ -3,7 +3,7 @@ package cc.quarkus.qcc.machine.llvm.impl;
 import java.io.IOException;
 
 import cc.quarkus.qcc.machine.llvm.AddressNaming;
-import cc.quarkus.qcc.machine.llvm.BasicBlock;
+import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
 import cc.quarkus.qcc.machine.llvm.DllStorageClass;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
@@ -129,11 +129,11 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         return this;
     }
 
-    public BasicBlock createBlock() {
+    public LLBasicBlock createBlock() {
         return lastBlock = new BasicBlockImpl(lastBlock, this);
     }
 
-    public BasicBlock name(final String name) {
+    public LLBasicBlock name(final String name) {
         throw new UnsupportedOperationException("Cannot set name of root block");
     }
 
@@ -141,7 +141,7 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         throw new UnsupportedOperationException("Root block cannot have phi nodes");
     }
 
-    public Branch br(final BasicBlock dest) {
+    public Branch br(final LLBasicBlock dest) {
         return rootBlock.br(dest);
     }
 
@@ -195,7 +195,7 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         return rootBlock.assign(value);
     }
 
-    public Branch br(final LLValue cond, final BasicBlock ifTrue, final BasicBlock ifFalse) {
+    public Branch br(final LLValue cond, final LLBasicBlock ifTrue, final LLBasicBlock ifFalse) {
         return rootBlock.br(cond, ifTrue, ifFalse);
     }
 
@@ -343,7 +343,7 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         return rootBlock.call(type, function);
     }
 
-    public Call invoke(final LLValue type, final LLValue function, final BasicBlock normal, final BasicBlock unwind) {
+    public Call invoke(final LLValue type, final LLValue function, final LLBasicBlock normal, final LLBasicBlock unwind) {
         return rootBlock.invoke(type, function, normal, unwind);
     }
 

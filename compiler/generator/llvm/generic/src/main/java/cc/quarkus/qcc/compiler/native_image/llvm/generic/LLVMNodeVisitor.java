@@ -10,6 +10,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.Action;
 import cc.quarkus.qcc.graph.Add;
 import cc.quarkus.qcc.graph.And;
+import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockEntry;
 import cc.quarkus.qcc.graph.Catch;
@@ -42,7 +43,7 @@ import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
-import cc.quarkus.qcc.machine.llvm.BasicBlock;
+import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
@@ -66,10 +67,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final Schedule schedule;
     final ExecutableElement element;
     final FunctionDefinition func;
-    final cc.quarkus.qcc.graph.BasicBlock entryBlock;
-    final Set<cc.quarkus.qcc.graph.BasicBlock> knownBlocks;
+    final BasicBlock entryBlock;
+    final Set<BasicBlock> knownBlocks;
     final Map<Value, LLValue> mappedValues = new HashMap<>();
-    final Map<cc.quarkus.qcc.graph.BasicBlock, BasicBlock> mappedBlocks = new HashMap<>();
+    final Map<BasicBlock, LLBasicBlock> mappedBlocks = new HashMap<>();
     final Map<Type, LLValue> types = new HashMap<>();
 
     LLVMNodeVisitor(final CompilationContext ctxt, final Schedule schedule, final ExecutableElement element, final FunctionDefinition func) {
@@ -98,25 +99,25 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     // terminators
 
     public Void visit(final Void param, final Goto node) {
-        BasicBlock block = map(schedule.getBlockForNode(node));
+        LLBasicBlock block = map(schedule.getBlockForNode(node));
         block.br(map(node.getResumeTarget()));
         return null;
     }
 
     public Void visit(final Void param, final If node) {
-        BasicBlock block = map(schedule.getBlockForNode(node));
+        LLBasicBlock block = map(schedule.getBlockForNode(node));
         block.br(map(node.getCondition()), map(node.getTrueBranch()), map(node.getFalseBranch()));
         return null;
     }
 
     public Void visit(final Void param, final Return node) {
-        BasicBlock block = map(schedule.getBlockForNode(node));
+        LLBasicBlock block = map(schedule.getBlockForNode(node));
         block.ret();
         return null;
     }
 
     public Void visit(final Void param, final ValueReturn node) {
-        BasicBlock block = map(schedule.getBlockForNode(node));
+        LLBasicBlock block = map(schedule.getBlockForNode(node));
         block.ret(map(node.getReturnValue().getType()), map(node.getReturnValue()));
         return null;
     }
@@ -135,7 +136,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
                target.fadd(inputType, llvmLeft, llvmRight).asLocal() :
                target.add(inputType, llvmLeft, llvmRight).asLocal();
@@ -163,7 +164,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
                target.fmul(inputType, llvmLeft, llvmRight).asLocal() :
                target.mul(inputType, llvmLeft, llvmRight).asLocal();
@@ -173,7 +174,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
                target.fcmp(FloatCondition.oeq, inputType, llvmLeft, llvmRight).asLocal() :
                target.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal();
@@ -183,7 +184,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
                target.fcmp(FloatCondition.one, inputType, llvmLeft, llvmRight).asLocal() :
                target.icmp(IntCondition.ne, inputType, llvmLeft, llvmRight).asLocal();
@@ -193,7 +194,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
                target.fcmp(FloatCondition.olt, inputType, llvmLeft, llvmRight).asLocal() :
                     isSigned(node.getType()) ?
@@ -205,7 +206,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
                target.fcmp(FloatCondition.ole, inputType, llvmLeft, llvmRight).asLocal() :
                     isSigned(node.getType()) ?
@@ -217,7 +218,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
                target.fcmp(FloatCondition.ogt, inputType, llvmLeft, llvmRight).asLocal() :
                     isSigned(node.getType()) ?
@@ -229,7 +230,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
                target.fcmp(FloatCondition.oge, inputType, llvmLeft, llvmRight).asLocal() :
                     isSigned(node.getType()) ?
@@ -252,7 +253,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     public LLValue visit(final Void param, final PhiValue node) {
         Phi phi = map(schedule.getBlockForNode(node)).phi(map(node.getType()));
         mappedValues.put(node, phi.asLocal());
-        for (cc.quarkus.qcc.graph.BasicBlock knownBlock : knownBlocks) {
+        for (BasicBlock knownBlock : knownBlocks) {
             Value v = node.getValueForBlock(knownBlock);
             if (v != null) {
                 // process dependencies
@@ -267,7 +268,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         Type javaInputType = node.getInput().getType();
         LLValue inputType = map(javaInputType);
         LLValue llvmInput = map(node.getInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return target.fneg(inputType, llvmInput).asLocal();
     }
 
@@ -275,7 +276,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isSigned(node.getType()) ?
                target.ashr(inputType, llvmLeft, llvmRight).asLocal() :
                target.lshr(inputType, llvmLeft, llvmRight).asLocal();
@@ -297,7 +298,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
                target.fdiv(inputType, llvmLeft, llvmRight).asLocal() :
                     isSigned(node.getType()) ?
@@ -309,7 +310,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
                target.frem(inputType, llvmLeft, llvmRight).asLocal() :
                     isSigned(node.getType()) ?
@@ -323,7 +324,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(javaInputType);
         LLValue outputType = map(javaOutputType);
         LLValue llvmInput = map(node.getInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return target.bitcast(inputType, llvmInput, outputType).asLocal();
     }
 
@@ -333,7 +334,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(javaInputType);
         LLValue outputType = map(javaOutputType);
         LLValue llvmInput = map(node.getInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(javaInputType) ?
                     isSigned(javaOutputType) ?
                     target.fptosi(inputType, llvmInput, outputType).asLocal() :
@@ -349,7 +350,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(javaInputType);
         LLValue outputType = map(javaOutputType);
         LLValue llvmInput = map(node.getInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(javaInputType) ?
                target.fpext(inputType, llvmInput, outputType).asLocal() :
                     isSigned(javaInputType) ?
@@ -363,7 +364,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(javaInputType);
         LLValue outputType = map(javaOutputType);
         LLValue llvmInput = map(node.getInput());
-        cc.quarkus.qcc.machine.llvm.BasicBlock target = map(schedule.getBlockForNode(node));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(javaInputType) ?
                target.ftrunc(inputType, llvmInput, outputType).asLocal() :
                target.trunc(inputType, llvmInput, outputType).asLocal();
@@ -394,8 +395,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     // mapping
 
-    private BasicBlock map(cc.quarkus.qcc.graph.BasicBlock block) {
-        BasicBlock mapped = mappedBlocks.get(block);
+    private LLBasicBlock map(BasicBlock block) {
+        LLBasicBlock mapped = mappedBlocks.get(block);
         if (mapped != null) {
             return mapped;
         }
