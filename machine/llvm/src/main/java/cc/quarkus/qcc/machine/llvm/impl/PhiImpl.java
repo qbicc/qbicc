@@ -6,7 +6,7 @@ import java.util.Set;
 
 import cc.quarkus.qcc.machine.llvm.BasicBlock;
 import cc.quarkus.qcc.machine.llvm.FastMathFlag;
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
 import io.smallrye.common.constraint.Assert;
 
@@ -20,7 +20,7 @@ final class PhiImpl extends AbstractYieldingInstruction implements Phi {
         this.type = type;
     }
 
-    public Phi meta(final String name, final Value data) {
+    public Phi meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
     }
@@ -30,7 +30,7 @@ final class PhiImpl extends AbstractYieldingInstruction implements Phi {
         return this;
     }
 
-    public Phi item(final Value data, final BasicBlock incoming) {
+    public Phi item(final LLValue data, final BasicBlock incoming) {
         Assert.checkNotNullParam("data", data);
         Assert.checkNotNullParam("incoming", incoming);
         lastItem = new Item(lastItem, (AbstractValue) data, incoming instanceof FunctionDefinitionImpl ? ((FunctionDefinitionImpl) incoming).rootBlock : (BasicBlockImpl) incoming);

@@ -2,7 +2,7 @@ package cc.quarkus.qcc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
 import cc.quarkus.qcc.machine.llvm.op.Store;
 import io.smallrye.common.constraint.Assert;
@@ -26,7 +26,7 @@ final class StoreImpl extends AbstractInstruction implements Store {
         this.pointer = pointer;
     }
 
-    public Store meta(final String name, final Value data) {
+    public Store meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
     }

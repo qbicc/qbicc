@@ -9,7 +9,7 @@ import cc.quarkus.qcc.machine.llvm.Function;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.Global;
 import cc.quarkus.qcc.machine.llvm.Module;
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.op.Assignment;
 import io.smallrye.common.constraint.Assert;
 
@@ -35,23 +35,23 @@ final class ModuleImpl implements Module {
         return add(new FunctionDeclarationImpl(name));
     }
 
-    public Assignment assign(final Value type, final Value value) {
+    public Assignment assign(final LLValue type, final LLValue value) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         return null;
     }
 
-    public Global global(final Value type) {
+    public Global global(final LLValue type) {
         Assert.checkNotNullParam("type", type);
         return null;
     }
 
-    public Global constant(final Value type) {
+    public Global constant(final LLValue type) {
         Assert.checkNotNullParam("type", type);
         return null;
     }
 
-    public Assignment global(final Value type, final Value value) {
+    public Assignment global(final LLValue type, final LLValue value) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         return null;

@@ -7,7 +7,7 @@ public interface FunctionDefinition extends Function, BasicBlock {
 
     // overrides
 
-    FunctionDefinition returns(Value returnType);
+    FunctionDefinition returns(LLValue returnType);
 
     FunctionDefinition linkage(Linkage linkage);
 
@@ -23,7 +23,7 @@ public interface FunctionDefinition extends Function, BasicBlock {
 
     FunctionDefinition alignment(int alignment);
 
-    FunctionDefinition meta(String name, Value metadata);
+    FunctionDefinition meta(String name, LLValue metadata);
 
     FunctionDefinition comment(String comment);
 

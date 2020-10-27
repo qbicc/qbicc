@@ -1,12 +1,12 @@
 package cc.quarkus.qcc.machine.llvm.op;
 
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 
 /**
  *
  */
 public interface Store extends Instruction {
-    Store meta(String name, Value data);
+    Store meta(String name, LLValue data);
 
     Store comment(String comment);
 

@@ -4,7 +4,7 @@ import java.util.Set;
 
 import cc.quarkus.qcc.machine.llvm.CallingConvention;
 import cc.quarkus.qcc.machine.llvm.FastMathFlag;
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 
 /**
  *
@@ -26,12 +26,12 @@ public interface Call extends YieldingInstruction {
 
     Call comment(String comment);
 
-    Call meta(String name, Value data);
+    Call meta(String name, LLValue data);
 
-    Argument arg(Value type, Value value);
+    Argument arg(LLValue type, LLValue value);
 
     interface Argument {
-        Argument arg(Value type, Value value);
+        Argument arg(LLValue type, LLValue value);
 
         Argument signExt();
 

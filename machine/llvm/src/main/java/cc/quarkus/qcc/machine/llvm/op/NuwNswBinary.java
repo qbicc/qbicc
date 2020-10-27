@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.machine.llvm.op;
 
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 
 /**
  *
@@ -8,7 +8,7 @@ import cc.quarkus.qcc.machine.llvm.Value;
 public interface NuwNswBinary extends Binary {
     NuwNswBinary comment(String comment);
 
-    NuwNswBinary meta(String name, Value data);
+    NuwNswBinary meta(String name, LLValue data);
 
     NuwNswBinary nuw();
 

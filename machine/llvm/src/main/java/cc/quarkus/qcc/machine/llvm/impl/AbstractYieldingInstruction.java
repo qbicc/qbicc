@@ -2,7 +2,7 @@ package cc.quarkus.qcc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.op.YieldingInstruction;
 
 abstract class AbstractYieldingInstruction extends AbstractInstruction implements YieldingInstruction {
@@ -14,19 +14,19 @@ abstract class AbstractYieldingInstruction extends AbstractInstruction implement
         this.block = block;
     }
 
-    public Value asGlobal() {
+    public LLValue asGlobal() {
         return setLValue(new GlobalValueOf(this, block.func.module.nextGlobalId()));
     }
 
-    public Value asGlobal(final String name) {
+    public LLValue asGlobal(final String name) {
         return setLValue(new NamedGlobalValueOf(name));
     }
 
-    public Value asLocal() {
+    public LLValue asLocal() {
         return setLValue(new LocalValueOf(this, block.func.nextLocalId()));
     }
 
-    public Value asLocal(final String name) {
+    public LLValue asLocal(final String name) {
         return setLValue(new NamedLocalValueOf(name));
     }
 
@@ -40,7 +40,7 @@ abstract class AbstractYieldingInstruction extends AbstractInstruction implement
         return this;
     }
 
-    public YieldingInstruction meta(final String name, final Value data) {
+    public YieldingInstruction meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
     }

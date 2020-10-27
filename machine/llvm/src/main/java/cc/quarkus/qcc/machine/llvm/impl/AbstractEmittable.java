@@ -3,12 +3,12 @@ package cc.quarkus.qcc.machine.llvm.impl;
 import java.io.IOError;
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 
 abstract class AbstractEmittable implements Emittable {
     public abstract Appendable appendTo(Appendable target) throws IOException;
 
-    static Appendable appendValue(Appendable target, Value value) throws IOException {
+    static Appendable appendValue(Appendable target, LLValue value) throws IOException {
         return ((AbstractValue) value).appendTo(target);
     }
 

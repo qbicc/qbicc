@@ -2,7 +2,7 @@ package cc.quarkus.qcc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
 
 abstract class AbstractNuwNswBinary extends AbstractBinary implements NuwNswBinary {
@@ -12,7 +12,7 @@ abstract class AbstractNuwNswBinary extends AbstractBinary implements NuwNswBina
         super(block, type, arg1, arg2);
     }
 
-    public NuwNswBinary meta(final String name, final Value data) {
+    public NuwNswBinary meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
     }

@@ -11,7 +11,7 @@ import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.RuntimePreemption;
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Visibility;
 import cc.quarkus.qcc.machine.llvm.op.Assignment;
 import cc.quarkus.qcc.machine.llvm.op.AtomicRmwInstruction;
@@ -49,7 +49,7 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         this.module = module;
     }
 
-    public FunctionDefinitionImpl returns(final Value returnType) {
+    public FunctionDefinitionImpl returns(final LLValue returnType) {
         super.returns(returnType);
         return this;
     }
@@ -111,7 +111,7 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         return this;
     }
 
-    public FunctionDefinitionImpl meta(final String name, final Value data) {
+    public FunctionDefinitionImpl meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
     }
@@ -137,7 +137,7 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         throw new UnsupportedOperationException("Cannot set name of root block");
     }
 
-    public Phi phi(final Value type) {
+    public Phi phi(final LLValue type) {
         throw new UnsupportedOperationException("Root block cannot have phi nodes");
     }
 
@@ -191,11 +191,11 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
     // Basic block delegation //
     ////////////////////////////
 
-    public Assignment assign(final Value value) {
+    public Assignment assign(final LLValue value) {
         return rootBlock.assign(value);
     }
 
-    public Branch br(final Value cond, final BasicBlock ifTrue, final BasicBlock ifFalse) {
+    public Branch br(final LLValue cond, final BasicBlock ifTrue, final BasicBlock ifFalse) {
         return rootBlock.br(cond, ifTrue, ifFalse);
     }
 
@@ -203,11 +203,11 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         return rootBlock.ret();
     }
 
-    public Return ret(final Value type, final Value val) {
+    public Return ret(final LLValue type, final LLValue val) {
         return rootBlock.ret(type, val);
     }
 
-    public Select select(final Value condType, final Value cond, final Value valueType, final Value trueValue, final Value falseValue) {
+    public Select select(final LLValue condType, final LLValue cond, final LLValue valueType, final LLValue trueValue, final LLValue falseValue) {
         return rootBlock.select(condType, cond, valueType, trueValue, falseValue);
     }
 
@@ -215,143 +215,143 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         rootBlock.unreachable();
     }
 
-    public NuwNswBinary add(final Value type, final Value arg1, final Value arg2) {
+    public NuwNswBinary add(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.add(type, arg1, arg2);
     }
 
-    public NuwNswBinary sub(final Value type, final Value arg1, final Value arg2) {
+    public NuwNswBinary sub(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.sub(type, arg1, arg2);
     }
 
-    public NuwNswBinary mul(final Value type, final Value arg1, final Value arg2) {
+    public NuwNswBinary mul(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.mul(type, arg1, arg2);
     }
 
-    public NuwNswBinary shl(final Value type, final Value arg1, final Value arg2) {
+    public NuwNswBinary shl(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.shl(type, arg1, arg2);
     }
 
-    public ExactBinary udiv(final Value type, final Value arg1, final Value arg2) {
+    public ExactBinary udiv(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.udiv(type, arg1, arg2);
     }
 
-    public ExactBinary sdiv(final Value type, final Value arg1, final Value arg2) {
+    public ExactBinary sdiv(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.sdiv(type, arg1, arg2);
     }
 
-    public ExactBinary lshr(final Value type, final Value arg1, final Value arg2) {
+    public ExactBinary lshr(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.lshr(type, arg1, arg2);
     }
 
-    public ExactBinary ashr(final Value type, final Value arg1, final Value arg2) {
+    public ExactBinary ashr(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.ashr(type, arg1, arg2);
     }
 
-    public FastMathBinary fmul(final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary fmul(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.fmul(type, arg1, arg2);
     }
 
-    public FastMathBinary fcmp(final FloatCondition cond, final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary fcmp(final FloatCondition cond, final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.fcmp(cond, type, arg1, arg2);
     }
 
-    public FastMathBinary fadd(final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary fadd(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.fadd(type, arg1, arg2);
     }
 
-    public FastMathBinary fsub(final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary fsub(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.fsub(type, arg1, arg2);
     }
 
-    public FastMathBinary fdiv(final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary fdiv(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.fdiv(type, arg1, arg2);
     }
 
-    public FastMathBinary frem(final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary frem(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.frem(type, arg1, arg2);
     }
 
-    public FastMathUnary fneg(final Value type, final Value arg) {
+    public FastMathUnary fneg(final LLValue type, final LLValue arg) {
         return rootBlock.fneg(type, arg);
     }
 
-    public Binary icmp(final IntCondition cond, final Value type, final Value arg1, final Value arg2) {
+    public Binary icmp(final IntCondition cond, final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.icmp(cond, type, arg1, arg2);
     }
 
-    public Binary and(final Value type, final Value arg1, final Value arg2) {
+    public Binary and(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.and(type, arg1, arg2);
     }
 
-    public Binary or(final Value type, final Value arg1, final Value arg2) {
+    public Binary or(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.or(type, arg1, arg2);
     }
 
-    public Binary xor(final Value type, final Value arg1, final Value arg2) {
+    public Binary xor(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.xor(type, arg1, arg2);
     }
 
-    public Binary urem(final Value type, final Value arg1, final Value arg2) {
+    public Binary urem(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.urem(type, arg1, arg2);
     }
 
-    public Binary srem(final Value type, final Value arg1, final Value arg2) {
+    public Binary srem(final LLValue type, final LLValue arg1, final LLValue arg2) {
         return rootBlock.srem(type, arg1, arg2);
     }
 
-    public YieldingInstruction trunc(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction trunc(final LLValue type, final LLValue value, final LLValue toType) {
         return rootBlock.trunc(type, value, toType);
     }
 
-    public YieldingInstruction ftrunc(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction ftrunc(final LLValue type, final LLValue value, final LLValue toType) {
         return rootBlock.ftrunc(type, value, toType);
     }
 
-    public YieldingInstruction fpext(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction fpext(final LLValue type, final LLValue value, final LLValue toType) {
         return rootBlock.fpext(type, value, toType);
     }
 
-    public YieldingInstruction sext(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction sext(final LLValue type, final LLValue value, final LLValue toType) {
         return rootBlock.sext(type, value, toType);
     }
 
-    public YieldingInstruction zext(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction zext(final LLValue type, final LLValue value, final LLValue toType) {
         return rootBlock.zext(type, value, toType);
     }
 
-    public YieldingInstruction bitcast(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction bitcast(final LLValue type, final LLValue value, final LLValue toType) {
         return rootBlock.bitcast(type, value, toType);
     }
 
-    public YieldingInstruction fptosi(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction fptosi(final LLValue type, final LLValue value, final LLValue toType) {
         return rootBlock.fptosi(type, value, toType);
     }
 
-    public YieldingInstruction fptoui(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction fptoui(final LLValue type, final LLValue value, final LLValue toType) {
         return rootBlock.fptoui(type, value, toType);
     }
 
-    public YieldingInstruction sitofp(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction sitofp(final LLValue type, final LLValue value, final LLValue toType) {
         return rootBlock.sitofp(type, value, toType);
     }
 
-    public YieldingInstruction uitofp(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction uitofp(final LLValue type, final LLValue value, final LLValue toType) {
         return rootBlock.uitofp(type, value, toType);
     }
 
-    public Call call(final Value type, final Value function) {
+    public Call call(final LLValue type, final LLValue function) {
         return rootBlock.call(type, function);
     }
 
-    public Call invoke(final Value type, final Value function, final BasicBlock normal, final BasicBlock unwind) {
+    public Call invoke(final LLValue type, final LLValue function, final BasicBlock normal, final BasicBlock unwind) {
         return rootBlock.invoke(type, function, normal, unwind);
     }
 
-    public Load load(final Value type, final Value pointeeType, final Value pointer) {
+    public Load load(final LLValue type, final LLValue pointeeType, final LLValue pointer) {
         return rootBlock.load(type, pointeeType, pointer);
     }
 
-    public Store store(final Value type, final Value value, final Value pointeeType, final Value pointer) {
+    public Store store(final LLValue type, final LLValue value, final LLValue pointeeType, final LLValue pointer) {
         return rootBlock.store(type, value, pointeeType, pointer);
     }
 

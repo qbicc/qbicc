@@ -7,7 +7,7 @@ import cc.quarkus.qcc.machine.llvm.CallingConvention;
 import cc.quarkus.qcc.machine.llvm.DllStorageClass;
 import cc.quarkus.qcc.machine.llvm.Function;
 import cc.quarkus.qcc.machine.llvm.Linkage;
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Visibility;
 import io.smallrye.common.constraint.Assert;
 
@@ -30,14 +30,14 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         this.name = name;
     }
 
-    public Function returns(final Value returnType) {
+    public Function returns(final LLValue returnType) {
         Assert.checkNotNullParam("returnType", returnType);
         // todo with attributes...
         this.returnType = (AbstractValue) returnType;
         return this;
     }
 
-    public ParameterImpl param(final Value type) {
+    public ParameterImpl param(final LLValue type) {
         Assert.checkNotNullParam("type", type);
         return lastParam = new ParameterImpl(lastParam, this, (AbstractValue) type);
     }
@@ -87,7 +87,7 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         return this;
     }
 
-    public Function meta(final String name, final Value data) {
+    public Function meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
     }
@@ -97,7 +97,7 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         return this;
     }
 
-    public Value asGlobal() {
+    public LLValue asGlobal() {
         return new NamedGlobalValueOf(this.name);
     }
 
@@ -236,7 +236,7 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
             this.type = type;
         }
 
-        public ParameterImpl param(final Value type) {
+        public ParameterImpl param(final LLValue type) {
             return function.param(type);
         }
 
@@ -245,11 +245,11 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
             return this;
         }
 
-        public Value type() {
+        public LLValue type() {
             return type;
         }
 
-        public Value asValue() {
+        public LLValue asValue() {
             return new AbstractValue() {
                 public Appendable appendTo(final Appendable target) throws IOException {
                     return target.append('%').append(name);

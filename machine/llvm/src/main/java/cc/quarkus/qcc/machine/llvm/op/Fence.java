@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.machine.llvm.op;
 
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 
 /**
  *
@@ -8,7 +8,7 @@ import cc.quarkus.qcc.machine.llvm.Value;
 public interface Fence extends Instruction {
     Fence comment(String comment);
 
-    Fence meta(String name, Value data);
+    Fence meta(String name, LLValue data);
 
     Fence syncScope(String scopeName);
 }

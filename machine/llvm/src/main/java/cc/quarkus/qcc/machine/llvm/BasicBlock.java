@@ -21,7 +21,7 @@ import cc.quarkus.qcc.machine.llvm.op.YieldingInstruction;
 /**
  *
  */
-public interface BasicBlock extends Value {
+public interface BasicBlock extends LLValue {
 
     BasicBlock name(String name);
 
@@ -29,95 +29,95 @@ public interface BasicBlock extends Value {
 
     // not starter, not terminator
 
-    Phi phi(Value type);
+    Phi phi(LLValue type);
 
     // terminators
 
     Branch br(BasicBlock dest);
 
-    Branch br(Value cond, BasicBlock ifTrue, BasicBlock ifFalse);
+    Branch br(LLValue cond, BasicBlock ifTrue, BasicBlock ifFalse);
 
     Return ret();
 
-    Return ret(Value type, Value val);
+    Return ret(LLValue type, LLValue val);
 
     void unreachable();
 
     // starters
 
-    Assignment assign(Value value);
+    Assignment assign(LLValue value);
 
-    Select select(Value condType, Value cond, Value valueType, Value trueValue, Value falseValue);
+    Select select(LLValue condType, LLValue cond, LLValue valueType, LLValue trueValue, LLValue falseValue);
 
-    NuwNswBinary add(Value type, Value arg1, Value arg2);
+    NuwNswBinary add(LLValue type, LLValue arg1, LLValue arg2);
 
-    NuwNswBinary sub(Value type, Value arg1, Value arg2);
+    NuwNswBinary sub(LLValue type, LLValue arg1, LLValue arg2);
 
-    NuwNswBinary mul(Value type, Value arg1, Value arg2);
+    NuwNswBinary mul(LLValue type, LLValue arg1, LLValue arg2);
 
-    NuwNswBinary shl(Value type, Value arg1, Value arg2);
+    NuwNswBinary shl(LLValue type, LLValue arg1, LLValue arg2);
 
-    ExactBinary udiv(Value type, Value arg1, Value arg2);
+    ExactBinary udiv(LLValue type, LLValue arg1, LLValue arg2);
 
-    ExactBinary sdiv(Value type, Value arg1, Value arg2);
+    ExactBinary sdiv(LLValue type, LLValue arg1, LLValue arg2);
 
-    ExactBinary lshr(Value type, Value arg1, Value arg2);
+    ExactBinary lshr(LLValue type, LLValue arg1, LLValue arg2);
 
-    ExactBinary ashr(Value type, Value arg1, Value arg2);
+    ExactBinary ashr(LLValue type, LLValue arg1, LLValue arg2);
 
-    FastMathBinary fcmp(FloatCondition cond, Value type, Value arg1, Value arg2);
+    FastMathBinary fcmp(FloatCondition cond, LLValue type, LLValue arg1, LLValue arg2);
 
-    FastMathBinary fadd(Value type, Value arg1, Value arg2);
+    FastMathBinary fadd(LLValue type, LLValue arg1, LLValue arg2);
 
-    FastMathBinary fsub(Value type, Value arg1, Value arg2);
+    FastMathBinary fsub(LLValue type, LLValue arg1, LLValue arg2);
 
-    FastMathBinary fmul(Value type, Value arg1, Value arg2);
+    FastMathBinary fmul(LLValue type, LLValue arg1, LLValue arg2);
 
-    FastMathBinary fdiv(Value type, Value arg1, Value arg2);
+    FastMathBinary fdiv(LLValue type, LLValue arg1, LLValue arg2);
 
-    FastMathBinary frem(Value type, Value arg1, Value arg2);
+    FastMathBinary frem(LLValue type, LLValue arg1, LLValue arg2);
 
-    FastMathUnary fneg(Value type, Value arg);
+    FastMathUnary fneg(LLValue type, LLValue arg);
 
-    Binary icmp(IntCondition cond, Value type, Value arg1, Value arg2);
+    Binary icmp(IntCondition cond, LLValue type, LLValue arg1, LLValue arg2);
 
-    Binary and(Value type, Value arg1, Value arg2);
+    Binary and(LLValue type, LLValue arg1, LLValue arg2);
 
-    Binary or(Value type, Value arg1, Value arg2);
+    Binary or(LLValue type, LLValue arg1, LLValue arg2);
 
-    Binary xor(Value type, Value arg1, Value arg2);
+    Binary xor(LLValue type, LLValue arg1, LLValue arg2);
 
-    Binary urem(Value type, Value arg1, Value arg2);
+    Binary urem(LLValue type, LLValue arg1, LLValue arg2);
 
-    Binary srem(Value type, Value arg1, Value arg2);
+    Binary srem(LLValue type, LLValue arg1, LLValue arg2);
 
-    YieldingInstruction trunc(Value type, Value value, Value toType);
+    YieldingInstruction trunc(LLValue type, LLValue value, LLValue toType);
 
-    YieldingInstruction ftrunc(Value type, Value value, Value toType);
+    YieldingInstruction ftrunc(LLValue type, LLValue value, LLValue toType);
 
-    YieldingInstruction fpext(Value type, Value value, Value toType);
+    YieldingInstruction fpext(LLValue type, LLValue value, LLValue toType);
 
-    YieldingInstruction sext(Value type, Value value, Value toType);
+    YieldingInstruction sext(LLValue type, LLValue value, LLValue toType);
 
-    YieldingInstruction zext(Value type, Value value, Value toType);
+    YieldingInstruction zext(LLValue type, LLValue value, LLValue toType);
 
-    YieldingInstruction bitcast(Value type, Value value, Value toType);
+    YieldingInstruction bitcast(LLValue type, LLValue value, LLValue toType);
 
-    YieldingInstruction fptosi(Value type, Value value, Value toType);
+    YieldingInstruction fptosi(LLValue type, LLValue value, LLValue toType);
 
-    YieldingInstruction fptoui(Value type, Value value, Value toType);
+    YieldingInstruction fptoui(LLValue type, LLValue value, LLValue toType);
 
-    YieldingInstruction sitofp(Value type, Value value, Value toType);
+    YieldingInstruction sitofp(LLValue type, LLValue value, LLValue toType);
 
-    YieldingInstruction uitofp(Value type, Value value, Value toType);
+    YieldingInstruction uitofp(LLValue type, LLValue value, LLValue toType);
 
-    Call call(Value type, Value function);
+    Call call(LLValue type, LLValue function);
 
-    Call invoke(Value type, Value function, BasicBlock normal, BasicBlock unwind);
+    Call invoke(LLValue type, LLValue function, BasicBlock normal, BasicBlock unwind);
 
-    Load load(Value type, Value pointeeType, Value pointer);
+    Load load(LLValue type, LLValue pointeeType, LLValue pointer);
 
-    Store store(Value type, Value value, Value pointeeType, Value pointer);
+    Store store(LLValue type, LLValue value, LLValue pointeeType, LLValue pointer);
 
     Fence fence(OrderingConstraint ordering);
 

@@ -6,9 +6,9 @@ package cc.quarkus.qcc.machine.llvm;
 public interface Function extends Metable {
     // basic stuff
 
-    Function returns(Value returnType);
+    Function returns(LLValue returnType);
 
-    Parameter param(Value type);
+    Parameter param(LLValue type);
 
     Function linkage(Linkage linkage);
 
@@ -24,11 +24,11 @@ public interface Function extends Metable {
 
     Function alignment(int alignment);
 
-    Function meta(String name, Value metadata);
+    Function meta(String name, LLValue metadata);
 
     Function comment(String comment);
 
-    Value asGlobal();
+    LLValue asGlobal();
 
     interface Parameter {
         /**
@@ -37,12 +37,12 @@ public interface Function extends Metable {
          * @param type the parameter type
          * @return the next parameter
          */
-        Parameter param(Value type);
+        Parameter param(LLValue type);
 
         Parameter name(String name);
 
-        Value type();
+        LLValue type();
 
-        Value asValue();
+        LLValue asValue();
     }
 }

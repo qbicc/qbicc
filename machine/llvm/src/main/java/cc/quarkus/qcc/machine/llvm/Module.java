@@ -16,11 +16,11 @@ public interface Module {
     // todo: metadata goes after `declare` for declarations
     Function declare(String name);
 
-    Assignment assign(Value type, Value value);
+    Assignment assign(LLValue type, LLValue value);
 
-    Global global(Value type);
+    Global global(LLValue type);
 
-    Global constant(Value type);
+    Global constant(LLValue type);
 
     void writeTo(BufferedWriter output) throws IOException;
 
