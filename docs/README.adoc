@@ -1,3 +1,18 @@
 = QCC
 
 This is the `README` for QCC.  There's not much here yet but be sure to read link:Overview.adoc[the overview].
+
+== Building
+
+To build the project, execute `mvn install` in the root.
+
+== Running
+
+To run the driver, first build the project and then use https://jbang.dev[`jbang`] to run it:
+
+[source,shell]
+-----
+jbang --quiet cc.quarkus:qcc-driver:1.0.0-SNAPSHOT --boot-module-path /path/to/main.jar:/my/.m2/repository/cc/quarkus/qcc/openjdk/java.base/11.0.8+8-1.0/java.base-11.0.8+8-1.0-linux.jar the/main/Class
+-----
+
+Replace the `java.base` JAR with your locally-built JAR path.
