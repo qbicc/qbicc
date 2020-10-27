@@ -72,6 +72,7 @@ public class Driver implements Closeable {
     final List<ClassPathElement> bootClassPath;
     final AtomicReference<Phase> phaseSwitch = new AtomicReference<>(Phase.ADD);
     final String mainClass;
+    final Path outputDir;
 
     /*
         Reachability (Run Time)
@@ -93,6 +94,7 @@ public class Driver implements Closeable {
     Driver(final Builder builder) {
         initialContext = Assert.checkNotNullParam("builder.initialContext", builder.initialContext);
         mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
+        outputDir = Assert.checkNotNullParam("builder.outputDirectory", builder.outputDirectory);
         initialContext.putAttachment(MAIN_CLASS_KEY, mainClass);
         // type system
         final TypeSystem typeSystem = builder.typeSystem;
@@ -184,7 +186,7 @@ public class Driver implements Closeable {
             finder = this::defaultFinder;
         }
 
-        compilationContext = new CompilationContextImpl(initialContext, typeSystem, literalFactory, finalFactory, finder);
+        compilationContext = new CompilationContextImpl(initialContext, typeSystem, literalFactory, finalFactory, finder, outputDir);
 
         generateVisitors = List.copyOf(builder.generateVisitors);
 
@@ -470,6 +472,7 @@ public class Driver implements Closeable {
         final List<Consumer<? super CompilationContext>> postGenerateHooks = new ArrayList<>();
         final List<ElementVisitor<CompilationContext, Void>> generateVisitors = new ArrayList<>();
 
+        Path outputDirectory;
         BaseDiagnosticContext initialContext;
         Platform targetPlatform;
         TypeSystem typeSystem;
@@ -552,6 +555,15 @@ public class Driver implements Closeable {
 
         public Builder addGenerateVisitor(ElementVisitor<CompilationContext, Void> visitor) {
             generateVisitors.add(Assert.checkNotNullParam("visitor", visitor));
+            return this;
+        }
+
+        public Path getOutputDirectory() {
+            return outputDirectory;
+        }
+
+        public Builder setOutputDirectory(final Path outputDirectory) {
+            this.outputDirectory = Assert.checkNotNullParam("outputDirectory", outputDirectory);
             return this;
         }
 

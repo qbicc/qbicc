@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.driver;
 
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,8 +23,12 @@ import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.BasicElement;
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 
 final class CompilationContextImpl implements CompilationContext {
     private final TypeSystem typeSystem;
@@ -36,13 +41,15 @@ final class CompilationContextImpl implements CompilationContext {
     final ClassContext bootstrapClassContext = new ClassContextImpl(this, null);
     private final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
     private final BiFunction<JavaObject, String, DefinedTypeDefinition> finder;
+    private final Path outputDir;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory, final BiFunction<JavaObject, String, DefinedTypeDefinition> finder) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory, final BiFunction<JavaObject, String, DefinedTypeDefinition> finder, final Path outputDir) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.typeSystem = typeSystem;
         this.literalFactory = literalFactory;
         this.blockFactory = blockFactory;
         this.finder = finder;
+        this.outputDir = outputDir;
     }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {
@@ -157,6 +164,51 @@ final class CompilationContextImpl implements CompilationContext {
 
     public void registerEntryPoint(final MethodElement method) {
         entryPoints.add(method);
+    }
+
+    public Path getOutputDirectory() {
+        return outputDir;
+    }
+
+    public Path getOutputDirectory(final DefinedTypeDefinition type) {
+        Path base = outputDir;
+        String internalName = type.getInternalName();
+        int idx = internalName.indexOf('/');
+        if (idx == -1) {
+            return base.resolve(internalName);
+        }
+        base = base.resolve(internalName.substring(0, idx));
+        int start;
+        for (;;) {
+            start = idx + 1;
+            idx = internalName.indexOf('/', start);
+            if (idx == -1) {
+                return base.resolve(internalName.substring(start));
+            }
+            base = base.resolve(internalName.substring(start, idx));
+        }
+    }
+
+    public Path getOutputDirectory(final BasicElement element) {
+        Path base = getOutputDirectory(element.getEnclosingType());
+        if (element instanceof InitializerElement) {
+            return base.resolve("class-init");
+        } else if (element instanceof FieldElement) {
+            return base.resolve("fields").resolve(((FieldElement) element).getName());
+        } else if (element instanceof ConstructorElement) {
+            return base.resolve("ctors").resolve(signatureString((ConstructorElement) element));
+        } else if (element instanceof MethodElement) {
+            MethodElement methodElement = (MethodElement) element;
+            return base.resolve("methods").resolve(methodElement.getName()).resolve(signatureString(methodElement));
+        } else {
+            throw new UnsupportedOperationException("getOutputDirectory for element " + element.getClass());
+        }
+    }
+
+    String signatureString(ParameterizedExecutableElement element) {
+        StringBuilder builder = new StringBuilder();
+        element.forEachParameter((b, e) -> e.getType().toString(b), builder);
+        return builder.toString();
     }
 
     public Iterable<MethodElement> getEntryPoints() {

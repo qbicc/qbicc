@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  * A general visitor for the different node types.
  */
+@Deprecated
 public interface OldNodeVisitor<T, R> {
     default R visitUnknown(T param, Node node) {
         return null;
@@ -20,6 +21,7 @@ public interface OldNodeVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    @Deprecated
     interface Delegating<T, R> extends OldNodeVisitor<T, R> {
         OldNodeVisitor<T, R> getDelegateNodeVisitor();
 
