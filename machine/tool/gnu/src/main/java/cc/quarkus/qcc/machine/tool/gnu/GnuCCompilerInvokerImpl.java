@@ -15,7 +15,7 @@ final class GnuCCompilerInvokerImpl extends AbstractGccInvoker implements GnuCCo
     private InputSource inputSource = InputSource.empty();
     private Path outputPath = TMP.resolve("qcc-output." + getTool().getPlatform().getObjectType().objectSuffix());
 
-    GnuCCompilerInvokerImpl(final GnuCCompilerImpl tool) {
+    GnuCCompilerInvokerImpl(final GccToolChainImpl tool) {
         super(tool);
     }
 

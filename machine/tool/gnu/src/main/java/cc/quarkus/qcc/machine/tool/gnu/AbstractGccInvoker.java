@@ -21,10 +21,10 @@ import io.smallrye.common.constraint.Assert;
 abstract class AbstractGccInvoker implements MessagingToolInvoker {
     static final Path TMP = Paths.get(System.getProperty("java.io.tmpdir"));
 
-    private final GnuCCompilerImpl tool;
+    private final GccToolChainImpl tool;
     private ToolMessageHandler messageHandler = ToolMessageHandler.DISCARDING;
 
-    AbstractGccInvoker(final GnuCCompilerImpl tool) {
+    AbstractGccInvoker(final GccToolChainImpl tool) {
         this.tool = tool;
     }
 
@@ -36,7 +36,7 @@ abstract class AbstractGccInvoker implements MessagingToolInvoker {
         return messageHandler;
     }
 
-    public GnuCCompilerImpl getTool() {
+    public GccToolChainImpl getTool() {
         return tool;
     }
 

@@ -5,12 +5,12 @@ import java.nio.file.Path;
 import cc.quarkus.qcc.machine.arch.Platform;
 import io.smallrye.common.version.VersionScheme;
 
-final class ClangCCompilerImpl implements ClangCCompiler {
+final class ClangToolChainImpl implements ClangToolChain {
     private final Path executablePath;
     private final Platform platform;
     private final String version;
 
-    ClangCCompilerImpl(final Path executablePath, final Platform platform, final String version) {
+    ClangToolChainImpl(final Path executablePath, final Platform platform, final String version) {
         this.executablePath = executablePath;
         this.platform = platform;
         this.version = version;

@@ -27,11 +27,11 @@ public class TestSimpleCompile {
         Platform plaf = Platform.HOST_PLATFORM;
         Optional<ObjectFileProvider> of = ObjectFileProvider.findProvider(plaf.getObjectType(), getClass().getClassLoader());
         assumeTrue(of.isPresent());
-        final Iterable<ClangCCompilerImpl> tools = ToolProvider.findAllTools(ClangCCompilerImpl.class, plaf, c -> true,
+        final Iterable<ClangToolChainImpl> tools = ToolProvider.findAllTools(ClangToolChainImpl.class, plaf, c -> true,
             TestSimpleCompile.class.getClassLoader());
-        final Iterator<ClangCCompilerImpl> iterator = tools.iterator();
+        final Iterator<ClangToolChainImpl> iterator = tools.iterator();
         assumeTrue(iterator.hasNext());
-        final ClangCCompilerImpl gccCompiler = iterator.next();
+        final ClangToolChainImpl gccCompiler = iterator.next();
         final ClangCCompilerInvoker ib = gccCompiler.newCompilerInvoker();
         ib.setOutputPath(objectFilePath);
         ib.setMessageHandler(new ToolMessageHandler() {

@@ -8,13 +8,13 @@ import io.smallrye.common.version.VersionScheme;
 /**
  *
  */
-final class GnuCCompilerImpl implements GnuCCompiler {
+final class GccToolChainImpl implements GccToolChain {
     private final Path executablePath;
     private final Platform platform;
     private final String version;
     private final boolean m32;
 
-    GnuCCompilerImpl(final Path executablePath, final Platform platform, final String version, final boolean m32) {
+    GccToolChainImpl(final Path executablePath, final Platform platform, final String version, final boolean m32) {
         this.executablePath = executablePath;
         this.platform = platform;
         this.version = version;

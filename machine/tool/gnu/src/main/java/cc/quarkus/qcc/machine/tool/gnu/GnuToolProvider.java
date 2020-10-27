@@ -28,7 +28,7 @@ public class GnuToolProvider implements ToolProvider {
 
     public <T extends Tool> Iterable<T> findTools(final Class<T> type, final Platform platform) {
         final ArrayList<T> list = new ArrayList<>();
-        if (type.isAssignableFrom(GnuCCompilerImpl.class)) {
+        if (type.isAssignableFrom(GccToolChainImpl.class)) {
             final String cpuSimpleName = platform.getCpu().getSimpleName();
             final String osName = platform.getOs().getName();
             final String abiName = platform.getAbi().getName();
@@ -89,7 +89,7 @@ public class GnuToolProvider implements ToolProvider {
                 return;
             }
             if (res.match) {
-                final GnuCCompilerImpl gcc = new GnuCCompilerImpl(path, platform, res.version, res.m32);
+                final GccToolChainImpl gcc = new GccToolChainImpl(path, platform, res.version, res.m32);
                 list.add(type.cast(gcc));
             }
         }

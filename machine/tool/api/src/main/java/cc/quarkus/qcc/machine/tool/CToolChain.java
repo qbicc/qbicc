@@ -3,10 +3,10 @@ package cc.quarkus.qcc.machine.tool;
 /**
  *
  */
-public interface CCompiler extends Tool {
+public interface CToolChain extends Tool {
 
     default String getToolName() {
-        return "C Compiler";
+        return "C Tool Chain";
     }
 
     CCompilerInvoker newCompilerInvoker();

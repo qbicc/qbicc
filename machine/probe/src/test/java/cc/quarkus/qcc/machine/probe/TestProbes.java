@@ -7,7 +7,7 @@ import java.util.Iterator;
 import cc.quarkus.qcc.machine.arch.ObjectType;
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.object.ObjectFileProvider;
-import cc.quarkus.qcc.machine.tool.CCompiler;
+import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.machine.tool.ToolProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -17,14 +17,14 @@ import org.junit.jupiter.api.Test;
  */
 public class TestProbes {
 
-    static CCompiler compiler;
+    static CToolChain compiler;
     static ObjectFileProvider objectFileProvider;
 
     @BeforeAll
     public static void setUpCompiler() {
-        final Iterable<CCompiler> tools = ToolProvider.findAllTools(CCompiler.class, Platform.HOST_PLATFORM, s -> true,
+        final Iterable<CToolChain> tools = ToolProvider.findAllTools(CToolChain.class, Platform.HOST_PLATFORM, s -> true,
             TestProbes.class.getClassLoader());
-        final Iterator<CCompiler> iterator = tools.iterator();
+        final Iterator<CToolChain> iterator = tools.iterator();
         assertTrue(iterator.hasNext());
         compiler = iterator.next();
         final ObjectType objectType = Platform.HOST_PLATFORM.getObjectType();

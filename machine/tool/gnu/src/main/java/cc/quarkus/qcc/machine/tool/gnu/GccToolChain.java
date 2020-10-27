@@ -1,11 +1,11 @@
 package cc.quarkus.qcc.machine.tool.gnu;
 
-import cc.quarkus.qcc.machine.tool.CCompiler;
+import cc.quarkus.qcc.machine.tool.CToolChain;
 
 /**
  *
  */
-public interface GnuCCompiler extends CCompiler {
+public interface GccToolChain extends CToolChain {
     default String getImplementationName() {
         return "gnu";
     }

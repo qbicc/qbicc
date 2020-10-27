@@ -15,7 +15,7 @@ final class ClangLinkerInvokerImpl extends AbstractClangInvoker implements Clang
     private final List<Path> objectFiles = new ArrayList<>(4);
     private Path outputPath = TMP.resolve("qcc-output-image");
 
-    ClangLinkerInvokerImpl(final ClangCCompilerImpl tool) {
+    ClangLinkerInvokerImpl(final ClangToolChainImpl tool) {
         super(tool);
     }
 

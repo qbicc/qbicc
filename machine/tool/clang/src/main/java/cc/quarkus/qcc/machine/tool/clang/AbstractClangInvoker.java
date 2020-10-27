@@ -21,10 +21,10 @@ import io.smallrye.common.constraint.Assert;
 abstract class AbstractClangInvoker implements MessagingToolInvoker {
     static final Path TMP = Paths.get(System.getProperty("java.io.tmpdir"));
 
-    private final ClangCCompilerImpl tool;
+    private final ClangToolChainImpl tool;
     private ToolMessageHandler messageHandler = ToolMessageHandler.DISCARDING;
 
-    AbstractClangInvoker(final ClangCCompilerImpl tool) {
+    AbstractClangInvoker(final ClangToolChainImpl tool) {
         this.tool = tool;
     }
 
@@ -36,7 +36,7 @@ abstract class AbstractClangInvoker implements MessagingToolInvoker {
         return messageHandler;
     }
 
-    public ClangCCompilerImpl getTool() {
+    public ClangToolChainImpl getTool() {
         return tool;
     }
 

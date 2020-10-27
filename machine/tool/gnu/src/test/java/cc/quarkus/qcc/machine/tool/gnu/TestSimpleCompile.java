@@ -27,11 +27,11 @@ public class TestSimpleCompile {
         Platform plaf = Platform.HOST_PLATFORM;
         Optional<ObjectFileProvider> of = ObjectFileProvider.findProvider(plaf.getObjectType(), getClass().getClassLoader());
         assumeTrue(of.isPresent());
-        final Iterable<GnuCCompilerImpl> tools = ToolProvider.findAllTools(GnuCCompilerImpl.class, Platform.HOST_PLATFORM, c -> true,
+        final Iterable<GccToolChainImpl> tools = ToolProvider.findAllTools(GccToolChainImpl.class, Platform.HOST_PLATFORM, c -> true,
             TestSimpleCompile.class.getClassLoader());
-        final Iterator<GnuCCompilerImpl> iterator = tools.iterator();
+        final Iterator<GccToolChainImpl> iterator = tools.iterator();
         assumeTrue(iterator.hasNext());
-        final GnuCCompilerImpl gccCompiler = iterator.next();
+        final GccToolChainImpl gccCompiler = iterator.next();
         final GnuCCompilerInvoker ib = gccCompiler.newCompilerInvoker();
         ib.setOutputPath(objectFilePath);
         ib.setMessageHandler(new ToolMessageHandler() {

@@ -32,7 +32,7 @@ import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.interpreter.JavaObject;
 import cc.quarkus.qcc.interpreter.JavaVM;
 import cc.quarkus.qcc.machine.arch.Platform;
-import cc.quarkus.qcc.machine.tool.CCompiler;
+import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.tool.llvm.LlvmTool;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
@@ -477,7 +477,7 @@ public class Driver implements Closeable {
         Platform targetPlatform;
         TypeSystem typeSystem;
         JavaVM vm;
-        CCompiler toolChain;
+        CToolChain toolChain;
         LlvmTool llvmTool;
 
         String mainClass;
@@ -594,11 +594,11 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public CCompiler getToolChain() {
+        public CToolChain getToolChain() {
             return toolChain;
         }
 
-        public Builder setToolChain(final CCompiler toolChain) {
+        public Builder setToolChain(final CToolChain toolChain) {
             this.toolChain = toolChain;
             return this;
         }

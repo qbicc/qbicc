@@ -14,7 +14,7 @@ import java.util.function.UnaryOperator;
 
 import cc.quarkus.qcc.machine.object.ObjectFile;
 import cc.quarkus.qcc.machine.object.ObjectFileProvider;
-import cc.quarkus.qcc.machine.tool.CCompiler;
+import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.machine.tool.CCompilerInvoker;
 import cc.quarkus.qcc.machine.tool.CompilationFailureException;
 import cc.quarkus.qcc.machine.tool.Tool;
@@ -51,7 +51,7 @@ public class CTypeProbe {
         preproc.add("#define " + sym);
     }
 
-    public Result runProbe(CCompiler compiler, ObjectFileProvider objectFileProvider) throws IOException {
+    public Result runProbe(CToolChain compiler, ObjectFileProvider objectFileProvider) throws IOException {
         final CCompilerInvoker ib = compiler.newCompilerInvoker();
         StringBuilder b = new StringBuilder();
         b.append("#include <stddef.h>\n");

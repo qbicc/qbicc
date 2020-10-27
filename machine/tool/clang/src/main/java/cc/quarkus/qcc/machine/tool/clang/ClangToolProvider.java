@@ -23,7 +23,7 @@ import cc.quarkus.qcc.machine.tool.process.OutputDestination;
 public class ClangToolProvider implements ToolProvider {
     public <T extends Tool> Iterable<T> findTools(final Class<T> type, final Platform platform) {
         final ArrayList<T> list = new ArrayList<>();
-        if (type.isAssignableFrom(ClangCCompilerImpl.class)) {
+        if (type.isAssignableFrom(ClangToolChainImpl.class)) {
             for (String name : List.of("clang", "cc", "gcc")) {
                 tryOne(type, platform, list, name);
             }
@@ -62,7 +62,7 @@ public class ClangToolProvider implements ToolProvider {
                 return;
             }
             if (res.match) {
-                final ClangCCompilerImpl cc = new ClangCCompilerImpl(path, platform, res.version);
+                final ClangToolChainImpl cc = new ClangToolChainImpl(path, platform, res.version);
                 list.add(type.cast(cc));
             }
         }
