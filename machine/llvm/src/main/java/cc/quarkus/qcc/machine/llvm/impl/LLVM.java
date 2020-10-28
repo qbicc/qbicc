@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.machine.llvm.impl;
 
 import cc.quarkus.qcc.machine.llvm.Module;
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 
 /**
  *
@@ -14,43 +14,43 @@ public final class LLVM {
         return new ModuleImpl();
     }
 
-    public static final Value i1 = new SingleWord("i1");
-    public static final Value i8 = new SingleWord("i8");
-    public static final Value i16 = new SingleWord("i16");
-    public static final Value i24 = new SingleWord("i24");
-    public static final Value i32 = new SingleWord("i32");
-    public static final Value i64 = new SingleWord("i64");
-    public static final Value i128 = new SingleWord("i128");
+    public static final LLValue i1 = new SingleWord("i1");
+    public static final LLValue i8 = new SingleWord("i8");
+    public static final LLValue i16 = new SingleWord("i16");
+    public static final LLValue i24 = new SingleWord("i24");
+    public static final LLValue i32 = new SingleWord("i32");
+    public static final LLValue i64 = new SingleWord("i64");
+    public static final LLValue i128 = new SingleWord("i128");
 
-    public static final Value float16 = new SingleWord("half");
-    public static final Value float32 = new SingleWord("float");
-    public static final Value float64 = new SingleWord("double");
-    public static final Value float128 = new SingleWord("fp128");
+    public static final LLValue float16 = new SingleWord("half");
+    public static final LLValue float32 = new SingleWord("float");
+    public static final LLValue float64 = new SingleWord("double");
+    public static final LLValue float128 = new SingleWord("fp128");
 
-    public static final Value void_ = new SingleWord("void");
+    public static final LLValue void_ = new SingleWord("void");
 
-    public static final Value ZERO = new IntConstant(0);
+    public static final LLValue ZERO = new IntConstant(0);
 
-    public static final Value FALSE = new SingleWord("false");
-    public static final Value TRUE = new SingleWord("true");
+    public static final LLValue FALSE = new SingleWord("false");
+    public static final LLValue TRUE = new SingleWord("true");
 
-    public static Value ptrTo(Value type, int addrSpace) {
+    public static LLValue ptrTo(LLValue type, int addrSpace) {
         return new PointerTo((AbstractValue) type, addrSpace);
     }
 
-    public static Value array(int dimension, Value elementType) {
+    public static LLValue array(int dimension, LLValue elementType) {
         return new ArrayOf(dimension, (AbstractValue) elementType);
     }
 
-    public static Value vector(final boolean vscale, final int dimension, final Value elementType) {
+    public static LLValue vector(final boolean vscale, final int dimension, final LLValue elementType) {
         return new VectorOf(dimension, (AbstractValue) elementType, vscale);
     }
 
-    public static Value intConstant(int val) {
+    public static LLValue intConstant(int val) {
         return new IntConstant(val);
     }
 
-    public static Value intConstant(long val) {
+    public static LLValue intConstant(long val) {
         return new LongConstant(val);
     }
 }

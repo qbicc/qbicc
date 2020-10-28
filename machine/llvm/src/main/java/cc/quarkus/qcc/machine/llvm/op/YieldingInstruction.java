@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.machine.llvm.op;
 
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 
 /**
  *
@@ -8,29 +8,29 @@ import cc.quarkus.qcc.machine.llvm.Value;
 public interface YieldingInstruction extends Instruction {
     YieldingInstruction comment(String comment);
 
-    YieldingInstruction meta(String name, Value data);
+    YieldingInstruction meta(String name, LLValue data);
 
-    Value asGlobal();
+    LLValue asGlobal();
 
-    Value asGlobal(String name);
+    LLValue asGlobal(String name);
 
-    Value asLocal();
+    LLValue asLocal();
 
-    Value asLocal(String name);
+    LLValue asLocal(String name);
 
-    default Value asMetadata() {
+    default LLValue asMetadata() {
         throw new UnsupportedOperationException();
     }
 
-    default Value asMetadata(String name) {
+    default LLValue asMetadata(String name) {
         throw new UnsupportedOperationException();
     }
 
-    default Value asAttribute() {
+    default LLValue asAttribute() {
         throw new UnsupportedOperationException();
     }
 
-    default Value asAttribute(String name) {
+    default LLValue asAttribute(String name) {
         throw new UnsupportedOperationException();
     }
 }

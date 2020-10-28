@@ -2,7 +2,7 @@ package cc.quarkus.qcc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.op.Binary;
 
 abstract class AbstractBinary extends AbstractYieldingInstruction implements Binary {
@@ -17,7 +17,7 @@ abstract class AbstractBinary extends AbstractYieldingInstruction implements Bin
         this.arg2 = arg2;
     }
 
-    public Binary meta(final String name, final Value data) {
+    public Binary meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
     }

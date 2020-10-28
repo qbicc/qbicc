@@ -3,7 +3,7 @@ package cc.quarkus.qcc.machine.llvm.impl;
 import java.io.IOException;
 
 import cc.quarkus.qcc.machine.llvm.Metable;
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -14,7 +14,7 @@ abstract class AbstractMetable extends AbstractCommentable implements Metable {
 
     AbstractMetable() {}
 
-    public Metable meta(final String name, final Value data) {
+    public Metable meta(final String name, final LLValue data) {
         Assert.checkNotNullParam("name", name);
         Assert.checkNotNullParam("data", data);
         lastMetaItem = new MetaItem(lastMetaItem, name, (AbstractValue) data);

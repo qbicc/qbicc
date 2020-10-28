@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Set;
 
 import cc.quarkus.qcc.machine.llvm.FastMathFlag;
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
 import io.smallrye.common.constraint.Assert;
 
@@ -21,7 +21,7 @@ abstract class AbstractFastMathBinary extends AbstractBinary implements FastMath
         return this;
     }
 
-    public FastMathBinary meta(final String name, final Value data) {
+    public FastMathBinary meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
     }

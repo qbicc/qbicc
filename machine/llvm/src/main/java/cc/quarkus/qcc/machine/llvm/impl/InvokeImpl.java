@@ -7,7 +7,7 @@ import cc.quarkus.qcc.machine.llvm.CallingConvention;
 import cc.quarkus.qcc.machine.llvm.FastMathFlag;
 import cc.quarkus.qcc.machine.llvm.SignExtension;
 import cc.quarkus.qcc.machine.llvm.TailType;
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import io.smallrye.common.constraint.Assert;
 
@@ -30,7 +30,7 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
         this.unwind = unwind;
     }
 
-    public Call meta(final String name, final Value data) {
+    public Call meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
     }
@@ -73,7 +73,7 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
         return this;
     }
 
-    public Argument arg(final Value type, final Value value) {
+    public Argument arg(final LLValue type, final LLValue value) {
         return lastArg = new ArgImpl(this, lastArg, (AbstractValue) type, (AbstractValue) value);
     }
 
@@ -127,7 +127,7 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
             this.value = value;
         }
 
-        public Argument arg(final Value type, final Value value) {
+        public Argument arg(final LLValue type, final LLValue value) {
             return call.arg(type, value);
         }
 

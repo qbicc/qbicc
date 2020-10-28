@@ -4,11 +4,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.machine.llvm.BasicBlock;
+import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.op.Assignment;
 import cc.quarkus.qcc.machine.llvm.op.AtomicRmwInstruction;
 import cc.quarkus.qcc.machine.llvm.op.Binary;
@@ -31,7 +31,7 @@ import io.smallrye.common.constraint.Assert;
 /**
  *
  */
-final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
+final class BasicBlockImpl extends AbstractEmittable implements LLBasicBlock {
     final BasicBlockImpl prev;
     final FunctionDefinitionImpl func;
     final List<AbstractEmittable> phis = new ArrayList<>();
@@ -44,7 +44,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         this.func = func;
     }
 
-    public BasicBlock name(final String name) {
+    public LLBasicBlock name(final String name) {
         this.name = Assert.checkNotNullParam("name", name);
         return this;
     }
@@ -71,14 +71,14 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
 
     // not terminator, not starter
 
-    public Phi phi(final Value type) {
+    public Phi phi(final LLValue type) {
         Assert.checkNotNullParam("type", type);
         return addPhi(new PhiImpl(this, (AbstractValue) type));
     }
 
     // terminators
 
-    public Branch br(final BasicBlock dest) {
+    public Branch br(final LLBasicBlock dest) {
         Assert.checkNotNullParam("dest", dest);
         checkTerminated();
         UnconditionalBranchImpl res = new UnconditionalBranchImpl((BasicBlockImpl) dest);
@@ -86,7 +86,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         return res;
     }
 
-    public Branch br(final Value cond, final BasicBlock ifTrue, final BasicBlock ifFalse) {
+    public Branch br(final LLValue cond, final LLBasicBlock ifTrue, final LLBasicBlock ifFalse) {
         Assert.checkNotNullParam("cond", cond);
         Assert.checkNotNullParam("ifTrue", ifTrue);
         Assert.checkNotNullParam("ifFalse", ifFalse);
@@ -102,7 +102,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         return VoidReturn.INSTANCE;
     }
 
-    public Return ret(final Value type, final Value val) {
+    public Return ret(final LLValue type, final LLValue val) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("val", val);
         checkTerminated();
@@ -116,7 +116,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         terminator = Unreachable.INSTANCE;
     }
 
-    public Call invoke(final Value type, final Value function, final BasicBlock normal, final BasicBlock unwind) {
+    public Call invoke(final LLValue type, final LLValue function, final LLBasicBlock normal, final LLBasicBlock unwind) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("function", function);
         Assert.checkNotNullParam("normal", normal);
@@ -129,79 +129,79 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
 
     // starters
 
-    public Assignment assign(final Value value) {
+    public Assignment assign(final LLValue value) {
         Assert.checkNotNullParam("value", value);
         return add(new AssignmentImpl(this, (AbstractValue) value));
     }
 
-    public Select select(final Value condType, final Value cond, final Value valueType, final Value trueValue, final Value falseValue) {
+    public Select select(final LLValue condType, final LLValue cond, final LLValue valueType, final LLValue trueValue, final LLValue falseValue) {
         return add(new SelectImpl(this, (AbstractValue) condType, (AbstractValue) cond, (AbstractValue) valueType, (AbstractValue) trueValue, (AbstractValue) falseValue));
     }
 
-    public NuwNswBinary add(final Value type, final Value arg1, final Value arg2) {
+    public NuwNswBinary add(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new AddImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public NuwNswBinary sub(final Value type, final Value arg1, final Value arg2) {
+    public NuwNswBinary sub(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new SubImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public NuwNswBinary mul(final Value type, final Value arg1, final Value arg2) {
+    public NuwNswBinary mul(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new MulImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public NuwNswBinary shl(final Value type, final Value arg1, final Value arg2) {
+    public NuwNswBinary shl(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new ShlImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public ExactBinary udiv(final Value type, final Value arg1, final Value arg2) {
+    public ExactBinary udiv(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new UdivImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public ExactBinary sdiv(final Value type, final Value arg1, final Value arg2) {
+    public ExactBinary sdiv(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new SdivImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public ExactBinary lshr(final Value type, final Value arg1, final Value arg2) {
+    public ExactBinary lshr(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new LshrImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public ExactBinary ashr(final Value type, final Value arg1, final Value arg2) {
+    public ExactBinary ashr(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new AshrImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public FastMathBinary fmul(final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary fmul(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new FMulImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public FastMathBinary fcmp(final FloatCondition cond, final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary fcmp(final FloatCondition cond, final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("cond", cond);
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
@@ -209,41 +209,41 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         return add(new FCmpImpl(this, cond, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public FastMathBinary fadd(final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary fadd(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new FAddImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public FastMathBinary fsub(final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary fsub(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new FSubImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public FastMathBinary fdiv(final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary fdiv(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new FDivImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public FastMathBinary frem(final Value type, final Value arg1, final Value arg2) {
+    public FastMathBinary frem(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new FRemImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public FastMathUnary fneg(final Value type, final Value arg) {
+    public FastMathUnary fneg(final LLValue type, final LLValue arg) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg", arg);
         return add(new FNegImpl(this, (AbstractValue) type, (AbstractValue) arg));
     }
 
-    public Binary icmp(final IntCondition cond, final Value type, final Value arg1, final Value arg2) {
+    public Binary icmp(final IntCondition cond, final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("cond", cond);
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
@@ -251,125 +251,125 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         return add(new IcmpImpl(this, cond, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public Binary and(final Value type, final Value arg1, final Value arg2) {
+    public Binary and(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new AndImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public Binary or(final Value type, final Value arg1, final Value arg2) {
+    public Binary or(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new OrImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public Binary xor(final Value type, final Value arg1, final Value arg2) {
+    public Binary xor(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new XorImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public Binary urem(final Value type, final Value arg1, final Value arg2) {
+    public Binary urem(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new URemImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public Binary srem(final Value type, final Value arg1, final Value arg2) {
+    public Binary srem(final LLValue type, final LLValue arg1, final LLValue arg2) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("arg1", arg1);
         Assert.checkNotNullParam("arg2", arg2);
         return add(new SRemImpl(this, (AbstractValue) type, (AbstractValue) arg1, (AbstractValue) arg2));
     }
 
-    public YieldingInstruction trunc(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction trunc(final LLValue type, final LLValue value, final LLValue toType) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         Assert.checkNotNullParam("toType", toType);
         return add(new TruncImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
-    public YieldingInstruction ftrunc(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction ftrunc(final LLValue type, final LLValue value, final LLValue toType) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         Assert.checkNotNullParam("toType", toType);
         return add(new FTruncImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
-    public YieldingInstruction fpext(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction fpext(final LLValue type, final LLValue value, final LLValue toType) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         Assert.checkNotNullParam("toType", toType);
         return add(new FPExtImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
-    public YieldingInstruction sext(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction sext(final LLValue type, final LLValue value, final LLValue toType) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         Assert.checkNotNullParam("toType", toType);
         return add(new SExtImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
-    public YieldingInstruction zext(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction zext(final LLValue type, final LLValue value, final LLValue toType) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         Assert.checkNotNullParam("toType", toType);
         return add(new ZExtImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
-    public YieldingInstruction bitcast(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction bitcast(final LLValue type, final LLValue value, final LLValue toType) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         Assert.checkNotNullParam("toType", toType);
         return add(new BitCastImpl(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
-    public YieldingInstruction fptosi(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction fptosi(final LLValue type, final LLValue value, final LLValue toType) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         Assert.checkNotNullParam("toType", toType);
         return add(new FPToSI(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
-    public YieldingInstruction fptoui(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction fptoui(final LLValue type, final LLValue value, final LLValue toType) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         Assert.checkNotNullParam("toType", toType);
         return add(new FPToUI(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
-    public YieldingInstruction sitofp(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction sitofp(final LLValue type, final LLValue value, final LLValue toType) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         Assert.checkNotNullParam("toType", toType);
         return add(new SIToFP(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
-    public YieldingInstruction uitofp(final Value type, final Value value, final Value toType) {
+    public YieldingInstruction uitofp(final LLValue type, final LLValue value, final LLValue toType) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         Assert.checkNotNullParam("toType", toType);
         return add(new UIToFP(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
-    public Call call(final Value type, final Value function) {
+    public Call call(final LLValue type, final LLValue function) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("function", function);
         return add(new CallImpl(this, (AbstractValue) type, (AbstractValue) function));
     }
 
-    public Load load(final Value type, final Value pointeeType, final Value pointer) {
+    public Load load(final LLValue type, final LLValue pointeeType, final LLValue pointer) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("pointeeType", pointeeType);
         Assert.checkNotNullParam("pointer", pointer);
         return add(new LoadImpl(this, (AbstractValue) type, (AbstractValue) pointeeType, (AbstractValue) pointer));
     }
 
-    public Store store(final Value type, final Value value, final Value pointeeType, final Value pointer) {
+    public Store store(final LLValue type, final LLValue value, final LLValue pointeeType, final LLValue pointer) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
         Assert.checkNotNullParam("pointeeType", pointeeType);
@@ -386,7 +386,7 @@ final class BasicBlockImpl extends AbstractEmittable implements BasicBlock {
         throw Assert.unsupported();
     }
 
-    public BasicBlock createBlock() {
+    public LLBasicBlock createBlock() {
         return func.createBlock();
     }
 

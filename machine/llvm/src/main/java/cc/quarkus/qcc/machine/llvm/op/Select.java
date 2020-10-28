@@ -3,13 +3,13 @@ package cc.quarkus.qcc.machine.llvm.op;
 import java.util.Set;
 
 import cc.quarkus.qcc.machine.llvm.FastMathFlag;
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 
 /**
  *
  */
 public interface Select extends YieldingInstruction {
-    Select meta(String name, Value data);
+    Select meta(String name, LLValue data);
 
     Select comment(String comment);
 

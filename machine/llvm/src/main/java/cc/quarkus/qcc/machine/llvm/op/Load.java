@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.machine.llvm.op;
 
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 
 /**
  *
@@ -8,7 +8,7 @@ import cc.quarkus.qcc.machine.llvm.Value;
 public interface Load extends YieldingInstruction {
     Load comment(String comment);
 
-    Load meta(String name, Value data);
+    Load meta(String name, LLValue data);
 
     Load align(int alignment);
 

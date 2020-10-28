@@ -2,7 +2,7 @@ package cc.quarkus.qcc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.Value;
+import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
 import io.smallrye.common.constraint.Assert;
@@ -24,7 +24,7 @@ final class LoadImpl extends AbstractYieldingInstruction implements Load {
         this.pointer = pointer;
     }
 
-    public Load meta(final String name, final Value data) {
+    public Load meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
     }
