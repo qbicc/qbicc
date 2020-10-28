@@ -472,7 +472,7 @@ public class Driver implements Closeable {
         final List<Consumer<? super CompilationContext>> postGenerateHooks = new ArrayList<>();
         final List<ElementVisitor<CompilationContext, Void>> generateVisitors = new ArrayList<>();
 
-        Path outputDirectory;
+        Path outputDirectory = Path.of(".");
         BaseDiagnosticContext initialContext;
         Platform targetPlatform;
         TypeSystem typeSystem;
