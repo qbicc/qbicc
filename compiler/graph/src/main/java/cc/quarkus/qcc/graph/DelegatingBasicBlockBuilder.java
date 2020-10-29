@@ -18,10 +18,10 @@ import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
  * A graph factory which delegates all operations to another graph factory.  Can be used as a base class for graph
  * modifying plugins.
  */
-public class DelegatingGraphFactory implements BasicBlockBuilder {
+public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
     private final BasicBlockBuilder delegate;
 
-    public DelegatingGraphFactory(final BasicBlockBuilder delegate) {
+    public DelegatingBasicBlockBuilder(final BasicBlockBuilder delegate) {
         this.delegate = delegate;
     }
 
