@@ -1,25 +1,19 @@
 package cc.quarkus.qcc.graph;
 
-import java.util.List;
-
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 
 /**
  * An operation which may throw an exception.
  */
 public final class Try extends AbstractNode implements Resume {
-    private final Node dependency;
     private final Triable delegateOperation;
-    private final List<ClassTypeIdLiteral> catchTypeIds;
-    private final List<BlockLabel> catchTargetLabels;
+    private final CatchMapper catchMapper;
     private final BlockLabel resumeTargetLabel;
 
-    Try(final Node dependency, final Triable delegateOperation, final List<ClassTypeIdLiteral> catchTypeIds, final List<BlockLabel> catchTargetLabels, final BlockLabel resumeTargetLabel) {
-        super(0, -1);
-        this.dependency = dependency;
+    Try(final Triable delegateOperation, final CatchMapper catchMapper, final BlockLabel resumeTargetLabel) {
+        super(delegateOperation.getSourceLine(), delegateOperation.getBytecodeIndex());
         this.delegateOperation = delegateOperation;
-        this.catchTypeIds = catchTypeIds;
-        this.catchTargetLabels = catchTargetLabels;
+        this.catchMapper = catchMapper;
         this.resumeTargetLabel = resumeTargetLabel;
     }
 
@@ -27,56 +21,93 @@ public final class Try extends AbstractNode implements Resume {
         return delegateOperation;
     }
 
-    public int getCatchTypeIdCount() {
-        return catchTypeIds.size();
-    }
-
-    public ClassTypeIdLiteral getCatchTypeId(int index) {
-        return catchTypeIds.get(index);
-    }
-
-    public List<ClassTypeIdLiteral> getCatchTypeIds() {
-        return catchTypeIds;
-    }
-
-    public BasicBlock getCatchTarget(int index) {
-        return BlockLabel.getTargetOf(catchTargetLabels.get(index));
-    }
-
-    public BlockLabel getCatchTargetLabel(int index) {
-        return catchTargetLabels.get(index);
+    public CatchMapper getCatchMapper() {
+        return catchMapper;
     }
 
     public BlockLabel getResumeTargetLabel() {
         return resumeTargetLabel;
     }
 
-    public List<BlockLabel> getCatchTargetLabels() {
-        return catchTargetLabels;
-    }
-
-    public Node getDependency() {
-        return dependency;
-    }
-
     public int getBasicDependencyCount() {
-        return 2;
+        return 1;
     }
 
     public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : index == 1 ? delegateOperation : Util.throwIndexOutOfBounds(index);
+        return index == 0 ? delegateOperation : Util.throwIndexOutOfBounds(index);
     }
 
     public int getSuccessorCount() {
-        return 1 + catchTargetLabels.size();
+        return 1 + catchMapper.getCatchCount();
     }
 
     public BasicBlock getSuccessor(final int index) {
-        int length = catchTargetLabels.size();
-        return index < length ? getCatchTarget(index) : index == length ? getResumeTarget() : Util.throwIndexOutOfBounds(index);
+        return index == 0 ? BlockLabel.getTargetOf(resumeTargetLabel) : catchMapper.getCatch(index - 1).getPinnedBlock();
     }
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    /**
+     * A mapper for try/catch, which returns the catch handler for a given throwable type.
+     */
+    public interface CatchMapper {
+        /**
+         * The catch mapper when there is no active {@code try} handler.
+         */
+        CatchMapper NONE = new CatchMapper() {
+            public int getCatchCount() {
+                return 0;
+            }
+
+            public ClassTypeIdLiteral getCatchType(final int index) {
+                throw new IndexOutOfBoundsException();
+            }
+
+            public PhiValue getCatch(final int index) {
+                throw new IndexOutOfBoundsException();
+            }
+        };
+
+        /**
+         * Get the number of catch blocks for this catch mapper.  For a delegating catch mapper, this will
+         * generally be one plus the number of the catch blocks of the delegate.
+         *
+         * @return the catch block count
+         */
+        int getCatchCount();
+
+        /**
+         * Get the type of the catch block with the given index.
+         *
+         * @param index the index
+         * @return the type of the catch block
+         */
+        ClassTypeIdLiteral getCatchType(int index);
+
+        /**
+         * Get the catch block with the given index.
+         *
+         * @param index the index
+         * @return the catch block phi (must not be {@code null})
+         */
+        PhiValue getCatch(int index);
+
+        interface Delegating extends CatchMapper {
+            CatchMapper getDelegate();
+
+            default int getCatchCount() {
+                return getDelegate().getCatchCount();
+            }
+
+            default ClassTypeIdLiteral getCatchType(int index) {
+                return getDelegate().getCatchType(index);
+            }
+
+            default PhiValue getCatch(int index) {
+                return getDelegate().getCatch(index);
+            }
+        }
     }
 }

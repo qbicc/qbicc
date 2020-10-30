@@ -47,6 +47,21 @@ public interface BasicBlockBuilder {
      */
     int setBytecodeIndex(int newBytecodeIndex);
 
+    /**
+     * Get the current catch mapper for triable nodes.
+     *
+     * @return the current catch mapper (not {@code null})
+     */
+    Try.CatchMapper getCatchMapper();
+
+    /**
+     * Set the current catch mapper to use for triable nodes.
+     *
+     * @param catchMapper the catch mapper (must not be {@code null})
+     * @return the previously set catch mapper (not {@code null})
+     */
+    Try.CatchMapper setCatchMapper(Try.CatchMapper catchMapper);
+
     // values
 
     Value receiver(TypeIdLiteral upperBound);
@@ -267,7 +282,7 @@ public interface BasicBlockBuilder {
      */
     BasicBlock ret(Value address);
 
-    BasicBlock try_(Triable operation, List<ClassTypeIdLiteral> catchTypeIds, List<BlockLabel> catchTargetLabels, BlockLabel resumeLabel);
+    BasicBlock try_(Triable operation, BlockLabel resumeLabel);
 
     /**
      * Terminate the block with a class cast exception.
@@ -292,10 +307,11 @@ public interface BasicBlockBuilder {
     static BasicBlockBuilder simpleBuilder(final TypeSystem typeSystem, final ExecutableElement element) {
         return new BasicBlockBuilder() {
             private int line;
-            private int bci;
+            private int bci = -1;
             private Node dependency;
             private BlockEntry blockEntry;
             private BlockLabel currentBlock;
+            private Try.CatchMapper catchMapper = Try.CatchMapper.NONE;
 
             public ExecutableElement getCurrentElement() {
                 return element;
@@ -314,6 +330,18 @@ public interface BasicBlockBuilder {
                     return bci;
                 } finally {
                     bci = newBytecodeIndex;
+                }
+            }
+
+            public Try.CatchMapper getCatchMapper() {
+                return catchMapper;
+            }
+
+            public Try.CatchMapper setCatchMapper(final Try.CatchMapper catchMapper) {
+                try {
+                    return this.catchMapper;
+                } finally {
+                    this.catchMapper = Assert.checkNotNullParam("catchMapper", catchMapper);
                 }
             }
 
@@ -592,8 +620,8 @@ public interface BasicBlockBuilder {
                 return terminate(requireCurrentBlock(), new Ret(line, bci, dependency, address));
             }
 
-            public BasicBlock try_(final Triable operation, final List<ClassTypeIdLiteral> catchTypeIds, final List<BlockLabel> catchTargetLabels, final BlockLabel resumeLabel) {
-                return terminate(requireCurrentBlock(), new Try(dependency, operation, catchTypeIds, catchTargetLabels, resumeLabel));
+            public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel) {
+                return terminate(requireCurrentBlock(), new Try(operation, catchMapper, resumeLabel));
             }
 
             public BasicBlock classCastException(final Value fromType, final Value toType) {

@@ -37,6 +37,14 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().setBytecodeIndex(newBytecodeIndex);
     }
 
+    public Try.CatchMapper getCatchMapper() {
+        return getDelegate().getCatchMapper();
+    }
+
+    public Try.CatchMapper setCatchMapper(final Try.CatchMapper catchMapper) {
+        return getDelegate().setCatchMapper(catchMapper);
+    }
+
     public BasicBlockBuilder getDelegate() {
         return delegate;
     }
@@ -321,7 +329,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().typeIdOf(value);
     }
 
-    public BasicBlock try_(final Triable operation, final List<ClassTypeIdLiteral> catchTypeIds, final List<BlockLabel> catchTargetLabels, final BlockLabel resumeLabel) {
-        return getDelegate().try_(operation, catchTypeIds, catchTargetLabels, resumeLabel);
+    public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel) {
+        return getDelegate().try_(operation, resumeLabel);
     }
 }

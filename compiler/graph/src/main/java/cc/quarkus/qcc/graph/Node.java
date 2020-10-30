@@ -280,7 +280,7 @@ public interface Node {
             }
 
             public BasicBlock visit(Copier param, Try node) {
-                return param.getBlockBuilder().try_(param.copyTriable(node.getDelegateOperation()), node.getCatchTypeIds(), param.copyBlockLabels(node.getCatchTargetLabels()), param.copyBlock(node.getResumeTarget()));
+                return param.getBlockBuilder().try_(param.copyTriable(node.getDelegateOperation()), param.copyBlock(node.getResumeTarget()));
             }
 
             public BasicBlock visit(Copier param, ValueReturn node) {
