@@ -474,7 +474,7 @@ public interface BasicBlockBuilder {
             }
 
             public Value catch_(final TypeIdLiteral upperBound) {
-                return new Catch(requireCurrentBlock(), typeSystem.getReferenceType(Assert.checkNotNullParam("upperBound", upperBound)));
+                return new Catch(typeSystem.getReferenceType(Assert.checkNotNullParam("upperBound", upperBound)));
             }
 
             public PhiValue phi(final ValueType type, final BlockLabel owner) {
@@ -551,24 +551,41 @@ public interface BasicBlockBuilder {
                 return asDependency(new MonitorExit(line, bci, requireDependency(), Assert.checkNotNullParam("obj", obj)));
             }
 
+            <N extends Node & Triable> N optionallyTry(N op) {
+                Try.CatchMapper catchMapper = this.catchMapper;
+                int cnt = catchMapper.getCatchCount();
+                if (cnt > 0) {
+                    BlockLabel resume = new BlockLabel();
+                    BasicBlock block = try_(op, resume);
+                    for (int i = 0; i < cnt; i ++) {
+                        PhiValue catch_ = catchMapper.getCatch(i);
+                        catch_.setValueForBlock(block, catch_(catchMapper.getCatchType(i)));
+                    }
+                    begin(resume);
+                    return op;
+                } else {
+                    return asDependency(op);
+                }
+            }
+
             public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
-                return asDependency(new StaticInvocation(line, bci, requireDependency(), target, arguments));
+                return optionallyTry(new StaticInvocation(line, bci, requireDependency(), target, arguments));
             }
 
             public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-                return asDependency(new InstanceInvocation(line, bci, requireDependency(), kind, instance, target, arguments));
+                return optionallyTry(new InstanceInvocation(line, bci, requireDependency(), kind, instance, target, arguments));
             }
 
             public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-                return asDependency(new StaticInvocationValue(line, bci, requireDependency(), target, arguments));
+                return optionallyTry(new StaticInvocationValue(line, bci, requireDependency(), target, arguments));
             }
 
             public Value invokeInstanceValueMethod(final Value instance, final DispatchInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
-                return asDependency(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, arguments));
+                return optionallyTry(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, arguments));
             }
 
             public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
-                return asDependency(new ConstructorInvocation(line, bci, requireDependency(), instance, target, arguments));
+                return optionallyTry(new ConstructorInvocation(line, bci, requireDependency(), instance, target, arguments));
             }
 
             public Node nop() {
