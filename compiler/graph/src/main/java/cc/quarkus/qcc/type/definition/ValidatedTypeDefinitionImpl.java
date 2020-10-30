@@ -43,9 +43,13 @@ final class ValidatedTypeDefinitionImpl implements ValidatedTypeDefinition {
             interfaceTypes[i] = (InterfaceTypeIdLiteral) classType;
         }
         if (isInterface()) {
-            typeId = getContext().getLiteralFactory().literalOfInterface(getInternalName(), interfaceTypes);
+            InterfaceTypeIdLiteral interfaceTypeId = getContext().getLiteralFactory().literalOfInterface(getInternalName(), interfaceTypes);
+            getContext().registerInterfaceLiteral(interfaceTypeId, this);
+            typeId = interfaceTypeId;
         } else {
-            typeId = getContext().getLiteralFactory().literalOfClass(getInternalName(), superType == null ? null : (ClassTypeIdLiteral) superType.getTypeId(), interfaceTypes);
+            ClassTypeIdLiteral classTypeId = getContext().getLiteralFactory().literalOfClass(getInternalName(), superType == null ? null : (ClassTypeIdLiteral) superType.getTypeId(), interfaceTypes);
+            getContext().registerClassLiteral(classTypeId, this);
+            typeId = classTypeId;
         }
         instanceFieldSet = new FieldSet(this, false);
         staticFieldSet = new FieldSet(this, true);
