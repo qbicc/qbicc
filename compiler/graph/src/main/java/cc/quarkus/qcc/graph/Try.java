@@ -42,7 +42,7 @@ public final class Try extends AbstractNode implements Resume {
     }
 
     public BasicBlock getSuccessor(final int index) {
-        return index == 0 ? BlockLabel.getTargetOf(resumeTargetLabel) : catchMapper.getCatch(index - 1).getPinnedBlock();
+        return index == 0 ? BlockLabel.getTargetOf(resumeTargetLabel) : BlockLabel.getTargetOf(catchMapper.getCatchHandler(index - 1));
     }
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
@@ -65,7 +65,11 @@ public final class Try extends AbstractNode implements Resume {
                 throw new IndexOutOfBoundsException();
             }
 
-            public PhiValue getCatch(final int index) {
+            public BlockLabel getCatchHandler(final int index) {
+                throw new IndexOutOfBoundsException();
+            }
+
+            public void setCatchValue(final int index, final BasicBlock from, final Value value) {
                 throw new IndexOutOfBoundsException();
             }
         };
@@ -87,12 +91,24 @@ public final class Try extends AbstractNode implements Resume {
         ClassTypeIdLiteral getCatchType(int index);
 
         /**
-         * Get the catch block with the given index.
+         * Get the block label of the handler with the given index.
          *
          * @param index the index
-         * @return the catch block phi (must not be {@code null})
+         * @return the catch handler (must not be {@code null})
          */
-        PhiValue getCatch(int index);
+        BlockLabel getCatchHandler(int index);
+
+        /**
+         * Set the catch value to the given value {@code value} when the handler at index {@code index} is called
+         * from block {@code from}.  The exception value may be a {@link Catch} or it may be a value that was thrown
+         * by an immediate {@code throw}.  The associated {@link BasicBlockBuilder} must <em>not</em> have a current
+         * block when this is called.
+         *
+         * @param index the index
+         * @param from the from block
+         * @param value the exception value
+         */
+        void setCatchValue(int index, BasicBlock from, Value value);
 
         interface Delegating extends CatchMapper {
             CatchMapper getDelegate();
@@ -105,8 +121,12 @@ public final class Try extends AbstractNode implements Resume {
                 return getDelegate().getCatchType(index);
             }
 
-            default PhiValue getCatch(int index) {
-                return getDelegate().getCatch(index);
+            default BlockLabel getCatchHandler(int index) {
+                return getDelegate().getCatchHandler(index);
+            }
+
+            default void setCatchValue(int index, BasicBlock from, Value value) {
+                getDelegate().setCatchValue(index, from, value);
             }
         }
     }

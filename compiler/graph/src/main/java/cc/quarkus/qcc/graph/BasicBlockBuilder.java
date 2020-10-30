@@ -558,8 +558,8 @@ public interface BasicBlockBuilder {
                     BlockLabel resume = new BlockLabel();
                     BasicBlock block = try_(op, resume);
                     for (int i = 0; i < cnt; i ++) {
-                        PhiValue catch_ = catchMapper.getCatch(i);
-                        catch_.setValueForBlock(block, catch_(catchMapper.getCatchType(i)));
+                        // may recursively process catch handler block
+                        catchMapper.setCatchValue(i, block, catch_(catchMapper.getCatchType(i)));
                     }
                     begin(resume);
                     return op;

@@ -23,10 +23,11 @@ public class LocalThrowHandlingBasicBlockBuilder extends DelegatingBasicBlockBui
             ClassTypeIdLiteral catchType = catchMapper.getCatchType(i);
             if (catchType.isSubtypeOf(upperBound)) {
                 // it's a possible match
-                PhiValue phiValue = catchMapper.getCatch(i);
                 BlockLabel resumeLabel = new BlockLabel();
                 // compare the thrown type; if it is >= the catch type, go to the exception handler block
-                phiValue.setValueForBlock(if_(cmpGe(tid, upperBound), phiValue.getPinnedBlockLabel(), resumeLabel), value);
+                BlockLabel handlerLabel = catchMapper.getCatchHandler(i);
+                // may recursively process catch handler block
+                catchMapper.setCatchValue(i, if_(cmpGe(tid, upperBound), handlerLabel, resumeLabel), value);
                 begin(resumeLabel);
             }
         }
