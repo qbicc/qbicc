@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.DelegatingGraphFactory;
+import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
@@ -22,7 +22,7 @@ import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 
-final class PatcherGraphFactory extends DelegatingGraphFactory implements BasicBlockBuilder {
+final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder implements BasicBlockBuilder {
     /**
      * A mapping of patch-to-patched class types.
      */
@@ -41,7 +41,7 @@ final class PatcherGraphFactory extends DelegatingGraphFactory implements BasicB
     private final Map<ParameterizedExecutableElement, ParameterizedExecutableElement> patchMethods = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
 
-    PatcherGraphFactory(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    PatcherBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
     }

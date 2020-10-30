@@ -5,8 +5,8 @@ import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 /**
  * A graph factory which performs simple optimizations opportunistically.
  */
-public class SimpleOptGraphFactory extends DelegatingGraphFactory {
-    public SimpleOptGraphFactory(final BasicBlockBuilder delegate) {
+public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+    public SimpleOptBasicBlockBuilder(final BasicBlockBuilder delegate) {
         super(delegate);
     }
 
