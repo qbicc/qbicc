@@ -361,7 +361,7 @@ public class Driver implements Closeable {
         }
 
         element = compilationContext.dequeue();
-        if (element != null) do {
+        while (element != null) {
             // make sure the initializer is enqueued
             InitializerElement initializer = element.getEnclosingType().validate().resolve().getInitializer();
             if (initializer != null) {
@@ -379,7 +379,7 @@ public class Driver implements Closeable {
                 methodHandle.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), thisValue, paramValues));
             }
             element = compilationContext.dequeue();
-        } while (element != null);
+        }
 
         if (compilationContext.errors() > 0) {
             // bail out
@@ -408,7 +408,7 @@ public class Driver implements Closeable {
         List<ElementVisitor<CompilationContext, Void>> generateVisitors = this.generateVisitors;
 
         element = compilationContext.dequeue();
-        if (element != null) do {
+        while (element != null) {
             for (ElementVisitor<CompilationContext, Void> elementVisitor : generateVisitors) {
                 try {
                     element.accept(elementVisitor, compilationContext);
@@ -417,7 +417,12 @@ public class Driver implements Closeable {
                 }
             }
             element = compilationContext.dequeue();
-        } while (element != null);
+        }
+
+        if (compilationContext.errors() > 0) {
+            // bail out
+            return false;
+        }
 
         // Finalize
 
