@@ -76,7 +76,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             MethodElement methodElement = classFile.resolveMethod(index, enclosing);
             int paramCount = methodElement.getParameterCount();
             BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder(methodElement);
-            MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, gf);
+            MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, byteCode, gf);
             Value[] parameters = new Value[paramCount];
             int j = 0;
             Value thisValue;
@@ -94,9 +94,20 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
                 methodParser.setLocal(j, class2 ? methodParser.fatten(parameters[i]) : parameters[i]);
                 j += class2 ? 2 : 1;
             }
-            BlockLabel entryBlockHandle = new BlockLabel();
+            // process the main entry point
+            int idx = classMethodInfo.getEntryPointIndex(0);
+            BlockLabel entryBlockHandle;
+            entryBlockHandle = new BlockLabel();
             gf.begin(entryBlockHandle);
-            methodParser.processNewBlock(byteCode);
+            if (idx < 0) {
+                // no loop to start block; just process it as a new block
+                byteCode.position(0);
+                methodParser.processNewBlock();
+            } else {
+                // we have to jump into it because there is a loop that includes index 0
+                byteCode.position(0);
+                methodParser.processBlock(gf.goto_(methodParser.getBlockForIndex(0)));
+            }
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
             Schedule schedule = Schedule.forMethod(entryBlock);
             return this.resolved = MethodBody.of(entryBlock, schedule, thisValue, parameters);

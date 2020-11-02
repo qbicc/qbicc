@@ -20,6 +20,7 @@ import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Ret;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.TerminatorVisitor;
+import cc.quarkus.qcc.graph.Try;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
@@ -51,6 +52,7 @@ final class MethodParser {
     final Value[] locals;
     final HashSet<Value> fatValues;
     final BlockLabel[] blockHandles;
+    final ByteBuffer buffer;
     private Map<BasicBlock, Value[]> retStacks;
     private Map<BasicBlock, Value[]> retLocals;
     private final BasicBlockBuilder gf;
@@ -59,13 +61,14 @@ final class MethodParser {
     private final TypeSystem ts;
     int sp;
 
-    MethodParser(final ClassContext ctxt, final ClassMethodInfo info, final BasicBlockBuilder graphFactory) {
+    MethodParser(final ClassContext ctxt, final ClassMethodInfo info, final ByteBuffer buffer, final BasicBlockBuilder graphFactory) {
         this.ctxt = ctxt;
         lf = ctxt.getLiteralFactory();
         ts = ctxt.getTypeSystem();
         this.info = info;
         stack = new Value[info.getMaxStack()];
         locals = new Value[info.getMaxLocals()];
+        this.buffer = buffer;
         int cnt = info.getEntryPointCount();
         BlockLabel[] blockHandles = new BlockLabel[cnt];
         int dest = -1;
@@ -77,9 +80,79 @@ final class MethodParser {
         // it's not an entry point
         gf = graphFactory;
         fatValues = new HashSet<>();
-        for (Value local : locals) {
+        // catch mapper is sensitive to buffer index
+        gf.setCatchMapper(new Try.CatchMapper() {
+            public int getCatchCount() {
+                int etl = info.getExTableLen();
+                int pos = buffer.position();
+                int cnt = 0;
+                for (int i = 0; i < etl; i++) {
+                    if (info.getExTableEntryStartPc(i) <= pos && pos < info.getExTableEntryEndPc(i)) {
+                        cnt++;
+                    }
+                }
+                return cnt;
+            }
 
-        }
+            public ClassTypeIdLiteral getCatchType(final int index) {
+                int etl = info.getExTableLen();
+                int pos = buffer.position();
+                int cnt = -1;
+                for (int i = 0; i < etl; i++) {
+                    if (info.getExTableEntryStartPc(i) <= pos && pos < info.getExTableEntryEndPc(i)) {
+                        cnt++;
+                    }
+                    if (cnt == index) {
+                        return (ClassTypeIdLiteral) getConstantValue(info.getExTableEntryTypeIdx(i));
+                    }
+                }
+                throw new IndexOutOfBoundsException();
+            }
+
+            public BlockLabel getCatchHandler(final int index) {
+                int etl = info.getExTableLen();
+                int pos = buffer.position();
+                int cnt = -1;
+                for (int i = 0; i < etl; i++) {
+                    if (info.getExTableEntryStartPc(i) <= pos && pos < info.getExTableEntryEndPc(i)) {
+                        cnt++;
+                    }
+                    if (cnt == index) {
+                        return getBlockForIndex(info.getExTableEntryHandlerPc(i));
+                    }
+                }
+                throw new IndexOutOfBoundsException();
+            }
+
+            public void setCatchValue(final int index, final BasicBlock from, final Value value) {
+                int etl = info.getExTableLen();
+                int pos = buffer.position();
+                int cnt = -1;
+                for (int i = 0; i < etl; i++) {
+                    if (info.getExTableEntryStartPc(i) <= pos && pos < info.getExTableEntryEndPc(i)) {
+                        cnt++;
+                    }
+                    if (cnt == index) {
+                        int handlerPc = info.getExTableEntryHandlerPc(i);
+                        BlockLabel block = getBlockForIndex(handlerPc);
+                        // we must enter this block from the `from` block; so we have to save our state
+                        Value[] locals = saveLocals();
+                        Value[] stack = saveStack();
+                        clearStack();
+                        push(value);
+                        buffer.position(handlerPc);
+                        processBlock(from);
+                        // restore everything like nothing happened...
+                        buffer.position(pos);
+                        restoreLocals(locals);
+                        restoreStack(stack);
+                        // and we're done
+                        return;
+                    }
+                }
+                throw new IndexOutOfBoundsException();
+            }
+        });
     }
 
     // fat values
@@ -281,10 +354,10 @@ final class MethodParser {
      * Process a single block.  The current stack and locals are used as a template for the phi value types within
      * the block.  At exit the stack and locals are in an indeterminate state.
      *
-     * @param buffer the bytecode buffer
      * @param from the source (exiting) block
      */
-    void processBlock(ByteBuffer buffer, BasicBlock from) {
+    void processBlock(BasicBlock from) {
+        ByteBuffer buffer = this.buffer;
         // this is the canonical map key handle
         BlockLabel block = getBlockForIndex(buffer.position());
         assert block != null : "No block registered for BCI " + buffer.position();
@@ -344,11 +417,12 @@ final class MethodParser {
             entryStacks.put(block, entryStack);
             restoreStack(entryStack);
             restoreLocals(entryLocalsArray);
-            processNewBlock(buffer);
+            processNewBlock();
         }
     }
 
-    void processNewBlock(ByteBuffer buffer) {
+    void processNewBlock() {
+        ByteBuffer buffer = this.buffer;
         Value v1, v2, v3, v4;
         int opcode;
         int src;
@@ -840,7 +914,8 @@ final class MethodParser {
                     int target = src + (opcode == OP_GOTO ? buffer.getShort() : buffer.getInt());
                     BasicBlock from = gf.goto_(getBlockForIndex(target));
                     // set the position after, so that the bci for the instruction is correct
-                    processBlock(buffer.position(target), from);
+                    buffer.position(target);
+                    processBlock(from);
                     return;
                 }
                 case OP_JSR:
@@ -854,7 +929,8 @@ final class MethodParser {
                     // the jsr call
                     BasicBlock termBlock = gf.jsr(dest, lf.literalOf(retBlock));
                     // process the jsr call target block with our current stack
-                    processBlock(buffer.position(target), termBlock);
+                    buffer.position(target);
+                    processBlock(termBlock);
                     // now process the return block once for each returning path (as if the ret is a goto);
                     // the ret visitor will continue parsing if the jsr returns (as opposed to throwing)
                     new RetVisitor(buffer, ret).handleBlock(BlockLabel.getTargetOf(dest));
@@ -881,11 +957,13 @@ final class MethodParser {
                     BasicBlock exited = gf.switch_(pop1(), vals, handles, getBlockForIndex(db + src));
                     Value[] stackSnap = saveStack();
                     Value[] varSnap = saveLocals();
-                    processBlock(buffer.position(db + src), exited);
+                    buffer.position(db + src);
+                    processBlock(exited);
                     for (int i = 0; i < handles.length; i++) {
                         restoreStack(stackSnap);
                         restoreLocals(varSnap);
-                        processBlock(buffer.position(dests[i]), exited);
+                        buffer.position(dests[i]);
+                        processBlock(exited);
                     }
                     // done
                     return;
@@ -903,11 +981,13 @@ final class MethodParser {
                     exited = gf.switch_(pop1(), vals, handles, getBlockForIndex(db + src));
                     stackSnap = saveStack();
                     varSnap = saveLocals();
-                    processBlock(buffer.position(db + src), exited);
+                    buffer.position(db + src);
+                    processBlock(exited);
                     for (int i = 0; i < handles.length; i++) {
                         restoreStack(stackSnap);
                         restoreLocals(varSnap);
-                        processBlock(buffer.position(dests[i]), exited);
+                        buffer.position(dests[i]);
+                        processBlock(exited);
                     }
                     // done
                     return;
@@ -1164,7 +1244,7 @@ final class MethodParser {
             int epIdx = info.getEntryPointIndex(buffer.position());
             if (epIdx >= 0 && info.getEntryPointSourceCount(epIdx) > 1) {
                 // two or more blocks enter here; start a new block via goto
-                processBlock(buffer, gf.goto_(blockHandles[epIdx]));
+                processBlock(gf.goto_(blockHandles[epIdx]));
                 return;
             }
         }
@@ -1189,10 +1269,12 @@ final class MethodParser {
         BasicBlock from = gf.if_(cond, b1, b2);
         Value[] varSnap = saveLocals();
         Value[] stackSnap = saveStack();
-        processBlock(buffer.position(dest1), from);
+        buffer.position(dest1);
+        processBlock(from);
         restoreStack(stackSnap);
         restoreLocals(varSnap);
-        processBlock(buffer.position(dest2), from);
+        buffer.position(dest2);
+        processBlock(from);
     }
 
     private ClassFileImpl getClassFile() {
@@ -1337,7 +1419,8 @@ final class MethodParser {
                     // goto the return block
                     restoreLocals(retLocals.get(block));
                     restoreStack(retStacks.get(block));
-                    processBlock(buffer.position(ret), block);
+                    buffer.position(ret);
+                    processBlock(block);
                 } else {
                     block.getTerminator().accept(this, null);
                 }

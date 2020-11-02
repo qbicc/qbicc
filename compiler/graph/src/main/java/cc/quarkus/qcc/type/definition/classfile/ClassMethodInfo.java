@@ -21,8 +21,7 @@ final class ClassMethodInfo {
     private final int maxLocals;
     private final int codeOffs;
     private final int codeLen;
-    private final int exTableOffs;
-    private final int exTableLen;
+    private final short[] exTable; // format: start end handler type_idx
 
     private final short[] entryPoints; // format: dest-bci (unsigned) cnt (unsigned), sorted by dest-bci
 
@@ -174,9 +173,17 @@ final class ClassMethodInfo {
                 }
             }
         }
-        exTableLen = codeAttr.getShort() & 0xffff;
-        exTableOffs = codeAttr.position();
-        codeAttr.position(exTableOffs + (exTableLen << 3));
+        int exTableLen = codeAttr.getShort() & 0xffff;
+        short[] exTable = new short[exTableLen << 2];
+        int base;
+        for (int i = 0; i < exTableLen; i ++) {
+            base = i << 2;
+            exTable[base] = codeAttr.getShort();
+            exTable[base + 1] = codeAttr.getShort();
+            exTable[base + 2] = codeAttr.getShort();
+            exTable[base + 3] = codeAttr.getShort();
+        }
+        this.exTable = exTable;
         int attrCnt = codeAttr.getShort() & 0xffff;
         short[] lineNumberTable = NO_SHORTS;
         int lineNumberTableLen = 0;
@@ -256,7 +263,7 @@ final class ClassMethodInfo {
                         int lvtLength = lvtLengths[varIndex];
                         int idx = findLocalVariableEntry(array, lvtLength, startPc, length);
                         if (idx >= 0) {
-                            int base = idx * 5;
+                            base = idx * 5;
                             // merge
                             if (array[base + (lvt ? 3 : 4)] != 0 || varNameIdx != array[base + 2]) {
                                 // already have an entry for it
@@ -266,7 +273,7 @@ final class ClassMethodInfo {
                         } else {
                             // insert
                             idx = -idx - 1;
-                            int base = idx * 5;
+                            base = idx * 5;
                             if (lvtLength * 5 == array.length) {
                                 // grow
                                 localVariables[varIndex] = array = Arrays.copyOf(array, (lvtLength << 1) * 5);
@@ -807,12 +814,24 @@ final class ClassMethodInfo {
         return codeLen;
     }
 
-    int getExTableOffs() {
-        return exTableOffs;
+    int getExTableLen() {
+        return exTable.length >> 2;
     }
 
-    int getExTableLen() {
-        return exTableLen;
+    int getExTableEntryStartPc(int entry) {
+        return exTable[entry << 2] & 0xffff;
+    }
+
+    int getExTableEntryEndPc(int entry) {
+        return exTable[(entry << 2) + 1] & 0xffff;
+    }
+
+    int getExTableEntryHandlerPc(int entry) {
+        return exTable[(entry << 2) + 2] & 0xffff;
+    }
+
+    int getExTableEntryTypeIdx(int entry) {
+        return exTable[(entry << 2) + 3] & 0xffff;
     }
 
     int getStackMapTableOffs() {

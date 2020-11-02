@@ -5,18 +5,12 @@ import cc.quarkus.qcc.type.ReferenceType;
 /**
  * A caught value.
  */
-public final class Catch extends AbstractValue implements PinnedNode {
-    private final BlockLabel pinnedBlockLabel;
+public final class Catch extends AbstractValue {
     private final ReferenceType throwableType;
 
-    Catch(final BlockLabel pinnedBlockLabel, final ReferenceType throwableType) {
+    Catch(final ReferenceType throwableType) {
         super(0, -1);
-        this.pinnedBlockLabel = pinnedBlockLabel;
         this.throwableType = throwableType;
-    }
-
-    public BlockLabel getPinnedBlockLabel() {
-        return pinnedBlockLabel;
     }
 
     public ReferenceType getType() {
