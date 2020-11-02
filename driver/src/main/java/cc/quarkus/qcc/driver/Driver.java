@@ -62,6 +62,7 @@ public class Driver implements Closeable {
     final BaseDiagnosticContext initialContext;
     final CompilationContextImpl compilationContext;
     final List<Consumer<? super CompilationContext>> preAddHooks;
+    final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
     final List<Consumer<? super CompilationContext>> postAddHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> interStageCopy;
     final List<Consumer<? super CompilationContext>> preCopyHooks;
@@ -95,6 +96,7 @@ public class Driver implements Closeable {
         initialContext = Assert.checkNotNullParam("builder.initialContext", builder.initialContext);
         mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
         outputDir = Assert.checkNotNullParam("builder.outputDirectory", builder.outputDirectory);
+        typeBuilderFactories = builder.typeBuilderFactories;
         initialContext.putAttachment(MAIN_CLASS_KEY, mainClass);
         // type system
         final TypeSystem typeSystem = builder.typeSystem;
@@ -215,6 +217,9 @@ public class Driver implements Closeable {
                 ClassContext ctxt = compilationContext.getBootstrapClassContext();
                 ClassFile classFile = ClassFile.of(ctxt, buffer);
                 DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
+                for (BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder> factory : typeBuilderFactories) {
+                    builder = factory.apply(ctxt, builder);
+                }
                 classFile.accept(builder);
                 DefinedTypeDefinition def = builder.build();
                 ctxt.defineClass(name, def);
@@ -469,7 +474,7 @@ public class Driver implements Closeable {
         final Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> additiveFactories = new EnumMap<>(BuilderStage.class);
         final Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> analyticFactories = new EnumMap<>(BuilderStage.class);
         final List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>> copyFactories = new ArrayList<>();
-        final List<BiFunction<? super CompilationContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories = new ArrayList<>();
+        final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories = new ArrayList<>();
         final List<Consumer<? super CompilationContext>> preAddHooks = new ArrayList<>();
         final List<Consumer<? super CompilationContext>> postAddHooks = new ArrayList<>();
         final List<Consumer<? super CompilationContext>> preCopyHooks = new ArrayList<>();
@@ -525,7 +530,7 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Builder addTypeBuilderFactory(BiFunction<? super CompilationContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder> factory) {
+        public Builder addTypeBuilderFactory(BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder> factory) {
             typeBuilderFactories.add(Assert.checkNotNullParam("factory", factory));
             return this;
         }
