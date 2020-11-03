@@ -242,5 +242,81 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
         static Builder basic() {
             return new DefinedTypeDefinitionImpl.BuilderImpl();
         }
+
+        interface Delegating extends Builder {
+            Builder getDelegate();
+
+            default void setContext(ClassContext context) {
+                getDelegate().setContext(context);
+            }
+
+            default void setInitializer(InitializerResolver resolver, int index) {
+                getDelegate().setInitializer(resolver, index);
+            }
+
+            default void expectFieldCount(int count) {
+                getDelegate().expectFieldCount(count);
+            }
+
+            default void addField(FieldResolver resolver, int index) {
+                getDelegate().addField(resolver, index);
+            }
+
+            default void expectMethodCount(int count) {
+                getDelegate().expectMethodCount(count);
+            }
+
+            default void addMethod(MethodResolver resolver, int index) {
+                getDelegate().addMethod(resolver, index);
+            }
+
+            default void expectConstructorCount(int count) {
+                getDelegate().expectConstructorCount(count);
+            }
+
+            default void addConstructor(ConstructorResolver resolver, int index) {
+                getDelegate().addConstructor(resolver, index);
+            }
+
+            default void setName(String internalName) {
+                getDelegate().setName(internalName);
+            }
+
+            default void setModifiers(int modifiers) {
+                getDelegate().setModifiers(modifiers);
+            }
+
+            default void setSuperClassName(String superClassInternalName) {
+                getDelegate().setSuperClassName(superClassInternalName);
+            }
+
+            default void expectInterfaceNameCount(int count) {
+                getDelegate().expectInterfaceNameCount(count);
+            }
+
+            default void addInterfaceName(String interfaceInternalName) {
+                getDelegate().addInterfaceName(interfaceInternalName);
+            }
+
+            default void expectVisibleAnnotationCount(int count) {
+                getDelegate().expectVisibleAnnotationCount(count);
+            }
+
+            default void addVisibleAnnotation(Annotation annotation) {
+                getDelegate().addVisibleAnnotation(annotation);
+            }
+
+            default void expectInvisibleAnnotationCount(int count) {
+                getDelegate().expectInvisibleAnnotationCount(count);
+            }
+
+            default void addInvisibleAnnotation(Annotation annotation) {
+                getDelegate().addInvisibleAnnotation(annotation);
+            }
+
+            default DefinedTypeDefinition build() {
+                return getDelegate().build();
+            }
+        }
     }
 }
