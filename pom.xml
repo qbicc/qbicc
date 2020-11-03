@@ -195,20 +195,6 @@
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- metaprogram -->
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-metaprogram-jvmtypes</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-metaprogram-ctypes</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
             <!-- plugins -->
 
             <dependency>
