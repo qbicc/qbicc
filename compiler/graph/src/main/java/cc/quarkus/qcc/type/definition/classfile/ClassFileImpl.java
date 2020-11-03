@@ -751,30 +751,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         for (int i = 0; i < cnt; i ++) {
             builder.addInterfaceName(getInterfaceName(i));
         }
-        boolean foundInitializer = false;
-        cnt = getMethodCount();
-        for (int i = 0; i < cnt; i ++) {
-            int base = methodOffsets[i];
-            int nameIdx = getShort(base + 2);
-            if (utf8ConstantEquals(nameIdx, "<clinit>")) {
-                builder.setInitializer(this, i);
-                foundInitializer = true;
-            } else {
-                if (utf8ConstantEquals(nameIdx, "<init>")) {
-                    builder.addConstructor(this, i);
-                } else {
-                    builder.addMethod(this, i);
-                }
-            }
-        }
-        if (! foundInitializer) {
-            // synthesize an empty one
-            builder.setInitializer(this, 0);
-        }
-        cnt = getFieldCount();
-        for (int i = 0; i < cnt; i ++) {
-            builder.addField(this, i);
-        }
+        // make sure that annotations are added first for convenience
         cnt = getAttributeCount();
         for (int i = 0; i < cnt; i ++) {
             if (attributeNameEquals(i, "RuntimeVisibleAnnotations")) {
@@ -804,6 +781,30 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             } else if (attributeNameEquals(i, "NestMembers")) {
                 // todo
             }
+        }
+        boolean foundInitializer = false;
+        cnt = getMethodCount();
+        for (int i = 0; i < cnt; i ++) {
+            int base = methodOffsets[i];
+            int nameIdx = getShort(base + 2);
+            if (utf8ConstantEquals(nameIdx, "<clinit>")) {
+                builder.setInitializer(this, i);
+                foundInitializer = true;
+            } else {
+                if (utf8ConstantEquals(nameIdx, "<init>")) {
+                    builder.addConstructor(this, i);
+                } else {
+                    builder.addMethod(this, i);
+                }
+            }
+        }
+        if (! foundInitializer) {
+            // synthesize an empty one
+            builder.setInitializer(this, 0);
+        }
+        cnt = getFieldCount();
+        for (int i = 0; i < cnt; i ++) {
+            builder.addField(this, i);
         }
         builder.setModifiers(access);
     }
