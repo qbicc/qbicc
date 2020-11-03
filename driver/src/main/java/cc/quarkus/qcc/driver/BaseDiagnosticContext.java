@@ -17,14 +17,14 @@ import cc.quarkus.qcc.type.definition.element.BasicElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
-final class BaseDiagnosticContext implements DiagnosticContext  {
+public final class BaseDiagnosticContext implements DiagnosticContext  {
     final ConcurrentHashMap<AttachmentKey<?>, Object> attachmentsMap = new ConcurrentHashMap<AttachmentKey<?>, Object>();
     final ConcurrentLinkedDeque<Diagnostic> diagnostics = new ConcurrentLinkedDeque<Diagnostic>();
     final ConcurrentHashMap<String, String> stringCache = new ConcurrentHashMap<String, String>();
     final AtomicInteger errorCnt = new AtomicInteger(0);
     final AtomicInteger warnCnt = new AtomicInteger(0);
 
-    BaseDiagnosticContext() {
+    public BaseDiagnosticContext() {
     }
 
     @SuppressWarnings("unchecked")

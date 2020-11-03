@@ -30,6 +30,7 @@
     <modules>
         <module>compiler</module>
         <module>driver</module>
+        <module>main</module>
         <module>machine</module>
         <module>native</module>
         <module>runtime</module>
