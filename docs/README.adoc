@@ -2,6 +2,19 @@
 
 This is the `README` for QCC.  There's not much here yet but be sure to read link:Overview.adoc[the overview].
 
+== Prerequisities
+
+QCC depends on https://github.com/quarkuscc/qcc-class-library[`qcc-class-library`].
+
+To fetch it and build it run:
+
+[source,shell]
+-----
+git clone --recurse-submodules git@github.com:quarkuscc/qcc-class-library.git
+cd qcc-class-library
+mvn install
+-----
+
 == Building
 
 To build the project, execute `mvn install` in the root.
@@ -15,4 +28,4 @@ To run the driver, first build the project and then use https://jbang.dev[`jbang
 jbang --quiet cc.quarkus:qcc-driver:1.0.0-SNAPSHOT --boot-module-path /path/to/main.jar:/my/.m2/repository/cc/quarkus/qcc/openjdk/java.base/11.0.8+8-1.0/java.base-11.0.8+8-1.0-linux.jar the/main/Class
 -----
 
-Replace the `java.base` JAR with your locally-built JAR path.
+Replace the `java.base` JAR with your locally-built JAR path from <<prerequisities>>.
