@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph.literal;
 
 import cc.quarkus.qcc.constraint.Constraint;
 import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 
@@ -11,9 +11,9 @@ import cc.quarkus.qcc.type.ValueType;
  */
 public final class ObjectLiteral extends Literal {
     private final ReferenceType type;
-    private final JavaObject value;
+    private final VmObject value;
 
-    ObjectLiteral(final ReferenceType type, final JavaObject value) {
+    ObjectLiteral(final ReferenceType type, final VmObject value) {
         this.type = type;
         this.value = value;
     }
@@ -26,7 +26,7 @@ public final class ObjectLiteral extends Literal {
         return value.getObjectType();
     }
 
-    public JavaObject getValue() {
+    public VmObject getValue() {
         return value;
     }
 

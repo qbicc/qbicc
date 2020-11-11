@@ -5,23 +5,23 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import cc.quarkus.qcc.graph.Invocation;
 
-final class JavaThreadImpl implements JavaThread {
-    final JavaVMImpl vm;
-    final JavaObjectImpl instance;
+final class VmThreadImpl implements VmThread {
+    final VmImpl vm;
+    final VmObjectImpl instance;
     State state = State.RUNNING;
     Thread attachedThread;
-    JavaVMImpl.StackFrame tos;
+    VmImpl.StackFrame tos;
     Lock threadLock = new ReentrantLock();
 
-    JavaThreadImpl(final String threadName, final JavaObject threadGroup, final boolean daemon, final JavaVMImpl vm) {
+    VmThreadImpl(final String threadName, final VmObject threadGroup, final boolean daemon, final VmImpl vm) {
         this.vm = vm;
-        instance = new JavaObjectImpl(vm.threadClass.validate());
+        instance = new VmObjectImpl(vm.threadClass.validate());
         // todo: initialize thread fields...
     }
 
     public void doAttached(final Runnable r) {
         vm.doAttached(() -> {
-            JavaThreadImpl currentlyAttached = vm.attachedThread.get();
+            VmThreadImpl currentlyAttached = vm.attachedThread.get();
             if (currentlyAttached == this) {
                 r.run();
                 return;
@@ -53,11 +53,11 @@ final class JavaThreadImpl implements JavaThread {
         });
     }
 
-    JavaVMImpl.StackFrame pushNewFrame(Invocation caller) {
-        return tos = new JavaVMImpl.StackFrame(tos, caller);
+    VmImpl.StackFrame pushNewFrame(Invocation caller) {
+        return tos = new VmImpl.StackFrame(tos, caller);
     }
 
-    JavaVMImpl.StackFrame popFrame() {
+    VmImpl.StackFrame popFrame() {
         try {
             return tos;
         } finally {
@@ -76,7 +76,7 @@ final class JavaThreadImpl implements JavaThread {
         }
     }
 
-    public JavaVM getVM() {
+    public Vm getVM() {
         return vm;
     }
 

@@ -6,7 +6,7 @@ package cc.quarkus.qcc.interpreter;
  * Any unclosed thread can be invoked upon as frequently as desired, as long as it is
  * attached to the current calling thread.  Unattached threads cannot be invoked upon.
  */
-public interface JavaThread {
+public interface VmThread {
     /**
      * Perform the given action with this thread attached to the host thread.  Any previously attached thread
      * is suspended.
@@ -15,7 +15,7 @@ public interface JavaThread {
      */
     void doAttached(Runnable r);
 
-    JavaVM getVM();
+    Vm getVM();
 
     boolean isRunning();
 

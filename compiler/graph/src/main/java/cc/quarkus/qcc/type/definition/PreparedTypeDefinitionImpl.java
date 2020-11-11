@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.type.definition;
 
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.interpreter.Vm;
 import cc.quarkus.qcc.interpreter.Thrown;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -160,7 +160,7 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
                     return initializing.initialize();
                 }
                 this.initializing = initialized = new InitializedTypeDefinitionImpl(this);
-                JavaVM vm = JavaVM.requireCurrent();
+                Vm vm = Vm.requireCurrent();
                 try {
                     vm.initialize(getTypeId());
                 } catch (Thrown t) {

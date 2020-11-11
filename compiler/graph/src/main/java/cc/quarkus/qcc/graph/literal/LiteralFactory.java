@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -34,7 +34,7 @@ public interface LiteralFactory {
 
     NullLiteral literalOfNull();
 
-    ObjectLiteral literalOf(JavaObject value);
+    ObjectLiteral literalOf(VmObject value);
 
     ValueArrayTypeIdLiteral literalOfArrayType(ValueType elementType);
 
@@ -110,7 +110,7 @@ public interface LiteralFactory {
                 return NULL;
             }
 
-            public ObjectLiteral literalOf(final JavaObject value) {
+            public ObjectLiteral literalOf(final VmObject value) {
                 Assert.checkNotNullParam("value", value);
                 // todo: cache on object itself?
                 return new ObjectLiteral(typeSystem.getReferenceType(value.getObjectType()).asConst(), value);

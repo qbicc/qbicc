@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.interpreter.VmObject;
 
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
@@ -24,16 +24,16 @@ final class FieldContainerImpl implements FieldContainer {
         return fieldSet;
     }
 
-    public JavaObject getObjectFieldPlain(String name) {
-        return (JavaObject) objects.getPlain(fieldSet.getIndex(name));
+    public VmObject getObjectFieldPlain(String name) {
+        return (VmObject) objects.getPlain(fieldSet.getIndex(name));
     }
 
-    public JavaObject getObjectFieldVolatile(String name) {
-        return (JavaObject) objects.get(fieldSet.getIndex(name));
+    public VmObject getObjectFieldVolatile(String name) {
+        return (VmObject) objects.get(fieldSet.getIndex(name));
     }
 
-    public JavaObject getObjectFieldAcquire(String name) {
-        return (JavaObject) objects.getAcquire(fieldSet.getIndex(name));
+    public VmObject getObjectFieldAcquire(String name) {
+        return (VmObject) objects.getAcquire(fieldSet.getIndex(name));
     }
 
     public long getLongFieldPlain(String name) {
@@ -60,15 +60,15 @@ final class FieldContainerImpl implements FieldContainer {
         return ((Number) objects.getAcquire(fieldSet.getIndex(name))).intValue();
     }
 
-    public void setFieldPlain(String name, JavaObject value) {
+    public void setFieldPlain(String name, VmObject value) {
         objects.setPlain(fieldSet.getIndex(name), value);
     }
 
-    public void setFieldVolatile(String name, JavaObject value) {
+    public void setFieldVolatile(String name, VmObject value) {
         objects.set(fieldSet.getIndex(name), value);
     }
 
-    public void setFieldRelease(String name, JavaObject value) {
+    public void setFieldRelease(String name, VmObject value) {
         objects.setRelease(fieldSet.getIndex(name), value);
     }
 

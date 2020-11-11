@@ -3,6 +3,6 @@ package cc.quarkus.qcc.interpreter;
 /**
  * A primitive class (or {@code void}).
  */
-public interface JavaPrimitiveClass extends JavaClass {
+public interface VmPrimitiveClass extends VmClass {
 
 }

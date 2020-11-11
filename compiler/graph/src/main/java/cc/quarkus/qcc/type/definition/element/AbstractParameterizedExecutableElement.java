@@ -2,7 +2,7 @@ package cc.quarkus.qcc.type.definition.element;
 
 import java.util.Arrays;
 
-import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.interpreter.Vm;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 
@@ -57,7 +57,7 @@ abstract class AbstractParameterizedExecutableElement extends AbstractExactExecu
             for (int i = 0; i < cnt; i ++) {
                 types[i] = parameters[i].getType();
             }
-            return JavaVM.requireCurrent().getParameterizedExecutableDescriptor(types);
+            return Vm.requireCurrent().getParameterizedExecutableDescriptor(types);
         }
 
         public abstract AbstractParameterizedExecutableElement build();

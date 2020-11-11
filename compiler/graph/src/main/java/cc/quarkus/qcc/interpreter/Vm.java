@@ -23,7 +23,7 @@ import io.smallrye.common.constraint.Assert;
 /**
  * A virtual machine.
  */
-public interface JavaVM extends AutoCloseable {
+public interface Vm extends AutoCloseable {
     /**
      * Create a new thread.
      *
@@ -32,26 +32,26 @@ public interface JavaVM extends AutoCloseable {
      * @param daemon {@code true} to make a daemon thread
      * @return the new thread
      */
-    JavaThread newThread(String threadName, JavaObject threadGroup, boolean daemon);
+    VmThread newThread(String threadName, VmObject threadGroup, boolean daemon);
 
-    static JavaThread currentThread() {
-        return JavaVMImpl.currentThread();
+    static VmThread currentThread() {
+        return VmImpl.currentThread();
     }
 
-    static JavaThread requireCurrentThread() {
-        JavaThread javaThread = currentThread();
-        if (javaThread == null) {
+    static VmThread requireCurrentThread() {
+        VmThread vmThread = currentThread();
+        if (vmThread == null) {
             throw new IllegalStateException("Thread is not attached");
         }
-        return javaThread;
+        return vmThread;
     }
 
-    static JavaVM current() {
-        return JavaVMImpl.currentVm();
+    static Vm current() {
+        return VmImpl.currentVm();
     }
 
-    static JavaVM requireCurrent() {
-        JavaVM current = current();
+    static Vm requireCurrent() {
+        Vm current = current();
         if (current == null) {
             throw new IllegalStateException("JavaVM is not attached");
         }
@@ -72,7 +72,7 @@ public interface JavaVM extends AutoCloseable {
      * @param bytes the class bytes (must not be {@code null})
      * @return the defined class (not {@code null})
      */
-    DefinedTypeDefinition defineClass(String name, JavaObject classLoader, ByteBuffer bytes);
+    DefinedTypeDefinition defineClass(String name, VmObject classLoader, ByteBuffer bytes);
 
     /**
      * Define an unresolved anonymous class into this VM.
@@ -92,7 +92,7 @@ public interface JavaVM extends AutoCloseable {
      * @return the class (not {@code null})
      * @throws Thrown if the internal JVM has thrown an exception while loading the class
      */
-    DefinedTypeDefinition loadClass(JavaObject classLoader, String name) throws Thrown;
+    DefinedTypeDefinition loadClass(VmObject classLoader, String name) throws Thrown;
 
     /**
      * Find a loaded class, returning {@code null} if the class loader did not previously load the class.  The VM
@@ -102,7 +102,7 @@ public interface JavaVM extends AutoCloseable {
      * @param name the internal name of the class to load (must not be {@code null})
      * @return the class, or {@code null} if the class was not already loaded
      */
-    DefinedTypeDefinition findLoadedClass(JavaObject classLoader, String name);
+    DefinedTypeDefinition findLoadedClass(VmObject classLoader, String name);
 
     /**
      * Allocate an object without initializing it (all fields/elements will be {@code null}, {@code false}, or zero).
@@ -111,9 +111,9 @@ public interface JavaVM extends AutoCloseable {
      * @param type the type to allocate (must not be {@code null})
      * @return the allocated object (not {@code null})
      */
-    JavaObject allocateObject(ClassTypeIdLiteral type);
+    VmObject allocateObject(ClassTypeIdLiteral type);
 
-    JavaArray allocateArray(ArrayTypeIdLiteral type, int length);
+    VmArray allocateArray(ArrayTypeIdLiteral type, int length);
 
     /**
      * Invoke a constructor reflectively.  Primitive arguments should be boxed.
@@ -122,7 +122,7 @@ public interface JavaVM extends AutoCloseable {
      * @param instance the instance to invoke upon
      * @param args the arguments, whose times must match the constructor's expectations
      */
-    void invokeExact(ConstructorElement method, JavaObject instance, Object... args);
+    void invokeExact(ConstructorElement method, VmObject instance, Object... args);
 
     /**
      * Invoke a method reflectively.  Primitive arguments should be boxed.
@@ -132,7 +132,7 @@ public interface JavaVM extends AutoCloseable {
      * @param args the arguments, whose times must match the method's expectations
      * @return the result
      */
-    Object invokeExact(MethodElement method, JavaObject instance, Object... args);
+    Object invokeExact(MethodElement method, VmObject instance, Object... args);
 
     void initialize(TypeIdLiteral typeId);
 
@@ -144,7 +144,7 @@ public interface JavaVM extends AutoCloseable {
      * @param args the arguments, whose times must match the method's expectations
      * @return the result
      */
-    Object invokeVirtual(MethodElement method, final JavaObject instance, Object... args);
+    Object invokeVirtual(MethodElement method, final VmObject instance, Object... args);
 
     /**
      * Deliver a "signal" to the target environment.
@@ -168,9 +168,9 @@ public interface JavaVM extends AutoCloseable {
      * @param string the string to deduplicate
      * @return the deduplicated string
      */
-    String deduplicate(JavaObject classLoader, String string);
+    String deduplicate(VmObject classLoader, String string);
 
-    String deduplicate(JavaObject classLoader, ByteBuffer buffer, int offset, int length, boolean expectTerminator);
+    String deduplicate(VmObject classLoader, ByteBuffer buffer, int offset, int length, boolean expectTerminator);
 
     MethodDescriptor getMethodDescriptor(ValueType returnType, ValueType... paramTypes);
 
@@ -188,7 +188,7 @@ public interface JavaVM extends AutoCloseable {
      * @param string the input string (must not be {@code null})
      * @return the instance
      */
-    JavaObject getSharedString(String string);
+    VmObject getSharedString(String string);
 
     /**
      * Allocate a direct byte buffer object with the given backing buffer.  The backing content will be determined
@@ -198,7 +198,7 @@ public interface JavaVM extends AutoCloseable {
      * @param backingBuffer the backing buffer (must not be {@code null})
      * @return the allocated direct buffer object (not {@code null})
      */
-    JavaObject allocateDirectBuffer(ByteBuffer backingBuffer);
+    VmObject allocateDirectBuffer(ByteBuffer backingBuffer);
 
     /**
      * Kill the VM, terminating all in-progress threads and releasing all heap objects.
@@ -213,7 +213,7 @@ public interface JavaVM extends AutoCloseable {
      * @param classLoader the class loader for the new class, or {@code null} for the bootstrap class loader
      * @return the builder
      */
-    DefinedTypeDefinition.Builder newTypeDefinitionBuilder(JavaObject classLoader);
+    DefinedTypeDefinition.Builder newTypeDefinitionBuilder(VmObject classLoader);
 
     /**
      * Get a builder for a new VM.
@@ -229,7 +229,7 @@ public interface JavaVM extends AutoCloseable {
      *
      * @return the thread group (not {@code null})
      */
-    JavaObject getMainThreadGroup();
+    VmObject getMainThreadGroup();
 
     /**
      * A builder for the VM.
@@ -298,8 +298,8 @@ public interface JavaVM extends AutoCloseable {
          *
          * @return the new VM (not {@code null})
          */
-        public JavaVM build() {
-            return new JavaVMImpl(this);
+        public Vm build() {
+            return new VmImpl(this);
         }
     }
 }

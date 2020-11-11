@@ -12,7 +12,7 @@ import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefineFailedException;
@@ -24,14 +24,14 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
  */
 final class ClassContextImpl implements ClassContext {
     private final CompilationContextImpl compilationContext;
-    private final JavaObject classLoader;
+    private final VmObject classLoader;
     private final ConcurrentMap<String, AtomicReference<Object>> definedClasses = new ConcurrentHashMap<>();
     private final ConcurrentMap<TypeIdLiteral, DefinedTypeDefinition> classForLiteral = new ConcurrentHashMap<>();
 
     private static final Object LOADING = new Object();
     private static final Object NOT_FOUND = new Object();
 
-    ClassContextImpl(final CompilationContextImpl compilationContext, final JavaObject classLoader) {
+    ClassContextImpl(final CompilationContextImpl compilationContext, final VmObject classLoader) {
         this.compilationContext = compilationContext;
         this.classLoader = classLoader;
     }
@@ -40,12 +40,12 @@ final class ClassContextImpl implements ClassContext {
         return compilationContext;
     }
 
-    public JavaObject getClassLoader() {
+    public VmObject getClassLoader() {
         return classLoader;
     }
 
     public DefinedTypeDefinition findDefinedType(final String typeName) {
-        BiFunction<JavaObject, String, DefinedTypeDefinition> finder = compilationContext.getFinder();
+        BiFunction<VmObject, String, DefinedTypeDefinition> finder = compilationContext.getFinder();
         AtomicReference<Object> ref = definedClasses.get(typeName);
         Object val;
         DefinedTypeDefinition definition;

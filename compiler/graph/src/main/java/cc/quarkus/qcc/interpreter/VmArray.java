@@ -3,10 +3,10 @@ package cc.quarkus.qcc.interpreter;
 /**
  *
  */
-public interface JavaArray extends JavaObject {
+public interface VmArray extends VmObject {
     int getLength();
 
-    JavaClass getNestedType();
+    VmClass getNestedType();
 
     boolean getArrayBoolean(int index);
 
@@ -14,7 +14,7 @@ public interface JavaArray extends JavaObject {
 
     long getArrayLong(int index);
 
-    JavaObject getArrayObject(int index);
+    VmObject getArrayObject(int index);
 
     void putArray(int index, boolean value);
 
@@ -22,5 +22,5 @@ public interface JavaArray extends JavaObject {
 
     void putArray(int index, long value);
 
-    void putArray(int index, JavaObject value);
+    void putArray(int index, VmObject value);
 }

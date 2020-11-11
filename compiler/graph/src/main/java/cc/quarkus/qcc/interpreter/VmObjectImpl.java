@@ -4,11 +4,11 @@ import cc.quarkus.qcc.graph.literal.RealTypeIdLiteral;
 import cc.quarkus.qcc.type.definition.FieldContainer;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 
-class JavaObjectImpl implements JavaObject {
+class VmObjectImpl implements VmObject {
     final ValidatedTypeDefinition definition;
     final FieldContainer fields;
 
-    JavaObjectImpl(final ValidatedTypeDefinition definition) {
+    VmObjectImpl(final ValidatedTypeDefinition definition) {
         this.definition = definition;
         fields = FieldContainer.forInstanceFieldsOf(definition);
     }

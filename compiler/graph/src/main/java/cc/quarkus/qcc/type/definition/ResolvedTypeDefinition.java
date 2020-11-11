@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.type.definition;
 
 import cc.quarkus.qcc.type.Type;
-import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.interpreter.Vm;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -215,7 +215,7 @@ public interface ResolvedTypeDefinition extends ValidatedTypeDefinition {
         // specified by the interface method reference, which has its ACC_PUBLIC flag set
         // and does not have its ACC_STATIC flag set, method lookup succeeds.
         if (! virtualOnly) {
-            ResolvedTypeDefinition object = JavaVM.currentThread().getVM().getObjectTypeDefinition().validate().resolve();
+            ResolvedTypeDefinition object = Vm.currentThread().getVM().getObjectTypeDefinition().validate().resolve();
             result = object.findMethodIndex(name, descriptor);
             if (result != -1) {
                 MethodElement method = object.getMethod(result);
