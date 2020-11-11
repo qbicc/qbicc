@@ -29,8 +29,8 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
-import cc.quarkus.qcc.interpreter.JavaObject;
-import cc.quarkus.qcc.interpreter.JavaVM;
+import cc.quarkus.qcc.interpreter.VmObject;
+import cc.quarkus.qcc.interpreter.Vm;
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.tool.llvm.LlvmTool;
@@ -177,8 +177,8 @@ public class Driver implements Closeable {
             return result;
         };
 
-        final BiFunction<JavaObject, String, DefinedTypeDefinition> finder;
-        JavaVM vm = builder.vm;
+        final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
+        Vm vm = builder.vm;
         if (vm != null) {
             finder = vm::loadClass;
         } else {
@@ -199,7 +199,7 @@ public class Driver implements Closeable {
         postGenerateHooks = List.copyOf(builder.postGenerateHooks);
     }
 
-    private DefinedTypeDefinition defaultFinder(JavaObject classLoader, String name) {
+    private DefinedTypeDefinition defaultFinder(VmObject classLoader, String name) {
         if (classLoader != null) {
             return null;
         }
@@ -476,7 +476,7 @@ public class Driver implements Closeable {
         BaseDiagnosticContext initialContext;
         Platform targetPlatform;
         TypeSystem typeSystem;
-        JavaVM vm;
+        Vm vm;
         CToolChain toolChain;
         LlvmTool llvmTool;
 
@@ -585,11 +585,11 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public JavaVM getVm() {
+        public Vm getVm() {
             return vm;
         }
 
-        public Builder setVm(final JavaVM vm) {
+        public Builder setVm(final Vm vm) {
             this.vm = vm;
             return this;
         }

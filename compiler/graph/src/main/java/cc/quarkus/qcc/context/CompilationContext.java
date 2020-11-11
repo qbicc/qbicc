@@ -3,7 +3,7 @@ package cc.quarkus.qcc.context;
 import java.nio.file.Path;
 
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -22,7 +22,7 @@ public interface CompilationContext extends DiagnosticContext {
 
     ClassContext getBootstrapClassContext();
 
-    ClassContext constructClassContext(JavaObject classLoaderObject);
+    ClassContext constructClassContext(VmObject classLoaderObject);
 
     void enqueue(ExecutableElement element);
 

@@ -76,8 +76,8 @@ import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 import io.smallrye.common.constraint.Assert;
 
-final class JavaVMImpl implements JavaVM {
-    private static final ThreadLocal<JavaVMImpl> currentVm = new ThreadLocal<>();
+final class VmImpl implements Vm {
+    private static final ThreadLocal<VmImpl> currentVm = new ThreadLocal<>();
     private static final Object[] NO_OBJECTS = new Object[0];
     private boolean exited;
     private int exitCode = -1;
@@ -85,20 +85,20 @@ final class JavaVMImpl implements JavaVM {
     private final Condition stopCondition = vmLock.newCondition();
     private final Condition signalCondition = vmLock.newCondition();
     private final ArrayDeque<Signal> signalQueue = new ArrayDeque<>();
-    private final Set<JavaThread> threads = ConcurrentHashMap.newKeySet();
-    final ThreadLocal<JavaThreadImpl> attachedThread = new ThreadLocal<>();
+    private final Set<VmThread> threads = ConcurrentHashMap.newKeySet();
+    final ThreadLocal<VmThreadImpl> attachedThread = new ThreadLocal<>();
     private final Dictionary bootstrapDictionary;
-    private final ConcurrentMap<JavaObject, Dictionary> classLoaderLoaders = new ConcurrentHashMap<>();
-    private final ConcurrentMap<Dictionary, JavaObject> loaderClassLoaders = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ClassTypeIdLiteral, JavaClassImpl> loadedClasses = new ConcurrentHashMap<>();
-    private final ConcurrentMap<InterfaceTypeIdLiteral, JavaClassImpl> loadedInterfaces = new ConcurrentHashMap<>();
+    private final ConcurrentMap<VmObject, Dictionary> classLoaderLoaders = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Dictionary, VmObject> loaderClassLoaders = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ClassTypeIdLiteral, VmClassImpl> loadedClasses = new ConcurrentHashMap<>();
+    private final ConcurrentMap<InterfaceTypeIdLiteral, VmClassImpl> loadedInterfaces = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodBody, Map<BasicBlock, List<Node>>> schedules = new ConcurrentHashMap<>();
     private final ConcurrentMap<ParameterizedExecutableDescriptor, ConcurrentMap<Type, MethodDescriptor>> methodDescriptorCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<ParameterizedExecutableDescriptor, ConstructorDescriptor> constructorDescriptorCache = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, JavaObject> stringInstanceCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, VmObject> stringInstanceCache = new ConcurrentHashMap<>();
     private final ConcurrentTrie<Type, ParameterizedExecutableDescriptor> descriptorCache = new ConcurrentTrie<>();
     private final Map<String, BootModule> bootstrapModules;
-    private final JavaObject mainThreadGroup;
+    private final VmObject mainThreadGroup;
     private final CompilationContext context;
     final DefinedTypeDefinition classLoaderClass;
     final DefinedTypeDefinition classClass;
@@ -111,7 +111,7 @@ final class JavaVMImpl implements JavaVM {
     final DefinedTypeDefinition abstractMethodErrorClass;
     final DefinedTypeDefinition unsatisfiedLinkErrorClass;
 
-    JavaVMImpl(final Builder builder) {
+    VmImpl(final Builder builder) {
         Map<String, BootModule> bootstrapModules = new LinkedHashMap<>();
         Dictionary bootstrapDictionary = new Dictionary(this);
         context = Assert.checkNotNullParam("builder.context", builder.context);
@@ -150,7 +150,7 @@ final class JavaVMImpl implements JavaVM {
         }
         this.bootstrapModules = bootstrapModules;
         this.bootstrapDictionary = bootstrapDictionary;
-        JavaVMImpl old = currentVm.get();
+        VmImpl old = currentVm.get();
         try {
             currentVm.set(this);
             objectClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Object");
@@ -182,7 +182,7 @@ final class JavaVMImpl implements JavaVM {
             defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Thread$UncaughtExceptionHandler");
             threadGroupClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ThreadGroup");
             threadClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Thread");
-            mainThreadGroup = new JavaObjectImpl(threadGroupClass.validate());
+            mainThreadGroup = new VmObjectImpl(threadGroupClass.validate());
             // run time linkage errors
             noSuchMethodErrorClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/NoSuchMethodError");
             abstractMethodErrorClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/AbstractMethodError");
@@ -214,7 +214,7 @@ final class JavaVMImpl implements JavaVM {
         return bootstrapLoader.defineClass(name, bytes);
     }
 
-    public DefinedTypeDefinition defineClass(final String name, final JavaObject classLoader, final ByteBuffer bytes) {
+    public DefinedTypeDefinition defineClass(final String name, final VmObject classLoader, final ByteBuffer bytes) {
         Dictionary dictionary = getDictionaryFor(classLoader);
         return dictionary.defineClass(name, bytes).validate();
     }
@@ -226,7 +226,7 @@ final class JavaVMImpl implements JavaVM {
         return defineClass(newName, hostClass.getContext().getClassLoader(), bytes);
     }
 
-    public DefinedTypeDefinition loadClass(JavaObject classLoader, final String name) throws Thrown {
+    public DefinedTypeDefinition loadClass(VmObject classLoader, final String name) throws Thrown {
         if (classLoader == null) {
             // do it the other way
             return loadBootstrapClass(name);
@@ -235,7 +235,7 @@ final class JavaVMImpl implements JavaVM {
         if (loaded != null) {
             return loaded;
         }
-        JavaThread javaThread = JavaVM.requireCurrentThread();
+        VmThread vmThread = Vm.requireCurrentThread();
         ResolvedTypeDefinition resolvedCL = classLoaderClass.validate().resolve();
         ValidatedTypeDefinition stringClassVerified = stringClass.validate();
         TypeSystem typeSystem = context.getTypeSystem();
@@ -243,15 +243,15 @@ final class JavaVMImpl implements JavaVM {
         ValueArrayTypeIdLiteral u16Array = context.getLiteralFactory().literalOfArrayType(u16);
         MethodElement loadClass = resolvedCL.resolveMethodElementVirtual("loadClass", getMethodDescriptor(typeSystem.getReferenceType(resolvedCL.getTypeId()), typeSystem.getReferenceType(stringClassVerified.getTypeId())));
         int length = name.length();
-        JavaArray array = allocateArray(u16Array, length);
+        VmArray array = allocateArray(u16Array, length);
         for (int i = 0; i < length; i++) {
             array.putArray(i, name.charAt(i));
         }
         ReferenceType u16ArrayType = typeSystem.getReferenceType(u16Array);
         ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(u16ArrayType));
-        JavaObject nameInstance = allocateObject((ClassTypeIdLiteral) stringClassVerified.getTypeId());
+        VmObject nameInstance = allocateObject((ClassTypeIdLiteral) stringClassVerified.getTypeId());
         invokeExact(initString, nameInstance, array);
-        return ((JavaClass) invokeVirtual(loadClass, nameInstance)).getTypeDefinition();
+        return ((VmClass) invokeVirtual(loadClass, nameInstance)).getTypeDefinition();
     }
 
     public DefinedTypeDefinition findLoadedBootstrapClass(final String name) {
@@ -286,45 +286,45 @@ final class JavaVMImpl implements JavaVM {
         return new Thrown(newException(classNotFoundExceptionClass, name));
     }
 
-    private JavaObject newException(DefinedTypeDefinition type, String arg) {
-        JavaObject e = allocateObject((ClassTypeIdLiteral) type.validate().getTypeId());
+    private VmObject newException(DefinedTypeDefinition type, String arg) {
+        VmObject e = allocateObject((ClassTypeIdLiteral) type.validate().getTypeId());
         ConstructorElement ctor = type.validate().resolve().resolveConstructorElement(getConstructorDescriptor(context.getTypeSystem().getReferenceType(stringClass.validate().getTypeId())));
         // todo: backtrace should be set to thread.tos
         invokeExact(ctor, e, newString(arg));
         return e;
     }
 
-    private JavaObject newString(String str) {
+    private VmObject newString(String str) {
         ValidatedTypeDefinition stringClassVerified = stringClass.validate();
         int length = str.length();
         TypeSystem typeSystem = context.getTypeSystem();
         SignedIntegerType s8 = typeSystem.getSignedInteger8Type();
         ValueArrayTypeIdLiteral s8Array = context.getLiteralFactory().literalOfArrayType(s8);
-        JavaArray array = allocateArray(s8Array, length << 1);
+        VmArray array = allocateArray(s8Array, length << 1);
         for (int i = 0; i < length; i++) {
             array.putArray(i << 1, str.charAt(i) >>> 8);
             array.putArray((i << 1) + 1, str.charAt(i));
         }
         ReferenceType byteArrayType = typeSystem.getReferenceType(s8Array);
         ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(byteArrayType, s8));
-        JavaObject res = allocateObject((ClassTypeIdLiteral) stringClassVerified.getTypeId());
+        VmObject res = allocateObject((ClassTypeIdLiteral) stringClassVerified.getTypeId());
         invokeExact(initString, res, array, Byte.valueOf((byte) 1 /* UTF16 */));
         return res;
     }
 
-    public DefinedTypeDefinition findLoadedClass(final JavaObject classLoader, final String name) {
+    public DefinedTypeDefinition findLoadedClass(final VmObject classLoader, final String name) {
         return getDictionaryFor(classLoader).findLoadedType(name);
     }
 
-    public JavaObject allocateObject(final ClassTypeIdLiteral literalType) {
-        return new JavaObjectImpl(loadedClasses.get(literalType).getTypeDefinition());
+    public VmObject allocateObject(final ClassTypeIdLiteral literalType) {
+        return new VmObjectImpl(loadedClasses.get(literalType).getTypeDefinition());
     }
 
-    public JavaArray allocateArray(final ArrayTypeIdLiteral type, final int length) {
+    public VmArray allocateArray(final ArrayTypeIdLiteral type, final int length) {
         throw new UnsupportedOperationException();
     }
 
-    public void invokeExact(final ConstructorElement ctor, final JavaObject instance, final Object... args) {
+    public void invokeExact(final ConstructorElement ctor, final VmObject instance, final Object... args) {
         Assert.checkNotNullParam("ctor", ctor);
         Assert.checkNotNullParam("instance", instance);
         MethodHandle exactHandle = ctor.getMethodBody();
@@ -334,7 +334,7 @@ final class JavaVMImpl implements JavaVM {
         invokeWith(exactHandle.getOrCreateMethodBody(), instance, args);
     }
 
-    public Object invokeExact(final MethodElement method, final JavaObject instance, final Object... args) {
+    public Object invokeExact(final MethodElement method, final VmObject instance, final Object... args) {
         Assert.checkNotNullParam("method", method);
         MethodHandle exactHandle = method.getMethodBody();
         if (exactHandle == null) {
@@ -350,7 +350,7 @@ final class JavaVMImpl implements JavaVM {
         throw Assert.unsupported();
     }
 
-    public Object invokeVirtual(final MethodElement method, final JavaObject instance, final Object... args) {
+    public Object invokeVirtual(final MethodElement method, final VmObject instance, final Object... args) {
         MethodHandle exactHandle = method.getVirtualMethodBody();
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
@@ -358,17 +358,17 @@ final class JavaVMImpl implements JavaVM {
         return invokeWith(exactHandle.getOrCreateMethodBody(), instance, args);
     }
 
-    public Object invoke(final MethodHandle handle, final JavaObject instance, final Object... args) {
+    public Object invoke(final MethodHandle handle, final VmObject instance, final Object... args) {
         return invokeWith(handle.getOrCreateMethodBody(), instance, args);
     }
 
-    private Object invokeWith(final MethodBody methodBody, final JavaObject instance, final Object... args) {
+    private Object invokeWith(final MethodBody methodBody, final VmObject instance, final Object... args) {
         int cnt = methodBody.getParameterCount();
         if (cnt != args.length) {
             throw new IllegalArgumentException("Invalid method parameter count");
         }
         BasicBlock entryBlock = methodBody.getEntryBlock();
-        StackFrame frame = ((JavaThreadImpl) JavaVM.requireCurrentThread()).pushNewFrame(/* TODO */null);
+        StackFrame frame = ((VmThreadImpl) Vm.requireCurrentThread()).pushNewFrame(/* TODO */null);
         if (instance != null) {
             frame.bindValue(methodBody.getThisValue(), instance);
         }
@@ -425,7 +425,7 @@ final class JavaVMImpl implements JavaVM {
         BasicBlock block = methodBody.getEntryBlock();
         BasicBlock predecessor = null;
         // run the method body by running each basic block in turn, following control flow as needed
-        StackFrame frame = ((JavaThreadImpl) JavaVM.currentThread()).tos;
+        StackFrame frame = ((VmThreadImpl) Vm.currentThread()).tos;
         for (;;) {
             List<Node> scheduledNodes = scheduleBlock(methodBody, block);
             // run the block by executing each node in scheduled order
@@ -446,9 +446,9 @@ final class JavaVMImpl implements JavaVM {
                     ParameterizedExecutableElement it = op.getInvocationTarget();
                     ResolvedTypeDefinition owner = it.getEnclosingType().validate().resolve();
                     Object[] args = computeInvocationArguments(frame, op);
-                    JavaObject instance;
+                    VmObject instance;
                     if (op instanceof InstanceInvocation) {
-                        instance = (JavaObject) frame.getValue(((InstanceInvocation) op).getInstance());
+                        instance = (VmObject) frame.getValue(((InstanceInvocation) op).getInstance());
                     } else {
                         instance = null;
                     }
@@ -462,14 +462,14 @@ final class JavaVMImpl implements JavaVM {
                         }
                     }
                 } else if (node instanceof Throw) {
-                    throw new Thrown((JavaObject) frame.getValue(((Throw) node).getThrownValue()));
+                    throw new Thrown((VmObject) frame.getValue(((Throw) node).getThrownValue()));
                 } else if (node instanceof FieldWrite) {
                     FieldWrite op = (FieldWrite) node;
                     FieldElement fieldElement = op.getFieldElement();
                     String fieldName = fieldElement.getName();
                     FieldContainer container;
                     if (op instanceof InstanceFieldWrite) {
-                        JavaObjectImpl instance = (JavaObjectImpl) frame.getValue(((InstanceFieldWrite) op).getInstance());
+                        VmObjectImpl instance = (VmObjectImpl) frame.getValue(((InstanceFieldWrite) op).getInstance());
                         container = instance.getFields();
                     } else {
                         container = fieldElement.getEnclosingType().validate().resolve().prepare().initialize().getStaticFields();
@@ -482,8 +482,8 @@ final class JavaVMImpl implements JavaVM {
                     }
                     switch (mode) {
                         case PLAIN: {
-                            if (value == null || value instanceof JavaObject) {
-                                container.setFieldPlain(fieldName, (JavaObject) value);
+                            if (value == null || value instanceof VmObject) {
+                                container.setFieldPlain(fieldName, (VmObject) value);
                             } else if (value instanceof Long) {
                                 container.setFieldPlain(fieldName, ((Long) value).longValue());
                             } else if (value instanceof Double) {
@@ -498,8 +498,8 @@ final class JavaVMImpl implements JavaVM {
                             break;
                         }
                         case ORDERED: {
-                            if (value == null || value instanceof JavaObject) {
-                                container.setFieldRelease(fieldName, (JavaObject) value);
+                            if (value == null || value instanceof VmObject) {
+                                container.setFieldRelease(fieldName, (VmObject) value);
                             } else if (value instanceof Long) {
                                 container.setFieldRelease(fieldName, ((Long) value).longValue());
                             } else if (value instanceof Double) {
@@ -514,8 +514,8 @@ final class JavaVMImpl implements JavaVM {
                             break;
                         }
                         case VOLATILE: {
-                            if (value == null || value instanceof JavaObject) {
-                                container.setFieldVolatile(fieldName, (JavaObject) value);
+                            if (value == null || value instanceof VmObject) {
+                                container.setFieldVolatile(fieldName, (VmObject) value);
                             } else if (value instanceof Long) {
                                 container.setFieldVolatile(fieldName, ((Long) value).longValue());
                             } else if (value instanceof Double) {
@@ -550,7 +550,7 @@ final class JavaVMImpl implements JavaVM {
             } else if (terminator instanceof Return) {
                 return null;
             } else if (terminator instanceof Throw) {
-                throw new Thrown((JavaObject) frame.getValue(((Throw) terminator).getThrownValue()));
+                throw new Thrown((VmObject) frame.getValue(((Throw) terminator).getThrownValue()));
             } else if (terminator instanceof Jsr) {
                 Jsr jsr = (Jsr) terminator;
                 frame.bindValue(jsr.getReturnAddressValue(), jsr.getReturnAddressValue());
@@ -614,15 +614,15 @@ final class JavaVMImpl implements JavaVM {
         return target;
     }
 
-    public JavaThread newThread(final String threadName, final JavaObject threadGroup, final boolean daemon) {
-        return new JavaThreadImpl(threadName, threadGroup, daemon, this);
+    public VmThread newThread(final String threadName, final VmObject threadGroup, final boolean daemon) {
+        return new VmThreadImpl(threadName, threadGroup, daemon, this);
     }
 
-    boolean tryAttach(JavaThread thread) throws IllegalStateException {
+    boolean tryAttach(VmThread thread) throws IllegalStateException {
         if (attachedThread.get() != null) {
             throw new IllegalStateException("Thread is already attached");
         }
-        JavaVMImpl existing = currentVm.get();
+        VmImpl existing = currentVm.get();
         if (existing == this) {
             return false;
         }
@@ -630,12 +630,12 @@ final class JavaVMImpl implements JavaVM {
             throw new IllegalStateException("Another JVM is already attached");
         }
         currentVm.set(this);
-        attachedThread.set((JavaThreadImpl) thread);
+        attachedThread.set((VmThreadImpl) thread);
         return true;
     }
 
-    void detach(JavaThread thread) throws IllegalStateException {
-        JavaThread existing = attachedThread.get();
+    void detach(VmThread thread) throws IllegalStateException {
+        VmThread existing = attachedThread.get();
         if (existing != thread) {
             throw new IllegalStateException("Thread is not attached");
         }
@@ -643,13 +643,13 @@ final class JavaVMImpl implements JavaVM {
         currentVm.remove();
     }
 
-    static JavaThreadImpl currentThread() {
-        JavaVMImpl javaVM = currentVm();
+    static VmThreadImpl currentThread() {
+        VmImpl javaVM = currentVm();
         return javaVM == null ? null : javaVM.attachedThread.get();
     }
 
     public void doAttached(final Runnable r) {
-        JavaVMImpl currentVm = JavaVMImpl.currentVm.get();
+        VmImpl currentVm = VmImpl.currentVm.get();
         if (currentVm == this) {
             r.run();
             return;
@@ -657,11 +657,11 @@ final class JavaVMImpl implements JavaVM {
         if (currentVm != null) {
             throw new IllegalStateException("Another JVM is already attached");
         }
-        JavaVMImpl.currentVm.set(this);
+        VmImpl.currentVm.set(this);
         try {
             r.run();
         } finally {
-            JavaVMImpl.currentVm.remove();
+            VmImpl.currentVm.remove();
         }
     }
 
@@ -673,7 +673,7 @@ final class JavaVMImpl implements JavaVM {
         return objectClass;
     }
 
-    static JavaVMImpl currentVm() {
+    static VmImpl currentVm() {
         return currentVm.get();
     }
 
@@ -715,12 +715,12 @@ final class JavaVMImpl implements JavaVM {
         }
     }
 
-    public String deduplicate(final JavaObject classLoader, final String string) {
+    public String deduplicate(final VmObject classLoader, final String string) {
         // TODO
         return string;
     }
 
-    public String deduplicate(final JavaObject classLoader, final ByteBuffer buffer, final int offset, final int length, final boolean expectTerminator) {
+    public String deduplicate(final VmObject classLoader, final ByteBuffer buffer, final int offset, final int length, final boolean expectTerminator) {
         // TODO: apart from being inefficient, this is also not strictly correct! don't copy this code
         byte[] bytes = new byte[length];
         buffer.duplicate().position(offset).get(bytes);
@@ -746,7 +746,7 @@ final class JavaVMImpl implements JavaVM {
         return newVal;
     }
 
-    public JavaObject getSharedString(final String string) {
+    public VmObject getSharedString(final String string) {
         return stringInstanceCache.computeIfAbsent(deduplicate(null, string), this::newString);
     }
 
@@ -766,7 +766,7 @@ final class JavaVMImpl implements JavaVM {
         return constructorDescriptorCache.computeIfAbsent(paramDesc, k -> ConstructorDescriptor.of(paramDesc));
     }
 
-    public JavaObject allocateDirectBuffer(final ByteBuffer backingBuffer) {
+    public VmObject allocateDirectBuffer(final ByteBuffer backingBuffer) {
         throw Assert.unsupported();
     }
 
@@ -786,7 +786,7 @@ final class JavaVMImpl implements JavaVM {
         vmLock.lock();
         try {
             exit(134); // SIGKILL-ish
-            for (JavaThread thread : threads) {
+            for (VmThread thread : threads) {
                 thread.await();
             }
             // todo: this is all probably wrong; we need to figure out lifecycle more accurately
@@ -802,18 +802,18 @@ final class JavaVMImpl implements JavaVM {
         }
     }
 
-    public DefinedTypeDefinition.Builder newTypeDefinitionBuilder(final JavaObject classLoader) {
+    public DefinedTypeDefinition.Builder newTypeDefinitionBuilder(final VmObject classLoader) {
         // TODO: use plugins to get a builder
         DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
         builder.setContext(getDictionaryFor(classLoader));
         return builder;
     }
 
-    public JavaObject getMainThreadGroup() {
+    public VmObject getMainThreadGroup() {
         return mainThreadGroup;
     }
 
-    Dictionary getDictionaryFor(final JavaObject classLoader) {
+    Dictionary getDictionaryFor(final VmObject classLoader) {
         if (classLoader == null) {
             return bootstrapDictionary;
         }
@@ -827,8 +827,8 @@ final class JavaVMImpl implements JavaVM {
         return dictionary;
     }
 
-    JavaObject getClassLoaderFor(final Dictionary dictionary) {
-        JavaObject classLoader = loaderClassLoaders.get(dictionary);
+    VmObject getClassLoaderFor(final Dictionary dictionary) {
+        VmObject classLoader = loaderClassLoaders.get(dictionary);
         if (classLoader == null) {
             throw new IllegalStateException("Class loader object is unknown");
         }

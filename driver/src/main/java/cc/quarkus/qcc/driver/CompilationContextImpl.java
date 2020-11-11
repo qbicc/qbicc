@@ -18,7 +18,7 @@ import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -34,16 +34,16 @@ final class CompilationContextImpl implements CompilationContext {
     private final TypeSystem typeSystem;
     private final LiteralFactory literalFactory;
     private final BaseDiagnosticContext baseDiagnosticContext;
-    private final ConcurrentMap<JavaObject, ClassContext> classLoaderContexts = new ConcurrentHashMap<>();
+    private final ConcurrentMap<VmObject, ClassContext> classLoaderContexts = new ConcurrentHashMap<>();
     final Set<ExecutableElement> queued = ConcurrentHashMap.newKeySet();
     final Queue<ExecutableElement> queue = new ConcurrentLinkedDeque<>();
     final Set<MethodElement> entryPoints = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext = new ClassContextImpl(this, null);
     private final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
-    private final BiFunction<JavaObject, String, DefinedTypeDefinition> finder;
+    private final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
     private final Path outputDir;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory, final BiFunction<JavaObject, String, DefinedTypeDefinition> finder, final Path outputDir) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.typeSystem = typeSystem;
         this.literalFactory = literalFactory;
@@ -140,7 +140,7 @@ final class CompilationContextImpl implements CompilationContext {
         return baseDiagnosticContext.deduplicate(original);
     }
 
-    public ClassContext constructClassContext(final JavaObject classLoaderObject) {
+    public ClassContext constructClassContext(final VmObject classLoaderObject) {
         return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> new ClassContextImpl(this, classLoader));
     }
 
@@ -215,7 +215,7 @@ final class CompilationContextImpl implements CompilationContext {
         return entryPoints;
     }
 
-    BiFunction<JavaObject, String, DefinedTypeDefinition> getFinder() {
+    BiFunction<VmObject, String, DefinedTypeDefinition> getFinder() {
         return finder;
     }
 

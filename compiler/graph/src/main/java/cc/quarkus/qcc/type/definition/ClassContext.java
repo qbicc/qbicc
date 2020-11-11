@@ -18,7 +18,7 @@ import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
@@ -36,7 +36,7 @@ public interface ClassContext {
      *
      * @return the class loader object for this context
      */
-    JavaObject getClassLoader();
+    VmObject getClassLoader();
 
     DefinedTypeDefinition findDefinedType(String typeName);
 
@@ -105,7 +105,7 @@ public interface ClassContext {
                 return null;
             }
 
-            public JavaObject getClassLoader() {
+            public VmObject getClassLoader() {
                 return null;
             }
 

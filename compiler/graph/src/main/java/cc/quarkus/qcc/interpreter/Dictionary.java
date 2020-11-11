@@ -22,15 +22,15 @@ public class Dictionary implements ClassContext {
 
     private final ConcurrentHashMap<String, DefinedTypeDefinition> typesByName = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<TypeIdLiteral, DefinedTypeDefinition> typesByLiteral = new ConcurrentHashMap<>();
-    private final JavaObject classLoader;
-    private final JavaVMImpl vm;
+    private final VmObject classLoader;
+    private final VmImpl vm;
 
-    Dictionary(final JavaVMImpl vm) {
+    Dictionary(final VmImpl vm) {
         this.vm = vm;
         classLoader = null;
     }
 
-    Dictionary(JavaObject classLoader, final JavaVMImpl vm) {
+    Dictionary(VmObject classLoader, final VmImpl vm) {
         this.classLoader = Assert.checkNotNullParam("classLoader", classLoader);
         this.vm = vm;
     }
@@ -54,7 +54,7 @@ public class Dictionary implements ClassContext {
         if (typesByName.containsKey(name)) {
             return null;
         }
-        JavaVM vm = JavaVM.requireCurrent();
+        Vm vm = Vm.requireCurrent();
 
         ClassFile classFile = ClassFile.of(this, buffer);
         DefinedTypeDefinition.Builder builder = vm.newTypeDefinitionBuilder(classLoader);
@@ -70,7 +70,7 @@ public class Dictionary implements ClassContext {
         if (typesByName.containsKey(name)) {
             throw new DefineFailedException("Duplicated class named " + name);
         }
-        JavaVM vm = JavaVM.requireCurrent();
+        Vm vm = Vm.requireCurrent();
 
         ClassFile classFile = ClassFile.of(this, buffer);
         DefinedTypeDefinition.Builder builder = vm.newTypeDefinitionBuilder(classLoader);
@@ -129,7 +129,7 @@ public class Dictionary implements ClassContext {
         return null;
     }
 
-    public JavaObject getClassLoader() {
+    public VmObject getClassLoader() {
         return classLoader;
     }
 }

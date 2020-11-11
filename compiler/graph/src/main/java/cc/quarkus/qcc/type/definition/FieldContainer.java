@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.interpreter.JavaObject;
+import cc.quarkus.qcc.interpreter.VmObject;
 import io.smallrye.common.constraint.Assert;
 
 public interface FieldContainer {
@@ -14,11 +14,11 @@ public interface FieldContainer {
 
     FieldSet getFieldSet();
 
-    JavaObject getObjectFieldPlain(String name);
+    VmObject getObjectFieldPlain(String name);
 
-    JavaObject getObjectFieldVolatile(String name);
+    VmObject getObjectFieldVolatile(String name);
 
-    JavaObject getObjectFieldAcquire(String name);
+    VmObject getObjectFieldAcquire(String name);
 
     long getLongFieldPlain(String name);
 
@@ -32,11 +32,11 @@ public interface FieldContainer {
 
     int getIntFieldAcquire(String name);
 
-    void setFieldPlain(String name, JavaObject value);
+    void setFieldPlain(String name, VmObject value);
 
-    void setFieldVolatile(String name, JavaObject value);
+    void setFieldVolatile(String name, VmObject value);
 
-    void setFieldRelease(String name, JavaObject value);
+    void setFieldRelease(String name, VmObject value);
 
     void setFieldPlain(String name, long value);
 

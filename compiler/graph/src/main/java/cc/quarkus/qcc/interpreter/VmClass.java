@@ -5,7 +5,7 @@ import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 /**
  *
  */
-public interface JavaClass extends JavaObject {
+public interface VmClass extends VmObject {
 
     ValidatedTypeDefinition getTypeDefinition();
 }
