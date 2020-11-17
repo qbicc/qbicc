@@ -1,7 +1,9 @@
 package cc.quarkus.qcc.driver;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -208,7 +210,8 @@ final class CompilationContextImpl implements CompilationContext {
     String signatureString(ParameterizedExecutableElement element) {
         StringBuilder builder = new StringBuilder();
         element.forEachParameter((b, e) -> e.getType().toString(b), builder);
-        return builder.toString();
+        // this is not ideal but we're creating invalid file names all over the place otherwise
+        return Base64.getUrlEncoder().encodeToString(builder.toString().getBytes(StandardCharsets.UTF_8));
     }
 
     public Iterable<MethodElement> getEntryPoints() {
