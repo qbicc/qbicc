@@ -32,5 +32,32 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qcc-driver</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-machine-probe</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-machine-file-elf</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-machine-file-macho</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-machine-tool-gnu</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-machine-tool-clang</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-machine-tool-llvm</artifactId>
+        </dependency>
     </dependencies>
 </project>

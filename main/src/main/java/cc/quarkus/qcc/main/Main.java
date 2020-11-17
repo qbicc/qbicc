@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.regex.Pattern;
@@ -15,6 +16,9 @@ import cc.quarkus.qcc.driver.BaseDiagnosticContext;
 import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.driver.plugin.DriverPlugin;
 import cc.quarkus.qcc.machine.arch.Platform;
+import cc.quarkus.qcc.machine.object.ObjectFileProvider;
+import cc.quarkus.qcc.machine.probe.CTypeProbe;
+import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.type.TypeSystem;
 
 /**
@@ -53,32 +57,110 @@ public class Main {
         }
         int errors = initialContext.errors();
         if (errors == 0) {
-            ServiceLoader<DriverPlugin> loader = ServiceLoader.load(DriverPlugin.class);
-            Iterator<DriverPlugin> iterator = loader.iterator();
-            // todo: probe platform and initial type constraints
-            builder.setTargetPlatform(Platform.HOST_PLATFORM);
-            builder.setTypeSystem(TypeSystem.builder().build());
-            for (;;) try {
-                if (! iterator.hasNext()) {
-                    break;
+            // first, probe the target platform
+            Platform target = Platform.HOST_PLATFORM;
+            builder.setTargetPlatform(target);
+            Optional<ObjectFileProvider> optionalProvider = ObjectFileProvider.findProvider(target.getObjectType(), Main.class.getClassLoader());
+            if (optionalProvider.isEmpty()) {
+                initialContext.error("No object file provider found for %s", target.getObjectType());
+                errors = initialContext.errors();
+            } else {
+                ObjectFileProvider objectFileProvider = optionalProvider.get();
+                Iterator<CToolChain> toolChains = CToolChain.findAllCToolChains(target, t -> true, Main.class.getClassLoader()).iterator();
+                if (! toolChains.hasNext()) {
+                    initialContext.error("No working C compiler found");
+                    errors = initialContext.errors();
+                } else {
+                    CToolChain toolChain = toolChains.next();
+                    builder.setToolChain(toolChain);
+                    // probe the basic system sizes
+                    CTypeProbe.Builder probeBuilder = CTypeProbe.builder();
+                    probeBuilder.addInclude("<stdint.h>");
+                    // size and signedness of char
+                    CTypeProbe.Type char_t = CTypeProbe.Type.builder().setName("char").build();
+                    probeBuilder.addType(char_t);
+                    // int sizes
+                    CTypeProbe.Type int8_t = CTypeProbe.Type.builder().setName("int8_t").build();
+                    probeBuilder.addType(int8_t);
+                    CTypeProbe.Type int16_t = CTypeProbe.Type.builder().setName("int16_t").build();
+                    probeBuilder.addType(int16_t);
+                    CTypeProbe.Type int32_t = CTypeProbe.Type.builder().setName("int32_t").build();
+                    probeBuilder.addType(int32_t);
+                    CTypeProbe.Type int64_t = CTypeProbe.Type.builder().setName("int64_t").build();
+                    probeBuilder.addType(int64_t);
+                    // float sizes
+                    CTypeProbe.Type float_t = CTypeProbe.Type.builder().setName("float").build();
+                    probeBuilder.addType(float_t);
+                    CTypeProbe.Type double_t = CTypeProbe.Type.builder().setName("double").build();
+                    probeBuilder.addType(double_t);
+                    // bool
+                    CTypeProbe.Type _Bool = CTypeProbe.Type.builder().setName("_Bool").build();
+                    probeBuilder.addType(_Bool);
+                    // pointer
+                    CTypeProbe.Type void_p = CTypeProbe.Type.builder().setName("void *").build();
+                    probeBuilder.addType(void_p);
+                    // execute
+                    CTypeProbe probe = probeBuilder.build();
+                    try {
+                        CTypeProbe.Result probeResult = probe.run(toolChain, objectFileProvider);
+                        long charSize = probeResult.getInfo(char_t).getSize();
+                        if (charSize != 1) {
+                            initialContext.error("Unexpected size of `char`: %d", Long.valueOf(charSize));
+                        }
+                        TypeSystem.Builder tsBuilder = TypeSystem.builder();
+                        tsBuilder.setBoolSize((int) probeResult.getInfo(_Bool).getSize());
+                        tsBuilder.setBoolAlignment((int) probeResult.getInfo(_Bool).getAlign());
+                        tsBuilder.setByteBits(8); // TODO: add a constant probe for BYTE_BITS
+                        tsBuilder.setInt8Size((int) probeResult.getInfo(int8_t).getSize());
+                        tsBuilder.setInt8Alignment((int) probeResult.getInfo(int8_t).getAlign());
+                        tsBuilder.setInt16Size((int) probeResult.getInfo(int16_t).getSize());
+                        tsBuilder.setInt16Alignment((int) probeResult.getInfo(int16_t).getAlign());
+                        tsBuilder.setInt32Size((int) probeResult.getInfo(int32_t).getSize());
+                        tsBuilder.setInt32Alignment((int) probeResult.getInfo(int32_t).getAlign());
+                        tsBuilder.setInt64Size((int) probeResult.getInfo(int64_t).getSize());
+                        tsBuilder.setInt64Alignment((int) probeResult.getInfo(int64_t).getAlign());
+                        tsBuilder.setFloat32Size((int) probeResult.getInfo(float_t).getSize());
+                        tsBuilder.setFloat32Alignment((int) probeResult.getInfo(float_t).getAlign());
+                        tsBuilder.setFloat64Size((int) probeResult.getInfo(double_t).getSize());
+                        tsBuilder.setFloat64Alignment((int) probeResult.getInfo(double_t).getAlign());
+                        tsBuilder.setPointerSize((int) probeResult.getInfo(void_p).getSize());
+                        tsBuilder.setPointerAlignment((int) probeResult.getInfo(void_p).getAlign());
+                        // for now, references == pointers
+                        tsBuilder.setReferenceSize((int) probeResult.getInfo(void_p).getSize());
+                        tsBuilder.setReferenceAlignment((int) probeResult.getInfo(void_p).getAlign());
+                        // for now, type IDs == int32
+                        tsBuilder.setTypeIdSize((int) probeResult.getInfo(int32_t).getSize());
+                        tsBuilder.setTypeIdAlignment((int) probeResult.getInfo(int32_t).getAlign());
+                        builder.setTypeSystem(tsBuilder.build());
+                        ServiceLoader<DriverPlugin> loader = ServiceLoader.load(DriverPlugin.class);
+                        Iterator<DriverPlugin> iterator = loader.iterator();
+                        for (;;) try {
+                            if (! iterator.hasNext()) {
+                                break;
+                            }
+                            DriverPlugin plugin = iterator.next();
+                            plugin.accept(builder);
+                        } catch (ServiceConfigurationError error) {
+                            initialContext.error(error, "Failed to load plugin");
+                        }
+                        errors = initialContext.errors();
+                        if (errors == 0) {
+                            assert mainClass != null; // else errors would be != 0
+                            // keep it simple to start with
+                            builder.setMainClass(mainClass.replace('.', '/'));
+                            CompilationContext ctxt;
+                            boolean result;
+                            try (Driver driver = builder.build()) {
+                                ctxt = driver.getCompilationContext();
+                                driver.execute();
+                            }
+                            errors = ctxt.errors();
+                        }
+                    } catch (IOException e) {
+                        initialContext.error(e, "Failed to probe system types from tool chain");
+                        errors = initialContext.errors();
+                    }
                 }
-                DriverPlugin plugin = iterator.next();
-                plugin.accept(builder);
-            } catch (ServiceConfigurationError error) {
-                initialContext.error(error, "Failed to load plugin");
-            }
-            errors = initialContext.errors();
-            if (errors == 0) {
-                assert mainClass != null; // else errors would be != 0
-                // keep it simple to start with
-                builder.setMainClass(mainClass.replace('.', '/'));
-                CompilationContext ctxt;
-                boolean result;
-                try (Driver driver = builder.build()) {
-                    ctxt = driver.getCompilationContext();
-                    driver.execute();
-                }
-                errors = ctxt.errors();
             }
         }
         for (Diagnostic diagnostic : initialContext.getDiagnostics()) {
