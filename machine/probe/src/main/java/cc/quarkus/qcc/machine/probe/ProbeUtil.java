@@ -141,4 +141,8 @@ final class ProbeUtil {
     static UnaryOperator<StringBuilder> definedValue(String name, UnaryOperator<StringBuilder> type) {
         return definedRaw(name, cast(type, literal(name)), cast(type, literal("{ 0 }")));
     }
+
+    static StringBuilder nl(StringBuilder b) {
+        return b.append(System.lineSeparator());
+    }
 }
