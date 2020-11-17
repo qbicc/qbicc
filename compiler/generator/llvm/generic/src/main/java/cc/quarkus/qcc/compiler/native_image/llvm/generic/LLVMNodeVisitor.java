@@ -3,6 +3,7 @@ package cc.quarkus.qcc.compiler.native_image.llvm.generic;
 import static cc.quarkus.qcc.machine.llvm.Types.*;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,6 +29,7 @@ import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.Multiply;
 import cc.quarkus.qcc.graph.Neg;
+import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NodeVisitor;
 import cc.quarkus.qcc.graph.Or;
 import cc.quarkus.qcc.graph.PhiValue;
@@ -57,9 +59,12 @@ import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
@@ -69,16 +74,18 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final FunctionDefinition func;
     final BasicBlock entryBlock;
     final Set<BasicBlock> knownBlocks;
+    final Set<Action> visitedActions = new HashSet<>();
     final Map<Value, LLValue> mappedValues = new HashMap<>();
     final Map<BasicBlock, LLBasicBlock> mappedBlocks = new HashMap<>();
     final Map<Type, LLValue> types = new HashMap<>();
+    final MethodBody methodBody;
 
     LLVMNodeVisitor(final CompilationContext ctxt, final Schedule schedule, final ExecutableElement element, final FunctionDefinition func) {
         this.ctxt = ctxt;
         this.schedule = schedule;
         this.element = element;
         this.func = func;
-        MethodBody methodBody = element.getMethodBody().getOrCreateMethodBody();
+        this.methodBody = element.getMethodBody().getOrCreateMethodBody();
         entryBlock = methodBody.getEntryBlock();
         knownBlocks = entryBlock.calculateReachableBlocks();
     }
@@ -86,7 +93,21 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     // begin
 
     public void execute() {
-        entryBlock.getTerminator().accept(this, null);
+        if (element instanceof ParameterizedExecutableElement) {
+            ParameterizedExecutableElement p = (ParameterizedExecutableElement) element;
+            int cnt = p.getParameterCount();
+            for (int i = 0; i < cnt; i ++) {
+                ValueType type = p.getParameter(i).getType();
+                mappedValues.put(methodBody.getParameterValue(i), func.param(map(type)).name("p" + i).asValue());
+            }
+        }
+        if (element instanceof MethodElement) {
+            ValueType returnType = ((MethodElement) element).getReturnType();
+            func.returns(map(returnType));
+        } else {
+            func.returns(LLVM.void_);
+        }
+        map(entryBlock);
     }
 
     // actions
@@ -99,24 +120,28 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     // terminators
 
     public Void visit(final Void param, final Goto node) {
+        map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
         block.br(map(node.getResumeTarget()));
         return null;
     }
 
     public Void visit(final Void param, final If node) {
+        map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
         block.br(map(node.getCondition()), map(node.getTrueBranch()), map(node.getFalseBranch()));
         return null;
     }
 
     public Void visit(final Void param, final Return node) {
+        map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
         block.ret();
         return null;
     }
 
     public Void visit(final Void param, final ValueReturn node) {
+        map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
         block.ret(map(node.getReturnValue().getType()), map(node.getReturnValue()));
         return null;
@@ -450,7 +475,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         return res;
     }
 
-
+    private void map(Action action) {
+        if (visitedActions.add(action)) {
+            action.accept(this, null);
+        }
+    }
 
     private LLValue map(Value value) {
         LLValue mapped = mappedValues.get(value);
@@ -460,5 +489,15 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         mapped = value.accept(this, null);
         mappedValues.put(value, mapped);
         return mapped;
+    }
+
+    private void map(Node unknown) {
+        if (unknown instanceof Action) {
+            map((Action) unknown);
+        } else if (unknown instanceof Value) {
+            map((Value) unknown);
+        } else {
+            throw new IllegalStateException();
+        }
     }
 }

@@ -17,9 +17,9 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
-final class LLVMElementVisitor implements ElementVisitor<CompilationContext, Void> {
+public final class LLVMElementVisitor implements ElementVisitor<CompilationContext, Void> {
 
-    LLVMElementVisitor() {
+    public LLVMElementVisitor() {
     }
 
     public Void visit(final CompilationContext ctxt, final ConstructorElement element) {

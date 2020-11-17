@@ -10,6 +10,7 @@ import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.regex.Pattern;
 
+import cc.quarkus.qcc.compiler.native_image.llvm.generic.LLVMElementVisitor;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.driver.BaseDiagnosticContext;
@@ -31,6 +32,7 @@ public class Main {
         builder.setInitialContext(initialContext);
         final Iterator<String> argIter = List.of(args).iterator();
         String mainClass = null;
+        Path outputPath = null;
         while (argIter.hasNext()) {
             final String arg = argIter.next();
             if (arg.startsWith("-")) {
@@ -41,6 +43,8 @@ public class Main {
                             builder.addBootClassPathElement(Path.of(pathStr));
                         }
                     }
+                } else if (arg.equals("--output-path") || arg.equals("-o")) {
+                    outputPath = Path.of(argIter.next());
                 } else {
                     initialContext.error("Unrecognized argument \"%s\"", arg);
                     break;
@@ -55,8 +59,12 @@ public class Main {
         if (mainClass == null) {
             initialContext.error("No main class specified");
         }
+        if (outputPath == null) {
+            initialContext.error("No output path specified");
+        }
         int errors = initialContext.errors();
         if (errors == 0) {
+            builder.setOutputDirectory(outputPath);
             // first, probe the target platform
             Platform target = Platform.HOST_PLATFORM;
             builder.setTargetPlatform(target);
@@ -148,6 +156,7 @@ public class Main {
                             assert mainClass != null; // else errors would be != 0
                             // keep it simple to start with
                             builder.setMainClass(mainClass.replace('.', '/'));
+                            builder.addGenerateVisitor(new LLVMElementVisitor());
                             CompilationContext ctxt;
                             boolean result;
                             try (Driver driver = builder.build()) {
