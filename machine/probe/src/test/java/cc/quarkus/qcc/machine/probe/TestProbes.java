@@ -3,12 +3,14 @@ package cc.quarkus.qcc.machine.probe;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Iterator;
+import java.util.List;
 
 import cc.quarkus.qcc.machine.arch.ObjectType;
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.machine.tool.ToolProvider;
+import cc.quarkus.qcc.machine.tool.ToolUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +25,7 @@ public class TestProbes {
     @BeforeAll
     public static void setUpCompiler() {
         final Iterable<CToolChain> tools = ToolProvider.findAllTools(CToolChain.class, Platform.HOST_PLATFORM, s -> true,
-            TestProbes.class.getClassLoader());
+            TestProbes.class.getClassLoader(), List.of(ToolUtil.findExecutable("cc"), ToolUtil.findExecutable("gcc")));
         final Iterator<CToolChain> iterator = tools.iterator();
         assertTrue(iterator.hasNext());
         compiler = iterator.next();

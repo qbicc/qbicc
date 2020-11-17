@@ -6,14 +6,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.tool.Tool;
 import cc.quarkus.qcc.machine.tool.ToolProvider;
-import cc.quarkus.qcc.machine.tool.ToolUtil;
 import cc.quarkus.qcc.machine.tool.process.InputSource;
 import cc.quarkus.qcc.machine.tool.process.OutputDestination;
 
@@ -21,20 +19,17 @@ import cc.quarkus.qcc.machine.tool.process.OutputDestination;
  *
  */
 public class ClangToolProvider implements ToolProvider {
-    public <T extends Tool> Iterable<T> findTools(final Class<T> type, final Platform platform) {
+    public <T extends Tool> Iterable<T> findTools(final Class<T> type, final Platform platform, final Path path) {
         final ArrayList<T> list = new ArrayList<>();
         if (type.isAssignableFrom(ClangToolChainImpl.class)) {
-            for (String name : List.of("clang", "cc", "gcc")) {
-                tryOne(type, platform, list, name);
-            }
+            tryOne(type, platform, list, path);
         }
         return list;
     }
 
     static final Pattern VERSION_PATTERN = Pattern.compile("^(?:clang|Apple LLVM) version (\\S+)");
 
-    private <T extends Tool> void tryOne(final Class<T> type, final Platform platform, final ArrayList<T> list, final String name) {
-        final Path path = ToolUtil.findExecutable(name);
+    private <T extends Tool> void tryOne(final Class<T> type, final Platform platform, final ArrayList<T> list, final Path path) {
         if (path != null && Files.isExecutable(path)) {
             class Result {
                 String version;

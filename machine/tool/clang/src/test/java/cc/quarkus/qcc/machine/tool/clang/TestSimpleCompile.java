@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assumptions.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 
 import cc.quarkus.qcc.machine.arch.Platform;
@@ -14,6 +15,7 @@ import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.tool.Tool;
 import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
 import cc.quarkus.qcc.machine.tool.ToolProvider;
+import cc.quarkus.qcc.machine.tool.ToolUtil;
 import cc.quarkus.qcc.machine.tool.process.InputSource;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +30,7 @@ public class TestSimpleCompile {
         Optional<ObjectFileProvider> of = ObjectFileProvider.findProvider(plaf.getObjectType(), getClass().getClassLoader());
         assumeTrue(of.isPresent());
         final Iterable<ClangToolChainImpl> tools = ToolProvider.findAllTools(ClangToolChainImpl.class, plaf, c -> true,
-            TestSimpleCompile.class.getClassLoader());
+            TestSimpleCompile.class.getClassLoader(), List.of(ToolUtil.findExecutable("clang")));
         final Iterator<ClangToolChainImpl> iterator = tools.iterator();
         assumeTrue(iterator.hasNext());
         final ClangToolChainImpl gccCompiler = iterator.next();

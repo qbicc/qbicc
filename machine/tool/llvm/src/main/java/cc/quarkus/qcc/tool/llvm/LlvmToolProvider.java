@@ -14,7 +14,6 @@ import java.util.regex.Pattern;
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.tool.Tool;
 import cc.quarkus.qcc.machine.tool.ToolProvider;
-import cc.quarkus.qcc.machine.tool.ToolUtil;
 import cc.quarkus.qcc.machine.tool.process.InputSource;
 import cc.quarkus.qcc.machine.tool.process.OutputDestination;
 
@@ -26,20 +25,19 @@ public final class LlvmToolProvider implements ToolProvider {
     // Mac OS hides LLVM here if you install it with brew
     static final List<Path> EXTRA_PATH = List.of(Path.of("/usr/local/opt/llvm/bin"));
 
-    public <T extends Tool> Iterable<T> findTools(final Class<T> type, final Platform platform) {
+    public <T extends Tool> Iterable<T> findTools(final Class<T> type, final Platform platform, final Path path) {
         ArrayList<T> list = new ArrayList<>();
         if (type.isAssignableFrom(LlcToolImpl.class)) {
-            tryTool(type, platform, list, "llc", (path, version) -> type.cast(new LlcToolImpl(path, platform, version)));
+            tryTool(type, platform, list, "llc", path, (p, version) -> type.cast(new LlcToolImpl(p, platform, version)));
         } else if (type.isAssignableFrom(OptToolImpl.class)) {
-            tryTool(type, platform, list, "opt", (path, version) -> type.cast(new OptToolImpl(path, platform, version)));
+            tryTool(type, platform, list, "opt", path, (p, version) -> type.cast(new OptToolImpl(p, platform, version)));
         }
         return list;
     }
 
     static final Pattern VERSION_PATTERN = Pattern.compile("LLVM version (\\S+)");
 
-    private static <T extends Tool> void tryTool(final Class<T> type, final Platform platform, final ArrayList<T> list, final String name, BiFunction<Path, String, T> factory) {
-        final Path path = ToolUtil.findExecutable(name, EXTRA_PATH);
+    private static <T extends Tool> void tryTool(final Class<T> type, final Platform platform, final ArrayList<T> list, final String name, final Path path, BiFunction<Path, String, T> factory) {
         if (path != null && Files.isExecutable(path)) {
             class Result {
                 String version;
@@ -71,5 +69,4 @@ public final class LlvmToolProvider implements ToolProvider {
             }
         }
     }
-
 }
