@@ -10,7 +10,6 @@ import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.regex.Pattern;
 
-import cc.quarkus.qcc.compiler.native_image.llvm.generic.LLVMElementVisitor;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.driver.BaseDiagnosticContext;
@@ -20,6 +19,7 @@ import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.probe.CTypeProbe;
 import cc.quarkus.qcc.machine.tool.CToolChain;
+import cc.quarkus.qcc.plugin.llvm.LLVMElementVisitor;
 import cc.quarkus.qcc.type.TypeSystem;
 
 /**

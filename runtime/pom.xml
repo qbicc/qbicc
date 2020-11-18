@@ -15,6 +15,15 @@
     <packaging>pom</packaging>
 
     <modules>
+        <!-- API module -->
         <module>api</module>
+
+        <!-- Main entry module -->
+        <module>main</module>
+
+        <!-- Native interface modules -->
+        <module>linux</module>
+        <module>posix</module>
+        <module>unwind</module>
     </modules>
 </project>

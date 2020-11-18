@@ -32,7 +32,6 @@
         <module>driver</module>
         <module>main</module>
         <module>machine</module>
-        <module>native</module>
         <module>runtime</module>
         <module>plugins</module>
     </modules>
@@ -47,6 +46,30 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>qcc-runtime-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-runtime-main</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-runtime-linux</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-runtime-posix</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-runtime-unwind</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -82,12 +105,6 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-file-parent</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>qcc-machine-file-bin</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -108,12 +125,6 @@
             </dependency>
 
             <!-- tools -->
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-tool-parent</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
@@ -163,26 +174,6 @@
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- native -->
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-native-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-native-posix</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-native-linux</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
             <!-- compiler -->
 
             <dependency>
@@ -190,28 +181,18 @@
                 <artifactId>qcc-compiler</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-compiler-generator-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-compiler-generator-llvm-generic</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <!-- plugins -->
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-patcher-api</artifactId>
+                <artifactId>qcc-plugin-patcher</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-patcher-plugin</artifactId>
+                <artifactId>qcc-plugin-llvm</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

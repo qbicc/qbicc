@@ -12,4 +12,6 @@
 
     <artifactId>qcc-runtime-api</artifactId>
 
+    <dependencies>
+    </dependencies>
 </project>
