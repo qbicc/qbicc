@@ -6,24 +6,20 @@
 
     <parent>
         <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-parent</artifactId>
+        <artifactId>qcc-runtime-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-runtime-parent</artifactId>
+    <artifactId>qcc-runtime-linux</artifactId>
 
-    <packaging>pom</packaging>
-
-    <modules>
-        <!-- API module -->
-        <module>api</module>
-
-        <!-- Main entry module -->
-        <module>main</module>
-
-        <!-- Native interface modules -->
-        <module>linux</module>
-        <module>posix</module>
-        <module>unwind</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>cc.quarkus</groupId>
+            <artifactId>qcc-runtime-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cc.quarkus</groupId>
+            <artifactId>qcc-runtime-posix</artifactId>
+        </dependency>
+    </dependencies>
 </project>

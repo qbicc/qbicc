@@ -19,11 +19,11 @@
         </dependency>
         <dependency>
             <groupId>cc.quarkus</groupId>
-            <artifactId>qcc-native-posix</artifactId>
+            <artifactId>qcc-runtime-posix</artifactId>
         </dependency>
         <dependency>
             <groupId>cc.quarkus</groupId>
-            <artifactId>qcc-native-linux</artifactId>
+            <artifactId>qcc-runtime-linux</artifactId>
         </dependency>
     </dependencies>
 

@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.runtime.main;
 
 import static cc.quarkus.qcc.runtime.api.CNative.*;
-import static cc.quarkus.c_native.posix.PThread.*;
+import static cc.quarkus.qcc.runtime.posix.PThread.*;
 
 import cc.quarkus.qcc.runtime.api.Build;
 import cc.quarkus.qcc.runtime.api.Detached;

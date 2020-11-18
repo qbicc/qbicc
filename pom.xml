@@ -32,7 +32,6 @@
         <module>driver</module>
         <module>main</module>
         <module>machine</module>
-        <module>native</module>
         <module>runtime</module>
         <module>plugins</module>
     </modules>
@@ -47,6 +46,30 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>qcc-runtime-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-runtime-main</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-runtime-linux</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-runtime-posix</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-runtime-unwind</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -148,20 +171,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>qcc-machine-asm-x86</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <!-- native -->
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-native-posix</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-native-linux</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
