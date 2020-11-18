@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.compiler.native_image.llvm.generic;
+package cc.quarkus.qcc.plugin.llvm;
 
 import static cc.quarkus.qcc.machine.llvm.Types.*;
 

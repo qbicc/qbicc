@@ -12,9 +12,10 @@
 
     <packaging>pom</packaging>
 
-    <artifactId>qcc-plugins-parent</artifactId>
+    <artifactId>qcc-plugin-parent</artifactId>
 
     <modules>
         <module>patcher</module>
+        <module>llvm</module>
     </modules>
 </project>

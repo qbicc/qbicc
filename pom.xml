@@ -190,16 +190,6 @@
                 <artifactId>qcc-compiler</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-compiler-generator-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-compiler-generator-llvm-generic</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <!-- plugins -->
 
@@ -212,6 +202,12 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>qcc-plugin-patcher-plugin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-plugin-llvm</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
