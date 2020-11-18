@@ -13,4 +13,6 @@ a.out
 *.ll
 *.bc
 .factorypath
+*.dot
+*.svg
 
