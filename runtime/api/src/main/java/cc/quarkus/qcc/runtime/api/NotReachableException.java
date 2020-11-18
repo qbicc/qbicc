@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.api;
+package cc.quarkus.qcc.runtime.api;
 
 /**
  * An exception thrown when a part of the program is expected to be unreachable (e.g. due to {@link NoReturn}).

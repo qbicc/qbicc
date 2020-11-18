@@ -15,7 +15,6 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>api</module>
         <module>linux</module>
         <module>posix</module>
         <module>unwind</module>

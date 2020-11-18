@@ -1,6 +1,6 @@
-package cc.quarkus.c_native.stdc;
+package cc.quarkus.qcc.runtime.stdc;
 
-import static cc.quarkus.c_native.api.CNative.*;
+import static cc.quarkus.qcc.runtime.api.CNative.*;
 
 /**
  * C standard I/O should only be used for specialized debugging purposes.

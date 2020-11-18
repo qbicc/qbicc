@@ -19,10 +19,6 @@
         </dependency>
         <dependency>
             <groupId>cc.quarkus</groupId>
-            <artifactId>qcc-native-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>cc.quarkus</groupId>
             <artifactId>qcc-native-posix</artifactId>
         </dependency>
     </dependencies>

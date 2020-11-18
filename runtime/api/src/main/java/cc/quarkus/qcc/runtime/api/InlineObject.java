@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.api;
+package cc.quarkus.qcc.runtime.api;
 
 /**
  * A Java object which is always handled by value. Inline objects cannot be {@code null}, unlike

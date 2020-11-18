@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.api;
+package cc.quarkus.qcc.runtime.api;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -7,15 +7,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Inline the annotated method.
+ * The annotated method is detached from the VM, and thus may not use any Java VM facilities such as heap allocation/GC,
+ * safepoints, {@link Thread#currentThread()}, exceptions, etc.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface Inline {
-    /* TODO: conditions
-    Class<? extends InlineCondition>[] when() default {};
-
-    Class<? extends InlineCondition>[] unless() default {};
-     */
+public @interface Detached {
 }

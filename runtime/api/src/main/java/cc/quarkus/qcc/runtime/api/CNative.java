@@ -1,8 +1,8 @@
-package cc.quarkus.c_native.api;
+package cc.quarkus.qcc.runtime.api;
 
-import static cc.quarkus.c_native.stdc.Stddef.*;
-import static cc.quarkus.c_native.stdc.Stdint.*;
-import static cc.quarkus.c_native.stdc.String.*;
+import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
+import static cc.quarkus.qcc.runtime.stdc.Stdint.*;
+import static cc.quarkus.qcc.runtime.stdc.String.*;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -13,10 +13,7 @@ import java.lang.annotation.Target;
 import java.nio.charset.StandardCharsets;
 import java.util.function.BooleanSupplier;
 
-import cc.quarkus.qcc.api.InlineObject;
-import cc.quarkus.qcc.api.StackObject;
-import cc.quarkus.qcc.api.ThreadScoped;
-import cc.quarkus.c_native.stdc.Stdlib;
+import cc.quarkus.qcc.runtime.stdc.Stdlib;
 
 /**
  * Types, constants, variables, and methods that pertain to the <em>target</em> native environment from the perspective

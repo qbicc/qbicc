@@ -1,9 +1,9 @@
 package cc.quarkus.c_native.unwind;
 
-import static cc.quarkus.c_native.api.CNative.*;
-import static cc.quarkus.c_native.stdc.Stdint.*;
+import static cc.quarkus.qcc.runtime.api.CNative.*;
+import static cc.quarkus.qcc.runtime.stdc.Stdint.*;
 
-import cc.quarkus.c_native.api.Build;
+import cc.quarkus.qcc.runtime.api.Build;
 
 /**
  * Unwind ABI as described at <a href="https://itanium-cxx-abi.github.io/cxx-abi/abi-eh.html">https://itanium-cxx-abi.github.io/cxx-abi/abi-eh.html</a>.

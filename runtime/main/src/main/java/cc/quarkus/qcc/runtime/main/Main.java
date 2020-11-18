@@ -1,11 +1,11 @@
 package cc.quarkus.qcc.runtime.main;
 
-import static cc.quarkus.c_native.api.CNative.*;
+import static cc.quarkus.qcc.runtime.api.CNative.*;
 import static cc.quarkus.c_native.posix.PThread.*;
 
-import cc.quarkus.c_native.api.Build;
-import cc.quarkus.qcc.api.Detached;
-import cc.quarkus.qcc.api.NotReachableException;
+import cc.quarkus.qcc.runtime.api.Build;
+import cc.quarkus.qcc.runtime.api.Detached;
+import cc.quarkus.qcc.runtime.api.NotReachableException;
 
 /**
  * Holds the native image main entry point.

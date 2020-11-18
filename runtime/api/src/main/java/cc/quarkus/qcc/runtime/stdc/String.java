@@ -1,7 +1,7 @@
-package cc.quarkus.c_native.stdc;
+package cc.quarkus.qcc.runtime.stdc;
 
-import static cc.quarkus.c_native.api.CNative.*;
-import static cc.quarkus.c_native.stdc.Stddef.*;
+import static cc.quarkus.qcc.runtime.api.CNative.*;
+import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
 
 /**
  *

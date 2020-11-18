@@ -1,8 +1,8 @@
 package cc.quarkus.c_native.linux;
 
-import static cc.quarkus.c_native.api.CNative.*;
-import static cc.quarkus.c_native.stdc.Signal.*;
-import static cc.quarkus.c_native.stdc.Stdint.*;
+import static cc.quarkus.qcc.runtime.api.CNative.*;
+import static cc.quarkus.qcc.runtime.stdc.Signal.*;
+import static cc.quarkus.qcc.runtime.stdc.Stdint.*;
 
 /**
  *

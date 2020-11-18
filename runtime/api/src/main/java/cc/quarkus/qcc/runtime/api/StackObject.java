@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.api;
+package cc.quarkus.qcc.runtime.api;
 
 import java.lang.ref.Reference;
 

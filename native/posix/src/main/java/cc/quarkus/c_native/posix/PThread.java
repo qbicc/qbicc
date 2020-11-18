@@ -1,12 +1,12 @@
 package cc.quarkus.c_native.posix;
 
-import static cc.quarkus.c_native.api.CNative.*;
-import static cc.quarkus.c_native.stdc.Signal.*;
-import static cc.quarkus.c_native.stdc.Stddef.*;
+import static cc.quarkus.qcc.runtime.api.CNative.*;
+import static cc.quarkus.qcc.runtime.stdc.Signal.*;
+import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
 
 import java.util.function.UnaryOperator;
 
-import cc.quarkus.qcc.api.NoReturn;
+import cc.quarkus.qcc.runtime.api.NoReturn;
 
 /**
  *

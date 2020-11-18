@@ -1,11 +1,9 @@
-package cc.quarkus.c_native.api;
+package cc.quarkus.qcc.runtime.api;
 
-import static cc.quarkus.c_native.api.CNative.*;
+import static cc.quarkus.qcc.runtime.api.CNative.*;
 
 import java.util.Locale;
 import java.util.function.BooleanSupplier;
-
-import cc.quarkus.qcc.api.Fold;
 
 /**
  *

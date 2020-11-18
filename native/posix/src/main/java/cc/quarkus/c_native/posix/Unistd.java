@@ -1,10 +1,10 @@
 package cc.quarkus.c_native.posix;
 
-import static cc.quarkus.c_native.api.CNative.*;
+import static cc.quarkus.qcc.runtime.api.CNative.*;
 import static cc.quarkus.c_native.posix.SysTypes.*;
-import static cc.quarkus.c_native.stdc.Stddef.*;
+import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
 
-import cc.quarkus.c_native.api.Build;
+import cc.quarkus.qcc.runtime.api.Build;
 
 /**
  *

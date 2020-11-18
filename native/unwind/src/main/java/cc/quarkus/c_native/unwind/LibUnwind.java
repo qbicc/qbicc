@@ -1,6 +1,6 @@
 package cc.quarkus.c_native.unwind;
 
-import static cc.quarkus.c_native.api.CNative.*;
+import static cc.quarkus.qcc.runtime.api.CNative.*;
 
 /**
  * The libunwind library API @ <a href="https://www.nongnu.org/libunwind/docs.html">https://www.nongnu.org/libunwind/docs.html</a>

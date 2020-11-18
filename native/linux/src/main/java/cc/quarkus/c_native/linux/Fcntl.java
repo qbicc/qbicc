@@ -1,9 +1,9 @@
 package cc.quarkus.c_native.linux;
 
-import static cc.quarkus.c_native.api.CNative.*;
+import static cc.quarkus.qcc.runtime.api.CNative.*;
 import static cc.quarkus.c_native.posix.SysTypes.*;
 import static cc.quarkus.c_native.posix.SysUio.*;
-import static cc.quarkus.c_native.stdc.Stddef.*;
+import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
 
 /**
  *

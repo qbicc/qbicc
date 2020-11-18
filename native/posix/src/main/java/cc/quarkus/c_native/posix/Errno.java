@@ -1,10 +1,10 @@
 package cc.quarkus.c_native.posix;
 
-import static cc.quarkus.c_native.api.CNative.*;
+import static cc.quarkus.qcc.runtime.api.CNative.*;
 
 /**
  *
- * @see cc.quarkus.c_native.stdc.Errno
+ * @see cc.quarkus.qcc.runtime.stdc.Errno
  */
 @define(value = "_POSIX_C_SOURCE", as = "200809L")
 @include("<errno.h>")

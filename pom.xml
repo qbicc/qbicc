@@ -155,12 +155,6 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-native-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>qcc-native-posix</artifactId>
                 <version>${project.version}</version>
             </dependency>
