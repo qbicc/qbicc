@@ -16,9 +16,9 @@
 
     <modules>
         <module>api</module>
-        <module>posix</module>
-        <module>linux</module>
         <module>crt</module>
+        <module>linux</module>
+        <module>posix</module>
         <module>unwind</module>
     </modules>
 </project>
