@@ -16,5 +16,6 @@
 
     <modules>
         <module>api</module>
+        <module>main</module>
     </modules>
 </project>

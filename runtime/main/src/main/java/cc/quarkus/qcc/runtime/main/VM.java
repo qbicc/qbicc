@@ -1,4 +1,4 @@
-package cc.quarkus.c_native.runtime;
+package cc.quarkus.qcc.runtime.main;
 
 /**
  * VM Utilities.
