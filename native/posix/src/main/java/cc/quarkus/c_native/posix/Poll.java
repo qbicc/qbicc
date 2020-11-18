@@ -28,7 +28,7 @@ public final class Poll {
     public static final c_short POLLIN = constant();
     public static final c_short POLLPRI = constant();
     public static final c_short POLLOUT = constant();
-    public static final c_short POLLDRHUP = constant();
+    public static final c_short POLLRDHUP = constant();
     public static final c_short POLLERR = constant();
     public static final c_short POLLHUP = constant();
     public static final c_short POLLNVAL = constant();
