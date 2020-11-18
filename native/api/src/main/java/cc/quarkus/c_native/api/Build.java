@@ -5,7 +5,7 @@ import static cc.quarkus.c_native.api.CNative.*;
 import java.util.Locale;
 import java.util.function.BooleanSupplier;
 
-import cc.quarkus.api.Fold;
+import cc.quarkus.qcc.api.Fold;
 
 /**
  *

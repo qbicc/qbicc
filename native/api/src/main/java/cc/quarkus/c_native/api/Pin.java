@@ -1,6 +1,6 @@
 package cc.quarkus.c_native.api;
 
-import cc.quarkus.api.StackObject;
+import cc.quarkus.qcc.api.StackObject;
 
 /**
  * A pin of a GC-able reference object. Holds the object in one memory location for the duration of the pin.

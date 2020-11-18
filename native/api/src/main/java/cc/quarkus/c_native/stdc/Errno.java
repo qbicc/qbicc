@@ -2,8 +2,8 @@ package cc.quarkus.c_native.stdc;
 
 import static cc.quarkus.c_native.api.CNative.*;
 
-import cc.quarkus.plugin.patcher.AccessWith;
-import cc.quarkus.plugin.patcher.Accessor;
+import cc.quarkus.qcc.plugin.patcher.AccessWith;
+import cc.quarkus.qcc.plugin.patcher.Accessor;
 import cc.quarkus.c_native.api.Build;
 
 /**

@@ -1,4 +1,4 @@
-package cc.quarkus.plugin.patcher.impl;
+package cc.quarkus.qcc.plugin.patcher.impl;
 
 import java.util.List;
 import java.util.Map;

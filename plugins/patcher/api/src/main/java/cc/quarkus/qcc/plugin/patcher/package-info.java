@@ -5,4 +5,4 @@
  * specifying various transformations that are applied to that class as it is defined.
  */
 
-package cc.quarkus.plugin.patcher;
+package cc.quarkus.qcc.plugin.patcher;

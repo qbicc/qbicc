@@ -13,9 +13,9 @@ import java.lang.annotation.Target;
 import java.nio.charset.StandardCharsets;
 import java.util.function.BooleanSupplier;
 
-import cc.quarkus.api.InlineObject;
-import cc.quarkus.api.StackObject;
-import cc.quarkus.api.ThreadScoped;
+import cc.quarkus.qcc.api.InlineObject;
+import cc.quarkus.qcc.api.StackObject;
+import cc.quarkus.qcc.api.ThreadScoped;
 import cc.quarkus.c_native.stdc.Stdlib;
 
 /**

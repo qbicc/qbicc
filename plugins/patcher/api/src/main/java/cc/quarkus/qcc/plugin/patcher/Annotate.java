@@ -1,4 +1,4 @@
-package cc.quarkus.plugin.patcher;
+package cc.quarkus.qcc.plugin.patcher;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;
@@ -8,14 +8,12 @@ import java.lang.annotation.Target;
 import java.util.function.BooleanSupplier;
 
 /**
- * Specify that the annotated class or field should be initialized at run time.  Any build-time reference to a run-time
- * initialized field or class that would normally require the field or class to be initialized will result in a
- * compilation error.
+ * Copy the annotations from this member to the patched member.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.TYPE, ElementType.FIELD })
-@Repeatable(RunTimeInitialized.List.class)
-public @interface RunTimeInitialized {
+@Target({ ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD })
+@Repeatable(Annotate.List.class)
+public @interface Annotate {
     /**
      * Cause this annotation to take effect only if <em>all</em> of the given conditions return {@code true}.
      *
@@ -33,6 +31,6 @@ public @interface RunTimeInitialized {
     @Target(ElementType.FIELD)
     @Retention(RetentionPolicy.RUNTIME)
     @interface List {
-        RunTimeInitialized[] value();
+        Annotate[] value();
     }
 }

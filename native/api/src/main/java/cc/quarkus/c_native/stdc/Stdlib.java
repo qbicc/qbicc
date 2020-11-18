@@ -3,7 +3,7 @@ package cc.quarkus.c_native.stdc;
 import static cc.quarkus.c_native.api.CNative.*;
 import static cc.quarkus.c_native.stdc.Stddef.*;
 
-import cc.quarkus.api.NoReturn;
+import cc.quarkus.qcc.api.NoReturn;
 import cc.quarkus.c_native.api.Build.Target.IsGLibC;
 
 /**

@@ -1,4 +1,4 @@
-package cc.quarkus.plugin.patcher;
+package cc.quarkus.qcc.plugin.patcher;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;
@@ -8,12 +8,13 @@ import java.lang.annotation.Target;
 import java.util.function.BooleanSupplier;
 
 /**
- * Copy the annotations from this member to the patched member.
+ * Specify that the annotated element should be removed from the patched class.  At the class
+ * level, indicate that the entire class should be removed.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD })
-@Repeatable(Annotate.List.class)
-public @interface Annotate {
+@Repeatable(Remove.List.class)
+public @interface Remove {
     /**
      * Cause this annotation to take effect only if <em>all</em> of the given conditions return {@code true}.
      *
@@ -31,6 +32,6 @@ public @interface Annotate {
     @Target(ElementType.FIELD)
     @Retention(RetentionPolicy.RUNTIME)
     @interface List {
-        Annotate[] value();
+        Remove[] value();
     }
 }

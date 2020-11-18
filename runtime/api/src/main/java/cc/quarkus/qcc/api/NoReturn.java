@@ -1,4 +1,4 @@
-package cc.quarkus.api;
+package cc.quarkus.qcc.api;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

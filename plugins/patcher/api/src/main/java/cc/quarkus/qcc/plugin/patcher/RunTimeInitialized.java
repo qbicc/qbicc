@@ -1,4 +1,4 @@
-package cc.quarkus.plugin.patcher;
+package cc.quarkus.qcc.plugin.patcher;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Repeatable;
@@ -8,13 +8,14 @@ import java.lang.annotation.Target;
 import java.util.function.BooleanSupplier;
 
 /**
- * Specify that the annotated element should be removed from the patched class.  At the class
- * level, indicate that the entire class should be removed.
+ * Specify that the annotated class or field should be initialized at run time.  Any build-time reference to a run-time
+ * initialized field or class that would normally require the field or class to be initialized will result in a
+ * compilation error.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD })
-@Repeatable(Remove.List.class)
-public @interface Remove {
+@Target({ ElementType.TYPE, ElementType.FIELD })
+@Repeatable(RunTimeInitialized.List.class)
+public @interface RunTimeInitialized {
     /**
      * Cause this annotation to take effect only if <em>all</em> of the given conditions return {@code true}.
      *
@@ -32,6 +33,6 @@ public @interface Remove {
     @Target(ElementType.FIELD)
     @Retention(RetentionPolicy.RUNTIME)
     @interface List {
-        Remove[] value();
+        RunTimeInitialized[] value();
     }
 }

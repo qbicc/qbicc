@@ -6,7 +6,7 @@ import static cc.quarkus.c_native.stdc.Stddef.*;
 
 import java.util.function.UnaryOperator;
 
-import cc.quarkus.api.NoReturn;
+import cc.quarkus.qcc.api.NoReturn;
 
 /**
  *

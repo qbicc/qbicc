@@ -3,8 +3,8 @@ package cc.quarkus.c_native.runtime;
 import static cc.quarkus.c_native.api.CNative.*;
 import static cc.quarkus.c_native.posix.PThread.*;
 
-import cc.quarkus.api.Detached;
-import cc.quarkus.api.NotReachableException;
+import cc.quarkus.qcc.api.Detached;
+import cc.quarkus.qcc.api.NotReachableException;
 import cc.quarkus.c_native.api.Build;
 
 /**
