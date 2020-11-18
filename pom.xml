@@ -82,12 +82,6 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-file-parent</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>qcc-machine-file-bin</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -108,12 +102,6 @@
             </dependency>
 
             <!-- tools -->
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-tool-parent</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
