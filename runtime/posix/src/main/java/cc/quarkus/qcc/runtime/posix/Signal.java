@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.runtime.posix;
 
-import static cc.quarkus.qcc.runtime.api.CNative.*;
+import static cc.quarkus.qcc.runtime.CNative.*;
 import static cc.quarkus.qcc.runtime.posix.SysTypes.*;
 import static cc.quarkus.qcc.runtime.stdc.Signal.*;
 import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
@@ -8,7 +8,7 @@ import static cc.quarkus.qcc.runtime.stdc.Time.*;
 
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.runtime.api.Build;
+import cc.quarkus.qcc.runtime.Build;
 
 /**
  *

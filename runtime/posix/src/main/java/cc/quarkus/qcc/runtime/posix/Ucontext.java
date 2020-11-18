@@ -1,12 +1,12 @@
 package cc.quarkus.qcc.runtime.posix;
 
-import static cc.quarkus.qcc.runtime.api.CNative.*;
+import static cc.quarkus.qcc.runtime.CNative.*;
 import static cc.quarkus.qcc.runtime.posix.Signal.*;
 import static cc.quarkus.qcc.runtime.stdc.Signal.*;
 
 import java.util.function.BooleanSupplier;
 
-import cc.quarkus.qcc.runtime.api.Build;
+import cc.quarkus.qcc.runtime.Build;
 
 @include("<ucontext.h>")
 public class Ucontext {

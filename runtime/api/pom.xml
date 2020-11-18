@@ -13,9 +13,5 @@
     <artifactId>qcc-runtime-api</artifactId>
 
     <dependencies>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-patcher-api</artifactId>
-        </dependency>
     </dependencies>
 </project>

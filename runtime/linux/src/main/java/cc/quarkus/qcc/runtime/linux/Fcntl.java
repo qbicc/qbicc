@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.runtime.linux;
 
-import static cc.quarkus.qcc.runtime.api.CNative.*;
+import static cc.quarkus.qcc.runtime.CNative.*;
 import static cc.quarkus.qcc.runtime.posix.SysTypes.*;
 import static cc.quarkus.qcc.runtime.posix.SysUio.*;
 import static cc.quarkus.qcc.runtime.stdc.Stddef.*;

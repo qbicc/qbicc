@@ -1,10 +1,10 @@
 package cc.quarkus.qcc.runtime.stdc;
 
-import static cc.quarkus.qcc.runtime.api.CNative.*;
+import static cc.quarkus.qcc.runtime.CNative.*;
 import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
 
-import cc.quarkus.qcc.runtime.api.NoReturn;
-import cc.quarkus.qcc.runtime.api.Build.Target.IsGLibC;
+import cc.quarkus.qcc.runtime.NoReturn;
+import cc.quarkus.qcc.runtime.Build.Target.IsGLibC;
 
 /**
  *

@@ -51,6 +51,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qcc-plugin-llvm</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-plugin-patcher</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>${project.groupId}</groupId>

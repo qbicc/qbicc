@@ -10,12 +10,21 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-plugin-patcher-parent</artifactId>
+    <artifactId>qcc-plugin-patcher</artifactId>
 
-    <packaging>pom</packaging>
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-compiler</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-driver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss</groupId>
+            <artifactId>jandex</artifactId>
+        </dependency>
+    </dependencies>
 
-    <modules>
-        <module>api</module>
-        <module>plugin</module>
-    </modules>
 </project>

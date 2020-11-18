@@ -1,10 +1,10 @@
 package cc.quarkus.qcc.runtime.stdc;
 
-import static cc.quarkus.qcc.runtime.api.CNative.*;
+import static cc.quarkus.qcc.runtime.CNative.*;
 
-import cc.quarkus.qcc.plugin.patcher.AccessWith;
-import cc.quarkus.qcc.plugin.patcher.Accessor;
-import cc.quarkus.qcc.runtime.api.Build;
+import cc.quarkus.qcc.runtime.patcher.AccessWith;
+import cc.quarkus.qcc.runtime.patcher.Accessor;
+import cc.quarkus.qcc.runtime.Build;
 
 /**
  *

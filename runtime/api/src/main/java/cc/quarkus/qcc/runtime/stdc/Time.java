@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.runtime.stdc;
 
-import static cc.quarkus.qcc.runtime.api.CNative.*;
+import static cc.quarkus.qcc.runtime.CNative.*;
 
 /**
  *
