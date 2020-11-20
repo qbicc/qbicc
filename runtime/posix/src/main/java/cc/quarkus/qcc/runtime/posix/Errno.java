@@ -26,14 +26,14 @@ public final class Errno {
     public static final c_int ECONNREFUSED = constant();
     public static final c_int EDEADLK = constant();
     public static final c_int EDESTADDRREQ = constant();
-    // EDOM is stdc
+    public static final c_int EDOM = cc.quarkus.qcc.runtime.stdc.Errno.EDOM;
     public static final c_int EDQUOT = constant();
     public static final c_int EEXIST = constant();
     public static final c_int EFAULT = constant();
     public static final c_int EFBIG = constant();
     public static final c_int EHOSTUNREACH = constant();
     public static final c_int EIDRM = constant();
-    // EILSEQ is stdc
+    public static final c_int EILSEQ = cc.quarkus.qcc.runtime.stdc.Errno.EILSEQ;
     public static final c_int EINPROGRESS = constant();
     public static final c_int EINTR = constant();
     public static final c_int EINVAL = constant();
@@ -80,7 +80,7 @@ public final class Errno {
     public static final c_int EPROTO = constant();
     public static final c_int EPROTONOTSUPPORT = constant();
     public static final c_int EPROTOTYPE = constant();
-    // ERANGE is stdc
+    public static final c_int ERANGE = cc.quarkus.qcc.runtime.stdc.Errno.ERANGE;
     public static final c_int EROFS = constant();
     public static final c_int ESPIPE = constant();
     public static final c_int ESRCH = constant();

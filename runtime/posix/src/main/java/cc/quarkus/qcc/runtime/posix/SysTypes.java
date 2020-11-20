@@ -37,4 +37,23 @@ public final class SysTypes {
     public static final class mode_t extends word {
     }
 
+    public static final class dev_t extends word {
+    }
+
+    public static final class blkcnt_t extends word {
+    }
+
+    public static final class blksize_t extends word {
+    }
+
+    public static final class ino_t extends word {
+    }
+
+    public static final class nlink_t extends word {
+    }
+
+    public static final class time_t extends word {
+    }
+
+
 }
