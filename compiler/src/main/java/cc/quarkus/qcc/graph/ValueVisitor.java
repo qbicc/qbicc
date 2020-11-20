@@ -609,7 +609,7 @@ public interface ValueVisitor<T, R> {
         }
 
         default Value visit(final T param, final InstanceInvocationValue node) {
-            return getBuilder(param).invokeInstanceValueMethod(copy(param, node.getInstance()), node.getKind(), node.getInvocationTarget(), copy(param, node.getArguments()));
+            return getBuilder(param).invokeValueInstance(copy(param, node.getInstance()), node.getKind(), node.getInvocationTarget(), copy(param, node.getArguments()));
         }
 
         default Value visit(final T param, final IntegerLiteral node) {

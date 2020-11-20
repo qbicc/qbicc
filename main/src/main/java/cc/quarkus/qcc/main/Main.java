@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.driver.BaseDiagnosticContext;
+import cc.quarkus.qcc.driver.BuilderStage;
 import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.driver.plugin.DriverPlugin;
 import cc.quarkus.qcc.machine.arch.Platform;
@@ -20,6 +21,7 @@ import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.probe.CTypeProbe;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.plugin.llvm.LLVMElementVisitor;
+import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import cc.quarkus.qcc.type.TypeSystem;
 
 /**
@@ -157,6 +159,7 @@ public class Main {
                             // keep it simple to start with
                             builder.setMainClass(mainClass.replace('.', '/'));
                             builder.addGenerateVisitor(new LLVMElementVisitor());
+                            builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                             CompilationContext ctxt;
                             boolean result;
                             try (Driver driver = builder.build()) {

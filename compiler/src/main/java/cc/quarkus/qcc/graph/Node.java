@@ -416,7 +416,7 @@ public interface Node {
 
             public Value visit(final Copier param, final InstanceInvocationValue node) {
                 param.copyNode(node.getBasicDependency(0));
-                return param.getBlockBuilder().invokeInstanceValueMethod(param.copyValue(node.getInstance()), node.getKind(), node.getInvocationTarget(), param.copyValues(node.getArguments()));
+                return param.getBlockBuilder().invokeValueInstance(param.copyValue(node.getInstance()), node.getKind(), node.getInvocationTarget(), param.copyValues(node.getArguments()));
             }
 
             public Value visit(final Copier param, final IntegerLiteral node) {

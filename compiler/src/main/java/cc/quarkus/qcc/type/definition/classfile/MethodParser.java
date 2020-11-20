@@ -1125,7 +1125,7 @@ final class MethodParser {
                             if (opcode == OP_INVOKESTATIC) {
                                 result = gf.invokeValueStatic(method, List.of(args));
                             } else {
-                                result = gf.invokeInstanceValueMethod(v1, DispatchInvocation.Kind.fromOpcode(opcode), method, List.of(args));
+                                result = gf.invokeValueInstance(v1, DispatchInvocation.Kind.fromOpcode(opcode), method, List.of(args));
                             }
                             if (returnType instanceof IntegerType) {
                                 IntegerType intType = (IntegerType) returnType;

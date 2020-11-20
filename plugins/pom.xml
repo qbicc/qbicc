@@ -15,7 +15,8 @@
     <artifactId>qcc-plugin-parent</artifactId>
 
     <modules>
-        <module>patcher</module>
         <module>llvm</module>
+        <module>patcher</module>
+        <module>verification</module>
     </modules>
 </project>
