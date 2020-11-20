@@ -1,12 +1,19 @@
-package cc.quarkus.qcc.graph;
+package cc.quarkus.qcc.plugin.opt;
 
+import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
+import cc.quarkus.qcc.graph.NewArray;
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 
 /**
  * A graph factory which performs simple optimizations opportunistically.
  */
 public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
-    public SimpleOptBasicBlockBuilder(final BasicBlockBuilder delegate) {
+    public SimpleOptBasicBlockBuilder(final CompilationContext context, final BasicBlockBuilder delegate) {
         super(delegate);
     }
 

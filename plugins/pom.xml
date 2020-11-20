@@ -16,6 +16,7 @@
 
     <modules>
         <module>llvm</module>
+        <module>optimization</module>
         <module>patcher</module>
         <module>verification</module>
     </modules>

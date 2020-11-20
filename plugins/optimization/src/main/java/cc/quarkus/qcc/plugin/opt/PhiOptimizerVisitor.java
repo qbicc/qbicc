@@ -1,27 +1,27 @@
-package cc.quarkus.qcc.graph.opt;
+package cc.quarkus.qcc.plugin.opt;
 
 import java.util.Iterator;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.NodeVisitor;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueVisitor;
 
 /**
- *
+ * A copying visitor which removes redundant {@link PhiValue} nodes.
  */
-public class PhiOptimizerVisitor implements ValueVisitor.Delegating<Node.Copier, Value> {
+public class PhiOptimizerVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock> {
     private final CompilationContext context;
-    private final ValueVisitor<Node.Copier, Value> delegate;
+    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate;
 
-    public PhiOptimizerVisitor(final CompilationContext context, final ValueVisitor<Node.Copier, Value> delegate) {
+    public PhiOptimizerVisitor(final CompilationContext context, final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate) {
         this.context = context;
         this.delegate = delegate;
     }
 
-    public ValueVisitor<Node.Copier, Value> getDelegateValueVisitor() {
+    public NodeVisitor<Node.Copier, Value, Node, BasicBlock> getDelegateNodeVisitor() {
         return delegate;
     }
 
@@ -37,7 +37,7 @@ public class PhiOptimizerVisitor implements ValueVisitor.Delegating<Node.Copier,
                     Value v2 = node.getValueForBlock(b2);
                     if (v2 != null && ! v2.equals(v1) && ! v2.equals(node)) {
                         // multiple values; process as phi node
-                        return (PhiValue) ValueVisitor.Delegating.super.visit(param, node);
+                        return (PhiValue) NodeVisitor.Delegating.super.visit(param, node);
                     }
                 }
                 // one value; process as specific value

@@ -21,6 +21,8 @@ import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.probe.CTypeProbe;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.plugin.llvm.LLVMElementVisitor;
+import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
+import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import cc.quarkus.qcc.type.TypeSystem;
 
@@ -159,6 +161,9 @@ public class Main {
                             // keep it simple to start with
                             builder.setMainClass(mainClass.replace('.', '/'));
                             builder.addGenerateVisitor(new LLVMElementVisitor());
+                            builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                            builder.addCopyFactory(PhiOptimizerVisitor::new);
+                            builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                             builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                             CompilationContext ctxt;
                             boolean result;
