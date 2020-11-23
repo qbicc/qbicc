@@ -89,16 +89,6 @@ public abstract class Type {
         return typeSystem.getVoidType();
     }
 
-    /**
-     * Determine if this type is a "class 2" type.  Such types, for historical reasons, require two local variable table
-     * entries and use two stack slots.  Only the types representing {@code long} and {@code double} are "class 2" types.
-     *
-     * @return {@code true} if this is a "class 2" type, {@code false} otherwise
-     */
-    public boolean isClass2Type() {
-        return false;
-    }
-
     public final int hashCode() {
         return hashCode;
     }

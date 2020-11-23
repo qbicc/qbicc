@@ -27,10 +27,6 @@ public final class SignedIntegerType extends IntegerType {
         return this;
     }
 
-    public boolean isClass2Type() {
-        return minBits == 64;
-    }
-
     public UnsignedIntegerType asUnsigned() {
         switch (minBits) {
             case 8: return typeSystem.getUnsignedInteger8Type();

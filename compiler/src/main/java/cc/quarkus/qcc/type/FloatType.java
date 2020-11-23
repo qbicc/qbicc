@@ -31,10 +31,6 @@ public final class FloatType extends NumericType {
         return bits;
     }
 
-    public boolean isClass2Type() {
-        return bits == 64;
-    }
-
     public FloatType asConst() {
         return (FloatType) super.asConst();
     }
