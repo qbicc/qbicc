@@ -20,6 +20,7 @@ import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.ObjectLiteral;
 import cc.quarkus.qcc.graph.literal.ReferenceArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 import io.smallrye.common.constraint.Assert;
 
@@ -509,6 +510,10 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final StringLiteral node) {
+                return node;
+            }
+
+            public Value visit(final Copier param, final SymbolLiteral node) {
                 return node;
             }
 

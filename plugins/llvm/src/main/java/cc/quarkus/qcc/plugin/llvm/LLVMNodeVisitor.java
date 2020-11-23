@@ -44,6 +44,7 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
@@ -399,6 +400,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     public LLValue visit(final Void param, final IntegerLiteral node) {
         return Values.intConstant(node.longValue());
+    }
+
+    public LLValue visit(final Void param, final SymbolLiteral node) {
+        return Values.global(node.getName());
     }
 
     // unknown node catch-all methods

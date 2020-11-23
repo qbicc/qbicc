@@ -53,4 +53,8 @@ public final class LLVM {
     public static LLValue intConstant(long val) {
         return new LongConstant(val);
     }
+
+    public static LLValue global(final String name) {
+        return new NamedGlobalValueOf(name);
+    }
 }

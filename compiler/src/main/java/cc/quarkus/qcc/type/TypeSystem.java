@@ -10,6 +10,7 @@ public final class TypeSystem {
     private final int byteBits;
     private final int pointerSize;
     private final int pointerAlign;
+    private final int funcAlign;
     private final int referenceSize;
     private final int referenceAlign;
     private final VoidType voidType = new VoidType(this, false);
@@ -34,6 +35,7 @@ public final class TypeSystem {
         this.byteBits = byteBits;
         pointerSize = builder.getPointerSize();
         pointerAlign = builder.getPointerAlignment();
+        funcAlign = builder.getPointerAlignment();
         referenceSize = builder.getReferenceSize();
         referenceAlign = builder.getReferenceAlignment();
         booleanType = new BooleanType(this, builder.getBoolSize(), builder.getBoolAlignment(), false);
@@ -116,6 +118,15 @@ public final class TypeSystem {
      */
     public int getPointerAlignment() {
         return pointerAlign;
+    }
+
+    /**
+     * Get the function alignment for this type system.
+     *
+     * @return the function alignment for this type system
+     */
+    public int getFunctionAlignment() {
+        return funcAlign;
     }
 
     public CompoundType.Member getCompoundTypeMember(String name, ValueType type, int offset, int align) {
@@ -287,6 +298,7 @@ public final class TypeSystem {
             int byteBits = 8;
             int pointerSize = 8;
             int pointerAlignment = 8;
+            int functionAlignment = 1;
             int boolSize = 1;
             int boolAlignment = 1;
             int int8Size = 1;
@@ -331,6 +343,15 @@ public final class TypeSystem {
             public void setPointerAlignment(final int pointerAlignment) {
                 TypeUtil.checkAlignmentParameter("pointerAlignment", pointerAlignment);
                 this.pointerAlignment = pointerAlignment;
+            }
+
+            public int getFunctionAlignment() {
+                return functionAlignment;
+            }
+
+            public void setFunctionAlignment(final int functionAlignment) {
+                TypeUtil.checkAlignmentParameter("functionAlignment", functionAlignment);
+                this.functionAlignment = functionAlignment;
             }
 
             public int getInt8Size() {
@@ -516,6 +537,10 @@ public final class TypeSystem {
         int getPointerAlignment();
 
         void setPointerAlignment(int pointerAlignment);
+
+        int getFunctionAlignment();
+
+        void setFunctionAlignment(int functionAlignment);
 
         int getInt8Size();
 

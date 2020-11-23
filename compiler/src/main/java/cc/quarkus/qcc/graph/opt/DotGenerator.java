@@ -41,6 +41,7 @@ import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.ObjectLiteral;
 import cc.quarkus.qcc.graph.literal.ReferenceArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 
 /**
@@ -185,6 +186,10 @@ public class DotGenerator<C, V, A, T> implements NodeVisitor.Delegating<C, V, A,
     }
 
     public V visit(final C param, final StringLiteral node) {
+        return node(node, delegate.visit(param, node));
+    }
+
+    public V visit(final C param, final SymbolLiteral node) {
         return node(node, delegate.visit(param, node));
     }
 

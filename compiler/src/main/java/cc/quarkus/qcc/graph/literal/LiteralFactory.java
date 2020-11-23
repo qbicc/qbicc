@@ -46,6 +46,8 @@ public interface LiteralFactory {
 
     InterfaceTypeIdLiteral literalOfInterface(String interfaceName, InterfaceTypeIdLiteral... interfaces);
 
+    SymbolLiteral literalOfSymbol(String name, ValueType symbolType);
+
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
             private final BooleanLiteral TRUE = new BooleanLiteral(typeSystem.getBooleanType().asConst(), true);
@@ -141,6 +143,13 @@ public interface LiteralFactory {
             public InterfaceTypeIdLiteral literalOfInterface(final String interfaceName, final InterfaceTypeIdLiteral... interfaces) {
                 Assert.checkNotNullParam("interfaces", interfaces);
                 return new InterfaceTypeIdLiteral(interfaceName, interfaces, typeSystem.getTypeIdType());
+            }
+
+            public SymbolLiteral literalOfSymbol(final String name, final ValueType symbolType) {
+                Assert.checkNotNullParam("name", name);
+                Assert.checkNotEmptyParam("name", name);
+                Assert.checkNotNullParam("symbolType", symbolType);
+                return new SymbolLiteral(name, symbolType);
             }
         };
     }

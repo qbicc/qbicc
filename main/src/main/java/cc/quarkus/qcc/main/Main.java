@@ -137,6 +137,7 @@ public class Main {
                         tsBuilder.setFloat64Alignment((int) probeResult.getInfo(double_t).getAlign());
                         tsBuilder.setPointerSize((int) probeResult.getInfo(void_p).getSize());
                         tsBuilder.setPointerAlignment((int) probeResult.getInfo(void_p).getAlign());
+                        // todo: function alignment probe
                         // for now, references == pointers
                         tsBuilder.setReferenceSize((int) probeResult.getInfo(void_p).getSize());
                         tsBuilder.setReferenceAlignment((int) probeResult.getInfo(void_p).getAlign());

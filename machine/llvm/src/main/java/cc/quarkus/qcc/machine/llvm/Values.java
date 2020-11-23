@@ -19,4 +19,8 @@ public final class Values {
     public static LLValue intConstant(long val) {
         return LLVM.intConstant(val);
     }
+
+    public static LLValue global(String name) {
+        return LLVM.global(name);
+    }
 }
