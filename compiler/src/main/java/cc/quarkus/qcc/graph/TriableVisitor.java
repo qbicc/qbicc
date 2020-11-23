@@ -14,6 +14,10 @@ public interface TriableVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, FunctionCall node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, InstanceInvocation node) {
         return visitUnknown(param, node);
     }

@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,6 +22,7 @@ import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.interpreter.VmObject;
+import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -43,6 +45,7 @@ final class CompilationContextImpl implements CompilationContext {
     final ClassContext bootstrapClassContext = new ClassContextImpl(this, null);
     private final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
     private final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
+    private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
     private final Path outputDir;
 
     CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir) {
@@ -205,6 +208,14 @@ final class CompilationContextImpl implements CompilationContext {
         } else {
             throw new UnsupportedOperationException("getOutputDirectory for element " + element.getClass());
         }
+    }
+
+    public ProgramModule getOrAddProgramModule(final DefinedTypeDefinition type) {
+        return programModules.computeIfAbsent(type, t -> new ProgramModule(typeSystem, literalFactory));
+    }
+
+    public List<ProgramModule> getAllProgramModules() {
+        return List.of(programModules.values().toArray(ProgramModule[]::new));
     }
 
     String signatureString(ParameterizedExecutableElement element) {

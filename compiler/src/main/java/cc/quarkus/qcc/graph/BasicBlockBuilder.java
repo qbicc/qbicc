@@ -214,6 +214,8 @@ public interface BasicBlockBuilder {
 
     // misc
 
+    Value callFunction(Value callTarget, List<Value> arguments); // todo: flags etc.
+
     /**
      * No operation.  The returned node is not guaranteed to be unique or of any particular type.
      *
@@ -586,6 +588,10 @@ public interface BasicBlockBuilder {
 
             public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
                 return optionallyTry(new ConstructorInvocation(line, bci, requireDependency(), instance, target, arguments));
+            }
+
+            public Value callFunction(final Value callTarget, final List<Value> arguments) {
+                return optionallyTry(new FunctionCall(line, bci, requireDependency(), callTarget, arguments));
             }
 
             public Node nop() {

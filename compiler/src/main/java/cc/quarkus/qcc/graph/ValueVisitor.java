@@ -105,6 +105,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, FunctionCall node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, InstanceFieldRead node) {
         return visitUnknown(param, node);
     }
@@ -313,6 +317,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, FloatLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, FunctionCall node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -611,6 +619,10 @@ public interface ValueVisitor<T, R> {
 
         default Value visit(final T param, final FloatLiteral node) {
             return node;
+        }
+
+        default Value visit(final T param, final FunctionCall node) {
+            return getBuilder(param).callFunction(node.getCallTarget(), node.getArguments());
         }
 
         default Value visit(final T param, final InstanceFieldRead node) {

@@ -1,9 +1,11 @@
 package cc.quarkus.qcc.context;
 
 import java.nio.file.Path;
+import java.util.List;
 
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.interpreter.VmObject;
+import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -37,4 +39,8 @@ public interface CompilationContext extends DiagnosticContext {
     Path getOutputDirectory(DefinedTypeDefinition type);
 
     Path getOutputDirectory(BasicElement element);
+
+    ProgramModule getOrAddProgramModule(DefinedTypeDefinition type);
+
+    List<ProgramModule> getAllProgramModules();
 }

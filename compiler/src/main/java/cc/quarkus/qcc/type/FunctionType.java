@@ -7,10 +7,10 @@ import java.util.Objects;
  *
  */
 public final class FunctionType extends ValueType {
-    private final Type returnType;
-    private final Type[] paramTypes;
+    private final ValueType returnType;
+    private final ValueType[] paramTypes;
 
-    FunctionType(final TypeSystem typeSystem, final Type returnType, final Type[] paramTypes) {
+    FunctionType(final TypeSystem typeSystem, final ValueType returnType, final ValueType[] paramTypes) {
         super(typeSystem, Objects.hash((Object[]) paramTypes) * 19 + returnType.hashCode(), false);
         this.returnType = returnType;
         this.paramTypes = paramTypes;
@@ -46,6 +46,18 @@ public final class FunctionType extends ValueType {
 
     public int getAlign() {
         return typeSystem.getFunctionAlignment();
+    }
+
+    public ValueType getReturnType() {
+        return returnType;
+    }
+
+    public ValueType getParameterType(int index) throws IndexOutOfBoundsException {
+        return paramTypes[index];
+    }
+
+    public int getParameterCount() {
+        return paramTypes.length;
     }
 
     public StringBuilder toString(final StringBuilder b) {

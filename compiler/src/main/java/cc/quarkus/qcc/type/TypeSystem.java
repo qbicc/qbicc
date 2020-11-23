@@ -142,7 +142,7 @@ public final class TypeSystem {
         return new CompoundType.Member(name, type, offset, align);
     }
 
-    public FunctionType getFunctionType(Type returnType, Type... argTypes) {
+    public FunctionType getFunctionType(ValueType returnType, ValueType... argTypes) {
         Assert.checkNotNullParam("returnType", returnType);
         for (int i = 0; i < argTypes.length; i++) {
             Assert.checkNotNullArrayParam("argTypes", i, argTypes);

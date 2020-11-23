@@ -410,6 +410,11 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final FunctionCall node) {
+                param.copyNode(node.getBasicDependency(0));
+                return param.getBlockBuilder().callFunction(node.getCallTarget(), node.getArguments());
+            }
+
             public Value visit(final Copier param, final InstanceFieldRead node) {
                 param.copyNode(node.getBasicDependency(0));
                 return param.getBlockBuilder().readInstanceField(param.copyValue(node.getInstance()), node.getFieldElement(), node.getMode());
