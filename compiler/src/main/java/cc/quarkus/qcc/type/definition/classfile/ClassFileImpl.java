@@ -1007,7 +1007,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         if (ch != ';') {
             throw new InvalidTypeDescriptorException("Unterminated annotation type descriptor");
         }
-        String name = ctxt.deduplicate(buffer, cpOffsets[typeIndex] + 3, typeLen);
+        String name = ctxt.deduplicate(getBackingBuffer(), cpOffsets[typeIndex] + 3, typeLen);
         builder.setClassName(name);
         int cnt = buffer.getShort() & 0xffff;
         for (int i = 0; i < cnt; i ++) {

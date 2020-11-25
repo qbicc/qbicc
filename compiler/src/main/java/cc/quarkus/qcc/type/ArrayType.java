@@ -64,4 +64,8 @@ public final class ArrayType extends ValueType {
     public StringBuilder toString(final StringBuilder b) {
         return elementType.toString(super.toString(b).append("array [").append(elementCount).append("] of "));
     }
+
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        return elementType.toFriendlyString(b.append("array.").append(elementCount));
+    }
 }

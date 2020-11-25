@@ -38,4 +38,8 @@ public final class BlockType extends ValueType {
     public StringBuilder toString(final StringBuilder b) {
         return b.append("ret_addr");
     }
+
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        return b.append("ret_addr");
+    }
 }

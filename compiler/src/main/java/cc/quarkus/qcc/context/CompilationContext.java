@@ -5,6 +5,7 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.interpreter.VmObject;
+import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
@@ -17,6 +18,8 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
  *
  */
 public interface CompilationContext extends DiagnosticContext {
+
+    String IMPLICIT_SECTION_NAME = "__implicit__";
 
     TypeSystem getTypeSystem();
 
@@ -43,4 +46,6 @@ public interface CompilationContext extends DiagnosticContext {
     ProgramModule getOrAddProgramModule(DefinedTypeDefinition type);
 
     List<ProgramModule> getAllProgramModules();
+
+    Function getExactFunction(ExecutableElement element);
 }

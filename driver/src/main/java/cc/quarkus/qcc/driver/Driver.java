@@ -29,10 +29,11 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
-import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.interpreter.Vm;
+import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.tool.CToolChain;
+import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.tool.llvm.LlvmTool;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
@@ -282,6 +283,11 @@ public class Driver implements Closeable {
             return false;
         }
         TypeIdLiteral stringId = stringClass.getTypeId();
+        ResolvedTypeDefinition threadClass = loadAndResolveBootstrapClass("java/lang/Thread");
+        if (threadClass == null) {
+            return false;
+        }
+        TypeIdLiteral threadTypeId = threadClass.getTypeId();
         TypeSystem ts = compilationContext.getTypeSystem();
         LiteralFactory lf = compilationContext.getLiteralFactory();
         int idx = resolvedMainClass.findMethodIndex("main", MethodDescriptor.of(ParameterizedExecutableDescriptor.of(ts.getReferenceType(lf.literalOfArrayType(ts.getReferenceType(stringId)))), ts.getVoidType()));
@@ -380,8 +386,9 @@ public class Driver implements Closeable {
                 BasicBlock entryBlock = original.getEntryBlock();
                 List<Value> paramValues = original.getParameterValues();
                 Value thisValue = original.getThisValue();
+                Function function = compilationContext.getExactFunction(element);
                 BasicBlock copyBlock = Node.Copier.execute(entryBlock, classContext.newBasicBlockBuilder(element), compilationContext, interStageCopy);
-                methodHandle.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), thisValue, paramValues));
+                function.replaceBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), thisValue, paramValues));
             }
             element = compilationContext.dequeue();
         }

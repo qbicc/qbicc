@@ -37,4 +37,8 @@ public final class NullType extends ValueType {
     public StringBuilder toString(final StringBuilder b) {
         return b.append("null");
     }
+
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        return b.append("null");
+    }
 }

@@ -42,4 +42,8 @@ public final class FloatType extends NumericType {
     public StringBuilder toString(final StringBuilder b) {
         return super.toString(b).append("float").append(bits);
     }
+
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        return b.append('f').append(bits);
+    }
 }

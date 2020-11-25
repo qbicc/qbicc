@@ -74,6 +74,10 @@ public final class PointerType extends WordType {
         return b;
     }
 
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        return pointeeType.toFriendlyString(b.append("ptr."));
+    }
+
     public PointerType getConstraintType() {
         return this;
     }

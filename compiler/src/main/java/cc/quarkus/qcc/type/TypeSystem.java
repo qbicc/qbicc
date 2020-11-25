@@ -1,5 +1,10 @@
 package cc.quarkus.qcc.type;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+import java.util.concurrent.ConcurrentHashMap;
+
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import io.smallrye.common.constraint.Assert;
 
@@ -29,6 +34,7 @@ public final class TypeSystem {
     private final UnsignedIntegerType unsignedInteger16Type;
     private final UnsignedIntegerType unsignedInteger32Type;
     private final UnsignedIntegerType unsignedInteger64Type;
+    private final TypeCache<FunctionType> functionTypeCache = new TypeCache<>();
 
     TypeSystem(final Builder builder) {
         int byteBits = builder.getByteBits();
@@ -144,14 +150,26 @@ public final class TypeSystem {
 
     public FunctionType getFunctionType(ValueType returnType, ValueType... argTypes) {
         Assert.checkNotNullParam("returnType", returnType);
+        TypeCache<FunctionType> current = functionTypeCache.computeIfAbsent(returnType, TypeCache::new);
         for (int i = 0; i < argTypes.length; i++) {
             Assert.checkNotNullArrayParam("argTypes", i, argTypes);
-            final Type argType = argTypes[i];
+            final ValueType argType = argTypes[i];
             if (! argType.isComplete()) {
                 throw new IllegalArgumentException("Function argument types must be complete");
             }
+            current = current.computeIfAbsent(argType, TypeCache::new);
         }
-        return new FunctionType(this, returnType, argTypes);
+        FunctionType functionType = current.getValue();
+        if (functionType == null) {
+            functionType = new FunctionType(this, returnType, argTypes);
+            while (! current.compareAndSet(null, functionType)) {
+                FunctionType appearing = current.getValue();
+                if (appearing != null) {
+                    return appearing;
+                }
+            }
+        }
+        return functionType;
     }
 
     public CompoundType getCompoundType(final CompoundType.Tag tag, String name, long size, int align, CompoundType.Member... members) {
@@ -615,5 +633,31 @@ public final class TypeSystem {
         void setReferenceAlignment(int alignment);
 
         TypeSystem build();
+    }
+
+    @SuppressWarnings("serial")
+    static final class TypeCache<T> extends ConcurrentHashMap<ValueType, TypeCache<T>> {
+        static final VarHandle valueHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "value", VarHandle.class, TypeCache.class, Object.class);
+
+        TypeCache() {
+        }
+
+        TypeCache(Object ignored) {
+        }
+
+        volatile T value;
+
+        public T getValue() {
+            return value;
+        }
+
+        @SuppressWarnings("unchecked")
+        public T putValue(T newValue) {
+            return (T) valueHandle.getAndSet(this, value);
+        }
+
+        public boolean compareAndSet(T expect, T update) {
+            return valueHandle.compareAndSet(this, expect, update);
+        }
     }
 }

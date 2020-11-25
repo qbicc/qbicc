@@ -2,6 +2,7 @@ package cc.quarkus.qcc.object;
 
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.type.definition.element.BasicElement;
 
 /**
  * A data object definition.
@@ -9,8 +10,8 @@ import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 public final class Data extends SectionObject {
     private volatile Value value;
 
-    Data(final String name, final SymbolLiteral symbolLiteral, final Value value) {
-        super(name, symbolLiteral);
+    Data(final BasicElement originalElement, final String name, final SymbolLiteral symbolLiteral, final Value value) {
+        super(originalElement, name, symbolLiteral);
         this.value = value;
     }
 

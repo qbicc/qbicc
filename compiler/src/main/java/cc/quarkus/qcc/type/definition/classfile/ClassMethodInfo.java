@@ -180,8 +180,12 @@ final class ClassMethodInfo {
             base = i << 2;
             exTable[base] = codeAttr.getShort();
             exTable[base + 1] = codeAttr.getShort();
-            exTable[base + 2] = codeAttr.getShort();
+            target = exTable[base + 2] = codeAttr.getShort();
             exTable[base + 3] = codeAttr.getShort();
+            int idx = findEntryPoint(entryPoints, entryPointLen, target);
+            if (idx < 0) {
+                entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
+            }
         }
         this.exTable = exTable;
         int attrCnt = codeAttr.getShort() & 0xffff;

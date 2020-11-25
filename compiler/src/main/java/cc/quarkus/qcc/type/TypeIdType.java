@@ -39,6 +39,10 @@ public final class TypeIdType extends ScalarType {
         return super.toString(b).append("typeId");
     }
 
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        return b.append("typeid");
+    }
+
     public TypeIdType asConst() {
         return (TypeIdType) super.asConst();
     }

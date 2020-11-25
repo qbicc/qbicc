@@ -106,4 +106,10 @@ public abstract class Type {
     public final String toString() {
         return toString(new StringBuilder()).toString();
     }
+
+    public final String toFriendlyString() {
+        return toFriendlyString(new StringBuilder()).toString();
+    }
+
+    public abstract StringBuilder toFriendlyString(final StringBuilder b);
 }

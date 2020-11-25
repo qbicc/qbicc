@@ -20,7 +20,7 @@ import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.probe.CTypeProbe;
 import cc.quarkus.qcc.machine.tool.CToolChain;
-import cc.quarkus.qcc.plugin.llvm.LLVMElementVisitor;
+import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
 import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
@@ -161,7 +161,7 @@ public class Main {
                             assert mainClass != null; // else errors would be != 0
                             // keep it simple to start with
                             builder.setMainClass(mainClass.replace('.', '/'));
-                            builder.addGenerateVisitor(new LLVMElementVisitor());
+                            builder.addPostAnalyticHook(new LLVMGenerator());
                             builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                             builder.addCopyFactory(PhiOptimizerVisitor::new);
                             builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);

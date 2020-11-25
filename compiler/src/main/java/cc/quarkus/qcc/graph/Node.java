@@ -190,12 +190,12 @@ public interface Node {
             return copy;
         }
 
-        public Triable copyTriable(Triable original) {
+        public Node copyTriable(Triable original) {
             if (original instanceof Action) {
-                return (Triable) copyAction((Action) original);
+                return copyAction((Action) original);
             } else {
                 assert original instanceof Value;
-                return (Triable) copyValue((Value) original);
+                return copyValue((Value) original);
             }
         }
 
@@ -307,7 +307,13 @@ public interface Node {
 
             public BasicBlock visit(Copier param, Try node) {
                 param.copyNode(node.getBasicDependency(0));
-                return param.getBlockBuilder().try_(param.copyTriable(node.getDelegateOperation()), param.copyBlock(node.getResumeTarget()));
+                Node copied = param.copyTriable(node.getDelegateOperation());
+                BlockLabel resumeLabel = param.copyBlock(node.getResumeTarget());
+                if (copied instanceof Triable) {
+                    return param.getBlockBuilder().try_((Triable) copied, resumeLabel);
+                } else {
+                    return param.getBlockBuilder().goto_(resumeLabel);
+                }
             }
 
             public BasicBlock visit(Copier param, ValueReturn node) {

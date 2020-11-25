@@ -101,6 +101,20 @@ public final class CompoundType extends ValueType {
         return b.append('}');
     }
 
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        b.append("compound.");
+        if (tag == Tag.NONE) {
+            b.append("unt.");
+        } else if (tag == Tag.STRUCT) {
+            b.append("struct.");
+        } else {
+            assert tag == Tag.UNION;
+            b.append("union.");
+        }
+        b.append(name);
+        return b;
+    }
+
     public static final class Member implements Comparable<Member> {
         private final int hashCode;
         private final String name;

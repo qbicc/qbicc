@@ -21,9 +21,13 @@ import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.object.ProgramModule;
+import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.BasicElement;
@@ -46,6 +50,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
     private final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ExecutableElement, cc.quarkus.qcc.object.Function> methodToFunction = new ConcurrentHashMap<>();
     private final Path outputDir;
 
     CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir) {
@@ -211,11 +216,74 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public ProgramModule getOrAddProgramModule(final DefinedTypeDefinition type) {
-        return programModules.computeIfAbsent(type, t -> new ProgramModule(typeSystem, literalFactory));
+        return programModules.computeIfAbsent(type, t -> new ProgramModule(t, typeSystem, literalFactory));
     }
 
     public List<ProgramModule> getAllProgramModules() {
         return List.of(programModules.values().toArray(ProgramModule[]::new));
+    }
+
+    public cc.quarkus.qcc.object.Function getExactFunction(final ExecutableElement element) {
+        // optimistic
+        cc.quarkus.qcc.object.Function function = methodToFunction.get(element);
+        if (function != null) {
+            return function;
+        }
+        // look up the thread ID literal - todo: lazy cache?
+        TypeIdLiteral threadTypeId = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getTypeId();
+        ProgramModule programModule = getOrAddProgramModule(element.getEnclosingType());
+        Section implicit = programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+        return methodToFunction.computeIfAbsent(element, e -> implicit.addFunction(element, getNameForElement(element), getFunctionTypeForElement(typeSystem, element, threadTypeId)));
+    }
+
+    private String getNameForElement(final ExecutableElement element) {
+        // todo: encode class loader ID
+        String internalDotName = element.getEnclosingType().getInternalName().replace('/', '.');
+        if (element instanceof InitializerElement) {
+            return "clinit." + internalDotName;
+        }
+        StringBuilder b = new StringBuilder();
+        assert element instanceof ParameterizedExecutableElement;
+        ParameterizedExecutableElement elementWithParam = (ParameterizedExecutableElement) element;
+        int parameterCount = elementWithParam.getParameterCount();
+        if (element instanceof ConstructorElement) {
+            b.append("init.");
+        } else {
+            b.append("exact.").append(((MethodElement)element).getName());
+        }
+        b.append(internalDotName).append('.').append(parameterCount);
+        for (int i = 0; i < parameterCount; i ++) {
+            b.append('.');
+            elementWithParam.getParameter(i).getType().toFriendlyString(b);
+        }
+        return b.toString();
+    }
+
+    private FunctionType getFunctionTypeForElement(TypeSystem ts, ExecutableElement element, final TypeIdLiteral threadTypeId) {
+        if (element instanceof InitializerElement) {
+            // todo: initializers should not survive the copy
+            return ts.getFunctionType(ts.getVoidType());
+        }
+        assert element instanceof ParameterizedExecutableElement;
+        ParameterizedExecutableElement elementWithParams = (ParameterizedExecutableElement) element;
+        ValueType returnType;
+        if (elementWithParams instanceof ConstructorElement) {
+            returnType = ts.getVoidType();
+        } else {
+            returnType = ((MethodElement) element).getReturnType();
+        }
+        int parameterCount = elementWithParams.getParameterCount();
+        int offset = elementWithParams.isStatic() ? 1 : 2;
+        ValueType[] paramTypes = new ValueType[offset + parameterCount];
+        paramTypes[0] = ts.getReferenceType(threadTypeId);
+        if (offset == 2) {
+            // this
+            paramTypes[1] = ts.getReferenceType(element.getEnclosingType().validate().getTypeId());
+        }
+        for (int i = 0; i < parameterCount; i ++) {
+            paramTypes[i + offset] = elementWithParams.getParameter(i).getType();
+        }
+        return ts.getFunctionType(returnType, paramTypes);
     }
 
     String signatureString(ParameterizedExecutableElement element) {

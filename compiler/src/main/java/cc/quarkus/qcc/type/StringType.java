@@ -37,4 +37,8 @@ public final class StringType extends ValueType {
     public StringBuilder toString(final StringBuilder b) {
         return b.append("string");
     }
+
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        return b.append("str");
+    }
 }

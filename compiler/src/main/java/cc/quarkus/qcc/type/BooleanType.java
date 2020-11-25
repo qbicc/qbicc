@@ -44,4 +44,8 @@ public final class BooleanType extends WordType {
     public StringBuilder toString(final StringBuilder b) {
         return super.toString(b).append("bool");
     }
+
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        return b.append("bool");
+    }
 }

@@ -74,4 +74,14 @@ public final class FunctionType extends ValueType {
         b.append(returnType);
         return b;
     }
+
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        b.append("fn.");
+        returnType.toFriendlyString(b);
+        b.append('.').append(paramTypes.length);
+        for (ValueType paramType : paramTypes) {
+            paramType.toFriendlyString(b.append('.'));
+        }
+        return b;
+    }
 }

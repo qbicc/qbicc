@@ -46,16 +46,18 @@ import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
-import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
+import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
+import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.FloatType;
+import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
@@ -63,15 +65,12 @@ import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.definition.MethodBody;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final CompilationContext ctxt;
     final Schedule schedule;
-    final ExecutableElement element;
+    final Function functionObj;
     final FunctionDefinition func;
     final BasicBlock entryBlock;
     final Set<BasicBlock> knownBlocks;
@@ -81,12 +80,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final Map<Type, LLValue> types = new HashMap<>();
     final MethodBody methodBody;
 
-    LLVMNodeVisitor(final CompilationContext ctxt, final Schedule schedule, final ExecutableElement element, final FunctionDefinition func) {
+    LLVMNodeVisitor(final CompilationContext ctxt, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
         this.schedule = schedule;
-        this.element = element;
+        this.functionObj = functionObj;
         this.func = func;
-        this.methodBody = element.getMethodBody().getOrCreateMethodBody();
+        this.methodBody = functionObj.getBody();
         entryBlock = methodBody.getEntryBlock();
         knownBlocks = entryBlock.calculateReachableBlocks();
     }
@@ -94,20 +93,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     // begin
 
     public void execute() {
-        if (element instanceof ParameterizedExecutableElement) {
-            ParameterizedExecutableElement p = (ParameterizedExecutableElement) element;
-            int cnt = p.getParameterCount();
-            for (int i = 0; i < cnt; i ++) {
-                ValueType type = p.getParameter(i).getType();
-                mappedValues.put(methodBody.getParameterValue(i), func.param(map(type)).name("p" + i).asValue());
-            }
+        FunctionType funcType = functionObj.getType();
+        int cnt = funcType.getParameterCount();
+        for (int i = 0; i < cnt; i ++) {
+            ValueType type = funcType.getParameterType(i);
+            mappedValues.put(methodBody.getParameterValue(i), func.param(map(type)).name("p" + i).asValue());
         }
-        if (element instanceof MethodElement) {
-            ValueType returnType = ((MethodElement) element).getReturnType();
-            func.returns(map(returnType));
-        } else {
-            func.returns(LLVM.void_);
-        }
+        func.returns(map(funcType.getReturnType()));
         map(entryBlock);
     }
 
@@ -409,17 +401,17 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     // unknown node catch-all methods
 
     public LLValue visitUnknown(final Void param, final Value node) {
-        ctxt.error(element, node, "llvm: Unrecognized value %s", node.getClass());
+        ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unrecognized value %s", node.getClass());
         return LLVM.FALSE;
     }
 
     public Void visitUnknown(final Void param, final Action node) {
-        ctxt.error(element, node, "llvm: Unrecognized action %s", node.getClass());
+        ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unrecognized action %s", node.getClass());
         return null;
     }
 
     public Void visitUnknown(final Void param, final Terminator node) {
-        ctxt.error(element, node, "llvm: Unrecognized terminator %s", node.getClass());
+        ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unrecognized terminator %s", node.getClass());
         return null;
     }
 

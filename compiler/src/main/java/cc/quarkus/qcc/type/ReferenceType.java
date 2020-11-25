@@ -78,4 +78,9 @@ public final class ReferenceType extends ValueType {
     public StringBuilder toString(final StringBuilder b) {
         return super.toString(b).append("reference(").append(upperBound).append(")");
     }
+
+    public StringBuilder toFriendlyString(final StringBuilder b) {
+        // todo: use the actual numerical value of the type literal if possible at this stage, else use encoding scheme
+        return b.append("ref.").append(Integer.toHexString(upperBound.hashCode()));
+    }
 }
