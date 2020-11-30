@@ -158,7 +158,6 @@ final class ClassMethodInfo {
                         throw new InvalidTableSwitchRangeException();
                     }
                     for (int i = 0; i < cnt; i ++) {
-                        bc.getInt(); // match
                         target = src + bc.getInt();
                         idx = findEntryPoint(entryPoints, entryPointLen, target);
                         if (idx < 0) {
