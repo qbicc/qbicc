@@ -746,14 +746,18 @@ final class MethodParser {
                     push(fatten(gf.negate(pop2())));
                     break;
                 case OP_ISHL:
-                    push(gf.shl(pop1(), pop1()));
+                    v2 = pop1();
+                    v1 = pop1();
+                    push(gf.shl(v1, v2));
                     break;
                 case OP_LSHL:
-                    push(fatten(gf.shl(pop2(), pop1())));
+                    v2 = pop1();
+                    v1 = pop2();
+                    push(fatten(gf.shl(v1, v2)));
                     break;
                 case OP_ISHR: {
-                    v1 = pop1();
                     v2 = pop1();
+                    v1 = pop1();
                     IntegerType it = (IntegerType) v1.getType();
                     if (it instanceof SignedIntegerType) {
                         push(gf.shr(v1, v2));
@@ -763,8 +767,8 @@ final class MethodParser {
                     break;
                 }
                 case OP_LSHR: {
-                    v1 = pop2();
                     v2 = pop1();
+                    v1 = pop2();
                     IntegerType it = (IntegerType) v1.getType();
                     if (it instanceof SignedIntegerType) {
                         push(fatten(gf.shr(v1, v2)));
@@ -774,8 +778,8 @@ final class MethodParser {
                     break;
                 }
                 case OP_IUSHR: {
-                    v1 = pop1();
                     v2 = pop1();
+                    v1 = pop1();
                     IntegerType it = (IntegerType) v1.getType();
                     if (it instanceof UnsignedIntegerType) {
                         push(gf.shr(v1, v2));
@@ -785,8 +789,8 @@ final class MethodParser {
                     break;
                 }
                 case OP_LUSHR: {
-                    v1 = pop2();
                     v2 = pop1();
+                    v1 = pop2();
                     IntegerType it = (IntegerType) v1.getType();
                     if (it instanceof UnsignedIntegerType) {
                         push(fatten(gf.shr(v1, v2)));
