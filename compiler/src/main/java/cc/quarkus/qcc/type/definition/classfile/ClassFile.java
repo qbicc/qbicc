@@ -362,7 +362,7 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
     }
 
     default double getDoubleConstant(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
-        checkConstantType(idx, CONSTANT_Long);
+        checkConstantType(idx, CONSTANT_Double);
         return Double.longBitsToDouble(getRawConstantLong(idx, 1));
     }
 
