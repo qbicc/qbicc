@@ -153,7 +153,9 @@ final class ClassMethodInfo {
                     if (idx < 0) {
                         entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
                     }
-                    int cnt = -(bc.getInt() - bc.getInt());
+                    int low = bc.getInt();
+                    int high = bc.getInt();
+                    int cnt = high - low + 1;
                     if (cnt < 0) {
                         throw new InvalidTableSwitchRangeException();
                     }
@@ -355,7 +357,9 @@ final class ClassMethodInfo {
             case OP_TABLESWITCH:
                 align(codeAttr, 4);
                 codeAttr.getInt();
-                cnt = -(codeAttr.getInt() - codeAttr.getInt());
+                int hb = codeAttr.getInt();
+                int lb = codeAttr.getInt();
+                cnt = hb - lb + 1;
                 if (cnt < 0) {
                     throw new InvalidTableSwitchRangeException();
                 }
