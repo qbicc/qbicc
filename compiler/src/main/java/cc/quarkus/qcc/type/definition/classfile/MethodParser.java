@@ -1331,7 +1331,7 @@ final class MethodParser {
 
     private FieldElement resolveTargetOfFieldRef(final int fieldRef) {
         ValidatedTypeDefinition definition = ctxt.resolveDefinedTypeLiteral(getOwnerOfFieldRef(fieldRef)).validate();
-        FieldElement field = definition.resolve().findField(getNameOfFieldRef(fieldRef));
+        FieldElement field = definition.resolve().resolveField(getTypeOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef));
         if (field == null) {
             // todo
             throw new IllegalStateException();
