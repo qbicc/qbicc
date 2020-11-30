@@ -29,8 +29,10 @@ public class TestSimpleCompile {
         Platform plaf = Platform.HOST_PLATFORM;
         Optional<ObjectFileProvider> of = ObjectFileProvider.findProvider(plaf.getObjectType(), getClass().getClassLoader());
         assumeTrue(of.isPresent());
+        Path clang = ToolUtil.findExecutable("clang");
+        assumeTrue(clang != null);
         final Iterable<ClangToolChainImpl> tools = ToolProvider.findAllTools(ClangToolChainImpl.class, plaf, c -> true,
-            TestSimpleCompile.class.getClassLoader(), List.of(ToolUtil.findExecutable("clang")));
+            TestSimpleCompile.class.getClassLoader(), List.of(clang));
         final Iterator<ClangToolChainImpl> iterator = tools.iterator();
         assumeTrue(iterator.hasNext());
         final ClangToolChainImpl gccCompiler = iterator.next();
