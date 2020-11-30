@@ -3,6 +3,7 @@ package cc.quarkus.qcc.context;
 import java.nio.file.Path;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.object.Function;
@@ -48,4 +49,6 @@ public interface CompilationContext extends DiagnosticContext {
     List<ProgramModule> getAllProgramModules();
 
     Function getExactFunction(ExecutableElement element);
+
+    CurrentThreadLiteral getCurrentThreadValue();
 }

@@ -94,10 +94,17 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     public void execute() {
         FunctionType funcType = functionObj.getType();
-        int cnt = funcType.getParameterCount();
+        int cnt = methodBody.getParameterCount();
+        ValueType type = funcType.getParameterType(0);
+        // it should be java.lang.Thread
+        mappedValues.put(ctxt.getCurrentThreadValue(), func.param(map(type)).name("thr").asValue());
+        Value thisValue = methodBody.getThisValue();
+        if (thisValue != null) {
+            mappedValues.put(thisValue, func.param(map(thisValue.getType())).name("this").asValue());
+        }
         for (int i = 0; i < cnt; i ++) {
-            ValueType type = funcType.getParameterType(i);
-            mappedValues.put(methodBody.getParameterValue(i), func.param(map(type)).name("p" + i).asValue());
+            Value value = functionObj.getBody().getParameterValue(i);
+            mappedValues.put(value, func.param(map(value.getType())).name("p" + i).asValue());
         }
         func.returns(map(funcType.getReturnType()));
         map(entryBlock);

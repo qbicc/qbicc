@@ -21,8 +21,10 @@ import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.probe.CTypeProbe;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
+import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.reachability.ReachabilityBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import cc.quarkus.qcc.type.TypeSystem;
 
@@ -163,8 +165,11 @@ public class Main {
                             builder.setMainClass(mainClass.replace('.', '/'));
                             builder.addPostAnalyticHook(new LLVMGenerator());
                             builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                            builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                             builder.addCopyFactory(PhiOptimizerVisitor::new);
+                            builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.LOWERING, InvocationLoweringBasicBlockBuilder::new);
                             builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                            builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                             builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                             CompilationContext ctxt;
                             boolean result;

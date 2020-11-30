@@ -54,8 +54,11 @@ public class LLVMGenerator implements Consumer<CompilationContext> {
                 }
             }
             Path outputFile = path.resolve("output.ll");
-            try (BufferedWriter writer = Files.newBufferedWriter(outputFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
-                module.writeTo(writer);
+            try {
+                Files.createDirectories(outputFile.getParent());
+                try (BufferedWriter writer = Files.newBufferedWriter(outputFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+                    module.writeTo(writer);
+                }
             } catch (IOException e) {
                 ctxt.error("Failed to write \"%s\": %s", outputFile, e.getMessage());
                 try {

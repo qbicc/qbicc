@@ -8,7 +8,7 @@ import cc.quarkus.qcc.type.ValueType;
 /**
  *
  */
-public final class FunctionCall extends AbstractValue implements Value, Triable {
+public final class FunctionCall extends AbstractValue implements Triable {
     // todo: fixed flags (such as "nothrow", "noreturn")
     // todo: native calling convention (fastcc, ccc, etc)
     private final Node dependency;
@@ -23,7 +23,11 @@ public final class FunctionCall extends AbstractValue implements Value, Triable 
     }
 
     public ValueType getType() {
-        return ((FunctionType) callTarget.getType()).getReturnType();
+        return getFunctionType().getReturnType();
+    }
+
+    public FunctionType getFunctionType() {
+        return (FunctionType) callTarget.getType();
     }
 
     public int getArgumentCount() {

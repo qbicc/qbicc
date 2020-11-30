@@ -48,6 +48,8 @@ public interface LiteralFactory {
 
     SymbolLiteral literalOfSymbol(String name, ValueType symbolType);
 
+    CurrentThreadLiteral literalOfCurrentThread(ReferenceType threadType);
+
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
             private final BooleanLiteral TRUE = new BooleanLiteral(typeSystem.getBooleanType().asConst(), true);
@@ -150,6 +152,10 @@ public interface LiteralFactory {
                 Assert.checkNotEmptyParam("name", name);
                 Assert.checkNotNullParam("symbolType", symbolType);
                 return new SymbolLiteral(name, symbolType);
+            }
+
+            public CurrentThreadLiteral literalOfCurrentThread(final ReferenceType threadType) {
+                return new CurrentThreadLiteral(Assert.checkNotNullParam("threadType", threadType));
             }
         };
     }

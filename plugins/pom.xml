@@ -16,8 +16,10 @@
 
     <modules>
         <module>llvm</module>
+        <module>lowering</module>
         <module>optimization</module>
         <module>patcher</module>
+        <module>reachability</module>
         <module>verification</module>
     </modules>
 </project>

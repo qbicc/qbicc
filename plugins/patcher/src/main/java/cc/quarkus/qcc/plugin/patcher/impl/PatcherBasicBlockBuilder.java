@@ -150,8 +150,8 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
         return super.invokeValueStatic((MethodElement) remapMethod(target), arguments);
     }
 
-    public Value invokeValueInstance(final Value instance, final DispatchInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
-        return super.invokeValueInstance(instance, kind, (MethodElement) remapMethod(target), arguments);
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        return super.invokeValueInstance(kind, instance, (MethodElement) remapMethod(target), arguments);
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {

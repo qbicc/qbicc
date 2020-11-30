@@ -20,6 +20,7 @@ import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
@@ -50,7 +51,8 @@ final class CompilationContextImpl implements CompilationContext {
     private final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
     private final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ExecutableElement, cc.quarkus.qcc.object.Function> methodToFunction = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ExecutableElement, cc.quarkus.qcc.object.Function> exactFunctions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MethodElement, cc.quarkus.qcc.object.Function> virtualFunctions = new ConcurrentHashMap<>();
     private final Path outputDir;
 
     CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir) {
@@ -225,7 +227,7 @@ final class CompilationContextImpl implements CompilationContext {
 
     public cc.quarkus.qcc.object.Function getExactFunction(final ExecutableElement element) {
         // optimistic
-        cc.quarkus.qcc.object.Function function = methodToFunction.get(element);
+        cc.quarkus.qcc.object.Function function = exactFunctions.get(element);
         if (function != null) {
             return function;
         }
@@ -233,10 +235,30 @@ final class CompilationContextImpl implements CompilationContext {
         TypeIdLiteral threadTypeId = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getTypeId();
         ProgramModule programModule = getOrAddProgramModule(element.getEnclosingType());
         Section implicit = programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
-        return methodToFunction.computeIfAbsent(element, e -> implicit.addFunction(element, getNameForElement(element), getFunctionTypeForElement(typeSystem, element, threadTypeId)));
+        return exactFunctions.computeIfAbsent(element, e -> implicit.addFunction(element, getExactNameForElement(element), getFunctionTypeForElement(typeSystem, element, threadTypeId)));
     }
 
-    private String getNameForElement(final ExecutableElement element) {
+    public cc.quarkus.qcc.object.Function getVirtualFunction(final MethodElement element) {
+        // optimistic
+        cc.quarkus.qcc.object.Function function = virtualFunctions.get(element);
+        if (function != null) {
+            return function;
+        }
+        // look up the thread ID literal - todo: lazy cache?
+        TypeIdLiteral threadTypeId = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getTypeId();
+        ProgramModule programModule = getOrAddProgramModule(element.getEnclosingType());
+        Section implicit = programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+        return exactFunctions.computeIfAbsent(element, e -> implicit.addFunction(element, getVirtualNameForElement(element), getFunctionTypeForElement(typeSystem, element, threadTypeId)));
+    }
+
+    public CurrentThreadLiteral getCurrentThreadValue() {
+        // look up the thread ID literal - todo: lazy cache?
+        TypeIdLiteral threadTypeId = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getTypeId();
+        // construct the literal - todo: cache
+        return literalFactory.literalOfCurrentThread(typeSystem.getReferenceType(threadTypeId));
+    }
+
+    private String getExactNameForElement(final ExecutableElement element) {
         // todo: encode class loader ID
         String internalDotName = element.getEnclosingType().getInternalName().replace('/', '.');
         if (element instanceof InitializerElement) {
@@ -248,13 +270,35 @@ final class CompilationContextImpl implements CompilationContext {
         int parameterCount = elementWithParam.getParameterCount();
         if (element instanceof ConstructorElement) {
             b.append("init.");
+            b.append(internalDotName).append('.');
         } else {
-            b.append("exact.").append(((MethodElement)element).getName());
+            b.append("exact.");
+            b.append(internalDotName).append('.');
+            b.append(((MethodElement)element).getName()).append('.');
+            ((MethodElement) element).getReturnType().toFriendlyString(b).append('.');
         }
-        b.append(internalDotName).append('.').append(parameterCount);
+        b.append(parameterCount);
         for (int i = 0; i < parameterCount; i ++) {
             b.append('.');
             elementWithParam.getParameter(i).getType().toFriendlyString(b);
+        }
+        return b.toString();
+    }
+
+    private String getVirtualNameForElement(final MethodElement element) {
+        // todo: encode class loader ID
+        String internalDotName = element.getEnclosingType().getInternalName().replace('/', '.');
+        StringBuilder b = new StringBuilder();
+        assert element instanceof ParameterizedExecutableElement;
+        int parameterCount = element.getParameterCount();
+        b.append("virtual.");
+        b.append(internalDotName).append('.');
+        b.append(element.getName()).append('.');
+        element.getReturnType().toFriendlyString(b).append('.');
+        b.append(parameterCount);
+        for (int i = 0; i < parameterCount; i ++) {
+            b.append('.');
+            element.getParameter(i).getType().toFriendlyString(b);
         }
         return b.toString();
     }

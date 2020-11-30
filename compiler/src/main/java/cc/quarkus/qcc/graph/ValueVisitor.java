@@ -7,6 +7,7 @@ import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
@@ -90,6 +91,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, Convert node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, CurrentThreadLiteral node) {
         return visitUnknown(param, node);
     }
 
@@ -305,6 +310,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, Convert node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CurrentThreadLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -630,7 +639,7 @@ public interface ValueVisitor<T, R> {
         }
 
         default Value visit(final T param, final InstanceInvocationValue node) {
-            return getBuilder(param).invokeValueInstance(copy(param, node.getInstance()), node.getKind(), node.getInvocationTarget(), copy(param, node.getArguments()));
+            return getBuilder(param).invokeValueInstance(node.getKind(), copy(param, node.getInstance()), node.getInvocationTarget(), copy(param, node.getArguments()));
         }
 
         default Value visit(final T param, final IntegerLiteral node) {

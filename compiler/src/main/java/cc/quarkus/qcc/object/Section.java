@@ -23,18 +23,18 @@ public final class Section extends ProgramObject {
     }
 
     public Data addData(BasicElement originalElement, String name, Value value) {
-        return new Data(
+        return add(new Data(
             originalElement, Assert.checkNotNullParam("name", name),
             programModule.literalFactory.literalOfSymbol(name, Assert.checkNotNullParam("value", value).getType()),
             value
-        );
+        ));
     }
 
     public Function addFunction(BasicElement originalElement, String name, FunctionType type) {
-        return new Function(
+        return add(new Function(
             originalElement, Assert.checkNotNullParam("name", name),
             programModule.literalFactory.literalOfSymbol(name, type)
-        );
+        ));
     }
 
     private <T extends ProgramObject> T add(T item) {

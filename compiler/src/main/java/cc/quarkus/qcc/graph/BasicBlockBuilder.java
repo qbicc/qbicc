@@ -199,7 +199,7 @@ public interface BasicBlockBuilder {
 
     Value invokeValueStatic(MethodElement target, List<Value> arguments);
 
-    Value invokeValueInstance(Value instance, DispatchInvocation.Kind kind, MethodElement target, List<Value> arguments);
+    Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
 
     /**
      * Invoke an object instance initializer.  The value returned has an initialized type.  The returned value should
@@ -582,7 +582,7 @@ public interface BasicBlockBuilder {
                 return optionallyTry(new StaticInvocationValue(line, bci, requireDependency(), target, arguments));
             }
 
-            public Value invokeValueInstance(final Value instance, final DispatchInvocation.Kind kind, final MethodElement target, final List<Value> arguments) {
+            public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
                 return optionallyTry(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, arguments));
             }
 
