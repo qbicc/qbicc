@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
+import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
@@ -27,6 +28,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public ExecutableElement getCurrentElement() {
         return getDelegate().getCurrentElement();
+    }
+
+    public Location getLocation() {
+        return getDelegate().getLocation();
     }
 
     public int setLineNumber(final int newLineNumber) {

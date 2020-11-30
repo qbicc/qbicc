@@ -1148,7 +1148,9 @@ final class MethodParser {
                     }
                     break;
                 case OP_INVOKEDYNAMIC:
-                    throw new UnsupportedOperationException();
+                    ctxt.getCompilationContext().error(gf.getLocation(), "`invokedynamic` not yet supported");
+                    gf.throw_(lf.literalOfNull());
+                    return;
                 case OP_NEW:
                     push(gf.new_(getConstantValue(buffer.getShort() & 0xffff, ClassTypeIdLiteral.class)));
                     break;

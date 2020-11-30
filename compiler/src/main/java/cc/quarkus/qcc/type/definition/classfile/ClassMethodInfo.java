@@ -311,7 +311,7 @@ final class ClassMethodInfo {
             }
         }
         // save a copy if we can
-        this.lineNumbers = lineNumberTableLen == lineNumberTable.length ? lineNumberTable : Arrays.copyOf(lineNumberTable, lineNumberTableLen);
+        this.lineNumbers = (lineNumberTableLen << 1) == lineNumberTable.length ? lineNumberTable : Arrays.copyOf(lineNumberTable, lineNumberTableLen << 1);
         for (int i = 0; i < maxLocals; i ++) {
             if (localVariables[i].length > lvtLengths[i]) {
                 localVariables[i] = Arrays.copyOf(localVariables[i], lvtLengths[i]);

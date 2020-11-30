@@ -2,6 +2,10 @@ package cc.quarkus.qcc.context;
 
 import static java.lang.Math.*;
 
+import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.type.definition.element.BasicElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -237,6 +241,20 @@ public final class Location {
 
         public Builder setByteCodeIndex(final int byteCodeIndex) {
             this.byteCodeIndex = byteCodeIndex;
+            return this;
+        }
+
+        public Builder setElement(BasicElement element) {
+            setMemberKind(element instanceof MethodElement ? Location.MemberKind.METHOD : element instanceof FieldElement ? Location.MemberKind.FIELD : Location.MemberKind.NONE);
+            setMemberName(element.toString());
+            setSourceFilePath(element.getSourceFileName());
+            setClassInternalName(element.getEnclosingType().getInternalName());
+            return this;
+        }
+
+        public Builder setNode(Node node) {
+            setLineNumber(node.getSourceLine());
+            setByteCodeIndex(node.getBytecodeIndex());
             return this;
         }
 

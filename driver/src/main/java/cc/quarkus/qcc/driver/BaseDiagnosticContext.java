@@ -112,14 +112,10 @@ public final class BaseDiagnosticContext implements DiagnosticContext  {
         } else {
             Location.Builder lb = Location.builder();
             if (element != null) {
-                lb.setMemberKind(element instanceof MethodElement ? Location.MemberKind.METHOD : element instanceof FieldElement ? Location.MemberKind.FIELD : Location.MemberKind.NONE);
-                lb.setMemberName(element.toString());
-                lb.setSourceFilePath(element.getSourceFileName());
-                lb.setClassInternalName(element.getEnclosingType().getInternalName());
+                lb.setElement(element);
             }
             if (node != null) {
-                lb.setLineNumber(node.getSourceLine());
-                lb.setByteCodeIndex(node.getBytecodeIndex());
+                lb.setNode(node);
             }
             loc = lb.build();
         }

@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
+import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
@@ -30,6 +31,13 @@ public interface BasicBlockBuilder {
      * @return the element currently being built
      */
     ExecutableElement getCurrentElement();
+
+    /**
+     * Get a location for the element currently being built, suitable for passing to diagnostics.
+     *
+     * @return the location
+     */
+    Location getLocation();
 
     /**
      * Set the line number to use for subsequently built nodes.  Use {@code 0} for no line number.
@@ -317,6 +325,14 @@ public interface BasicBlockBuilder {
 
             public ExecutableElement getCurrentElement() {
                 return element;
+            }
+
+            public Location getLocation() {
+                return Location.builder()
+                    .setElement(element)
+                    .setLineNumber(line)
+                    .setByteCodeIndex(bci)
+                    .build();
             }
 
             public int setLineNumber(final int newLineNumber) {
