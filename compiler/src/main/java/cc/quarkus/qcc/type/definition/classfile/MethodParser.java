@@ -943,7 +943,7 @@ final class MethodParser {
                     setJsrExitState(gf.ret(pop()), saveStack(), saveLocals());
                     // exit one level of recursion
                     return;
-                case OP_TABLESWITCH:
+                case OP_TABLESWITCH: {
                     align(buffer, 4);
                     int db = buffer.getInt();
                     int low = buffer.getInt();
@@ -952,47 +952,59 @@ final class MethodParser {
                     int[] dests = new int[cnt];
                     int[] vals = new int[cnt];
                     BlockLabel[] handles = new BlockLabel[cnt];
-                    for (int i = 0; i < cnt; i ++) {
+                    for (int i = 0; i < cnt; i++) {
                         vals[i] = low + i;
                         handles[i] = getBlockForIndex(dests[i] = buffer.getInt() + src);
                     }
-                    BasicBlock exited = gf.switch_(pop1(), vals, handles, getBlockForIndex(db + src));
+                    Set<BlockLabel> seen = new HashSet<>();
+                    BlockLabel defaultBlock = getBlockForIndex(db + src);
+                    seen.add(defaultBlock);
+                    BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock);
                     Value[] stackSnap = saveStack();
                     Value[] varSnap = saveLocals();
                     buffer.position(db + src);
                     processBlock(exited);
                     for (int i = 0; i < handles.length; i++) {
-                        restoreStack(stackSnap);
-                        restoreLocals(varSnap);
-                        buffer.position(dests[i]);
-                        processBlock(exited);
+                        if (seen.add(getBlockForIndex(dests[i]))) {
+                            restoreStack(stackSnap);
+                            restoreLocals(varSnap);
+                            buffer.position(dests[i]);
+                            processBlock(exited);
+                        }
                     }
                     // done
                     return;
-                case OP_LOOKUPSWITCH:
+                }
+                case OP_LOOKUPSWITCH: {
                     align(buffer, 4);
-                    db = buffer.getInt();
-                    cnt = buffer.getInt();
-                    dests = new int[cnt];
-                    vals = new int[cnt];
-                    handles = new BlockLabel[cnt];
-                    for (int i = 0; i < cnt; i ++) {
+                    int db = buffer.getInt();
+                    int cnt = buffer.getInt();
+                    int[] dests = new int[cnt];
+                    int[]vals = new int[cnt];
+                    BlockLabel[] handles = new BlockLabel[cnt];
+                    for (int i = 0; i < cnt; i++) {
                         vals[i] = buffer.getInt();
                         handles[i] = getBlockForIndex(dests[i] = buffer.getInt() + src);
                     }
-                    exited = gf.switch_(pop1(), vals, handles, getBlockForIndex(db + src));
-                    stackSnap = saveStack();
-                    varSnap = saveLocals();
+                    Set<BlockLabel> seen = new HashSet<>();
+                    BlockLabel defaultBlock = getBlockForIndex(db + src);
+                    seen.add(defaultBlock);
+                    BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock);
+                    Value[] stackSnap = saveStack();
+                    Value[] varSnap = saveLocals();
                     buffer.position(db + src);
                     processBlock(exited);
                     for (int i = 0; i < handles.length; i++) {
-                        restoreStack(stackSnap);
-                        restoreLocals(varSnap);
-                        buffer.position(dests[i]);
-                        processBlock(exited);
+                        if (seen.add(getBlockForIndex(dests[i]))) {
+                            restoreStack(stackSnap);
+                            restoreLocals(varSnap);
+                            buffer.position(dests[i]);
+                            processBlock(exited);
+                        }
                     }
                     // done
                     return;
+                }
                 case OP_IRETURN:
                     // TODO: narrow the return type if it's narrower than i32
                 case OP_FRETURN:
@@ -1080,7 +1092,7 @@ final class MethodParser {
                         // end block
                         return;
                     }
-                    cnt = target.getParameterCount();
+                    int cnt = target.getParameterCount();
                     Value[] args = new Value[cnt];
                     for (int i = cnt - 1; i >= 0; i --) {
                         if (target.getParameter(i).hasClass2Type()) {
