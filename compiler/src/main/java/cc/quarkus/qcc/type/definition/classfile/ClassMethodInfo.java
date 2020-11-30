@@ -476,6 +476,7 @@ final class ClassMethodInfo {
             case OP_DSUB:
             case OP_DUP:
             case OP_DUP_X1:
+            case OP_DUP_X2:
             case OP_DUP2:
             case OP_DUP2_X1:
             case OP_DUP2_X2:
