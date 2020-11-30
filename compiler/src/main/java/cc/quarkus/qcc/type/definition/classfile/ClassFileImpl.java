@@ -290,6 +290,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     public Literal getConstantValue(int idx) {
+        if (idx == 0) {
+            return null;
+        }
         Literal lit = getVolatile(literals, idx);
         if (lit != null) {
             return lit;

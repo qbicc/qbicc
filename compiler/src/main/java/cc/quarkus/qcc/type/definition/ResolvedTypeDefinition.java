@@ -63,9 +63,15 @@ public interface ResolvedTypeDefinition extends ValidatedTypeDefinition {
         // 1. If C declares a field with the name and descriptor specified by the field reference,
         // field lookup succeeds. The declared field is the result of the field lookup.
 
-        FieldElement field = getField(getFieldIndex(name));
-        if ( field.getType() == type ) {
-            return field;
+        int idx = getFieldIndex(name);
+        if (idx >= 0) {
+            FieldElement field = getField(idx);
+            if (field.getType().equals(type)) {
+                return field;
+            } else {
+                // no match (wrong type)
+                return null;
+            }
         }
 
         // 2. Otherwise, field lookup is applied recursively to the direct superinterfaces
