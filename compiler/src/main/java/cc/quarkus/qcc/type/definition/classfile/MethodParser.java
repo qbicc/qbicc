@@ -1025,7 +1025,8 @@ final class MethodParser {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
                     FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
-                    push(gf.readStaticField(fieldElement, JavaAccessMode.DETECT));
+                    Value value = gf.readStaticField(fieldElement, JavaAccessMode.DETECT);
+                    push(fieldElement.hasClass2Type() ? fatten(value) : value);
                     break;
                 }
                 case OP_PUTSTATIC: {
@@ -1033,14 +1034,15 @@ final class MethodParser {
                     int fieldRef = buffer.getShort() & 0xffff;
                     FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
                     Type type = getTypeOfFieldRef(fieldRef);
-                    gf.writeStaticField(fieldElement, pop(), JavaAccessMode.DETECT);
+                    gf.writeStaticField(fieldElement, fieldElement.hasClass2Type() ? pop2() : pop(), JavaAccessMode.DETECT);
                     break;
                 }
                 case OP_GETFIELD: {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
                     FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
-                    push(gf.readInstanceField(pop(), fieldElement, JavaAccessMode.DETECT));
+                    Value value = gf.readInstanceField(pop(), fieldElement, JavaAccessMode.DETECT);
+                    push(fieldElement.hasClass2Type() ? fatten(value) : value);
                     break;
                 }
                 case OP_PUTFIELD: {
@@ -1048,8 +1050,8 @@ final class MethodParser {
                     int fieldRef = buffer.getShort() & 0xffff;
                     FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
                     getTypeOfFieldRef(fieldRef);
+                    v1 = fieldElement.hasClass2Type() ? pop2() : pop();
                     v2 = pop();
-                    v1 = pop();
                     gf.writeInstanceField(v1, fieldElement, v2, JavaAccessMode.DETECT);
                     break;
                 }

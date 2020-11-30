@@ -873,7 +873,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     public boolean hasClass2FieldType(final long argument) {
-        return class2[getShort(fieldOffsets[(int) argument] + 4)];
+        int realIdx = getShort(fieldOffsets[(int) argument] + 4);
+        populateTypeInfo(realIdx);
+        return class2[realIdx];
     }
 
     public ValueType resolveParameterType(final int methodIdx, final int paramIdx) throws ResolutionFailedException {
