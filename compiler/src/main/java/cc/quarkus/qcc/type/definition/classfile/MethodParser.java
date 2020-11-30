@@ -349,6 +349,7 @@ final class MethodParser {
 
     Map<BlockLabel, PhiValue[]> entryLocalsArrays = new HashMap<>();
     Map<BlockLabel, PhiValue[]> entryStacks = new HashMap<>();
+    Map<BlockLabel, Set<BasicBlock>> visitedFrom = new HashMap<>();
 
     /**
      * Process a single block.  The current stack and locals are used as a template for the phi value types within
@@ -366,28 +367,33 @@ final class MethodParser {
         BasicBlock resolvedBlock;
         if (entryStacks.containsKey(block)) {
             // already registered
-            entryLocalsArray = entryLocalsArrays.get(block);
-            entryStack = entryStacks.get(block);
-            // complete phis
-            for (int i = 0; i < locals.length; i ++) {
-                Value val = locals[i];
-                if (val != null) {
-                    PhiValue phiValue = entryLocalsArray[i];
-                    // some local slots will be empty
-                    if (phiValue != null) {
-                        phiValue.setValueForBlock(from, val);
+            if (visitedFrom.get(block).add(from)) {
+                entryLocalsArray = entryLocalsArrays.get(block);
+                entryStack = entryStacks.get(block);
+                // complete phis
+                for (int i = 0; i < locals.length; i ++) {
+                    Value val = locals[i];
+                    if (val != null) {
+                        PhiValue phiValue = entryLocalsArray[i];
+                        // some local slots will be empty
+                        if (phiValue != null) {
+                            phiValue.setValueForBlock(from, val);
+                        }
                     }
                 }
-            }
-            for (int i = 0; i < sp; i ++) {
-                Value val = stack[i];
-                if (val != null) {
-                    entryStack[i].setValueForBlock(from, val);
+                for (int i = 0; i < sp; i ++) {
+                    Value val = stack[i];
+                    if (val != null) {
+                        entryStack[i].setValueForBlock(from, val);
+                    }
                 }
             }
         } else {
             // not registered yet; process new block first
             assert ! block.hasTarget();
+            HashSet<BasicBlock> set = new HashSet<>();
+            set.add(from);
+            visitedFrom.put(block, set);
             gf.begin(block);
             entryLocalsArray = new PhiValue[locals.length];
             entryStack = new PhiValue[sp];
