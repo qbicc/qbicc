@@ -289,6 +289,15 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         }
     }
 
+    public void checkConstantType(final int idx, final int expectedType1, final int expectedType2) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        // also validates that the constant exists
+        int cpOffset = cpOffsets[idx];
+        int actual = getByte(cpOffset);
+        if (cpOffset == 0 || actual != expectedType1 && actual != expectedType2) {
+            throw new ConstantTypeMismatchException();
+        }
+    }
+
     public Literal getConstantValue(int idx) {
         if (idx == 0) {
             return null;
@@ -554,7 +563,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     TypeIdLiteral resolveSingleType(String name) {
-        return ctxt.findDefinedType(name).validate().getTypeId();
+        DefinedTypeDefinition definedType = ctxt.findDefinedType(name);
+        return definedType == null ? null : definedType.validate().getTypeId();
     }
 
     public TypeIdLiteral resolveType() {
@@ -564,7 +574,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     }
 
     private TypeIdLiteral loadClass(final int offs, final int len, final boolean expectTerminator) {
-        return ctxt.findDefinedType(ctxt.deduplicate(buffer, offs, len)).validate().getTypeId();
+        DefinedTypeDefinition definedType = ctxt.findDefinedType(ctxt.deduplicate(buffer, offs, len));
+        return definedType == null ? null : definedType.validate().getTypeId();
     }
 
     public int getAccess() {

@@ -28,6 +28,7 @@ import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -1081,7 +1082,10 @@ final class MethodParser {
                         owner = getOwnerOfMethodRef(methodRef);
                         nameAndType = getNameAndTypeOfMethodRef(methodRef);
                     }
-                    // todo: try/catch, replace with error node
+                    if (owner == null) {
+                        gf.classNotFoundError(getClassFile().getMethodrefConstantClassName(methodRef));
+                        return;
+                    }
                     DefinedTypeDefinition found = ctxt.resolveDefinedTypeLiteral(owner);
                     if (found == null) {
                         gf.classNotFoundError(owner.toString());
@@ -1330,7 +1334,11 @@ final class MethodParser {
     }
 
     private TypeIdLiteral getOwnerOfMethodRef(final int methodRef) {
-        return resolveClass(getClassFile().getMethodrefConstantClassName(methodRef));
+        String name = getClassFile().getMethodrefConstantClassName(methodRef);
+        if (name.startsWith("[")) {
+            return ((ReferenceType)resolveDescriptor(getClassFile().getMethodrefConstantDescriptorIndex(methodRef))).getUpperBound();
+        }
+        return resolveClass(name);
     }
 
     private int getNameAndTypeOfMethodRef(final int methodRef) {
@@ -1346,7 +1354,8 @@ final class MethodParser {
     }
 
     private TypeIdLiteral getOwnerOfInterfaceMethodRef(final int methodRef) {
-        return resolveClass(getClassFile().getInterfaceMethodrefConstantClassName(methodRef));
+        String name = getClassFile().getInterfaceMethodrefConstantClassName(methodRef);
+        return resolveClass(name);
     }
 
     private int getNameAndTypeOfInterfaceMethodRef(final int methodRef) {

@@ -382,12 +382,17 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
     }
 
     default String getMethodrefConstantClassName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
-        checkConstantType(idx, CONSTANT_Methodref);
+        checkConstantType(idx, CONSTANT_Methodref, CONSTANT_InterfaceMethodref);
         return getClassConstantName(getRawConstantShort(idx, 1));
     }
 
+    default int getMethodrefConstantDescriptorIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_Methodref, CONSTANT_InterfaceMethodref);
+        return getRawConstantShort(idx, 1);
+    }
+
     default int getMethodrefNameAndTypeIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
-        checkConstantType(idx, CONSTANT_Methodref);
+        checkConstantType(idx, CONSTANT_Methodref, CONSTANT_InterfaceMethodref);
         return getRawConstantShort(idx, 3);
     }
 
@@ -459,6 +464,8 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
     }
 
     void checkConstantType(int idx, int expectedType) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
+
+    void checkConstantType(int idx, int expectedType1, int expectedType2) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
 
     int getRawConstantByte(int idx, int offset) throws IndexOutOfBoundsException;
 
