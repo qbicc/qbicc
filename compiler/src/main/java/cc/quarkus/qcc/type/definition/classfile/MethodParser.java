@@ -731,9 +731,11 @@ final class MethodParser {
                 case OP_DREM:
                     push(fatten(gf.remainder(pop2(), pop2())));
                     break;
+                case OP_INEG:
                 case OP_FNEG:
                     push(gf.negate(pop1()));
                     break;
+                case OP_LNEG:
                 case OP_DNEG:
                     push(fatten(gf.negate(pop2())));
                     break;
