@@ -2,7 +2,9 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Map;
 
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.element.BasicElement;
 import io.smallrye.common.constraint.Assert;
 
 public final class PhiValue extends AbstractValue implements PinnedNode {
@@ -20,20 +22,25 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         return input.outboundValues.get(key);
     }
 
-    public void setValueForBlock(final BasicBlock input, final Value value) {
+    public void setValueForBlock(final CompilationContext ctxt, final BasicElement element, final BasicBlock input, final Value value) {
         Assert.checkNotNullParam("value", value);
         if (! value.getType().equals(getType())) {
-            type = value.getType().join(getType());
+            try {
+                type = value.getType().join(getType());
+            } catch (IllegalArgumentException e) {
+                ctxt.error(element, this, "Failed to derive type for phi: %s", e.getMessage());
+            }
         }
         Map<Key, Value> ov = input.outboundValues;
         if (ov.containsKey(key)) {
-            throw new IllegalStateException("Phi " + this + " already has a value for block " + input);
+            ctxt.error(element, this, "Phi already has a value for block %s", input);
+            return;
         }
         input.outboundValues = Util.mapWithEntry(ov, key, value);
     }
 
-    public void setValueForBlock(final BlockLabel input, final Value value) {
-        setValueForBlock(BlockLabel.getTargetOf(input), value);
+    public void setValueForBlock(final CompilationContext ctxt, final BasicElement element, final BlockLabel input, final Value value) {
+        setValueForBlock(ctxt, element, BlockLabel.getTargetOf(input), value);
     }
 
     public ValueType getType() {

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
@@ -40,6 +41,7 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
@@ -371,6 +373,8 @@ final class MethodParser {
         PhiValue[] entryLocalsArray;
         PhiValue[] entryStack;
         BasicBlock resolvedBlock;
+        CompilationContext cmpCtxt = ctxt.getCompilationContext();
+        ExecutableElement element = gf.getCurrentElement();
         if (entryStacks.containsKey(block)) {
             // already registered
             if (visitedFrom.get(block).add(from)) {
@@ -383,14 +387,14 @@ final class MethodParser {
                         PhiValue phiValue = entryLocalsArray[i];
                         // some local slots will be empty
                         if (phiValue != null) {
-                            phiValue.setValueForBlock(from, val);
+                            phiValue.setValueForBlock(cmpCtxt, element, from, val);
                         }
                     }
                 }
                 for (int i = 0; i < sp; i ++) {
                     Value val = stack[i];
                     if (val != null) {
-                        entryStack[i].setValueForBlock(from, val);
+                        entryStack[i].setValueForBlock(cmpCtxt, element, from, val);
                     }
                 }
             }
@@ -408,7 +412,7 @@ final class MethodParser {
                 if (val != null) {
                     PhiValue phiValue = gf.phi(val.getType(), block);
                     entryLocalsArray[i] = phiValue;
-                    phiValue.setValueForBlock(from, val);
+                    phiValue.setValueForBlock(cmpCtxt, element, from, val);
                     if (isFat(val)) {
                         fatten(phiValue);
                     }
@@ -419,7 +423,7 @@ final class MethodParser {
                 if (val != null) {
                     PhiValue phiValue = gf.phi(val.getType(), block);
                     entryStack[i] = phiValue;
-                    phiValue.setValueForBlock(from, val);
+                    phiValue.setValueForBlock(cmpCtxt, element, from, val);
                     if (isFat(val)) {
                         fatten(phiValue);
                     }
@@ -1284,8 +1288,8 @@ final class MethodParser {
                     BasicBlock t2 = gf.goto_(mergeHandle);
                     gf.begin(mergeHandle);
                     PhiValue phi = gf.phi(ts.getBooleanType(), mergeHandle);
-                    phi.setValueForBlock(t1, lf.literalOf(false));
-                    phi.setValueForBlock(t2, v1);
+                    phi.setValueForBlock(ctxt.getCompilationContext(), gf.getCurrentElement(), t1, lf.literalOf(false));
+                    phi.setValueForBlock(ctxt.getCompilationContext(), gf.getCurrentElement(), t2, v1);
                     push(phi);
                     break;
                 }

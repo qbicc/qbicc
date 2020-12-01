@@ -9,6 +9,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.function.BiFunction;
 
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
@@ -75,18 +76,20 @@ public interface Node {
         private final Queue<PhiValue> phiQueue = new ArrayDeque<>();
         private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
         private final Terminus terminus = new Terminus();
+        private final CompilationContext ctxt;
 
-        <S> Copier(BasicBlock entryBlock, BasicBlockBuilder builder, S param,
-            BiFunction<S, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
+        Copier(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext ctxt,
+            BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
         ) {
             this.entryBlock = entryBlock;
+            this.ctxt = ctxt;
             blockBuilder = builder;
-            nodeVisitor = nodeVisitorFactory.apply(param, terminus);
+            nodeVisitor = nodeVisitorFactory.apply(ctxt, terminus);
             reachable = this.entryBlock.calculateReachableBlocks();
         }
 
-        public static <S> BasicBlock execute(BasicBlock entryBlock, BasicBlockBuilder builder, S param,
-            BiFunction<S, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
+        public static BasicBlock execute(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext param,
+            BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock>, NodeVisitor<Copier, Value, Node, BasicBlock>> nodeVisitorFactory
         ) {
             return new Copier(entryBlock, builder, param, nodeVisitorFactory).copyProgram();
         }
@@ -117,7 +120,7 @@ public interface Node {
                     for (final BasicBlock incomingBlock : reachable) {
                         Value val = orig.getValueForBlock(incomingBlock);
                         if (val != null) {
-                            copy.setValueForBlock(copyBlock(incomingBlock), copyValue(val));
+                            copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copyBlock(incomingBlock), copyValue(val));
                         }
                     }
                     orig = phiQueue.poll();
