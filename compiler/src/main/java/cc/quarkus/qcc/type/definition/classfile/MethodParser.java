@@ -604,11 +604,17 @@ final class MethodParser {
                 case OP_BASTORE:
                 case OP_SASTORE:
                 case OP_CASTORE:
-                    gf.writeArrayValue(pop1(), pop1(), pop1(), JavaAccessMode.PLAIN);
+                    v3 = pop1();
+                    v2 = pop1();
+                    v1 = pop1();
+                    gf.writeArrayValue(v1, v2, v3, JavaAccessMode.PLAIN);
                     break;
                 case OP_LASTORE:
                 case OP_DASTORE:
-                    gf.writeArrayValue(pop1(), pop1(), pop2(), JavaAccessMode.PLAIN);
+                    v3 = pop2();
+                    v2 = pop1();
+                    v1 = pop1();
+                    gf.writeArrayValue(v1, v2, v3, JavaAccessMode.PLAIN);
                     break;
                 case OP_POP:
                     pop1();
@@ -700,43 +706,63 @@ final class MethodParser {
                     break;
                 case OP_IADD:
                 case OP_FADD:
-                    push(gf.add(pop1(), pop1()));
+                    v2 = pop1();
+                    v1 = pop1();
+                    push(gf.add(v1, v2));
                     break;
                 case OP_LADD:
                 case OP_DADD:
-                    push(fatten(gf.add(pop2(), pop2())));
+                    v2 = pop2();
+                    v1 = pop2();
+                    push(fatten(gf.add(v1, v2)));
                     break;
                 case OP_ISUB:
                 case OP_FSUB:
-                    push(gf.sub(pop1(), pop1()));
+                    v2 = pop1();
+                    v1 = pop1();
+                    push(gf.sub(v1, v2));
                     break;
                 case OP_LSUB:
                 case OP_DSUB:
-                    push(fatten(gf.sub(pop2(), pop2())));
+                    v2 = pop2();
+                    v1 = pop2();
+                    push(fatten(gf.sub(v1, v2)));
                     break;
                 case OP_IMUL:
                 case OP_FMUL:
-                    push(gf.multiply(pop1(), pop1()));
+                    v2 = pop1();
+                    v1 = pop1();
+                    push(gf.multiply(v1, v2));
                     break;
                 case OP_LMUL:
                 case OP_DMUL:
-                    push(fatten(gf.multiply(pop2(), pop2())));
+                    v2 = pop2();
+                    v1 = pop2();
+                    push(fatten(gf.multiply(v1, v2)));
                     break;
                 case OP_IDIV:
                 case OP_FDIV:
-                    push(gf.divide(pop1(), pop1()));
+                    v2 = pop1();
+                    v1 = pop1();
+                    push(gf.divide(v1, v2));
                     break;
                 case OP_LDIV:
                 case OP_DDIV:
-                    push(fatten(gf.divide(pop2(), pop2())));
+                    v2 = pop2();
+                    v1 = pop2();
+                    push(fatten(gf.divide(v1, v2)));
                     break;
                 case OP_IREM:
                 case OP_FREM:
-                    push(gf.remainder(pop1(), pop1()));
+                    v2 = pop1();
+                    v1 = pop1();
+                    push(gf.remainder(v1, v2));
                     break;
                 case OP_LREM:
                 case OP_DREM:
-                    push(fatten(gf.remainder(pop2(), pop2())));
+                    v2 = pop2();
+                    v1 = pop2();
+                    push(fatten(gf.remainder(v1, v2)));
                     break;
                 case OP_INEG:
                 case OP_FNEG:
@@ -801,22 +827,34 @@ final class MethodParser {
                     break;
                 }
                 case OP_IAND:
-                    push(gf.and(pop1(), pop1()));
+                    v2 = pop1();
+                    v1 = pop1();
+                    push(gf.and(v1, v2));
                     break;
                 case OP_LAND:
-                    push(fatten(gf.and(pop2(), pop2())));
+                    v2 = pop2();
+                    v1 = pop2();
+                    push(fatten(gf.and(v1, v2)));
                     break;
                 case OP_IOR:
-                    push(gf.or(pop1(), pop1()));
+                    v2 = pop1();
+                    v1 = pop1();
+                    push(gf.or(v1, v2));
                     break;
                 case OP_LOR:
-                    push(fatten(gf.or(pop2(), pop2())));
+                    v2 = pop2();
+                    v1 = pop2();
+                    push(fatten(gf.or(v1, v2)));
                     break;
                 case OP_IXOR:
-                    push(gf.xor(pop1(), pop1()));
+                    v2 = pop1();
+                    v1 = pop1();
+                    push(gf.xor(v1, v2));
                     break;
                 case OP_LXOR:
-                    push(fatten(gf.xor(pop2(), pop2())));
+                    v2 = pop2();
+                    v1 = pop2();
+                    push(fatten(gf.xor(v1, v2)));
                     break;
                 case OP_IINC:
                     int idx = getWidenableValue(buffer, wide);
@@ -1061,8 +1099,8 @@ final class MethodParser {
                     int fieldRef = buffer.getShort() & 0xffff;
                     FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
                     getTypeOfFieldRef(fieldRef);
-                    v1 = fieldElement.hasClass2Type() ? pop2() : pop();
-                    v2 = pop();
+                    v2 = fieldElement.hasClass2Type() ? pop2() : pop();
+                    v1 = pop();
                     gf.writeInstanceField(v1, fieldElement, v2, JavaAccessMode.DETECT);
                     break;
                 }
