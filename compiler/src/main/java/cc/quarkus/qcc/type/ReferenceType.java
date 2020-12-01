@@ -11,12 +11,16 @@ public final class ReferenceType extends ValueType {
     private final TypeIdLiteral upperBound;
     private final int size;
     private final int align;
+    private final boolean nullable;
+    private final ReferenceType asNullable;
 
-    ReferenceType(final TypeSystem typeSystem, final TypeIdLiteral upperBound, final int size, final int align, final boolean const_) {
-        super(typeSystem, size * 19 + ReferenceType.class.hashCode(), const_);
+    ReferenceType(final TypeSystem typeSystem, final TypeIdLiteral upperBound, final boolean nullable, final int size, final int align, final boolean const_) {
+        super(typeSystem, size * 19 + ReferenceType.class.hashCode() * Boolean.hashCode(nullable), const_);
         this.upperBound = upperBound;
         this.size = size;
         this.align = align;
+        this.nullable = nullable;
+        this.asNullable = nullable ? this : new ReferenceType(typeSystem, upperBound, true, size, align, const_);
     }
 
     public ReferenceType getConstraintType() {
@@ -36,8 +40,16 @@ public final class ReferenceType extends ValueType {
         return upperBound;
     }
 
+    public boolean isNullable() {
+        return nullable;
+    }
+
+    public ReferenceType asNullable() {
+        return asNullable;
+    }
+
     ValueType constructConst() {
-        return new ReferenceType(typeSystem, upperBound, size, align, true);
+        return new ReferenceType(typeSystem, upperBound, nullable, size, align, true);
     }
 
     public ReferenceType asConst() {
@@ -59,6 +71,8 @@ public final class ReferenceType extends ValueType {
     public ValueType join(final ValueType other) {
         if (other instanceof ReferenceType) {
             return join(((ReferenceType) other));
+        } else if (other instanceof NullType) {
+            return asNullable();
         } else {
             return super.join(other);
         }
@@ -66,17 +80,41 @@ public final class ReferenceType extends ValueType {
 
     public ReferenceType join(final ReferenceType other) {
         boolean const_ = isConst() || other.isConst();
+        boolean nullable = isNullable() || other.isNullable();
+        ReferenceType result;
         if (upperBound.isSupertypeOf(other.upperBound)) {
-            return const_ ? this.asConst() : this;
+            result = this;
         } else if (upperBound.isSubtypeOf(other.upperBound)) {
-            return const_ ? other.asConst() : other;
+            result = other;
         } else {
-            return (ReferenceType) super.join(other);
+            // find a common supertype of both
+            if (upperBound.hasSuperClass()) {
+                result = typeSystem.getReferenceType(upperBound.getSuperClass());
+                if (const_) result = asConst();
+                if (nullable) result = asNullable();
+                return other.join(result);
+            } else if (other.upperBound.hasSuperClass()) {
+                result = typeSystem.getReferenceType(other.upperBound.getSuperClass());
+                if (const_) result = asConst();
+                if (nullable) result = asNullable();
+                return result.join(other);
+            } else {
+                // should not be possible because one or the other is j.l.Object
+                return (ReferenceType) super.join(other);
+            }
         }
+        if (const_) result = asConst();
+        if (nullable) result = asNullable();
+        return result;
     }
 
     public StringBuilder toString(final StringBuilder b) {
-        return super.toString(b).append("reference(").append(upperBound).append(")");
+        super.toString(b);
+        if (nullable) {
+            b.append("nullable ");
+        }
+        b.append("reference");
+        return b.append("(").append(upperBound).append(")");
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {

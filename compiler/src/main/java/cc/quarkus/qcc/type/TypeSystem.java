@@ -105,7 +105,7 @@ public final class TypeSystem {
 
     public ReferenceType getReferenceType(TypeIdLiteral typeId) {
         Assert.checkNotNullParam("typeId", typeId);
-        return new ReferenceType(this, typeId, referenceSize, referenceAlign, false);
+        return new ReferenceType(this, typeId, false, referenceSize, referenceAlign, false);
     }
 
     /**

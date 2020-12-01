@@ -34,6 +34,16 @@ public final class NullType extends ValueType {
         return other instanceof NullType && super.equals(other);
     }
 
+    public ValueType join(final ValueType other) {
+        if (other instanceof NullType) {
+            return this;
+        } else if (other instanceof ReferenceType) {
+            return other.join(this);
+        } else {
+            return super.join(other);
+        }
+    }
+
     public StringBuilder toString(final StringBuilder b) {
         return b.append("null");
     }

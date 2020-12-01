@@ -59,11 +59,15 @@ public abstract class ValueType extends Type {
         return this == other || super.equals(other) && isConst() == other.isConst();
     }
 
+    /**
+     * Find the "join" of two types.  The returned type will represent a type that value of either type can be
+     * implicitly converted to (i.e. a common supertype), one way or another.
+     *
+     * @param other the other type (must not be {@code null})
+     * @return the meet type (not {@code null})
+     * @throws IllegalArgumentException if the two types cannot meet
+     */
     public ValueType join(final ValueType other) {
-        boolean const_ = isConst() || other.isConst();
-        if (asConst() == other.asConst()) {
-            return const_ ? asConst() : this;
-        }
         throw new IllegalArgumentException("Types " + this + " and " + other + " do not join");
     }
 

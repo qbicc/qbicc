@@ -41,6 +41,15 @@ public final class BooleanType extends WordType {
         return other == this;
     }
 
+    public ValueType join(final ValueType other) {
+        boolean const_ = isConst() || other.isConst();
+        if (other instanceof BooleanType) {
+            return const_ ? asConst() : this;
+        } else {
+            return super.join(other);
+        }
+    }
+
     public StringBuilder toString(final StringBuilder b) {
         return super.toString(b).append("bool");
     }
