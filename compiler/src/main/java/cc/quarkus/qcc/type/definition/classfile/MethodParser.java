@@ -391,6 +391,9 @@ final class MethodParser {
                         // some local slots will be empty
                         if (phiValue != null) {
                             phiValue.setValueForBlock(cmpCtxt, element, from, val);
+                            if (isFat(val)) {
+                                fatten(phiValue);
+                            }
                         }
                     }
                 }
@@ -398,6 +401,9 @@ final class MethodParser {
                     Value val = stack[i];
                     if (val != null) {
                         entryStack[i].setValueForBlock(cmpCtxt, element, from, val);
+                        if (isFat(val)) {
+                            fatten(entryStack[i]);
+                        }
                     }
                 }
             }
