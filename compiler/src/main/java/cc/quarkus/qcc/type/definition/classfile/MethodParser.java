@@ -81,6 +81,7 @@ final class MethodParser {
         // it's not an entry point
         gf = graphFactory;
         fatValues = new HashSet<>();
+        DefinedTypeDefinition throwable = ctxt.getCompilationContext().getBootstrapClassContext().findDefinedType("java/lang/Throwable");
         // catch mapper is sensitive to buffer index
         gf.setCatchMapper(new Try.CatchMapper() {
             public int getCatchCount() {
@@ -104,7 +105,11 @@ final class MethodParser {
                         cnt++;
                     }
                     if (cnt == index) {
-                        return (ClassTypeIdLiteral) getConstantValue(info.getExTableEntryTypeIdx(i));
+                        int idx = info.getExTableEntryTypeIdx(i);
+                        if (idx == 0) {
+                            return (ClassTypeIdLiteral) throwable.validate().getTypeId();
+                        }
+                        return (ClassTypeIdLiteral) getConstantValue(idx);
                     }
                 }
                 throw new IndexOutOfBoundsException();
