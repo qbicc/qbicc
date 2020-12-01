@@ -68,7 +68,6 @@ public interface Node {
      */
     final class Copier {
         private final BasicBlock entryBlock;
-        private final Set<BasicBlock> reachable;
         private final BasicBlockBuilder blockBuilder;
         private final NodeVisitor<Copier, Value, Node, BasicBlock> nodeVisitor;
         private final Map<BasicBlock, BlockLabel> copiedBlocks = new HashMap<>();
@@ -85,7 +84,6 @@ public interface Node {
             this.ctxt = ctxt;
             blockBuilder = builder;
             nodeVisitor = nodeVisitorFactory.apply(ctxt, terminus);
-            reachable = this.entryBlock.calculateReachableBlocks();
         }
 
         public static BasicBlock execute(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext param,
@@ -117,7 +115,7 @@ public interface Node {
                 if (orig != null) do {
                     PhiValue copy = (PhiValue) copiedNodes.get(orig);
                     // process and map all incoming values - might enqueue more blocks or phis
-                    for (final BasicBlock incomingBlock : reachable) {
+                    for (final BasicBlock incomingBlock : orig.incomingBlocks()) {
                         Value val = orig.getValueForBlock(incomingBlock);
                         if (val != null) {
                             copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copyBlock(incomingBlock), copyValue(val));
@@ -231,10 +229,6 @@ public interface Node {
         public PhiValue enqueue(PhiValue originalPhi) {
             phiQueue.add(Assert.checkNotNullParam("originalPhi", originalPhi));
             return originalPhi;
-        }
-
-        public Set<BasicBlock> getReachableBlocks() {
-            return reachable;
         }
 
         static class Terminus implements NodeVisitor<Copier, Value, Node, BasicBlock> {

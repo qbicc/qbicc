@@ -117,11 +117,10 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 @Deprecated
 public class GraphDotGenerator {
     public static StringBuilder graph(final String label, BasicBlock entryBlock, StringBuilder target) {
-        Set<BasicBlock> reachable = entryBlock.calculateReachableBlocks();
         target.append("digraph {\n");
         target.append("rankdir=BT;\n");
         target.append("label=\"").append(label).append("\";\n");
-        entryBlock.getTerminator().accept(new OuterVisitor(target), new Visitor(target, reachable));
+        entryBlock.getTerminator().accept(new OuterVisitor(target), new Visitor(target));
         target.append("}\n");
         return target;
     }
@@ -221,13 +220,11 @@ public class GraphDotGenerator {
     static final class Visitor implements TerminatorVisitor<Void, String>, ValueVisitor<Void, String>, ActionVisitor<Void, String>, OldNodeVisitor<Void, String> {
 
         final Map<Node, String> visited = new HashMap<>();
-        final Set<BasicBlock> reachable;
         final StringBuilder target;
         final AtomicInteger cnt = new AtomicInteger(1);
 
-        Visitor(final StringBuilder target, final Set<BasicBlock> reachable) {
+        Visitor(final StringBuilder target) {
             this.target = target;
-            this.reachable = reachable;
         }
 
         public String visitUnknown(final Void param, final Node node) {
@@ -838,7 +835,7 @@ public class GraphDotGenerator {
             appendAttr("shape", "circle");
             target.append(']');
             target.append('\n');
-            for (BasicBlock incoming : reachable) {
+            for (BasicBlock incoming : node.incomingBlocks()) {
                 Value value = node.getValueForBlock(incoming);
                 if (value != null) {
                     String valueName = getNodeName(value);

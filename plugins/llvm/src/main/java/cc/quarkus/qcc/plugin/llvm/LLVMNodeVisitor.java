@@ -73,7 +73,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final Function functionObj;
     final FunctionDefinition func;
     final BasicBlock entryBlock;
-    final Set<BasicBlock> knownBlocks;
     final Set<Action> visitedActions = new HashSet<>();
     final Map<Value, LLValue> mappedValues = new HashMap<>();
     final Map<BasicBlock, LLBasicBlock> mappedBlocks = new HashMap<>();
@@ -87,7 +86,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         this.func = func;
         this.methodBody = functionObj.getBody();
         entryBlock = methodBody.getEntryBlock();
-        knownBlocks = entryBlock.calculateReachableBlocks();
     }
 
     // begin
@@ -278,7 +276,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     public LLValue visit(final Void param, final PhiValue node) {
         Phi phi = map(schedule.getBlockForNode(node)).phi(map(node.getType()));
         mappedValues.put(node, phi.asLocal());
-        for (BasicBlock knownBlock : knownBlocks) {
+        for (BasicBlock knownBlock : node.incomingBlocks()) {
             Value v = node.getValueForBlock(knownBlock);
             if (v != null) {
                 // process dependencies

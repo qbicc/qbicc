@@ -1,6 +1,8 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.type.ValueType;
@@ -11,6 +13,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
     private final Key key = new Key();
     private ValueType type;
     private final BlockLabel blockLabel;
+    private final HashMap<BasicBlock, Value> incomingValues = new HashMap<>();
 
     PhiValue(final int line, final int bci, final ValueType type, final BlockLabel blockLabel) {
         super(line, bci);
@@ -19,7 +22,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
     }
 
     public Value getValueForBlock(final BasicBlock input) {
-        return input.outboundValues.get(key);
+        return incomingValues.get(Assert.checkNotNullParam("input", input));
     }
 
     public void setValueForBlock(final CompilationContext ctxt, final BasicElement element, final BasicBlock input, final Value value) {
@@ -31,16 +34,32 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
                 ctxt.error(element, this, "Failed to derive type for phi: %s", e.getMessage());
             }
         }
-        Map<Key, Value> ov = input.outboundValues;
-        if (ov.containsKey(key)) {
+        if (incomingValues.containsKey(input)) {
             ctxt.error(element, this, "Phi already has a value for block %s", input);
             return;
         }
-        input.outboundValues = Util.mapWithEntry(ov, key, value);
+        incomingValues.put(input, value);
     }
 
     public void setValueForBlock(final CompilationContext ctxt, final BasicElement element, final BlockLabel input, final Value value) {
         setValueForBlock(ctxt, element, BlockLabel.getTargetOf(input), value);
+    }
+
+    public boolean changeValueForBlock(final BasicBlock input, final Value oldVal, final Value newVal) {
+        Assert.checkNotNullParam("input", input);
+        return incomingValues.replace(input, Assert.checkNotNullParam("oldVal", oldVal), Assert.checkNotNullParam("newVal", newVal));
+    }
+
+    public Value removeValueForBlock(final BasicBlock input) {
+        return incomingValues.remove(Assert.checkNotNullParam("input", input));
+    }
+
+    public Set<BasicBlock> incomingBlocks() {
+        return incomingValues.keySet();
+    }
+
+    public Set<Map.Entry<BasicBlock, Value>> getIncomingValues() {
+        return incomingValues.entrySet();
     }
 
     public ValueType getType() {
