@@ -14,8 +14,6 @@ import cc.quarkus.qcc.context.DiagnosticContext;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.type.definition.element.BasicElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 public final class BaseDiagnosticContext implements DiagnosticContext  {
     final ConcurrentHashMap<AttachmentKey<?>, Object> attachmentsMap = new ConcurrentHashMap<AttachmentKey<?>, Object>();
