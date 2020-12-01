@@ -169,8 +169,15 @@ public interface Node {
         public Value copyValue(Value original) {
             Value copy = (Value) copiedNodes.get(original);
             if (copy == null) {
-                copy = original.accept(nodeVisitor, this);
-                copiedNodes.put(original, copy);
+                int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
+                int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
+                try {
+                    copy = original.accept(nodeVisitor, this);
+                    copiedNodes.put(original, copy);
+                } finally {
+                    blockBuilder.setLineNumber(oldLine);
+                    blockBuilder.setBytecodeIndex(oldBci);
+                }
             }
             return copy;
         }
@@ -187,8 +194,15 @@ public interface Node {
         public Node copyAction(Action original) {
             Node copy = copiedNodes.get(original);
             if (copy == null) {
-                copy = original.accept(nodeVisitor, this);
-                copiedNodes.put(original, copy);
+                int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
+                int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
+                try {
+                    copy = original.accept(nodeVisitor, this);
+                    copiedNodes.put(original, copy);
+                } finally {
+                    blockBuilder.setLineNumber(oldLine);
+                    blockBuilder.setBytecodeIndex(oldBci);
+                }
             }
             return copy;
         }
@@ -204,7 +218,14 @@ public interface Node {
 
         public BasicBlock copyTerminator(Terminator original) {
             // terminators can only be visited one time, by definition
-            return original.accept(nodeVisitor, this);
+            int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
+            int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
+            try {
+                return original.accept(nodeVisitor, this);
+            } finally {
+                blockBuilder.setLineNumber(oldLine);
+                blockBuilder.setBytecodeIndex(oldBci);
+            }
         }
 
         public PhiValue enqueue(PhiValue originalPhi) {
