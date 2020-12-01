@@ -496,7 +496,7 @@ public interface BasicBlockBuilder {
             }
 
             public PhiValue phi(final ValueType type, final BlockLabel owner) {
-                return new PhiValue(type, owner);
+                return new PhiValue(line, bci, type, owner);
             }
 
             public Value select(final Value condition, final Value trueValue, final Value falseValue) {

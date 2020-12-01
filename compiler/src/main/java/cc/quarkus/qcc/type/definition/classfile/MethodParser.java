@@ -368,8 +368,11 @@ final class MethodParser {
     void processBlock(BasicBlock from) {
         ByteBuffer buffer = this.buffer;
         // this is the canonical map key handle
-        BlockLabel block = getBlockForIndex(buffer.position());
-        assert block != null : "No block registered for BCI " + buffer.position();
+        int bci = buffer.position();
+        BlockLabel block = getBlockForIndex(bci);
+        assert block != null : "No block registered for BCI " + bci;
+        gf.setBytecodeIndex(bci);
+        gf.setLineNumber(info.getLineNumber(bci));
         PhiValue[] entryLocalsArray;
         PhiValue[] entryStack;
         BasicBlock resolvedBlock;
