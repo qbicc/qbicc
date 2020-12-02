@@ -64,7 +64,7 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     public Node monitorExit(final Value obj) {
-        invalidNode("monitorEnter");
+        invalidNode("monitorExit");
         return nop();
     }
 
