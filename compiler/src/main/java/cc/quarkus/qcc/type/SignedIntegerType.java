@@ -39,6 +39,23 @@ public final class SignedIntegerType extends IntegerType {
         }
     }
 
+    public ValueType join(final ValueType other) {
+        if (other instanceof SignedIntegerType) {
+            return join((SignedIntegerType) other);
+        } else {
+            return super.join(other);
+        }
+    }
+
+    public SignedIntegerType join(final SignedIntegerType other) {
+        boolean const_ = isConst() || other.isConst();
+        if (minBits < other.minBits) {
+            return const_ ? other.asConst() : other;
+        } else {
+            return const_ ? asConst() : this;
+        }
+    }
+
     public StringBuilder toString(final StringBuilder b) {
         return super.toString(b).append("s").append(minBits);
     }

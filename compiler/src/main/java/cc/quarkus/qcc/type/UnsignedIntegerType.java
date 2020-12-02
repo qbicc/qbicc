@@ -27,6 +27,23 @@ public final class UnsignedIntegerType extends IntegerType {
         return this;
     }
 
+    public ValueType join(final ValueType other) {
+        if (other instanceof UnsignedIntegerType) {
+            return join((UnsignedIntegerType) other);
+        } else {
+            return super.join(other);
+        }
+    }
+
+    public UnsignedIntegerType join(final UnsignedIntegerType other) {
+        boolean const_ = isConst() || other.isConst();
+        if (minBits < other.minBits) {
+            return const_ ? other.asConst() : other;
+        } else {
+            return const_ ? asConst() : this;
+        }
+    }
+
     public StringBuilder toString(final StringBuilder b) {
         return super.toString(b).append("u").append(minBits);
     }

@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.type;
 
+import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 
 /**

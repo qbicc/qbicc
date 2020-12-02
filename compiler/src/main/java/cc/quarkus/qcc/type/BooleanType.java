@@ -45,6 +45,8 @@ public final class BooleanType extends WordType {
         boolean const_ = isConst() || other.isConst();
         if (other instanceof BooleanType) {
             return const_ ? asConst() : this;
+        } else if (other instanceof IntegerType) {
+            return const_ ? other.asConst() : other;
         } else {
             return super.join(other);
         }
