@@ -2,8 +2,10 @@ package cc.quarkus.qcc.plugin.llvm;
 
 import static cc.quarkus.qcc.machine.llvm.Types.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,6 +26,7 @@ import cc.quarkus.qcc.graph.CmpNe;
 import cc.quarkus.qcc.graph.Convert;
 import cc.quarkus.qcc.graph.Div;
 import cc.quarkus.qcc.graph.Extend;
+import cc.quarkus.qcc.graph.FunctionCall;
 import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.Mod;
@@ -51,8 +54,10 @@ import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
+import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.type.BooleanType;
@@ -393,6 +398,20 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
                target.trunc(inputType, llvmInput, outputType).asLocal();
     }
 
+    // calls
+
+    public LLValue visit(final Void param, final FunctionCall node) {
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
+        FunctionType functionType = node.getFunctionType();
+        List<Value> arguments = node.getArguments();
+        Call call = target.call(map(functionType), map(node.getCallTarget()));
+        for (int i = 0; i < arguments.size(); i++) {
+            final Value argument = arguments.get(i);
+            call.arg(map(functionType.getParameterType(i)), map(argument));
+        }
+        return call.asLocal();
+    }
+
     // literals
 
     public LLValue visit(final Void param, final IntegerLiteral node) {
@@ -435,12 +454,21 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     private LLValue map(Type type) {
         // todo: one global type registry?
+        // todo: type visitor
         LLValue res = types.get(type);
         if (res != null) {
             return res;
         }
         if (type instanceof VoidType) {
             res = void_;
+        } else if (type instanceof FunctionType) {
+            FunctionType fnType = (FunctionType) type;
+            int cnt = fnType.getParameterCount();
+            List<LLValue> argTypes = cnt == 0 ? List.of() : new ArrayList<>(cnt);
+            for (int i = 0; i < cnt; i ++) {
+                argTypes.add(map(fnType.getParameterType(i)));
+            }
+            res = Types.function(map(fnType.getReturnType()), argTypes);
         } else if (type instanceof BooleanType) {
             // todo: sometimes it's one byte instead
             res = i1;

@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.machine.llvm;
 
+import java.util.List;
+
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 
 /**
@@ -39,5 +41,7 @@ public final class Types {
         return LLVM.vector(vscale, dimension, elementType);
     }
 
-
+    public static LLValue function(final LLValue returnType, final List<LLValue> argTypes) {
+        return LLVM.function(returnType, argTypes);
+    }
 }

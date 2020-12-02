@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.machine.llvm.impl;
 
+import java.util.List;
+
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 
@@ -56,5 +58,9 @@ public final class LLVM {
 
     public static LLValue global(final String name) {
         return new NamedGlobalValueOf(name);
+    }
+
+    public static LLValue function(final LLValue returnType, final List<LLValue> argTypes) {
+        return new FunctionType(returnType, argTypes);
     }
 }
