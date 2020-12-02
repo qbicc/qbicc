@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 /**
  *
  */
@@ -53,5 +55,22 @@ public final class ArrayElementWrite extends AbstractNode implements ArrayElemen
 
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(dependency, instance, index, value, mode);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof ArrayElementWrite && equals((ArrayElementWrite) other);
+    }
+
+    public boolean equals(final ArrayElementWrite other) {
+        return other == this || other != null
+            && dependency.equals(other.dependency)
+            && instance.equals(other.instance)
+            && index.equals(other.index)
+            && value.equals(other.value)
+            && mode.equals(other.mode);
     }
 }

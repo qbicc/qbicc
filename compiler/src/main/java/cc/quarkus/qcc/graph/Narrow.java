@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 import cc.quarkus.qcc.type.ReferenceType;
 
 /**
@@ -33,5 +35,19 @@ public final class Narrow extends AbstractValue implements CastValue {
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(Narrow.class, input, type);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof Narrow && equals((Narrow) other);
+    }
+
+    public boolean equals(final Narrow other) {
+        return this == other || other != null
+            && input.equals(other.input)
+            && type.equals(other.type);
     }
 }

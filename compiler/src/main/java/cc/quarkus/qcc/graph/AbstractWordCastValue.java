@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 import cc.quarkus.qcc.type.WordType;
 
 abstract class AbstractWordCastValue extends AbstractValue implements WordCastValue {
@@ -18,5 +20,17 @@ abstract class AbstractWordCastValue extends AbstractValue implements WordCastVa
 
     public WordType getType() {
         return toType;
+    }
+
+    int calcHashCode() {
+        return Objects.hash(getClass(), value, toType);
+    }
+
+    public boolean equals(final Object other) {
+        return other.getClass() == getClass() && equals((AbstractWordCastValue) other);
+    }
+
+    boolean equals(AbstractWordCastValue other) {
+        return this == other || value.equals(other.value) && toType.equals(other.toType);
     }
 }

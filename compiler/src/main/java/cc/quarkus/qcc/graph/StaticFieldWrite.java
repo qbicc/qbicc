@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 
 /**
@@ -41,5 +43,21 @@ public final class StaticFieldWrite extends AbstractNode implements FieldWrite, 
 
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(dependency, fieldElement, value, mode);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof StaticFieldWrite && equals((StaticFieldWrite) other);
+    }
+
+    public boolean equals(final StaticFieldWrite other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && fieldElement.equals(other.fieldElement)
+            && value.equals(other.value)
+            && mode.equals(other.mode);
     }
 }

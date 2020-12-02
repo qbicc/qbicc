@@ -9,10 +9,12 @@ import cc.quarkus.qcc.type.ValueType;
 public final class IntegerLiteral extends Literal {
     private final long value;
     private final IntegerType type;
+    private final int hashCode;
 
     IntegerLiteral(final IntegerType type, final long value) {
         this.value = value;
         this.type = type;
+        hashCode = Long.hashCode(value) * 19 + type.hashCode();
     }
 
     public ValueType getType() {
@@ -73,6 +75,10 @@ public final class IntegerLiteral extends Literal {
 
     public boolean equals(final IntegerLiteral other) {
         return this == other || other != null && value == other.value && type.equals(other.type);
+    }
+
+    public int hashCode() {
+        return hashCode;
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

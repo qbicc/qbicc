@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 /**
  *
  */
@@ -27,5 +29,19 @@ public class MonitorEnter extends AbstractNode implements Action, InstanceOperat
 
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(MonitorEnter.class, dependency, instance);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof MonitorEnter && equals((MonitorEnter) other);
+    }
+
+    public boolean equals(final MonitorEnter other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && instance.equals(other.instance);
     }
 }

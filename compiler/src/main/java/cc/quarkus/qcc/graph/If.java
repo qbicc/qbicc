@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 /**
  *
  */
@@ -63,5 +65,21 @@ public final class If extends AbstractNode implements Terminator {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(If.class, dependency, condition, trueBranchLabel, falseBranchLabel);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof If && equals((If) other);
+    }
+
+    public boolean equals(final If other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && condition.equals(other.condition)
+            && trueBranchLabel.equals(other.trueBranchLabel)
+            && falseBranchLabel.equals(other.falseBranchLabel);
     }
 }

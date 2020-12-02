@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 import cc.quarkus.qcc.type.SignedIntegerType;
 
 /**
@@ -25,5 +27,17 @@ public final class ArrayLength extends AbstractValue implements InstanceOperatio
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(ArrayLength.class, instance);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof ArrayLength && equals((ArrayLength) other);
+    }
+
+    public boolean equals(final ArrayLength other) {
+        return this == other || other != null && instance.equals(other.instance);
     }
 }

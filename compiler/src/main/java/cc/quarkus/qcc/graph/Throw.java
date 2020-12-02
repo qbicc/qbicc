@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 /**
  * An instruction which throws an exception <em>to the caller</em>.  To throw an exception to a catch block,
  * use {@link Goto}.
@@ -36,5 +38,19 @@ public final class Throw extends AbstractNode implements Terminator {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(Throw.class, dependency, thrownValue);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof Throw && equals((Throw) other);
+    }
+
+    public boolean equals(final Throw other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && thrownValue.equals(other.thrownValue);
     }
 }

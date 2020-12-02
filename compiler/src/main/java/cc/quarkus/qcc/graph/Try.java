@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 
 /**
@@ -47,6 +49,21 @@ public final class Try extends AbstractNode implements Resume {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(Try.class, delegateOperation, catchMapper, resumeTargetLabel);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof Try && equals((Try) other);
+    }
+
+    public boolean equals(final Try other) {
+        return this == other || other != null
+            && delegateOperation.equals(other.delegateOperation)
+            && catchMapper.equals(other.catchMapper)
+            && resumeTargetLabel.equals(other.resumeTargetLabel);
     }
 
     /**

@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 import cc.quarkus.qcc.type.ValueType;
 
 /**
@@ -43,5 +45,20 @@ public final class Select extends AbstractValue {
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(Select.class, condition, trueValue, falseValue);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof Select && equals((Select) other);
+    }
+
+    public boolean equals(final Select other) {
+        return this == other || other != null
+            && condition.equals(other.condition)
+            && trueValue.equals(other.trueValue)
+            && falseValue.equals(other.falseValue);
     }
 }

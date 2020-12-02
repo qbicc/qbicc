@@ -20,4 +20,16 @@ public final class Catch extends AbstractValue {
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
+
+    int calcHashCode() {
+        return throwableType.hashCode();
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof Catch && equals((Catch) other);
+    }
+
+    public boolean equals(final Catch other) {
+        return this == other || other != null && throwableType.equals(other.throwableType);
+    }
 }

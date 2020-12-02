@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 /**
  * A return which returns a non-{@code void} value.
  */
@@ -35,5 +37,19 @@ public final class ValueReturn extends AbstractNode implements Terminator {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(ValueReturn.class, dependency, returnValue);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof ValueReturn && equals((ValueReturn) other);
+    }
+
+    public boolean equals(final ValueReturn other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && returnValue.equals(other.returnValue);
     }
 }

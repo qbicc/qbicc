@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 
 /**
@@ -51,5 +53,20 @@ public final class Jsr extends AbstractNode implements Resume, Terminator {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(dependency, jsrTargetLabel, returnAddress);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof Jsr && equals((Jsr) other);
+    }
+
+    public boolean equals(final Jsr other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && jsrTargetLabel.equals(other.jsrTargetLabel)
+            && returnAddress.equals(other.returnAddress);
     }
 }

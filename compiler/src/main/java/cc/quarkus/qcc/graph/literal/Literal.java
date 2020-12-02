@@ -34,4 +34,6 @@ public abstract class Literal implements Value {
     }
 
     public abstract boolean equals(Literal other);
+
+    public abstract int hashCode();
 }

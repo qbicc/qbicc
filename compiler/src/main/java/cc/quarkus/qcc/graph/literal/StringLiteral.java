@@ -49,6 +49,10 @@ public final class StringLiteral extends Literal {
         return this == other || other != null && type.equals(other.type) && value.equals(other.value);
     }
 
+    public int hashCode() {
+        return value.hashCode();
+    }
+
     public String toString() {
         return "\"" + value + "\"";
     }

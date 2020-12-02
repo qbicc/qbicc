@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph;
 
 import java.util.List;
+import java.util.Objects;
 
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.ValueType;
@@ -68,5 +69,20 @@ public final class FunctionCall extends AbstractValue implements Triable {
 
     public <T, R> R accept(final TriableVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(FunctionCall.class, dependency, callTarget, arguments);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof FunctionCall && equals((FunctionCall) other);
+    }
+
+    public boolean equals(final FunctionCall other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && callTarget.equals(other.callTarget)
+            && arguments.equals(other.arguments);
     }
 }

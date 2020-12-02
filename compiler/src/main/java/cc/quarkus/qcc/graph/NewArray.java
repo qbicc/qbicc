@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.type.ReferenceType;
 
@@ -50,5 +52,21 @@ public final class NewArray extends AbstractValue {
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(dependency, type, elementTypeId, size);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof NewArray && equals((NewArray) other);
+    }
+
+    public boolean equals(final NewArray other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && type.equals(other.type)
+            && elementTypeId.equals(other.elementTypeId)
+            && size.equals(other.size);
     }
 }

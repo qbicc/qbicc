@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 import cc.quarkus.qcc.type.ValueType;
 
 /**
@@ -47,5 +49,21 @@ public final class ArrayElementRead extends AbstractValue implements ArrayElemen
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(dependency, instance, index, mode);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof ArrayElementRead && equals((ArrayElementRead) other);
+    }
+
+    public boolean equals(final ArrayElementRead other) {
+        return other == this || other != null
+            && dependency.equals(other.dependency)
+            && instance.equals(other.instance)
+            && index.equals(other.index)
+            && mode.equals(other.mode);
     }
 }

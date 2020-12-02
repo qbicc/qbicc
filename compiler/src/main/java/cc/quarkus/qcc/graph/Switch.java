@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  *
@@ -116,5 +117,24 @@ public final class Switch extends AbstractNode implements Terminator {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return (Objects.hash(dependency, defaultTargetLabel, switchValue) * 19 + Arrays.hashCode(values)) * 19 + Arrays.hashCode(targetLabels);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof Switch && equals((Switch) other);
+    }
+
+    public boolean equals(final Switch other) {
+        return this == other || other != null
+            // this is expensive to fail-fast using hash code first
+            && hashCode() == other.hashCode()
+            && dependency.equals(other.dependency)
+            && defaultTargetLabel.equals(other.defaultTargetLabel)
+            && switchValue.equals(other.switchValue)
+            && Arrays.equals(values, other.values)
+            && Arrays.equals(targetLabels, other.targetLabels);
     }
 }

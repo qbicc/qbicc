@@ -10,7 +10,6 @@ import cc.quarkus.qcc.type.definition.element.BasicElement;
 import io.smallrye.common.constraint.Assert;
 
 public final class PhiValue extends AbstractValue implements PinnedNode {
-    private final Key key = new Key();
     private ValueType type;
     private final BlockLabel blockLabel;
     private final HashMap<BasicBlock, Value> incomingValues = new HashMap<>();
@@ -74,5 +73,13 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         return blockLabel;
     }
 
-    static final class Key {}
+    int calcHashCode() {
+        // every phi is globally unique
+        return System.identityHashCode(this);
+    }
+
+    public boolean equals(final Object other) {
+        // every phi is globally unique
+        return this == other;
+    }
 }

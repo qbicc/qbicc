@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 /**
  *
  */
@@ -41,5 +43,20 @@ public final class ClassCastErrorNode extends AbstractNode implements Error {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(dependency, fromType, toType);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof ClassCastErrorNode && equals((ClassCastErrorNode) other);
+    }
+
+    public boolean equals(final ClassCastErrorNode other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && fromType.equals(other.fromType)
+            && toType.equals(other.toType);
     }
 }

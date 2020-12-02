@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph;
 
 import java.util.List;
+import java.util.Objects;
 
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -54,5 +55,20 @@ public final class StaticInvocationValue extends AbstractValue implements Method
 
     public <T, R> R accept(final TriableVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(dependency, target, arguments);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof StaticInvocationValue && equals((StaticInvocationValue) other);
+    }
+
+    public boolean equals(final StaticInvocationValue other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && target.equals(other.target)
+            && arguments.equals(other.arguments);
     }
 }

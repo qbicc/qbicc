@@ -33,6 +33,10 @@ public final class BooleanLiteral extends Literal {
         return visitor.visit(param, this);
     }
 
+    public int hashCode() {
+        return Boolean.hashCode(value);
+    }
+
     public String toString() {
         return Boolean.toString(value);
     }

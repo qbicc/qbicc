@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 
@@ -42,5 +44,21 @@ public final class NoSuchMethodErrorNode extends AbstractNode implements Error {
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(dependency, owner, desc, name);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof NoSuchMethodErrorNode && equals((NoSuchMethodErrorNode) other);
+    }
+
+    public boolean equals(final NoSuchMethodErrorNode other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && owner.equals(other.owner)
+            && desc.equals(other.desc)
+            && name.equals(other.name);
     }
 }

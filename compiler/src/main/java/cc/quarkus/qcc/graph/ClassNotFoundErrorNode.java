@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 /**
  *
  */
@@ -27,5 +29,17 @@ public final class ClassNotFoundErrorNode extends AbstractNode implements Error 
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(dependency, name);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof ClassNotFoundErrorNode && equals((ClassNotFoundErrorNode) other);
+    }
+
+    public boolean equals(final ClassNotFoundErrorNode other) {
+        return this == other || other != null && dependency.equals(other.dependency) && name.equals(other.name);
     }
 }

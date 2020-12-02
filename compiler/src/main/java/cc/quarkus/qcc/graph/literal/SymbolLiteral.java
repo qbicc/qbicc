@@ -23,6 +23,10 @@ public final class SymbolLiteral extends Literal {
         return this == other || other != null && name.equals(other.name) && type.equals(other.type);
     }
 
+    public int hashCode() {
+        return name.hashCode() * 19 + type.hashCode();
+    }
+
     public ValueType getType() {
         return type;
     }

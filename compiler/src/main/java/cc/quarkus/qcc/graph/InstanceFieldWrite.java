@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.Objects;
+
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 
 /**
@@ -55,5 +57,22 @@ public final class InstanceFieldWrite extends AbstractNode implements FieldWrite
 
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(dependency, instance, fieldElement, value, mode);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof InstanceFieldWrite && equals((InstanceFieldWrite) other);
+    }
+
+    public boolean equals(final InstanceFieldWrite other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && instance.equals(other.instance)
+            && fieldElement.equals(other.fieldElement)
+            && value.equals(other.value)
+            && mode.equals(other.mode);
     }
 }

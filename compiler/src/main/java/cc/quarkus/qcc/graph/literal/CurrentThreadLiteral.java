@@ -34,6 +34,10 @@ public final class CurrentThreadLiteral extends Literal {
         return visitor.visit(param, this);
     }
 
+    public int hashCode() {
+        return CurrentThreadLiteral.class.hashCode();
+    }
+
     public String toString() {
         return "currentThread";
     }

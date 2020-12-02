@@ -69,6 +69,11 @@ public abstract class TypeIdLiteral extends Literal {
         return this == other;
     }
 
+    public int hashCode() {
+        // every instance is unique
+        return System.identityHashCode(this);
+    }
+
     public String toString() {
         return typeName;
     }

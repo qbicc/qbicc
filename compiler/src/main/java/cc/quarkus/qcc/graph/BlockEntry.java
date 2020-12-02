@@ -18,4 +18,16 @@ public final class BlockEntry extends AbstractNode implements PinnedNode, Action
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
+
+    int calcHashCode() {
+        return blockLabel.hashCode();
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof BlockEntry && equals((BlockEntry) other);
+    }
+
+    public boolean equals(final BlockEntry other) {
+        return this == other || other != null && blockLabel.equals(other.blockLabel);
+    }
 }

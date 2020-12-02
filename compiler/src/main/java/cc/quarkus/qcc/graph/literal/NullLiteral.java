@@ -35,6 +35,10 @@ public final class NullLiteral extends Literal {
         return visitor.visit(param, this);
     }
 
+    public int hashCode() {
+        return NullLiteral.class.hashCode();
+    }
+
     public String toString() {
         return "null";
     }
