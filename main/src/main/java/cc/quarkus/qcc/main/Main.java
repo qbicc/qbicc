@@ -25,6 +25,8 @@ import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.reachability.ReachabilityBlockBuilder;
+import cc.quarkus.qcc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.trycatch.SynchronizedMethodBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import cc.quarkus.qcc.type.TypeSystem;
 
@@ -164,6 +166,8 @@ public class Main {
                             // keep it simple to start with
                             builder.setMainClass(mainClass.replace('.', '/'));
                             builder.addPostAnalyticHook(new LLVMGenerator());
+                            builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
+                            builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.CORRECT, LocalThrowHandlingBasicBlockBuilder::new);
                             builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                             builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                             builder.addCopyFactory(PhiOptimizerVisitor::new);

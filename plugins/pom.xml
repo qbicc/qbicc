@@ -20,6 +20,7 @@
         <module>optimization</module>
         <module>patcher</module>
         <module>reachability</module>
+        <module>try-catch</module>
         <module>verification</module>
     </modules>
 </project>

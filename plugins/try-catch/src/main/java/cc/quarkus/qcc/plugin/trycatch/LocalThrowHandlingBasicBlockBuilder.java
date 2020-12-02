@@ -1,5 +1,12 @@
-package cc.quarkus.qcc.graph;
+package cc.quarkus.qcc.plugin.trycatch;
 
+import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
+import cc.quarkus.qcc.graph.Try;
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -8,7 +15,7 @@ import cc.quarkus.qcc.type.ReferenceType;
  * The basic block builder which handles any "local" {@code throw} to a handler in the same method or function.
  */
 public class LocalThrowHandlingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
-    public LocalThrowHandlingBasicBlockBuilder(final BasicBlockBuilder delegate) {
+    public LocalThrowHandlingBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
     }
 
