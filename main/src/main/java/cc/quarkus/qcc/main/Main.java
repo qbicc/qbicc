@@ -167,9 +167,9 @@ public class Main {
                             builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                             builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                             builder.addCopyFactory(PhiOptimizerVisitor::new);
-                            builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.LOWERING, InvocationLoweringBasicBlockBuilder::new);
                             builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
-                            builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                            builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.LOWERING, ReachabilityBlockBuilder::new);
+                            builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.LOWERING, InvocationLoweringBasicBlockBuilder::new);
                             builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                             CompilationContext ctxt;
                             boolean result;

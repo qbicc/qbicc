@@ -13,14 +13,14 @@ public enum BuilderStage {
      */
     CORRECT,
     /**
+     * This stage should be used for optimization stages.
+     */
+    OPTIMIZE,
+    /**
      * This stage should be used for lowering operations, including transforming field and method accesses to memory
      * accesses (only during the analytic stage).
      */
     LOWERING,
-    /**
-     * This stage should be used for optimization stages.
-     */
-    OPTIMIZE,
     /**
      * This stage should be used for final integrity checks and error reporting.  It can also be used in the additive
      * stage for gathering information for use in the analytic stage.
