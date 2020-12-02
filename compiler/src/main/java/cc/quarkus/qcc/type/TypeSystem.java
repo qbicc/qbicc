@@ -3,6 +3,7 @@ package cc.quarkus.qcc.type;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
@@ -35,6 +36,7 @@ public final class TypeSystem {
     private final UnsignedIntegerType unsignedInteger16Type;
     private final UnsignedIntegerType unsignedInteger32Type;
     private final UnsignedIntegerType unsignedInteger64Type;
+    private final Map<TypeIdLiteral, ReferenceType> referenceTypeCache = new ConcurrentHashMap<>();
     private final TypeCache<FunctionType> functionTypeCache = new TypeCache<>();
 
     TypeSystem(final Builder builder) {
@@ -110,7 +112,7 @@ public final class TypeSystem {
 
     public ReferenceType getReferenceType(TypeIdLiteral typeId) {
         Assert.checkNotNullParam("typeId", typeId);
-        return new ReferenceType(this, typeId, false, referenceSize, referenceAlign, false);
+        return referenceTypeCache.computeIfAbsent(typeId, id -> new ReferenceType(this, id, false, referenceSize, referenceAlign, false));
     }
 
     /**
