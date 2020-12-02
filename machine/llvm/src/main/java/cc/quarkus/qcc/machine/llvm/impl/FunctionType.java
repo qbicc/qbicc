@@ -23,8 +23,8 @@ final class FunctionType extends AbstractValue {
         if (iterator.hasNext()) {
             ((AbstractValue) iterator.next()).appendTo(target);
             while (iterator.hasNext()) {
-                target.append(' ');
                 target.append(',');
+                target.append(' ');
                 ((AbstractValue) iterator.next()).appendTo(target);
             }
         }
