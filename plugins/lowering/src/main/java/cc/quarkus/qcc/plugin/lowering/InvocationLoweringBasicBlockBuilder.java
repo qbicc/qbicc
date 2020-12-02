@@ -35,7 +35,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         if (kind == DispatchInvocation.Kind.INTERFACE || kind == DispatchInvocation.Kind.VIRTUAL) {
-            ctxt.warning(getCurrentElement(), "Virtual invocation not supported yet");
+            ctxt.warning(getLocation(), "Virtual invocation not supported yet");
             // but continue anyway just to see what would happen
         }
         Function function = ctxt.getExactFunction(target);
@@ -56,7 +56,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         if (kind == DispatchInvocation.Kind.INTERFACE || kind == DispatchInvocation.Kind.VIRTUAL) {
-            ctxt.warning(getCurrentElement(), "Virtual invocation not supported yet");
+            ctxt.warning(getLocation(), "Virtual invocation not supported yet");
             // but continue anyway just to see what would happen
         }
         Function function = ctxt.getExactFunction(target);
