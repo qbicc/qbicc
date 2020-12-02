@@ -375,7 +375,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final BlockLiteral node) {
-                return node;
+                return param.ctxt.getLiteralFactory().literalOf(param.copyBlock(BlockLabel.getTargetOf(node.getBlockLabel())));
             }
 
             public Value visit(final Copier param, final BooleanLiteral node) {
