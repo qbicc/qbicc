@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.type;
 
-import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 
 /**
@@ -100,8 +99,8 @@ public final class ReferenceType extends ValueType {
                 if (nullable) result = asNullable();
                 return result.join(other);
             } else {
-                // should not be possible because one or the other is j.l.Object
-                return (ReferenceType) super.join(other);
+                // both are j.l.Object
+                result = this;
             }
         }
         if (const_) result = asConst();

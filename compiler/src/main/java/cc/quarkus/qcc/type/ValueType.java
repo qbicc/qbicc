@@ -61,14 +61,14 @@ public abstract class ValueType extends Type {
 
     /**
      * Find the "join" of two types.  The returned type will represent a type that value of either type can be
-     * implicitly converted to (i.e. a common supertype), one way or another.
+     * implicitly converted to (i.e. a common supertype), one way or another.  If no join is possible, the poison
+     * type is returned.
      *
      * @param other the other type (must not be {@code null})
      * @return the meet type (not {@code null})
-     * @throws IllegalArgumentException if the two types cannot meet
      */
     public ValueType join(final ValueType other) {
-        throw new IllegalArgumentException("Types " + this + " and " + other + " do not join");
+        return getTypeSystem().getPoisonType();
     }
 
     public StringBuilder toString(final StringBuilder b) {

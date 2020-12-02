@@ -10,8 +10,8 @@ public final class InterfaceTypeIdLiteral extends TypeIdLiteral {
 
     public static final InterfaceTypeIdLiteral[] NONE = new InterfaceTypeIdLiteral[0];
 
-    InterfaceTypeIdLiteral(final String interfaceName, final InterfaceTypeIdLiteral[] interfaces, final TypeIdType type) {
-        super(interfaceName, null, interfaces, type);
+    InterfaceTypeIdLiteral(final String interfaceName, final ClassTypeIdLiteral baseClassLiteral, final InterfaceTypeIdLiteral[] interfaces, final TypeIdType type) {
+        super(interfaceName, baseClassLiteral, interfaces, type);
     }
 
     public boolean isInterface() {

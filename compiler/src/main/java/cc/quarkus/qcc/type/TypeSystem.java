@@ -18,6 +18,7 @@ public final class TypeSystem {
     private final int funcAlign;
     private final int referenceSize;
     private final int referenceAlign;
+    private final PoisonType poisonType = new PoisonType(this);
     private final VoidType voidType = new VoidType(this, false);
     private final NullType nullType = new NullType(this);
     private final BlockType blockType = new BlockType(this);
@@ -85,6 +86,10 @@ public final class TypeSystem {
 
     public VoidType getVoidType() {
         return voidType;
+    }
+
+    public PoisonType getPoisonType() {
+        return poisonType;
     }
 
     public NullType getNullType() {

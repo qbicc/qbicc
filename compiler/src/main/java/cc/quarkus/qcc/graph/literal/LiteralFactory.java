@@ -144,7 +144,7 @@ public interface LiteralFactory {
 
             public InterfaceTypeIdLiteral literalOfInterface(final String interfaceName, final InterfaceTypeIdLiteral... interfaces) {
                 Assert.checkNotNullParam("interfaces", interfaces);
-                return new InterfaceTypeIdLiteral(interfaceName, interfaces, typeSystem.getTypeIdType());
+                return new InterfaceTypeIdLiteral(interfaceName, baseClassLiteral, interfaces, typeSystem.getTypeIdType());
             }
 
             public SymbolLiteral literalOfSymbol(final String name, final ValueType symbolType) {
