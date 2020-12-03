@@ -14,6 +14,7 @@ import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
@@ -184,7 +185,7 @@ public interface Node {
             Value[] values = new Value[list.size()];
             int i = 0;
             for (Value original : list) {
-                values[i++] = original;
+                values[i++] = copyValue(original);
             }
             return Arrays.asList(values);
         }
@@ -422,6 +423,10 @@ public interface Node {
                 return param.getBlockBuilder().valueConvert(param.copyValue(node.getInput()), node.getType());
             }
 
+            public Value visit(final Copier param, final CurrentThreadLiteral node) {
+                return node;
+            }
+
             public Value visit(final Copier param, final Div node) {
                 return param.getBlockBuilder().divide(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
@@ -436,7 +441,7 @@ public interface Node {
 
             public Value visit(final Copier param, final FunctionCall node) {
                 param.copyNode(node.getBasicDependency(0));
-                return param.getBlockBuilder().callFunction(node.getCallTarget(), node.getArguments());
+                return param.getBlockBuilder().callFunction(param.copyValue(node.getCallTarget()), param.copyValues(node.getArguments()));
             }
 
             public Value visit(final Copier param, final InstanceFieldRead node) {

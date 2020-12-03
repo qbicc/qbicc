@@ -135,12 +135,13 @@ public interface Schedule {
 
     private static BlockInfo scheduleToPinnedBlock(final BlockInfo root, final Map<BasicBlock, BlockInfo> blockInfos, final Map<Node, BlockInfo> scheduledNodes, final Node node, final BasicBlock pinnedBlock) {
         BlockInfo selected = blockInfos.get(pinnedBlock);
+        assert selected != null;
         scheduledNodes.put(node, selected);
         scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
         if (node instanceof PhiValue) {
             // make sure phi entries were scheduled
             PhiValue phiValue = (PhiValue) node;
-            for (BasicBlock block : blockInfos.keySet()) {
+            for (BasicBlock block : phiValue.incomingBlocks()) {
                 Value value = phiValue.getValueForBlock(block);
                 if (value != null) {
                     scheduleEarly(root, blockInfos, scheduledNodes, value);

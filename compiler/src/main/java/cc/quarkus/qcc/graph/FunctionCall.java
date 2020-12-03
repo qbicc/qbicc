@@ -56,7 +56,7 @@ public final class FunctionCall extends AbstractValue implements Triable {
     }
 
     public int getValueDependencyCount() {
-        return arguments.size();
+        return arguments.size() + 1;
     }
 
     public Value getValueDependency(final int index) throws IndexOutOfBoundsException {
