@@ -484,7 +484,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             case 'L': {
                 int start = ++pos;
                 while (getRawConstantByte(descIdx, 3 + pos++) != ';');
-                types[idx] = typeSystem.getReferenceType(loadClass(cpOffsets[descIdx] + 3 + start, pos - start - 1, true));
+                types[idx] = loadClassAsReferenceType(cpOffsets[descIdx] + 3 + start, pos - start - 1, true);
                 break;
             }
             default: {
@@ -544,7 +544,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             case 'L': {
                 for (int i = 0; i < maxLen; i ++) {
                     if (getByte(offs + 1 + i) == ';') {
-                        return typeSystem.getReferenceType(loadClass(offs + 1, i, true));
+                        return loadClassAsReferenceType(offs + 1, i, true);
                     }
                 }
                 // fall thru
@@ -571,6 +571,17 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         int nameIdx = getShort(cpOffsets[thisClassIdx] + 1);
         int offset = cpOffsets[nameIdx];
         return loadClass(offset + 3, getShort(offset + 1), false);
+    }
+
+    private ValueType loadClassAsReferenceType(final int offs, final int len, final boolean expectTerminator) {
+        TypeIdLiteral typeId = loadClass(offs, len, expectTerminator);
+        if (typeId != null) {
+            return typeSystem.getReferenceType(typeId);
+        } else {
+            String str = ctxt.deduplicate(buffer, offs, len);
+            ctxt.getCompilationContext().error("Failed to link %s (class %s not found)", getName(), str);
+            return typeSystem.getPoisonType();
+        }
     }
 
     private TypeIdLiteral loadClass(final int offs, final int len, final boolean expectTerminator) {
