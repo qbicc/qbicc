@@ -77,10 +77,8 @@ public interface Schedule {
 
     private static void scheduleEarly(BlockInfo root, Map<BasicBlock, BlockInfo> blockInfos, Map<Node, BlockInfo> scheduledNodes, BasicBlock block) {
         Terminator terminator = block.getTerminator();
-        // fix the terminator on its block
-        scheduledNodes.put(terminator, blockInfos.get(block));
         if (! scheduledNodes.containsKey(terminator)) {
-            scheduleEarly(root, blockInfos, scheduledNodes, terminator);
+            scheduleToPinnedBlock(root, blockInfos, scheduledNodes, terminator, block);
             int cnt = terminator.getSuccessorCount();
             for (int i = 0; i < cnt; i ++) {
                 scheduleEarly(root, blockInfos, scheduledNodes, terminator.getSuccessor(i));
@@ -119,22 +117,7 @@ public interface Schedule {
         }
         if (node instanceof PinnedNode) {
             // pinned to a block; always select that block.
-            BasicBlock basicBlock = ((PinnedNode) node).getPinnedBlock();
-            selected = blockInfos.get(basicBlock);
-            scheduledNodes.put(node, selected);
-            scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
-            if (node instanceof PhiValue) {
-                // make sure phi entries were scheduled
-                PhiValue phiValue = (PhiValue) node;
-                for (BasicBlock block : blockInfos.keySet()) {
-                    Value value = phiValue.getValueForBlock(block);
-                    if (value != null) {
-                        scheduleEarly(root, blockInfos, scheduledNodes, value);
-                    }
-                }
-            }
-            // all dependencies have been scheduled
-            return selected;
+            return scheduleToPinnedBlock(root, blockInfos, scheduledNodes, node, ((PinnedNode) node).getPinnedBlock());
         } else if (node instanceof Literal) {
             // always considered available; do not schedule
             return root;
@@ -148,5 +131,23 @@ public interface Schedule {
             scheduledNodes.put(node, selected);
             return selected;
         }
+    }
+
+    private static BlockInfo scheduleToPinnedBlock(final BlockInfo root, final Map<BasicBlock, BlockInfo> blockInfos, final Map<Node, BlockInfo> scheduledNodes, final Node node, final BasicBlock pinnedBlock) {
+        BlockInfo selected = blockInfos.get(pinnedBlock);
+        scheduledNodes.put(node, selected);
+        scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
+        if (node instanceof PhiValue) {
+            // make sure phi entries were scheduled
+            PhiValue phiValue = (PhiValue) node;
+            for (BasicBlock block : blockInfos.keySet()) {
+                Value value = phiValue.getValueForBlock(block);
+                if (value != null) {
+                    scheduleEarly(root, blockInfos, scheduledNodes, value);
+                }
+            }
+        }
+        // all dependencies have been scheduled
+        return selected;
     }
 }
