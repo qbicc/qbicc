@@ -386,7 +386,7 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
         return getClassConstantName(getRawConstantShort(idx, 1));
     }
 
-    default int getMethodrefConstantDescriptorIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+    default int getMethodrefConstantClassIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_Methodref, CONSTANT_InterfaceMethodref);
         return getRawConstantShort(idx, 1);
     }

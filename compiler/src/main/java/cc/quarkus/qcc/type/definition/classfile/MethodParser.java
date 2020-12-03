@@ -1392,7 +1392,9 @@ final class MethodParser {
     private TypeIdLiteral getOwnerOfMethodRef(final int methodRef) {
         String name = getClassFile().getMethodrefConstantClassName(methodRef);
         if (name.startsWith("[")) {
-            return ((ReferenceType)resolveDescriptor(getClassFile().getMethodrefConstantDescriptorIndex(methodRef))).getUpperBound();
+            int classRef = getClassFile().getMethodrefConstantClassIndex(methodRef);
+            int classNameRef = getClassFile().getClassConstantNameIdx(classRef);
+            return ((ReferenceType)resolveDescriptor(classNameRef)).getUpperBound();
         }
         return resolveClass(name);
     }
