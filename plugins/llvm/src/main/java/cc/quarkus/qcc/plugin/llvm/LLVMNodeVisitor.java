@@ -404,10 +404,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();
-        Call call = target.call(map(functionType), map(node.getCallTarget()));
+        LLValue llType = map(functionType);
+        LLValue llTarget = map(node.getCallTarget());
+        // two scans - once to populate the maps, and then once to emit the call in the right order
         for (int i = 0; i < arguments.size(); i++) {
-            final Value argument = arguments.get(i);
-            call.arg(map(functionType.getParameterType(i)), map(argument));
+            map(functionType.getParameterType(i));
+            map(arguments.get(i));
+        }
+        Call call = target.call(llType, llTarget);
+        for (int i = 0; i < arguments.size(); i++) {
+            call.arg(map(functionType.getParameterType(i)), map(arguments.get(i)));
         }
         return call.asLocal();
     }
