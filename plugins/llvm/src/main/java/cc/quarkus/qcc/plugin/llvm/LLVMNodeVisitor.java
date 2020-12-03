@@ -362,6 +362,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(javaInputType);
         LLValue outputType = map(javaOutputType);
         LLValue llvmInput = map(node.getInput());
+        if (inputType.equals(outputType)) {
+            return llvmInput;
+        }
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(javaInputType) ?
                     isSigned(javaOutputType) ?
