@@ -17,6 +17,7 @@
     <modules>
         <module>llvm</module>
         <module>lowering</module>
+        <module>native</module>
         <module>optimization</module>
         <module>patcher</module>
         <module>reachability</module>

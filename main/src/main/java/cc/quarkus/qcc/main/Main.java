@@ -22,6 +22,8 @@ import cc.quarkus.qcc.machine.probe.CTypeProbe;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
 import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.native_.NativeBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.native_.NativeTypeBuilder;
 import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.reachability.ReachabilityBlockBuilder;
@@ -166,6 +168,8 @@ public class Main {
                             // keep it simple to start with
                             builder.setMainClass(mainClass.replace('.', '/'));
                             builder.addPostAnalyticHook(new LLVMGenerator());
+                            builder.addTypeBuilderFactory(NativeTypeBuilder::new);
+                            builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
                             builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                             builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.CORRECT, LocalThrowHandlingBasicBlockBuilder::new);
                             builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
