@@ -34,8 +34,9 @@ public interface ToolProvider {
                 if (!iterator.hasNext()) {
                     break;
                 }
+                ToolProvider item = iterator.next();
                 for (Path path : paths) {
-                    for (T t : iterator.next().findTools(type, platform, path)) {
+                    for (T t : item.findTools(type, platform, path)) {
                         if (filter.test(t)) {
                             list.add(t);
                         }

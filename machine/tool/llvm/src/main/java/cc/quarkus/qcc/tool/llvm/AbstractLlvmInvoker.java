@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -21,17 +22,23 @@ import io.smallrye.common.constraint.Assert;
  */
 abstract class AbstractLlvmInvoker implements LlvmInvoker {
     private static final String LEVEL_PATTERN = "(?i:error|warning|note)";
-    protected final AbstractLlvmTool tool;
+    protected final LlvmToolChainImpl tool;
+    private final Path execPath;
     private InputSource source = InputSource.empty();
     private ToolMessageHandler messageHandler = ToolMessageHandler.DISCARDING;
     private OutputDestination destination = OutputDestination.discarding();
 
-    AbstractLlvmInvoker(final AbstractLlvmTool tool) {
+    AbstractLlvmInvoker(final LlvmToolChainImpl tool, final Path execPath) {
         this.tool = tool;
+        this.execPath = execPath;
     }
 
-    public LlvmTool getTool() {
+    public LlvmToolChain getTool() {
         return tool;
+    }
+
+    public Path getPath() {
+        return execPath;
     }
 
     public void setSource(final InputSource source) {
@@ -61,7 +68,7 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
     public OutputDestination invokerAsDestination() {
         OutputDestination errorHandler = OutputDestination.of(AbstractLlvmInvoker::collectError, this, StandardCharsets.UTF_8);
         List<String> cmd = new ArrayList<>();
-        cmd.add(getTool().getExecutablePath().toString());
+        cmd.add(execPath.toString());
         addArguments(cmd);
         ProcessBuilder pb = new ProcessBuilder();
         pb.command(cmd);
@@ -82,8 +89,7 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
     }
 
     void collectError(final Reader reader) throws IOException {
-        final String execPath = getTool().getExecutablePath().toString();
-        final String quotedExecPath = Pattern.quote(execPath);
+        final String quotedExecPath = Pattern.quote(execPath.toString());
         final Pattern pattern = Pattern.compile("(?:" + quotedExecPath + ": (" + LEVEL_PATTERN + "): )?" + quotedExecPath + ": ([^:]+):(\\d+):(?:(\\d+):)? (" + LEVEL_PATTERN + "): (.*)");
         final ToolMessageHandler handler = getMessageHandler();
         try (BufferedReader br = new BufferedReader(reader)) {
@@ -101,7 +107,7 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
                         level = getLevel(levelStr);
                     }
                     // don't log potentially misleading line numbers
-                    handler.handleMessage(getTool(), level, matcher.group(2), Integer.parseInt(matcher.group(3)), -1, matcher.group(6));
+                    handler.handleMessage(this, level, matcher.group(2), Integer.parseInt(matcher.group(3)), -1, matcher.group(6));
                 }
             }
         }

@@ -40,6 +40,11 @@ abstract class AbstractClangInvoker implements MessagingToolInvoker {
         return tool;
     }
 
+    public Path getPath() {
+        // only one executable for now
+        return tool.getExecutablePath();
+    }
+
     static final Pattern DIAG_PATTERN = Pattern.compile("([^:]+):(\\d+):(?:(\\d+):)? (?i:error|warning|note): (.*)(?: \\[-[^]]+])?");
 
     void collectError(final Reader reader) throws IOException {
@@ -58,7 +63,7 @@ abstract class AbstractClangInvoker implements MessagingToolInvoker {
                         default: level = ToolMessageHandler.Level.ERROR; break;
                     }
                     // don't log potentially misleading line numbers
-                    handler.handleMessage(getTool(), level, matcher.group(1), Integer.parseInt(matcher.group(2)), -1, matcher.group(5));
+                    handler.handleMessage(this, level, matcher.group(1), Integer.parseInt(matcher.group(2)), -1, matcher.group(5));
                 }
             }
         }

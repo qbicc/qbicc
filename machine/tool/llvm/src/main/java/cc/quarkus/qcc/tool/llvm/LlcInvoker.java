@@ -4,7 +4,7 @@ package cc.quarkus.qcc.tool.llvm;
  *
  */
 public interface LlcInvoker extends LlvmInvoker {
-    LlcTool getTool();
+    LlvmToolChain getTool();
 
     void setOptimizationLevel(LlcOptLevel level);
 

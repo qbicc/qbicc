@@ -111,7 +111,11 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         }
         ValidatedTypeDefinition superType;
         if (superClassName != null) {
-            superType = context.findDefinedType(superClassName).validate();
+            DefinedTypeDefinition definedSuperType = context.findDefinedType(superClassName);
+            if (definedSuperType == null) {
+                throw new VerifyFailedException("Failed to load super class " + superClassName);
+            }
+            superType = definedSuperType.validate();
         } else {
             superType = null;
         }

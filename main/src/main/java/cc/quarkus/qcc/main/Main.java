@@ -31,6 +31,7 @@ import cc.quarkus.qcc.plugin.reachability.ReachabilityBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.SynchronizedMethodBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
+import cc.quarkus.qcc.tool.llvm.LlvmToolChain;
 import cc.quarkus.qcc.type.TypeSystem;
 
 /**
@@ -165,6 +166,15 @@ public class Main {
                             initialContext.error(error, "Failed to load plugin");
                         }
                         errors = initialContext.errors();
+                        if (errors == 0) {
+                            Iterator<LlvmToolChain> llvmTools = LlvmToolChain.findAllLlvmToolChains(target, t -> true, Main.class.getClassLoader()).iterator();
+                            if (! llvmTools.hasNext()) {
+                                initialContext.error("No working LLVM toolchain found");
+                                errors = initialContext.errors();
+                            } else {
+                                builder.setLlvmToolChain(llvmTools.next());
+                            }
+                        }
                         if (errors == 0) {
                             assert mainClass != null; // else errors would be != 0
                             // keep it simple to start with

@@ -45,6 +45,18 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         return delegate;
     }
 
+    public void setSuperClassName(final String superClassInternalName) {
+        if (superClassInternalName != null) {
+            if (superClassInternalName.equals(Native.OBJECT)) {
+                // probe object type
+            } else if (superClassInternalName.equals(Native.WORD)) {
+                // probe word type
+
+            }
+        }
+        getDelegate().setSuperClassName(superClassInternalName);
+    }
+
     public void addMethod(final MethodResolver resolver, final int index) {
         delegate.addMethod(new MethodResolver() {
             public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing) {

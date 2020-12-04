@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.tool.llvm;
 
+import java.nio.file.Path;
 import java.util.List;
 
 import io.smallrye.common.constraint.Assert;
@@ -10,12 +11,12 @@ import io.smallrye.common.constraint.Assert;
 final class OptInvokerImpl extends AbstractLlvmInvoker implements OptInvoker {
     private OptOptLevel optLevel = OptOptLevel.O2;
 
-    OptInvokerImpl(final OptToolImpl tool) {
-        super(tool);
+    OptInvokerImpl(final LlvmToolChainImpl tool, final Path path) {
+        super(tool, path);
     }
 
-    public OptTool getTool() {
-        return (OptTool) super.getTool();
+    public LlvmToolChain getTool() {
+        return super.getTool();
     }
 
     void addArguments(final List<String> cmd) {

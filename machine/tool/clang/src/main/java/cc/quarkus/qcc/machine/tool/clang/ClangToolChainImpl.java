@@ -20,11 +20,7 @@ final class ClangToolChainImpl implements ClangToolChain {
         return "LLVM";
     }
 
-    public String getProgramName() {
-        return "clang";
-    }
-
-    public Path getExecutablePath() {
+    Path getExecutablePath() {
         return executablePath;
     }
 

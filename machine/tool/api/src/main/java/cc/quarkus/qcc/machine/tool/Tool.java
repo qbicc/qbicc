@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.machine.tool;
 
-import java.nio.file.Path;
-
 import cc.quarkus.qcc.machine.arch.Platform;
 
 /**
@@ -11,10 +9,6 @@ public interface Tool {
     String getToolName();
 
     String getImplementationName();
-
-    String getProgramName();
-
-    Path getExecutablePath();
 
     /**
      * Get the platform that this tool instance is configured for.

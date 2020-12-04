@@ -35,7 +35,7 @@ import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.tool.llvm.LlvmTool;
+import cc.quarkus.qcc.tool.llvm.LlvmToolChain;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -60,7 +60,7 @@ public class Driver implements Closeable {
     static final String MODULE_INFO = "module-info.class";
 
     public static final AttachmentKey<CToolChain> C_TOOL_CHAIN_KEY = new AttachmentKey<>();
-    public static final AttachmentKey<LlvmTool> LLVM_TOOL_KEY = new AttachmentKey<>();
+    public static final AttachmentKey<LlvmToolChain> LLVM_TOOL_KEY = new AttachmentKey<>();
     public static final AttachmentKey<ObjectFileProvider> OBJ_PROVIDER_TOOL_KEY = new AttachmentKey<>();
 
     private static final AttachmentKey<String> MAIN_CLASS_KEY = new AttachmentKey<>();
@@ -105,7 +105,7 @@ public class Driver implements Closeable {
         typeBuilderFactories = builder.typeBuilderFactories;
         initialContext.putAttachment(MAIN_CLASS_KEY, mainClass);
         initialContext.putAttachment(C_TOOL_CHAIN_KEY, Assert.checkNotNullParam("builder.toolChain", builder.toolChain));
-        initialContext.putAttachment(LLVM_TOOL_KEY, Assert.checkNotNullParam("builder.llvmTool", builder.llvmTool));
+        initialContext.putAttachment(LLVM_TOOL_KEY, Assert.checkNotNullParam("builder.llvmToolChain", builder.llvmToolChain));
         initialContext.putAttachment(OBJ_PROVIDER_TOOL_KEY, Assert.checkNotNullParam("builder.objectFileProvider", builder.objectFileProvider));
         // type system
         final TypeSystem typeSystem = builder.typeSystem;
@@ -512,7 +512,7 @@ public class Driver implements Closeable {
         TypeSystem typeSystem;
         Vm vm;
         CToolChain toolChain;
-        LlvmTool llvmTool;
+        LlvmToolChain llvmToolChain;
         ObjectFileProvider objectFileProvider;
 
         String mainClass;
@@ -638,12 +638,12 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public LlvmTool getLlvmTool() {
-            return llvmTool;
+        public LlvmToolChain getLlvmToolChain() {
+            return llvmToolChain;
         }
 
-        public Builder setLlvmTool(final LlvmTool llvmTool) {
-            this.llvmTool = llvmTool;
+        public Builder setLlvmToolChain(final LlvmToolChain llvmToolChain) {
+            this.llvmToolChain = llvmToolChain;
             return this;
         }
 

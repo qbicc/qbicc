@@ -10,10 +10,6 @@ public interface GccToolChain extends CToolChain {
         return "gnu";
     }
 
-    default String getProgramName() {
-        return "gcc";
-    }
-
     GnuCCompilerInvoker newCompilerInvoker();
 
     GnuLinkerInvoker newLinkerInvoker();

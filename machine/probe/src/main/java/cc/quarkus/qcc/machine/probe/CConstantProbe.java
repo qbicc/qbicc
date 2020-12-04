@@ -14,7 +14,7 @@ import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.machine.tool.CCompilerInvoker;
 import cc.quarkus.qcc.machine.tool.CompilationFailureException;
-import cc.quarkus.qcc.machine.tool.Tool;
+import cc.quarkus.qcc.machine.tool.ToolInvoker;
 import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
 import cc.quarkus.qcc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
@@ -81,7 +81,7 @@ public class CConstantProbe {
         }
         b.append('\n');
         ib.setMessageHandler(new ToolMessageHandler() {
-            public void handleMessage(final Tool tool, final Level level, final String file, final int line, final int column, final String message) {
+            public void handleMessage(final ToolInvoker invoker, final Level level, final String file, final int line, final int column, final String message) {
                 System.out.println(level + ": " + file + ":" + line + " -> " + message);
             }
         });

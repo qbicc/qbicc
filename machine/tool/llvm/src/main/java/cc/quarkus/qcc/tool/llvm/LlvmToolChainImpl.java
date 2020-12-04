@@ -5,22 +5,25 @@ import java.nio.file.Path;
 import cc.quarkus.qcc.machine.arch.Platform;
 import io.smallrye.common.version.VersionScheme;
 
-/**
- *
- */
-abstract class AbstractLlvmTool implements LlvmTool {
-    private final Path path;
+final class LlvmToolChainImpl implements LlvmToolChain {
+    private final Path llcPath;
+    private final Path optPath;
     private final Platform platform;
     private final String version;
 
-    AbstractLlvmTool(final Path path, final Platform platform, final String version) {
-        this.path = path;
+    LlvmToolChainImpl(final Path llcPath, final Path optPath, final Platform platform, final String version) {
+        this.llcPath = llcPath;
+        this.optPath = optPath;
         this.platform = platform;
         this.version = version;
     }
 
-    public Path getExecutablePath() {
-        return path;
+    public LlcInvoker newLlcInvoker() {
+        return new LlcInvokerImpl(this, llcPath);
+    }
+
+    public OptInvoker newOptInvoker() {
+        return new OptInvokerImpl(this, optPath);
     }
 
     public Platform getPlatform() {

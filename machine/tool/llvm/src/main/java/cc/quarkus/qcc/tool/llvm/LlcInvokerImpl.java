@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.tool.llvm;
 
+import java.nio.file.Path;
 import java.util.List;
 
 import io.smallrye.common.constraint.Assert;
@@ -11,12 +12,12 @@ final class LlcInvokerImpl extends AbstractLlvmInvoker implements LlcInvoker {
     private LlcOptLevel optLevel = LlcOptLevel.O2;
     private OutputFormat outputFormat = OutputFormat.OBJ;
 
-    LlcInvokerImpl(final LlcToolImpl tool) {
-        super(tool);
+    LlcInvokerImpl(final LlvmToolChainImpl tool, final Path path) {
+        super(tool, path);
     }
 
-    public LlcTool getTool() {
-        return (LlcTool) super.getTool();
+    public LlvmToolChain getTool() {
+        return super.getTool();
     }
 
     public void setOptimizationLevel(final LlcOptLevel level) {
