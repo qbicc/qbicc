@@ -152,6 +152,7 @@ public class Main {
                         tsBuilder.setTypeIdSize((int) probeResult.getInfo(int32_t).getSize());
                         tsBuilder.setTypeIdAlignment((int) probeResult.getInfo(int32_t).getAlign());
                         builder.setTypeSystem(tsBuilder.build());
+                        builder.setObjectFileProvider(objectFileProvider);
                         ServiceLoader<DriverPlugin> loader = ServiceLoader.load(DriverPlugin.class);
                         Iterator<DriverPlugin> iterator = loader.iterator();
                         for (;;) try {

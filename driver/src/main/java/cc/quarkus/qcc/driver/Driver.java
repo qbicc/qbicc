@@ -32,6 +32,7 @@ import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.interpreter.Vm;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.machine.arch.Platform;
+import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.tool.llvm.LlvmTool;
@@ -57,6 +58,10 @@ import io.smallrye.common.constraint.Assert;
 public class Driver implements Closeable {
 
     static final String MODULE_INFO = "module-info.class";
+
+    public static final AttachmentKey<CToolChain> C_TOOL_CHAIN_KEY = new AttachmentKey<>();
+    public static final AttachmentKey<LlvmTool> LLVM_TOOL_KEY = new AttachmentKey<>();
+    public static final AttachmentKey<ObjectFileProvider> OBJ_PROVIDER_TOOL_KEY = new AttachmentKey<>();
 
     private static final AttachmentKey<String> MAIN_CLASS_KEY = new AttachmentKey<>();
 
@@ -99,6 +104,9 @@ public class Driver implements Closeable {
         outputDir = Assert.checkNotNullParam("builder.outputDirectory", builder.outputDirectory);
         typeBuilderFactories = builder.typeBuilderFactories;
         initialContext.putAttachment(MAIN_CLASS_KEY, mainClass);
+        initialContext.putAttachment(C_TOOL_CHAIN_KEY, Assert.checkNotNullParam("builder.toolChain", builder.toolChain));
+        initialContext.putAttachment(LLVM_TOOL_KEY, Assert.checkNotNullParam("builder.llvmTool", builder.llvmTool));
+        initialContext.putAttachment(OBJ_PROVIDER_TOOL_KEY, Assert.checkNotNullParam("builder.objectFileProvider", builder.objectFileProvider));
         // type system
         final TypeSystem typeSystem = builder.typeSystem;
         final LiteralFactory literalFactory = LiteralFactory.create(typeSystem);
@@ -505,6 +513,7 @@ public class Driver implements Closeable {
         Vm vm;
         CToolChain toolChain;
         LlvmTool llvmTool;
+        ObjectFileProvider objectFileProvider;
 
         String mainClass;
 
@@ -635,6 +644,15 @@ public class Driver implements Closeable {
 
         public Builder setLlvmTool(final LlvmTool llvmTool) {
             this.llvmTool = llvmTool;
+            return this;
+        }
+
+        public ObjectFileProvider getObjectFileProvider() {
+            return objectFileProvider;
+        }
+
+        public Builder setObjectFileProvider(final ObjectFileProvider objectFileProvider) {
+            this.objectFileProvider = objectFileProvider;
             return this;
         }
 
