@@ -197,7 +197,7 @@ public class Driver implements Closeable {
 
         preAddHooks = List.copyOf(builder.preAddHooks);
         postAddHooks = List.copyOf(builder.postAddHooks);
-        preCopyHooks = List.copyOf(builder.preGenerateHooks);
+        preCopyHooks = List.copyOf(builder.preCopyHooks);
         preGenerateHooks = List.copyOf(builder.preGenerateHooks);
         postGenerateHooks = List.copyOf(builder.postGenerateHooks);
     }
