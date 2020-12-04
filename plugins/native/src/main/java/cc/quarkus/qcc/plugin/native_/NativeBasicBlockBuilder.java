@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.plugin.native_;
 
+import static cc.quarkus.qcc.context.CompilationContext.*;
+
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
@@ -10,6 +12,7 @@ import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.type.FloatType;
+import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
@@ -30,6 +33,10 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         NativeFunctionInfo functionInfo = nativeInfo.nativeFunctions.get(target);
         if (functionInfo != null) {
+            // todo: avoid declaring more than once; cache or something
+            ctxt.getOrAddProgramModule(getCurrentElement().getEnclosingType())
+                .getOrAddSection(IMPLICIT_SECTION_NAME)
+                .declareFunction(target, functionInfo.symbolLiteral.getName(), (FunctionType) functionInfo.symbolLiteral.getType());
             // todo: prologue, epilogue (store current thread, GC state, etc.)
             return callFunction(functionInfo.symbolLiteral, arguments);
         }

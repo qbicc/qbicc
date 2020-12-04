@@ -1,8 +1,5 @@
 package cc.quarkus.qcc.plugin.llvm;
 
-import static cc.quarkus.qcc.machine.llvm.Types.*;
-
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -54,26 +51,21 @@ import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.definition.MethodBody;
-import io.smallrye.common.constraint.Assert;
 
 final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final CompilationContext ctxt;
+    final LLVMGenerator gen;
     final Schedule schedule;
     final Function functionObj;
     final FunctionDefinition func;
@@ -81,11 +73,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final Set<Action> visitedActions = new HashSet<>();
     final Map<Value, LLValue> mappedValues = new HashMap<>();
     final Map<BasicBlock, LLBasicBlock> mappedBlocks = new HashMap<>();
-    final Map<Type, LLValue> types = new HashMap<>();
     final MethodBody methodBody;
 
-    LLVMNodeVisitor(final CompilationContext ctxt, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
+    LLVMNodeVisitor(final CompilationContext ctxt, final LLVMGenerator gen, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
+        this.gen = gen;
         this.schedule = schedule;
         this.functionObj = functionObj;
         this.func = func;
@@ -404,6 +396,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     // calls
 
     public LLValue visit(final Void param, final FunctionCall node) {
+        map(node.getBasicDependency(0));
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();
@@ -462,56 +455,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     private LLValue map(Type type) {
-        // todo: one global type registry?
-        // todo: type visitor
-        LLValue res = types.get(type);
-        if (res != null) {
-            return res;
-        }
-        if (type instanceof VoidType) {
-            res = void_;
-        } else if (type instanceof FunctionType) {
-            FunctionType fnType = (FunctionType) type;
-            int cnt = fnType.getParameterCount();
-            List<LLValue> argTypes = cnt == 0 ? List.of() : new ArrayList<>(cnt);
-            for (int i = 0; i < cnt; i ++) {
-                argTypes.add(map(fnType.getParameterType(i)));
-            }
-            res = Types.function(map(fnType.getReturnType()), argTypes);
-        } else if (type instanceof BooleanType) {
-            // todo: sometimes it's one byte instead
-            res = i1;
-        } else if (type instanceof IntegerType) {
-            // LLVM doesn't really care about signedness
-            int bytes = (int) ((IntegerType) type).getSize();
-            if (bytes == 1) {
-                res = i8;
-            } else if (bytes == 2) {
-                res = i16;
-            } else if (bytes == 4) {
-                res = i32;
-            } else if (bytes == 8) {
-                res = i64;
-            } else {
-                throw Assert.unreachableCode();
-            }
-        } else if (type instanceof FloatType) {
-            int bytes = (int) ((FloatType) type).getSize();
-            if (bytes == 4) {
-                res = float32;
-            } else if (bytes == 8) {
-                res = float64;
-            } else {
-                throw Assert.unreachableCode();
-            }
-        } else if (type instanceof ReferenceType) {
-            // todo: lower class types to ref types at some earlier point
-            res = ptrTo(i8);
-        } else {
-            throw new IllegalStateException();
-        }
-        types.put(type, res);
-        return res;
+        return gen.map(type);
     }
 
     private void map(Action action) {
