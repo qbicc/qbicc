@@ -1,9 +1,16 @@
 package cc.quarkus.qcc.machine.probe;
 
+import java.io.Closeable;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.function.UnaryOperator;
 
 final class ProbeUtil {
     private ProbeUtil() {}
+
+    static Closeable deleting(Path path) {
+        return () -> Files.deleteIfExists(path);
+    }
 
     static UnaryOperator<StringBuilder> literal(String str) {
         return sb -> sb.append(str);

@@ -36,45 +36,45 @@ public class TestProbes {
 
     @Test
     public void testStructProbe() throws Exception {
-        final CTypeProbe.Type struct_iovec = CTypeProbe.Type.builder()
+        final CProbe.Type struct_iovec = CProbe.Type.builder()
             .setName("iovec")
             .setQualifier(Qualifier.STRUCT)
             .addMember("iov_base")
             .addMember("iov_len")
             .build();
-        final CTypeProbe probe = CTypeProbe.builder()
-            .addType(struct_iovec)
-            .addInclude("<sys/uio.h>")
+        final CProbe probe = CProbe.builder()
             .define("_DEFAULT_SOURCE")
             .define("_BSD_SOURCE")
+            .include("<sys/uio.h>")
+            .probeType(struct_iovec)
             .build();
-        final CTypeProbe.Result probeResult = probe.run(compiler, objectFileProvider);
+        final CProbe.Result probeResult = probe.run(compiler, objectFileProvider, null);
         assertNotNull(probeResult);
-        CTypeProbe.Type.Info result = probeResult.getInfo(struct_iovec);
+        CProbe.Type.Info result = probeResult.getTypeInfo(struct_iovec);
         System.out.println("Probe result for `struct iovec`:");
         System.out.printf(" Overall size = %d%n", Long.valueOf(result.getSize()));
         System.out.printf(" Overall alignment = %d%n", Long.valueOf(result.getAlign()));
-        System.out.printf(" iov_base size = %d%n", Long.valueOf(probeResult.getInfoOfMember(struct_iovec, "iov_base").getSize()));
-        long iov_base_offset = probeResult.getInfoOfMember(struct_iovec, "iov_base").getOffset();
+        System.out.printf(" iov_base size = %d%n", Long.valueOf(probeResult.getTypeInfoOfMember(struct_iovec, "iov_base").getSize()));
+        long iov_base_offset = probeResult.getTypeInfoOfMember(struct_iovec, "iov_base").getOffset();
         System.out.printf(" iov_base offset = %d%n", Long.valueOf(iov_base_offset));
-        System.out.printf(" iov_len size = %d%n", Long.valueOf(probeResult.getInfoOfMember(struct_iovec, "iov_len").getSize()));
-        long iov_len_offset = probeResult.getInfoOfMember(struct_iovec, "iov_len").getOffset();
+        System.out.printf(" iov_len size = %d%n", Long.valueOf(probeResult.getTypeInfoOfMember(struct_iovec, "iov_len").getSize()));
+        long iov_len_offset = probeResult.getTypeInfoOfMember(struct_iovec, "iov_len").getOffset();
         System.out.printf(" iov_len offset = %d%n", Long.valueOf(iov_len_offset));
         assertTrue(result.getSize() > 0);
         assertTrue(result.getAlign() > 0);
-        assertTrue(probeResult.getInfoOfMember(struct_iovec, "iov_base").getSize() > 0);
+        assertTrue(probeResult.getTypeInfoOfMember(struct_iovec, "iov_base").getSize() > 0);
         assertTrue(iov_base_offset >= 0);
-        assertTrue(probeResult.getInfoOfMember(struct_iovec, "iov_len").getSize() > 0);
+        assertTrue(probeResult.getTypeInfoOfMember(struct_iovec, "iov_len").getSize() > 0);
         assertTrue(iov_len_offset != iov_base_offset);
     }
 
     @Test
     public void testIntProbes() throws Exception {
-        final CTypeProbe.Type int16_t = CTypeProbe.Type.builder().setName("int16_t").build();
-        final CTypeProbe probe = CTypeProbe.builder().addType(int16_t).addInclude("<stdint.h>").build();
-        final CTypeProbe.Result probeResult = probe.run(compiler, objectFileProvider);
+        final CProbe.Type int16_t = CProbe.Type.builder().setName("int16_t").build();
+        final CProbe probe = CProbe.builder().include("<stdint.h>").probeType(int16_t).build();
+        final CProbe.Result probeResult = probe.run(compiler, objectFileProvider, null);
         assertNotNull(probeResult);
-        CTypeProbe.Type.Info result = probeResult.getInfo(int16_t);
+        CProbe.Type.Info result = probeResult.getTypeInfo(int16_t);
         System.out.println("Probe result for `int16_t`:");
         System.out.printf(" Overall size = %d%n", Long.valueOf(result.getSize()));
         System.out.printf(" Overall alignment = %d%n", Long.valueOf(result.getAlign()));
@@ -90,11 +90,10 @@ public class TestProbes {
 
     @Test
     public void testSymbolProbe() throws Exception {
-        final CConstantProbe probe = new CConstantProbe("INT8_MAX", Qualifier.NONE, "int8_t", 1);
-        probe.include("<stdint.h>");
-        final CConstantProbe.Result result = probe.runProbe(compiler, objectFileProvider);
+        final CProbe probe = CProbe.builder().include("<stdint.h>").probeConstant("INT8_MAX").build();
+        final CProbe.Result result = probe.run(compiler, objectFileProvider, null);
         assertNotNull(result);
-        assertTrue(result.isDefined());
-        assertArrayEquals(new byte[] { Byte.MAX_VALUE }, result.getValue());
+        assertTrue(result.getConstantInfo("INT8_MAX").isDefined());
+        assertEquals(Byte.MAX_VALUE, result.getConstantInfo("INT8_MAX").getValueAsInt());
     }
 }
