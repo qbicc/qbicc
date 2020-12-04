@@ -107,7 +107,7 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                         BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
                         function.replaceBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, pv));
                         // ensure the method is reachable
-                        ctxt.enqueue(origMethod);
+                        ctxt.registerEntryPoint(origMethod);
                         // all done
                         break;
                     }
