@@ -384,8 +384,17 @@ public class Driver implements Closeable {
                 ClassContext classContext = element.getEnclosingType().getContext();
                 MethodBody original = methodHandle.getOrCreateMethodBody();
                 BasicBlock entryBlock = original.getEntryBlock();
-                List<Value> paramValues = original.getParameterValues();
-                Value thisValue = original.getThisValue();
+                List<Value> origParamValues = original.getParameterValues();
+                List<Value> paramValues = new ArrayList<>(origParamValues.size() + 2);
+                paramValues.add(compilationContext.getCurrentThreadValue());
+                Value thisValue;
+                if (! element.isStatic()) {
+                    thisValue = original.getThisValue();
+                    paramValues.add(thisValue);
+                } else {
+                    thisValue = null;
+                }
+                paramValues.addAll(origParamValues);
                 Function function = compilationContext.getExactFunction(element);
                 BasicBlock copyBlock = Node.Copier.execute(entryBlock, classContext.newBasicBlockBuilder(element), compilationContext, interStageCopy);
                 function.replaceBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), thisValue, paramValues));

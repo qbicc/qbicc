@@ -39,11 +39,14 @@ import cc.quarkus.qcc.graph.Shl;
 import cc.quarkus.qcc.graph.Shr;
 import cc.quarkus.qcc.graph.Sub;
 import cc.quarkus.qcc.graph.Terminator;
+import cc.quarkus.qcc.graph.ThisValue;
 import cc.quarkus.qcc.graph.Truncate;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
+import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
+import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
@@ -60,7 +63,6 @@ import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.MethodBody;
 
 final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
@@ -90,16 +92,15 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     public void execute() {
         FunctionType funcType = functionObj.getType();
         int cnt = methodBody.getParameterCount();
-        ValueType type = funcType.getParameterType(0);
-        // it should be java.lang.Thread
-        mappedValues.put(ctxt.getCurrentThreadValue(), func.param(map(type)).name("thr").asValue());
-        Value thisValue = methodBody.getThisValue();
-        if (thisValue != null) {
-            mappedValues.put(thisValue, func.param(map(thisValue.getType())).name("this").asValue());
-        }
-        for (int i = 0; i < cnt; i ++) {
+        for (int i = 0, j = 0; i < cnt; i ++) {
             Value value = functionObj.getBody().getParameterValue(i);
-            mappedValues.put(value, func.param(map(value.getType())).name("p" + i).asValue());
+            if (value instanceof CurrentThreadLiteral) {
+                mappedValues.put(value, func.param(map(value.getType())).name("thr").asValue());
+            } else if (value instanceof ThisValue) {
+                mappedValues.put(value, func.param(map(value.getType())).name("this").asValue());
+            } else {
+                mappedValues.put(value, func.param(map(value.getType())).name("p" + j++).asValue());
+            }
         }
         func.returns(map(funcType.getReturnType()));
         map(entryBlock);
@@ -422,6 +423,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     public LLValue visit(final Void param, final SymbolLiteral node) {
         return Values.global(node.getName());
+    }
+
+    public LLValue visit(final Void param, final NullLiteral node) {
+        return Values.NULL;
     }
 
     // unknown node catch-all methods
