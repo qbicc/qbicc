@@ -4,6 +4,8 @@ package cc.quarkus.qcc.type;
  * The type of values that represent the run time type of an object.  Values of this type have a total order.  Values
  * of this type which correspond to classes or arrays of classes form a tree, and values of this type which correspond
  * to interfaces or arrays of interfaces form a DAG.
+ * <p>
+ * To represent the type of an actual type, see {@link TypeType}.
  */
 public final class TypeIdType extends ScalarType {
     private final int align;

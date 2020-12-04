@@ -24,6 +24,7 @@ public final class TypeSystem {
     private final NullType nullType = new NullType(this);
     private final BlockType blockType = new BlockType(this);
     private final StringType stringType = new StringType(this);
+    private final TypeType typeType = new TypeType(this);
     private final BooleanType booleanType;
     private final TypeIdType typeIdType;
     private final FloatType float32Type;
@@ -108,6 +109,10 @@ public final class TypeSystem {
 
     public StringType getStringType() {
         return stringType;
+    }
+
+    public TypeType getTypeType() {
+        return typeType;
     }
 
     public ReferenceType getReferenceType(TypeIdLiteral typeId) {
