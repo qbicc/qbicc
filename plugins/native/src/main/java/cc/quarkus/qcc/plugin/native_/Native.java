@@ -21,6 +21,10 @@ final class Native {
     static final String ANN_SIZE = intName(size.class);
     static final String ANN_SIZE_LIST = intName(size.List.class);
 
+    static final String OBJECT = intName(object.class);
+    static final String WORD = intName(word.class);
+    static final String PTR = intName(ptr.class);
+
     private static String intName(Class<?> clz) {
         return clz.getName().replace('.', '/');
     }
