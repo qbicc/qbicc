@@ -19,6 +19,10 @@ public final class SignedIntegerType extends IntegerType {
         return (SignedIntegerType) super.asConst();
     }
 
+    public boolean equals(final IntegerType other) {
+        return other instanceof SignedIntegerType && getMinBits() == other.getMinBits() && typeSystem == other.typeSystem;
+    }
+
     public SignedIntegerType getConstraintType() {
         return this;
     }

@@ -21,6 +21,12 @@ public abstract class IntegerType extends NumericType {
         return (IntegerType) super.asConst();
     }
 
+    public final boolean equals(final ValueType other) {
+        return other instanceof IntegerType && equals((IntegerType) other);
+    }
+
+    public abstract boolean equals(final IntegerType other);
+
     public abstract IntegerType getConstraintType();
 
     public abstract SignedIntegerType asSigned();

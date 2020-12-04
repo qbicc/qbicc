@@ -19,6 +19,10 @@ public final class UnsignedIntegerType extends IntegerType {
         return (UnsignedIntegerType) super.asConst();
     }
 
+    public boolean equals(final IntegerType other) {
+        return other instanceof UnsignedIntegerType && getMinBits() == other.getMinBits() && typeSystem == other.typeSystem;
+    }
+
     public UnsignedIntegerType getConstraintType() {
         return this;
     }

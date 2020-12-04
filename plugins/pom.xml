@@ -15,6 +15,7 @@
     <artifactId>qcc-plugin-parent</artifactId>
 
     <modules>
+        <module>conversion</module>
         <module>llvm</module>
         <module>lowering</module>
         <module>native</module>

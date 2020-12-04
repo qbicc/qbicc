@@ -20,6 +20,7 @@ import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.probe.CTypeProbe;
 import cc.quarkus.qcc.machine.tool.CToolChain;
+import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
 import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeBasicBlockBuilder;
@@ -175,6 +176,7 @@ public class Main {
                             builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                             builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                             builder.addCopyFactory(PhiOptimizerVisitor::new);
+                            builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                             builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                             builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.LOWERING, ReachabilityBlockBuilder::new);
                             builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.LOWERING, InvocationLoweringBasicBlockBuilder::new);
