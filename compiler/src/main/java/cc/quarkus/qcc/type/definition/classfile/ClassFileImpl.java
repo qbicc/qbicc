@@ -322,8 +322,12 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile {
                 return setIfNull(literals, idx, literalFactory.literalOf(getLongConstant(idx)));
             case CONSTANT_Double:
                 return setIfNull(literals, idx, literalFactory.literalOf(getDoubleConstant(idx)));
+            case CONSTANT_MethodHandle:
+                return setIfNull(literals, idx, getMethodHandleConstant(idx));
+            case CONSTANT_MethodType:
+                return setIfNull(literals, idx, getMethodTypeConstant(idx));
             default: {
-                throw new IllegalArgumentException("Unexpected constant type at index " + idx);
+                throw new IllegalArgumentException("Unexpected constant of type " + constantType + " at index " + idx);
             }
         }
     }
@@ -343,6 +347,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile {
             }
             return definedType.validate().getTypeId();
         }
+    }
+
+    Literal getMethodHandleConstant(int idx) {
+        int referenceKind = getMethodHandleReferenceKind(idx);
+        int referenceIndex = getMethodHandleReferenceIndex(idx);
+        return literalFactory.literalOfMethodHandle(referenceKind, referenceIndex);
+    }
+
+    Literal getMethodTypeConstant(int idx) {
+        int descIdx = getMethodTypeDescriptorIndex(idx);
+        String descriptor = getUtf8Constant(descIdx);
+        return literalFactory.literalOfMethodDescriptor(descriptor);
     }
 
     public int getRawConstantByte(final int idx, final int offset) throws IndexOutOfBoundsException {
@@ -637,7 +653,13 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile {
             } else if (attributeNameEquals(i, "SourceFile")) {
                 // todo
             } else if (attributeNameEquals(i, "BootstrapMethods")) {
-                // todo
+                ByteBuffer data = getRawAttributeContent(i);
+                int ac = data.getShort() & 0xffff;
+                BootstrapMethod[] bootstrapMethods = new BootstrapMethod[ac];
+                for (int j = 0; j < ac; j ++) {
+                    bootstrapMethods[j] = BootstrapMethod.parse(this, ctxt, data);
+                }
+                builder.setBootstrapMethods(List.of(bootstrapMethods));
             } else if (attributeNameEquals(i, "NestHost")) {
                 // todo
             } else if (attributeNameEquals(i, "NestMembers")) {

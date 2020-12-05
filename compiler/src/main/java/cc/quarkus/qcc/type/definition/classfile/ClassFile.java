@@ -445,10 +445,32 @@ public interface ClassFile extends FieldResolver,
         return getRawConstantShort(idx, 3);
     }
 
-    // todo: MethodHandle
-    // todo: MethodType
+    default int getInvokeDynamicBootstrapMethodIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_InvokeDynamic);
+        return getRawConstantShort(idx, 1);
+    }
+
+    default int getInvokeDynamicNameAndTypeIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_InvokeDynamic);
+        return getRawConstantShort(idx, 3);
+    }
+
+    default int getMethodHandleReferenceKind(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_MethodHandle);
+        return getRawConstantByte(idx, 1);
+    }
+
+    default int getMethodHandleReferenceIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_MethodHandle);
+        return getRawConstantShort(idx, 3);
+    }
+
+    default int getMethodTypeDescriptorIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_MethodType);
+        return getRawConstantShort(idx, 1);
+    }
+
     // todo: Dynamic
-    // todo: InvokeDynamic
     // todo: Module
     // todo: Package
 

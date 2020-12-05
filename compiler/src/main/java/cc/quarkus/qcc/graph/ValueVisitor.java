@@ -12,6 +12,8 @@ import cc.quarkus.qcc.graph.literal.DefinedConstantLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
+import cc.quarkus.qcc.graph.literal.MethodDescriptorLiteral;
+import cc.quarkus.qcc.graph.literal.MethodHandleLiteral;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.ObjectLiteral;
 import cc.quarkus.qcc.graph.literal.ReferenceArrayTypeIdLiteral;
@@ -133,6 +135,14 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, InterfaceTypeIdLiteral node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, MethodDescriptorLiteral node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, MethodHandleLiteral node) {
         return visitUnknown(param, node);
     }
 

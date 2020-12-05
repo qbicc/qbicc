@@ -8,6 +8,7 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
+import cc.quarkus.qcc.type.definition.classfile.BootstrapMethod;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -38,6 +39,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final List<Annotation> invisibleAnnotations;
     private final TypeAnnotationList visibleTypeAnnotations;
     private final TypeAnnotationList invisibleTypeAnnotations;
+    private final List<BootstrapMethod> bootstrapMethods;
 
     private volatile DefinedTypeDefinition validated;
 
@@ -49,6 +51,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private static final ConstructorResolver[] NO_CONSTRUCTORS = new ConstructorResolver[0];
     private static final Annotation[][] NO_ANNOTATION_ARRAYS = new Annotation[0][];
     private static final Annotation[][][] NO_ANNOTATION_ARRAY_ARRAYS = new Annotation[0][][];
+    private static final BootstrapMethod[] NO_BOOTSTAP_METHODS = new BootstrapMethod[0];
 
     DefinedTypeDefinitionImpl(final BuilderImpl builder) {
         this.context = builder.context;
@@ -71,6 +74,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         this.invisibleAnnotations = builder.invisibleAnnotations;
         this.visibleTypeAnnotations = builder.visibleTypeAnnotations;
         this.invisibleTypeAnnotations = builder.invisibleTypeAnnotations;
+        this.bootstrapMethods = builder.bootstrapMethods;
         this.initializerResolver = Assert.checkNotNullParam("builder.initializerResolver", builder.initializerResolver);
         this.initializerIndex = builder.initializerIndex;
     }
@@ -206,6 +210,14 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         return invisibleTypeAnnotations;
     }
 
+    public List<BootstrapMethod> getBootstrapMethods() {
+        return bootstrapMethods;
+    }
+
+    public BootstrapMethod getBootstrapMethod(final int index) {
+        return bootstrapMethods.get(index);
+    }
+
     public boolean hasSuperClass() {
         return superClassName != null;
     }
@@ -235,6 +247,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         List<Annotation> invisibleAnnotations = List.of();
         TypeAnnotationList visibleTypeAnnotations = TypeAnnotationList.empty();
         TypeAnnotationList invisibleTypeAnnotations = TypeAnnotationList.empty();
+        List<BootstrapMethod> bootstrapMethods = List.of();
 
         public void setContext(final ClassContext context) {
             this.context = context;
@@ -387,6 +400,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
         public void setInvisibleTypeAnnotations(final TypeAnnotationList annotationList) {
             this.invisibleTypeAnnotations = Assert.checkNotNullParam("annotationList", annotationList);
+        }
+
+        public void setBootstrapMethods(final List<BootstrapMethod> bootstrapMethods) {
+            this.bootstrapMethods = Assert.checkNotNullParam("bootstrapMethods", bootstrapMethods);
         }
 
         public void setName(final String internalName) {

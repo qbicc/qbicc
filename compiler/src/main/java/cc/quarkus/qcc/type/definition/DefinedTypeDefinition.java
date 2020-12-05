@@ -5,6 +5,7 @@ import java.util.function.ObjIntConsumer;
 
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
+import cc.quarkus.qcc.type.definition.classfile.BootstrapMethod;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -205,6 +206,8 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
         void setInvisibleTypeAnnotations(TypeAnnotationList annotationList);
 
+        void setBootstrapMethods(List<BootstrapMethod> bootstrapMethods);
+
         DefinedTypeDefinition build();
 
         static Builder basic() {
@@ -284,6 +287,10 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
             default void setInvisibleTypeAnnotations(TypeAnnotationList annotationList) {
                 getDelegate().setInvisibleTypeAnnotations(annotationList);
+            }
+
+            default void setBootstrapMethods(List<BootstrapMethod> bootstrapMethods) {
+                getDelegate().setBootstrapMethods(bootstrapMethods);
             }
 
             default DefinedTypeDefinition build() {
