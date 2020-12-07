@@ -192,8 +192,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public LLValue visit(final Void param, final CmpEq node) {
-        LLValue inputType = map(node.getType());
-        LLValue llvmLeft = map(node.getLeftInput());
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
@@ -202,8 +203,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public LLValue visit(final Void param, final CmpNe node) {
-        LLValue inputType = map(node.getType());
-        LLValue llvmLeft = map(node.getLeftInput());
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
@@ -212,8 +214,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public LLValue visit(final Void param, final CmpLt node) {
-        LLValue inputType = map(node.getType());
-        LLValue llvmLeft = map(node.getLeftInput());
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
@@ -224,8 +227,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public LLValue visit(final Void param, final CmpLe node) {
-        LLValue inputType = map(node.getType());
-        LLValue llvmLeft = map(node.getLeftInput());
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
@@ -236,8 +240,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public LLValue visit(final Void param, final CmpGt node) {
-        LLValue inputType = map(node.getType());
-        LLValue llvmLeft = map(node.getLeftInput());
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
@@ -248,8 +253,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public LLValue visit(final Void param, final CmpGe node) {
-        LLValue inputType = map(node.getType());
-        LLValue llvmLeft = map(node.getLeftInput());
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
