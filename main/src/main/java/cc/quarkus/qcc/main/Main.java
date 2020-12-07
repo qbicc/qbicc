@@ -20,6 +20,7 @@ import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.probe.CProbe;
 import cc.quarkus.qcc.machine.tool.CToolChain;
+import cc.quarkus.qcc.plugin.constants.ConstantBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
 import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
@@ -188,6 +189,7 @@ public class Main {
                                 builder.setMainClass(mainClass.replace('.', '/'));
                                 builder.addPostAnalyticHook(new LLVMGenerator());
                                 builder.addTypeBuilderFactory(NativeTypeBuilder::new);
+                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.CORRECT, LocalThrowHandlingBasicBlockBuilder::new);
