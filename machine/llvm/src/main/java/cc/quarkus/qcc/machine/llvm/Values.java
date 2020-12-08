@@ -22,6 +22,14 @@ public final class Values {
         return LLVM.intConstant(val);
     }
 
+    public static LLValue floatConstant(float val) {
+        return LLVM.floatConstant(val);
+    }
+
+    public static LLValue floatConstant(double val) {
+        return LLVM.floatConstant(val);
+    }
+
     public static LLValue global(String name) {
         return LLVM.global(name);
     }
