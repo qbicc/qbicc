@@ -131,7 +131,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 if (toType instanceof FloatType) {
                     if (fromType.getMinBits() < toType.getMinBits()) {
                         // OK
-                        return super.truncate(from, toType);
+                        return super.extend(from, toType);
                     } else if (fromType.getMinBits() == toType.getMinBits()) {
                         // no actual extension needed
                         return from;

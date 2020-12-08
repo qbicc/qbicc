@@ -58,6 +58,14 @@ public final class LLVM {
         return new LongConstant(val);
     }
 
+    public static LLValue floatConstant(float val) {
+        return new FloatConstant(val);
+    }
+
+    public static LLValue floatConstant(double val) {
+        return new DoubleConstant(val);
+    }
+
     public static LLValue global(final String name) {
         return new NamedGlobalValueOf(name);
     }

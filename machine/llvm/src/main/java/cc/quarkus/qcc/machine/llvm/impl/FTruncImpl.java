@@ -8,6 +8,6 @@ final class FTruncImpl extends AbstractCastInstruction {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append("ftrunc"));
+        return appendTrailer(super.appendTo(target).append("fptrunc"));
     }
 }
