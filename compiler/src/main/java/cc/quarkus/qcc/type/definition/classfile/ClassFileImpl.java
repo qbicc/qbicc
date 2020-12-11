@@ -892,10 +892,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile {
                 }
                 builder.setInvisibleAnnotations(List.of(annotations));
             } else if (methodAttributeNameEquals(index, i, "RuntimeVisibleTypeAnnotations")) {
-                TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getFieldRawAttributeContent(index, i));
+                TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getMethodRawAttributeContent(index, i));
                 builder.setReturnVisibleTypeAnnotations(list);
             } else if (methodAttributeNameEquals(index, i, "RuntimeInvisibleTypeAnnotations")) {
-                TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getFieldRawAttributeContent(index, i));
+                TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getMethodRawAttributeContent(index, i));
                 builder.setReturnInvisibleTypeAnnotations(list);
             }
         }

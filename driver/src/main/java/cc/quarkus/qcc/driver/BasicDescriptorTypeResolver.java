@@ -66,7 +66,7 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
             if (signature instanceof ArrayTypeSignature) {
                 elemSig = ((ArrayTypeSignature) signature).getElementTypeSignature();
             } else {
-                elemSig = null;
+                elemSig = TypeSignature.synthesize(classContext, elemType);
             }
             ValueType elementType = classContext.resolveTypeFromDescriptor(elemType, typeParamCtxt, elemSig, visible.inArray(), invisible.inArray());
             return ts.getReferenceType(elementType instanceof ReferenceType ? lf.literalOfArrayType((ReferenceType) elementType) : lf.literalOfArrayType(elementType));

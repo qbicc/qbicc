@@ -30,12 +30,12 @@ import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 /**
  * A delegating type builder which handles calls to and from {@code @extern} and {@code @export} methods.
  */
-public class ExternImportTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
+public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
     private final ClassContext classCtxt;
     private final CompilationContext ctxt;
     private final DefinedTypeDefinition.Builder delegate;
 
-    public ExternImportTypeBuilder(final ClassContext classCtxt, final DefinedTypeDefinition.Builder delegate) {
+    public ExternExportTypeBuilder(final ClassContext classCtxt, final DefinedTypeDefinition.Builder delegate) {
         this.classCtxt = classCtxt;
         this.ctxt = classCtxt.getCompilationContext();
         this.delegate = delegate;
