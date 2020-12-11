@@ -1,29 +1,52 @@
 package cc.quarkus.qcc.type.definition.element;
 
+import java.util.List;
+
 import cc.quarkus.qcc.type.annotation.Annotation;
+import io.smallrye.common.constraint.Assert;
 
 /**
  * A program element that is annotatable.  Annotations are usually parsed by the JDK, but plugins also
  * need an easy way to examine them.
  */
-public interface AnnotatedElement extends BasicElement {
-    int getVisibleAnnotationCount();
+public abstract class AnnotatedElement extends BasicElement {
+    private final List<Annotation> visibleAnnotations;
+    private final List<Annotation> invisibleAnnotations;
 
-    Annotation getVisibleAnnotation(int index) throws IndexOutOfBoundsException;
+    AnnotatedElement() {
+        super();
+        visibleAnnotations = null;
+        invisibleAnnotations = null;
+    }
 
-    int getInvisibleAnnotationCount();
+    AnnotatedElement(Builder builder) {
+        super(builder);
+        visibleAnnotations = builder.visibleAnnotations;
+        invisibleAnnotations = builder.invisibleAnnotations;
+    }
 
-    Annotation getInvisibleAnnotation(int index) throws IndexOutOfBoundsException;
+    public List<Annotation> getVisibleAnnotations() {
+        return visibleAnnotations;
+    }
 
-    interface Builder extends BasicElement.Builder {
-        void expectVisibleAnnotationCount(int count);
+    public List<Annotation> getInvisibleAnnotations() {
+        return invisibleAnnotations;
+    }
 
-        void addVisibleAnnotation(Annotation annotation);
+    public static abstract class Builder extends BasicElement.Builder {
+        List<Annotation> visibleAnnotations = List.of();
+        List<Annotation> invisibleAnnotations = List.of();
 
-        void expectInvisibleAnnotationCount(int count);
+        Builder() {}
 
-        void addInvisibleAnnotation(Annotation annotation);
+        public void setVisibleAnnotations(List<Annotation> annotations) {
+            visibleAnnotations = Assert.checkNotNullParam("annotations", annotations);
+        }
 
-        AnnotatedElement build();
+        public void setInvisibleAnnotations(List<Annotation> annotations) {
+            invisibleAnnotations = Assert.checkNotNullParam("annotations", annotations);
+        }
+
+        public abstract AnnotatedElement build();
     }
 }

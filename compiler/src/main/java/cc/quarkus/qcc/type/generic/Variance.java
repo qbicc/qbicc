@@ -3,8 +3,7 @@ package cc.quarkus.qcc.type.generic;
 /**
  *
  */
-public
-enum Variance {
+public enum Variance {
     CONTRAVARIANT,
     INVARIANT,
     COVARIANT,

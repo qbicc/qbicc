@@ -1,38 +1,58 @@
 package cc.quarkus.qcc.type.definition.element;
 
+import java.util.List;
+
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.ResolutionFailedException;
+import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.generic.ParameterizedSignature;
+import io.smallrye.common.constraint.Assert;
 
 /**
  *
  */
-public interface FieldElement extends AnnotatedElement, NamedElement {
-    FieldElement[] NO_FIELDS = new FieldElement[0];
+public final class FieldElement extends VariableElement implements MemberElement {
+    public static final FieldElement[] NO_FIELDS = new FieldElement[0];
 
-    ValueType getType() throws ResolutionFailedException;
+    private final DefinedTypeDefinition enclosingType;
 
-    boolean hasClass2Type();
+    FieldElement(Builder builder) {
+        super(builder);
+        this.enclosingType = Assert.checkNotNullParam("builder.enclosingType", builder.enclosingType);
+    }
 
-    default boolean isVolatile() {
+    public boolean isVolatile() {
         return hasAllModifiersOf(ClassFile.ACC_VOLATILE);
     }
 
-    interface TypeResolver {
-        ValueType resolveFieldType(long argument) throws ResolutionFailedException;
-
-        boolean hasClass2FieldType(long argument);
-
-        // todo: generic/annotated type
+    public static Builder builder() {
+        return new Builder();
     }
 
-    static Builder builder() {
-        return new FieldElementImpl.Builder();
+    public DefinedTypeDefinition getEnclosingType() {
+        return enclosingType;
     }
 
-    interface Builder extends AnnotatedElement.Builder, NamedElement.Builder {
-        void setTypeResolver(TypeResolver resolver, long argument);
+    public ValueType getType(final ClassContext classContext, final List<ParameterizedSignature> signatureContext) {
+        return null;
+    }
 
-        FieldElement build();
+    public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
+    public static final class Builder extends VariableElement.Builder implements MemberElement.Builder {
+        DefinedTypeDefinition enclosingType;
+
+        Builder() {}
+
+        public void setEnclosingType(final DefinedTypeDefinition enclosingType) {
+            this.enclosingType = Assert.checkNotNullParam("enclosingType", enclosingType);
+        }
+
+        public FieldElement build() {
+            return new FieldElement(this);
+        }
     }
 }

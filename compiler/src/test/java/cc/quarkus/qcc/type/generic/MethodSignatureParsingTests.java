@@ -2,25 +2,37 @@ package cc.quarkus.qcc.type.generic;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
+import cc.quarkus.qcc.type.definition.ClassContext;
+import org.junit.jupiter.api.Test;
+
 /**
  *
  */
 public class MethodSignatureParsingTests {
+    static MethodSignature parse(ClassContext ctxt, String str) {
+        return MethodSignature.parse(ctxt, ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
+    }
 
+    @Test
     public void testReallyComplex() {
-        final ParsingCache cache = new ParsingCache();
-        final MethodDeclarationSignature mds = MethodDeclarationSignature.parseMethodDeclarationSignature(cache, "<TX:;TY:TX;;>(Ljava/lang/Object;TX;TY;)V^Ljava/lang/Throwable;");
-        assertEquals(2, mds.getTypeParameterCount());
-        assertEquals("X", mds.getTypeParameter(0).getSimpleName());
-        assertEquals("Y", mds.getTypeParameter(1).getSimpleName());
-        assertTrue(mds.getTypeParameter(0).getClassBound().isTypeVariable());
-        assertEquals("X", mds.getTypeParameter(0).getClassBound().asTypeVariable().getSimpleName());
-        assertEquals(3, mds.getParameterCount());
-        assertEquals(TypeSignature.forClass(cache, Object.class), mds.getParameterType(0));
-        assertEquals("X", mds.getParameterType(1).asTypeVariable().getSimpleName());
-        assertEquals("Y", mds.getParameterType(2).asTypeVariable().getSimpleName());
-        assertFalse(mds.hasReturnType());
-        assertEquals(1, mds.getThrowsCount());
-        assertEquals(TypeSignature.forClass(cache, Throwable.class), mds.getThrowsType(0));
+        ClassContext ctxt = new TestClassContext();
+        final MethodSignature mds = parse(ctxt, "<X:Y:TZ;>(Ljava/lang/Object;TX;TY;)V^Ljava/lang/Throwable;");
+        assertEquals(2, mds.getTypeParameters().size());
+        assertEquals("X", mds.getTypeParameters().get(0).getIdentifier());
+        assertEquals("Y", mds.getTypeParameters().get(1).getIdentifier());
+        assertTrue(mds.getTypeParameters().get(1).getClassBound() instanceof TypeVariableSignature);
+        assertEquals("Z", ((TypeVariableSignature) mds.getTypeParameters().get(1).getClassBound()).getIdentifier());
+        assertEquals(3, mds.getParameterTypes().size());
+        assertEquals(SignatureParsingTests.parse(ctxt, "Ljava/lang/Object;"), mds.getParameterTypes().get(0));
+        assertTrue(mds.getParameterTypes().get(1) instanceof TypeVariableSignature);
+        assertEquals("X", ((TypeVariableSignature) mds.getParameterTypes().get(1)).getIdentifier());
+        assertTrue(mds.getParameterTypes().get(2) instanceof TypeVariableSignature);
+        assertEquals("Y", ((TypeVariableSignature) mds.getParameterTypes().get(2)).getIdentifier());
+        assertEquals(BaseTypeSignature.V, mds.getReturnTypeSignature());
+        assertEquals(1, mds.getThrowsSignatures().size());
+        assertEquals(SignatureParsingTests.parse(ctxt, "Ljava/lang/Throwable;"), mds.getThrowsSignatures().get(0));
     }
 }

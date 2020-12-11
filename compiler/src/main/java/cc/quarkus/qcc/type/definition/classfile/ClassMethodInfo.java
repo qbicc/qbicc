@@ -4,8 +4,13 @@ import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.List;
 
 import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
+import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.generic.TypeSignature;
 
 /**
  * The defined method information.
@@ -336,7 +341,10 @@ final class ClassMethodInfo {
                 if (idx == 0) {
                     throw new MissingLocalVariableDescriptorException();
                 }
-                array[j] = classFile.resolveSingleDescriptor(idx);
+                TypeDescriptor desc = (TypeDescriptor) classFile.getDescriptorConstant(idx);
+                ClassContext ctxt = classFile.getClassContext();
+                array[j] = ctxt.resolveTypeFromDescriptor(desc,
+                    List.of(), TypeSignature.synthesize(ctxt, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
             }
         }
         this.variableTypes = variableTypes1;

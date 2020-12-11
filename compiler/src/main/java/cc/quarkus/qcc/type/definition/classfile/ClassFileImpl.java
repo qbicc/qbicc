@@ -4,8 +4,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.List;
 
-import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
@@ -13,45 +13,36 @@ import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.annotation.AnnotationValue;
-import cc.quarkus.qcc.type.annotation.BooleanAnnotationValue;
-import cc.quarkus.qcc.type.annotation.ByteAnnotationValue;
-import cc.quarkus.qcc.type.annotation.CharAnnotationValue;
-import cc.quarkus.qcc.type.annotation.DoubleAnnotationValue;
-import cc.quarkus.qcc.type.annotation.EnumConstantAnnotationValue;
-import cc.quarkus.qcc.type.annotation.FloatAnnotationValue;
-import cc.quarkus.qcc.type.annotation.IntAnnotationValue;
-import cc.quarkus.qcc.type.annotation.LongAnnotationValue;
-import cc.quarkus.qcc.type.annotation.ShortAnnotationValue;
-import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
+import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ClassFileUtil;
 import cc.quarkus.qcc.type.definition.DefineFailedException;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ResolutionFailedException;
-import cc.quarkus.qcc.type.definition.element.AnnotatedElement;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
+import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.ParameterElement;
-import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
-import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.Descriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.generic.ClassSignature;
+import cc.quarkus.qcc.type.generic.ClassTypeSignature;
+import cc.quarkus.qcc.type.generic.MethodSignature;
+import cc.quarkus.qcc.type.generic.TypeSignature;
 
-final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
-                                                                  ConstructorElement.TypeResolver,
-                                                                  FieldElement.TypeResolver,
-                                                                  MethodElement.TypeResolver,
-                                                                  ParameterElement.TypeResolver {
+final class ClassFileImpl extends AbstractBufferBacked implements ClassFile {
     private static final VarHandle intArrayHandle = MethodHandles.arrayElementVarHandle(int[].class);
     private static final VarHandle intArrayArrayHandle = MethodHandles.arrayElementVarHandle(int[][].class);
     private static final VarHandle literalArrayHandle = MethodHandles.arrayElementVarHandle(Literal[].class);
     private static final VarHandle stringArrayHandle = MethodHandles.arrayElementVarHandle(String[].class);
     private static final VarHandle annotationArrayHandle = MethodHandles.arrayElementVarHandle(Annotation[].class);
     private static final VarHandle annotationArrayArrayHandle = MethodHandles.arrayElementVarHandle(Annotation[][].class);
+    private static final VarHandle descriptorArrayHandle = MethodHandles.arrayElementVarHandle(Descriptor[].class);
 
     private static final int[] NO_INTS = new int[0];
     private static final int[][] NO_INT_ARRAYS = new int[0][];
@@ -59,16 +50,15 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     private final int[] cpOffsets;
     private final String[] strings;
     private final Literal[] literals;
+    private final Descriptor[] descriptors;
     /**
      * This is the method parameter part of every method descriptor.
      */
-    private final ParameterizedExecutableDescriptor[] methodParamInfo;
     private final boolean[][] methodParamClass2;
     /**
      * This is the type of every field descriptor or the return type of every method descriptor.
      */
     private final ValueType[] types;
-    private final boolean[] class2;
     private final int interfacesOffset;
     private final int[] fieldOffsets;
     private final int[][] fieldAttributeOffsets;
@@ -215,10 +205,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         this.thisClassIdx = thisClassIdx;
         strings = new String[cpOffsets.length];
         literals = new Literal[cpOffsets.length];
-        methodParamInfo = new ParameterizedExecutableDescriptor[cpOffsets.length];
+        descriptors = new Descriptor[cpOffsets.length];
         methodParamClass2 = new boolean[cpOffsets.length][];
         types = new ValueType[cpOffsets.length];
-        class2 = new boolean[cpOffsets.length];
         // read globally-relevant attributes
         String sourceFile = null;
         int cnt = getAttributeCount();
@@ -233,6 +222,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     public ClassFile getClassFile() {
         return this;
+    }
+
+    public ClassContext getClassContext() {
+        return ctxt;
     }
 
     public int getMajorVersion() {
@@ -271,6 +264,16 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         int offs = cpOffsets[idx];
         int len = getShort(offs + 1);
         return setIfNull(strings, idx, getUtf8Text(offs + 3, len, new StringBuilder(len)));
+    }
+
+    public ByteBuffer getUtf8ConstantAsBuffer(final int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        if (idx == 0) {
+            return null;
+        }
+        checkConstantType(idx, ClassFileUtil.CONSTANT_Utf8);
+        int offs = cpOffsets[idx];
+        int len = getShort(offs + 1);
+        return slice(offs + 3, len);
     }
 
     int utf8ConstantByteAt(final int idx, final int offset) {
@@ -330,7 +333,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         String name = getUtf8Constant(nameIdx);
         assert name != null;
         if (name.startsWith("[")) {
-            ValueType type = resolveSingleDescriptor(nameIdx);
+            ArrayTypeDescriptor desc = (ArrayTypeDescriptor) getDescriptorConstant(nameIdx);
+            ValueType type = ctxt.resolveTypeFromDescriptor(desc, List.of(), TypeSignature.synthesize(ctxt, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
             return ((ReferenceType) type).getUpperBound();
         } else {
             DefinedTypeDefinition definedType = ctxt.findDefinedType(name);
@@ -359,198 +363,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     public long getRawConstantLong(final int idx, final int offset) throws IndexOutOfBoundsException {
         int cpOffset = cpOffsets[idx];
         return cpOffset == 0 ? 0 : getLong(cpOffset + offset);
-    }
-
-    private void populateTypeInfo(final int descIdx) {
-        checkConstantType(descIdx, CONSTANT_Utf8);
-        if (types[descIdx] != null) {
-            // already populated
-            return;
-        }
-        int b = getRawConstantByte(descIdx, 3);
-        int len = getUtf8ConstantLength(descIdx);
-        int i;
-        if (b == '(') {
-            // it's a method
-            // scan it twice
-            int cnt = getTypesArrayLength(descIdx, 1, 0);
-            // first get the number of parameters
-            if (cnt == 0) {
-                methodParamInfo[descIdx] = ParameterizedExecutableDescriptor.of();
-                i = 2; // "()"
-            } else {
-                ValueType[] types = new ValueType[cnt];
-                boolean[] class2params = new boolean[cnt];
-                i = populateTypesArray(descIdx, types, class2params, 1, 0) + 1;
-                methodParamInfo[descIdx] = ParameterizedExecutableDescriptor.of(types);
-                methodParamClass2[descIdx] = class2params;
-            }
-        } else {
-            i = 0;
-        }
-        // now the remaining string (starting at i) is the type (or return type)
-        int descOffs = cpOffsets[descIdx];
-        types[descIdx] = resolveSingleDescriptor(descOffs + 3 + i, getShort(descOffs + 1) - i);
-        int c = getByte(descOffs + 3 + i);
-        class2[descIdx] = c == 'J' || c == 'D';
-    }
-
-    public ConstructorDescriptor resolveConstructorDescriptor(final int argument) throws ResolutionFailedException {
-        return getConstructorDescriptor(getShort(methodOffsets[argument] + 4));
-    }
-
-    public ConstructorDescriptor getConstructorDescriptor(final int descIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
-        populateTypeInfo(descIdx);
-        return ConstructorDescriptor.of(methodParamInfo[descIdx]);
-    }
-
-    public MethodDescriptor resolveMethodDescriptor(final int argument) throws ResolutionFailedException {
-        // we have the method index but we have to get the descriptor index
-        return getMethodDescriptor(getShort(methodOffsets[argument] + 4));
-    }
-
-    public boolean hasClass2ReturnType(final int argument) {
-        return class2[getShort(methodOffsets[argument] + 4)];
-    }
-
-    public MethodDescriptor getMethodDescriptor(final int descIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
-        populateTypeInfo(descIdx);
-        return MethodDescriptor.of(methodParamInfo[descIdx], types[descIdx]);
-    }
-
-    int getTypesArrayLength(int descIdx, int pos, int idx) {
-        int b = getRawConstantByte(descIdx, 3 + pos);
-        switch (b) {
-            case 'B':
-            case 'C':
-            case 'D':
-            case 'F':
-            case 'I':
-            case 'J':
-            case 'S':
-            case 'V':
-            case 'Z': {
-                return getTypesArrayLength(descIdx, pos + 1, idx + 1);
-            }
-            case '[': {
-                return getTypesArrayLength(descIdx, pos + 1, idx);
-            }
-            case 'L': {
-                while (getRawConstantByte(descIdx, ++pos + 3) != ';');
-                return getTypesArrayLength(descIdx, pos + 1, idx + 1);
-            }
-            case ')': {
-                return idx;
-            }
-            default: {
-                throw new InvalidTypeDescriptorException("Invalid type descriptor character '" + (char) b + "'");
-            }
-        }
-    }
-
-    int populateTypesArray(int descIdx, ValueType[] types, final boolean[] class2Params, int pos, int idx) {
-        if (idx == types.length) {
-            return pos;
-        }
-        int b = getRawConstantByte(descIdx, 3 + pos);
-        switch (b) {
-            case 'D':
-            case 'J': {
-                class2Params[idx] = true;
-                // fall through
-            }
-            case 'B':
-            case 'C':
-            case 'F':
-            case 'I':
-            case 'S':
-            case 'V':
-            case 'Z': {
-                types[idx] = forSimpleDescriptor(b);
-                pos ++;
-                break;
-            }
-            case '[': {
-                int res = populateTypesArray(descIdx, types, class2Params, pos + 1, idx);
-                ArrayTypeIdLiteral arrayType;
-                if (types[idx] instanceof ReferenceType) {
-                    arrayType = literalFactory.literalOfArrayType((ReferenceType) types[idx]);
-                } else {
-                    arrayType = literalFactory.literalOfArrayType(types[idx]);
-                }
-                types[idx] = typeSystem.getReferenceType(arrayType);
-                return res;
-            }
-            case 'L': {
-                int start = ++pos;
-                while (getRawConstantByte(descIdx, 3 + pos++) != ';');
-                types[idx] = loadClassAsReferenceType(cpOffsets[descIdx] + 3 + start, pos - start - 1, true);
-                break;
-            }
-            default: {
-                throw new InvalidTypeDescriptorException("Invalid type descriptor character '" + (char) b + "'");
-            }
-        }
-        return populateTypesArray(descIdx, types, class2Params, pos, idx + 1);
-    }
-
-    ValueType resolveSingleDescriptor(int cpIdx) {
-        checkConstantType(cpIdx, CONSTANT_Utf8);
-        int cpOffset = cpOffsets[cpIdx];
-        return resolveSingleDescriptor(cpOffset + 3, getShort(cpOffset + 1));
-    }
-
-    ValueType forSimpleDescriptor(int ch) {
-        switch (ch) {
-            case 'B': return typeSystem.getSignedInteger8Type();
-            case 'C': return typeSystem.getUnsignedInteger16Type();
-            case 'D': return typeSystem.getFloat64Type();
-            case 'F': return typeSystem.getFloat32Type();
-            case 'I': return typeSystem.getSignedInteger32Type();
-            case 'J': return typeSystem.getSignedInteger64Type();
-            case 'S': return typeSystem.getSignedInteger16Type();
-            case 'V': return typeSystem.getVoidType();
-            case 'Z': return typeSystem.getBooleanType();
-            default: throw new InvalidTypeDescriptorException("Invalid type descriptor character '" + (char) ch + "'");
-        }
-    }
-
-    ValueType resolveSingleDescriptor(final int offs, final int maxLen) {
-        if (maxLen < 1) {
-            throw new InvalidTypeDescriptorException("Invalid empty type descriptor");
-        }
-        int b = getByte(offs);
-        switch (b) {
-            case 'B':
-            case 'C':
-            case 'D':
-            case 'F':
-            case 'I':
-            case 'J':
-            case 'S':
-            case 'V':
-            case 'Z': return forSimpleDescriptor(b);
-            //
-            case '[': {
-                ValueType elementType = resolveSingleDescriptor(offs + 1, maxLen - 1);
-                ArrayTypeIdLiteral arrayType;
-                if (elementType instanceof ReferenceType) {
-                    arrayType = literalFactory.literalOfArrayType((ReferenceType) elementType);
-                } else {
-                    arrayType = literalFactory.literalOfArrayType(elementType);
-                }
-                return typeSystem.getReferenceType(arrayType);
-            }
-            case 'L': {
-                for (int i = 0; i < maxLen; i ++) {
-                    if (getByte(offs + 1 + i) == ';') {
-                        return loadClassAsReferenceType(offs + 1, i, true);
-                    }
-                }
-                // fall thru
-            }
-            default: throw new InvalidTypeDescriptorException("Invalid type descriptor character '" + (char) b + "'");
-        }
     }
 
     TypeIdLiteral resolveSingleType(int cpIdx) {
@@ -610,6 +422,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             throw new IndexOutOfBoundsException(idx);
         }
         return getClassConstantName(getShort(interfacesOffset + (idx << 1)));
+    }
+
+    public Descriptor getDescriptorConstant(final int idx) {
+        if (idx == 0) {
+            return null;
+        }
+        Descriptor descriptor = getVolatile(descriptors, idx);
+        if (descriptor != null) {
+            return descriptor;
+        } else {
+            return setIfNull(descriptors, idx, Descriptor.parse(ctxt, getUtf8ConstantAsBuffer(idx)));
+        }
     }
 
     public int getFieldCount() {
@@ -771,32 +595,45 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         builder.setName(getName());
         builder.setContext(ctxt);
         int access = getAccess();
+        String superClassName = getSuperClassName();
         builder.setSuperClassName(getSuperClassName());
         int cnt = getInterfaceNameCount();
         for (int i = 0; i < cnt; i ++) {
             builder.addInterfaceName(getInterfaceName(i));
         }
         // make sure that annotations are added first for convenience
-        cnt = getAttributeCount();
-        for (int i = 0; i < cnt; i ++) {
+        int acnt = getAttributeCount();
+        ClassSignature signature = null;
+        for (int i = 0; i < acnt; i ++) {
             if (attributeNameEquals(i, "RuntimeVisibleAnnotations")) {
                 ByteBuffer data = getRawAttributeContent(i);
                 int ac = data.getShort() & 0xffff;
+                Annotation[] annotations = new Annotation[ac];
                 for (int j = 0; j < ac; j ++) {
-                    builder.addVisibleAnnotation(buildAnnotation(data));
+                    annotations[j] = Annotation.parse(this, ctxt, data);
                 }
+                builder.setVisibleAnnotations(List.of(annotations));
             } else if (attributeNameEquals(i, "RuntimeInvisibleAnnotations")) {
                 ByteBuffer data = getRawAttributeContent(i);
                 int ac = data.getShort() & 0xffff;
-                for (int j = 0; j < ac; j ++) {
-                    builder.addInvisibleAnnotation(buildAnnotation(data));
+                Annotation[] annotations = new Annotation[ac];
+                for (int j = 0; j < ac; j++) {
+                    annotations[j] = Annotation.parse(this, ctxt, data);
                 }
+                builder.setInvisibleAnnotations(List.of(annotations));
+            } else if (attributeNameEquals(i, "RuntimeVisibleTypeAnnotations")) {
+                TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getRawAttributeContent(i));
+                builder.setVisibleTypeAnnotations(list);
+            } else if (attributeNameEquals(i, "RuntimeInvisibleTypeAnnotations")) {
+                TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getRawAttributeContent(i));
+                builder.setInvisibleTypeAnnotations(list);
             } else if (attributeNameEquals(i, "Deprecated")) {
                 access |= I_ACC_DEPRECATED;
             } else if (attributeNameEquals(i, "Synthetic")) {
                 access |= ACC_SYNTHETIC;
             } else if (attributeNameEquals(i, "Signature")) {
-                // todo
+                int sigIdx = getRawAttributeShort(i, 0);
+                signature = ClassSignature.parse(ctxt, getUtf8ConstantAsBuffer(sigIdx));
             } else if (attributeNameEquals(i, "SourceFile")) {
                 // todo
             } else if (attributeNameEquals(i, "BootstrapMethods")) {
@@ -807,9 +644,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
                 // todo
             }
         }
+        if (signature == null) {
+            ClassTypeSignature superClassSig = superClassName == null ? null : (ClassTypeSignature) TypeSignature.synthesize(ctxt, ClassTypeDescriptor.synthesize(ctxt, superClassName));
+            ClassTypeSignature[] interfaceSigs = new ClassTypeSignature[cnt];
+            for (int i = 0; i < cnt; i ++) {
+                interfaceSigs[i] = (ClassTypeSignature) TypeSignature.synthesize(ctxt, ClassTypeDescriptor.synthesize(ctxt, getInterfaceName(i)));
+            }
+            signature = ClassSignature.synthesize(ctxt, superClassSig, List.of(interfaceSigs));
+        }
+        builder.setSignature(signature);
         boolean foundInitializer = false;
-        cnt = getMethodCount();
-        for (int i = 0; i < cnt; i ++) {
+        acnt = getMethodCount();
+        for (int i = 0; i < acnt; i ++) {
             int base = methodOffsets[i];
             int nameIdx = getShort(base + 2);
             if (utf8ConstantEquals(nameIdx, "<clinit>")) {
@@ -827,8 +673,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
             // synthesize an empty one
             builder.setInitializer(this, 0);
         }
-        cnt = getFieldCount();
-        for (int i = 0; i < cnt; i ++) {
+        acnt = getFieldCount();
+        for (int i = 0; i < acnt; i ++) {
             builder.addField(this, i);
         }
         builder.setModifiers(access);
@@ -837,11 +683,47 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     public FieldElement resolveField(final int index, final DefinedTypeDefinition enclosing) {
         FieldElement.Builder builder = FieldElement.builder();
         builder.setEnclosingType(enclosing);
-        builder.setTypeResolver(this, index);
+        TypeDescriptor typeDescriptor = (TypeDescriptor) getDescriptorConstant(getShort(fieldOffsets[index] + 4));
+        builder.setDescriptor(typeDescriptor);
         builder.setModifiers(getShort(fieldOffsets[index]));
         builder.setName(getUtf8Constant(getShort(fieldOffsets[index] + 2)));
-        builder.setSourceFile(sourceFile);
-        addFieldAnnotations(index, builder);
+        // process attributes
+        TypeSignature signature = null;
+        int cnt = getFieldAttributeCount(index);
+        for (int i = 0; i < cnt; i ++) {
+            if (fieldAttributeNameEquals(index, i, "RuntimeVisibleAnnotations")) {
+                ByteBuffer data = getFieldRawAttributeContent(index, i);
+                int ac = data.getShort() & 0xffff;
+                Annotation[] annotations = new Annotation[ac];
+                for (int j = 0; j < ac; j ++) {
+                    annotations[j] = Annotation.parse(this, ctxt, data);
+                }
+                builder.setVisibleAnnotations(List.of(annotations));
+            } else if (fieldAttributeNameEquals(index, i, "RuntimeInvisibleAnnotations")) {
+                ByteBuffer data = getFieldRawAttributeContent(index, i);
+                int ac = data.getShort() & 0xffff;
+                Annotation[] annotations = new Annotation[ac];
+                for (int j = 0; j < ac; j ++) {
+                    annotations[j] = Annotation.parse(this, ctxt, data);
+                }
+                builder.setInvisibleAnnotations(List.of(annotations));
+            } else if (fieldAttributeNameEquals(index, i, "Signature")) {
+                int sigIdx = getFieldRawAttributeShort(index, i, 0);
+                signature = TypeSignature.parse(ctxt, getUtf8ConstantAsBuffer(sigIdx));
+            } else if (fieldAttributeNameEquals(index, i, "RuntimeVisibleTypeAnnotations")) {
+                TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getFieldRawAttributeContent(index, i));
+                builder.setVisibleTypeAnnotations(list);
+            } else if (fieldAttributeNameEquals(index, i, "RuntimeInvisibleTypeAnnotations")) {
+                TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getFieldRawAttributeContent(index, i));
+                builder.setInvisibleTypeAnnotations(list);
+            }
+        }
+        if (signature == null) {
+            signature = TypeSignature.synthesize(ctxt, typeDescriptor);
+        }
+        builder.setSignature(signature);
+        builder.setSourceFileName(sourceFile);
+        builder.setIndex(index);
         return builder.build();
     }
 
@@ -854,12 +736,12 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         boolean mayHaveExact = (methodModifiers & ACC_ABSTRACT) == 0;
         boolean hasVirtual = (methodModifiers & (ACC_STATIC | ACC_PRIVATE)) == 0;
         if (mayHaveExact) {
-            addExactBody(builder, index, enclosing);
+            addMethodBody(builder, index, enclosing);
         }
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
-        builder.setMethodTypeResolver(this, index);
-        builder.setSourceFile(sourceFile);
+        builder.setIndex(index);
+        builder.setSourceFileName(sourceFile);
         return builder.build();
     }
 
@@ -868,11 +750,11 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         builder.setEnclosingType(enclosing);
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
-        addExactBody(builder, index, enclosing);
+        addMethodBody(builder, index, enclosing);
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
-        builder.setConstructorTypeResolver(this, index);
-        builder.setSourceFile(sourceFile);
+        builder.setIndex(index);
+        builder.setSourceFileName(sourceFile);
         return builder.build();
     }
 
@@ -880,37 +762,15 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
         InitializerElement.Builder builder = InitializerElement.builder();
         builder.setEnclosingType(enclosing);
         builder.setModifiers(ACC_STATIC);
-        if (index == 0) {
-            builder.setExactMethodBody(null);
-        } else {
-            addExactBody(builder, index, enclosing);
+        if (index != 0) {
+            addMethodBody(builder, index, enclosing);
         }
-        builder.setSourceFile(sourceFile);
+        builder.setSourceFileName(sourceFile);
+        builder.setIndex(index);
         return builder.build();
     }
 
-    public ValueType resolveFieldType(final long argument) throws ResolutionFailedException {
-        int fo = fieldOffsets[(int) argument];
-        return resolveSingleDescriptor(getShort(fo + 4));
-    }
-
-    public boolean hasClass2FieldType(final long argument) {
-        int realIdx = getShort(fieldOffsets[(int) argument] + 4);
-        populateTypeInfo(realIdx);
-        return class2[realIdx];
-    }
-
-    public ValueType resolveParameterType(final int methodIdx, final int paramIdx) throws ResolutionFailedException {
-        return getMethodDescriptor(getShort(methodOffsets[methodIdx] + 4)).getParameterType(paramIdx);
-    }
-
-    public boolean hasClass2ParameterType(final int methodIdx, final int paramIdx) {
-        int realIdx = getShort(methodOffsets[methodIdx] + 4);
-        populateTypeInfo(realIdx);
-        return methodParamClass2[realIdx][paramIdx];
-    }
-
-    private void addExactBody(ExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
+    private void addMethodBody(ExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
         int attrCount = getMethodAttributeCount(index);
         for (int i = 0; i < attrCount; i ++) {
             if (methodAttributeNameEquals(index, i, "Code")) {
@@ -922,53 +782,81 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
 
     private void addExactBody(final ExecutableElement.Builder builder, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing) {
         int modifiers = getShort(methodOffsets[index]);
-        builder.setExactMethodBody(new ExactMethodHandleImpl(this, modifiers, index, codeAttr, enclosing));
+        builder.setMethodBody(new ExactMethodHandleImpl(this, modifiers, index, codeAttr, enclosing));
     }
 
-    private void addParameters(ParameterizedExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
+    private void addParameters(InvokableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
         int base = methodOffsets[index];
         int descIdx = getShort(base + 4);
-        int descLen = getShort(cpOffsets[descIdx] + 1);
+        MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(descIdx);
         int attrCnt = getMethodAttributeCount(index);
-        int realCnt = getTypesArrayLength(descIdx, 1, 0);
+        assert methodDescriptor != null;
+        int realCnt = methodDescriptor.getParameterTypes().size();
         ByteBuffer visibleAnn = null;
         ByteBuffer invisibleAnn = null;
+        ByteBuffer visibleTypeAnn = null;
+        ByteBuffer invisibleTypeAnn = null;
         ByteBuffer methodParams = null;
+        MethodSignature signature = null;
         for (int i = 0; i < attrCnt; i ++) {
             if (methodAttributeNameEquals(index, i, "RuntimeVisibleParameterAnnotations")) {
                 visibleAnn = getMethodRawAttributeContent(index, i);
             } else if (methodAttributeNameEquals(index, i, "RuntimeInvisibleParameterAnnotations")) {
                 invisibleAnn = getMethodRawAttributeContent(index, i);
+            } else if (methodAttributeNameEquals(index, i, "RuntimeVisibleParameterTypeAnnotations")) {
+                visibleTypeAnn = getMethodRawAttributeContent(index, i);
+            } else if (methodAttributeNameEquals(index, i, "RuntimeInvisibleParameterTypeAnnotations")) {
+                invisibleTypeAnn = getMethodRawAttributeContent(index, i);
             } else if (methodAttributeNameEquals(index, i, "MethodParameters")) {
                 methodParams = getMethodRawAttributeContent(index, i);
+            } else if (methodAttributeNameEquals(index, i, "Signature")) {
+                // todo: variant which accepts a MethodDescriptor to account for differing param lengths
+                int sigIdx = getMethodRawAttributeShort(index, i, 0);
+                signature = MethodSignature.parse(ctxt, getUtf8ConstantAsBuffer(sigIdx));
             }
+        }
+        if (signature == null || signature.getParameterTypes().size() != methodDescriptor.getParameterTypes().size()) {
+            signature = MethodSignature.synthesize(ctxt, methodDescriptor);
         }
         // we're making an assumption that annotations and params match the end of the list (due to inner classes);
         // if this doesn't work, we might need to use an alt. strategy e.g. skip ACC_MANDATED params
         int vaCnt = visibleAnn == null ? 0 : visibleAnn.get() & 0xff;
         int vaOffs = realCnt - vaCnt;
+        int vtaCnt = visibleTypeAnn == null ? 0 : visibleTypeAnn.get() & 0xff;
+        int vtaOffs = realCnt - vtaCnt;
         int iaCnt = invisibleAnn == null ? 0 : invisibleAnn.get() & 0xff;
         int iaOffs = realCnt - iaCnt;
+        int itaCnt = invisibleTypeAnn == null ? 0 : invisibleTypeAnn.get() & 0xff;
+        int itaOffs = realCnt - itaCnt;
         int mpCnt = methodParams == null ? 0 : methodParams.get() & 0xff;
         int mpOffs = realCnt - mpCnt;
+        ParameterElement[] parameters = new ParameterElement[realCnt];
         for (int i = 0; i < realCnt; i ++) {
             ParameterElement.Builder paramBuilder = ParameterElement.builder();
-            paramBuilder.setEnclosingType(enclosing);
             paramBuilder.setIndex(i);
-            paramBuilder.setResolver(this, index, i);
+            paramBuilder.setDescriptor(methodDescriptor.getParameterTypes().get(i));
+            paramBuilder.setSignature(signature.getParameterTypes().get(i));
             if (i >= vaOffs && i < vaOffs + vaCnt) {
                 int annCnt = visibleAnn.getShort() & 0xffff;
-                paramBuilder.expectVisibleAnnotationCount(annCnt);
+                Annotation[] annotations = new Annotation[annCnt];
                 for (int j = 0; j < annCnt; j ++) {
-                    paramBuilder.addVisibleAnnotation(buildAnnotation(visibleAnn));
+                    annotations[j] = Annotation.parse(this, ctxt, visibleAnn);
                 }
+                paramBuilder.setVisibleAnnotations(List.of(annotations));
+            }
+            if (i >= vtaOffs && i < vtaOffs + vtaCnt) {
+                paramBuilder.setVisibleTypeAnnotations(TypeAnnotationList.parse(this, ctxt, visibleTypeAnn));
             }
             if (i >= iaOffs && i < iaOffs + iaCnt) {
                 int annCnt = invisibleAnn.getShort() & 0xffff;
-                paramBuilder.expectInvisibleAnnotationCount(annCnt);
+                Annotation[] annotations = new Annotation[annCnt];
                 for (int j = 0; j < annCnt; j ++) {
-                    paramBuilder.addInvisibleAnnotation(buildAnnotation(invisibleAnn));
+                    annotations[j] = Annotation.parse(this, ctxt, invisibleAnn);
                 }
+                paramBuilder.setInvisibleAnnotations(List.of(annotations));
+            }
+            if (i >= itaOffs && i < itaOffs + itaCnt) {
+                paramBuilder.setInvisibleTypeAnnotations(TypeAnnotationList.parse(this, ctxt, invisibleTypeAnn));
             }
             if (i >= mpOffs && i < mpOffs + mpCnt) {
                 int nameIdx = methodParams.getShort() & 0xffff;
@@ -977,130 +865,50 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
                 }
                 paramBuilder.setModifiers(methodParams.getShort() & 0xffff);
             }
-            paramBuilder.setSourceFile(sourceFile);
-            builder.addParameter(paramBuilder.build());
+            parameters[i] = paramBuilder.build();
         }
+        builder.setDescriptor(methodDescriptor);
+        builder.setSignature(signature);
+        builder.setParameters(List.of(parameters));
     }
 
-    private void addMethodAnnotations(final int index, AnnotatedElement.Builder builder) {
+    private void addMethodAnnotations(final int index, InvokableElement.Builder builder) {
         int cnt = getMethodAttributeCount(index);
         for (int i = 0; i < cnt; i ++) {
             if (methodAttributeNameEquals(index, i, "RuntimeVisibleAnnotations")) {
                 ByteBuffer data = getMethodRawAttributeContent(index, i);
                 int ac = data.getShort() & 0xffff;
+                Annotation[] annotations = new Annotation[ac];
                 for (int j = 0; j < ac; j ++) {
-                    builder.addVisibleAnnotation(buildAnnotation(data));
+                    annotations[j] = Annotation.parse(this, ctxt, data);
                 }
+                builder.setVisibleAnnotations(List.of(annotations));
             } else if (methodAttributeNameEquals(index, i, "RuntimeInvisibleAnnotations")) {
                 ByteBuffer data = getMethodRawAttributeContent(index, i);
                 int ac = data.getShort() & 0xffff;
+                Annotation[] annotations = new Annotation[ac];
                 for (int j = 0; j < ac; j ++) {
-                    builder.addInvisibleAnnotation(buildAnnotation(data));
+                    annotations[j] = Annotation.parse(this, ctxt, data);
                 }
+                builder.setInvisibleAnnotations(List.of(annotations));
+            } else if (methodAttributeNameEquals(index, i, "RuntimeVisibleTypeAnnotations")) {
+                TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getFieldRawAttributeContent(index, i));
+                builder.setReturnVisibleTypeAnnotations(list);
+            } else if (methodAttributeNameEquals(index, i, "RuntimeInvisibleTypeAnnotations")) {
+                TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getFieldRawAttributeContent(index, i));
+                builder.setReturnInvisibleTypeAnnotations(list);
             }
         }
-    }
-
-    private void addFieldAnnotations(final int index, AnnotatedElement.Builder builder) {
-        int cnt = getFieldAttributeCount(index);
-        for (int i = 0; i < cnt; i ++) {
-            if (fieldAttributeNameEquals(index, i, "RuntimeVisibleAnnotations")) {
-                ByteBuffer data = getFieldRawAttributeContent(index, i);
-                int ac = data.getShort() & 0xffff;
-                for (int j = 0; j < ac; j ++) {
-                    builder.addVisibleAnnotation(buildAnnotation(data));
-                }
-            } else if (fieldAttributeNameEquals(index, i, "RuntimeInvisibleAnnotations")) {
-                ByteBuffer data = getFieldRawAttributeContent(index, i);
-                int ac = data.getShort() & 0xffff;
-                for (int j = 0; j < ac; j ++) {
-                    builder.addInvisibleAnnotation(buildAnnotation(data));
-                }
-            }
-        }
-    }
-
-    // general
-
-    private Annotation buildAnnotation(ByteBuffer buffer) {
-        Annotation.Builder builder = Annotation.builder();
-        int typeIndex = buffer.getShort() & 0xffff;
-        int ch = getRawConstantByte(typeIndex, 3); // first byte of the string
-        if (ch != 'L') {
-            throw new InvalidTypeDescriptorException("Invalid annotation type descriptor");
-        }
-        int typeLen = getRawConstantShort(typeIndex, 1);
-        ch = getRawConstantByte(typeIndex, 3 + typeLen - 1); // last byte
-        if (ch != ';') {
-            throw new InvalidTypeDescriptorException("Unterminated annotation type descriptor");
-        }
-        String name = ctxt.deduplicate(getBackingBuffer(), cpOffsets[typeIndex] + 4, typeLen - 2);
-        builder.setClassName(name);
-        int cnt = buffer.getShort() & 0xffff;
-        for (int i = 0; i < cnt; i ++) {
-            builder.addValue(getUtf8Constant(buffer.getShort() & 0xffff), buildAnnotationValue(buffer));
-        }
-        return builder.build();
-    }
-
-    private AnnotationValue buildAnnotationValue(ByteBuffer buffer) {
-        // tag
-        switch (buffer.get() & 0xff) {
-            case 'B': {
-                return ByteAnnotationValue.of(getIntConstant(buffer.getShort() & 0xffff));
-            }
-            case 'C': {
-                return CharAnnotationValue.of(getIntConstant(buffer.getShort() & 0xffff));
-            }
-            case 'D': {
-                return DoubleAnnotationValue.of(getDoubleConstant(buffer.getShort() & 0xffff));
-            }
-            case 'F': {
-                return FloatAnnotationValue.of(getFloatConstant(buffer.getShort() & 0xffff));
-            }
-            case 'I': {
-                return IntAnnotationValue.of(getIntConstant(buffer.getShort() & 0xffff));
-            }
-            case 'J': {
-                return LongAnnotationValue.of(getLongConstant(buffer.getShort() & 0xffff));
-            }
-            case 'S': {
-                return ShortAnnotationValue.of(getIntConstant(buffer.getShort() & 0xffff));
-            }
-            case 'Z': {
-                return BooleanAnnotationValue.of(getIntConstant(buffer.getShort() & 0xffff) != 0);
-            }
-            case 's': {
-                return StringAnnotationValue.of(getUtf8Constant(buffer.getShort() & 0xffff));
-            }
-            case 'e': {
-                return EnumConstantAnnotationValue.of(getUtf8Constant(buffer.getShort() & 0xffff), getUtf8Constant(buffer.getShort() & 0xffff));
-            }
-            case '@': {
-                return buildAnnotation(buffer);
-            }
-            case '[': {
-                int count = buffer.getShort() & 0xffff;
-                AnnotationValue[] array = new AnnotationValue[count];
-                for (int j = 0; j < count; j ++) {
-                    array[j] = buildAnnotationValue(buffer);
-                }
-                return AnnotationValue.array(array);
-            }
-            default: {
-                throw new InvalidAnnotationValueException("Invalid annotation value tag");
-            }
-        }
-    }
-
-    private Annotation buildAnnotation(int offset, int length) {
-        return buildAnnotation(slice(offset, length));
     }
 
     // concurrency
 
     private static Literal getVolatile(Literal[] array, int index) {
         return (Literal) literalArrayHandle.getVolatile(array, index);
+    }
+
+    private static Descriptor getVolatile(Descriptor[] array, int index) {
+        return (Descriptor) descriptorArrayHandle.getVolatile(array, index);
     }
 
     private static String getVolatile(String[] array, int index) {
@@ -1126,6 +934,16 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile,
     private static Literal setIfNull(Literal[] array, int index, Literal newVal) {
         while (! literalArrayHandle.compareAndSet(array, index, null, newVal)) {
             Literal appearing = getVolatile(array, index);
+            if (appearing != null) {
+                return appearing;
+            }
+        }
+        return newVal;
+    }
+
+    private static Descriptor setIfNull(Descriptor[] array, int index, Descriptor newVal) {
+        while (! descriptorArrayHandle.compareAndSet(array, index, null, newVal)) {
+            Descriptor appearing = getVolatile(array, index);
             if (appearing != null) {
                 return appearing;
             }

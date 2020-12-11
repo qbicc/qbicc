@@ -13,7 +13,7 @@ import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.context.DiagnosticContext;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.type.definition.element.BasicElement;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 public final class BaseDiagnosticContext implements DiagnosticContext  {
     final ConcurrentHashMap<AttachmentKey<?>, Object> attachmentsMap = new ConcurrentHashMap<AttachmentKey<?>, Object>();
@@ -103,7 +103,7 @@ public final class BaseDiagnosticContext implements DiagnosticContext  {
         return msg(new Diagnostic(parent, loc, level, fmt, args));
     }
 
-    public Diagnostic msg(final Diagnostic parent, final BasicElement element, final Node node, final Diagnostic.Level level, final String fmt, final Object... args) {
+    public Diagnostic msg(final Diagnostic parent, final Element element, final Node node, final Diagnostic.Level level, final String fmt, final Object... args) {
         Location loc;
         if (element == null && node == null) {
             loc = Location.NO_LOC;

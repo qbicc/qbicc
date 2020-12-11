@@ -12,7 +12,7 @@ public interface ElementVisitor<T, R> {
         return visitUnknown(param, element);
     }
 
-    default R visit(T param, MethodElement element) {
+    default R visit(T param, FieldElement element) {
         return visitUnknown(param, element);
     }
 
@@ -20,7 +20,11 @@ public interface ElementVisitor<T, R> {
         return visitUnknown(param, element);
     }
 
-    default R visit(T param, FieldElement element) {
+    default R visit(T param, LocalVariableElement element) {
+        return visitUnknown(param, element);
+    }
+
+    default R visit(T param, MethodElement element) {
         return visitUnknown(param, element);
     }
 
@@ -37,6 +41,10 @@ public interface ElementVisitor<T, R> {
         }
 
         default R visit(final T param, final ConstructorElement element) {
+            return getDelegateElementVisitor().visit(param, element);
+        }
+
+        default R visit(final T param, final LocalVariableElement element) {
             return getDelegateElementVisitor().visit(param, element);
         }
 

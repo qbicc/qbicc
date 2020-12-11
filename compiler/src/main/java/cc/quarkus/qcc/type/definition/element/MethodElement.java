@@ -1,58 +1,65 @@
 package cc.quarkus.qcc.type.definition.element;
 
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.ResolutionFailedException;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
  *
  */
-public interface MethodElement extends ExecutableElement, VirtualExecutableElement, ParameterizedExecutableElement,
-                                       AnnotatedElement, NamedElement {
-    MethodElement[] NO_METHODS = new MethodElement[0];
+public final class MethodElement extends InvokableElement implements NamedElement {
+    public static final MethodElement[] NO_METHODS = new MethodElement[0];
 
-    default boolean isAbstract() {
+    /**
+     * Special marker method used in method searches.
+     */
+    public static final MethodElement NOT_FOUND = new MethodElement();
+    /**
+     * Special marker method used in method searches.
+     */
+    public static final MethodElement END_OF_SEARCH = new MethodElement();
+
+    private final String name;
+
+    MethodElement() {
+        super();
+        this.name = null;
+    }
+
+    MethodElement(Builder builder) {
+        super(builder);
+        this.name = builder.name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public boolean isAbstract() {
         return hasAllModifiersOf(ClassFile.ACC_ABSTRACT);
     }
 
-    ValueType getReturnType();
+    public boolean isVirtual() {
+        return hasNoModifiersOf(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC);
+    }
 
-    boolean hasClass2ReturnType();
+    public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
 
-    default boolean overrides(MethodElement other) {
-        if (other.getReturnType() == getReturnType()) {
-            int cnt = getParameterCount();
-            if (other.getParameterCount() == cnt) {
-                for (int i = 0; i < cnt; i ++) {
-                    if (other.getParameter(i).getType() != getParameter(i).getType()) {
-                        return false;
-                    }
-                }
-                return true;
-            }
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static final class Builder extends InvokableElement.Builder implements NamedElement.Builder {
+        String name;
+
+        Builder() {}
+
+        public void setName(final String name) {
+            this.name = name;
         }
-        return false;
-    }
 
-    MethodDescriptor getDescriptor();
-
-    interface TypeResolver {
-        MethodDescriptor resolveMethodDescriptor(int argument) throws ResolutionFailedException;
-
-        boolean hasClass2ReturnType(int argument);
-
-        // todo: generic/annotated type
-    }
-
-    static Builder builder() {
-        return new MethodElementImpl.Builder();
-    }
-
-    interface Builder extends VirtualExecutableElement.Builder, ParameterizedExecutableElement.Builder,
-                              AnnotatedElement.Builder, NamedElement.Builder {
-        void setMethodTypeResolver(TypeResolver resolver, int argument);
-
-        MethodElement build();
+        public MethodElement build() {
+            return new MethodElement(this);
+        }
     }
 }

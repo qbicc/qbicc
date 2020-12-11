@@ -19,16 +19,24 @@ import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
+import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.generic.MethodSignature;
+import cc.quarkus.qcc.type.generic.ParameterizedSignature;
+import cc.quarkus.qcc.type.generic.TypeSignature;
 import io.smallrye.common.constraint.Assert;
 
 /**
  * A class and interface context, which can either be standalone (static) or can be integrated with an interpreter.  An
  * interpreter should have one instance per class loader.
  */
-public interface ClassContext {
+public interface ClassContext extends DescriptorTypeResolver {
     CompilationContext getCompilationContext();
 
     /**
@@ -57,6 +65,10 @@ public interface ClassContext {
     BasicBlockBuilder newBasicBlockBuilder(ExecutableElement element);
 
     void defineClass(String name, DefinedTypeDefinition definition);
+
+    ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations);
+
+    FunctionType resolveTypeFromMethodDescriptor(MethodDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisibleAnnotations);
 
     /**
      * Create a basic class context which can be used to produce type definitions.
@@ -174,6 +186,18 @@ public interface ClassContext {
             }
 
             public void defineClass(final String name, final DefinedTypeDefinition definition) {
+                throw Assert.unsupported();
+            }
+
+            public ValueType resolveTypeFromClassName(final String packageName, final String internalName) {
+                throw Assert.unsupported();
+            }
+
+            public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
+                throw Assert.unsupported();
+            }
+
+            public FunctionType resolveTypeFromMethodDescriptor(final MethodDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final MethodSignature signature, final TypeAnnotationList returnTypeVisible, final List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisibleAnnotations) {
                 throw Assert.unsupported();
             }
         };

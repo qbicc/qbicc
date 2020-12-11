@@ -1,37 +1,26 @@
 package cc.quarkus.qcc.type.definition.element;
 
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.ResolutionFailedException;
-
 /**
- *
+ * A method parameter variable.
  */
-public interface ParameterElement extends NamedElement, AnnotatedElement {
-    ParameterElement[] NO_PARAMETERS = new ParameterElement[0];
+public final class ParameterElement extends VariableElement {
+    public static final ParameterElement[] NO_PARAMETERS = new ParameterElement[0];
 
-    int getIndex();
-
-    ValueType getType();
-
-    boolean hasClass2Type();
-
-    interface TypeResolver {
-        ValueType resolveParameterType(int methodArg, int paramArg) throws ResolutionFailedException;
-
-        boolean hasClass2ParameterType(int methodArg, int paramArg);
-
-        // todo: generic/annotated type
+    ParameterElement(final Builder builder) {
+        super(builder);
     }
 
-    static Builder builder() {
-        return new ParameterElementImpl.Builder();
+    public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
+        return visitor.visit(param, this);
     }
 
-    interface Builder extends NamedElement.Builder, AnnotatedElement.Builder {
-        void setResolver(TypeResolver resolver, int methodArg, int paramArg);
+    public static Builder builder() {
+        return new Builder();
+    }
 
-        void setIndex(int index);
-
-        ParameterElement build();
+    public static final class Builder extends VariableElement.Builder {
+        public ParameterElement build() {
+            return new ParameterElement(this);
+        }
     }
 }

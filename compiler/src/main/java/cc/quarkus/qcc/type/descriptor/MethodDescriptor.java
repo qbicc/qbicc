@@ -1,54 +1,99 @@
 package cc.quarkus.qcc.type.descriptor;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.ClassContext;
 
 /**
  *
  */
-public interface MethodDescriptor extends ParameterizedExecutableDescriptor {
-    static MethodDescriptor of(ParameterizedExecutableDescriptor pd, ValueType returnType) {
-        return new MethodDescriptor() {
-            public ValueType getReturnType() {
-                return returnType;
-            }
+public final class MethodDescriptor extends Descriptor {
+    private final List<TypeDescriptor> parameterTypes;
+    private final TypeDescriptor returnType;
 
-            public List<ValueType> getParameterTypes() {
-                return pd.getParameterTypes();
-            }
-
-            public int getParameterCount() {
-                return pd.getParameterCount();
-            }
-
-            public ValueType getParameterType(final int index) {
-                return pd.getParameterType(index);
-            }
-
-            public ValueType[] getParameterTypesAsArray() {
-                return pd.getParameterTypesAsArray();
-            }
-
-            public ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor() {
-                return pd;
-            }
-
-            public int hashCode() {
-                return returnType.hashCode() * 19 + pd.hashCode();
-            }
-
-            public boolean equals(final Object obj) {
-                return obj instanceof MethodDescriptor && equals((MethodDescriptor) obj);
-            }
-
-            boolean equals(final MethodDescriptor other) {
-                return this == other || returnType.equals(other.getReturnType()) && pd.equals(other.getParameterizedExecutableDescriptor());
-            }
-        };
+    MethodDescriptor(final List<TypeDescriptor> parameterTypes, final TypeDescriptor returnType) {
+        super(Objects.hash(MethodDescriptor.class, parameterTypes, returnType));
+        this.parameterTypes = parameterTypes;
+        this.returnType = returnType;
     }
 
-    ValueType getReturnType();
+    public List<TypeDescriptor> getParameterTypes() {
+        return parameterTypes;
+    }
 
-    ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor();
+    public TypeDescriptor getReturnType() {
+        return returnType;
+    }
+
+    public boolean equals(final Descriptor other) {
+        return other instanceof MethodDescriptor && equals((MethodDescriptor) other);
+    }
+
+    public boolean equals(final MethodDescriptor other) {
+        return super.equals(other) && returnType.equals(other.returnType) && parameterTypes.equals(other.parameterTypes);
+    }
+
+    public StringBuilder toString(final StringBuilder target) {
+        target.append('(');
+        for (TypeDescriptor parameterType : parameterTypes) {
+            parameterType.toString(target);
+        }
+        return returnType.toString(target.append(')'));
+    }
+
+    public static MethodDescriptor parse(ClassContext classContext, ByteBuffer buf) {
+        if (next(buf) != '(') {
+            throw parseError();
+        }
+        List<TypeDescriptor> paramTypes;
+        if (peek(buf) != ')') {
+            TypeDescriptor a = TypeDescriptor.parse(classContext, buf);
+            if (peek(buf) != ')') {
+                TypeDescriptor b = TypeDescriptor.parse(classContext, buf);
+                if (peek(buf) != ')') {
+                    TypeDescriptor c = TypeDescriptor.parse(classContext, buf);
+                    if (peek(buf) != ')') {
+                        TypeDescriptor d = TypeDescriptor.parse(classContext, buf);
+                        if (peek(buf) != ')') {
+                            TypeDescriptor e = TypeDescriptor.parse(classContext, buf);
+                            if (peek(buf) != ')') {
+                                TypeDescriptor f = TypeDescriptor.parse(classContext, buf);
+                                if (peek(buf) != ')') {
+                                    paramTypes = new ArrayList<>();
+                                    Collections.addAll(paramTypes, a, b, c, d, e, f);
+                                    paramTypes.add(TypeDescriptor.parse(classContext, buf));
+                                    while (peek(buf) != ')') {
+                                        paramTypes.add(TypeDescriptor.parse(classContext, buf));
+                                    }
+                                    paramTypes = List.copyOf(paramTypes);
+                                } else {
+                                    paramTypes = List.of(a, b, c, d, e, f);
+                                }
+                            } else {
+                                paramTypes = List.of(a, b, c, d, e);
+                            }
+                        } else {
+                            paramTypes = List.of(a, b, c, d);
+                        }
+                    } else {
+                        paramTypes = List.of(a, b, c);
+                    }
+                } else {
+                    paramTypes = List.of(a, b);
+                }
+            } else {
+                paramTypes = List.of(a);
+            }
+        } else {
+            paramTypes = List.of();
+        }
+        expect(buf, ')');
+        return Cache.get(classContext).getMethodDescriptor(paramTypes, TypeDescriptor.parse(classContext, buf));
+    }
+
+    public static final MethodDescriptor VOID_METHOD_DESCRIPTOR = new MethodDescriptor(List.of(), BaseTypeDescriptor.V);
 }

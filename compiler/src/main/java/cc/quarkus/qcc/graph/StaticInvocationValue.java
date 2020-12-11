@@ -12,12 +12,14 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 public final class StaticInvocationValue extends AbstractValue implements MethodInvocation, Triable {
     private final Node dependency;
     private final MethodElement target;
+    private final ValueType type;
     private final List<Value> arguments;
 
-    StaticInvocationValue(final int line, final int bci, final Node dependency, final MethodElement target, final List<Value> arguments) {
+    StaticInvocationValue(final int line, final int bci, final Node dependency, final MethodElement target, final ValueType type, final List<Value> arguments) {
         super(line, bci);
         this.dependency = dependency;
         this.target = target;
+        this.type = type;
         this.arguments = arguments;
     }
 
@@ -38,7 +40,7 @@ public final class StaticInvocationValue extends AbstractValue implements Method
     }
 
     public ValueType getType() {
-        return target.getReturnType();
+        return type;
     }
 
     public int getBasicDependencyCount() {

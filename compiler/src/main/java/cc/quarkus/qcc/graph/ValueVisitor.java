@@ -635,11 +635,11 @@ public interface ValueVisitor<T, R> {
         }
 
         default Value visit(final T param, final InstanceFieldRead node) {
-            return getBuilder(param).readInstanceField(copy(param, node.getInstance()), node.getFieldElement(), node.getMode());
+            return getBuilder(param).readInstanceField(copy(param, node.getInstance()), node.getFieldElement(), node.getType(), node.getMode());
         }
 
         default Value visit(final T param, final InstanceInvocationValue node) {
-            return getBuilder(param).invokeValueInstance(node.getKind(), copy(param, node.getInstance()), node.getInvocationTarget(), copy(param, node.getArguments()));
+            return getBuilder(param).invokeValueInstance(node.getKind(), copy(param, node.getInstance()), node.getInvocationTarget(), node.getType(), copy(param, node.getArguments()));
         }
 
         default Value visit(final T param, final IntegerLiteral node) {
@@ -719,11 +719,11 @@ public interface ValueVisitor<T, R> {
         }
 
         default Value visit(final T param, final StaticFieldRead node) {
-            return getBuilder(param).readStaticField(node.getFieldElement(), node.getMode());
+            return getBuilder(param).readStaticField(node.getFieldElement(), node.getType(), node.getMode());
         }
 
         default Value visit(final T param, final StaticInvocationValue node) {
-            return getBuilder(param).invokeValueStatic(node.getInvocationTarget(), copy(param, node.getArguments()));
+            return getBuilder(param).invokeValueStatic(node.getInvocationTarget(), node.getType(), copy(param, node.getArguments()));
         }
 
         default Value visit(final T param, final StringLiteral node) {

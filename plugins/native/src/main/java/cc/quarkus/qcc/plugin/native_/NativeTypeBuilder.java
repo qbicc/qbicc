@@ -34,6 +34,7 @@ import cc.quarkus.qcc.type.definition.MethodResolver;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 
 /**
  *
@@ -70,65 +71,56 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                 NativeInfo nativeInfo = NativeInfo.get(ctxt);
                 MethodElement origMethod = resolver.resolveMethod(index, enclosing);
                 boolean isNative = origMethod.hasAllModifiersOf(ClassFile.ACC_NATIVE);
-                int cnt = origMethod.getVisibleAnnotationCount();
                 // look for annotations that indicate that this method requires special handling
-                for (int i = 0; i < cnt; i ++) {
-                    Annotation annotation = origMethod.getVisibleAnnotation(i);
-                    if (annotation.getClassInternalName().equals(Native.ANN_EXTERN)) {
-                        AnnotationValue nameVal = annotation.getValue("withName");
-                        String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
-                        // register as a function
-                        int pc = origMethod.getParameterCount();
-                        ValueType[] types = new ValueType[pc];
-                        for (int j = 0; j < pc; j ++) {
-                            types[j] = origMethod.getDescriptor().getParameterType(j);
+                for (Annotation annotation : origMethod.getVisibleAnnotations()) {
+                    ClassTypeDescriptor desc = annotation.getDescriptor();
+                    if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
+                        if (desc.getClassName().equals(Native.ANN_EXTERN)) {
+                            AnnotationValue nameVal = annotation.getValue("withName");
+                            String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
+                            // register as a function
+                            FunctionType type = origMethod.getType(classCtxt, List.of(/*todo*/));
+                            nativeInfo.nativeFunctions.put(origMethod, new NativeFunctionInfo(ctxt.getLiteralFactory().literalOfSymbol(
+                                name, type
+                            )));
+                            // all done
+                            break;
+                        } else if (desc.getClassName().equals(Native.ANN_EXPORT)) {
+                            // immediately generate the call-in stub
+                            AnnotationValue nameVal = annotation.getValue("withName");
+                            String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
+                            Function exactFunction = ctxt.getExactFunction(origMethod);
+                            FunctionType fnType = exactFunction.getType();
+                            Function function = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(IMPLICIT_SECTION_NAME).addFunction(origMethod, name, fnType);
+                            BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(origMethod);
+                            BlockLabel entry = new BlockLabel();
+                            gf.begin(entry);
+                            LiteralFactory lf = ctxt.getLiteralFactory();
+                            SymbolLiteral fn = lf.literalOfSymbol(exactFunction.getName(), exactFunction.getType());
+                            int pcnt = origMethod.getParameters().size();
+                            List<Value> args = new ArrayList<>(pcnt + 1);
+                            List<Value> pv = new ArrayList<>(pcnt);
+                            // for now, thread is null!
+                            // todo: insert prolog here
+                            args.add(lf.literalOfNull());
+                            for (int j = 0; j < pcnt; j ++) {
+                                Value parameter = gf.parameter(fnType.getParameterType(j), j);
+                                pv.add(parameter);
+                                args.add(parameter);
+                            }
+                            Value result = gf.callFunction(fn, args);
+                            if (fnType.getReturnType() instanceof VoidType) {
+                                gf.return_();
+                            } else {
+                                gf.return_(result);
+                            }
+                            BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
+                            function.replaceBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, pv));
+                            // ensure the method is reachable
+                            ctxt.registerEntryPoint(origMethod);
+                            // all done
+                            break;
                         }
-                        nativeInfo.nativeFunctions.put(origMethod, new NativeFunctionInfo(ctxt.getLiteralFactory().literalOfSymbol(
-                            name,
-                            ctxt.getTypeSystem().getFunctionType(origMethod.getReturnType(), types)
-                        )));
-                        // all done
-                        break;
-                    } else if (annotation.getClassInternalName().equals(Native.ANN_EXPORT)) {
-                        // immediately generate the call-in stub
-                        AnnotationValue nameVal = annotation.getValue("withName");
-                        String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
-                        int pc = origMethod.getParameterCount();
-                        ValueType[] types = new ValueType[pc];
-                        for (int j = 0; j < pc; j ++) {
-                            types[j] = origMethod.getDescriptor().getParameterType(j);
-                        }
-                        ValueType returnType = origMethod.getReturnType();
-                        boolean isVoid = returnType instanceof VoidType;
-                        FunctionType fnType = ctxt.getTypeSystem().getFunctionType(returnType, types);
-                        Function function = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(IMPLICIT_SECTION_NAME).addFunction(origMethod, name, fnType);
-                        BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(origMethod);
-                        BlockLabel entry = new BlockLabel();
-                        gf.begin(entry);
-                        // for now, thread is null!
-                        Function exactFunction = ctxt.getExactFunction(origMethod);
-                        LiteralFactory lf = ctxt.getLiteralFactory();
-                        SymbolLiteral fn = lf.literalOfSymbol(exactFunction.getName(), exactFunction.getType());
-                        List<Value> args = new ArrayList<>(origMethod.getParameterCount() + 1);
-                        List<Value> pv = new ArrayList<>(origMethod.getParameterCount());
-                        args.add(lf.literalOfNull());
-                        for (int j = 0; j < origMethod.getParameterCount(); j ++) {
-                            Value parameter = gf.parameter(origMethod.getDescriptor().getParameterType(j), j);
-                            pv.add(parameter);
-                            args.add(parameter);
-                        }
-                        Value result = gf.callFunction(fn, args);
-                        if (isVoid) {
-                            gf.return_();
-                        } else {
-                            gf.return_(result);
-                        }
-                        BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
-                        function.replaceBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, pv));
-                        // ensure the method is reachable
-                        ctxt.registerEntryPoint(origMethod);
-                        // all done
-                        break;
                     }
                 }
                 return origMethod;
@@ -141,42 +133,43 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         DefinedTypeDefinition builtType = getDelegate().build();
         if (isNative && ! builtType.isAbstract()) {
             CProbe.Builder pb = CProbe.builder();
-            int vac = builtType.getVisibleAnnotationCount();
             String simpleName = null;
             Qualifier q = Qualifier.NONE;
-            for (int i = 0; i < vac; i ++) {
-                Annotation annotation = builtType.getVisibleAnnotation(i);
-                if (annotation.getClassInternalName().equals(Native.ANN_NAME)) {
-                    simpleName = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                } else if (annotation.getClassInternalName().equals(Native.ANN_INCLUDE)) {
-                    // include just one
-                    String include = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                    // todo: when/unless (requires VM)
-                    pb.include(include);
-                } else if (annotation.getClassInternalName().equals(Native.ANN_INCLUDE_LIST)) {
-                    ArrayAnnotationValue array = (ArrayAnnotationValue) annotation.getValue("value");
-                    int cnt = array.getElementCount();
-                    for (int j = 0; j < cnt; j ++) {
-                        Annotation nested = (Annotation) array.getValue(j);
-                        assert nested.getClassInternalName().equals(Native.ANN_INCLUDE);
+            for (Annotation annotation : builtType.getVisibleAnnotations()) {
+                ClassTypeDescriptor annDesc = annotation.getDescriptor();
+                if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                    if (annDesc.getClassName().equals(Native.ANN_NAME)) {
+                        simpleName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                    } else if (annDesc.getClassName().equals(Native.ANN_INCLUDE)) {
+                        // include just one
                         String include = ((StringAnnotationValue) annotation.getValue("value")).getString();
                         // todo: when/unless (requires VM)
                         pb.include(include);
-                    }
-                } else if (annotation.getClassInternalName().equals(Native.ANN_DEFINE)) {
-                    // define just one
-                    String define = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                    // todo: when/unless (requires VM)
-                    pb.define(define);
-                } else if (annotation.getClassInternalName().equals(Native.ANN_DEFINE_LIST)) {
-                    ArrayAnnotationValue array = (ArrayAnnotationValue) annotation.getValue("value");
-                    int cnt = array.getElementCount();
-                    for (int j = 0; j < cnt; j ++) {
-                        Annotation nested = (Annotation) array.getValue(j);
-                        assert nested.getClassInternalName().equals(Native.ANN_DEFINE);
+                    } else if (annDesc.getClassName().equals(Native.ANN_INCLUDE_LIST)) {
+                        ArrayAnnotationValue array = (ArrayAnnotationValue) annotation.getValue("value");
+                        int cnt = array.getElementCount();
+                        for (int j = 0; j < cnt; j ++) {
+                            Annotation nested = (Annotation) array.getValue(j);
+                            assert nested.getDescriptor().getClassName().equals(Native.ANN_INCLUDE);
+                            String include = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                            // todo: when/unless (requires VM)
+                            pb.include(include);
+                        }
+                    } else if (annDesc.getClassName().equals(Native.ANN_DEFINE)) {
+                        // define just one
                         String define = ((StringAnnotationValue) annotation.getValue("value")).getString();
                         // todo: when/unless (requires VM)
                         pb.define(define);
+                    } else if (annDesc.getClassName().equals(Native.ANN_DEFINE_LIST)) {
+                        ArrayAnnotationValue array = (ArrayAnnotationValue) annotation.getValue("value");
+                        int cnt = array.getElementCount();
+                        for (int j = 0; j < cnt; j ++) {
+                            Annotation nested = (Annotation) array.getValue(j);
+                            assert nested.getDescriptor().getClassName().equals(Native.ANN_DEFINE);
+                            String define = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                            // todo: when/unless (requires VM)
+                            pb.define(define);
+                        }
                     }
                 }
                 // todo: lib (add to native info)
@@ -204,7 +197,7 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             tb.setName(simpleName);
             tb.setQualifier(q);
             for (int i = 0; i < fc; i ++) {
-                ValueType type = vt.getField(i).getType();
+                ValueType type = vt.getField(i).getType(classCtxt, List.of(/*todo*/));
                 // compound type
                 tb.addMember(vt.getField(i).getName());
             }
@@ -253,7 +246,7 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
                     } else {
                         CompoundType.Member[] members = new CompoundType.Member[fc];
                         for (int i = 0; i < fc; i ++) {
-                            ValueType type = vt.getField(i).getType();
+                            ValueType type = vt.getField(i).getType(classCtxt, List.of(/*todo*/));
                             // compound type
                             String name = vt.getField(i).getName();
                             CProbe.Type.Info member = result.getTypeInfoOfMember(probeType, name);

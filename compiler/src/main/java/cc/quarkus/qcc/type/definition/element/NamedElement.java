@@ -1,17 +1,20 @@
 package cc.quarkus.qcc.type.definition.element;
 
+import java.util.Objects;
+
 /**
  *
  */
-public interface NamedElement extends BasicElement {
-    boolean hasName();
+public interface NamedElement extends Element {
 
     String getName();
 
-    boolean nameEquals(String name);
+    default boolean nameEquals(String name) {
+        return Objects.equals(getName(), name);
+    }
 
-    interface Builder extends BasicElement.Builder {
-        void setName(String name);
+    interface Builder extends Element.Builder {
+        void setName(final String name);
 
         NamedElement build();
     }

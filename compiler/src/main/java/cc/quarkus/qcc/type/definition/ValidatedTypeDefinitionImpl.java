@@ -1,9 +1,10 @@
 package cc.quarkus.qcc.type.definition;
 
+import java.util.List;
+
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
@@ -12,7 +13,7 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 /**
  *
  */
-final class ValidatedTypeDefinitionImpl implements ValidatedTypeDefinition {
+final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition implements ValidatedTypeDefinition {
     private final TypeIdLiteral typeId;
     private final DefinedTypeDefinitionImpl delegate;
     private final ValidatedTypeDefinition superType;
@@ -57,72 +58,12 @@ final class ValidatedTypeDefinitionImpl implements ValidatedTypeDefinition {
 
     // delegates
 
-    public ClassContext getContext() {
-        return delegate.getContext();
+    public DefinedTypeDefinition getDelegate() {
+        return delegate;
     }
 
-    public String getInternalName() {
-        return delegate.getInternalName();
-    }
-
-    public boolean internalNameEquals(final String internalName) {
-        return delegate.internalNameEquals(internalName);
-    }
-
-    public int getModifiers() {
-        return delegate.getModifiers();
-    }
-
-    public String getSuperClassInternalName() {
-        return delegate.getSuperClassInternalName();
-    }
-
-    public boolean superClassInternalNameEquals(final String internalName) {
-        return delegate.superClassInternalNameEquals(internalName);
-    }
-
-    public int getInterfaceCount() {
-        return delegate.getInterfaceCount();
-    }
-
-    public String getInterfaceInternalName(final int index) throws IndexOutOfBoundsException {
-        return delegate.getInterfaceInternalName(index);
-    }
-
-    public boolean interfaceInternalNameEquals(final int index, final String internalName) throws IndexOutOfBoundsException {
-        return delegate.interfaceInternalNameEquals(index, internalName);
-    }
-
-    public int getFieldCount() {
-        return delegate.getFieldCount();
-    }
-
-    public int getMethodCount() {
-        return delegate.getMethodCount();
-    }
-
-    public int getConstructorCount() {
-        return delegate.getConstructorCount();
-    }
-
-    public int getVisibleAnnotationCount() {
-        return delegate.getVisibleAnnotationCount();
-    }
-
-    public Annotation getVisibleAnnotation(final int index) {
-        return delegate.getVisibleAnnotation(index);
-    }
-
-    public int getInvisibleAnnotationCount() {
-        return delegate.getInvisibleAnnotationCount();
-    }
-
-    public Annotation getInvisibleAnnotation(final int index) {
-        return delegate.getInvisibleAnnotation(index);
-    }
-
-    public boolean hasSuperClass() {
-        return delegate.hasSuperClass();
+    public ValidatedTypeDefinition validate() {
+        return this;
     }
 
     // local methods
@@ -180,16 +121,12 @@ final class ValidatedTypeDefinitionImpl implements ValidatedTypeDefinition {
         }
         cnt = getFieldCount();
         for (int i = 0; i < cnt; i ++) {
-            fields[i].getType();
+            fields[i].getType(getContext(), List.of());
         }
         cnt = getMethodCount();
         for (int i = 0; i < cnt; i ++) {
             MethodElement method = methods[i];
-            method.getReturnType();
-            int cnt2 = method.getParameterCount();
-            for (int j = 0; j < cnt2; j ++) {
-                method.getParameter(j).getType();
-            }
+            method.getType(getContext(), List.of());
         }
         synchronized (this) {
             resolved = this.resolved;

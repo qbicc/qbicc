@@ -55,10 +55,8 @@ import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
-import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.FieldContainer;
 import cc.quarkus.qcc.type.definition.MethodBody;
@@ -69,11 +67,8 @@ import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
-import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 final class VmImpl implements Vm {
@@ -93,10 +88,7 @@ final class VmImpl implements Vm {
     private final ConcurrentMap<ClassTypeIdLiteral, VmClassImpl> loadedClasses = new ConcurrentHashMap<>();
     private final ConcurrentMap<InterfaceTypeIdLiteral, VmClassImpl> loadedInterfaces = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodBody, Map<BasicBlock, List<Node>>> schedules = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ParameterizedExecutableDescriptor, ConcurrentMap<Type, MethodDescriptor>> methodDescriptorCache = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ParameterizedExecutableDescriptor, ConstructorDescriptor> constructorDescriptorCache = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, VmObject> stringInstanceCache = new ConcurrentHashMap<>();
-    private final ConcurrentTrie<Type, ParameterizedExecutableDescriptor> descriptorCache = new ConcurrentTrie<>();
     private final Map<String, BootModule> bootstrapModules;
     private final VmObject mainThreadGroup;
     private final CompilationContext context;
@@ -241,14 +233,14 @@ final class VmImpl implements Vm {
         TypeSystem typeSystem = context.getTypeSystem();
         UnsignedIntegerType u16 = typeSystem.getUnsignedInteger16Type();
         ValueArrayTypeIdLiteral u16Array = context.getLiteralFactory().literalOfArrayType(u16);
-        MethodElement loadClass = resolvedCL.resolveMethodElementVirtual("loadClass", getMethodDescriptor(typeSystem.getReferenceType(resolvedCL.getTypeId()), typeSystem.getReferenceType(stringClassVerified.getTypeId())));
+        MethodElement loadClass = null; //resolvedCL.resolveMethodElementVirtual("loadClass", getMethodDescriptor(typeSystem.getReferenceType(resolvedCL.getTypeId()), typeSystem.getReferenceType(stringClassVerified.getTypeId())));
         int length = name.length();
         VmArray array = allocateArray(u16Array, length);
         for (int i = 0; i < length; i++) {
             array.putArray(i, name.charAt(i));
         }
         ReferenceType u16ArrayType = typeSystem.getReferenceType(u16Array);
-        ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(u16ArrayType));
+        ConstructorElement initString = null; //stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(u16ArrayType));
         VmObject nameInstance = allocateObject((ClassTypeIdLiteral) stringClassVerified.getTypeId());
         invokeExact(initString, nameInstance, array);
         return ((VmClass) invokeVirtual(loadClass, nameInstance)).getTypeDefinition();
@@ -288,7 +280,7 @@ final class VmImpl implements Vm {
 
     private VmObject newException(DefinedTypeDefinition type, String arg) {
         VmObject e = allocateObject((ClassTypeIdLiteral) type.validate().getTypeId());
-        ConstructorElement ctor = type.validate().resolve().resolveConstructorElement(getConstructorDescriptor(context.getTypeSystem().getReferenceType(stringClass.validate().getTypeId())));
+        ConstructorElement ctor = null; //type.validate().resolve().resolveConstructorElement(getConstructorDescriptor(context.getTypeSystem().getReferenceType(stringClass.validate().getTypeId())));
         // todo: backtrace should be set to thread.tos
         invokeExact(ctor, e, newString(arg));
         return e;
@@ -306,7 +298,7 @@ final class VmImpl implements Vm {
             array.putArray((i << 1) + 1, str.charAt(i));
         }
         ReferenceType byteArrayType = typeSystem.getReferenceType(s8Array);
-        ConstructorElement initString = stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(byteArrayType, s8));
+        ConstructorElement initString = null; //stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(byteArrayType, s8));
         VmObject res = allocateObject((ClassTypeIdLiteral) stringClassVerified.getTypeId());
         invokeExact(initString, res, array, Byte.valueOf((byte) 1 /* UTF16 */));
         return res;
@@ -351,7 +343,7 @@ final class VmImpl implements Vm {
     }
 
     public Object invokeVirtual(final MethodElement method, final VmObject instance, final Object... args) {
-        MethodHandle exactHandle = method.getVirtualMethodBody();
+        MethodHandle exactHandle = null;
         if (exactHandle == null) {
             throw new IllegalArgumentException("Method has no body");
         }
@@ -443,7 +435,7 @@ final class VmImpl implements Vm {
                             throw new UnsupportedOperationException("Virtual dispatch");
                         }
                     }
-                    ParameterizedExecutableElement it = op.getInvocationTarget();
+                    InvokableElement it = op.getInvocationTarget();
                     ResolvedTypeDefinition owner = it.getEnclosingType().validate().resolve();
                     Object[] args = computeInvocationArguments(frame, op);
                     VmObject instance;
@@ -605,7 +597,7 @@ final class VmImpl implements Vm {
             if (kind == DispatchInvocation.Kind.EXACT) {
                 target = owner.getMethod(methodIndex).getMethodBody();
             } else {
-                target = owner.getMethod(methodIndex).getVirtualMethodBody();
+                target = null;
             }
         } else {
             // static invocation
@@ -727,43 +719,8 @@ final class VmImpl implements Vm {
         return new String(bytes, StandardCharsets.UTF_8);
     }
 
-    public ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor(final ValueType... paramTypes) {
-        ConcurrentTrie<Type, ParameterizedExecutableDescriptor> current = this.descriptorCache;
-        for (Type paramType : paramTypes) {
-            current = current.computeIfAbsent(paramType, t -> new ConcurrentTrie<>());
-        }
-        ParameterizedExecutableDescriptor val = current.get();
-        if (val != null) {
-            return val;
-        }
-        ParameterizedExecutableDescriptor newVal = ParameterizedExecutableDescriptor.of(paramTypes);
-        while (! current.compareAndSet(null, newVal)) {
-            val = current.get();
-            if (val != null) {
-                return val;
-            }
-        }
-        return newVal;
-    }
-
     public VmObject getSharedString(final String string) {
         return stringInstanceCache.computeIfAbsent(deduplicate(null, string), this::newString);
-    }
-
-    public MethodDescriptor getMethodDescriptor(final ValueType returnType, final ValueType... paramTypes) {
-        return getMethodDescriptor(returnType, getParameterizedExecutableDescriptor(paramTypes));
-    }
-
-    public MethodDescriptor getMethodDescriptor(final ValueType returnType, final ParameterizedExecutableDescriptor paramDesc) {
-        return methodDescriptorCache.computeIfAbsent(paramDesc, k -> new ConcurrentHashMap<>()).computeIfAbsent(returnType, r -> MethodDescriptor.of(paramDesc, returnType));
-    }
-
-    public ConstructorDescriptor getConstructorDescriptor(final ValueType... paramTypes) {
-        return getConstructorDescriptor(getParameterizedExecutableDescriptor(paramTypes));
-    }
-
-    public ConstructorDescriptor getConstructorDescriptor(final ParameterizedExecutableDescriptor paramDesc) {
-        return constructorDescriptorCache.computeIfAbsent(paramDesc, k -> ConstructorDescriptor.of(paramDesc));
     }
 
     public VmObject allocateDirectBuffer(final ByteBuffer backingBuffer) {

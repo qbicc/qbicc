@@ -1,7 +1,10 @@
 package cc.quarkus.qcc.type.definition;
 
+import java.util.List;
+
 import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
+import cc.quarkus.qcc.type.generic.ClassSignature;
 
 /**
  *
@@ -25,6 +28,10 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
 
     public boolean internalNameEquals(final String internalName) {
         return getDelegate().internalNameEquals(internalName);
+    }
+
+    public boolean internalPackageAndNameEquals(final String intPackageName, final String className) {
+        return getDelegate().internalPackageAndNameEquals(intPackageName, className);
     }
 
     public int getModifiers() {
@@ -67,23 +74,23 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
         return getDelegate().getConstructorCount();
     }
 
-    public int getVisibleAnnotationCount() {
-        return getDelegate().getVisibleAnnotationCount();
+    public ClassSignature getSignature() {
+        return getDelegate().getSignature();
     }
 
-    public Annotation getVisibleAnnotation(final int index) {
-        return getDelegate().getVisibleAnnotation(index);
+    public List<Annotation> getVisibleAnnotations() {
+        return getDelegate().getVisibleAnnotations();
     }
 
-    public int getInvisibleAnnotationCount() {
-        return getDelegate().getInvisibleAnnotationCount();
+    public List<Annotation> getInvisibleAnnotations() {
+        return getDelegate().getInvisibleAnnotations();
     }
 
-    public Annotation getInvisibleAnnotation(final int index) {
-        return getDelegate().getInvisibleAnnotation(index);
+    public TypeAnnotationList getVisibleTypeAnnotations() {
+        return getDelegate().getVisibleTypeAnnotations();
     }
 
-    public MethodDescriptor resolveMethodDescriptor(final int argument) throws ResolutionFailedException {
-        return getDelegate().resolveMethodDescriptor(argument);
+    public TypeAnnotationList getInvisibleTypeAnnotations() {
+        return getDelegate().getInvisibleTypeAnnotations();
     }
 }

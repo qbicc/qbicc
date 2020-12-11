@@ -14,14 +14,16 @@ public final class InstanceInvocationValue extends AbstractValue implements Inst
     private final DispatchInvocation.Kind kind;
     private final Value instance;
     private final MethodElement target;
+    private final ValueType type;
     private final List<Value> arguments;
 
-    InstanceInvocationValue(final int line, final int bci, final Node dependency, final Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+    InstanceInvocationValue(final int line, final int bci, final Node dependency, final Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
         super(line, bci);
         this.dependency = dependency;
         this.kind = kind;
         this.instance = instance;
         this.target = target;
+        this.type = type;
         this.arguments = arguments;
     }
 
@@ -30,7 +32,7 @@ public final class InstanceInvocationValue extends AbstractValue implements Inst
     }
 
     public ValueType getType() {
-        return target.getReturnType();
+        return type;
     }
 
     public int getArgumentCount() {

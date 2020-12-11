@@ -14,6 +14,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static cc.quarkus.qcc.interpreter.CodegenUtils.arrayOf;
@@ -54,7 +55,7 @@ public class PrototypeGenerator {
                 (field) -> proto.visitField(
                         field.getModifiers(),
                         field.getName(),
-                        ci(javaTypeFromFieldType(field.getType())),
+                        ci(javaTypeFromFieldType(field.getType(null, List.of()))),
                         null, null));
 
         proto.visitEnd();

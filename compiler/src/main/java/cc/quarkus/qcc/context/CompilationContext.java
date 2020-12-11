@@ -11,8 +11,8 @@ import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.BasicElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.MemberElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
@@ -42,7 +42,7 @@ public interface CompilationContext extends DiagnosticContext {
 
     Path getOutputDirectory(DefinedTypeDefinition type);
 
-    Path getOutputDirectory(BasicElement element);
+    Path getOutputDirectory(MemberElement element);
 
     ProgramModule getOrAddProgramModule(DefinedTypeDefinition type);
 

@@ -39,6 +39,7 @@ import cc.quarkus.qcc.tool.llvm.LlvmToolChain;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
@@ -48,8 +49,11 @@ import cc.quarkus.qcc.type.definition.element.ElementVisitor;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -148,6 +152,8 @@ public class Driver implements Closeable {
         this.bootClassPath = bootClassPath;
 
         // phase factories
+        List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>(builder.resolverFactories);
+        Collections.reverse(resolverFactories);
 
         ArrayList<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> additivePhaseFactories = new ArrayList<>();
         for (List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> list : builder.additiveFactories.values()) {
@@ -197,7 +203,7 @@ public class Driver implements Closeable {
             finder = this::defaultFinder;
         }
 
-        compilationContext = new CompilationContextImpl(initialContext, typeSystem, literalFactory, finalFactory, finder, outputDir);
+        compilationContext = new CompilationContextImpl(initialContext, typeSystem, literalFactory, finalFactory, finder, outputDir, resolverFactories);
 
         generateVisitors = List.copyOf(builder.generateVisitors);
 
@@ -298,7 +304,28 @@ public class Driver implements Closeable {
         TypeIdLiteral threadTypeId = threadClass.getTypeId();
         TypeSystem ts = compilationContext.getTypeSystem();
         LiteralFactory lf = compilationContext.getLiteralFactory();
-        int idx = resolvedMainClass.findMethodIndex("main", MethodDescriptor.of(ParameterizedExecutableDescriptor.of(ts.getReferenceType(lf.literalOfArrayType(ts.getReferenceType(stringId)))), ts.getVoidType()));
+        int idx = resolvedMainClass.findMethodIndex(e -> {
+            // todo: maybe we could simplify this a little...?
+            MethodDescriptor desc = e.getDescriptor();
+            if (desc.getReturnType() != BaseTypeDescriptor.V) {
+                return false;
+            }
+            List<TypeDescriptor> paramTypes = desc.getParameterTypes();
+            if (paramTypes.size() != 1) {
+                return false;
+            }
+            TypeDescriptor paramType = paramTypes.get(0);
+            if (! (paramType instanceof ArrayTypeDescriptor)) {
+                return false;
+            }
+            TypeDescriptor elementType = ((ArrayTypeDescriptor) paramType).getElementTypeDescriptor();
+            if (! (elementType instanceof ClassTypeDescriptor)) {
+                return false;
+            }
+            ClassTypeDescriptor classTypeDescriptor = (ClassTypeDescriptor) elementType;
+            return classTypeDescriptor.getPackageName().equals("java/lang")
+                && classTypeDescriptor.getClassName().equals("String");
+        });
         if (idx == -1) {
             compilationContext.error("No valid main method found on \"%s\"", this.mainClass);
             return false;
@@ -499,6 +526,7 @@ public class Driver implements Closeable {
         final Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> analyticFactories = new EnumMap<>(BuilderStage.class);
         final List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>> copyFactories = new ArrayList<>();
         final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories = new ArrayList<>();
+        final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>();
         final List<Consumer<? super CompilationContext>> preAddHooks = new ArrayList<>();
         final List<Consumer<? super CompilationContext>> postAddHooks = new ArrayList<>();
         final List<Consumer<? super CompilationContext>> preCopyHooks = new ArrayList<>();
@@ -537,6 +565,11 @@ public class Driver implements Closeable {
 
         public Builder setMainClass(final String mainClass) {
             this.mainClass = Assert.checkNotNullParam("mainClass", mainClass);
+            return this;
+        }
+
+        public Builder addResolverFactory(BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver> factory) {
+            resolverFactories.add(factory);
             return this;
         }
 

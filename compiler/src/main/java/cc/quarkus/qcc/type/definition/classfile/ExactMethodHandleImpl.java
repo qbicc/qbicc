@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.type.definition.classfile;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
@@ -55,7 +56,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
     }
 
     public int getParameterCount() {
-        return classFile.resolveMethod(index, enclosing).getParameterCount();
+        return classFile.resolveMethod(index, enclosing).getParameters().size();
     }
 
     public void replaceMethodBody(final MethodBody newBody) {
@@ -74,7 +75,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             }
             ClassMethodInfo classMethodInfo = new ClassMethodInfo(classFile, modifiers, index, getBackingBuffer().duplicate());
             MethodElement methodElement = classFile.resolveMethod(index, enclosing);
-            int paramCount = methodElement.getParameterCount();
+            int paramCount = methodElement.getParameters().size();
             BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder(methodElement);
             MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, byteCode, gf);
             Value[] parameters = new Value[paramCount];
@@ -88,9 +89,9 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
                 thisValue = null;
             }
             for (int i = 0; i < paramCount; i ++) {
-                ValueType type = methodElement.getParameter(i).getType();
+                ValueType type = methodElement.getParameters().get(i).getType(enclosing.getContext(), List.of());
                 parameters[i] = gf.parameter(type, i);
-                boolean class2 = methodElement.getParameter(i).hasClass2Type();
+                boolean class2 = methodElement.getParameters().get(i).hasClass2Type();
                 methodParser.setLocal(j, class2 ? methodParser.fatten(parameters[i]) : parameters[i]);
                 j += class2 ? 2 : 1;
             }

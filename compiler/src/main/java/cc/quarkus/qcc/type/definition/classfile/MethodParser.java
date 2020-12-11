@@ -28,13 +28,14 @@ import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -43,11 +44,10 @@ import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
-import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 final class MethodParser {
     final ClassMethodInfo info;
@@ -1092,7 +1092,9 @@ final class MethodParser {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
                     FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
-                    Value value = gf.readStaticField(fieldElement, JavaAccessMode.DETECT);
+                    // todo: signature context
+                    ValueType type = fieldElement.getType(ctxt, List.of());
+                    Value value = gf.readStaticField(fieldElement, type, JavaAccessMode.DETECT);
                     push(fieldElement.hasClass2Type() ? fatten(value) : value);
                     break;
                 }
@@ -1100,7 +1102,6 @@ final class MethodParser {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
                     FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
-                    Type type = getTypeOfFieldRef(fieldRef);
                     gf.writeStaticField(fieldElement, fieldElement.hasClass2Type() ? pop2() : pop(), JavaAccessMode.DETECT);
                     break;
                 }
@@ -1108,7 +1109,9 @@ final class MethodParser {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
                     FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
-                    Value value = gf.readInstanceField(pop(), fieldElement, JavaAccessMode.DETECT);
+                    // todo: signature context
+                    ValueType type = fieldElement.getType(ctxt, List.of());
+                    Value value = gf.readInstanceField(pop(), fieldElement, type, JavaAccessMode.DETECT);
                     push(fieldElement.hasClass2Type() ? fatten(value) : value);
                     break;
                 }
@@ -1116,7 +1119,6 @@ final class MethodParser {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
                     FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
-                    getTypeOfFieldRef(fieldRef);
                     v2 = fieldElement.hasClass2Type() ? pop2() : pop();
                     v1 = pop();
                     gf.writeInstanceField(v1, fieldElement, v2, JavaAccessMode.DETECT);
@@ -1148,8 +1150,8 @@ final class MethodParser {
                         return;
                     }
                     ResolvedTypeDefinition resolved = found.validate().resolve();
-                    ParameterizedExecutableDescriptor desc = resolveMethodDescriptor(owner, nameAndType);
-                    ParameterizedExecutableElement target;
+                    MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(nameAndType));
+                    InvokableElement target;
                     if (opcode == OP_INVOKESTATIC || opcode == OP_INVOKESPECIAL) {
                         target = resolveTargetOfDescriptor(resolved, desc, nameAndType);
                     } else if (opcode == OP_INVOKEVIRTUAL) {
@@ -1164,10 +1166,10 @@ final class MethodParser {
                         // end block
                         return;
                     }
-                    int cnt = target.getParameterCount();
+                    int cnt = target.getParameters().size();
                     Value[] args = new Value[cnt];
                     for (int i = cnt - 1; i >= 0; i --) {
-                        if (target.getParameter(i).hasClass2Type()) {
+                        if (target.getParameters().get(i).hasClass2Type()) {
                             args[i] = pop2();
                         } else {
                             args[i] = pop1();
@@ -1197,8 +1199,10 @@ final class MethodParser {
                     } else {
                         assert target instanceof MethodElement;
                         MethodElement method = (MethodElement) target;
-                        Type returnType = method.getReturnType();
-                        if (returnType == ts.getVoidType()) {
+                        // TODO: add the signature resolution context here
+                        FunctionType methodType = method.getType(ctxt, List.of());
+                        ValueType returnType = methodType.getReturnType();
+                        if (returnType instanceof VoidType) {
                             if (opcode == OP_INVOKESTATIC) {
                                 // return type is implicitly void
                                 gf.invokeStatic(method, List.of(args));
@@ -1209,9 +1213,9 @@ final class MethodParser {
                         } else {
                             Value result;
                             if (opcode == OP_INVOKESTATIC) {
-                                result = gf.invokeValueStatic(method, List.of(args));
+                                result = gf.invokeValueStatic(method, returnType, List.of(args));
                             } else {
-                                result = gf.invokeValueInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, method, List.of(args));
+                                result = gf.invokeValueInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, method, returnType, List.of(args));
                             }
                             if (returnType instanceof IntegerType) {
                                 IntegerType intType = (IntegerType) returnType;
@@ -1226,8 +1230,8 @@ final class MethodParser {
                                     }
                                 }
                             }
-                            if (method.hasClass2ReturnType()) {
-                                result = fatten(result);
+                            if (method.getDescriptor().getReturnType().isClass2()) {
+                                fatten(result);
                             }
                             push(result);
                         }
@@ -1369,8 +1373,8 @@ final class MethodParser {
         return info.getClassFile();
     }
 
-    private Type getTypeOfFieldRef(final int fieldRef) {
-        return getClassFile().resolveSingleDescriptor(getClassFile().getFieldrefConstantDescriptorIdx(fieldRef));
+    private TypeDescriptor getDescriptorOfFieldRef(final int fieldRef) {
+        return (TypeDescriptor) getClassFile().getDescriptorConstant(getClassFile().getFieldrefConstantDescriptorIdx(fieldRef));
     }
 
     private String getNameOfFieldRef(final int fieldRef) {
@@ -1390,13 +1394,7 @@ final class MethodParser {
     }
 
     private TypeIdLiteral getOwnerOfMethodRef(final int methodRef) {
-        String name = getClassFile().getMethodrefConstantClassName(methodRef);
-        if (name.startsWith("[")) {
-            int classRef = getClassFile().getMethodrefConstantClassIndex(methodRef);
-            int classNameRef = getClassFile().getClassConstantNameIdx(classRef);
-            return ((ReferenceType)resolveDescriptor(classNameRef)).getUpperBound();
-        }
-        return resolveClass(name);
+        return getClassFile().getClassConstant(getClassFile().getMethodrefConstantClassIndex(methodRef));
     }
 
     private int getNameAndTypeOfMethodRef(final int methodRef) {
@@ -1422,7 +1420,7 @@ final class MethodParser {
 
     private FieldElement resolveTargetOfFieldRef(final int fieldRef) {
         ValidatedTypeDefinition definition = ctxt.resolveDefinedTypeLiteral(getOwnerOfFieldRef(fieldRef)).validate();
-        FieldElement field = definition.resolve().resolveField(getTypeOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef));
+        FieldElement field = definition.resolve().resolveField(getDescriptorOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef));
         if (field == null) {
             // todo
             throw new IllegalStateException();
@@ -1430,59 +1428,24 @@ final class MethodParser {
         return field;
     }
 
-    private ParameterizedExecutableDescriptor resolveMethodDescriptor(final TypeIdLiteral owner, final int nameAndTypeRef) {
+    private InvokableElement resolveTargetOfDescriptor(ResolvedTypeDefinition resolved, final MethodDescriptor desc, final int nameAndTypeRef) {
+        boolean ctor = getClassFile().nameAndTypeConstantNameEquals(nameAndTypeRef, "<init>");
         int idx;
-        ClassFileImpl classFile = getClassFile();
-        int descIdx = classFile.getNameAndTypeConstantDescriptorIdx(nameAndTypeRef);
-        ResolvedTypeDefinition resolved = ctxt.resolveDefinedTypeLiteral(owner).validate().resolve();
-        if (classFile.nameAndTypeConstantNameEquals(nameAndTypeRef, "<init>")) {
-            // constructor
-            return classFile.getConstructorDescriptor(descIdx);
-        } else {
-            // method
-            return classFile.getMethodDescriptor(descIdx);
-        }
-    }
-
-    private ParameterizedExecutableElement resolveTargetOfDescriptor(ResolvedTypeDefinition resolved, final ParameterizedExecutableDescriptor desc, final int nameAndTypeRef) {
-        int idx;
-        if (desc instanceof ConstructorDescriptor) {
-            idx = resolved.findConstructorIndex((ConstructorDescriptor) desc);
-            return idx == -1 ? null : resolved.getConstructor(idx);
-        } else {
-            idx = resolved.findMethodIndex(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), (MethodDescriptor) desc);
-            return idx == -1 ? null : resolved.getMethod(idx);
-        }
-    }
-
-    private MethodElement resolveVirtualTargetOfDescriptor(ResolvedTypeDefinition resolved, final ParameterizedExecutableDescriptor desc, final int nameAndTypeRef) {
-        return resolved.resolveMethodElementVirtual(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), (MethodDescriptor) desc);
-    }
-
-    private MethodElement resolveInterfaceTargetOfDescriptor(ResolvedTypeDefinition resolved, final ParameterizedExecutableDescriptor desc, final int nameAndTypeRef) {
-        return resolved.resolveMethodElementInterface(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), (MethodDescriptor) desc);
-    }
-
-    private ParameterizedExecutableElement resolveTargetOfMethodNameAndType(final TypeIdLiteral owner, final int nameAndTypeRef) {
-        int idx;
-        ClassFileImpl classFile = getClassFile();
-        int descIdx = classFile.getNameAndTypeConstantDescriptorIdx(nameAndTypeRef);
-        ResolvedTypeDefinition resolved = ctxt.resolveDefinedTypeLiteral(owner).validate().resolve();
-        if (classFile.nameAndTypeConstantNameEquals(nameAndTypeRef, "<init>")) {
-            // constructor
-            ConstructorDescriptor desc = classFile.getConstructorDescriptor(descIdx);
+        if (ctor) {
             idx = resolved.findConstructorIndex(desc);
             return idx == -1 ? null : resolved.getConstructor(idx);
         } else {
-            // method
-            MethodDescriptor desc = classFile.getMethodDescriptor(descIdx);
-            idx = resolved.findMethodIndex(classFile.getNameAndTypeConstantName(nameAndTypeRef), desc);
+            idx = resolved.findMethodIndex(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), desc);
             return idx == -1 ? null : resolved.getMethod(idx);
         }
     }
 
-    private Type resolveDescriptor(int cpIdx) {
-        return getClassFile().resolveSingleDescriptor(cpIdx);
+    private MethodElement resolveVirtualTargetOfDescriptor(ResolvedTypeDefinition resolved, final MethodDescriptor desc, final int nameAndTypeRef) {
+        return resolved.resolveMethodElementVirtual(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), desc);
+    }
+
+    private MethodElement resolveInterfaceTargetOfDescriptor(ResolvedTypeDefinition resolved, final MethodDescriptor desc, final int nameAndTypeRef) {
+        return resolved.resolveMethodElementInterface(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), desc);
     }
 
     private TypeIdLiteral resolveClass(String name) {

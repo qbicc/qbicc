@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.type.definition.element.BasicElement;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
  *
@@ -38,21 +39,21 @@ public interface DiagnosticContext {
 
     Diagnostic msg(Diagnostic parent, Location location, Diagnostic.Level level, String fmt, Object... args);
 
-    Diagnostic msg(Diagnostic parent, BasicElement element, Node node, Diagnostic.Level level, String fmt, Object... args);
+    Diagnostic msg(Diagnostic parent, Element element, Node node, Diagnostic.Level level, String fmt, Object... args);
 
-    default Diagnostic error(Diagnostic parent, BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic error(Diagnostic parent, Element element, Node node, String fmt, Object... args) {
         return msg(parent, element, node, Diagnostic.Level.ERROR, fmt, args);
     }
 
-    default Diagnostic error(BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic error(Element element, Node node, String fmt, Object... args) {
         return msg(null, element, node, Diagnostic.Level.ERROR, fmt, args);
     }
 
-    default Diagnostic error(Diagnostic parent, BasicElement element, String fmt, Object... args) {
+    default Diagnostic error(Diagnostic parent, Element element, String fmt, Object... args) {
         return msg(parent, element, null, Diagnostic.Level.ERROR, fmt, args);
     }
 
-    default Diagnostic error(BasicElement element, String fmt, Object... args) {
+    default Diagnostic error(Element element, String fmt, Object... args) {
         return msg(null, element, null, Diagnostic.Level.ERROR, fmt, args);
     }
 
@@ -76,11 +77,11 @@ public interface DiagnosticContext {
         return error(t, null, null, null, fmt, args);
     }
 
-    default Diagnostic error(Throwable t, BasicElement element, String fmt, Object... args) {
+    default Diagnostic error(Throwable t, Element element, String fmt, Object... args) {
         return error(t, null, element, null, fmt, args);
     }
 
-    default Diagnostic error(Throwable t, BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic error(Throwable t, Element element, Node node, String fmt, Object... args) {
         return error(t, null, element, node, fmt, args);
     }
 
@@ -93,19 +94,19 @@ public interface DiagnosticContext {
         return outer;
     }
 
-    default Diagnostic warning(Diagnostic parent, BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic warning(Diagnostic parent, Element element, Node node, String fmt, Object... args) {
         return msg(parent, element, node, Diagnostic.Level.WARNING, fmt, args);
     }
 
-    default Diagnostic warning(BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic warning(Element element, Node node, String fmt, Object... args) {
         return msg(null, element, node, Diagnostic.Level.WARNING, fmt, args);
     }
 
-    default Diagnostic warning(Diagnostic parent, BasicElement element, String fmt, Object... args) {
+    default Diagnostic warning(Diagnostic parent, Element element, String fmt, Object... args) {
         return msg(parent, element, null, Diagnostic.Level.WARNING, fmt, args);
     }
 
-    default Diagnostic warning(BasicElement element, String fmt, Object... args) {
+    default Diagnostic warning(Element element, String fmt, Object... args) {
         return msg(null, element, null, Diagnostic.Level.WARNING, fmt, args);
     }
 
@@ -129,15 +130,15 @@ public interface DiagnosticContext {
         return warning(t, null, null, null, fmt, args);
     }
 
-    default Diagnostic warning(Throwable t, BasicElement element, String fmt, Object... args) {
+    default Diagnostic warning(Throwable t, Element element, String fmt, Object... args) {
         return warning(t, null, element, null, fmt, args);
     }
 
-    default Diagnostic warning(Throwable t, BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic warning(Throwable t, Element element, Node node, String fmt, Object... args) {
         return warning(t, null, element, node, fmt, args);
     }
 
-    default Diagnostic warning(Throwable t, Diagnostic parent, BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic warning(Throwable t, Diagnostic parent, Element element, Node node, String fmt, Object... args) {
         if (t == null) {
             return warning(parent, element, node, fmt, args);
         }
@@ -146,19 +147,19 @@ public interface DiagnosticContext {
         return outer;
     }
 
-    default Diagnostic note(Diagnostic parent, BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic note(Diagnostic parent, Element element, Node node, String fmt, Object... args) {
         return msg(parent, element, node, Diagnostic.Level.NOTE, fmt, args);
     }
 
-    default Diagnostic note(BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic note(Element element, Node node, String fmt, Object... args) {
         return msg(null, element, node, Diagnostic.Level.NOTE, fmt, args);
     }
 
-    default Diagnostic note(Diagnostic parent, BasicElement element, String fmt, Object... args) {
+    default Diagnostic note(Diagnostic parent, Element element, String fmt, Object... args) {
         return msg(parent, element, null, Diagnostic.Level.NOTE, fmt, args);
     }
 
-    default Diagnostic note(BasicElement element, String fmt, Object... args) {
+    default Diagnostic note(Element element, String fmt, Object... args) {
         return msg(null, element, null, Diagnostic.Level.NOTE, fmt, args);
     }
 
@@ -178,19 +179,19 @@ public interface DiagnosticContext {
         return msg(null, null, null, Diagnostic.Level.NOTE, fmt, args);
     }
 
-    default Diagnostic info(Diagnostic parent, BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic info(Diagnostic parent, Element element, Node node, String fmt, Object... args) {
         return msg(parent, element, node, Diagnostic.Level.INFO, fmt, args);
     }
 
-    default Diagnostic info(BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic info(Element element, Node node, String fmt, Object... args) {
         return msg(null, element, node, Diagnostic.Level.INFO, fmt, args);
     }
 
-    default Diagnostic info(Diagnostic parent, BasicElement element, String fmt, Object... args) {
+    default Diagnostic info(Diagnostic parent, Element element, String fmt, Object... args) {
         return msg(parent, element, null, Diagnostic.Level.INFO, fmt, args);
     }
 
-    default Diagnostic info(BasicElement element, String fmt, Object... args) {
+    default Diagnostic info(Element element, String fmt, Object... args) {
         return msg(null, element, null, Diagnostic.Level.INFO, fmt, args);
     }
 
@@ -210,19 +211,19 @@ public interface DiagnosticContext {
         return msg(null, null, null, Diagnostic.Level.INFO, fmt, args);
     }
 
-    default Diagnostic debug(Diagnostic parent, BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic debug(Diagnostic parent, Element element, Node node, String fmt, Object... args) {
         return msg(parent, element, node, Diagnostic.Level.DEBUG, fmt, args);
     }
 
-    default Diagnostic debug(BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic debug(Element element, Node node, String fmt, Object... args) {
         return msg(null, element, node, Diagnostic.Level.DEBUG, fmt, args);
     }
 
-    default Diagnostic debug(Diagnostic parent, BasicElement element, String fmt, Object... args) {
+    default Diagnostic debug(Diagnostic parent, Element element, String fmt, Object... args) {
         return msg(parent, element, null, Diagnostic.Level.DEBUG, fmt, args);
     }
 
-    default Diagnostic debug(BasicElement element, String fmt, Object... args) {
+    default Diagnostic debug(Element element, String fmt, Object... args) {
         return msg(null, element, null, Diagnostic.Level.DEBUG, fmt, args);
     }
 

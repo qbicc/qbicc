@@ -1,19 +1,12 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.interpreter.Vm;
 import cc.quarkus.qcc.interpreter.Thrown;
-import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.InitializerElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.interpreter.Vm;
 
 /**
  *
  */
-final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
+final class PreparedTypeDefinitionImpl extends DelegatingResolvedTypeDefinition implements PreparedTypeDefinition {
     private final ResolvedTypeDefinitionImpl delegate;
     private final FieldContainer staticFields;
     private volatile PreparedTypeDefinition initialized;
@@ -26,117 +19,28 @@ final class PreparedTypeDefinitionImpl implements PreparedTypeDefinition {
 
     // delegations
 
-    public TypeIdLiteral getTypeId() {
-        return delegate.getTypeId();
+    public ResolvedTypeDefinition getDelegate() {
+        return delegate;
+    }
+
+    public PreparedTypeDefinition validate() {
+        return super.validate().prepare();
+    }
+
+    public PreparedTypeDefinition resolve() {
+        return super.resolve().prepare();
     }
 
     public PreparedTypeDefinition getSuperClass() {
-        ResolvedTypeDefinition superClass = delegate.getSuperClass();
-        return superClass == null ? null : superClass.prepare();
+        return super.getSuperClass().prepare();
     }
 
     public PreparedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
-        return delegate.getInterface(index).prepare();
-    }
-
-    public FieldSet getInstanceFieldSet() {
-        return delegate.getInstanceFieldSet();
-    }
-
-    public FieldSet getStaticFieldSet() {
-        return delegate.getStaticFieldSet();
+        return super.getInterface(index).prepare();
     }
 
     public FieldContainer getStaticFields() {
         return staticFields;
-    }
-
-    public FieldElement getField(final int index) {
-        return delegate.getField(index);
-    }
-
-    public MethodElement getMethod(final int index) {
-        return delegate.getMethod(index);
-    }
-
-    public ConstructorElement getConstructor(final int index) {
-        return delegate.getConstructor(index);
-    }
-
-    public InitializerElement getInitializer() {
-        return delegate.getInitializer();
-    }
-
-    public String getInternalName() {
-        return delegate.getInternalName();
-    }
-
-    public boolean internalNameEquals(final String internalName) {
-        return delegate.internalNameEquals(internalName);
-    }
-
-    public int getModifiers() {
-        return delegate.getModifiers();
-    }
-
-    public boolean hasSuperClass() {
-        return delegate.hasSuperClass();
-    }
-
-    public String getSuperClassInternalName() {
-        return delegate.getSuperClassInternalName();
-    }
-
-    public boolean superClassInternalNameEquals(final String internalName) {
-        return delegate.superClassInternalNameEquals(internalName);
-    }
-
-    public int getInterfaceCount() {
-        return delegate.getInterfaceCount();
-    }
-
-    public String getInterfaceInternalName(final int index) throws IndexOutOfBoundsException {
-        return delegate.getInterfaceInternalName(index);
-    }
-
-    public boolean interfaceInternalNameEquals(final int index, final String internalName) throws IndexOutOfBoundsException {
-        return delegate.interfaceInternalNameEquals(index, internalName);
-    }
-
-    public int getFieldCount() {
-        return delegate.getFieldCount();
-    }
-
-    public int getMethodCount() {
-        return delegate.getMethodCount();
-    }
-
-    public int getConstructorCount() {
-        return delegate.getConstructorCount();
-    }
-
-    public int getVisibleAnnotationCount() {
-        return delegate.getVisibleAnnotationCount();
-    }
-
-    public Annotation getVisibleAnnotation(final int index) {
-        return delegate.getVisibleAnnotation(index);
-    }
-
-    public int getInvisibleAnnotationCount() {
-        return delegate.getInvisibleAnnotationCount();
-    }
-
-    public Annotation getInvisibleAnnotation(final int index) {
-        return delegate.getInvisibleAnnotation(index);
-    }
-
-    public MethodDescriptor resolveMethodDescriptor(final int argument) throws ResolutionFailedException {
-        return delegate.resolveMethodDescriptor(argument);
-    }
-
-    public ClassContext getContext() {
-        return delegate.getContext();
     }
 
     public InitializedTypeDefinition initialize() throws InitializationFailedException {

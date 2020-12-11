@@ -1,55 +1,64 @@
 package cc.quarkus.qcc.type.definition.element;
 
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-
 /**
  *
  */
-public interface BasicElement {
-    String getSourceFileName();
+public abstract class BasicElement implements Element {
+    private final String sourceFileName;
+    private final int modifiers;
+    private final int index;
 
-    DefinedTypeDefinition getEnclosingType();
+    BasicElement() {
+        sourceFileName = null;
+        modifiers = 0;
+        index = 0;
+    }
 
-    int getModifiers();
+    BasicElement(Builder builder) {
+        sourceFileName = builder.sourceFileName;
+        modifiers = builder.modifiers;
+        index = builder.index;
+    }
 
-    <T, R> R accept(ElementVisitor<T, R> visitor, T param);
+    public String getSourceFileName() {
+        return sourceFileName;
+    }
 
-    default boolean hasAllModifiersOf(int mask) {
+    public int getModifiers() {
+        return modifiers;
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public boolean hasAllModifiersOf(int mask) {
         return (getModifiers() & mask) == mask;
     }
 
-    default boolean hasNoModifiersOf(int mask) {
+    public boolean hasNoModifiersOf(int mask) {
         return (getModifiers() & mask) == mask;
     }
 
-    default boolean isStatic() {
-        return hasAllModifiersOf(ClassFile.ACC_STATIC);
-    }
+    public static abstract class Builder implements Element.Builder {
+        String sourceFileName;
+        int modifiers;
+        int index;
 
-    default boolean isPublic() {
-        return hasAllModifiersOf(ClassFile.ACC_PUBLIC);
-    }
+        Builder() {}
 
-    default boolean isProtected() {
-        return hasAllModifiersOf(ClassFile.ACC_PROTECTED);
-    }
+        public void setSourceFileName(final String sourceFileName) {
+            this.sourceFileName = sourceFileName;
+        }
 
-    default boolean isPackagePrivate() {
-        return hasNoModifiersOf(ClassFile.ACC_PUBLIC | ClassFile.ACC_PROTECTED | ClassFile.ACC_PRIVATE);
-    }
+        public void setModifiers(final int modifiers) {
+            this.modifiers = modifiers;
+        }
 
-    default boolean isPrivate() {
-        return hasAllModifiersOf(ClassFile.ACC_PRIVATE);
-    }
+        public void setIndex(final int index) {
+            this.index = index;
+        }
 
-    interface Builder {
-        void setSourceFile(String fileName);
-
-        void setModifiers(int flags);
-
-        void setEnclosingType(final DefinedTypeDefinition enclosingType);
-
-        BasicElement build();
+        public abstract BasicElement build();
     }
 }

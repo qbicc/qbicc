@@ -1,9 +1,7 @@
 package cc.quarkus.qcc.driver;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Base64;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -31,13 +29,15 @@ import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.BasicElement;
+import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
+import cc.quarkus.qcc.type.definition.element.InvokableElement;
+import cc.quarkus.qcc.type.definition.element.MemberElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
 
 final class CompilationContextImpl implements CompilationContext {
     private final TypeSystem typeSystem;
@@ -47,21 +47,24 @@ final class CompilationContextImpl implements CompilationContext {
     final Set<ExecutableElement> queued = ConcurrentHashMap.newKeySet();
     final Queue<ExecutableElement> queue = new ConcurrentLinkedDeque<>();
     final Set<MethodElement> entryPoints = ConcurrentHashMap.newKeySet();
-    final ClassContext bootstrapClassContext = new ClassContextImpl(this, null);
+    final ClassContext bootstrapClassContext;
     private final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
     private final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, cc.quarkus.qcc.object.Function> exactFunctions = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodElement, cc.quarkus.qcc.object.Function> virtualFunctions = new ConcurrentHashMap<>();
     private final Path outputDir;
+    final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.typeSystem = typeSystem;
         this.literalFactory = literalFactory;
         this.blockFactory = blockFactory;
         this.finder = finder;
         this.outputDir = outputDir;
+        this.resolverFactories = resolverFactories;
+        bootstrapClassContext = new ClassContextImpl(this, null);
     }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {
@@ -124,7 +127,7 @@ final class CompilationContextImpl implements CompilationContext {
         return baseDiagnosticContext.msg(parent, loc, level, fmt, args);
     }
 
-    public Diagnostic msg(final Diagnostic parent, final BasicElement element, final Node node, final Diagnostic.Level level, final String fmt, final Object... args) {
+    public Diagnostic msg(final Diagnostic parent, final Element element, final Node node, final Diagnostic.Level level, final String fmt, final Object... args) {
         return baseDiagnosticContext.msg(parent, element, node, level, fmt, args);
     }
 
@@ -201,17 +204,17 @@ final class CompilationContextImpl implements CompilationContext {
         }
     }
 
-    public Path getOutputDirectory(final BasicElement element) {
+    public Path getOutputDirectory(final MemberElement element) {
         Path base = getOutputDirectory(element.getEnclosingType());
         if (element instanceof InitializerElement) {
             return base.resolve("class-init");
         } else if (element instanceof FieldElement) {
             return base.resolve("fields").resolve(((FieldElement) element).getName());
         } else if (element instanceof ConstructorElement) {
-            return base.resolve("ctors").resolve(signatureString((ConstructorElement) element));
+            return base.resolve("ctors").resolve("ctor.id" + element.getIndex());
         } else if (element instanceof MethodElement) {
             MethodElement methodElement = (MethodElement) element;
-            return base.resolve("methods").resolve(methodElement.getName()).resolve(signatureString(methodElement));
+            return base.resolve("methods").resolve(methodElement.getName() + ".id" + element.getIndex());
         } else {
             throw new UnsupportedOperationException("getOutputDirectory for element " + element.getClass());
         }
@@ -235,7 +238,10 @@ final class CompilationContextImpl implements CompilationContext {
         TypeIdLiteral threadTypeId = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getTypeId();
         ProgramModule programModule = getOrAddProgramModule(element.getEnclosingType());
         Section implicit = programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
-        return exactFunctions.computeIfAbsent(element, e -> implicit.addFunction(element, getExactNameForElement(element), getFunctionTypeForElement(typeSystem, element, threadTypeId)));
+        return exactFunctions.computeIfAbsent(element, e -> {
+            FunctionType type = getFunctionTypeForElement(typeSystem, element, threadTypeId);
+            return implicit.addFunction(element, getExactNameForElement(element, type), type);
+        });
     }
 
     public cc.quarkus.qcc.object.Function getVirtualFunction(final MethodElement element) {
@@ -248,7 +254,10 @@ final class CompilationContextImpl implements CompilationContext {
         TypeIdLiteral threadTypeId = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getTypeId();
         ProgramModule programModule = getOrAddProgramModule(element.getEnclosingType());
         Section implicit = programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
-        return exactFunctions.computeIfAbsent(element, e -> implicit.addFunction(element, getVirtualNameForElement(element), getFunctionTypeForElement(typeSystem, element, threadTypeId)));
+        return exactFunctions.computeIfAbsent(element, e -> {
+            FunctionType type = getFunctionTypeForElement(typeSystem, element, threadTypeId);
+            return implicit.addFunction(element, getVirtualNameForElement(element, type), type);
+        });
     }
 
     public CurrentThreadLiteral getCurrentThreadValue() {
@@ -258,16 +267,16 @@ final class CompilationContextImpl implements CompilationContext {
         return literalFactory.literalOfCurrentThread(typeSystem.getReferenceType(threadTypeId));
     }
 
-    private String getExactNameForElement(final ExecutableElement element) {
+    private String getExactNameForElement(final ExecutableElement element, final FunctionType type) {
         // todo: encode class loader ID
+        // todo: cache :-(
         String internalDotName = element.getEnclosingType().getInternalName().replace('/', '.');
         if (element instanceof InitializerElement) {
             return "clinit." + internalDotName;
         }
         StringBuilder b = new StringBuilder();
-        assert element instanceof ParameterizedExecutableElement;
-        ParameterizedExecutableElement elementWithParam = (ParameterizedExecutableElement) element;
-        int parameterCount = elementWithParam.getParameterCount();
+        assert element instanceof InvokableElement;
+        int parameterCount = type.getParameterCount();
         if (element instanceof ConstructorElement) {
             b.append("init.");
             b.append(internalDotName).append('.');
@@ -275,30 +284,29 @@ final class CompilationContextImpl implements CompilationContext {
             b.append("exact.");
             b.append(internalDotName).append('.');
             b.append(((MethodElement)element).getName()).append('.');
-            ((MethodElement) element).getReturnType().toFriendlyString(b).append('.');
+            type.getReturnType().toFriendlyString(b).append('.');
         }
         b.append(parameterCount);
         for (int i = 0; i < parameterCount; i ++) {
             b.append('.');
-            elementWithParam.getParameter(i).getType().toFriendlyString(b);
+            type.getParameterType(i).toFriendlyString(b);
         }
         return b.toString();
     }
 
-    private String getVirtualNameForElement(final MethodElement element) {
+    private String getVirtualNameForElement(final MethodElement element, final FunctionType type) {
         // todo: encode class loader ID
         String internalDotName = element.getEnclosingType().getInternalName().replace('/', '.');
         StringBuilder b = new StringBuilder();
-        assert element instanceof ParameterizedExecutableElement;
-        int parameterCount = element.getParameterCount();
+        int parameterCount = type.getParameterCount();
         b.append("virtual.");
         b.append(internalDotName).append('.');
         b.append(element.getName()).append('.');
-        element.getReturnType().toFriendlyString(b).append('.');
+        type.getReturnType().toFriendlyString(b).append('.');
         b.append(parameterCount);
         for (int i = 0; i < parameterCount; i ++) {
             b.append('.');
-            element.getParameter(i).getType().toFriendlyString(b);
+            type.getParameterType(i).toFriendlyString(b);
         }
         return b.toString();
     }
@@ -308,33 +316,25 @@ final class CompilationContextImpl implements CompilationContext {
             // todo: initializers should not survive the copy
             return ts.getFunctionType(ts.getVoidType());
         }
-        assert element instanceof ParameterizedExecutableElement;
-        ParameterizedExecutableElement elementWithParams = (ParameterizedExecutableElement) element;
-        ValueType returnType;
-        if (elementWithParams instanceof ConstructorElement) {
-            returnType = ts.getVoidType();
+        assert element instanceof InvokableElement;
+        FunctionType methodType = element.getType(element.getEnclosingType().getContext(), List.of(/*todo*/));
+        // function type is the same as the method type, except with current thread/receiver first
+        int pcnt = methodType.getParameterCount();
+        ValueType[] argTypes;
+        int j;
+        if (element.isStatic()) {
+            argTypes = new ValueType[pcnt + 1];
+            j = 1;
         } else {
-            returnType = ((MethodElement) element).getReturnType();
+            argTypes = new ValueType[pcnt + 2];
+            argTypes[1] = ts.getReferenceType(element.getEnclosingType().validate().getTypeId());
+            j = 2;
         }
-        int parameterCount = elementWithParams.getParameterCount();
-        int offset = elementWithParams.isStatic() ? 1 : 2;
-        ValueType[] paramTypes = new ValueType[offset + parameterCount];
-        paramTypes[0] = ts.getReferenceType(threadTypeId);
-        if (offset == 2) {
-            // this
-            paramTypes[1] = ts.getReferenceType(element.getEnclosingType().validate().getTypeId());
+        argTypes[0] = ts.getReferenceType(threadTypeId);
+        for (int i = 0; i < pcnt; i ++, j ++) {
+            argTypes[j] = methodType.getParameterType(i);
         }
-        for (int i = 0; i < parameterCount; i ++) {
-            paramTypes[i + offset] = elementWithParams.getParameter(i).getType();
-        }
-        return ts.getFunctionType(returnType, paramTypes);
-    }
-
-    String signatureString(ParameterizedExecutableElement element) {
-        StringBuilder builder = new StringBuilder();
-        element.forEachParameter((b, e) -> e.getType().toString(b), builder);
-        // this is not ideal but we're creating invalid file names all over the place otherwise
-        return Base64.getUrlEncoder().encodeToString(builder.toString().getBytes(StandardCharsets.UTF_8));
+        return ts.getFunctionType(methodType.getReturnType(), argTypes);
     }
 
     public Iterable<MethodElement> getEntryPoints() {

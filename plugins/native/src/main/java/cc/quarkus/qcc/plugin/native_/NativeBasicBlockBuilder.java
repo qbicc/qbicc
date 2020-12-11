@@ -29,7 +29,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         this.ctxt = ctxt;
     }
 
-    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
+    public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         NativeFunctionInfo functionInfo = nativeInfo.nativeFunctions.get(target);
         if (functionInfo != null) {
@@ -40,7 +40,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             // todo: prologue, epilogue (store current thread, GC state, etc.)
             return callFunction(functionInfo.symbolLiteral, arguments);
         }
-        if (target.getEnclosingType().internalNameEquals(Native.C_NATIVE)) {
+        if (target.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.C_NATIVE)) {
             switch (target.getName()) {
                 case "word": {
                     return arguments.get(0);
@@ -57,7 +57,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
         // no special behaviors
-        return super.invokeValueStatic(target, arguments);
+        return super.invokeValueStatic(target, type, arguments);
     }
 
     public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
@@ -71,7 +71,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.invokeStatic(target, arguments);
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value input, final MethodElement target, final List<Value> arguments) {
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value input, final MethodElement target, final ValueType returnType, final List<Value> arguments) {
         ValueType type = input.getType();
         LiteralFactory lf = ctxt.getLiteralFactory();
         if (type instanceof IntegerType) {
@@ -85,7 +85,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 case "longValue":
                 case "charValue": {
                     // integer to integer
-                    IntegerType outputType = (IntegerType) target.getReturnType();
+                    IntegerType outputType = (IntegerType) returnType;
                     if (outputType.getMinBits() > inputType.getMinBits()) {
                         return super.extend(input, outputType);
                     } else if (outputType.getMinBits() < inputType.getMinBits()) {
@@ -97,7 +97,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 case "floatValue":
                 case "doubleValue": {
                     // integer to float
-                    return valueConvert(input, (WordType) target.getReturnType());
+                    return valueConvert(input, (WordType) returnType);
                 }
                 case "isZero": {
                     return cmpEq(input, lf.literalOf(0));
@@ -114,12 +114,12 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 case "longValue":
                 case "charValue": {
                     // float to integer
-                    return valueConvert(input, (WordType) target.getReturnType());
+                    return valueConvert(input, (WordType) returnType);
                 }
                 case "floatValue":
                 case "doubleValue": {
                     // float to float
-                    FloatType outputType = (FloatType) target.getReturnType();
+                    FloatType outputType = (FloatType) returnType;
                     if (outputType.getMinBits() > inputType.getMinBits()) {
                         return super.extend(input, outputType);
                     } else if (outputType.getMinBits() < inputType.getMinBits()) {
@@ -133,6 +133,6 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
-        return super.invokeValueInstance(kind, input, target, arguments);
+        return super.invokeValueInstance(kind, input, target, type, arguments);
     }
 }

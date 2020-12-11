@@ -12,9 +12,10 @@ import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
  * A block builder that forbids lowering of high-level (first phase) nodes in order to keep the back end(s) as simple
@@ -33,7 +34,7 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return return_();
     }
 
-    public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final ParameterizedExecutableDescriptor desc, final String name) {
+    public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final MethodDescriptor desc, final String name) {
         invalidNode("noSuchMethodError");
         return return_();
     }
@@ -78,12 +79,12 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return nop();
     }
 
-    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
+    public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
         invalidNode("invokeValueStatic");
         return ctxt.getLiteralFactory().literalOfNull();
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
         invalidNode("invokeValueInstance");
         return ctxt.getLiteralFactory().literalOfNull();
     }

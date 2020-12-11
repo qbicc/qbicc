@@ -17,10 +17,11 @@ import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.ParameterizedExecutableElement;
+import cc.quarkus.qcc.type.definition.element.InvokableElement;
 
 final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder implements BasicBlockBuilder {
     /**
@@ -38,7 +39,7 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
     /**
      * A mapping of methods to their replacements.
      */
-    private final Map<ParameterizedExecutableElement, ParameterizedExecutableElement> patchMethods = new ConcurrentHashMap<>();
+    private final Map<InvokableElement, InvokableElement> patchMethods = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
 
     PatcherBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
@@ -70,7 +71,7 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
         }
     }
 
-    private ParameterizedExecutableElement remapMethod(ParameterizedExecutableElement original) {
+    private InvokableElement remapMethod(InvokableElement original) {
         return patchMethods.getOrDefault(original, original);
     }
 
@@ -82,30 +83,30 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
         return super.newArray(remapTypeId(arrayTypeId), size);
     }
 
-    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
+    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
         ClassTypeIdLiteral accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             FieldElement mapped = patchFields.get(fieldElement);
             if (mapped != null) {
-                return readInstanceField(instance, mapped, mode);
+                return readInstanceField(instance, mapped, type, mode);
             } else {
-                return super.readInstanceField(instance, fieldElement, mode);
+                return super.readInstanceField(instance, fieldElement, type, mode);
             }
         }
     }
 
-    public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
+    public Value readStaticField(final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
         ClassTypeIdLiteral accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             FieldElement mapped = patchFields.get(fieldElement);
             if (mapped != null) {
-                return readStaticField(mapped, mode);
+                return readStaticField(mapped, type, mode);
             } else {
-                return super.readStaticField(fieldElement, mode);
+                return super.readStaticField(fieldElement, type, mode);
             }
         }
     }
@@ -146,12 +147,12 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
         return super.invokeInstance(kind, instance, (MethodElement) remapMethod(target), arguments);
     }
 
-    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-        return super.invokeValueStatic((MethodElement) remapMethod(target), arguments);
+    public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
+        return super.invokeValueStatic((MethodElement) remapMethod(target), type, arguments);
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        return super.invokeValueInstance(kind, instance, (MethodElement) remapMethod(target), arguments);
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
+        return super.invokeValueInstance(kind, instance, (MethodElement) remapMethod(target), type, arguments);
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {

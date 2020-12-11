@@ -10,13 +10,15 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.FieldResolver;
 import cc.quarkus.qcc.type.definition.InitializerResolver;
 import cc.quarkus.qcc.type.definition.MethodResolver;
-import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.Descriptor;
 
 /**
  * A class file that was defined, with basic validation performed.  The constant pool is available.
  */
-public interface ClassFile extends MethodResolver, FieldResolver, ConstructorResolver, InitializerResolver {
+public interface ClassFile extends FieldResolver,
+                                   MethodResolver,
+                                   ConstructorResolver,
+                                   InitializerResolver {
 
     int CONSTANT_Utf8 = 1;
     int CONSTANT_Integer = 3;
@@ -292,6 +294,8 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
     int T_INT = 10;
     int T_LONG = 11;
 
+    ClassContext getClassContext();
+
     ByteBuffer getBackingBuffer();
 
     int getMajorVersion();
@@ -436,10 +440,6 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
         return utf8ConstantEquals(getRawConstantShort(idx, 1), expected);
     }
 
-    ConstructorDescriptor getConstructorDescriptor(int descIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
-
-    MethodDescriptor getMethodDescriptor(int descIdx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
-
     default int getNameAndTypeConstantDescriptorIdx(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_NameAndType);
         return getRawConstantShort(idx, 3);
@@ -457,6 +457,8 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
     boolean utf8ConstantEquals(int idx, String expected) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
 
     String getUtf8Constant(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
+
+    ByteBuffer getUtf8ConstantAsBuffer(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
 
     default int getUtf8ConstantLength(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_Utf8);
@@ -484,6 +486,8 @@ public interface ClassFile extends MethodResolver, FieldResolver, ConstructorRes
     int getInterfaceNameCount();
 
     String getInterfaceName(int idx);
+
+    Descriptor getDescriptorConstant(int idx);
 
     /**
      * Get the number of fields physically present in the class file.

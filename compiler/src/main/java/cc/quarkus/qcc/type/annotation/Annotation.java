@@ -1,11 +1,13 @@
 package cc.quarkus.qcc.type.annotation;
 
+import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import io.smallrye.common.constraint.Assert;
+import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 
 /**
  * An annotation.
@@ -13,16 +15,16 @@ import io.smallrye.common.constraint.Assert;
 public final class Annotation extends AnnotationValue {
     public static final Annotation[] NO_ANNOTATIONS = new Annotation[0];
 
-    private final String className;
+    private final ClassTypeDescriptor descriptor;
     private final Map<String, AnnotationValue> values;
 
-    Annotation(Builder builder) {
-        className = Assert.checkNotNullParam("builder.className", builder.className);
-        values = Map.copyOf(builder.values);
+    private Annotation(final ClassTypeDescriptor descriptor, final Map<String, AnnotationValue> values) {
+        this.descriptor = descriptor;
+        this.values = values;
     }
 
-    public String getClassInternalName() {
-        return className;
+    public ClassTypeDescriptor getDescriptor() {
+        return descriptor;
     }
 
     public AnnotationValue getValue(String name) {
@@ -41,32 +43,16 @@ public final class Annotation extends AnnotationValue {
         return Kind.ANNOTATION;
     }
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static final class Builder {
-        String className;
-        HashMap<String, AnnotationValue> values = new LinkedHashMap<>();
-
-        Builder() {}
-
-        public String getClassName() {
-            return className;
+    public static Annotation parse(final ClassFile classFile, final ClassContext classContext, final ByteBuffer buf) {
+        int typeIndex = nextShort(buf);
+        ClassTypeDescriptor typeDescriptor = ClassTypeDescriptor.parse(classContext, classFile.getUtf8ConstantAsBuffer(typeIndex));
+        int cnt = nextShort(buf);
+        final Map<String, AnnotationValue> values = new HashMap<>(cnt);
+        for (int i = 0; i < cnt; i ++) {
+            int idx = nextShort(buf);
+            String name = classFile.getUtf8Constant(idx);
+            values.put(name, AnnotationValue.parse(classFile, classContext, buf));
         }
-
-        public Builder setClassName(final String internalName) {
-            this.className = Assert.checkNotNullParam("internalName", internalName);
-            return this;
-        }
-
-        public Builder addValue(String name, AnnotationValue value) {
-            values.putIfAbsent(Assert.checkNotNullParam("name", name), Assert.checkNotNullParam("value", value));
-            return this;
-        }
-
-        public Annotation build() {
-            return new Annotation(this);
-        }
+        return new Annotation(typeDescriptor, values);
     }
 }

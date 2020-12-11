@@ -1,104 +1,53 @@
 package cc.quarkus.qcc.type.generic;
 
+import java.nio.ByteBuffer;
+import java.util.List;
+
+import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+
 /**
- * The base type for all JVM-defined generic signature types.
+ *
  */
-public interface TypeSignature {
-    default boolean isArray() {
-        return false;
+public abstract class TypeSignature extends Signature {
+
+    TypeSignature(final int hashCode) {
+        super(hashCode);
     }
 
-    default ArrayTypeSignature asArray() {
-        throw new ClassCastException();
+    public final boolean equals(final Signature other) {
+        return other instanceof TypeSignature && equals((TypeSignature) other);
     }
 
-    default boolean isReference() {
-        return false;
+    public boolean equals(final TypeSignature other) {
+        return super.equals(other);
     }
 
-    default ReferenceTypeSignature asReference() {
-        throw new ClassCastException();
-    }
-
-    default boolean isTypeVariable() {
-        return false;
-    }
-
-    default TypeVariableSignature asTypeVariable() {
-        throw new ClassCastException();
-    }
-
-    default boolean isClass() {
-        return false;
-    }
-
-    default ClassTypeSignature asClass() {
-        throw new ClassCastException();
-    }
-
-    default boolean isBase() {
-        return false;
-    }
-
-    default BaseTypeSignature asBase() {
-        throw new ClassCastException();
-    }
-
-    default boolean isThrowable() {
-        return false;
-    }
-
-    default ThrowableTypeSignature asThrowable() {
-        throw new ClassCastException();
-    }
-
-    /**
-     * Parse a type signature.
-     *
-     * @param cache the parsing cache
-     * @param signature the signature string
-     * @return the signature object
-     * @throws IllegalArgumentException if the string is not valid
-     */
-    static TypeSignature parseTypeSignature(ParsingCache cache, String signature) {
-        return Parsing.parseTypeSignature(cache, signature);
-    }
-
-    static TypeSignature forClass(ParsingCache pc, Class<?> clazz) {
-        if (clazz.isPrimitive()) {
-            final BaseTypeSignature res = BaseTypeSignature.forClass(clazz);
-            if (res == null) {
-                throw new IllegalArgumentException("No type signature for " + clazz);
-            }
-            return res;
-        } else if (clazz.isArray()) {
-            return pc.getArrayOf(forClass(pc, clazz.getComponentType()));
+    public static TypeSignature parse(ClassContext classContext, ByteBuffer buf) {
+        int i = peek(buf);
+        if (i == 'L') {
+            return ClassTypeSignature.parse(classContext, buf);
+        } else if (i == 'T') {
+            return TypeVariableSignature.parse(classContext, buf);
+        } else if (i == '[') {
+            return ArrayTypeSignature.parse(classContext, buf);
         } else {
-            final Class<?> enclosingClass = clazz.getEnclosingClass();
-            ClassTypeSignature enclosing;
-            PackageName packageName = null;
-            if (enclosingClass != null) {
-                enclosing = (ClassTypeSignature) forClass(pc, enclosingClass);
-                packageName = null;
-            } else {
-                enclosing = null;
-                final String clazzName = clazz.getName();
-                int end = clazzName.indexOf('.');
-                if (end != -1) {
-                    int start = 0;
-                    String seg;
-                    do {
-                        seg = pc.getCachedName(clazzName, start, end);
-                        packageName = pc.getPackageNamed(packageName, seg);
-                        start = end + 1;
-                        end = clazzName.indexOf('.', start);
-                    } while (end != -1);
-                }
-            }
-            final String simpleName = pc.getCachedName(clazz.getSimpleName());
-            return pc.getTypeSignature(packageName, enclosing, simpleName);
+            return BaseTypeSignature.parse(buf);
         }
     }
 
-    StringBuilder toString(StringBuilder b);
+    public static TypeSignature synthesize(ClassContext classContext, TypeDescriptor descriptor) {
+        if (descriptor instanceof BaseTypeDescriptor) {
+            return BaseTypeSignature.forChar(((BaseTypeDescriptor) descriptor).getShortName());
+        } else if (descriptor instanceof ArrayTypeDescriptor) {
+            return Cache.get(classContext).getArrayTypeSignature(synthesize(classContext, ((ArrayTypeDescriptor) descriptor).getElementTypeDescriptor()));
+        } else {
+            assert descriptor instanceof ClassTypeDescriptor;
+            ClassTypeDescriptor classDesc = (ClassTypeDescriptor) descriptor;
+            return Cache.get(classContext).getTopLevelTypeSignature(classDesc.getPackageName(), classDesc.getClassName(), List.of());
+        }
+    }
 }

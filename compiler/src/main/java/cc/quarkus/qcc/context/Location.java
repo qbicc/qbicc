@@ -4,8 +4,11 @@ import static java.lang.Math.*;
 
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.type.definition.element.BasicElement;
+import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.MemberElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.NamedElement;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -244,11 +247,17 @@ public final class Location {
             return this;
         }
 
-        public Builder setElement(BasicElement element) {
+        public Builder setElement(Element element) {
             setMemberKind(element instanceof MethodElement ? Location.MemberKind.METHOD : element instanceof FieldElement ? Location.MemberKind.FIELD : Location.MemberKind.NONE);
-            setMemberName(element.toString());
-            setSourceFilePath(element.getSourceFileName());
-            setClassInternalName(element.getEnclosingType().getInternalName());
+            if (element instanceof NamedElement) {
+                setMemberName(((NamedElement) element).getName());
+            }
+            if (element instanceof BasicElement) {
+                setSourceFilePath(((BasicElement) element).getSourceFileName());
+            }
+            if (element instanceof MemberElement) {
+                setClassInternalName(((MemberElement) element).getEnclosingType().getInternalName());
+            }
             return this;
         }
 

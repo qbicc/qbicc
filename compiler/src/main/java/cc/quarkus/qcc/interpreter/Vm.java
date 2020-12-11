@@ -11,13 +11,9 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -171,16 +167,6 @@ public interface Vm extends AutoCloseable {
     String deduplicate(VmObject classLoader, String string);
 
     String deduplicate(VmObject classLoader, ByteBuffer buffer, int offset, int length, boolean expectTerminator);
-
-    MethodDescriptor getMethodDescriptor(ValueType returnType, ValueType... paramTypes);
-
-    MethodDescriptor getMethodDescriptor(ValueType returnType, ParameterizedExecutableDescriptor paramDesc);
-
-    ConstructorDescriptor getConstructorDescriptor(ValueType... paramTypes);
-
-    ConstructorDescriptor getConstructorDescriptor(ParameterizedExecutableDescriptor paramDesc);
-
-    ParameterizedExecutableDescriptor getParameterizedExecutableDescriptor(ValueType... paramTypes);
 
     /**
      * Get a shared string instance.  The same string object will be reused for a given input string.

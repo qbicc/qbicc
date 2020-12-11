@@ -1,26 +1,23 @@
 package cc.quarkus.qcc.type.definition;
 
+import java.util.List;
 import java.util.function.ObjIntConsumer;
 
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
+import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.ParameterElement;
-import cc.quarkus.qcc.type.descriptor.ConstructorDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import io.smallrye.common.constraint.Assert;
+import cc.quarkus.qcc.type.generic.ClassSignature;
 
 /**
  *
  */
-public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldResolver,
-                                               MethodElement.TypeResolver, MethodResolver,
-                                               ConstructorElement.TypeResolver, ConstructorResolver,
-                                               ParameterElement.TypeResolver,
+public interface DefinedTypeDefinition extends FieldResolver,
+                                               MethodResolver,
+                                               ConstructorResolver,
                                                InitializerResolver {
 
     ValidatedTypeDefinition validate() throws VerifyFailedException;
@@ -30,6 +27,10 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
     String getInternalName();
 
     boolean internalNameEquals(String internalName);
+
+    boolean internalPackageAndNameEquals(String intPackageName, String className);
+
+    ClassSignature getSignature();
 
     int getModifiers();
 
@@ -109,16 +110,8 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
         }
     }
 
-    default ValueType resolveFieldType(long argument) throws ResolutionFailedException {
-        return resolveField((int) argument, this).getType();
-    }
-
     default FieldElement resolveField(int index, final DefinedTypeDefinition enclosing) {
         return validate().getField(index);
-    }
-
-    default boolean hasClass2FieldType(long argument) {
-        return resolveField((int) argument, this).hasClass2Type();
     }
 
     // ==================
@@ -134,31 +127,8 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
         }
     }
 
-    default ValueType resolveParameterType(int methodIdx, int paramIdx) throws ResolutionFailedException {
-        return resolveMethod(methodIdx, this).getParameter(paramIdx).getType();
-    }
-
-    default boolean hasClass2ParameterType(int methodArg, int paramArg) {
-        return resolveMethod(methodArg, this).getParameter(paramArg).hasClass2Type();
-    }
-
     default MethodElement resolveMethod(int index, final DefinedTypeDefinition enclosing) {
         return validate().getMethod(index);
-    }
-
-    default MethodDescriptor resolveMethodDescriptor(int argument) throws ResolutionFailedException {
-        return resolveMethod(argument, this).getDescriptor();
-    }
-
-    default boolean hasClass2ReturnType(int argument) {
-        return resolveMethod(argument, this).hasClass2ReturnType();
-    }
-
-    default long encodeParameterIndex(int index, int paramIndex) {
-        Assert.checkMinimumParameter("index", 0, index);
-        Assert.checkMinimumParameter("paramIndex", 0, paramIndex);
-        Assert.checkMaximumParameter("paramIndex", 255, paramIndex);
-        return ((long)index << 8) | paramIndex;
     }
 
     // ==================
@@ -178,10 +148,6 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
         return validate().getConstructor(index);
     }
 
-    default ConstructorDescriptor resolveConstructorDescriptor(int argument) throws ResolutionFailedException {
-        return resolveConstructor(argument, this).getDescriptor();
-    }
-
     // ==================
     // Initializer
     // ==================
@@ -194,13 +160,13 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
     // Annotations
     // ==================
 
-    int getVisibleAnnotationCount();
+    List<Annotation> getVisibleAnnotations();
 
-    Annotation getVisibleAnnotation(int index);
+    List<Annotation> getInvisibleAnnotations();
 
-    int getInvisibleAnnotationCount();
+    TypeAnnotationList getVisibleTypeAnnotations();
 
-    Annotation getInvisibleAnnotation(int index);
+    TypeAnnotationList getInvisibleTypeAnnotations();
 
     interface Builder {
         void setContext(ClassContext context);
@@ -229,13 +195,15 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
 
         void addInterfaceName(String interfaceInternalName);
 
-        void expectVisibleAnnotationCount(int count);
+        void setSignature(ClassSignature signature);
 
-        void addVisibleAnnotation(Annotation annotation);
+        void setVisibleAnnotations(List<Annotation> annotations);
 
-        void expectInvisibleAnnotationCount(int count);
+        void setInvisibleAnnotations(List<Annotation> annotations);
 
-        void addInvisibleAnnotation(Annotation annotation);
+        void setVisibleTypeAnnotations(TypeAnnotationList annotationList);
+
+        void setInvisibleTypeAnnotations(TypeAnnotationList annotationList);
 
         DefinedTypeDefinition build();
 
@@ -298,20 +266,24 @@ public interface DefinedTypeDefinition extends FieldElement.TypeResolver, FieldR
                 getDelegate().addInterfaceName(interfaceInternalName);
             }
 
-            default void expectVisibleAnnotationCount(int count) {
-                getDelegate().expectVisibleAnnotationCount(count);
+            default void setSignature(ClassSignature signature) {
+                getDelegate().setSignature(signature);
             }
 
-            default void addVisibleAnnotation(Annotation annotation) {
-                getDelegate().addVisibleAnnotation(annotation);
+            default void setVisibleAnnotations(List<Annotation> annotations) {
+                getDelegate().setVisibleAnnotations(annotations);
             }
 
-            default void expectInvisibleAnnotationCount(int count) {
-                getDelegate().expectInvisibleAnnotationCount(count);
+            default void setInvisibleAnnotations(List<Annotation> annotations) {
+                getDelegate().setInvisibleAnnotations(annotations);
             }
 
-            default void addInvisibleAnnotation(Annotation annotation) {
-                getDelegate().addInvisibleAnnotation(annotation);
+            default void setVisibleTypeAnnotations(TypeAnnotationList annotationList) {
+                getDelegate().setVisibleTypeAnnotations(annotationList);
+            }
+
+            default void setInvisibleTypeAnnotations(TypeAnnotationList annotationList) {
+                getDelegate().setInvisibleTypeAnnotations(annotationList);
             }
 
             default DefinedTypeDefinition build() {

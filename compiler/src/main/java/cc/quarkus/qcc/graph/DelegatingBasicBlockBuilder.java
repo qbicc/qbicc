@@ -13,7 +13,7 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
  * A graph factory which delegates all operations to another graph factory.  Can be used as a base class for graph
@@ -62,7 +62,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().classCastException(fromType, toType);
     }
 
-    public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final ParameterizedExecutableDescriptor desc, final String name) {
+    public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final MethodDescriptor desc, final String name) {
         return getDelegate().noSuchMethodError(owner, desc, name);
     }
 
@@ -110,12 +110,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().pointerLoad(pointer, accessMode, atomicityMode);
     }
 
-    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
-        return getDelegate().readInstanceField(instance, fieldElement, mode);
+    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
+        return getDelegate().readInstanceField(instance, fieldElement, type, mode);
     }
 
-    public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
-        return getDelegate().readStaticField(fieldElement, mode);
+    public Value readStaticField(final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
+        return getDelegate().readStaticField(fieldElement, type, mode);
     }
 
     public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
@@ -158,12 +158,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().invokeInstance(kind, instance, target, arguments);
     }
 
-    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-        return getDelegate().invokeValueStatic(target, arguments);
+    public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
+        return getDelegate().invokeValueStatic(target, type, arguments);
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        return getDelegate().invokeValueInstance(kind, instance, target, arguments);
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
+        return getDelegate().invokeValueInstance(kind, instance, target, type, arguments);
     }
 
     public Node begin(final BlockLabel blockLabel) {

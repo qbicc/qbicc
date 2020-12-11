@@ -1,23 +1,29 @@
 package cc.quarkus.qcc.type.generic;
 
+import static cc.quarkus.qcc.type.generic.Signature.*;
+
+import java.nio.ByteBuffer;
+
 /**
  * The explicit "any" type argument, encoded as {@code *}.
  */
-public final class AnyTypeArgument implements TypeArgument {
+public final class AnyTypeArgument extends TypeArgument {
     public static final AnyTypeArgument INSTANCE = new AnyTypeArgument();
 
     private AnyTypeArgument() {
+        super(AnyTypeArgument.class.hashCode());
     }
 
-    public boolean isAny() {
-        return true;
+    public boolean equals(final TypeArgument other) {
+        return other instanceof AnyTypeArgument;
     }
 
-    public AnyTypeArgument asAny() {
-        return this;
+    public StringBuilder toString(final StringBuilder target) {
+        return target.append('*');
     }
 
-    public StringBuilder toString(final StringBuilder b) {
-        return b.append('*');
+    static TypeArgument parse(final ByteBuffer buf) {
+        expect(buf, '*');
+        return INSTANCE;
     }
 }

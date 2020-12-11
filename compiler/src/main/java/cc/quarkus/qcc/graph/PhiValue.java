@@ -6,7 +6,7 @@ import java.util.Set;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.BasicElement;
+import cc.quarkus.qcc.type.definition.element.Element;
 import io.smallrye.common.constraint.Assert;
 
 public final class PhiValue extends AbstractValue implements PinnedNode {
@@ -24,7 +24,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         return incomingValues.get(Assert.checkNotNullParam("input", input));
     }
 
-    public void setValueForBlock(final CompilationContext ctxt, final BasicElement element, final BasicBlock input, final Value value) {
+    public void setValueForBlock(final CompilationContext ctxt, final Element element, final BasicBlock input, final Value value) {
         Assert.checkNotNullParam("value", value);
         if (! value.getType().equals(getType())) {
             try {
@@ -40,7 +40,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         incomingValues.put(input, value);
     }
 
-    public void setValueForBlock(final CompilationContext ctxt, final BasicElement element, final BlockLabel input, final Value value) {
+    public void setValueForBlock(final CompilationContext ctxt, final Element element, final BlockLabel input, final Value value) {
         setValueForBlock(ctxt, element, BlockLabel.getTargetOf(input), value);
     }
 

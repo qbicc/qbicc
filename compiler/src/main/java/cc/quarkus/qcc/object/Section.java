@@ -10,7 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.definition.element.BasicElement;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.MemberElement;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -27,7 +28,7 @@ public final class Section extends ProgramObject {
         this.programModule = programModule;
     }
 
-    public Data addData(BasicElement originalElement, String name, Value value) {
+    public Data addData(MemberElement originalElement, String name, Value value) {
         if (definedObjects.add(name)) {
             return add(new Data(
                 originalElement, Assert.checkNotNullParam("name", name),
@@ -40,7 +41,7 @@ public final class Section extends ProgramObject {
         }
     }
 
-    public Function addFunction(BasicElement originalElement, String name, FunctionType type) {
+    public Function addFunction(ExecutableElement originalElement, String name, FunctionType type) {
         if (definedObjects.add(name)) {
             return add(new Function(
                 originalElement, Assert.checkNotNullParam("name", name),
@@ -52,7 +53,7 @@ public final class Section extends ProgramObject {
         }
     }
 
-    public FunctionDeclaration declareFunction(BasicElement originalElement, String name, FunctionType type) {
+    public FunctionDeclaration declareFunction(ExecutableElement originalElement, String name, FunctionType type) {
         FunctionDeclaration decl = declaredFunctions.get(name);
         if (decl == null) {
             decl = new FunctionDeclaration(

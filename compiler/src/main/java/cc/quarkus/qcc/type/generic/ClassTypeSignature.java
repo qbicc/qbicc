@@ -1,77 +1,73 @@
 package cc.quarkus.qcc.type.generic;
 
+import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+
+import cc.quarkus.qcc.type.definition.ClassContext;
+
 /**
  * Some class (or interface).  Does not specify whether the class is accessed by reference or by value.
  */
-public interface ClassTypeSignature extends ThrowableTypeSignature {
-    default boolean isClass() {
-        return true;
+public abstract class ClassTypeSignature extends ThrowsSignature {
+    private final String identifier;
+    private final List<TypeArgument> typeArguments;
+
+    ClassTypeSignature(final int hashCode, final String identifier, final List<TypeArgument> typeArguments) {
+        super(Objects.hash(identifier, typeArguments) * 19 + hashCode);
+        this.identifier = identifier;
+        this.typeArguments = typeArguments;
     }
 
-    default ClassTypeSignature asClass() {
-        return this;
+    public String getIdentifier() {
+        return identifier;
     }
 
-    /**
-     * The simple name of the class.
-     *
-     * @return the simple name
-     */
-    String getSimpleName();
+    public List<TypeArgument> getTypeArguments() {
+        return typeArguments;
+    }
 
-    /**
-     * Determine whether this class reference type has a package name.  If {@link #hasEnclosing()} returns {@code true},
-     * this method will always return {@code false}.
-     *
-     * @return {@code true} if this type has a package name, or {@code false} if it resides in the default package or
-     * within an enclosing class
-     */
-    boolean hasPackageName();
+    public final boolean equals(final ThrowsSignature other) {
+        return other instanceof ClassTypeSignature && equals((ClassTypeSignature) other);
+    }
 
-    /**
-     * Get the package name.
-     *
-     * @return the package name
-     * @throws IllegalArgumentException if the class does not have a package name
-     */
-    PackageName getPackageName() throws IllegalArgumentException;
+    public boolean equals(final ClassTypeSignature other) {
+        return super.equals(other) && identifier.equals(other.identifier) && typeArguments.equals(other.typeArguments);
+    }
 
-    /**
-     * Determine whether this class reference type has an enclosing class reference type.  If {@link #hasPackageName()}
-     * returns {@code true}, this method will always return {@code false}.
-     *
-     * @return {@code true} if this type is enclosed in a class, or {@code false} if it resides in a package or in the
-     * default package
-     */
-    boolean hasEnclosing();
+    abstract StringBuilder prefixString(final StringBuilder target);
 
-    /**
-     * Get the enclosing class type.
-     *
-     * @return the enclosing class type
-     */
-    ClassTypeSignature getEnclosing() throws IllegalArgumentException;
+    final StringBuilder simpleString(final StringBuilder target) {
+        target.append(identifier);
+        final Iterator<TypeArgument> iterator = typeArguments.iterator();
+        if (iterator.hasNext()) {
+            target.append('<');
+            do {
+                iterator.next().toString(target);
+            } while (iterator.hasNext());
+            target.append('>');
+        }
+        return target;
+    }
 
-    /**
-     * Get the number of type arguments.  This should normally match the number of parameters on the declaring type, but
-     * sometimes might not if there was a source-incompatible change to that type or if this signature refers to a raw
-     * type.
-     *
-     * @return the number of type arguments
-     */
-    int getTypeArgumentCount();
+    public final StringBuilder toString(final StringBuilder target) {
+        return prefixString(target).append(';');
+    }
 
-    /**
-     * Get the type argument at the given index.
-     *
-     * @return the type argument at the given index
-     */
-    TypeArgument getTypeArgument(int index) throws IndexOutOfBoundsException;
+    public static ClassTypeSignature parse(ClassContext classContext, ByteBuffer buf) {
+        expect(buf, 'L');
+        ClassTypeSignature sig = TopLevelClassTypeSignature.parse(classContext, buf);
+        int i;
+        for (;;) {
+            i = peek(buf);
+            if (i == ';') {
+                expect(buf, ';');
+                return sig;
+            } else if (i == '.') {
+                sig = NestedClassTypeSignature.parse(sig, classContext, buf);
+            }
+        }
+    }
 
-    /**
-     * Get the "raw" version of this type signature (with no type arguments).
-     *
-     * @return the raw type
-     */
-    ClassTypeSignature getRawType();
 }

@@ -1,73 +1,68 @@
 package cc.quarkus.qcc.type.generic;
 
-import java.util.Locale;
+import java.nio.ByteBuffer;
+import java.util.Objects;
 
 /**
  *
  */
-public enum BaseTypeSignature implements TypeSignature {
-    BYTE('B'),
-    SHORT('S'),
-    INT('I'),
-    LONG('J'),
-    CHAR('C'),
-    FLOAT('F'),
-    DOUBLE('D'),
-    BOOLEAN('Z'),
-    ;
-    private final char name;
+public final class BaseTypeSignature extends TypeSignature {
+    public static final BaseTypeSignature B = new BaseTypeSignature("B", "byte");
+    public static final BaseTypeSignature C = new BaseTypeSignature("C", "char");
+    public static final BaseTypeSignature D = new BaseTypeSignature("D", "double");
+    public static final BaseTypeSignature F = new BaseTypeSignature("F", "float");
+    public static final BaseTypeSignature I = new BaseTypeSignature("I", "int");
+    public static final BaseTypeSignature J = new BaseTypeSignature("J", "long");
+    public static final BaseTypeSignature S = new BaseTypeSignature("S", "short");
+    public static final BaseTypeSignature Z = new BaseTypeSignature("Z", "long");
 
-    BaseTypeSignature(final char name) {
-        this.name = name;
+    public static final BaseTypeSignature V = new BaseTypeSignature("V", "void");
+
+    private final String shortName;
+    private final String fullName;
+
+    private BaseTypeSignature(final String shortName, final String fullName) {
+        super(Objects.hash(BaseTypeSignature.class, shortName, fullName));
+        this.shortName = shortName;
+        this.fullName = fullName;
     }
 
-    public String toString() {
-        return String.valueOf(name);
+    public String getShortName() {
+        return shortName;
     }
 
-    public char getName() {
-        return name;
+    public String getFullName() {
+        return fullName;
     }
 
-    public boolean isBase() {
-        return true;
+    public boolean equals(final TypeSignature other) {
+        return other instanceof BaseTypeSignature && equals((BaseTypeSignature) other);
     }
 
-    public BaseTypeSignature asBase() {
-        return this;
+    public boolean equals(final BaseTypeSignature other) {
+        return this == other;
     }
 
-    public static BaseTypeSignature forCharacter(char c) {
-        switch (c) {
-            case 'B': return BYTE;
-            case 'S': return SHORT;
-            case 'I': return INT;
-            case 'J': return LONG;
-            case 'C': return CHAR;
-            case 'F': return FLOAT;
-            case 'D': return DOUBLE;
-            case 'Z': return BOOLEAN;
-            default: return null;
+    public StringBuilder toString(final StringBuilder target) {
+        return target.append(shortName);
+    }
+
+    static BaseTypeSignature parse(ByteBuffer buf) {
+        return forChar(next(buf));
+    }
+
+    static BaseTypeSignature forChar(final int i) {
+        switch (i) {
+            case 'B': return B;
+            case 'C': return C;
+            case 'D': return D;
+            case 'F': return F;
+            case 'I': return I;
+            case 'J': return J;
+            case 'S': return S;
+            case 'V': return V;
+            case 'Z': return Z;
+            default: throw parseError();
         }
-    }
-
-    public static BaseTypeSignature forClass(Class<?> clazz) {
-        if (! clazz.isPrimitive()) {
-            return null;
-        }
-        switch (clazz.getSimpleName()) {
-            case "byte": return BYTE;
-            case "short": return SHORT;
-            case "int": return INT;
-            case "long": return LONG;
-            case "float": return FLOAT;
-            case "double": return DOUBLE;
-            case "boolean": return BOOLEAN;
-            default: return null;
-        }
-    }
-
-    public StringBuilder toString(final StringBuilder b) {
-        return b.append(name().toLowerCase(Locale.ROOT));
     }
 }

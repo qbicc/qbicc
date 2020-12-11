@@ -3,14 +3,17 @@ package cc.quarkus.qcc.type.definition;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.annotation.Annotation;
+import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.generic.ClassSignature;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -22,6 +25,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final String superClassName;
     private final int modifiers;
     private final String[] interfaceNames;
+    private final ClassSignature signature;
     private final MethodResolver[] methodResolvers;
     private final int[] methodIndexes;
     private final FieldResolver[] fieldResolvers;
@@ -30,8 +34,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final int[] constructorIndexes;
     private final InitializerResolver initializerResolver;
     private final int initializerIndex;
-    private final Annotation[] visibleAnnotations;
-    private final Annotation[] invisibleAnnotations;
+    private final List<Annotation> visibleAnnotations;
+    private final List<Annotation> invisibleAnnotations;
+    private final TypeAnnotationList visibleTypeAnnotations;
+    private final TypeAnnotationList invisibleTypeAnnotations;
 
     private volatile DefinedTypeDefinition validated;
 
@@ -52,6 +58,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int interfaceCount = builder.interfaceCount;
         this.interfaceNames = interfaceCount == 0 ? NO_INTERFACES : Arrays.copyOf(builder.interfaceNames, interfaceCount);
         int methodCount = builder.methodCount;
+        this.signature = Assert.checkNotNullParam("builder.signature", builder.signature);
         this.methodResolvers = methodCount == 0 ? NO_METHODS : Arrays.copyOf(builder.methodResolvers, methodCount);
         this.methodIndexes = methodCount == 0 ? NO_INTS : Arrays.copyOf(builder.methodIndexes, methodCount);
         int fieldCount = builder.fieldCount;
@@ -60,10 +67,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int constructorCount = builder.constructorCount;
         this.constructorResolvers = constructorCount == 0 ? NO_CONSTRUCTORS : Arrays.copyOf(builder.constructorResolvers, constructorCount);
         this.constructorIndexes = constructorCount == 0 ? NO_INTS : Arrays.copyOf(builder.constructorIndexes, constructorCount);
-        int annotationCount = builder.visibleAnnotationCount;
-        this.visibleAnnotations = annotationCount == 0 ? Annotation.NO_ANNOTATIONS : Arrays.copyOf(builder.visibleAnnotations, annotationCount);
-        annotationCount = builder.invisibleAnnotationCount;
-        this.invisibleAnnotations = annotationCount == 0 ? Annotation.NO_ANNOTATIONS : Arrays.copyOf(builder.invisibleAnnotations, annotationCount);
+        this.visibleAnnotations = builder.visibleAnnotations;
+        this.invisibleAnnotations = builder.invisibleAnnotations;
+        this.visibleTypeAnnotations = builder.visibleTypeAnnotations;
+        this.invisibleTypeAnnotations = builder.invisibleTypeAnnotations;
         this.initializerResolver = Assert.checkNotNullParam("builder.initializerResolver", builder.initializerResolver);
         this.initializerIndex = builder.initializerIndex;
     }
@@ -78,6 +85,19 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
     public boolean internalNameEquals(final String internalName) {
         return this.internalName.equals(Assert.checkNotNullParam("internalName", internalName));
+    }
+
+    public boolean internalPackageAndNameEquals(final String intPackageName, final String className) {
+        int classLen = className.length();
+        int pkgLen = intPackageName.length();
+        return internalName.length() == pkgLen + classLen + 1
+            && intPackageName.regionMatches(0, internalName, 0, pkgLen)
+            && internalName.charAt(pkgLen) == '/'
+            && className.regionMatches(0, internalName, pkgLen + 1, classLen);
+    }
+
+    public ClassSignature getSignature() {
+        return null;
     }
 
     public int getModifiers() {
@@ -170,20 +190,20 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         return constructorResolvers.length;
     }
 
-    public int getVisibleAnnotationCount() {
-        return visibleAnnotations.length;
+    public List<Annotation> getVisibleAnnotations() {
+        return visibleAnnotations;
     }
 
-    public Annotation getVisibleAnnotation(final int index) {
-        return visibleAnnotations[index];
+    public List<Annotation> getInvisibleAnnotations() {
+        return invisibleAnnotations;
     }
 
-    public int getInvisibleAnnotationCount() {
-        return invisibleAnnotations.length;
+    public TypeAnnotationList getVisibleTypeAnnotations() {
+        return visibleTypeAnnotations;
     }
 
-    public Annotation getInvisibleAnnotation(final int index) {
-        return invisibleAnnotations[index];
+    public TypeAnnotationList getInvisibleTypeAnnotations() {
+        return invisibleTypeAnnotations;
     }
 
     public boolean hasSuperClass() {
@@ -199,6 +219,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int modifiers = ClassFile.ACC_SUPER;
         int interfaceCount;
         String[] interfaceNames = NO_INTERFACES;
+        ClassSignature signature;
         int methodCount;
         MethodResolver[] methodResolvers = NO_METHODS;
         int[] methodIndexes = NO_INTS;
@@ -210,10 +231,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int[] constructorIndexes = NO_INTS;
         InitializerResolver initializerResolver;
         int initializerIndex;
-        int visibleAnnotationCount;
-        Annotation[] visibleAnnotations;
-        int invisibleAnnotationCount;
-        Annotation[] invisibleAnnotations;
+        List<Annotation> visibleAnnotations = List.of();
+        List<Annotation> invisibleAnnotations = List.of();
+        TypeAnnotationList visibleTypeAnnotations = TypeAnnotationList.empty();
+        TypeAnnotationList invisibleTypeAnnotations = TypeAnnotationList.empty();
 
         public void setContext(final ClassContext context) {
             this.context = context;
@@ -347,66 +368,25 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             this.interfaceCount = interfaceCount + 1;
         }
 
-        public void expectVisibleAnnotationCount(final int count) {
-            Assert.checkMinimumParameter("count", 0, count);
-            if (count == 0) {
-                return;
-            }
-            Annotation[] annotations = this.visibleAnnotations;
-            if (annotations == null) {
-                this.visibleAnnotations = new Annotation[count];
-            } else if (annotations.length < count) {
-                this.visibleAnnotations = Arrays.copyOf(annotations, count);
-            }
+        public void setSignature(final ClassSignature signature) {
+            Assert.checkNotNullParam("signature", signature);
+            this.signature = signature;
         }
 
-        public void addVisibleAnnotation(final Annotation annotation) {
-            Assert.checkNotNullParam("annotation", annotation);
-            Annotation[] annotations = this.visibleAnnotations;
-            int annotationCount = this.visibleAnnotationCount;
-            if (annotations == null) {
-                annotations = this.visibleAnnotations = new Annotation[4];
-            } else {
-                int len = annotations.length;
-                if (annotationCount == len) {
-                    // just grow it
-                    int newSize = len == 0 ? 4 : len << 1;
-                    annotations = this.visibleAnnotations = Arrays.copyOf(annotations, newSize);
-                }
-            }
-            annotations[annotationCount] = annotation;
-            this.visibleAnnotationCount = annotationCount + 1;
+        public void setVisibleAnnotations(final List<Annotation> annotations) {
+            this.visibleAnnotations = Assert.checkNotNullParam("annotations", annotations);
         }
 
-        public void expectInvisibleAnnotationCount(final int count) {
-            Assert.checkMinimumParameter("count", 0, count);
-            if (count == 0) {
-                return;
-            }
-            Annotation[] annotations = this.invisibleAnnotations;
-            if (annotations == null) {
-                this.invisibleAnnotations = new Annotation[count];
-            } else if (annotations.length < count) {
-                this.invisibleAnnotations = Arrays.copyOf(annotations, count);
-            }
+        public void setInvisibleAnnotations(final List<Annotation> annotations) {
+            this.invisibleAnnotations = Assert.checkNotNullParam("annotations", annotations);
         }
 
-        public void addInvisibleAnnotation(final Annotation annotation) {
-            Assert.checkNotNullParam("annotation", annotation);
-            Annotation[] annotations = this.invisibleAnnotations;
-            int annotationCount = this.invisibleAnnotationCount;
-            if (annotations == null) {
-                annotations = this.invisibleAnnotations = new Annotation[4];
-            } else {
-                int len = annotations.length;
-                if (annotationCount == len) {
-                    // just grow it
-                    int newSize = len == 0 ? 4 : len << 1;
-                    annotations = this.invisibleAnnotations = Arrays.copyOf(annotations, newSize);
-                }
-            }
-            annotations[annotationCount] = annotation;
-            this.invisibleAnnotationCount = annotationCount + 1;
+        public void setVisibleTypeAnnotations(final TypeAnnotationList annotationList) {
+            this.visibleTypeAnnotations = Assert.checkNotNullParam("annotationList", annotationList);
+        }
+
+        public void setInvisibleTypeAnnotations(final TypeAnnotationList annotationList) {
+            this.invisibleTypeAnnotations = Assert.checkNotNullParam("annotationList", annotationList);
         }
 
         public void setName(final String internalName) {

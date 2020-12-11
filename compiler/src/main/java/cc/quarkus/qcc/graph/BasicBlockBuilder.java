@@ -16,7 +16,7 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -179,9 +179,9 @@ public interface BasicBlockBuilder {
 
     Value pointerLoad(Value pointer, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
 
-    Value readInstanceField(Value instance, FieldElement fieldElement, JavaAccessMode mode);
+    Value readInstanceField(Value instance, FieldElement fieldElement, final ValueType type, JavaAccessMode mode);
 
-    Value readStaticField(FieldElement fieldElement, JavaAccessMode mode);
+    Value readStaticField(FieldElement fieldElement, final ValueType type, JavaAccessMode mode);
 
     Value readArrayValue(Value array, Value index, JavaAccessMode mode);
 
@@ -205,9 +205,9 @@ public interface BasicBlockBuilder {
 
     Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
 
-    Value invokeValueStatic(MethodElement target, List<Value> arguments);
+    Value invokeValueStatic(MethodElement target, final ValueType type, List<Value> arguments);
 
-    Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
+    Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, final ValueType type, List<Value> arguments);
 
     /**
      * Invoke an object instance initializer.  The value returned has an initialized type.  The returned value should
@@ -303,7 +303,7 @@ public interface BasicBlockBuilder {
      */
     BasicBlock classCastException(Value fromType, Value toType);
 
-    BasicBlock noSuchMethodError(TypeIdLiteral owner, ParameterizedExecutableDescriptor desc, String name);
+    BasicBlock noSuchMethodError(TypeIdLiteral owner, MethodDescriptor desc, String name);
 
     BasicBlock classNotFoundError(String name);
 
@@ -527,12 +527,12 @@ public interface BasicBlockBuilder {
                 throw Assert.unsupported();
             }
 
-            public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
-                return asDependency(new InstanceFieldRead(line, bci, requireDependency(), instance, fieldElement, mode));
+            public Value readInstanceField(final Value instance, final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
+                return asDependency(new InstanceFieldRead(line, bci, requireDependency(), instance, fieldElement, type, mode));
             }
 
-            public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
-                return asDependency(new StaticFieldRead(line, bci, requireDependency(), fieldElement, mode));
+            public Value readStaticField(final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
+                return asDependency(new StaticFieldRead(line, bci, requireDependency(), fieldElement, type, mode));
             }
 
             public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
@@ -594,12 +594,12 @@ public interface BasicBlockBuilder {
                 return optionallyTry(new InstanceInvocation(line, bci, requireDependency(), kind, instance, target, arguments));
             }
 
-            public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-                return optionallyTry(new StaticInvocationValue(line, bci, requireDependency(), target, arguments));
+            public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
+                return optionallyTry(new StaticInvocationValue(line, bci, requireDependency(), target, type, arguments));
             }
 
-            public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-                return optionallyTry(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, arguments));
+            public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
+                return optionallyTry(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, type, arguments));
             }
 
             public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
@@ -667,7 +667,7 @@ public interface BasicBlockBuilder {
                 return terminate(requireCurrentBlock(), new ClassCastErrorNode(line, bci, dependency, fromType, toType));
             }
 
-            public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final ParameterizedExecutableDescriptor desc, final String name) {
+            public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final MethodDescriptor desc, final String name) {
                 return terminate(requireCurrentBlock(), new NoSuchMethodErrorNode(line, bci, dependency, owner, desc, name));
             }
 

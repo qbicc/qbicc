@@ -1,8 +1,11 @@
 package cc.quarkus.qcc.type.generic;
 
-
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
+import cc.quarkus.qcc.type.definition.ClassContext;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -12,88 +15,93 @@ public class SignatureParsingTests {
 
     static final String JLO_SIG_STR = "L" + "java/lang/Object;";
 
+    static TypeSignature parse(ClassContext ctxt, String str) {
+        return TypeSignature.parse(ctxt, ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
+    }
+
     @Test
     public void testBasicTypes() {
-        final ParsingCache cache = new ParsingCache();
-        assertEquals(TypeSignature.parseTypeSignature(cache, "B"), BaseTypeSignature.BYTE);
-        assertEquals(TypeSignature.parseTypeSignature(cache, "S"), BaseTypeSignature.SHORT);
-        assertEquals(TypeSignature.parseTypeSignature(cache, "I"), BaseTypeSignature.INT);
-        assertEquals(TypeSignature.parseTypeSignature(cache, "J"), BaseTypeSignature.LONG);
-        assertEquals(TypeSignature.parseTypeSignature(cache, "C"), BaseTypeSignature.CHAR);
-        assertEquals(TypeSignature.parseTypeSignature(cache, "Z"), BaseTypeSignature.BOOLEAN);
-        assertEquals(TypeSignature.parseTypeSignature(cache, "F"), BaseTypeSignature.FLOAT);
-        assertEquals(TypeSignature.parseTypeSignature(cache, "D"), BaseTypeSignature.DOUBLE);
+        ClassContext ctxt = new TestClassContext();
+        assertEquals(parse(ctxt, "B"), BaseTypeSignature.B);
+        assertEquals(parse(ctxt, "C"), BaseTypeSignature.C);
+        assertEquals(parse(ctxt, "D"), BaseTypeSignature.D);
+        assertEquals(parse(ctxt, "F"), BaseTypeSignature.F);
+        assertEquals(parse(ctxt, "I"), BaseTypeSignature.I);
+        assertEquals(parse(ctxt, "J"), BaseTypeSignature.J);
+        assertEquals(parse(ctxt, "S"), BaseTypeSignature.S);
+        assertEquals(parse(ctxt, "V"), BaseTypeSignature.V);
+        assertEquals(parse(ctxt, "Z"), BaseTypeSignature.Z);
     }
 
     @Test
     public void testReferenceTypes() {
-        final ParsingCache cache = new ParsingCache();
-        final TypeSignature sig = TypeSignature.parseTypeSignature(cache, JLO_SIG_STR);
-        assertTrue(sig.isClass());
-        assertEquals("Object", sig.asClass().getSimpleName());
-        assertEquals("lang", sig.asClass().getPackageName().getSimpleName());
-        assertEquals("java", sig.asClass().getPackageName().getEnclosing().getSimpleName());
-        assertSame(sig, TypeSignature.parseTypeSignature(cache, JLO_SIG_STR));
+        ClassContext ctxt = new TestClassContext();
+        final TypeSignature sig = parse(ctxt, JLO_SIG_STR);
+        assertTrue(sig instanceof TopLevelClassTypeSignature);
+        assertEquals("Object", ((TopLevelClassTypeSignature) sig).getIdentifier());
+        assertEquals("java/lang", ((TopLevelClassTypeSignature) sig).getPackageName());
+        assertSame(sig, parse(ctxt, JLO_SIG_STR));
     }
 
     @Test
     public void testSimpleTypeVariable() {
-        final ParsingCache cache = new ParsingCache();
-        final TypeSignature sig = TypeSignature.parseTypeSignature(cache, "TFoo;");
-        assertTrue(sig.isTypeVariable());
-        assertEquals("Foo", sig.asTypeVariable().getSimpleName());
-        assertSame(sig.asTypeVariable(), TypeSignature.parseTypeSignature(cache, "TFoo;"));
+        ClassContext ctxt = new TestClassContext();
+        final TypeSignature sig = parse(ctxt, "TFoo;");
+        assertTrue(sig instanceof TypeVariableSignature);
+        assertEquals("Foo", ((TypeVariableSignature) sig).getIdentifier());
+        assertSame(sig, parse(ctxt, "TFoo;"));
     }
 
     @Test
     public void testArrayOfSimpleType() {
-        final ParsingCache cache = new ParsingCache();
-        final TypeSignature sig = TypeSignature.parseTypeSignature(cache, "[B");
-        assertTrue(sig.isArray());
-        assertEquals(BaseTypeSignature.BYTE, sig.asArray().getMemberSignature());
-        assertSame(sig, TypeSignature.parseTypeSignature(cache, "[B"));
+        ClassContext ctxt = new TestClassContext();
+        final TypeSignature sig = parse(ctxt, "[B");
+        assertTrue(sig instanceof ArrayTypeSignature);
+        assertEquals(BaseTypeSignature.B, ((ArrayTypeSignature) sig).getElementTypeSignature());
+        assertSame(sig, parse(ctxt, "[B"));
     }
 
     @Test
     public void testArrayOfArrayOfSimpleType() {
-        final ParsingCache cache = new ParsingCache();
-        final TypeSignature sig = TypeSignature.parseTypeSignature(cache, "[[J");
-        assertTrue(sig.isArray());
-        assertTrue(sig.asArray().getMemberSignature().isArray());
-        assertEquals(BaseTypeSignature.LONG, sig.asArray().getMemberSignature().asArray().getMemberSignature());
-        assertSame(sig, TypeSignature.parseTypeSignature(cache, "[[J"));
+        ClassContext ctxt = new TestClassContext();
+        final TypeSignature sig = parse(ctxt, "[[J");
+        assertTrue(sig instanceof ArrayTypeSignature);
+        assertTrue(((ArrayTypeSignature) sig).getElementTypeSignature() instanceof ArrayTypeSignature);
+        assertEquals(BaseTypeSignature.J, ((ArrayTypeSignature) ((ArrayTypeSignature) sig).getElementTypeSignature()).getElementTypeSignature());
+        assertSame(sig, parse(ctxt, "[[J"));
     }
 
     @Test
     public void testReallyComplex() {
-        final ParsingCache cache = new ParsingCache();
-        final TypeSignature sig = TypeSignature.parseTypeSignature(cache, "Lfoo/bar/baz/Zap<**+[TT;-TT;Lblah/Bzzt;*>.Zap<-TXxxxxx;>;;");
-        assertTrue(sig.isClass());
-        assertTrue(sig.asClass().hasEnclosing());
-        final ClassTypeSignature outer = sig.asClass().getEnclosing();
-        assertEquals(6, outer.getTypeArgumentCount());
-        assertSame(outer.getTypeArgument(0), AnyTypeArgument.INSTANCE);
-        assertSame(outer.getTypeArgument(1), AnyTypeArgument.INSTANCE);
-        final TypeArgument arg2 = outer.getTypeArgument(2);
-        assertTrue(arg2.isBound());
-        assertEquals(Variance.COVARIANT, arg2.asBound().getVariance());
-        final ReferenceTypeSignature bta2Type = arg2.asBound().getValue();
-        assertTrue(bta2Type.isArray());
-        final TypeSignature bta2TypeType = bta2Type.asArray().getMemberSignature();
-        assertTrue(bta2TypeType.isTypeVariable());
-        assertEquals("T", bta2TypeType.asTypeVariable().getSimpleName());
-        final TypeArgument arg3 = outer.getTypeArgument(3);
-        assertTrue(arg3.isBound());
-        assertEquals(Variance.CONTRAVARIANT, arg3.asBound().getVariance());
-        final ReferenceTypeSignature bta3Type = arg3.asBound().getValue();
-        assertTrue(bta3Type.isTypeVariable());
+        ClassContext ctxt = new TestClassContext();
+        final TypeSignature sig = parse(ctxt, "Lfoo/bar/baz/Zap<**+[TT;-TT;Lblah/Bzzt;*>.Zap<-TXxxxxx;>;;");
+        assertTrue(sig instanceof ClassTypeSignature);
+        assertTrue(sig instanceof NestedClassTypeSignature);
+        final ClassTypeSignature outer = ((NestedClassTypeSignature) sig).getEnclosing();
+        assertEquals(6, outer.getTypeArguments().size());
+        assertSame(outer.getTypeArguments().get(0), AnyTypeArgument.INSTANCE);
+        assertSame(outer.getTypeArguments().get(1), AnyTypeArgument.INSTANCE);
+        final TypeArgument arg2 = outer.getTypeArguments().get(2);
+        assertTrue(arg2 instanceof BoundTypeArgument);
+        assertEquals(Variance.COVARIANT, ((BoundTypeArgument) arg2).getVariance());
+        final ReferenceTypeSignature bta2Type = ((BoundTypeArgument) arg2).getBound();
+        assertTrue(bta2Type instanceof ArrayTypeSignature);
+        final TypeSignature bta2TypeType = ((ArrayTypeSignature) bta2Type).getElementTypeSignature();
+        assertTrue(bta2TypeType instanceof TypeVariableSignature);
+        assertEquals("T", ((TypeVariableSignature) bta2TypeType).getIdentifier());
+        final TypeArgument arg3 = outer.getTypeArguments().get(3);
+        assertTrue(arg3 instanceof BoundTypeArgument);
+        assertEquals(Variance.CONTRAVARIANT, ((BoundTypeArgument) arg3).getVariance());
+        final ReferenceTypeSignature bta3Type = ((BoundTypeArgument) arg3).getBound();
+        assertTrue(bta3Type instanceof TypeVariableSignature);
         assertSame(bta2TypeType, bta3Type);
-        final TypeArgument arg4 = outer.getTypeArgument(4);
-        assertTrue(arg4.isBound());
-        assertEquals(Variance.INVARIANT, arg4.asBound().getVariance());
-        assertEquals("Bzzt", arg4.asBound().getValue().asClass().getSimpleName());
-        assertSame(outer.getTypeArgument(5), AnyTypeArgument.INSTANCE);
-        assertSame(outer.getSimpleName(), sig.asClass().getSimpleName());
-        assertEquals(1, sig.asClass().getTypeArgumentCount());
+        final TypeArgument arg4 = outer.getTypeArguments().get(4);
+        assertTrue(arg4 instanceof BoundTypeArgument);
+        assertEquals(Variance.INVARIANT, ((BoundTypeArgument) arg4).getVariance());
+        assertTrue(((BoundTypeArgument) arg4).getBound() instanceof ClassTypeSignature);
+        assertEquals("Bzzt", ((ClassTypeSignature) ((BoundTypeArgument) arg4).getBound()).getIdentifier());
+        assertSame(outer.getTypeArguments().get(5), AnyTypeArgument.INSTANCE);
+        assertSame(outer.getIdentifier(), ((NestedClassTypeSignature) sig).getIdentifier());
+        assertEquals(1, ((NestedClassTypeSignature) sig).getTypeArguments().size());
     }
 }

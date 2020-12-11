@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
  *
@@ -11,10 +11,10 @@ import cc.quarkus.qcc.type.descriptor.ParameterizedExecutableDescriptor;
 public final class NoSuchMethodErrorNode extends AbstractNode implements Error {
     private final Node dependency;
     private final TypeIdLiteral owner;
-    private final ParameterizedExecutableDescriptor desc;
+    private final MethodDescriptor desc;
     private final String name;
 
-    NoSuchMethodErrorNode(final int line, final int bci, final Node dependency, final TypeIdLiteral owner, final ParameterizedExecutableDescriptor desc, final String name) {
+    NoSuchMethodErrorNode(final int line, final int bci, final Node dependency, final TypeIdLiteral owner, final MethodDescriptor desc, final String name) {
         super(line, bci);
         this.dependency = dependency;
         this.owner = owner;
@@ -34,7 +34,7 @@ public final class NoSuchMethodErrorNode extends AbstractNode implements Error {
         return owner;
     }
 
-    public ParameterizedExecutableDescriptor getDescriptor() {
+    public MethodDescriptor getDescriptor() {
         return desc;
     }
 
