@@ -54,7 +54,11 @@ public final class BaseTypeDescriptor extends TypeDescriptor {
     }
 
     public static BaseTypeDescriptor parse(ByteBuffer buf) {
-        switch (next(buf)) {
+        return forChar((char) next(buf));
+    }
+
+    public static BaseTypeDescriptor forChar(final char c) {
+        switch (c) {
             case 'B': return B;
             case 'C': return C;
             case 'D': return D;

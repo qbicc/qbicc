@@ -24,8 +24,13 @@ import cc.quarkus.qcc.plugin.constants.ConstantBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
 import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.native_.ConstTypeResolver;
+import cc.quarkus.qcc.plugin.native_.ConstantDefiningBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.native_.ExternImportTypeBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeBuilder;
+import cc.quarkus.qcc.plugin.native_.NativeTypeResolver;
+import cc.quarkus.qcc.plugin.native_.PointerTypeResolver;
 import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.reachability.ReachabilityBlockBuilder;
@@ -188,7 +193,12 @@ public class Main {
                                 // keep it simple to start with
                                 builder.setMainClass(mainClass.replace('.', '/'));
                                 builder.addPostAnalyticHook(new LLVMGenerator());
+                                builder.addTypeBuilderFactory(ExternImportTypeBuilder::new);
                                 builder.addTypeBuilderFactory(NativeTypeBuilder::new);
+                                builder.addResolverFactory(ConstTypeResolver::new);
+                                builder.addResolverFactory(NativeTypeResolver::new);
+                                builder.addResolverFactory(PointerTypeResolver::new);
+                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);

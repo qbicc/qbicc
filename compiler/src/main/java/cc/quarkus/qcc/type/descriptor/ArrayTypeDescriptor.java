@@ -36,6 +36,10 @@ public final class ArrayTypeDescriptor extends TypeDescriptor {
         if (i != '[') {
             throw parseError();
         }
-        return Cache.get(classContext).getArrayTypeDescriptor(TypeDescriptor.parse(classContext, buf));
+        return of(classContext, TypeDescriptor.parse(classContext, buf));
+    }
+
+    public static ArrayTypeDescriptor of(final ClassContext classContext, final TypeDescriptor elementTypeDescriptor) {
+        return Cache.get(classContext).getArrayTypeDescriptor(elementTypeDescriptor);
     }
 }

@@ -1,39 +1,21 @@
 package cc.quarkus.qcc.plugin.native_;
 
-import static cc.quarkus.qcc.context.CompilationContext.*;
-
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.driver.Driver;
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.probe.CProbe;
 import cc.quarkus.qcc.machine.probe.Qualifier;
-import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.type.CompoundType;
-import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.annotation.AnnotationValue;
-import cc.quarkus.qcc.type.annotation.ArrayAnnotationValue;
 import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
 import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.definition.ConstructorResolver;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.MethodBody;
-import cc.quarkus.qcc.type.definition.MethodResolver;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 
 /**
@@ -57,7 +39,7 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
 
     public void setSuperClassName(final String superClassInternalName) {
         if (superClassInternalName != null) {
-            if (superClassInternalName.equals(Native.OBJECT) || superClassInternalName.equals(Native.WORD)) {
+            if (superClassInternalName.equals(Native.OBJECT_INT_NAME) || superClassInternalName.equals(Native.WORD_INT_NAME)) {
                 // probe native object type
                 isNative = true;
             }
@@ -65,67 +47,11 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
         getDelegate().setSuperClassName(superClassInternalName);
     }
 
-    public void addMethod(final MethodResolver resolver, final int index) {
-        delegate.addMethod(new MethodResolver() {
-            public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing) {
-                NativeInfo nativeInfo = NativeInfo.get(ctxt);
-                MethodElement origMethod = resolver.resolveMethod(index, enclosing);
-                boolean isNative = origMethod.hasAllModifiersOf(ClassFile.ACC_NATIVE);
-                // look for annotations that indicate that this method requires special handling
-                for (Annotation annotation : origMethod.getVisibleAnnotations()) {
-                    ClassTypeDescriptor desc = annotation.getDescriptor();
-                    if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
-                        if (desc.getClassName().equals(Native.ANN_EXTERN)) {
-                            AnnotationValue nameVal = annotation.getValue("withName");
-                            String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
-                            // register as a function
-                            FunctionType type = origMethod.getType(classCtxt, List.of(/*todo*/));
-                            nativeInfo.nativeFunctions.put(origMethod, new NativeFunctionInfo(ctxt.getLiteralFactory().literalOfSymbol(
-                                name, type
-                            )));
-                            // all done
-                            break;
-                        } else if (desc.getClassName().equals(Native.ANN_EXPORT)) {
-                            // immediately generate the call-in stub
-                            AnnotationValue nameVal = annotation.getValue("withName");
-                            String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
-                            Function exactFunction = ctxt.getExactFunction(origMethod);
-                            FunctionType fnType = exactFunction.getType();
-                            Function function = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(IMPLICIT_SECTION_NAME).addFunction(origMethod, name, fnType);
-                            BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(origMethod);
-                            BlockLabel entry = new BlockLabel();
-                            gf.begin(entry);
-                            LiteralFactory lf = ctxt.getLiteralFactory();
-                            SymbolLiteral fn = lf.literalOfSymbol(exactFunction.getName(), exactFunction.getType());
-                            int pcnt = origMethod.getParameters().size();
-                            List<Value> args = new ArrayList<>(pcnt + 1);
-                            List<Value> pv = new ArrayList<>(pcnt);
-                            // for now, thread is null!
-                            // todo: insert prolog here
-                            args.add(lf.literalOfNull());
-                            for (int j = 0; j < pcnt; j ++) {
-                                Value parameter = gf.parameter(fnType.getParameterType(j), j);
-                                pv.add(parameter);
-                                args.add(parameter);
-                            }
-                            Value result = gf.callFunction(fn, args);
-                            if (fnType.getReturnType() instanceof VoidType) {
-                                gf.return_();
-                            } else {
-                                gf.return_(result);
-                            }
-                            BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
-                            function.replaceBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, pv));
-                            // ensure the method is reachable
-                            ctxt.registerEntryPoint(origMethod);
-                            // all done
-                            break;
-                        }
-                    }
-                }
-                return origMethod;
-            }
-        }, index);
+    public void addConstructor(final ConstructorResolver resolver, final int index) {
+        // native types cannot be constructed the normal way
+        if (! isNative) {
+            delegate.addConstructor(resolver, index);
+        }
     }
 
     public DefinedTypeDefinition build() {
@@ -138,38 +64,11 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
             for (Annotation annotation : builtType.getVisibleAnnotations()) {
                 ClassTypeDescriptor annDesc = annotation.getDescriptor();
                 if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
+                    if (ProbeUtils.processCommonAnnotation(pb, annotation)) {
+                        continue;
+                    }
                     if (annDesc.getClassName().equals(Native.ANN_NAME)) {
                         simpleName = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                    } else if (annDesc.getClassName().equals(Native.ANN_INCLUDE)) {
-                        // include just one
-                        String include = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                        // todo: when/unless (requires VM)
-                        pb.include(include);
-                    } else if (annDesc.getClassName().equals(Native.ANN_INCLUDE_LIST)) {
-                        ArrayAnnotationValue array = (ArrayAnnotationValue) annotation.getValue("value");
-                        int cnt = array.getElementCount();
-                        for (int j = 0; j < cnt; j ++) {
-                            Annotation nested = (Annotation) array.getValue(j);
-                            assert nested.getDescriptor().getClassName().equals(Native.ANN_INCLUDE);
-                            String include = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                            // todo: when/unless (requires VM)
-                            pb.include(include);
-                        }
-                    } else if (annDesc.getClassName().equals(Native.ANN_DEFINE)) {
-                        // define just one
-                        String define = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                        // todo: when/unless (requires VM)
-                        pb.define(define);
-                    } else if (annDesc.getClassName().equals(Native.ANN_DEFINE_LIST)) {
-                        ArrayAnnotationValue array = (ArrayAnnotationValue) annotation.getValue("value");
-                        int cnt = array.getElementCount();
-                        for (int j = 0; j < cnt; j ++) {
-                            Annotation nested = (Annotation) array.getValue(j);
-                            assert nested.getDescriptor().getClassName().equals(Native.ANN_DEFINE);
-                            String define = ((StringAnnotationValue) annotation.getValue("value")).getString();
-                            // todo: when/unless (requires VM)
-                            pb.define(define);
-                        }
                     }
                 }
                 // todo: lib (add to native info)

@@ -13,6 +13,7 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
  *
  */
 public abstract class TypeSignature extends Signature {
+    private TypeDescriptor descriptor;
 
     TypeSignature(final int hashCode) {
         super(hashCode);
@@ -25,6 +26,16 @@ public abstract class TypeSignature extends Signature {
     public boolean equals(final TypeSignature other) {
         return super.equals(other);
     }
+
+    public TypeDescriptor asDescriptor(ClassContext classContext) {
+        TypeDescriptor descriptor = this.descriptor;
+        if (descriptor == null) {
+            descriptor = this.descriptor = makeDescriptor(classContext);
+        }
+        return descriptor;
+    }
+
+    abstract TypeDescriptor makeDescriptor(ClassContext classContext);
 
     public static TypeSignature parse(ClassContext classContext, ByteBuffer buf) {
         int i = peek(buf);

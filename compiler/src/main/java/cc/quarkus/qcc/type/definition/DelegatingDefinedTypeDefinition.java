@@ -93,4 +93,12 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
     public TypeAnnotationList getInvisibleTypeAnnotations() {
         return getDelegate().getInvisibleTypeAnnotations();
     }
+
+    public int hashCode() {
+        return getDelegate().hashCode();
+    }
+
+    public boolean equals(final Object obj) {
+        return getDelegate().equals(obj);
+    }
 }

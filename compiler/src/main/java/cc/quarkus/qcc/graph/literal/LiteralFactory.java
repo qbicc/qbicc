@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -50,11 +51,16 @@ public interface LiteralFactory {
 
     CurrentThreadLiteral literalOfCurrentThread(ReferenceType threadType);
 
+    UndefinedLiteral literalOfUndefined();
+
+    DefinedConstantLiteral literalOfDefinedConstant(Value constantValue);
+
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
             private final BooleanLiteral TRUE = new BooleanLiteral(typeSystem.getBooleanType().asConst(), true);
             private final BooleanLiteral FALSE = new BooleanLiteral(typeSystem.getBooleanType().asConst(), false);
             private final NullLiteral NULL = new NullLiteral(typeSystem.getNullType());
+            private final UndefinedLiteral undef = new UndefinedLiteral(typeSystem.getPoisonType());
             private final ClassTypeIdLiteral baseClassLiteral = new ClassTypeIdLiteral("java/lang/Object", null, InterfaceTypeIdLiteral.NONE, typeSystem.getTypeIdType());
             private final ConcurrentMap<ValueType, ValueArrayTypeIdLiteral> primitiveArrayLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<TypeIdLiteral, ReferenceArrayTypeIdLiteral> arrayObjectTypeIdLiterals = new ConcurrentHashMap<>();
@@ -112,6 +118,14 @@ public interface LiteralFactory {
 
             public NullLiteral literalOfNull() {
                 return NULL;
+            }
+
+            public UndefinedLiteral literalOfUndefined() {
+                return undef;
+            }
+
+            public DefinedConstantLiteral literalOfDefinedConstant(final Value constantValue) {
+                return new DefinedConstantLiteral(constantValue);
             }
 
             public ObjectLiteral literalOf(final VmObject value) {

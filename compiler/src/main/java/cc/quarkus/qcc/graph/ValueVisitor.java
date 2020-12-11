@@ -8,6 +8,7 @@ import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
+import cc.quarkus.qcc.graph.literal.DefinedConstantLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
@@ -16,6 +17,7 @@ import cc.quarkus.qcc.graph.literal.ObjectLiteral;
 import cc.quarkus.qcc.graph.literal.ReferenceArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
 import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 
 /**
@@ -95,6 +97,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, CurrentThreadLiteral node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, DefinedConstantLiteral node) {
         return visitUnknown(param, node);
     }
 
@@ -230,6 +236,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, UndefinedLiteral node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, ValueArrayTypeIdLiteral node) {
         return visitUnknown(param, node);
     }
@@ -314,6 +324,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, CurrentThreadLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, DefinedConstantLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -446,6 +460,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, TypeIdOf node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, UndefinedLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

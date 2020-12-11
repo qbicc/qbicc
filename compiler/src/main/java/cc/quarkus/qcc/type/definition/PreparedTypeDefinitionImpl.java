@@ -24,11 +24,11 @@ final class PreparedTypeDefinitionImpl extends DelegatingResolvedTypeDefinition 
     }
 
     public PreparedTypeDefinition validate() {
-        return super.validate().prepare();
+        return this;
     }
 
     public PreparedTypeDefinition resolve() {
-        return super.resolve().prepare();
+        return this;
     }
 
     public PreparedTypeDefinition getSuperClass() {

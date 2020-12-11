@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 /**
  *
@@ -35,6 +37,10 @@ public final class TopLevelClassTypeSignature extends ClassTypeSignature {
             target.append(packageName).append('/');
         }
         return simpleString(target);
+    }
+
+    TypeDescriptor makeDescriptor(final ClassContext classContext) {
+        return ClassTypeDescriptor.synthesize(classContext, packageName + '/' + getIdentifier());
     }
 
     public static TopLevelClassTypeSignature parse(ClassContext classContext, ByteBuffer buf) {

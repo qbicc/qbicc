@@ -22,9 +22,11 @@ final class Native {
     static final String ANN_NAME = className(name.class);
     static final String ANN_SIZE = className(size.class);
     static final String ANN_SIZE_LIST = className(size.List.class);
+    static final String ANN_CONST = className(c_const.class);
+    static final String ANN_RESTRICT = className(restrict.class);
 
-    static final String OBJECT = className(object.class);
-    static final String WORD = className(word.class);
+    static final String OBJECT_INT_NAME = intName(object.class.getName());
+    static final String WORD_INT_NAME = intName(word.class.getName());
     static final String PTR = className(ptr.class);
 
     private static String className(Class<?> clz) {

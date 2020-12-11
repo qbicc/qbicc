@@ -3,6 +3,9 @@ package cc.quarkus.qcc.type.generic;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
+
 /**
  *
  */
@@ -37,6 +40,14 @@ public final class BaseTypeSignature extends TypeSignature {
 
     public boolean equals(final TypeSignature other) {
         return other instanceof BaseTypeSignature && equals((BaseTypeSignature) other);
+    }
+
+    public BaseTypeDescriptor asDescriptor(final ClassContext classContext) {
+        return (BaseTypeDescriptor) super.asDescriptor(classContext);
+    }
+
+    BaseTypeDescriptor makeDescriptor(final ClassContext classContext) {
+        return BaseTypeDescriptor.forChar(shortName.charAt(0));
     }
 
     public boolean equals(final BaseTypeSignature other) {

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 
 /**
  *
@@ -59,5 +60,10 @@ public final class NestedClassTypeSignature extends ClassTypeSignature {
                 b.appendCodePoint(codePoint(buf));
             }
         }
+    }
+
+    ClassTypeDescriptor makeDescriptor(final ClassContext classContext) {
+        ClassTypeDescriptor encDesc = enclosing.asDescriptor(classContext);
+        return ClassTypeDescriptor.synthesize(classContext, encDesc.getPackageName() + '/' + encDesc.getClassName() + '$' + getIdentifier());
     }
 }

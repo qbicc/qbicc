@@ -20,14 +20,14 @@ final class InitializedTypeDefinitionImpl extends DelegatingPreparedTypeDefiniti
     }
 
     public InitializedTypeDefinition prepare() {
-        return super.prepare().initialize();
+        return this;
     }
 
     public InitializedTypeDefinition validate() {
-        return super.validate().initialize();
+        return this;
     }
 
     public InitializedTypeDefinition resolve() {
-        return super.resolve().initialize();
+        return this;
     }
 }

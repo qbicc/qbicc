@@ -4,6 +4,8 @@ import java.nio.ByteBuffer;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 /**
  *
@@ -30,6 +32,14 @@ public final class TypeVariableSignature extends ThrowsSignature {
 
     public StringBuilder toString(final StringBuilder target) {
         return target.append('T').append(identifier).append(';');
+    }
+
+    public ClassTypeDescriptor asDescriptor(final ClassContext classContext) {
+        return (ClassTypeDescriptor) super.asDescriptor(classContext);
+    }
+
+    TypeDescriptor makeDescriptor(final ClassContext classContext) {
+        return ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
     }
 
     public static TypeVariableSignature parse(ClassContext classContext, ByteBuffer buf) {

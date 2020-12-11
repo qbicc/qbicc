@@ -14,6 +14,7 @@ import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
+import cc.quarkus.qcc.graph.literal.DefinedConstantLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
@@ -22,6 +23,7 @@ import cc.quarkus.qcc.graph.literal.ObjectLiteral;
 import cc.quarkus.qcc.graph.literal.ReferenceArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
 import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 import io.smallrye.common.constraint.Assert;
 
@@ -426,6 +428,10 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final DefinedConstantLiteral node) {
+                return node;
+            }
+
             public Value visit(final Copier param, final Div node) {
                 return param.getBlockBuilder().divide(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
@@ -564,6 +570,10 @@ public interface Node {
 
             public Value visit(final Copier param, final TypeIdOf node) {
                 return param.getBlockBuilder().typeIdOf(param.copyValue(node.getInstance()));
+            }
+
+            public Value visit(final Copier param, final UndefinedLiteral node) {
+                return node;
             }
 
             public Value visit(final Copier param, final ValueArrayTypeIdLiteral node) {

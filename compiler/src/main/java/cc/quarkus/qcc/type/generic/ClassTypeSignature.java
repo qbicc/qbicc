@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 
 /**
  * Some class (or interface).  Does not specify whether the class is accessed by reference or by value.
@@ -34,6 +35,10 @@ public abstract class ClassTypeSignature extends ThrowsSignature {
 
     public boolean equals(final ClassTypeSignature other) {
         return super.equals(other) && identifier.equals(other.identifier) && typeArguments.equals(other.typeArguments);
+    }
+
+    public ClassTypeDescriptor asDescriptor(final ClassContext classContext) {
+        return (ClassTypeDescriptor) super.asDescriptor(classContext);
     }
 
     abstract StringBuilder prefixString(final StringBuilder target);

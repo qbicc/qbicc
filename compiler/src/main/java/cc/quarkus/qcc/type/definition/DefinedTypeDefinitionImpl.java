@@ -484,4 +484,11 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         return newVal;
     }
 
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    public boolean equals(final Object obj) {
+        return obj instanceof DefinedTypeDefinitionImpl ? super.equals(obj) : obj.equals(this);
+    }
 }

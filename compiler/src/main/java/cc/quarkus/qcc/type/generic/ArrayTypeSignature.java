@@ -3,6 +3,7 @@ package cc.quarkus.qcc.type.generic;
 import java.nio.ByteBuffer;
 
 import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 
 /**
  *
@@ -29,6 +30,14 @@ public final class ArrayTypeSignature extends ReferenceTypeSignature {
 
     public StringBuilder toString(final StringBuilder target) {
         return elementTypeSignature.toString(target.append('['));
+    }
+
+    public ArrayTypeDescriptor asDescriptor(final ClassContext classContext) {
+        return (ArrayTypeDescriptor) super.asDescriptor(classContext);
+    }
+
+    ArrayTypeDescriptor makeDescriptor(final ClassContext classContext) {
+        return ArrayTypeDescriptor.of(classContext, elementTypeSignature.asDescriptor(classContext));
     }
 
     public static ArrayTypeSignature parse(ClassContext classContext, ByteBuffer buf) {
