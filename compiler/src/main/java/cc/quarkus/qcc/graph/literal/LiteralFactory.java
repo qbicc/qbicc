@@ -10,6 +10,7 @@ import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -36,6 +37,10 @@ public interface LiteralFactory {
     NullLiteral literalOfNull();
 
     ObjectLiteral literalOf(VmObject value);
+
+    MethodHandleLiteral literalOfMethodHandle(int referenceKind, int referenceIndex);
+
+    MethodDescriptorLiteral literalOfMethodDescriptor(String descriptor);
 
     ValueArrayTypeIdLiteral literalOfArrayType(ValueType elementType);
 
@@ -132,6 +137,14 @@ public interface LiteralFactory {
                 Assert.checkNotNullParam("value", value);
                 // todo: cache on object itself?
                 return new ObjectLiteral(typeSystem.getReferenceType(value.getObjectType()).asConst(), value);
+            }
+
+            public MethodHandleLiteral literalOfMethodHandle(int referenceKind, int referenceIndex) {
+                return new MethodHandleLiteral(typeSystem.getMethodHandleType(), referenceKind, referenceIndex);
+            }
+
+            public MethodDescriptorLiteral literalOfMethodDescriptor(String descriptor) {
+                return new MethodDescriptorLiteral(typeSystem.getMethodDescriptorType(), descriptor);
             }
 
             public ValueArrayTypeIdLiteral literalOfArrayType(final ValueType elementType) {
