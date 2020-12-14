@@ -22,6 +22,8 @@ import cc.quarkus.qcc.machine.probe.CProbe;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.plugin.constants.ConstantBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.linker.LinkStage;
+import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
 import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.ConstTypeResolver;
@@ -194,6 +196,8 @@ public class Main {
                                 // keep it simple to start with
                                 builder.setMainClass(mainClass.replace('.', '/'));
                                 builder.addPostAnalyticHook(new LLVMGenerator());
+                                builder.addPostAnalyticHook(new LLVMCompileStage());
+                                builder.addPostAnalyticHook(new LinkStage());
                                 builder.addTypeBuilderFactory(ExternExportTypeBuilder::new);
                                 builder.addTypeBuilderFactory(NativeTypeBuilder::new);
                                 builder.addResolverFactory(ConstTypeResolver::new);

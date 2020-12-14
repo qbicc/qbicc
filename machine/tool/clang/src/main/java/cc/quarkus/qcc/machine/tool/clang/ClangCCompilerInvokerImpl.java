@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 import cc.quarkus.qcc.machine.arch.Platform;
+import cc.quarkus.qcc.machine.tool.CCompilerInvoker;
 import cc.quarkus.qcc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
 
@@ -17,6 +18,7 @@ final class ClangCCompilerInvokerImpl extends AbstractClangInvoker implements Cl
     private final List<String> definedSymbols = new ArrayList<>(2);
     private InputSource inputSource = InputSource.empty();
     private Path outputPath = TMP.resolve("qcc-output." + getTool().getPlatform().getObjectType().objectSuffix());
+    private SourceLanguage sourceLanguage = SourceLanguage.C;
 
     ClangCCompilerInvokerImpl(final ClangToolChainImpl tool) {
         super(tool);
@@ -65,6 +67,14 @@ final class ClangCCompilerInvokerImpl extends AbstractClangInvoker implements Cl
         outputPath = Assert.checkNotNullParam("path", path);
     }
 
+    public SourceLanguage getSourceLanguage() {
+        return sourceLanguage;
+    }
+
+    public void setSourceLanguage(final SourceLanguage sourceLanguage) {
+        this.sourceLanguage = Assert.checkNotNullParam("sourceLanguage", sourceLanguage);
+    }
+
     public Path getOutputPath() throws IllegalArgumentException {
         return outputPath;
     }
@@ -86,7 +96,7 @@ final class ClangCCompilerInvokerImpl extends AbstractClangInvoker implements Cl
                 cmd.add("-D" + key + "=" + val);
             }
         }
-        Collections.addAll(cmd, "-c", "-x", "c", "-o", getOutputPath().toString(), "-");
+        Collections.addAll(cmd, "-c", "-x", sourceLanguage == SourceLanguage.ASM ? "assembler" : "c", "-o", getOutputPath().toString(), "-");
     }
 }
 

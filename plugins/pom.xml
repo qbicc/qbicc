@@ -17,6 +17,7 @@
     <modules>
         <module>constants</module>
         <module>conversion</module>
+        <module>linker</module>
         <module>llvm</module>
         <module>lowering</module>
         <module>native</module>
