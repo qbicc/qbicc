@@ -4,7 +4,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.type.definition.element.BasicElement;
 import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
@@ -85,7 +84,7 @@ public interface DiagnosticContext {
         return error(t, null, element, node, fmt, args);
     }
 
-    default Diagnostic error(Throwable t, Diagnostic parent, BasicElement element, Node node, String fmt, Object... args) {
+    default Diagnostic error(Throwable t, Diagnostic parent, Element element, Node node, String fmt, Object... args) {
         if (t == null) {
             return error(parent, element, node, fmt, args);
         }
