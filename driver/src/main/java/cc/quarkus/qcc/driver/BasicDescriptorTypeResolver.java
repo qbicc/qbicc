@@ -73,7 +73,7 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
         }
     }
 
-    public FunctionType resolveTypeFromMethodDescriptor(final MethodDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final MethodSignature signature, final TypeAnnotationList returnTypeVisible, final List<TypeAnnotationList> visible, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisible) {
+    public FunctionType resolveMethodFunctionType(final MethodDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final MethodSignature signature, final TypeAnnotationList returnTypeVisible, final List<TypeAnnotationList> visible, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisible) {
         TypeDescriptor returnType = descriptor.getReturnType();
         List<TypeDescriptor> parameterTypes = descriptor.getParameterTypes();
         TypeSignature returnTypeSignature = signature.getReturnTypeSignature();
@@ -93,12 +93,16 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
                 nestedCtxt = Arrays.asList(array);
             }
         }
-        ValueType resolvedReturnType = classContext.resolveTypeFromDescriptor(returnType, nestedCtxt, returnTypeSignature, returnTypeVisible, returnTypeInvisible);
+        ValueType resolvedReturnType = classContext.resolveTypeFromMethodDescriptor(returnType, nestedCtxt, returnTypeSignature, returnTypeVisible, returnTypeInvisible);
         int cnt = parameterTypes.size();
         ValueType[] resolvedParamTypes = new ValueType[cnt];
         for (int i = 0; i < cnt; i ++) {
-            resolvedParamTypes[i] = classContext.resolveTypeFromDescriptor(parameterTypes.get(i), nestedCtxt, paramSignatures.get(i), visible.get(i), invisible.get(i));
+            resolvedParamTypes[i] = classContext.resolveTypeFromMethodDescriptor(parameterTypes.get(i), nestedCtxt, paramSignatures.get(i), visible.get(i), invisible.get(i));
         }
         return classContext.getTypeSystem().getFunctionType(resolvedReturnType, resolvedParamTypes);
+    }
+
+    public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
+        return classContext.resolveTypeFromDescriptor(descriptor, typeParamCtxt, signature, visibleAnnotations, invisibleAnnotations);
     }
 }

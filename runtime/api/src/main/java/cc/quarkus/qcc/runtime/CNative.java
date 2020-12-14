@@ -558,6 +558,7 @@ public final class CNative {
     /**
      * The special type representing the platform-specific variable argument list.
      */
+    @include("<stdarg.h>")
     public static final class va_list extends object {
     }
 

@@ -28,6 +28,7 @@ import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.Multiply;
+import cc.quarkus.qcc.graph.Narrow;
 import cc.quarkus.qcc.graph.Neg;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NodeVisitor;
@@ -387,6 +388,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
                     isSigned(javaInputType) ?
                     target.sext(inputType, llvmInput, outputType).asLocal() :
                     target.zext(inputType, llvmInput, outputType).asLocal();
+    }
+
+    public LLValue visit(final Void param, final Narrow node) {
+        return map(node.getInput());
     }
 
     public LLValue visit(final Void param, final Truncate node) {

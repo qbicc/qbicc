@@ -125,6 +125,9 @@ public abstract class AnnotationValue {
             case 'e': {
                 return EnumConstantAnnotationValue.of(classFile.getUtf8Constant(nextShort(buf)), classFile.getUtf8Constant(nextShort(buf)));
             }
+            case 'c': {
+                return ClassAnnotationValue.of(classFile.getUtf8Constant(nextShort(buf)));
+            }
             case '@': {
                 return Annotation.parse(classFile, classContext, buf);
             }

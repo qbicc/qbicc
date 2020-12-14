@@ -1274,36 +1274,16 @@ final class MethodParser {
                     // terminate
                     return;
                 case OP_CHECKCAST: {
-                    TypeIdLiteral expected = getConstantValue(buffer.getShort() & 0xffff, TypeIdLiteral.class);
-                    v1 = peek();
-                    BlockLabel okHandle = new BlockLabel();
-                    BlockLabel notNullHandle = new BlockLabel();
-                    gf.if_(gf.cmpEq(v1, lf.literalOfNull()), okHandle, notNullHandle);
-                    gf.begin(notNullHandle);
-                    BlockLabel castFailedHandle = new BlockLabel();
-                    v2 = gf.typeIdOf(v1);
-                    gf.if_(gf.cmpGe(expected, v2), okHandle, castFailedHandle);
-                    gf.begin(castFailedHandle);
-                    gf.classCastException(v2, expected);
-                    // do not change stack depth ending here
-                    gf.begin(okHandle);
-                    replaceAll(v1, gf.narrow(v1, expected));
+                    v1 = pop1();
+                    Value narrowed = gf.narrow(v1, getClassFile().getTypeConstant(buffer.getShort() & 0xffff));
+                    replaceAll(v1, narrowed);
+                    push(narrowed);
                     break;
                 }
                 case OP_INSTANCEOF: {
-                    TypeIdLiteral expected = getConstantValue(buffer.getShort() & 0xffff, TypeIdLiteral.class);
+                    ValueType expected = getClassFile().getTypeConstant(buffer.getShort() & 0xffff);
                     v1 = pop1();
-                    BlockLabel mergeHandle = new BlockLabel();
-                    BlockLabel notNullHandle = new BlockLabel();
-                    BasicBlock t1 = gf.if_(gf.cmpEq(v1, lf.literalOfNull()), mergeHandle, notNullHandle);
-                    gf.begin(notNullHandle);
-                    v1 = gf.cmpGe(expected, gf.typeIdOf(v1));
-                    BasicBlock t2 = gf.goto_(mergeHandle);
-                    gf.begin(mergeHandle);
-                    PhiValue phi = gf.phi(ts.getBooleanType(), mergeHandle);
-                    phi.setValueForBlock(ctxt.getCompilationContext(), gf.getCurrentElement(), t1, lf.literalOf(false));
-                    phi.setValueForBlock(ctxt.getCompilationContext(), gf.getCurrentElement(), t2, v1);
-                    push(phi);
+                    push(gf.instanceOf(v1, expected));
                     break;
                 }
                 case OP_MONITORENTER:

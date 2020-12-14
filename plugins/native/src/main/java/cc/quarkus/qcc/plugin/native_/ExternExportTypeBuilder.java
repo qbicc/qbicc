@@ -50,7 +50,6 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing) {
                 NativeInfo nativeInfo = NativeInfo.get(ctxt);
                 MethodElement origMethod = resolver.resolveMethod(index, enclosing);
-                boolean isNative = origMethod.hasAllModifiersOf(ClassFile.ACC_NATIVE);
                 // look for annotations that indicate that this method requires special handling
                 for (Annotation annotation : origMethod.getVisibleAnnotations()) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();
@@ -70,7 +69,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                             AnnotationValue nameVal = annotation.getValue("withName");
                             String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
                             Function exactFunction = ctxt.getExactFunction(origMethod);
-                            FunctionType fnType = exactFunction.getType();
+                            FunctionType fnType = origMethod.getType(classCtxt, List.of(/*todo*/));
                             Function function = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(IMPLICIT_SECTION_NAME).addFunction(origMethod, name, fnType);
                             BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(origMethod);
                             BlockLabel entry = new BlockLabel();

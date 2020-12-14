@@ -157,6 +157,8 @@ public final class CProbe {
         Builder() {
             // XXX - needed for offsetof; maybe use __builtin_offsetof instead? custom macro?
             include("<stddef.h>");
+            // XXX - needed for CHAR_MIN/SCHAR_MIN
+            include("<limits.h>");
         }
 
         // top level steps
@@ -389,6 +391,10 @@ public final class CProbe {
             return new Generic(object, assocList);
         }
 
+        ValueStep eq(ValueStep v1, ValueStep v2) {
+            return new Eq(v1, v2);
+        }
+
         ValueStep call(String name, Step arg) {
             return new SimpleCall(name, arg);
         }
@@ -458,6 +464,7 @@ public final class CProbe {
 
         ValueStep isUnsigned(ValueStep expr) {
             return generic(expr, listOf(List.of(
+                assocItem(NamedType.CHAR, eq(Identifier.CHAR_MIN, Number.ZERO)),
                 assocItem(NamedType.UNSIGNED_CHAR, Number.ONE),
                 assocItem(NamedType.UNSIGNED_SHORT, Number.ONE),
                 assocItem(NamedType.UNSIGNED_INT, Number.ONE),
@@ -469,6 +476,7 @@ public final class CProbe {
 
         ValueStep isSigned(ValueStep expr) {
             return generic(expr, listOf(List.of(
+                assocItem(NamedType.CHAR, eq(Identifier.CHAR_MIN, Identifier.SCHAR_MIN)),
                 assocItem(NamedType.SIGNED_CHAR, Number.ONE),
                 assocItem(NamedType.SIGNED_SHORT, Number.ONE),
                 assocItem(NamedType.SIGNED_INT, Number.ONE),
@@ -974,6 +982,9 @@ public final class CProbe {
     }
 
     static final class Identifier extends ValueStep {
+        static final Identifier CHAR_MIN = new Identifier("CHAR_MIN");
+        static final Identifier SCHAR_MIN = new Identifier("SCHAR_MIN");
+
         private final String name;
 
         Identifier(final String name) {
@@ -1010,6 +1021,20 @@ public final class CProbe {
 
         StringBuilder appendTo(final StringBuilder b) {
             return items.appendTo(object.appendTo(b.append("_Generic").append('(')).append(',')).append(')');
+        }
+    }
+
+    static final class Eq extends ValueStep {
+        private final ValueStep v1;
+        private final ValueStep v2;
+
+        Eq(final ValueStep v1, final ValueStep v2) {
+            this.v1 = v1;
+            this.v2 = v2;
+        }
+
+        StringBuilder appendTo(final StringBuilder b) {
+            return v2.appendTo(v1.appendTo(b).append(' ').append("==").append(' '));
         }
     }
 

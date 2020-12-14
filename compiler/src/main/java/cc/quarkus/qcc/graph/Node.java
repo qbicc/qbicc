@@ -476,7 +476,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final Narrow node) {
-                return param.getBlockBuilder().narrow(param.copyValue(node.getInput()), node.getType().getUpperBound());
+                return param.getBlockBuilder().narrow(param.copyValue(node.getInput()), node.getType());
             }
 
             public Value visit(final Copier param, final Neg node) {

@@ -28,6 +28,10 @@ public interface ElementVisitor<T, R> {
         return visitUnknown(param, element);
     }
 
+    default R visit(T param, NestedClassElement element) {
+        return visitUnknown(param, element);
+    }
+
     default R visit(T param, ParameterElement element) {
         return visitUnknown(param, element);
     }
@@ -49,6 +53,10 @@ public interface ElementVisitor<T, R> {
         }
 
         default R visit(final T param, final MethodElement element) {
+            return getDelegateElementVisitor().visit(param, element);
+        }
+
+        default R visit(final T param, final NestedClassElement element) {
             return getDelegateElementVisitor().visit(param, element);
         }
 

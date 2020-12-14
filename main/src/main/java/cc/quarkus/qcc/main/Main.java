@@ -27,6 +27,7 @@ import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.ConstTypeResolver;
 import cc.quarkus.qcc.plugin.native_.ConstantDefiningBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.ExternExportTypeBuilder;
+import cc.quarkus.qcc.plugin.native_.FunctionTypeResolver;
 import cc.quarkus.qcc.plugin.native_.NativeBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeResolver;
@@ -196,6 +197,7 @@ public class Main {
                                 builder.addTypeBuilderFactory(ExternExportTypeBuilder::new);
                                 builder.addTypeBuilderFactory(NativeTypeBuilder::new);
                                 builder.addResolverFactory(ConstTypeResolver::new);
+                                builder.addResolverFactory(FunctionTypeResolver::new);
                                 builder.addResolverFactory(NativeTypeResolver::new);
                                 builder.addResolverFactory(PointerTypeResolver::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);

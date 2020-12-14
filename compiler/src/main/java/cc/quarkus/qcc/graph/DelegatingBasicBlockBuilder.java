@@ -54,7 +54,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return delegate;
     }
 
-    public Value narrow(final Value value, final TypeIdLiteral toType) {
+    public Value narrow(final Value value, final ValueType toType) {
         return getDelegate().narrow(value, toType);
     }
 
@@ -300,6 +300,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value valueConvert(final Value value, final WordType toType) {
         return getDelegate().valueConvert(value, toType);
+    }
+
+    public Value instanceOf(final Value input, final ValueType expectedType) {
+        return getDelegate().instanceOf(input, expectedType);
     }
 
     public Value populationCount(final Value v) {

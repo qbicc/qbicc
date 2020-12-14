@@ -14,6 +14,7 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 import cc.quarkus.qcc.type.generic.ClassSignature;
 import io.smallrye.common.constraint.Assert;
 
@@ -22,6 +23,7 @@ import io.smallrye.common.constraint.Assert;
  */
 final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final ClassContext context;
+    private final String simpleName;
     private final String internalName;
     private final String superClassName;
     private final int modifiers;
@@ -40,23 +42,31 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final TypeAnnotationList visibleTypeAnnotations;
     private final TypeAnnotationList invisibleTypeAnnotations;
     private final List<BootstrapMethod> bootstrapMethods;
+    private final EnclosingClassResolver enclosingClassResolver;
+    private final int enclosingClassResolverIndex;
+    private final EnclosedClassResolver[] enclosedClassResolvers;
+    private final int[] enclosedClassResolverIndexes;
 
     private volatile DefinedTypeDefinition validated;
 
     private static final String[] NO_INTERFACES = new String[0];
     private static final int[] NO_INTS = new int[0];
-    private static final int[][] NO_INT_ARRAYS = new int[0][];
     private static final MethodResolver[] NO_METHODS = new MethodResolver[0];
     private static final FieldResolver[] NO_FIELDS = new FieldResolver[0];
     private static final ConstructorResolver[] NO_CONSTRUCTORS = new ConstructorResolver[0];
-    private static final Annotation[][] NO_ANNOTATION_ARRAYS = new Annotation[0][];
-    private static final Annotation[][][] NO_ANNOTATION_ARRAY_ARRAYS = new Annotation[0][][];
-    private static final BootstrapMethod[] NO_BOOTSTAP_METHODS = new BootstrapMethod[0];
+    private static final EnclosedClassResolver[] NO_ENCLOSED = new EnclosedClassResolver[0];
 
     DefinedTypeDefinitionImpl(final BuilderImpl builder) {
         this.context = builder.context;
         this.internalName = Assert.checkNotNullParam("builder.internalName", builder.internalName);
         this.superClassName = builder.superClassName;
+        String simpleName = builder.simpleName;
+        if (simpleName == null) {
+            int idx = internalName.lastIndexOf('/');
+            this.simpleName = idx == -1 ? internalName : internalName.substring(idx + 1);
+        } else {
+            this.simpleName = simpleName;
+        }
         this.modifiers = builder.modifiers;
         int interfaceCount = builder.interfaceCount;
         this.interfaceNames = interfaceCount == 0 ? NO_INTERFACES : Arrays.copyOf(builder.interfaceNames, interfaceCount);
@@ -77,6 +87,11 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         this.bootstrapMethods = builder.bootstrapMethods;
         this.initializerResolver = Assert.checkNotNullParam("builder.initializerResolver", builder.initializerResolver);
         this.initializerIndex = builder.initializerIndex;
+        this.enclosingClassResolver = builder.enclosingClassResolver;
+        this.enclosingClassResolverIndex = builder.enclosingClassResolverIndex;
+        int enclosedClassCount = builder.enclosedClassCount;
+        this.enclosedClassResolvers = enclosedClassCount == 0 ? NO_ENCLOSED : Arrays.copyOf(builder.enclosedClassResolvers, enclosedClassCount);
+        this.enclosedClassResolverIndexes = enclosedClassCount == 0 ? NO_INTS : Arrays.copyOf(builder.enclosedClassResolverIndexes, enclosedClassCount);
     }
 
     public ClassContext getContext() {
@@ -85,6 +100,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
     public String getInternalName() {
         return internalName;
+    }
+
+    public String getSimpleName() {
+        return simpleName;
     }
 
     public boolean internalNameEquals(final String internalName) {
@@ -101,7 +120,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     }
 
     public ClassSignature getSignature() {
-        return null;
+        return signature;
     }
 
     public int getModifiers() {
@@ -164,13 +183,15 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             ctors[i] = constructorResolvers[i].resolveConstructor(constructorIndexes[i], this);
         }
         InitializerElement init = initializerResolver.resolveInitializer(initializerIndex, this);
+        NestedClassElement enclosingClass = enclosingClassResolver == null ? null : enclosingClassResolver.resolveEnclosingNestedClass(enclosingClassResolverIndex, this);
+        NestedClassElement[] enclosedClasses = resolveEnclosedClasses(enclosedClassResolvers, enclosedClassResolverIndexes, 0, 0);
         synchronized (this) {
             validated = this.validated;
             if (validated != null) {
                 return validated.validate();
             }
             try {
-                validated = new ValidatedTypeDefinitionImpl(this, superType, interfaces, fields, methods, ctors, init);
+                validated = new ValidatedTypeDefinitionImpl(this, superType, interfaces, fields, methods, ctors, init, enclosingClass, enclosedClasses);
             } catch (VerifyFailedException e) {
                 this.validated = new VerificationFailedDefinitionImpl(this, e.getMessage(), e.getCause());
                 throw e;
@@ -179,6 +200,21 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 //            definingLoader.replaceTypeDefinition(name, this, verified);
             this.validated = validated;
             return validated.validate();
+        }
+    }
+
+    private NestedClassElement[] resolveEnclosedClasses(final EnclosedClassResolver[] resolvers, final int[] indexes, final int inIdx, final int outIdx) {
+        int maxInIdx = resolvers.length;
+        if (inIdx == maxInIdx) {
+            return outIdx == 0 ? NestedClassElement.NO_NESTED_CLASSES : new NestedClassElement[outIdx];
+        }
+        NestedClassElement resolved = resolvers[inIdx].resolveEnclosedNestedClass(indexes[inIdx], this);
+        if (resolved != null) {
+            NestedClassElement[] array = resolveEnclosedClasses(resolvers, indexes, inIdx + 1, outIdx + 1);
+            array[outIdx] = resolved;
+            return array;
+        } else {
+            return resolveEnclosedClasses(resolvers, indexes, inIdx + 1, outIdx);
         }
     }
 
@@ -248,6 +284,12 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         TypeAnnotationList visibleTypeAnnotations = TypeAnnotationList.empty();
         TypeAnnotationList invisibleTypeAnnotations = TypeAnnotationList.empty();
         List<BootstrapMethod> bootstrapMethods = List.of();
+        String simpleName;
+        EnclosingClassResolver enclosingClassResolver;
+        int enclosingClassResolverIndex;
+        int enclosedClassCount;
+        EnclosedClassResolver[] enclosedClassResolvers = NO_ENCLOSED;
+        int[] enclosedClassResolverIndexes = NO_INTS;
 
         public void setContext(final ClassContext context) {
             this.context = context;
@@ -352,6 +394,34 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             constructorResolvers[constructorCount] = resolver;
             constructorIndexes[constructorCount] = index;
             this.constructorCount = constructorCount + 1;
+        }
+
+        public void setSimpleName(final String simpleName) {
+            Assert.checkNotNullParam("simpleName", simpleName);
+            this.simpleName = simpleName;
+        }
+
+        public void setEnclosingClass(final EnclosingClassResolver resolver, final int index) {
+            Assert.checkNotNullParam("resolver", resolver);
+            this.enclosingClassResolver = resolver;
+            this.enclosingClassResolverIndex = index;
+        }
+
+        public void addEnclosedClass(final EnclosedClassResolver resolver, final int index) {
+            Assert.checkNotNullParam("resolver", resolver);
+            EnclosedClassResolver[] enclosedClassResolvers = this.enclosedClassResolvers;
+            int[] enclosedClassIndexes = this.enclosedClassResolverIndexes;
+            int len = enclosedClassResolvers.length;
+            int enclosedClassCount = this.enclosedClassCount;
+            if (enclosedClassCount == len) {
+                // just grow it
+                int newSize = len == 0 ? 4 : len << 1;
+                enclosedClassResolvers = this.enclosedClassResolvers = Arrays.copyOf(enclosedClassResolvers, newSize);
+                enclosedClassIndexes = this.enclosedClassResolverIndexes = Arrays.copyOf(enclosedClassIndexes, newSize);
+            }
+            enclosedClassResolvers[enclosedClassCount] = resolver;
+            enclosedClassIndexes[enclosedClassCount] = index;
+            this.enclosedClassCount = enclosedClassCount + 1;
         }
 
         public void expectInterfaceNameCount(final int count) {

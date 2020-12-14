@@ -18,12 +18,15 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ClassFileUtil;
 import cc.quarkus.qcc.type.definition.DefineFailedException;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.EnclosedClassResolver;
+import cc.quarkus.qcc.type.definition.EnclosingClassResolver;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 import cc.quarkus.qcc.type.definition.element.ParameterElement;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -35,7 +38,7 @@ import cc.quarkus.qcc.type.generic.ClassTypeSignature;
 import cc.quarkus.qcc.type.generic.MethodSignature;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 
-final class ClassFileImpl extends AbstractBufferBacked implements ClassFile {
+final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, EnclosingClassResolver, EnclosedClassResolver {
     private static final VarHandle intArrayHandle = MethodHandles.arrayElementVarHandle(int[].class);
     private static final VarHandle intArrayArrayHandle = MethodHandles.arrayElementVarHandle(int[][].class);
     private static final VarHandle literalArrayHandle = MethodHandles.arrayElementVarHandle(Literal[].class);
@@ -332,6 +335,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile {
         }
     }
 
+    @Deprecated
     TypeIdLiteral getClassConstant(int idx) {
         int nameIdx = getClassConstantNameIdx(idx);
         String name = getUtf8Constant(nameIdx);
@@ -346,6 +350,29 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile {
                 throw new DefineFailedException("No class named " + name + " found");
             }
             return definedType.validate().getTypeId();
+        }
+    }
+
+    /**
+     * Get a {@code ValueType} from a constant pool entry of type {@code CONSTANT_Class}.  The type might be translated
+     * by way of the type resolver.
+     *
+     * @param idx the constant pool index (must not be 0)
+     * @return the type
+     */
+    ValueType getTypeConstant(int idx) {
+        int nameIdx = getClassConstantNameIdx(idx);
+        String name = getUtf8Constant(nameIdx);
+        assert name != null;
+        if (name.startsWith("[")) {
+            TypeDescriptor desc = (TypeDescriptor) getDescriptorConstant(nameIdx);
+            // todo: acquire the correct signature and type annotation info from the bytecode index and method info
+            return ctxt.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(ctxt, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        } else {
+            int slash = name.lastIndexOf('/');
+            String packageName = slash == -1 ? "" : ctxt.deduplicate(name.substring(0, slash));
+            String className = slash == -1 ? name : ctxt.deduplicate(name.substring(slash + 1));
+            return ctxt.resolveTypeFromClassName(packageName, className);
         }
     }
 
@@ -664,6 +691,30 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile {
                 // todo
             } else if (attributeNameEquals(i, "NestMembers")) {
                 // todo
+            } else if (attributeNameEquals(i, "InnerClasses")) {
+                ByteBuffer data = getRawAttributeContent(i);
+                int innerCnt = data.getShort() & 0xffff;
+                for (int j = 0; j < innerCnt; j ++) {
+                    int innerClassInfoIdx = data.getShort() & 0xffff; // CONSTANT_Class
+                    int outerClassInfoIdx = data.getShort() & 0xffff; // CONSTANT_Class
+                    int innerNameIdx = data.getShort() & 0xffff; // CONSTANT_Utf8
+                    int innerFlags = data.getShort() & 0xffff; // value
+                    if (classConstantNameEquals(innerClassInfoIdx, getName())) {
+                        // this is *our* information!
+                        if (innerNameIdx != 0) {
+                            builder.setSimpleName(getUtf8Constant(innerNameIdx));
+                        }
+                        access |= (innerFlags & (ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC));
+                        if (outerClassInfoIdx != 0) {
+                            builder.setEnclosingClass(this, attributeOffsets[i] + 8 + j * 8);
+                        }
+                    } else {
+                        // it might be an inner class of ours...
+                        if (outerClassInfoIdx != 0 && classConstantNameEquals(outerClassInfoIdx, getName())) {
+                            builder.addEnclosedClass(this, attributeOffsets[i] + 8 + j * 8);
+                        }
+                    }
+                }
             }
         }
         if (signature == null) {
@@ -746,6 +797,46 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile {
         builder.setSignature(signature);
         builder.setSourceFileName(sourceFile);
         builder.setIndex(index);
+        return builder.build();
+    }
+
+    public NestedClassElement resolveEnclosedNestedClass(final int index, final DefinedTypeDefinition enclosing) {
+        int innerClassInfoIdx = getShort(index); // CONSTANT_Class == to inner class name
+        int outerClassInfoIdx = getShort(index + 2); // CONSTANT_Class == to our name
+        int innerNameIdx = getShort(index + 4); // CONSTANT_Utf8 == simple name
+        int innerFlags = getShort(index + 6); // value == modifiers
+        DefinedTypeDefinition enclosed = ctxt.findDefinedType(getClassConstantName(innerClassInfoIdx));
+        if (enclosed != null) {
+            NestedClassElement.Builder builder = NestedClassElement.builder();
+            builder.setEnclosingType(enclosing);
+            builder.setCorrespondingType(enclosed);
+            if (innerNameIdx != 0) {
+                builder.setName(getUtf8Constant(innerNameIdx));
+            }
+            builder.setModifiers(innerFlags);
+            builder.setSourceFileName(sourceFile);
+            return builder.build();
+        }
+        return null;
+    }
+
+    public NestedClassElement resolveEnclosingNestedClass(final int index, final DefinedTypeDefinition enclosed) {
+        int innerClassInfoIdx = getShort(index); // CONSTANT_Class == to our name
+        int outerClassInfoIdx = getShort(index + 2); // CONSTANT_Class == to enclosing class name
+        int innerNameIdx = getShort(index + 4); // CONSTANT_Utf8 == simple name
+        int innerFlags = getShort(index + 6); // value == modifiers
+        DefinedTypeDefinition outer = ctxt.findDefinedType(getClassConstantName(outerClassInfoIdx));
+        if (outer == null) {
+            return null;
+        }
+        NestedClassElement.Builder builder = NestedClassElement.builder();
+        builder.setEnclosingType(outer);
+        builder.setCorrespondingType(enclosed);
+        if (innerNameIdx != 0) {
+            builder.setName(getUtf8Constant(innerNameIdx));
+        }
+        builder.setModifiers(innerFlags);
+        builder.setSourceFileName(sourceFile);
         return builder.build();
     }
 
