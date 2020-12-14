@@ -90,13 +90,13 @@ public final class ReferenceType extends ValueType {
             // find a common supertype of both
             if (upperBound.hasSuperClass()) {
                 result = typeSystem.getReferenceType(upperBound.getSuperClass());
-                if (const_) result = asConst();
-                if (nullable) result = asNullable();
+                if (const_) result = result.asConst();
+                if (nullable) result = result.asNullable;
                 return other.join(result);
             } else if (other.upperBound.hasSuperClass()) {
                 result = typeSystem.getReferenceType(other.upperBound.getSuperClass());
-                if (const_) result = asConst();
-                if (nullable) result = asNullable();
+                if (const_) result = result.asConst();
+                if (nullable) result = result.asNullable;
                 return result.join(other);
             } else {
                 // both are j.l.Object
