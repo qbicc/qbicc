@@ -2,16 +2,16 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.ValueType;
 
 /**
  * A narrowed value.  The input value is assumed to be wider; violating this assumption can cause problems.
  */
 public final class Narrow extends AbstractValue implements CastValue {
     private final Value input;
-    private final ReferenceType type;
+    private final ValueType type;
 
-    Narrow(final int line, final int bci, final Value input, final ReferenceType type) {
+    Narrow(final int line, final int bci, final Value input, final ValueType type) {
         super(line, bci);
         this.input = input;
         this.type = type;
@@ -21,7 +21,7 @@ public final class Narrow extends AbstractValue implements CastValue {
         return input;
     }
 
-    public ReferenceType getType() {
+    public ValueType getType() {
         return type;
     }
 

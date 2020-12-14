@@ -9,6 +9,7 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 
 /**
  *
@@ -24,9 +25,11 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     private final InitializerElement init;
     private final FieldSet staticFieldSet;
     private final FieldSet instanceFieldSet;
+    private final NestedClassElement enclosingClass;
+    private final NestedClassElement[] enclosedClasses;
     private volatile ResolvedTypeDefinition resolved;
 
-    ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final FieldElement[] fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init) {
+    ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final FieldElement[] fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
         this.delegate = delegate;
         this.superType = superType;
         this.interfaces = interfaces;
@@ -34,6 +37,8 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
         this.methods = methods;
         this.ctors = ctors;
         this.init = init;
+        this.enclosingClass = enclosingClass;
+        this.enclosedClasses = enclosedClasses;
         int interfaceCnt = interfaces.length;
         InterfaceTypeIdLiteral[] interfaceTypes = new InterfaceTypeIdLiteral[interfaceCnt];
         for (int i = 0; i < interfaceCnt; i ++) {
@@ -82,6 +87,18 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
 
     public FieldSet getStaticFieldSet() {
         return staticFieldSet;
+    }
+
+    public NestedClassElement getEnclosingNestedClass() {
+        return enclosingClass;
+    }
+
+    public int getEnclosedNestedClassCount() {
+        return enclosedClasses.length;
+    }
+
+    public NestedClassElement getEnclosedNestedClass(final int index) throws IndexOutOfBoundsException {
+        return enclosedClasses[index];
     }
 
     public FieldSet getInstanceFieldSet() {

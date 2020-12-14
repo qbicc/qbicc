@@ -130,6 +130,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, InstanceOf node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, IntegerLiteral node) {
         return visitUnknown(param, node);
     }
@@ -362,6 +366,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, InstanceInvocationValue node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, InstanceOf node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -687,7 +695,7 @@ public interface ValueVisitor<T, R> {
         }
 
         default Value visit(final T param, final Narrow node) {
-            return getBuilder(param).narrow(copy(param, node.getInput()), node.getType().getUpperBound());
+            return getBuilder(param).narrow(copy(param, node.getInput()), node.getType());
         }
 
         default Value visit(final T param, final Neg node) {

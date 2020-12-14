@@ -9,6 +9,7 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import io.smallrye.common.constraint.Assert;
@@ -46,6 +47,12 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
     FieldSet getInstanceFieldSet();
 
     FieldSet getStaticFieldSet();
+
+    NestedClassElement getEnclosingNestedClass();
+
+    int getEnclosedNestedClassCount();
+
+    NestedClassElement getEnclosedNestedClass(int index) throws IndexOutOfBoundsException;
 
     FieldElement getField(int index);
 

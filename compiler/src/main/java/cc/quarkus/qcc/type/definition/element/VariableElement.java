@@ -62,15 +62,18 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
     public ValueType getType(ClassContext classContext, List<ParameterizedSignature> signatureContext) {
         ValueType type = this.type;
         if (type == null) {
-            this.type = type = classContext.resolveTypeFromDescriptor(
-                getTypeDescriptor(),
-                signatureContext,
-                getTypeSignature(),
-                getVisibleTypeAnnotations(),
-                getInvisibleTypeAnnotations()
-            );
+            this.type = type = resolveTypeDescriptor(classContext, signatureContext);
         }
         return type;
+    }
+
+    ValueType resolveTypeDescriptor(ClassContext classContext, List<ParameterizedSignature> signatureContext) {
+        return classContext.resolveTypeFromDescriptor(
+                        getTypeDescriptor(),
+                        signatureContext,
+                        getTypeSignature(),
+                        getVisibleTypeAnnotations(),
+                        getInvisibleTypeAnnotations());
     }
 
     public boolean isFinal() {

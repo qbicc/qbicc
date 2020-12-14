@@ -5,6 +5,7 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 
 /**
  *
@@ -36,6 +37,18 @@ public abstract class DelegatingValidatedTypeDefinition extends DelegatingDefine
 
     public FieldSet getStaticFieldSet() {
         return getDelegate().getStaticFieldSet();
+    }
+
+    public NestedClassElement getEnclosingNestedClass() {
+        return getDelegate().getEnclosingNestedClass();
+    }
+
+    public int getEnclosedNestedClassCount() {
+        return getDelegate().getEnclosedNestedClassCount();
+    }
+
+    public NestedClassElement getEnclosedNestedClass(final int index) throws IndexOutOfBoundsException {
+        return getDelegate().getEnclosedNestedClass(index);
     }
 
     public ValidatedTypeDefinition validate() {

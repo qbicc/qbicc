@@ -53,7 +53,9 @@ public interface DescriptorTypeResolver {
      * @param invisibleAnnotations the list of visible type annotations list on the parameters of this use site (must not be {@code null})
      * @return the resolved function type
      */
-    FunctionType resolveTypeFromMethodDescriptor(MethodDescriptor descriptor, List<ParameterizedSignature> typeParamCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, List<TypeAnnotationList> invisibleAnnotations);
+    FunctionType resolveMethodFunctionType(MethodDescriptor descriptor, List<ParameterizedSignature> typeParamCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, List<TypeAnnotationList> invisibleAnnotations);
+
+    ValueType resolveTypeFromMethodDescriptor(TypeDescriptor descriptor, List<ParameterizedSignature> typeParamCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations);
 
     interface Delegating extends DescriptorTypeResolver {
         DescriptorTypeResolver getDelegate();
@@ -66,8 +68,12 @@ public interface DescriptorTypeResolver {
             return getDelegate().resolveTypeFromDescriptor(descriptor, typeParamCtxt, signature, visibleAnnotations, invisibleAnnotations);
         }
 
-        default FunctionType resolveTypeFromMethodDescriptor(MethodDescriptor descriptor, List<ParameterizedSignature> typeParamCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, List<TypeAnnotationList> invisibleAnnotations) {
-            return getDelegate().resolveTypeFromMethodDescriptor(descriptor, typeParamCtxt, signature, returnTypeVisible, visibleAnnotations, returnTypeInvisible, invisibleAnnotations);
+        default FunctionType resolveMethodFunctionType(MethodDescriptor descriptor, List<ParameterizedSignature> typeParamCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, List<TypeAnnotationList> invisibleAnnotations) {
+            return getDelegate().resolveMethodFunctionType(descriptor, typeParamCtxt, signature, returnTypeVisible, visibleAnnotations, returnTypeInvisible, invisibleAnnotations);
+        }
+
+        default ValueType resolveTypeFromMethodDescriptor(TypeDescriptor descriptor, List<ParameterizedSignature> typeParamCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations) {
+            return getDelegate().resolveTypeFromMethodDescriptor(descriptor, typeParamCtxt, signature, visibleAnnotations, invisibleAnnotations);
         }
     }
 }

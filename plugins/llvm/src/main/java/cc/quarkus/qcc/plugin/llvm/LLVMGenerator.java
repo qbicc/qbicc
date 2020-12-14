@@ -30,6 +30,7 @@ import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.VoidType;
@@ -145,6 +146,9 @@ public class LLVMGenerator implements Consumer<CompilationContext> {
         } else if (type instanceof ReferenceType) {
             // todo: lower class types to ref types at some earlier point
             res = ptrTo(i8);
+        } else if (type instanceof PointerType) {
+            Type pointeeType = ((PointerType) type).getPointeeType();
+            res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType));
         } else {
             throw new IllegalStateException();
         }

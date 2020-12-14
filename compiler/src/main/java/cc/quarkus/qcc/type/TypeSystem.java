@@ -125,9 +125,9 @@ public final class TypeSystem {
         return methodDescriptorType;
     }
 
-    public ReferenceType getReferenceType(TypeIdLiteral typeId) {
-        Assert.checkNotNullParam("typeId", typeId);
-        return referenceTypeCache.computeIfAbsent(typeId, id -> new ReferenceType(this, id, false, referenceSize, referenceAlign, false));
+    public ReferenceType getReferenceType(TypeIdLiteral upperBound) {
+        Assert.checkNotNullParam("upperBound", upperBound);
+        return referenceTypeCache.computeIfAbsent(upperBound, id -> new ReferenceType(this, id, false, referenceSize, referenceAlign, false));
     }
 
     /**

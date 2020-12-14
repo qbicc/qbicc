@@ -186,7 +186,13 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
         void addConstructor(ConstructorResolver resolver, int index);
 
+        void setEnclosingClass(EnclosingClassResolver resolver, int index);
+
+        void addEnclosedClass(EnclosedClassResolver resolver, int index);
+
         void setName(String internalName);
+
+        void setSimpleName(String simpleName);
 
         void setModifiers(int modifiers);
 
@@ -249,8 +255,20 @@ public interface DefinedTypeDefinition extends FieldResolver,
                 getDelegate().addConstructor(resolver, index);
             }
 
+            default void setEnclosingClass(EnclosingClassResolver resolver, int index) {
+                getDelegate().setEnclosingClass(resolver, index);
+            }
+
+            default void addEnclosedClass(EnclosedClassResolver resolver, int index) {
+                getDelegate().addEnclosedClass(resolver, index);
+            }
+
             default void setName(String internalName) {
                 getDelegate().setName(internalName);
+            }
+
+            default void setSimpleName(String simpleName) {
+                getDelegate().setSimpleName(simpleName);
             }
 
             default void setModifiers(int modifiers) {

@@ -334,6 +334,10 @@ public interface ClassFile extends FieldResolver,
         return getUtf8Constant(getClassConstantNameIdx(idx));
     }
 
+    default boolean classConstantNameEquals(int idx, String expect) {
+        return utf8ConstantEquals(getClassConstantNameIdx(idx), expect);
+    }
+
     default int getClassConstantNameIdx(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         if (idx == 0) {
             return 0;

@@ -34,10 +34,6 @@ public final class FieldElement extends VariableElement implements MemberElement
         return enclosingType;
     }
 
-    public ValueType getType(final ClassContext classContext, final List<ParameterizedSignature> signatureContext) {
-        return null;
-    }
-
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }

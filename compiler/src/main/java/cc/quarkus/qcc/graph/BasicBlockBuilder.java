@@ -158,6 +158,8 @@ public interface BasicBlockBuilder {
 
     Value valueConvert(Value value, WordType toType);
 
+    Value instanceOf(Value input, ValueType expectedType);
+
     /**
      * Narrow a value with reference type to another (typically more specific) type.
      *
@@ -165,7 +167,7 @@ public interface BasicBlockBuilder {
      * @param toType the type to narrow to
      * @return the narrowed type
      */
-    Value narrow(Value value, TypeIdLiteral toType);
+    Value narrow(Value value, ValueType toType);
 
     // memory
 
@@ -479,8 +481,12 @@ public interface BasicBlockBuilder {
                 return new Convert(line, bci, value, toType);
             }
 
-            public Value narrow(final Value value, final TypeIdLiteral toType) {
-                return new Narrow(line, bci, value, typeSystem.getReferenceType(toType));
+            public Value instanceOf(final Value input, final ValueType expectedType) {
+                return new InstanceOf(line, bci, input, expectedType, typeSystem.getBooleanType());
+            }
+
+            public Value narrow(final Value value, final ValueType toType) {
+                return new Narrow(line, bci, value, toType);
             }
 
             public Value receiver(final TypeIdLiteral upperBound) {
