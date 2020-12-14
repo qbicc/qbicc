@@ -38,7 +38,7 @@ public class GnuToolProvider implements ToolProvider {
         }
     }
 
-    static final Pattern TARGET_PATTERN = Pattern.compile("^Target:\\s+(x86_64|arm|i[3-6]86|aarch64|powerpc64)(?:-(redhat|apple|ibm|unknown))?-(linux|darwin)(?:-(gnu|gnueabi))?");
+    static final Pattern TARGET_PATTERN = Pattern.compile("^Target:\\s+(x86_64|arm|i[3-6]86|aarch64|powerpc64)(?:-(redhat|apple|ibm|pc|unknown))?-(linux|darwin)(?:-(gnu|gnueabi))?");
     static final Pattern VERSION_PATTERN = Pattern.compile("^gcc version (\\S+)");
 
     private <T extends Tool> void tryGcc(final Class<T> type, final Platform platform, final ArrayList<T> list, final Path path) {
