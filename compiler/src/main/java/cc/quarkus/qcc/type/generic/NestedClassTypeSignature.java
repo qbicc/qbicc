@@ -36,7 +36,6 @@ public final class NestedClassTypeSignature extends ClassTypeSignature {
 
     public static NestedClassTypeSignature parse(ClassTypeSignature outer, ClassContext classContext, ByteBuffer buf) {
         expect(buf, '.');
-        int lastIdx = -1;
         StringBuilder b = new StringBuilder();
         int i;
         for (;;) {
@@ -48,7 +47,7 @@ public final class NestedClassTypeSignature extends ClassTypeSignature {
                 List<TypeArgument> typeArgs;
                 if (i == '<') {
                     typeArgs = TypeArgument.parseList(classContext, buf);
-                    i = next(buf);
+                    i = peek(buf);
                     if (i != '.' && i != ';') {
                         throw parseError();
                     }
