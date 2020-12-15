@@ -343,8 +343,15 @@ final class ClassMethodInfo {
                 }
                 TypeDescriptor desc = (TypeDescriptor) classFile.getDescriptorConstant(idx);
                 ClassContext ctxt = classFile.getClassContext();
+                idx = getLocalVarSignatureIndex(i, j);
+                TypeSignature sig;
+                if (idx == 0) {
+                    sig = TypeSignature.synthesize(ctxt, desc);
+                } else {
+                    sig = TypeSignature.parse(ctxt, classFile.getUtf8ConstantAsBuffer(idx));
+                }
                 array[j] = ctxt.resolveTypeFromDescriptor(desc,
-                    List.of(), TypeSignature.synthesize(ctxt, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+                    List.of(), sig, TypeAnnotationList.empty(), TypeAnnotationList.empty());
             }
         }
         this.variableTypes = variableTypes1;
