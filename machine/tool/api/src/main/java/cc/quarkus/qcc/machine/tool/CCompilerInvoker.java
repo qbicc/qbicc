@@ -105,6 +105,10 @@ public interface CCompilerInvoker extends MessagingToolInvoker {
      */
     void setOutputPath(Path path);
 
+    SourceLanguage getSourceLanguage();
+
+    void setSourceLanguage(SourceLanguage sourceLanguage);
+
     /**
      * Get the object file output path.
      *
@@ -112,4 +116,10 @@ public interface CCompilerInvoker extends MessagingToolInvoker {
      * @throws IllegalArgumentException if the output path has not been set
      */
     Path getOutputPath() throws IllegalArgumentException;
+
+    enum SourceLanguage {
+        C,
+        ASM,
+        ;
+    }
 }

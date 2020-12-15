@@ -14,6 +14,7 @@ final class GnuCCompilerInvokerImpl extends AbstractGccInvoker implements GnuCCo
     private final List<String> definedSymbols = new ArrayList<>(2);
     private InputSource inputSource = InputSource.empty();
     private Path outputPath = TMP.resolve("qcc-output." + getTool().getPlatform().getObjectType().objectSuffix());
+    private SourceLanguage sourceLanguage = SourceLanguage.C;
 
     GnuCCompilerInvokerImpl(final GccToolChainImpl tool) {
         super(tool);
@@ -62,6 +63,14 @@ final class GnuCCompilerInvokerImpl extends AbstractGccInvoker implements GnuCCo
         outputPath = Assert.checkNotNullParam("path", path);
     }
 
+    public SourceLanguage getSourceLanguage() {
+        return sourceLanguage;
+    }
+
+    public void setSourceLanguage(final SourceLanguage sourceLanguage) {
+        this.sourceLanguage = Assert.checkNotNullParam("sourceLanguage", sourceLanguage);
+    }
+
     public Path getOutputPath() throws IllegalArgumentException {
         return outputPath;
     }
@@ -83,6 +92,6 @@ final class GnuCCompilerInvokerImpl extends AbstractGccInvoker implements GnuCCo
                 cmd.add("-D" + key + "=" + val);
             }
         }
-        Collections.addAll(cmd, "-c", "-x", "c", "-o", getOutputPath().toString(), "-");
+        Collections.addAll(cmd, "-c", "-x", sourceLanguage == SourceLanguage.ASM ? "assembler" : "c", "-o", getOutputPath().toString(), "-");
     }
 }
