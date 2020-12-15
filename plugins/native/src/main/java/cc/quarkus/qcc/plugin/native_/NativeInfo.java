@@ -162,7 +162,7 @@ final class NativeInfo {
                                     // compound type
                                     String name = vt.getField(i).getName();
                                     CProbe.Type.Info member = result.getTypeInfoOfMember(probeType, name);
-                                    members[i] = ts.getCompoundTypeMember(name, type, (int) member.getOffset(), (int) member.getAlign());
+                                    members[i] = ts.getCompoundTypeMember(name, type, (int) member.getOffset(), 1);
                                 }
                                 resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign(), members);
                             }
