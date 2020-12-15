@@ -2,6 +2,7 @@ package cc.quarkus.qcc.machine.llvm.impl;
 
 import java.util.List;
 
+import cc.quarkus.qcc.machine.llvm.LLStruct;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 
@@ -72,5 +73,9 @@ public final class LLVM {
 
     public static LLValue function(final LLValue returnType, final List<LLValue> argTypes) {
         return new FunctionType(returnType, argTypes);
+    }
+
+    public static LLStruct struct() {
+        return new StructType();
     }
 }

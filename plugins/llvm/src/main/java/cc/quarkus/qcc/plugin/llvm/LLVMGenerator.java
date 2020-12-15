@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.plugin.llvm;
 
 import static cc.quarkus.qcc.machine.llvm.Types.*;
+import static java.lang.Math.*;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -17,22 +18,27 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
+import cc.quarkus.qcc.machine.llvm.LLStruct;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Types;
+import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.object.Data;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.FunctionDeclaration;
 import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.object.ProgramObject;
 import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.BooleanType;
+import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
@@ -44,6 +50,7 @@ import io.smallrye.common.constraint.Assert;
 public class LLVMGenerator implements Consumer<CompilationContext> {
 
     final Map<Type, LLValue> types = new HashMap<>();
+    final Map<CompoundType.Member, LLValue> structureOffsets = new HashMap<>();
 
     public void accept(final CompilationContext ctxt) {
         for (ProgramModule programModule : ctxt.getAllProgramModules()) {
@@ -149,6 +156,39 @@ public class LLVMGenerator implements Consumer<CompilationContext> {
         } else if (type instanceof PointerType) {
             Type pointeeType = ((PointerType) type).getPointeeType();
             res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType));
+        } else if (type instanceof ArrayType) {
+            ArrayType arrayType = (ArrayType) type;
+            Type elementType = arrayType.getElementType();
+            long size = arrayType.getSize();
+            res = array((int) size, map(elementType));
+        } else if (type instanceof CompoundType) {
+            // this is a little tricky.
+            CompoundType compoundType = (CompoundType) type;
+            int memberCnt = compoundType.getMemberCount();
+            long offs = 0;
+            LLStruct struct = struct();
+            int index = 0;
+            for (int i = 0; i < memberCnt; i ++) {
+                CompoundType.Member member = compoundType.getMember(i);
+                int memberOffset = member.getOffset(); // already includes alignment
+                if (memberOffset > offs) {
+                    // we have to pad it out
+                    struct.member(array((int) (memberOffset - offs), i8));
+                    index ++;
+                }
+                ValueType memberType = member.getType();
+                struct.member(map(memberType));
+                // todo: cache these ints
+                structureOffsets.put(member, Values.intConstant(index));
+                index ++;
+                // the target will already pad out for normal alignment
+                offs += max(memberType.getAlign(), memberType.getSize());
+            }
+            long size = compoundType.getSize();
+            if (offs < size) {
+                // yet more padding
+                struct.member(array((int) (size - offs), i8));
+            }
         } else {
             throw new IllegalStateException();
         }

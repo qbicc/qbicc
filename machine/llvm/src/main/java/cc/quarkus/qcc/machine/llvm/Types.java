@@ -44,4 +44,8 @@ public final class Types {
     public static LLValue function(final LLValue returnType, final List<LLValue> argTypes) {
         return LLVM.function(returnType, argTypes);
     }
+
+    public static LLStruct struct() {
+        return LLVM.struct();
+    }
 }
