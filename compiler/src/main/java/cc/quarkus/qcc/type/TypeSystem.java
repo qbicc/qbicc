@@ -159,9 +159,7 @@ public final class TypeSystem {
 
     public CompoundType.Member getCompoundTypeMember(String name, ValueType type, int offset, int align) {
         Assert.checkNotNullParam("name", name);
-        if (Integer.bitCount(align) != 1) {
-            throw new IllegalArgumentException("Invalid alignment (must be a power of 2; specify 1 for minimum alignment)");
-        }
+        TypeUtil.checkAlignmentParameter("align", align);
         align = Math.max(type.getAlign(), align);
         Assert.checkMinimumParameter("offset", 0, offset);
         if ((offset & (align - 1)) != 0) {
