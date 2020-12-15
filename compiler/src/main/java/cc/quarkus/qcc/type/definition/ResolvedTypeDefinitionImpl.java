@@ -22,7 +22,8 @@ final class ResolvedTypeDefinitionImpl extends DelegatingValidatedTypeDefinition
     }
 
     public ResolvedTypeDefinition getSuperClass() {
-        return delegate.getSuperClass().resolve();
+        ValidatedTypeDefinition superClass = delegate.getSuperClass();
+        return superClass == null ? null : superClass.resolve();
     }
 
     public ResolvedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
