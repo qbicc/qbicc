@@ -166,6 +166,6 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
-        return super.invokeValueInstance(kind, input, target, type, arguments);
+        return super.invokeValueInstance(kind, input, target, returnType, arguments);
     }
 }
