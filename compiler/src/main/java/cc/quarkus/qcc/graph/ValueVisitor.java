@@ -381,6 +381,14 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
+        default R visit(T param, MethodDescriptorLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, MethodHandleLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
         default R visit(T param, Mod node) {
             return getDelegateValueVisitor().visit(param, node);
         }
