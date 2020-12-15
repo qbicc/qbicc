@@ -97,7 +97,7 @@ public final class ReferenceType extends ValueType {
                 result = typeSystem.getReferenceType(other.upperBound.getSuperClass());
                 if (const_) result = result.asConst();
                 if (nullable) result = result.asNullable;
-                return result.join(other);
+                return result.join(this);
             } else {
                 // both are j.l.Object
                 result = this;
