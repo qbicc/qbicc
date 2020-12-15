@@ -46,7 +46,7 @@ public class LLVMCompileStage implements Consumer<CompilationContext> {
             if (fileNameString.endsWith(".ll")) {
                 String baseName = fileNameString.substring(0, fileNameString.length() - 3);
                 String outputNameString = baseName + ".s";
-                String objNameString = baseName + cToolChain.getPlatform().getObjectType().objectSuffix();
+                String objNameString = baseName + "." + cToolChain.getPlatform().getObjectType().objectSuffix();
                 Path outputPath = modulePath.resolveSibling(outputNameString);
                 llcInvoker.setSource(InputSource.from(modulePath));
                 llcInvoker.setDestination(OutputDestination.of(outputPath));
