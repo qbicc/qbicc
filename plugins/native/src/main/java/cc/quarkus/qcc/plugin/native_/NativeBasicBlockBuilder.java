@@ -14,6 +14,7 @@ import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -33,7 +34,6 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         NativeFunctionInfo functionInfo = nativeInfo.nativeFunctions.get(target);
         if (functionInfo != null) {
-            // todo: avoid declaring more than once; cache or something
             ctxt.getOrAddProgramModule(getCurrentElement().getEnclosingType())
                 .getOrAddSection(IMPLICIT_SECTION_NAME)
                 .declareFunction(target, functionInfo.symbolLiteral.getName(), (FunctionType) functionInfo.symbolLiteral.getType());
@@ -74,7 +74,40 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value input, final MethodElement target, final ValueType returnType, final List<Value> arguments) {
         ValueType type = input.getType();
         LiteralFactory lf = ctxt.getLiteralFactory();
-        if (type instanceof IntegerType) {
+        if (type instanceof NullType) {
+            // treat `null` as a null (zero) pointer value
+            if (target.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.PTR)
+                || target.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.WORD)
+                || target.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.OBJECT)) {
+                String methodName = target.getName();
+                switch (methodName) {
+                    case "byteValue": {
+                        return lf.literalOf((byte) 0);
+                    }
+                    case "shortValue": {
+                        return lf.literalOf((short) 0);
+                    }
+                    case "intValue": {
+                        return lf.literalOf(0);
+                    }
+                    case "longValue": {
+                        return lf.literalOf(0L);
+                    }
+                    case "charValue": {
+                        return lf.literalOf('\0');
+                    }
+                    case "floatValue": {
+                        return lf.literalOf(0.0f);
+                    }
+                    case "doubleValue": {
+                        return lf.literalOf(0.0);
+                    }
+                    case "isZero": {
+                        return lf.literalOf(true);
+                    }
+                }
+            }
+        } else if (type instanceof IntegerType) {
             IntegerType inputType = (IntegerType) type;
             // special handling for conversion methods
             String methodName = target.getName();

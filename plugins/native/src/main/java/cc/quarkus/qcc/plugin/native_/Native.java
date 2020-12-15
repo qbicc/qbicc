@@ -29,6 +29,8 @@ final class Native {
     static final String OBJECT_INT_NAME = intName(object.class.getName());
     static final String WORD_INT_NAME = intName(word.class.getName());
     static final String PTR = className(ptr.class);
+    static final String WORD = className(word.class);
+    static final String OBJECT = className(object.class);
     static final String FUNCTION = className(function.class);
 
     private static String className(Class<?> clz) {
