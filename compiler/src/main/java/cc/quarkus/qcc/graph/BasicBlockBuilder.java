@@ -190,9 +190,9 @@ public interface BasicBlockBuilder {
 
     Value pointerLoad(Value pointer, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
 
-    Value readInstanceField(Value instance, FieldElement fieldElement, final ValueType type, JavaAccessMode mode);
+    Value readInstanceField(Value instance, FieldElement fieldElement, ValueType type, JavaAccessMode mode);
 
-    Value readStaticField(FieldElement fieldElement, final ValueType type, JavaAccessMode mode);
+    Value readStaticField(FieldElement fieldElement, ValueType type, JavaAccessMode mode);
 
     Value readArrayValue(Value array, Value index, JavaAccessMode mode);
 
@@ -218,7 +218,7 @@ public interface BasicBlockBuilder {
 
     Node invokeDynamic(MethodElement bootstrapMethod, List<Value> staticArguments, List<Value> arguments);
 
-    Value invokeValueStatic(MethodElement target, final ValueType type, List<Value> arguments);
+    Value invokeValueStatic(MethodElement target, ValueType type, List<Value> arguments);
 
     Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, final ValueType type, List<Value> arguments);
 
