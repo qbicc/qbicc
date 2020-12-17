@@ -220,9 +220,9 @@ public interface BasicBlockBuilder {
 
     Value invokeValueStatic(MethodElement target, ValueType type, List<Value> arguments);
 
-    Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, final ValueType type, List<Value> arguments);
+    Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, ValueType type, List<Value> arguments);
 
-    Value invokeValueDynamic(MethodElement bootstrapMethod, List<Value> staticArguments, final ValueType type, List<Value> arguments);
+    Value invokeValueDynamic(MethodElement bootstrapMethod, List<Value> staticArguments, ValueType type, List<Value> arguments);
     /**
      * Invoke an object instance initializer.  The value returned has an initialized type.  The returned value should
      * replace all occurrences of the uninitialized value when processing bytecode.
