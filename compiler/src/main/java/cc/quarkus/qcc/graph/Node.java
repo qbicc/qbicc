@@ -146,15 +146,6 @@ public interface Node {
             return copy;
         }
 
-        List<BlockLabel> copyBlockLabels(List<BlockLabel> list) {
-            BlockLabel[] labels = new BlockLabel[list.size()];
-            int i = 0;
-            for (BlockLabel original : list) {
-                labels[i++] = copyBlock(BlockLabel.getTargetOf(original));
-            }
-            return Arrays.asList(labels);
-        }
-
         void copyNode(Node original) {
             if (original instanceof Value) {
                 copyValue((Value) original);
@@ -330,7 +321,7 @@ public interface Node {
                 Node copied = param.copyTriable(node.getDelegateOperation());
                 BlockLabel resumeLabel = param.copyBlock(node.getResumeTarget());
                 if (copied instanceof Triable) {
-                    return param.getBlockBuilder().try_((Triable) copied, resumeLabel);
+                    return param.getBlockBuilder().try_((Triable) copied, resumeLabel, param.copyBlock(BlockLabel.getTargetOf(node.getExceptionHandlerLabel())));
                 } else {
                     return param.getBlockBuilder().goto_(resumeLabel);
                 }

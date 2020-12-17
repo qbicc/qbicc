@@ -109,6 +109,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
                 byteCode.position(0);
                 methodParser.processBlock(gf.goto_(methodParser.getBlockForIndex(0)));
             }
+            gf.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
             Schedule schedule = Schedule.forMethod(entryBlock);
             return this.resolved = MethodBody.of(entryBlock, schedule, thisValue, parameters);

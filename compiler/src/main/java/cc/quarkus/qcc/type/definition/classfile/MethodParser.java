@@ -4,7 +4,9 @@ import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
 import static cc.quarkus.qcc.type.definition.classfile.ClassMethodInfo.*;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,7 +23,6 @@ import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Ret;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.TerminatorVisitor;
-import cc.quarkus.qcc.graph.Try;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
@@ -30,6 +31,7 @@ import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -49,7 +51,7 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
-final class MethodParser {
+final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     final ClassMethodInfo info;
     final Value[] stack;
     final Value[] locals;
@@ -62,6 +64,11 @@ final class MethodParser {
     private final ClassContext ctxt;
     private final LiteralFactory lf;
     private final TypeSystem ts;
+    private final DefinedTypeDefinition throwable;
+    /**
+     * Exception handlers by index, then by delegate.
+     */
+    private final List<Map<BasicBlockBuilder.ExceptionHandler, ExceptionHandlerImpl>> exceptionHandlers;
     int sp;
 
     MethodParser(final ClassContext ctxt, final ClassMethodInfo info, final ByteBuffer buffer, final BasicBlockBuilder graphFactory) {
@@ -74,7 +81,6 @@ final class MethodParser {
         this.buffer = buffer;
         int cnt = info.getEntryPointCount();
         BlockLabel[] blockHandles = new BlockLabel[cnt];
-        int dest = -1;
         // make a "canonical" node handle for each block
         for (int i = 0; i < cnt; i ++) {
             blockHandles[i] = new BlockLabel();
@@ -83,84 +89,80 @@ final class MethodParser {
         // it's not an entry point
         gf = graphFactory;
         fatValues = new HashSet<>();
-        DefinedTypeDefinition throwable = ctxt.getCompilationContext().getBootstrapClassContext().findDefinedType("java/lang/Throwable");
         // catch mapper is sensitive to buffer index
-        gf.setCatchMapper(new Try.CatchMapper() {
-            public int getCatchCount() {
-                int etl = info.getExTableLen();
-                int pos = buffer.position();
-                int cnt = 0;
-                for (int i = 0; i < etl; i++) {
-                    if (info.getExTableEntryStartPc(i) <= pos && pos < info.getExTableEntryEndPc(i)) {
-                        cnt++;
-                    }
-                }
-                return cnt;
-            }
+        gf.setExceptionHandlerPolicy(this);
+        int exCnt = info.getExTableLen();
+        exceptionHandlers = exCnt == 0 ? List.of() : new ArrayList<>(Collections.nCopies(exCnt, null));
+        throwable = ctxt.findDefinedType("java/lang/Throwable");
+    }
 
-            public ClassTypeIdLiteral getCatchType(final int index) {
-                int etl = info.getExTableLen();
-                int pos = buffer.position();
-                int cnt = -1;
-                for (int i = 0; i < etl; i++) {
-                    if (info.getExTableEntryStartPc(i) <= pos && pos < info.getExTableEntryEndPc(i)) {
-                        cnt++;
-                    }
-                    if (cnt == index) {
-                        int idx = info.getExTableEntryTypeIdx(i);
-                        if (idx == 0) {
-                            return (ClassTypeIdLiteral) throwable.validate().getTypeId();
-                        }
-                        return (ClassTypeIdLiteral) getConstantValue(idx);
-                    }
-                }
-                throw new IndexOutOfBoundsException();
-            }
+    // exception handler policy
 
-            public BlockLabel getCatchHandler(final int index) {
-                int etl = info.getExTableLen();
-                int pos = buffer.position();
-                int cnt = -1;
-                for (int i = 0; i < etl; i++) {
-                    if (info.getExTableEntryStartPc(i) <= pos && pos < info.getExTableEntryEndPc(i)) {
-                        cnt++;
+    public BasicBlockBuilder.ExceptionHandler computeCurrentExceptionHandler(BasicBlockBuilder.ExceptionHandler delegate) {
+        int etl = info.getExTableLen();
+        if (etl > 0) {
+            int pos = buffer.position();
+            ExceptionHandlerImpl handler;
+            for (int i = etl - 1; i >= 0; i --) {
+                if (info.getExTableEntryStartPc(i) <= pos && pos < info.getExTableEntryEndPc(i)) {
+                    // in range...
+                    Map<BasicBlockBuilder.ExceptionHandler, ExceptionHandlerImpl> handlerMap = exceptionHandlers.get(i);
+                    if (handlerMap == null) {
+                        exceptionHandlers.set(i, handlerMap = new HashMap<>(1));
                     }
-                    if (cnt == index) {
-                        return getBlockForIndex(info.getExTableEntryHandlerPc(i));
+                    handler = handlerMap.get(delegate);
+                    if (handler == null) {
+                        // we also need to create the handler for this index...
+                        handlerMap.put(delegate, handler = new ExceptionHandlerImpl(i, delegate));
                     }
+                    delegate = handler;
                 }
-                throw new IndexOutOfBoundsException();
             }
+        }
+        return delegate;
+    }
 
-            public void setCatchValue(final int index, final BasicBlock from, final Value value) {
-                int etl = info.getExTableLen();
+    class ExceptionHandlerImpl implements BasicBlockBuilder.ExceptionHandler {
+        private final int index;
+        private final BasicBlockBuilder.ExceptionHandler delegate;
+        private final PhiValue phi;
+
+        ExceptionHandlerImpl(final int index, final BasicBlockBuilder.ExceptionHandler delegate) {
+            this.index = index;
+            this.delegate = delegate;
+            this.phi = gf.phi(ts.getReferenceType(throwable.validate().getTypeId()), new BlockLabel());
+        }
+
+        public BlockLabel getHandler() {
+            return phi.getPinnedBlockLabel();
+        }
+
+        public void enterHandler(final BasicBlock from, final Value exceptionValue) {
+            int pc = info.getExTableEntryHandlerPc(index);
+            // generate the `if` branch for the current handler's type
+            BlockLabel label = phi.getPinnedBlockLabel();
+            phi.setValueForBlock(ctxt.getCompilationContext(), gf.getCurrentElement(), from, exceptionValue);
+            if (! label.hasTarget()) {
+                // first time being entered
+                gf.begin(label);
+                ReferenceType exType = (ReferenceType) getClassFile().getTypeConstant(info.getExTableEntryTypeIdx(index));
+                BasicBlock innerFrom = gf.if_(gf.instanceOf(phi, exType), getBlockForIndex(pc), delegate.getHandler());
+                // enter the delegate handler
+                delegate.enterHandler(innerFrom, phi);
+                // enter our handler
+                Value[] locals = saveLocals();
+                Value[] stack = saveStack();
+                clearStack();
+                push(phi);
                 int pos = buffer.position();
-                int cnt = -1;
-                for (int i = 0; i < etl; i++) {
-                    if (info.getExTableEntryStartPc(i) <= pos && pos < info.getExTableEntryEndPc(i)) {
-                        cnt++;
-                    }
-                    if (cnt == index) {
-                        int handlerPc = info.getExTableEntryHandlerPc(i);
-                        BlockLabel block = getBlockForIndex(handlerPc);
-                        // we must enter this block from the `from` block; so we have to save our state
-                        Value[] locals = saveLocals();
-                        Value[] stack = saveStack();
-                        clearStack();
-                        push(value);
-                        buffer.position(handlerPc);
-                        processBlock(from);
-                        // restore everything like nothing happened...
-                        buffer.position(pos);
-                        restoreLocals(locals);
-                        restoreStack(stack);
-                        // and we're done
-                        return;
-                    }
-                }
-                throw new IndexOutOfBoundsException();
+                buffer.position(pc);
+                processBlock(from);
+                // restore everything like nothing happened...
+                buffer.position(pos);
+                restoreLocals(locals);
+                restoreStack(stack);
             }
-        });
+        }
     }
 
     // fat values
@@ -375,7 +377,6 @@ final class MethodParser {
         gf.setLineNumber(info.getLineNumber(bci));
         PhiValue[] entryLocalsArray;
         PhiValue[] entryStack;
-        BasicBlock resolvedBlock;
         CompilationContext cmpCtxt = ctxt.getCompilationContext();
         ExecutableElement element = gf.getCurrentElement();
         if (entryStacks.containsKey(block)) {
@@ -1444,7 +1445,6 @@ final class MethodParser {
         private final Set<BasicBlock> visited = new HashSet<>();
         private final ByteBuffer buffer;
         private final int ret;
-        boolean exited;
 
         RetVisitor(final ByteBuffer buffer, final int ret) {
             this.buffer = buffer;

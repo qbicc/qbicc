@@ -251,7 +251,7 @@ public interface TerminatorVisitor<T, R> {
         }
 
         default BasicBlock visit(T param, Try node) {
-            return getBuilder(param).try_(copy(param, node.getDelegateOperation()), copy(param, node.getResumeTarget()));
+            return getBuilder(param).try_(copy(param, node.getDelegateOperation()), copy(param, node.getResumeTarget()), copy(param, node.getExceptionHandler()));
         }
 
         default BasicBlock visit(T param, ValueReturn node) {

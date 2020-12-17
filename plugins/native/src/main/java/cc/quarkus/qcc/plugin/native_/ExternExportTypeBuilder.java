@@ -23,7 +23,6 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodResolver;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 
@@ -93,6 +92,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                             } else {
                                 gf.return_(result);
                             }
+                            gf.finish();
                             BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
                             function.replaceBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, pv));
                             // ensure the method is reachable

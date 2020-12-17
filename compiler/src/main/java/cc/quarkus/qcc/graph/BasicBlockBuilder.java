@@ -17,7 +17,6 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import io.smallrye.common.constraint.Assert;
 
 /**
  * A program graph builder, which builds each basic block in succession and wires them together.
@@ -56,19 +55,29 @@ public interface BasicBlockBuilder {
     int setBytecodeIndex(int newBytecodeIndex);
 
     /**
-     * Get the current catch mapper for triable nodes.
+     * Get or compute the currently active exception handler.  Returns {@code null} if no exception handler is
+     * active (i.e. exceptions should be propagated to the caller).
+     * <p>
+     * This method generally should not be overridden (overriding this method does not change the exception handler
+     * selected in most cases because the exception handler is selected by the last builder in the chain).  Its purpose
+     * is to provide a means for builders to locate the exception handler for their own purposes.
      *
-     * @return the current catch mapper (not {@code null})
+     * @return the currently active exception handler, or {@code null} if exceptions should propagate to the caller
      */
-    Try.CatchMapper getCatchMapper();
+    ExceptionHandler getExceptionHandler();
 
     /**
-     * Set the current catch mapper to use for triable nodes.
+     * Set the exception handler policy.  The set policy will determine the exception handler that is returned from
+     * {@link #getExceptionHandler()}.
      *
-     * @param catchMapper the catch mapper (must not be {@code null})
-     * @return the previously set catch mapper (not {@code null})
+     * @param policy the exception handler policy (must not be {@code null})
      */
-    Try.CatchMapper setCatchMapper(Try.CatchMapper catchMapper);
+    void setExceptionHandlerPolicy(ExceptionHandlerPolicy policy);
+
+    /**
+     * Indicate that all construction is complete.
+     */
+    void finish();
 
     // values
 
@@ -294,7 +303,7 @@ public interface BasicBlockBuilder {
      */
     BasicBlock ret(Value address);
 
-    BasicBlock try_(Triable operation, BlockLabel resumeLabel);
+    BasicBlock try_(Triable operation, BlockLabel resumeLabel, BlockLabel exceptionHandler);
 
     /**
      * Terminate the block with a class cast exception.
@@ -316,412 +325,44 @@ public interface BasicBlockBuilder {
      */
     BlockEntry getBlockEntry();
 
+    /**
+     * The policy which is used to acquire the exception handler for the current instruction.
+     */
+    interface ExceptionHandlerPolicy {
+        /**
+         * Get the currently active exception handler, if any.
+         *
+         * @param delegate the next-lower-priority exception handler to delegate to when the returned handler does not
+         *                 handle the exception
+         * @return the exception handler to use
+         */
+        ExceptionHandler computeCurrentExceptionHandler(ExceptionHandler delegate);
+    }
+
+    /**
+     * An exception handler definition.
+     */
+    interface ExceptionHandler {
+        /**
+         * Get the block label of this handler.
+         *
+         * @return the block label (must not be {@code null})
+         */
+        BlockLabel getHandler();
+
+        /**
+         * Enter the handler from the given source block, which may be a {@code try} operation or may be a regular
+         * control flow operation like {@code goto} or {@code if}. This method is always called from outside of a
+         * block, thus the implementation of this method is allowed to generate instructions but any generated
+         * block must be terminated before the method returns.
+         *
+         * @param from the source block (must not be {@code null})
+         * @param exceptionValue the exception value to register (must not be {@code null})
+         */
+        void enterHandler(BasicBlock from, Value exceptionValue);
+    }
+
     static BasicBlockBuilder simpleBuilder(final TypeSystem typeSystem, final ExecutableElement element) {
-        return new BasicBlockBuilder() {
-            private int line;
-            private int bci = -1;
-            private Node dependency;
-            private BlockEntry blockEntry;
-            private BlockLabel currentBlock;
-            private Try.CatchMapper catchMapper = Try.CatchMapper.NONE;
-
-            public ExecutableElement getCurrentElement() {
-                return element;
-            }
-
-            public Location getLocation() {
-                return Location.builder()
-                    .setElement(element)
-                    .setLineNumber(line)
-                    .setByteCodeIndex(bci)
-                    .build();
-            }
-
-            public int setLineNumber(final int newLineNumber) {
-                try {
-                    return line;
-                } finally {
-                    line = newLineNumber;
-                }
-            }
-
-            public int setBytecodeIndex(final int newBytecodeIndex) {
-                try {
-                    return bci;
-                } finally {
-                    bci = newBytecodeIndex;
-                }
-            }
-
-            public Try.CatchMapper getCatchMapper() {
-                return catchMapper;
-            }
-
-            public Try.CatchMapper setCatchMapper(final Try.CatchMapper catchMapper) {
-                try {
-                    return this.catchMapper;
-                } finally {
-                    this.catchMapper = Assert.checkNotNullParam("catchMapper", catchMapper);
-                }
-            }
-
-            public Value add(final Value v1, final Value v2) {
-                return new Add(line, bci, v1, v2);
-            }
-
-            public Value multiply(final Value v1, final Value v2) {
-                return new Multiply(line, bci, v1, v2);
-            }
-
-            public Value and(final Value v1, final Value v2) {
-                return new And(line, bci, v1, v2);
-            }
-
-            public Value or(final Value v1, final Value v2) {
-                return new Or(line, bci, v1, v2);
-            }
-
-            public Value xor(final Value v1, final Value v2) {
-                return new Xor(line, bci, v1, v2);
-            }
-
-            public Value cmpEq(final Value v1, final Value v2) {
-                return new CmpEq(line, bci, v1, v2, typeSystem.getBooleanType());
-            }
-
-            public Value cmpNe(final Value v1, final Value v2) {
-                return new CmpNe(line, bci, v1, v2, typeSystem.getBooleanType());
-            }
-
-            public Value shr(final Value v1, final Value v2) {
-                return new Shr(line, bci, v1, v2);
-            }
-
-            public Value shl(final Value v1, final Value v2) {
-                return new Shl(line, bci, v1, v2);
-            }
-
-            public Value sub(final Value v1, final Value v2) {
-                return new Sub(line, bci, v1, v2);
-            }
-
-            public Value divide(final Value v1, final Value v2) {
-                return new Div(line, bci, v1, v2);
-            }
-
-            public Value remainder(final Value v1, final Value v2) {
-                return new Mod(line, bci, v1, v2);
-            }
-
-            public Value cmpLt(final Value v1, final Value v2) {
-                return new CmpLt(line, bci, v1, v2, typeSystem.getBooleanType());
-            }
-
-            public Value cmpGt(final Value v1, final Value v2) {
-                return new CmpGt(line, bci, v1, v2, typeSystem.getBooleanType());
-            }
-
-            public Value cmpLe(final Value v1, final Value v2) {
-                return new CmpLe(line, bci, v1, v2, typeSystem.getBooleanType());
-            }
-
-            public Value cmpGe(final Value v1, final Value v2) {
-                return new CmpGe(line, bci, v1, v2, typeSystem.getBooleanType());
-            }
-
-            public Value rol(final Value v1, final Value v2) {
-                return new Rol(line, bci, v1, v2);
-            }
-
-            public Value ror(final Value v1, final Value v2) {
-                return new Ror(line, bci, v1, v2);
-            }
-
-            public Value negate(final Value v) {
-                return new Neg(line, bci, v);
-            }
-
-            public Value byteSwap(final Value v) {
-                throw Assert.unsupported();
-            }
-
-            public Value bitReverse(final Value v) {
-                throw Assert.unsupported();
-            }
-
-            public Value countLeadingZeros(final Value v) {
-                throw Assert.unsupported();
-            }
-
-            public Value countTrailingZeros(final Value v) {
-                throw Assert.unsupported();
-            }
-
-            public Value populationCount(final Value v) {
-                throw Assert.unsupported();
-            }
-
-            public Value arrayLength(final Value array) {
-                return new ArrayLength(line, bci, array, typeSystem.getSignedInteger32Type());
-            }
-
-            public Value truncate(final Value value, final WordType toType) {
-                return new Truncate(line, bci, value, toType);
-            }
-
-            public Value extend(final Value value, final WordType toType) {
-                return new Extend(line, bci, value, toType);
-            }
-
-            public Value bitCast(final Value value, final WordType toType) {
-                return new BitCast(line, bci, value, toType);
-            }
-
-            public Value valueConvert(final Value value, final WordType toType) {
-                return new Convert(line, bci, value, toType);
-            }
-
-            public Value instanceOf(final Value input, final ValueType expectedType) {
-                return new InstanceOf(line, bci, input, expectedType, typeSystem.getBooleanType());
-            }
-
-            public Value narrow(final Value value, final ValueType toType) {
-                return new Narrow(line, bci, value, toType);
-            }
-
-            public Value receiver(final TypeIdLiteral upperBound) {
-                return new ThisValue(typeSystem.getReferenceType(Assert.checkNotNullParam("upperBound", upperBound)));
-            }
-
-            public Value parameter(final ValueType type, final int index) {
-                return new ParameterValue(type, index);
-            }
-
-            public Value catch_(final TypeIdLiteral upperBound) {
-                return new Catch(typeSystem.getReferenceType(Assert.checkNotNullParam("upperBound", upperBound)));
-            }
-
-            public PhiValue phi(final ValueType type, final BlockLabel owner) {
-                return new PhiValue(line, bci, type, owner);
-            }
-
-            public Value select(final Value condition, final Value trueValue, final Value falseValue) {
-                return new Select(line, bci, condition, trueValue, falseValue);
-            }
-
-            public Value typeIdOf(final Value value) {
-                return new TypeIdOf(line, bci, typeSystem.getTypeIdType(), value);
-            }
-
-            public Value new_(final ClassTypeIdLiteral typeId) {
-                return asDependency(new New(line, bci, requireDependency(), typeSystem.getReferenceType(typeId), typeId));
-            }
-
-            public Value newArray(final ArrayTypeIdLiteral arrayTypeId, final Value size) {
-                return asDependency(new NewArray(line, bci, requireDependency(), arrayTypeId, typeSystem.getReferenceType(arrayTypeId), size));
-            }
-
-            public Value multiNewArray(final ArrayTypeIdLiteral arrayTypeId, final Value... dimensions) {
-                throw Assert.unsupported();
-            }
-
-            public Value clone(final Value object) {
-                throw Assert.unsupported();
-            }
-
-            public Value pointerLoad(final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-                throw Assert.unsupported();
-            }
-
-            public Value readInstanceField(final Value instance, final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
-                return asDependency(new InstanceFieldRead(line, bci, requireDependency(), instance, fieldElement, type, mode));
-            }
-
-            public Value readStaticField(final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
-                return asDependency(new StaticFieldRead(line, bci, requireDependency(), fieldElement, type, mode));
-            }
-
-            public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
-                ArrayTypeIdLiteral arrayTypeBound = (ArrayTypeIdLiteral) ((ReferenceType) array.getType()).getUpperBound();
-                ValueType type = arrayTypeBound.getElementType();
-                return asDependency(new ArrayElementRead(line, bci, requireDependency(), type, array, index, mode));
-            }
-
-            public Node pointerStore(final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-                throw Assert.unsupported();
-            }
-
-            public Node writeInstanceField(final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-                return asDependency(new InstanceFieldWrite(line, bci, requireDependency(), instance, fieldElement, value, mode));
-            }
-
-            public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-                return asDependency(new StaticFieldWrite(line, bci, requireDependency(), fieldElement, value, mode));
-            }
-
-            public Node writeArrayValue(final Value array, final Value index, final Value value, final JavaAccessMode mode) {
-                return asDependency(new ArrayElementWrite(line, bci, requireDependency(), array, index, value, mode));
-            }
-
-            public Node fence(final MemoryAtomicityMode fenceType) {
-                throw Assert.unsupported();
-            }
-
-            public Node monitorEnter(final Value obj) {
-                return asDependency(new MonitorEnter(line, bci, requireDependency(), Assert.checkNotNullParam("obj", obj)));
-            }
-
-            public Node monitorExit(final Value obj) {
-                return asDependency(new MonitorExit(line, bci, requireDependency(), Assert.checkNotNullParam("obj", obj)));
-            }
-
-            <N extends Node & Triable> N optionallyTry(N op) {
-                Try.CatchMapper catchMapper = this.catchMapper;
-                int cnt = catchMapper.getCatchCount();
-                if (cnt > 0) {
-                    BlockLabel resume = new BlockLabel();
-                    BasicBlock block = try_(op, resume);
-                    for (int i = 0; i < cnt; i ++) {
-                        // may recursively process catch handler block
-                        catchMapper.setCatchValue(i, block, catch_(catchMapper.getCatchType(i)));
-                    }
-                    begin(resume);
-                    return op;
-                } else {
-                    return asDependency(op);
-                }
-            }
-
-            public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
-                return optionallyTry(new StaticInvocation(line, bci, requireDependency(), target, arguments));
-            }
-
-            public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-                return optionallyTry(new InstanceInvocation(line, bci, requireDependency(), kind, instance, target, arguments));
-            }
-
-            public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
-                return optionallyTry(new StaticInvocationValue(line, bci, requireDependency(), target, type, arguments));
-            }
-
-            public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
-                return optionallyTry(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, type, arguments));
-            }
-
-            public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
-                return optionallyTry(new ConstructorInvocation(line, bci, requireDependency(), instance, target, arguments));
-            }
-
-            public Value callFunction(final Value callTarget, final List<Value> arguments) {
-                return optionallyTry(new FunctionCall(line, bci, requireDependency(), callTarget, arguments));
-            }
-
-            public Node nop() {
-                return requireDependency();
-            }
-
-            private <N extends Node> N asDependency(N node) {
-                this.dependency = node;
-                return node;
-            }
-
-            public Node begin(final BlockLabel blockLabel) {
-                Assert.checkNotNullParam("blockLabel", blockLabel);
-                if (blockLabel.hasTarget()) {
-                    throw new IllegalStateException("Block already terminated");
-                }
-                if (currentBlock != null) {
-                    throw new IllegalStateException("Block already in progress");
-                }
-                currentBlock = blockLabel;
-                return dependency = blockEntry = new BlockEntry(blockLabel);
-            }
-
-            public BasicBlock goto_(final BlockLabel resumeLabel) {
-                return terminate(requireCurrentBlock(), new Goto(line, bci, dependency, resumeLabel));
-            }
-
-            public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
-                return terminate(requireCurrentBlock(), new If(line, bci, dependency, condition, trueTarget, falseTarget));
-            }
-
-            public BasicBlock return_() {
-                return terminate(requireCurrentBlock(), new Return(line, bci, dependency));
-            }
-
-            public BasicBlock return_(final Value value) {
-                return terminate(requireCurrentBlock(), new ValueReturn(line, bci, dependency, value));
-            }
-
-            public BasicBlock throw_(final Value value) {
-                return terminate(requireCurrentBlock(), new Throw(line, bci, dependency, value));
-            }
-
-            public BasicBlock jsr(final BlockLabel subLabel, final BlockLiteral returnAddress) {
-                return terminate(requireCurrentBlock(), new Jsr(line, bci, dependency, subLabel, returnAddress));
-            }
-
-            public BasicBlock ret(final Value address) {
-                return terminate(requireCurrentBlock(), new Ret(line, bci, dependency, address));
-            }
-
-            public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel) {
-                return terminate(requireCurrentBlock(), new Try(operation, catchMapper, resumeLabel));
-            }
-
-            public BasicBlock classCastException(final Value fromType, final Value toType) {
-                return terminate(requireCurrentBlock(), new ClassCastErrorNode(line, bci, dependency, fromType, toType));
-            }
-
-            public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final MethodDescriptor desc, final String name) {
-                return terminate(requireCurrentBlock(), new NoSuchMethodErrorNode(line, bci, dependency, owner, desc, name));
-            }
-
-            public BasicBlock classNotFoundError(final String name) {
-                return terminate(requireCurrentBlock(), new ClassNotFoundErrorNode(line, bci, dependency, name));
-            }
-
-            public BlockEntry getBlockEntry() {
-                requireCurrentBlock();
-                return blockEntry;
-            }
-
-            public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {
-                return terminate(requireCurrentBlock(), new Switch(line, bci, dependency, defaultTarget, checkValues, targets, value));
-            }
-
-            private BasicBlock terminate(final BlockLabel block, final Terminator op) {
-                BasicBlock realBlock = new BasicBlock(blockEntry, op);
-                block.setTarget(realBlock);
-                blockEntry = null;
-                currentBlock = null;
-                dependency = null;
-                return realBlock;
-            }
-
-            private BlockLabel requireCurrentBlock() {
-                BlockLabel block = this.currentBlock;
-                if (block == null) {
-                    assert dependency == null;
-                    throw noBlock();
-                }
-                assert dependency != null;
-                return block;
-            }
-
-            private Node requireDependency() {
-                Node dependency = this.dependency;
-                if (dependency == null) {
-                    assert currentBlock == null;
-                    throw noBlock();
-                }
-                assert currentBlock != null;
-                return dependency;
-            }
-
-            private IllegalStateException noBlock() {
-                return new IllegalStateException("No block in progress");
-            }
-        };
+        return new SimpleBasicBlockBuilder(element, typeSystem);
     }
 }

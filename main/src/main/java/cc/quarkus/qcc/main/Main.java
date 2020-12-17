@@ -207,8 +207,8 @@ public class Main {
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
+                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, LocalThrowHandlingBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
-                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.CORRECT, LocalThrowHandlingBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addCopyFactory(PhiOptimizerVisitor::new);

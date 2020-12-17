@@ -21,9 +21,15 @@ import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
  */
 public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
     private final BasicBlockBuilder delegate;
+    private final BasicBlockBuilder last;
 
     public DelegatingBasicBlockBuilder(final BasicBlockBuilder delegate) {
         this.delegate = delegate;
+        if (delegate instanceof DelegatingBasicBlockBuilder) {
+            last = ((DelegatingBasicBlockBuilder) delegate).getDelegate();
+        } else {
+            last = delegate;
+        }
     }
 
     public ExecutableElement getCurrentElement() {
@@ -42,12 +48,16 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().setBytecodeIndex(newBytecodeIndex);
     }
 
-    public Try.CatchMapper getCatchMapper() {
-        return getDelegate().getCatchMapper();
+    public final ExceptionHandler getExceptionHandler() {
+        return last.getExceptionHandler();
     }
 
-    public Try.CatchMapper setCatchMapper(final Try.CatchMapper catchMapper) {
-        return getDelegate().setCatchMapper(catchMapper);
+    public void setExceptionHandlerPolicy(final ExceptionHandlerPolicy policy) {
+        getDelegate().setExceptionHandlerPolicy(policy);
+    }
+
+    public void finish() {
+        getDelegate().finish();
     }
 
     public BasicBlockBuilder getDelegate() {
@@ -342,7 +352,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().typeIdOf(value);
     }
 
-    public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel) {
-        return getDelegate().try_(operation, resumeLabel);
+    public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel, final BlockLabel exceptionHandler) {
+        return getDelegate().try_(operation, resumeLabel, exceptionHandler);
     }
 }
