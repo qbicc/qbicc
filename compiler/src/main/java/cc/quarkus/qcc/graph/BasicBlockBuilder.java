@@ -184,7 +184,7 @@ public interface BasicBlockBuilder {
 
     Value newArray(ArrayTypeIdLiteral arrayTypeId, Value size);
 
-    Value multiNewArray(ArrayTypeIdLiteral arrayTypeId, Value... dimensions);
+    Value multiNewArray(ArrayTypeIdLiteral arrayTypeId, List<Value> dimensions);
 
     Value clone(Value object);
 

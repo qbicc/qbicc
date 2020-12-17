@@ -108,7 +108,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().newArray(arrayTypeId, size);
     }
 
-    public Value multiNewArray(final ArrayTypeIdLiteral arrayTypeId, final Value... dimensions) {
+    public Value multiNewArray(final ArrayTypeIdLiteral arrayTypeId, final List<Value> dimensions) {
         return getDelegate().multiNewArray(arrayTypeId, dimensions);
     }
 

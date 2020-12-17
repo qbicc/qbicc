@@ -1299,10 +1299,10 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     if (dims.length == 0) {
                         throw new InvalidByteCodeException();
                     }
-                    for (int i = 0; i < dims.length; i ++) {
+                    for (int i = dims.length - 1; i >= 0; i --) {
                         dims[i] = pop1();
                     }
-                    push(gf.multiNewArray(getConstantValue(cpIdx, ArrayTypeIdLiteral.class), dims));
+                    push(gf.multiNewArray(getConstantValue(cpIdx, ArrayTypeIdLiteral.class), List.of(dims)));
                     break;
                 case OP_IFNULL:
                     processIf(buffer, gf.cmpEq(pop(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());

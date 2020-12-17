@@ -466,6 +466,10 @@ public interface Node {
                 return param.getBlockBuilder().remainder(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
+            public Value visit(final Copier param, final MultiNewArray node) {
+                return param.getBlockBuilder().multiNewArray((ArrayTypeIdLiteral) node.getType().getUpperBound(), param.copyValues(node.getDimensions()));
+            }
+
             public Value visit(final Copier param, final Multiply node) {
                 return param.getBlockBuilder().multiply(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }

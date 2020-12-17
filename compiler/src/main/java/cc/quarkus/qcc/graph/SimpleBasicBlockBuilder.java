@@ -239,8 +239,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new NewArray(line, bci, requireDependency(), arrayTypeId, typeSystem.getReferenceType(arrayTypeId), size));
     }
 
-    public Value multiNewArray(final ArrayTypeIdLiteral arrayTypeId, final Value... dimensions) {
-        throw Assert.unsupported();
+    public Value multiNewArray(final ArrayTypeIdLiteral arrayTypeId, final List<Value> dimensions) {
+        return asDependency(new MultiNewArray(line, bci, requireDependency(), arrayTypeId, typeSystem.getReferenceType(arrayTypeId), dimensions));
     }
 
     public Value clone(final Value object) {

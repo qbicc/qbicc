@@ -154,6 +154,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, MultiNewArray node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, Multiply node) {
         return visitUnknown(param, node);
     }
@@ -390,6 +394,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, Mod node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, MultiNewArray node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
