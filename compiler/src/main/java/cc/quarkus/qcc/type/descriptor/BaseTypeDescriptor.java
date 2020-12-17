@@ -41,6 +41,8 @@ public final class BaseTypeDescriptor extends TypeDescriptor {
         return class2;
     }
 
+    public boolean isVoid() { return shortName == 'V'; }
+
     public boolean equals(final TypeDescriptor other) {
         return other instanceof BaseTypeDescriptor && equals((BaseTypeDescriptor) other);
     }

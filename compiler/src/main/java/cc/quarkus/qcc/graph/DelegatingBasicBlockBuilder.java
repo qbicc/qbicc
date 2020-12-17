@@ -168,12 +168,20 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().invokeInstance(kind, instance, target, arguments);
     }
 
+    public Node invokeDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final List<Value> arguments) {
+        return getDelegate().invokeDynamic(bootstrapMethod, staticArguments, arguments);
+    }
+
     public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
         return getDelegate().invokeValueStatic(target, type, arguments);
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
         return getDelegate().invokeValueInstance(kind, instance, target, type, arguments);
+    }
+
+    public Value invokeValueDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final ValueType type, final List<Value> arguments) {
+        return getDelegate().invokeValueDynamic(bootstrapMethod, staticArguments, type, arguments);
     }
 
     public Node begin(final BlockLabel blockLabel) {

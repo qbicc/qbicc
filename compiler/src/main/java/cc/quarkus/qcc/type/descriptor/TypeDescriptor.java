@@ -16,6 +16,10 @@ public abstract class TypeDescriptor extends Descriptor {
         return false;
     }
 
+    public boolean isVoid() {
+        return false;
+    }
+
     public final boolean equals(final Descriptor other) {
         return other instanceof TypeDescriptor && equals((TypeDescriptor) other);
     }

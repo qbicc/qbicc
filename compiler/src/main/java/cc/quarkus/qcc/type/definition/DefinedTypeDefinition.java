@@ -169,6 +169,10 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
     TypeAnnotationList getInvisibleTypeAnnotations();
 
+    List<BootstrapMethod> getBootstrapMethods();
+
+    BootstrapMethod getBootstrapMethod(int index);
+
     interface Builder {
         void setContext(ClassContext context);
 

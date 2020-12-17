@@ -336,12 +336,20 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return optionallyTry(new InstanceInvocation(line, bci, requireDependency(), kind, instance, target, arguments));
     }
 
+    public Node invokeDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final List<Value> arguments) {
+        return optionallyTry(new DynamicInvocation(line, bci, requireDependency(), bootstrapMethod, staticArguments, arguments));
+    }
+
     public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
         return optionallyTry(new StaticInvocationValue(line, bci, requireDependency(), target, type, arguments));
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
         return optionallyTry(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, type, arguments));
+    }
+
+    public Value invokeValueDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final ValueType type, final List<Value> arguments) {
+        return optionallyTry(new DynamicInvocationValue(line, bci, requireDependency(), bootstrapMethod, staticArguments, type, arguments));
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {

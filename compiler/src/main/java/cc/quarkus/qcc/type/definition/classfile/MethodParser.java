@@ -39,6 +39,7 @@ import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.WordType;
+import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
@@ -50,6 +51,7 @@ import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.generic.MethodSignature;
 
 final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     final ClassMethodInfo info;
@@ -1128,7 +1130,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 case OP_INVOKEVIRTUAL:
                 case OP_INVOKESPECIAL:
                 case OP_INVOKESTATIC:
-                case OP_INVOKEINTERFACE:
+                case OP_INVOKEINTERFACE: {
                     int methodRef = buffer.getShort() & 0xffff;
                     TypeIdLiteral owner;
                     int nameAndType;
@@ -1238,10 +1240,67 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         }
                     }
                     break;
-                case OP_INVOKEDYNAMIC:
-                    ctxt.getCompilationContext().error(gf.getLocation(), "`invokedynamic` not yet supported");
-                    gf.throw_(lf.literalOfNull());
-                    return;
+                }
+                case OP_INVOKEDYNAMIC: {
+                    int indyInfoRef = buffer.getShort() & 0xffff;
+                    buffer.get(); // discard 0
+                    buffer.get(); // discard 0
+                    int bootstrapMethodRef = getClassFile().getInvokeDynamicBootstrapMethodIndex(indyInfoRef);
+                    // TODO: actually process bootstrapMethodRef to get the method and static args
+                    MethodElement bootstrapMethod = null;
+                    Value[] staticArgs = new Value[0];
+                    ctxt.getCompilationContext().warning(gf.getLocation(), "invokedynamic: not processing bootstrap method ref");
+
+                    int nameAndTypeRef = getClassFile().getInvokeDynamicNameAndTypeIndex(indyInfoRef);
+                    MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(nameAndTypeRef));
+                    int cnt = desc.getParameterTypes().size();
+                    Value[] args = new Value[cnt];
+                    for (int i = cnt - 1; i >= 0; i--) {
+                        if (desc.getParameterTypes().get(i).isClass2()) {
+                            args[i] = pop2();
+                        } else {
+                            args[i] = pop1();
+                        }
+                        // narrow arguments if needed
+                        ValueType argType = args[i].getType();
+                        if (argType instanceof IntegerType) {
+                            IntegerType intType = (IntegerType) argType;
+                            if (intType.getMinBits() < 32) {
+                                args[i] = gf.truncate(args[i], intType);
+                            }
+                        }
+                    }
+
+                    if (desc.getReturnType().isVoid()) {
+                        gf.invokeDynamic(bootstrapMethod, List.of(staticArgs), List.of(args));
+                    } else {
+                        ctxt.getCompilationContext().warning(gf.getLocation(), "invokedynamic: sloppy resolution of return type of invoked method");
+                        MethodSignature sig = MethodSignature.synthesize(ctxt, desc);
+                        FunctionType targetMethodType = ctxt.resolveMethodFunctionType(desc, List.of(), sig, TypeAnnotationList.empty(), List.of(), TypeAnnotationList.empty(), List.of());
+                        ValueType returnType = targetMethodType.getReturnType();
+                        Value result = gf.invokeValueDynamic(bootstrapMethod, List.of(staticArgs), returnType, List.of(args));
+
+                        if (returnType instanceof IntegerType) {
+                            IntegerType intType = (IntegerType) returnType;
+                            if (intType.getMinBits() < 32) {
+                                // extend it back out again
+                                if (intType instanceof UnsignedIntegerType) {
+                                    // first extend, then cast
+                                    result = gf.extend(result, ts.getUnsignedInteger32Type());
+                                    result = gf.bitCast(result, ts.getSignedInteger32Type());
+                                } else {
+                                    result = gf.extend(result, ts.getSignedInteger32Type());
+                                }
+                            }
+                        }
+                        if (desc.getReturnType().isClass2()) {
+                            fatten(result);
+                        }
+                        push(result);
+                    }
+                    break;
+                }
+
                 case OP_NEW:
                     push(gf.new_(getConstantValue(buffer.getShort() & 0xffff, ClassTypeIdLiteral.class)));
                     break;
