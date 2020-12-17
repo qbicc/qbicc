@@ -4,6 +4,7 @@ import java.util.List;
 
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
+import cc.quarkus.qcc.type.definition.classfile.BootstrapMethod;
 import cc.quarkus.qcc.type.generic.ClassSignature;
 
 /**
@@ -93,6 +94,10 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
     public TypeAnnotationList getInvisibleTypeAnnotations() {
         return getDelegate().getInvisibleTypeAnnotations();
     }
+
+    public List<BootstrapMethod> getBootstrapMethods() { return getDelegate().getBootstrapMethods(); }
+
+    public BootstrapMethod getBootstrapMethod(final int index) { return getDelegate().getBootstrapMethod(index); }
 
     public int hashCode() {
         return getDelegate().hashCode();
