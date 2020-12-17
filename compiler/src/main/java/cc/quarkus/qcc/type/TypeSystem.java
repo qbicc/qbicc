@@ -3,10 +3,12 @@ package cc.quarkus.qcc.type;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -24,7 +26,6 @@ public final class TypeSystem {
     private final NullType nullType = new NullType(this);
     private final BlockType blockType = new BlockType(this);
     private final StringType stringType = new StringType(this);
-    private final TypeType typeType = new TypeType(this);
     private final UnresolvedType unresolvedType = new UnresolvedType(this, false);
     private final MethodHandleType methodHandleType = new MethodHandleType(this);
     private final MethodDescriptorType methodDescriptorType = new MethodDescriptorType(this);
@@ -42,6 +43,8 @@ public final class TypeSystem {
     private final UnsignedIntegerType unsignedInteger64Type;
     private final Map<TypeIdLiteral, ReferenceType> referenceTypeCache = new ConcurrentHashMap<>();
     private final TypeCache<FunctionType> functionTypeCache = new TypeCache<>();
+
+    private volatile ClassObjectType objectClass;
 
     TypeSystem(final Builder builder) {
         int byteBits = builder.getByteBits();
@@ -112,10 +115,6 @@ public final class TypeSystem {
 
     public StringType getStringType() {
         return stringType;
-    }
-
-    public TypeType getTypeType() {
-        return typeType;
     }
 
     public UnresolvedType getUnresolvedType() {
@@ -332,8 +331,57 @@ public final class TypeSystem {
         return unsignedInteger64Type;
     }
 
+    /**
+     * Generate a unique class object type for the given defined type.  Should only be called during class loading.
+     *
+     * @param definedType the defined type (must not be {@code null})
+     * @param superClass the superclass type (must not be {@code null} except for the {@code Object} base class)
+     * @param interfaces the interfaces list (must not be {@code null}, entries must not be {@code null})
+     * @return the class object type
+     */
+    public ClassObjectType generateClassObjectType(DefinedTypeDefinition definedType, ClassObjectType superClass, List<InterfaceObjectType> interfaces) {
+        if (definedType.isInterface()) {
+            throw new IllegalArgumentException("Not a class");
+        }
+        if (definedType.internalNameEquals("java/lang/Object")) {
+            // special case: store this one
+            return this.objectClass = new ClassObjectType(this, false, definedType, null, List.of());
+        }
+        return new ClassObjectType(this, false, definedType, superClass, interfaces);
+    }
+
+    /**
+     * Generate a unique interface object type for the given defined type.  Should only be called during class loading.
+     *
+     * @param definedType the defined type (must not be {@code null})
+     * @param interfaces the interfaces list (must not be {@code null}, entries must not be {@code null})
+     * @return the interface object type
+     */
+    public InterfaceObjectType generateInterfaceObjectType(DefinedTypeDefinition definedType, List<InterfaceObjectType> interfaces) {
+        if (! definedType.isInterface()) {
+            throw new IllegalArgumentException("Not an interface");
+        }
+        return new InterfaceObjectType(this, false, definedType, interfaces);
+    }
+
     PointerType createPointer(Type type) {
         return new PointerType(this, type, false, false);
+    }
+
+    ReferenceType createReference(ObjectType objectType) {
+        return new ReferenceType(this, objectType, false, referenceSize, referenceAlign, false);
+    }
+
+    ReferenceArrayObjectType createReferenceArrayObject(final ReferenceType elementType) {
+        return new ReferenceArrayObjectType(this, false, objectClass, elementType);
+    }
+
+    PrimitiveArrayObjectType createPrimitiveArrayObject(final WordType elementType) {
+        return new PrimitiveArrayObjectType(this, false, objectClass, elementType);
+    }
+
+    TypeType createTypeType(final ValueType upperBound) {
+        return new TypeType(this, upperBound);
     }
 
     public static Builder builder() {
@@ -674,11 +722,6 @@ public final class TypeSystem {
 
         public T getValue() {
             return value;
-        }
-
-        @SuppressWarnings("unchecked")
-        public T putValue(T newValue) {
-            return (T) valueHandle.getAndSet(this, value);
         }
 
         public boolean compareAndSet(T expect, T update) {

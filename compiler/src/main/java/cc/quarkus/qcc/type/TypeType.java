@@ -9,8 +9,11 @@ import io.smallrye.common.constraint.Assert;
  * To represent the identifier of a class or interface type, see {@link TypeIdType}.
  */
 public final class TypeType extends ValueType {
-    TypeType(final TypeSystem typeSystem) {
+    private final ValueType upperBound;
+
+    TypeType(final TypeSystem typeSystem, final ValueType upperBound) {
         super(typeSystem, TypeType.class.hashCode(), true);
+        this.upperBound = upperBound;
     }
 
     public boolean isComplete() {
@@ -19,6 +22,10 @@ public final class TypeType extends ValueType {
 
     public long getSize() {
         return 1;
+    }
+
+    public ValueType getUpperBound() {
+        return upperBound;
     }
 
     ValueType constructConst() {
@@ -30,10 +37,10 @@ public final class TypeType extends ValueType {
     }
 
     public StringBuilder toString(final StringBuilder b) {
-        return b.append("type");
+        return upperBound.toString(b.append("typeof").append('.'));
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        return b.append("type");
+        return upperBound.toString(b.append("typeof").append('.'));
     }
 }

@@ -19,6 +19,7 @@ import cc.quarkus.qcc.graph.literal.ObjectLiteral;
 import cc.quarkus.qcc.graph.literal.ReferenceArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
 import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 
@@ -253,6 +254,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, TypeIdOf node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, TypeLiteral node) {
         return visitUnknown(param, node);
     }
 
@@ -496,6 +501,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, TypeIdOf node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, TypeLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

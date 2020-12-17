@@ -10,7 +10,6 @@ import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -60,6 +59,8 @@ public interface LiteralFactory {
 
     DefinedConstantLiteral literalOfDefinedConstant(Value constantValue);
 
+    TypeLiteral literalOfType(ValueType type);
+
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
             private final BooleanLiteral TRUE = new BooleanLiteral(typeSystem.getBooleanType().asConst(), true);
@@ -73,6 +74,7 @@ public interface LiteralFactory {
             // todo: come up with a more efficient caching scheme
             private final ConcurrentMap<IntegerLiteral, IntegerLiteral> integerLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<FloatLiteral, FloatLiteral> floatLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<ValueType, TypeLiteral> typeLiterals = new ConcurrentHashMap<>();
 
             public BlockLiteral literalOf(final BlockLabel blockLabel) {
                 return new BlockLiteral(typeSystem.getBlockType(), blockLabel);
@@ -183,6 +185,11 @@ public interface LiteralFactory {
 
             public CurrentThreadLiteral literalOfCurrentThread(final ReferenceType threadType) {
                 return new CurrentThreadLiteral(Assert.checkNotNullParam("threadType", threadType));
+            }
+
+            public TypeLiteral literalOfType(final ValueType type) {
+                Assert.checkNotNullParam("type", type);
+                return typeLiterals.computeIfAbsent(type, TypeLiteral::new);
             }
         };
     }

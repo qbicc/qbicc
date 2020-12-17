@@ -1,6 +1,11 @@
 package cc.quarkus.qcc.type;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import io.smallrye.common.constraint.Assert;
 
 /**
  * A reference type.  A reference is essentially an abstract representation of an encoded pointer to an object.  The
@@ -8,11 +13,15 @@ import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
  * type.  Alternatively, a reference value may be equal to {@code null}.
  */
 public final class ReferenceType extends ValueType {
+    private static final VarHandle refArrayTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "refArrayType", VarHandle.class, ReferenceType.class, ReferenceArrayObjectType.class);
+
     private final TypeIdLiteral upperBound;
     private final int size;
     private final int align;
     private final boolean nullable;
     private final ReferenceType asNullable;
+    @SuppressWarnings("unused")
+    private volatile ReferenceArrayObjectType refArrayType;
 
     ReferenceType(final TypeSystem typeSystem, final TypeIdLiteral upperBound, final boolean nullable, final int size, final int align, final boolean const_) {
         super(typeSystem, size * 19 + ReferenceType.class.hashCode() * Boolean.hashCode(nullable), const_);
@@ -21,6 +30,16 @@ public final class ReferenceType extends ValueType {
         this.align = align;
         this.nullable = nullable;
         this.asNullable = nullable ? this : new ReferenceType(typeSystem, upperBound, true, size, align, const_);
+    }
+
+    ReferenceType(final TypeSystem typeSystem, final ObjectType objectType, final boolean nullable, final int size, final int align, final boolean const_) {
+        super(typeSystem, size * 19 + ReferenceType.class.hashCode() * Boolean.hashCode(nullable), const_);
+        throw Assert.unsupported();
+//        this.upperBound = upperBound;
+//        this.size = size;
+//        this.align = align;
+//        this.nullable = nullable;
+//        this.asNullable = nullable ? this : new ReferenceType(typeSystem, upperBound, true, size, align, const_);
     }
 
     public ReferenceType getConstraintType() {
@@ -54,6 +73,26 @@ public final class ReferenceType extends ValueType {
 
     public ReferenceType asConst() {
         return (ReferenceType) super.asConst();
+    }
+
+    /**
+     * Get the referenceArrayObject type to this type.
+     *
+     * @return the referenceArrayObject type
+     */
+    public final ReferenceArrayObjectType getReferenceArrayObject() {
+        ReferenceArrayObjectType refArrayType = this.refArrayType;
+        if (refArrayType != null) {
+            return refArrayType;
+        }
+        ReferenceArrayObjectType newReferenceArrayObjectType = typeSystem.createReferenceArrayObject(this);
+        while (! refArrayTypeHandle.compareAndSet(this, null, newReferenceArrayObjectType)) {
+            refArrayType = this.refArrayType;
+            if (refArrayType != null) {
+                return refArrayType;
+            }
+        }
+        return newReferenceArrayObjectType;
     }
 
     public int getAlign() {
