@@ -7,7 +7,7 @@ import java.util.List;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 
 final class FunctionType extends AbstractValue {
-    private final LLValue returnType;
+    final LLValue returnType;
     private final List<LLValue> argTypes;
 
     FunctionType(final LLValue returnType, final List<LLValue> argTypes) {
