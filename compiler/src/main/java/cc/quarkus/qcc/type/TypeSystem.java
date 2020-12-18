@@ -25,6 +25,7 @@ public final class TypeSystem {
     private final BlockType blockType = new BlockType(this);
     private final StringType stringType = new StringType(this);
     private final TypeType typeType = new TypeType(this);
+    private final UnresolvedType unresolvedType = new UnresolvedType(this, false);
     private final MethodHandleType methodHandleType = new MethodHandleType(this);
     private final MethodDescriptorType methodDescriptorType = new MethodDescriptorType(this);
     private final BooleanType booleanType;
@@ -115,6 +116,10 @@ public final class TypeSystem {
 
     public TypeType getTypeType() {
         return typeType;
+    }
+
+    public UnresolvedType getUnresolvedType() {
+        return unresolvedType;
     }
 
     public MethodHandleType getMethodHandleType() {
