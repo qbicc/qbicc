@@ -3,25 +3,20 @@ package cc.quarkus.qcc.graph;
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.DefinedConstantLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.MethodDescriptorLiteral;
 import cc.quarkus.qcc.graph.literal.MethodHandleLiteral;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.ObjectLiteral;
-import cc.quarkus.qcc.graph.literal.ReferenceArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
-import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 
 /**
  * A visitor over a graph of values.  Values form a directed acyclic graph (DAG).
@@ -63,7 +58,7 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, ClassTypeIdLiteral node) {
+    default R visit(T param, Clone node) {
         return visitUnknown(param, node);
     }
 
@@ -141,10 +136,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, InterfaceTypeIdLiteral node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, MethodDescriptorLiteral node) {
         return visitUnknown(param, node);
     }
@@ -198,10 +189,6 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, PhiValue node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, ReferenceArrayTypeIdLiteral node) {
         return visitUnknown(param, node);
     }
 
@@ -265,10 +252,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, ValueArrayTypeIdLiteral node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, Xor node) {
         return visitUnknown(param, node);
     }
@@ -312,7 +295,7 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
-        default R visit(T param, ClassTypeIdLiteral node) {
+        default R visit(T param, Clone node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -388,10 +371,6 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
-        default R visit(T param, InterfaceTypeIdLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
         default R visit(T param, MethodDescriptorLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
@@ -445,10 +424,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, PhiValue node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, ReferenceArrayTypeIdLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -509,10 +484,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, UndefinedLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, ValueArrayTypeIdLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -642,11 +613,7 @@ public interface ValueVisitor<T, R> {
         }
 
         default Value visit(final T param, final Catch node) {
-            return getBuilder(param).catch_(node.getType().getUpperBound());
-        }
-
-        default Value visit(final T param, final ClassTypeIdLiteral node) {
-            return node;
+            return getBuilder(param).catch_(node.getThrowableType());
         }
 
         default Value visit(final T param, final CmpEq node) {
@@ -709,10 +676,6 @@ public interface ValueVisitor<T, R> {
             return node;
         }
 
-        default Value visit(final T param, final InterfaceTypeIdLiteral node) {
-            return node;
-        }
-
         default Value visit(final T param, final Mod node) {
             return getBuilder(param).remainder(copy(param, node.getLeftInput()), copy(param, node.getRightInput()));
         }
@@ -730,11 +693,11 @@ public interface ValueVisitor<T, R> {
         }
 
         default Value visit(final T param, final New node) {
-            return getBuilder(param).new_(node.getInstanceTypeId());
+            return getBuilder(param).new_(node.getClassObjectType());
         }
 
         default Value visit(final T param, final NewArray node) {
-            return getBuilder(param).newArray((ArrayTypeIdLiteral)node.getType().getUpperBound(), copy(param, node.getSize()));
+            return getBuilder(param).newArray(node.getArrayType(), copy(param, node.getSize()));
         }
 
         default Value visit(final T param, final NullLiteral node) {
@@ -755,10 +718,6 @@ public interface ValueVisitor<T, R> {
 
         default Value visit(final T param, final PhiValue node) {
             return getBuilder(param).phi(node.getType(), copy(param, node.getPinnedBlock()));
-        }
-
-        default Value visit(final T param, final ReferenceArrayTypeIdLiteral node) {
-            return node;
         }
 
         default Value visit(final T param, final Rol node) {
@@ -811,10 +770,6 @@ public interface ValueVisitor<T, R> {
 
         default Value visit(final T param, final TypeIdOf node) {
             return getBuilder(param).typeIdOf(copy(param, node.getInstance()));
-        }
-
-        default Value visit(final T param, final ValueArrayTypeIdLiteral node) {
-            return node;
         }
 
         default Value visit(final T param, final Xor node) {

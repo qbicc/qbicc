@@ -3,7 +3,6 @@ package cc.quarkus.qcc.graph.literal;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.type.MethodDescriptorType;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
  * A literal representing a method handle.

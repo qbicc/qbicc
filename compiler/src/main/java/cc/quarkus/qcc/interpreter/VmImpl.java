@@ -46,14 +46,12 @@ import cc.quarkus.qcc.graph.Throw;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
-import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.InterfaceObjectType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
@@ -85,8 +83,8 @@ final class VmImpl implements Vm {
     private final Dictionary bootstrapDictionary;
     private final ConcurrentMap<VmObject, Dictionary> classLoaderLoaders = new ConcurrentHashMap<>();
     private final ConcurrentMap<Dictionary, VmObject> loaderClassLoaders = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ClassTypeIdLiteral, VmClassImpl> loadedClasses = new ConcurrentHashMap<>();
-    private final ConcurrentMap<InterfaceTypeIdLiteral, VmClassImpl> loadedInterfaces = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ClassObjectType, VmClassImpl> loadedClasses = new ConcurrentHashMap<>();
+    private final ConcurrentMap<InterfaceObjectType, VmClassImpl> loadedInterfaces = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodBody, Map<BasicBlock, List<Node>>> schedules = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, VmObject> stringInstanceCache = new ConcurrentHashMap<>();
     private final Map<String, BootModule> bootstrapModules;
@@ -146,7 +144,6 @@ final class VmImpl implements Vm {
         try {
             currentVm.set(this);
             objectClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Object");
-            ClassTypeIdLiteral objClassId = context.getLiteralFactory().literalOfClass("java/lang/Object", null);
             classClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/Class");
 
             classLoaderClass = defineBootClass(bootstrapDictionary, javaBase.jarFile, "java/lang/ClassLoader");
@@ -232,16 +229,14 @@ final class VmImpl implements Vm {
         ValidatedTypeDefinition stringClassVerified = stringClass.validate();
         TypeSystem typeSystem = context.getTypeSystem();
         UnsignedIntegerType u16 = typeSystem.getUnsignedInteger16Type();
-        ValueArrayTypeIdLiteral u16Array = context.getLiteralFactory().literalOfArrayType(u16);
         MethodElement loadClass = null; //resolvedCL.resolveMethodElementVirtual("loadClass", getMethodDescriptor(typeSystem.getReferenceType(resolvedCL.getTypeId()), typeSystem.getReferenceType(stringClassVerified.getTypeId())));
         int length = name.length();
-        VmArray array = allocateArray(u16Array, length);
+        VmArray array = allocateArray(u16.getPrimitiveArrayObjectType(), length);
         for (int i = 0; i < length; i++) {
             array.putArray(i, name.charAt(i));
         }
-        ReferenceType u16ArrayType = typeSystem.getReferenceType(u16Array);
         ConstructorElement initString = null; //stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(u16ArrayType));
-        VmObject nameInstance = allocateObject((ClassTypeIdLiteral) stringClassVerified.getTypeId());
+        VmObject nameInstance = allocateObject(stringClassVerified.getClassType());
         invokeExact(initString, nameInstance, array);
         return ((VmClass) invokeVirtual(loadClass, nameInstance)).getTypeDefinition();
     }
@@ -279,7 +274,7 @@ final class VmImpl implements Vm {
     }
 
     private VmObject newException(DefinedTypeDefinition type, String arg) {
-        VmObject e = allocateObject((ClassTypeIdLiteral) type.validate().getTypeId());
+        VmObject e = allocateObject(type.validate().getClassType());
         ConstructorElement ctor = null; //type.validate().resolve().resolveConstructorElement(getConstructorDescriptor(context.getTypeSystem().getReferenceType(stringClass.validate().getTypeId())));
         // todo: backtrace should be set to thread.tos
         invokeExact(ctor, e, newString(arg));
@@ -291,15 +286,13 @@ final class VmImpl implements Vm {
         int length = str.length();
         TypeSystem typeSystem = context.getTypeSystem();
         SignedIntegerType s8 = typeSystem.getSignedInteger8Type();
-        ValueArrayTypeIdLiteral s8Array = context.getLiteralFactory().literalOfArrayType(s8);
-        VmArray array = allocateArray(s8Array, length << 1);
+        VmArray array = allocateArray(s8.getPrimitiveArrayObjectType(), length << 1);
         for (int i = 0; i < length; i++) {
             array.putArray(i << 1, str.charAt(i) >>> 8);
             array.putArray((i << 1) + 1, str.charAt(i));
         }
-        ReferenceType byteArrayType = typeSystem.getReferenceType(s8Array);
         ConstructorElement initString = null; //stringClassVerified.resolve().resolveConstructorElement(getConstructorDescriptor(byteArrayType, s8));
-        VmObject res = allocateObject((ClassTypeIdLiteral) stringClassVerified.getTypeId());
+        VmObject res = allocateObject(stringClassVerified.getClassType());
         invokeExact(initString, res, array, Byte.valueOf((byte) 1 /* UTF16 */));
         return res;
     }
@@ -308,11 +301,11 @@ final class VmImpl implements Vm {
         return getDictionaryFor(classLoader).findLoadedType(name);
     }
 
-    public VmObject allocateObject(final ClassTypeIdLiteral literalType) {
+    public VmObject allocateObject(final ClassObjectType literalType) {
         return new VmObjectImpl(loadedClasses.get(literalType).getTypeDefinition());
     }
 
-    public VmArray allocateArray(final ArrayTypeIdLiteral type, final int length) {
+    public VmArray allocateArray(final ArrayObjectType type, final int length) {
         throw new UnsupportedOperationException();
     }
 
@@ -338,7 +331,7 @@ final class VmImpl implements Vm {
         return invokeWith(exactHandle.getOrCreateMethodBody(), instance, args);
     }
 
-    public void initialize(final TypeIdLiteral typeId) {
+    public void initialize(final ObjectType typeId) {
         throw Assert.unsupported();
     }
 

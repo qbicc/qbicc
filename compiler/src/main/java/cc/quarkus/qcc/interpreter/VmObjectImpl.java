@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.interpreter;
 
-import cc.quarkus.qcc.graph.literal.RealTypeIdLiteral;
+import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.definition.FieldContainer;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 
@@ -13,8 +13,8 @@ class VmObjectImpl implements VmObject {
         fields = FieldContainer.forInstanceFieldsOf(definition);
     }
 
-    public RealTypeIdLiteral getObjectType() {
-        return (RealTypeIdLiteral) definition.getTypeId();
+    public PhysicalObjectType getObjectType() {
+        return definition.getClassType();
     }
 
     FieldContainer getFields() {

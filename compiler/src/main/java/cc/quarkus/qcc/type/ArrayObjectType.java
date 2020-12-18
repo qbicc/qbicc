@@ -12,6 +12,10 @@ public abstract class ArrayObjectType extends PhysicalObjectType {
         this.objectClass = objectClass;
     }
 
+    public boolean hasSuperClass() {
+        return true;
+    }
+
     public ArrayObjectType asConst() {
         return (ArrayObjectType) super.asConst();
     }

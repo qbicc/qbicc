@@ -416,13 +416,13 @@ public interface ClassFile extends FieldResolver,
     }
 
     default boolean methodrefConstantNameEquals(int idx, String expected) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
-        checkConstantType(idx, CONSTANT_Methodref);
+        checkConstantType(idx, CONSTANT_Methodref, CONSTANT_InterfaceMethodref);
         return nameAndTypeConstantNameEquals(getRawConstantShort(idx, 3), expected);
     }
 
-    default String getInterfaceMethodrefConstantClassName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
-        checkConstantType(idx, CONSTANT_InterfaceMethodref);
-        return getClassConstantName(getRawConstantShort(idx, 1));
+    default int getInterfaceMethodrefConstantClassIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_InterfaceMethodref, CONSTANT_InterfaceMethodref);
+        return getRawConstantShort(idx, 1);
     }
 
     default int getInterfaceMethodrefNameAndTypeIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {

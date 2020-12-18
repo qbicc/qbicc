@@ -4,6 +4,8 @@ import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+
 /**
  * A value type which refers to something that can be referred to by {@linkplain ReferenceType reference}.
  */
@@ -15,6 +17,10 @@ public abstract class ObjectType extends ValueType {
 
     ObjectType(final TypeSystem typeSystem, final int hashCode, final boolean const_) {
         super(typeSystem, hashCode, const_);
+    }
+
+    public DefinedTypeDefinition getDefinition() {
+        throw new IllegalArgumentException("Type " + this + " is not a defined type");
     }
 
     /**
@@ -35,6 +41,12 @@ public abstract class ObjectType extends ValueType {
             }
         }
         return newReferenceType;
+    }
+
+    public abstract boolean hasSuperClass();
+
+    public ClassObjectType getSuperClassType() {
+        return null;
     }
 
     public boolean isComplete() {

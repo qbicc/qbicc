@@ -1,9 +1,17 @@
 package cc.quarkus.qcc.interpreter;
 
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import static cc.quarkus.qcc.interpreter.CodegenUtils.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import cc.quarkus.qcc.type.BooleanType;
+import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.WordType;
@@ -12,14 +20,6 @@ import cc.quarkus.qcc.type.definition.FieldContainer;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static cc.quarkus.qcc.interpreter.CodegenUtils.arrayOf;
-import static cc.quarkus.qcc.interpreter.CodegenUtils.ci;
-import static cc.quarkus.qcc.interpreter.CodegenUtils.p;
 
 public class PrototypeGenerator {
     private static Map<DefinedTypeDefinition, Prototype> prototypes = new HashMap<>();
@@ -31,13 +31,13 @@ public class PrototypeGenerator {
 
     private static Prototype generate(DefinedTypeDefinition defined) {
         ValidatedTypeDefinition verified = defined.validate();
-        TypeIdLiteral classType = verified.getTypeId();
+        ObjectType classType = verified.getType();
         String className = verified.getInternalName();
 
         // prepend qcc so they're isolated from containing VM
         className = "qcc/" + className;
 
-        TypeIdLiteral superType = classType.getSuperClass();
+        ClassObjectType superType = classType instanceof PhysicalObjectType ? ((PhysicalObjectType) classType).getSuperClassType() : null;
         String superName;
 
         if (superType == null) {

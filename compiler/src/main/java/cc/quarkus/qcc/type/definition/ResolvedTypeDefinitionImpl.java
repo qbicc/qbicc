@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-
 /**
  *
  */
@@ -15,10 +13,6 @@ final class ResolvedTypeDefinitionImpl extends DelegatingValidatedTypeDefinition
 
     public ValidatedTypeDefinition getDelegate() {
         return delegate;
-    }
-
-    public TypeIdLiteral getTypeId() {
-        return delegate.getTypeId();
     }
 
     public ResolvedTypeDefinition getSuperClass() {

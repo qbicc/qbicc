@@ -41,16 +41,6 @@ public interface LiteralFactory {
 
     MethodDescriptorLiteral literalOfMethodDescriptor(String descriptor);
 
-    ValueArrayTypeIdLiteral literalOfArrayType(ValueType elementType);
-
-    ReferenceArrayTypeIdLiteral literalOfArrayType(ReferenceType elementType);
-
-    ClassTypeIdLiteral baseClassLiteral();
-
-    ClassTypeIdLiteral literalOfClass(String className, ClassTypeIdLiteral superClass, InterfaceTypeIdLiteral... interfaces);
-
-    InterfaceTypeIdLiteral literalOfInterface(String interfaceName, InterfaceTypeIdLiteral... interfaces);
-
     SymbolLiteral literalOfSymbol(String name, ValueType symbolType);
 
     CurrentThreadLiteral literalOfCurrentThread(ReferenceType threadType);
@@ -67,9 +57,6 @@ public interface LiteralFactory {
             private final BooleanLiteral FALSE = new BooleanLiteral(typeSystem.getBooleanType().asConst(), false);
             private final NullLiteral NULL = new NullLiteral(typeSystem.getNullType());
             private final UndefinedLiteral undef = new UndefinedLiteral(typeSystem.getPoisonType());
-            private final ClassTypeIdLiteral baseClassLiteral = new ClassTypeIdLiteral("java/lang/Object", null, InterfaceTypeIdLiteral.NONE, typeSystem.getTypeIdType());
-            private final ConcurrentMap<ValueType, ValueArrayTypeIdLiteral> primitiveArrayLiterals = new ConcurrentHashMap<>();
-            private final ConcurrentMap<TypeIdLiteral, ReferenceArrayTypeIdLiteral> arrayObjectTypeIdLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<String, StringLiteral> stringLiterals = new ConcurrentHashMap<>();
             // todo: come up with a more efficient caching scheme
             private final ConcurrentMap<IntegerLiteral, IntegerLiteral> integerLiterals = new ConcurrentHashMap<>();
@@ -138,7 +125,7 @@ public interface LiteralFactory {
             public ObjectLiteral literalOf(final VmObject value) {
                 Assert.checkNotNullParam("value", value);
                 // todo: cache on object itself?
-                return new ObjectLiteral(typeSystem.getReferenceType(value.getObjectType()).asConst(), value);
+                return new ObjectLiteral(value.getObjectType().getReference(), value);
             }
 
             public MethodHandleLiteral literalOfMethodHandle(int referenceKind, int referenceIndex) {
@@ -147,33 +134,6 @@ public interface LiteralFactory {
 
             public MethodDescriptorLiteral literalOfMethodDescriptor(String descriptor) {
                 return new MethodDescriptorLiteral(typeSystem.getMethodDescriptorType(), descriptor);
-            }
-
-            public ValueArrayTypeIdLiteral literalOfArrayType(final ValueType elementType) {
-                Assert.checkNotNullParam("elementType", elementType);
-                if (elementType instanceof ReferenceType) {
-                    throw new IllegalArgumentException("Value arrays may not contain references");
-                }
-                return primitiveArrayLiterals.computeIfAbsent(elementType, t -> new ValueArrayTypeIdLiteral(baseClassLiteral, typeSystem.getTypeIdType(), t));
-            }
-
-            public ReferenceArrayTypeIdLiteral literalOfArrayType(final ReferenceType elementType) {
-                Assert.checkNotNullParam("elementType", elementType);
-                return arrayObjectTypeIdLiterals.computeIfAbsent(elementType.getUpperBound(), t -> new ReferenceArrayTypeIdLiteral(baseClassLiteral, typeSystem.getTypeIdType(), elementType));
-            }
-
-            public ClassTypeIdLiteral baseClassLiteral() {
-                return baseClassLiteral;
-            }
-
-            public ClassTypeIdLiteral literalOfClass(final String className, final ClassTypeIdLiteral superClass, final InterfaceTypeIdLiteral... interfaces) {
-                Assert.checkNotNullParam("interfaces", interfaces);
-                return new ClassTypeIdLiteral(className, superClass, interfaces, typeSystem.getTypeIdType());
-            }
-
-            public InterfaceTypeIdLiteral literalOfInterface(final String interfaceName, final InterfaceTypeIdLiteral... interfaces) {
-                Assert.checkNotNullParam("interfaces", interfaces);
-                return new InterfaceTypeIdLiteral(interfaceName, baseClassLiteral, interfaces, typeSystem.getTypeIdType());
             }
 
             public SymbolLiteral literalOfSymbol(final String name, final ValueType symbolType) {

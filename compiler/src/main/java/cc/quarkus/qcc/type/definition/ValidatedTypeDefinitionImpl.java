@@ -2,9 +2,8 @@ package cc.quarkus.qcc.type.definition;
 
 import java.util.List;
 
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.InterfaceObjectType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
@@ -15,7 +14,7 @@ import cc.quarkus.qcc.type.definition.element.NestedClassElement;
  *
  */
 final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition implements ValidatedTypeDefinition {
-    private final TypeIdLiteral typeId;
+    private final ObjectType type;
     private final DefinedTypeDefinitionImpl delegate;
     private final ValidatedTypeDefinition superType;
     private final ValidatedTypeDefinition[] interfaces;
@@ -40,22 +39,14 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
         this.enclosingClass = enclosingClass;
         this.enclosedClasses = enclosedClasses;
         int interfaceCnt = interfaces.length;
-        InterfaceTypeIdLiteral[] interfaceTypes = new InterfaceTypeIdLiteral[interfaceCnt];
+        InterfaceObjectType[] interfaceTypes = new InterfaceObjectType[interfaceCnt];
         for (int i = 0; i < interfaceCnt; i ++) {
-            TypeIdLiteral classType = interfaces[i].getTypeId();
-            if (! (classType instanceof InterfaceTypeIdLiteral)) {
-                throw new VerifyFailedException("Type " + getContext().resolveDefinedTypeLiteral(classType).getInternalName() + " is not an interface");
-            }
-            interfaceTypes[i] = (InterfaceTypeIdLiteral) classType;
+            interfaceTypes[i] = interfaces[i].getInterfaceType();
         }
         if (isInterface()) {
-            InterfaceTypeIdLiteral interfaceTypeId = getContext().getLiteralFactory().literalOfInterface(getInternalName(), interfaceTypes);
-            getContext().registerInterfaceLiteral(interfaceTypeId, this);
-            typeId = interfaceTypeId;
+            type = getContext().getTypeSystem().generateInterfaceObjectType(delegate, List.of(interfaceTypes));
         } else {
-            ClassTypeIdLiteral classTypeId = getContext().getLiteralFactory().literalOfClass(getInternalName(), superType == null ? null : (ClassTypeIdLiteral) superType.getTypeId(), interfaceTypes);
-            getContext().registerClassLiteral(classTypeId, this);
-            typeId = classTypeId;
+            type = getContext().getTypeSystem().generateClassObjectType(delegate, superType == null ? null : superType.getClassType(), List.of(interfaceTypes));
         }
         instanceFieldSet = new FieldSet(this, false);
         staticFieldSet = new FieldSet(this, true);
@@ -73,8 +64,8 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
 
     // local methods
 
-    public TypeIdLiteral getTypeId() {
-        return typeId;
+    public ObjectType getType() {
+        return type;
     }
 
     public ValidatedTypeDefinition getSuperClass() {

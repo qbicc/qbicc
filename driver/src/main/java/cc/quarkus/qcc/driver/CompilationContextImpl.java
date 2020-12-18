@@ -20,10 +20,10 @@ import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -235,11 +235,11 @@ final class CompilationContextImpl implements CompilationContext {
             return function;
         }
         // look up the thread ID literal - todo: lazy cache?
-        TypeIdLiteral threadTypeId = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getTypeId();
+        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
         ProgramModule programModule = getOrAddProgramModule(element.getEnclosingType());
         Section implicit = programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
         return exactFunctions.computeIfAbsent(element, e -> {
-            FunctionType type = getFunctionTypeForElement(typeSystem, element, threadTypeId);
+            FunctionType type = getFunctionTypeForElement(typeSystem, element, threadType);
             return implicit.addFunction(element, getExactNameForElement(element, type), type);
         });
     }
@@ -251,20 +251,20 @@ final class CompilationContextImpl implements CompilationContext {
             return function;
         }
         // look up the thread ID literal - todo: lazy cache?
-        TypeIdLiteral threadTypeId = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getTypeId();
+        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
         ProgramModule programModule = getOrAddProgramModule(element.getEnclosingType());
         Section implicit = programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
         return exactFunctions.computeIfAbsent(element, e -> {
-            FunctionType type = getFunctionTypeForElement(typeSystem, element, threadTypeId);
+            FunctionType type = getFunctionTypeForElement(typeSystem, element, threadType);
             return implicit.addFunction(element, getVirtualNameForElement(element, type), type);
         });
     }
 
     public CurrentThreadLiteral getCurrentThreadValue() {
         // look up the thread ID literal - todo: lazy cache?
-        TypeIdLiteral threadTypeId = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getTypeId();
+        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
         // construct the literal - todo: cache
-        return literalFactory.literalOfCurrentThread(typeSystem.getReferenceType(threadTypeId));
+        return literalFactory.literalOfCurrentThread(threadType.getReference());
     }
 
     private String getExactNameForElement(final ExecutableElement element, final FunctionType type) {
@@ -311,7 +311,7 @@ final class CompilationContextImpl implements CompilationContext {
         return b.toString();
     }
 
-    private FunctionType getFunctionTypeForElement(TypeSystem ts, ExecutableElement element, final TypeIdLiteral threadTypeId) {
+    private FunctionType getFunctionTypeForElement(TypeSystem ts, ExecutableElement element, final ClassObjectType threadType) {
         if (element instanceof InitializerElement) {
             // todo: initializers should not survive the copy
             return ts.getFunctionType(ts.getVoidType());
@@ -327,10 +327,10 @@ final class CompilationContextImpl implements CompilationContext {
             j = 1;
         } else {
             argTypes = new ValueType[pcnt + 2];
-            argTypes[1] = ts.getReferenceType(element.getEnclosingType().validate().getTypeId());
+            argTypes[1] = element.getEnclosingType().validate().getType();
             j = 2;
         }
-        argTypes[0] = ts.getReferenceType(threadTypeId);
+        argTypes[0] = threadType.getReference();
         for (int i = 0; i < pcnt; i ++, j ++) {
             argTypes[j] = methodType.getParameterType(i);
         }

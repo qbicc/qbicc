@@ -3,11 +3,11 @@ package cc.quarkus.qcc.driver;
 import java.util.Arrays;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -31,12 +31,11 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
     }
 
     public ValueType resolveTypeFromClassName(final String packageName, final String internalName) {
-        TypeSystem ts = classContext.getCompilationContext().getTypeSystem();
         DefinedTypeDefinition definedType = classContext.findDefinedType(packageName + '/' + internalName);
         if (definedType == null) {
             return null;
         } else {
-            return ts.getReferenceType(definedType.validate().getTypeId());
+            return definedType.validate().getType().getReference();
         }
     }
 
@@ -60,7 +59,6 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
             return classContext.resolveTypeFromClassName(classTypeDescriptor.getPackageName(), classTypeDescriptor.getClassName());
         } else {
             assert descriptor instanceof ArrayTypeDescriptor;
-            LiteralFactory lf = classContext.getCompilationContext().getLiteralFactory();
             TypeDescriptor elemType = ((ArrayTypeDescriptor) descriptor).getElementTypeDescriptor();
             TypeSignature elemSig;
             if (signature instanceof ArrayTypeSignature) {
@@ -69,7 +67,7 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
                 elemSig = TypeSignature.synthesize(classContext, elemType);
             }
             ValueType elementType = classContext.resolveTypeFromDescriptor(elemType, typeParamCtxt, elemSig, visible.inArray(), invisible.inArray());
-            return ts.getReferenceType(elementType instanceof ReferenceType ? lf.literalOfArrayType((ReferenceType) elementType) : lf.literalOfArrayType(elementType));
+            return elementType instanceof ReferenceType ? ((ReferenceType) elementType).getReferenceArrayObject().getReference() : ((WordType) elementType).getPrimitiveArrayObjectType().getReference();
         }
     }
 

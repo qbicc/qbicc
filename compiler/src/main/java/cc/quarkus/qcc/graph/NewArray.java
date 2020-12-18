@@ -2,36 +2,39 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.ValueType;
 
 /**
  * A {@code new} allocation operation for array objects.
  */
 public final class NewArray extends AbstractValue {
     private final Node dependency;
-    private final ReferenceType type;
-    private final Literal elementTypeId;
+    private final ArrayObjectType type;
     private final Value size;
 
-    NewArray(final int line, final int bci, final Node dependency, final Literal elementTypeId, final ReferenceType type, final Value size) {
+    NewArray(final int line, final int bci, final Node dependency, final ArrayObjectType type, final Value size) {
         super(line, bci);
         this.dependency = dependency;
-        this.elementTypeId = elementTypeId;
         this.type = type;
         this.size = size;
     }
 
     public ReferenceType getType() {
-        return type;
+        return type.getReference();
     }
 
     public Value getSize() {
         return size;
     }
 
-    public Literal getElementTypeId() {
-        return elementTypeId;
+    public ValueType getElementType() {
+        return type.getElementType();
+    }
+
+    public ArrayObjectType getArrayType() {
+        return type;
     }
 
     public int getBasicDependencyCount() {
@@ -55,7 +58,7 @@ public final class NewArray extends AbstractValue {
     }
 
     int calcHashCode() {
-        return Objects.hash(dependency, type, elementTypeId, size);
+        return Objects.hash(dependency, type, size);
     }
 
     public boolean equals(final Object other) {
@@ -66,7 +69,6 @@ public final class NewArray extends AbstractValue {
         return this == other || other != null
             && dependency.equals(other.dependency)
             && type.equals(other.type)
-            && elementTypeId.equals(other.elementTypeId)
             && size.equals(other.size);
     }
 }

@@ -11,7 +11,7 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -34,7 +34,7 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return return_();
     }
 
-    public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final MethodDescriptor desc, final String name) {
+    public BasicBlock noSuchMethodError(final ObjectType owner, final MethodDescriptor desc, final String name) {
         invalidNode("noSuchMethodError");
         return return_();
     }

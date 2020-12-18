@@ -4,10 +4,8 @@ import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
@@ -41,7 +39,6 @@ public final class TypeSystem {
     private final UnsignedIntegerType unsignedInteger16Type;
     private final UnsignedIntegerType unsignedInteger32Type;
     private final UnsignedIntegerType unsignedInteger64Type;
-    private final Map<TypeIdLiteral, ReferenceType> referenceTypeCache = new ConcurrentHashMap<>();
     private final TypeCache<FunctionType> functionTypeCache = new TypeCache<>();
 
     private volatile ClassObjectType objectClass;
@@ -127,11 +124,6 @@ public final class TypeSystem {
 
     public MethodDescriptorType getMethodDescriptorType() {
         return methodDescriptorType;
-    }
-
-    public ReferenceType getReferenceType(TypeIdLiteral upperBound) {
-        Assert.checkNotNullParam("upperBound", upperBound);
-        return referenceTypeCache.computeIfAbsent(upperBound, id -> new ReferenceType(this, id, false, referenceSize, referenceAlign, false));
     }
 
     /**

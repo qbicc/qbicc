@@ -24,6 +24,14 @@ public final class ClassObjectType extends PhysicalObjectType {
         return (ClassObjectType) super.asConst();
     }
 
+    public DefinedTypeDefinition getDefinition() {
+        return definition;
+    }
+
+    public boolean hasSuperClass() {
+        return superClassType != null;
+    }
+
     ClassObjectType constructConst() {
         return new ClassObjectType(typeSystem, true, definition, superClassType, interfaces);
     }

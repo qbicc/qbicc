@@ -66,7 +66,7 @@ final class PreparedTypeDefinitionImpl extends DelegatingResolvedTypeDefinition 
                 this.initializing = initialized = new InitializedTypeDefinitionImpl(this);
                 Vm vm = Vm.requireCurrent();
                 try {
-                    vm.initialize(getTypeId());
+                    vm.initialize(getType());
                 } catch (Thrown t) {
                     InitializationFailedException ex = new InitializationFailedException(t);
                     this.initialized = new InitializationFailedDefinitionImpl(this, ex);

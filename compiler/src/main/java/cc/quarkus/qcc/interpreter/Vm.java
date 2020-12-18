@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -107,9 +107,9 @@ public interface Vm extends AutoCloseable {
      * @param type the type to allocate (must not be {@code null})
      * @return the allocated object (not {@code null})
      */
-    VmObject allocateObject(ClassTypeIdLiteral type);
+    VmObject allocateObject(ClassObjectType type);
 
-    VmArray allocateArray(ArrayTypeIdLiteral type, int length);
+    VmArray allocateArray(ArrayObjectType type, int length);
 
     /**
      * Invoke a constructor reflectively.  Primitive arguments should be boxed.
@@ -130,7 +130,7 @@ public interface Vm extends AutoCloseable {
      */
     Object invokeExact(MethodElement method, VmObject instance, Object... args);
 
-    void initialize(TypeIdLiteral typeId);
+    void initialize(ObjectType typeId);
 
     /**
      * Invoke a method reflectively.  Primitive arguments should be boxed.

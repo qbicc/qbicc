@@ -30,6 +30,14 @@ public final class InterfaceObjectType extends ObjectType {
         return (InterfaceObjectType) super.asConst();
     }
 
+    public DefinedTypeDefinition getDefinition() {
+        return definition;
+    }
+
+    public boolean hasSuperClass() {
+        return false;
+    }
+
     InterfaceObjectType constructConst() {
         return new InterfaceObjectType(typeSystem, true, definition, interfaces);
     }

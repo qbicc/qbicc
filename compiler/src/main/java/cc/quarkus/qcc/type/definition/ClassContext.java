@@ -14,12 +14,12 @@ import java.util.zip.ZipFile;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
+import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.InterfaceObjectType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
@@ -48,17 +48,11 @@ public interface ClassContext extends DescriptorTypeResolver {
 
     DefinedTypeDefinition findDefinedType(String typeName);
 
-    DefinedTypeDefinition resolveDefinedTypeLiteral(TypeIdLiteral typeId);
-
     String deduplicate(ByteBuffer buffer, int offset, int length);
 
     String deduplicate(String original);
 
     TypeSystem getTypeSystem();
-
-    void registerClassLiteral(ClassTypeIdLiteral literal, DefinedTypeDefinition typeDef);
-
-    void registerInterfaceLiteral(InterfaceTypeIdLiteral literal, DefinedTypeDefinition typeDef);
 
     LiteralFactory getLiteralFactory();
 
@@ -139,13 +133,13 @@ public interface ClassContext extends DescriptorTypeResolver {
                 });
             }
 
-            public DefinedTypeDefinition resolveDefinedTypeLiteral(final TypeIdLiteral typeId) {
-                if (typeId instanceof ClassTypeIdLiteral) {
-                    return findDefinedType(((ClassTypeIdLiteral) typeId).getInternalName());
-                } else if (typeId instanceof InterfaceTypeIdLiteral) {
-                    return findDefinedType(((InterfaceTypeIdLiteral) typeId).getInternalName());
+            public DefinedTypeDefinition resolveDefinedTypeLiteral(final ObjectType typeId) {
+                if (typeId instanceof ClassObjectType) {
+                    return ((ClassObjectType) typeId).getDefinition();
+                } else if (typeId instanceof InterfaceObjectType) {
+                    return ((InterfaceObjectType) typeId).getDefinition();
                 } else {
-                    throw new IllegalArgumentException("Invalid type ID literal");
+                    throw new IllegalArgumentException("Invalid defined type");
                 }
             }
 
@@ -167,14 +161,6 @@ public interface ClassContext extends DescriptorTypeResolver {
 
             public TypeSystem getTypeSystem() {
                 return ts;
-            }
-
-            public void registerClassLiteral(final ClassTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
-                throw Assert.unsupported();
-            }
-
-            public void registerInterfaceLiteral(final InterfaceTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
-                throw Assert.unsupported();
             }
 
             public LiteralFactory getLiteralFactory() {

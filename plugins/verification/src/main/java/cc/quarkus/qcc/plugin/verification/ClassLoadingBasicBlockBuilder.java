@@ -11,7 +11,6 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
@@ -170,7 +169,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         Info info = Info.get(ctxt);
         ClassTypeDescriptor ncdfeClass = info.ncdfeClass;
         // todo: add class name to exception string
-        Value ncdfe = invokeConstructor(new_(info.ncdfeClassId), ncdfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
+        Value ncdfe = invokeConstructor(new_(ncdfeClass), ncdfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
         throw_(ncdfe);
         // this is an unreachable block
         begin(new BlockLabel());
@@ -194,12 +193,10 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     static final class Info {
-        final ClassTypeIdLiteral ncdfeClassId;
         final ClassTypeDescriptor ncdfeClass;
 
         private Info(final CompilationContext ctxt) {
             DefinedTypeDefinition type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/NoClassDefFoundError");
-            ncdfeClassId = (ClassTypeIdLiteral) type.validate().getTypeId();
             ncdfeClass = type.getDescriptor();
         }
 

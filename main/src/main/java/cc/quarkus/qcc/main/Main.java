@@ -204,8 +204,8 @@ public class Main {
                                 builder.addTypeBuilderFactory(NativeTypeBuilder::new);
                                 builder.addResolverFactory(ConstTypeResolver::new);
                                 builder.addResolverFactory(FunctionTypeResolver::new);
-                                builder.addResolverFactory(NativeTypeResolver::new);
                                 builder.addResolverFactory(PointerTypeResolver::new);
+                                builder.addResolverFactory(NativeTypeResolver::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);

@@ -5,6 +5,7 @@ import java.util.Objects;
 import cc.quarkus.qcc.constraint.Constraint;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.interpreter.VmObject;
+import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 
@@ -26,7 +27,7 @@ public final class ObjectLiteral extends Literal {
         return type;
     }
 
-    public TypeIdLiteral getObjectTypeId() {
+    public PhysicalObjectType getObjectType() {
         return value.getObjectType();
     }
 
@@ -35,7 +36,7 @@ public final class ObjectLiteral extends Literal {
     }
 
     public Constraint getConstraint() {
-        return Constraint.equalTo(value.getObjectType());
+        return null;
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

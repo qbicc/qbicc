@@ -32,17 +32,13 @@ import cc.quarkus.qcc.graph.ThisValue;
 import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.ObjectLiteral;
-import cc.quarkus.qcc.graph.literal.ReferenceArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 
 /**
  * A visitor set that generates {@code .dot} files for each method and function in the output directory of the project.
@@ -157,19 +153,11 @@ public class DotGenerator<C, V, A, T> implements NodeVisitor.Delegating<C, V, A,
         return node(node, delegate.visit(param, node));
     }
 
-    public V visit(final C param, final ClassTypeIdLiteral node) {
-        return node(node, delegate.visit(param, node));
-    }
-
     public V visit(final C param, final FloatLiteral node) {
         return node(node, delegate.visit(param, node));
     }
 
     public V visit(final C param, final IntegerLiteral node) {
-        return node(node, delegate.visit(param, node));
-    }
-
-    public V visit(final C param, final InterfaceTypeIdLiteral node) {
         return node(node, delegate.visit(param, node));
     }
 
@@ -181,19 +169,11 @@ public class DotGenerator<C, V, A, T> implements NodeVisitor.Delegating<C, V, A,
         return node(node, delegate.visit(param, node));
     }
 
-    public V visit(final C param, final ReferenceArrayTypeIdLiteral node) {
-        return node(node, delegate.visit(param, node));
-    }
-
     public V visit(final C param, final StringLiteral node) {
         return node(node, delegate.visit(param, node));
     }
 
     public V visit(final C param, final SymbolLiteral node) {
-        return node(node, delegate.visit(param, node));
-    }
-
-    public V visit(final C param, final ValueArrayTypeIdLiteral node) {
         return node(node, delegate.visit(param, node));
     }
 

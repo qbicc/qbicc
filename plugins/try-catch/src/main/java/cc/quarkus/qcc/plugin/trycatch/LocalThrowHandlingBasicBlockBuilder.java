@@ -7,7 +7,6 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
@@ -26,7 +25,7 @@ public class LocalThrowHandlingBasicBlockBuilder extends DelegatingBasicBlockBui
             // todo: this should move to a general null-checking plugin as an `if`
             ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
             ValidatedTypeDefinition npe = classContext.findDefinedType("java/lang/NullPointerException").validate();
-            Value ex = new_((ClassTypeIdLiteral) npe.getTypeId());
+            Value ex = new_(npe.getClassType());
             ex = invokeConstructor(ex, npe.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
             return throw_(ex);
         }

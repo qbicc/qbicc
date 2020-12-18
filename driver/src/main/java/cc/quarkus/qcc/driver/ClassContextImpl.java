@@ -9,10 +9,7 @@ import java.util.function.BiFunction;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -37,7 +34,6 @@ final class ClassContextImpl implements ClassContext {
     private final VmObject classLoader;
     private final DescriptorTypeResolver descriptorTypeResolver;
     private final ConcurrentMap<String, AtomicReference<Object>> definedClasses = new ConcurrentHashMap<>();
-    private final ConcurrentMap<TypeIdLiteral, DefinedTypeDefinition> classForLiteral = new ConcurrentHashMap<>();
 
     private static final Object LOADING = new Object();
     private static final Object NOT_FOUND = new Object();
@@ -90,10 +86,6 @@ final class ClassContextImpl implements ClassContext {
         }
     }
 
-    public DefinedTypeDefinition resolveDefinedTypeLiteral(final TypeIdLiteral typeId) {
-        return classForLiteral.get(typeId);
-    }
-
     public String deduplicate(final ByteBuffer buffer, final int offset, final int length) {
         return compilationContext.deduplicate(buffer, offset, length);
     }
@@ -104,14 +96,6 @@ final class ClassContextImpl implements ClassContext {
 
     public TypeSystem getTypeSystem() {
         return compilationContext.getTypeSystem();
-    }
-
-    public void registerClassLiteral(final ClassTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
-        classForLiteral.put(literal, typeDef);
-    }
-
-    public void registerInterfaceLiteral(final InterfaceTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
-        classForLiteral.put(literal, typeDef);
     }
 
     public LiteralFactory getLiteralFactory() {

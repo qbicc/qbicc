@@ -4,9 +4,6 @@ import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import io.smallrye.common.constraint.Assert;
-
 /**
  * A reference type.  A reference is essentially an abstract representation of an encoded pointer to an object.  The
  * pointee contains, somewhere, a value of type {@link TypeIdType} representing the object's polymorphic
@@ -15,7 +12,7 @@ import io.smallrye.common.constraint.Assert;
 public final class ReferenceType extends ValueType {
     private static final VarHandle refArrayTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "refArrayType", VarHandle.class, ReferenceType.class, ReferenceArrayObjectType.class);
 
-    private final TypeIdLiteral upperBound;
+    private final ObjectType upperBound;
     private final int size;
     private final int align;
     private final boolean nullable;
@@ -23,23 +20,13 @@ public final class ReferenceType extends ValueType {
     @SuppressWarnings("unused")
     private volatile ReferenceArrayObjectType refArrayType;
 
-    ReferenceType(final TypeSystem typeSystem, final TypeIdLiteral upperBound, final boolean nullable, final int size, final int align, final boolean const_) {
+    ReferenceType(final TypeSystem typeSystem, final ObjectType upperBound, final boolean nullable, final int size, final int align, final boolean const_) {
         super(typeSystem, size * 19 + ReferenceType.class.hashCode() * Boolean.hashCode(nullable), const_);
         this.upperBound = upperBound;
         this.size = size;
         this.align = align;
         this.nullable = nullable;
-        this.asNullable = nullable ? this : new ReferenceType(typeSystem, upperBound, true, size, align, const_);
-    }
-
-    ReferenceType(final TypeSystem typeSystem, final ObjectType objectType, final boolean nullable, final int size, final int align, final boolean const_) {
-        super(typeSystem, size * 19 + ReferenceType.class.hashCode() * Boolean.hashCode(nullable), const_);
-        throw Assert.unsupported();
-//        this.upperBound = upperBound;
-//        this.size = size;
-//        this.align = align;
-//        this.nullable = nullable;
-//        this.asNullable = nullable ? this : new ReferenceType(typeSystem, upperBound, true, size, align, const_);
+        this.asNullable = nullable ? this : new ReferenceType(typeSystem, this.upperBound, true, size, align, const_);
     }
 
     public ReferenceType getConstraintType() {
@@ -55,7 +42,7 @@ public final class ReferenceType extends ValueType {
      *
      * @return the upper bound
      */
-    public TypeIdLiteral getUpperBound() {
+    public ObjectType getUpperBound() {
         return upperBound;
     }
 
@@ -128,12 +115,12 @@ public final class ReferenceType extends ValueType {
         } else {
             // find a common supertype of both
             if (upperBound.hasSuperClass()) {
-                result = typeSystem.getReferenceType(upperBound.getSuperClass());
+                result = upperBound.getSuperClassType().getReference();
                 if (const_) result = result.asConst();
                 if (nullable) result = result.asNullable;
                 return other.join(result);
             } else if (other.upperBound.hasSuperClass()) {
-                result = typeSystem.getReferenceType(other.upperBound.getSuperClass());
+                result = other.upperBound.getSuperClassType().getReference();
                 if (const_) result = result.asConst();
                 if (nullable) result = result.asNullable;
                 return result.join(this);
@@ -150,14 +137,13 @@ public final class ReferenceType extends ValueType {
     public StringBuilder toString(final StringBuilder b) {
         super.toString(b);
         if (nullable) {
-            b.append("nullable ");
+            b.append("nullable").append(' ');
         }
         b.append("reference");
-        return b.append("(").append(upperBound).append(")");
+        return upperBound.toString(b.append('(')).append(')');
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        // todo: use the actual numerical value of the type literal if possible at this stage, else use encoding scheme
-        return b.append("ref.").append(Integer.toHexString(upperBound.hashCode()));
+        return upperBound.toFriendlyString(b.append("ref").append('.'));
     }
 }
