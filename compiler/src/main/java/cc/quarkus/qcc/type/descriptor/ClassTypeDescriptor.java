@@ -56,26 +56,21 @@ public final class ClassTypeDescriptor extends TypeDescriptor {
         return Cache.get(classContext).getClassTypeDescriptor(packageName, className);
     }
 
-    public static ClassTypeDescriptor parse(final ClassContext classContext, final ByteBuffer buf) {
-        int i = next(buf);
-        if (i != 'L') {
-            throw parseError();
-        }
+    public static ClassTypeDescriptor parseClassConstant(final ClassContext classContext, final ByteBuffer buf) {
         StringBuilder sb = new StringBuilder();
+        int i;
         for (;;) {
-            i = peek(buf);
+            i = buf.hasRemaining() ? peek(buf) : ';';
             if (i == ';') {
                 // no package
-                buf.get(); // consume ';'
                 return Cache.get(classContext).getClassTypeDescriptor("", classContext.deduplicate(sb.toString()));
             } else if (i == '/') {
                 int lastSlash = sb.length();
                 buf.get(); // consume '/'
                 sb.appendCodePoint('/');
                 for (;;) {
-                    i = peek(buf);
+                    i = buf.hasRemaining() ? peek(buf) : ';';
                     if (i == ';') {
-                        buf.get(); // consume ';'
                         return Cache.get(classContext).getClassTypeDescriptor(classContext.deduplicate(sb.substring(0, lastSlash)), classContext.deduplicate(sb.substring(lastSlash + 1)));
                     } else if (i == '/') {
                         lastSlash = sb.length();
@@ -89,5 +84,15 @@ public final class ClassTypeDescriptor extends TypeDescriptor {
                 sb.appendCodePoint(codePoint(buf));
             }
         }
+    }
+
+    public static ClassTypeDescriptor parse(final ClassContext classContext, final ByteBuffer buf) {
+        int i = next(buf);
+        if (i != 'L') {
+            throw parseError();
+        }
+        ClassTypeDescriptor desc = parseClassConstant(classContext, buf);
+        expect(buf, ';');
+        return desc;
     }
 }

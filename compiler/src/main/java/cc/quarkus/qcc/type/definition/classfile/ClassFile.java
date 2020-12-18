@@ -11,6 +11,7 @@ import cc.quarkus.qcc.type.definition.FieldResolver;
 import cc.quarkus.qcc.type.definition.InitializerResolver;
 import cc.quarkus.qcc.type.definition.MethodResolver;
 import cc.quarkus.qcc.type.descriptor.Descriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 /**
  * A class file that was defined, with basic validation performed.  The constant pool is available.
@@ -379,6 +380,11 @@ public interface ClassFile extends FieldResolver,
         return getClassConstantName(getRawConstantShort(idx, 1));
     }
 
+    default int getFieldrefConstantClassIndex(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        checkConstantType(idx, CONSTANT_Fieldref);
+        return getRawConstantShort(idx, 1);
+    }
+
     default String getFieldrefConstantName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, CONSTANT_Fieldref);
         return getNameAndTypeConstantName(getRawConstantShort(idx, 3));
@@ -405,7 +411,7 @@ public interface ClassFile extends FieldResolver,
     }
 
     default String getMethodrefConstantName(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
-        checkConstantType(idx, CONSTANT_Methodref);
+        checkConstantType(idx, CONSTANT_Methodref, CONSTANT_InterfaceMethodref);
         return getNameAndTypeConstantName(getRawConstantShort(idx, 3));
     }
 
@@ -514,6 +520,8 @@ public interface ClassFile extends FieldResolver,
     String getInterfaceName(int idx);
 
     Descriptor getDescriptorConstant(int idx);
+
+    TypeDescriptor getClassConstantAsDescriptor(int idx);
 
     /**
      * Get the number of fields physically present in the class file.

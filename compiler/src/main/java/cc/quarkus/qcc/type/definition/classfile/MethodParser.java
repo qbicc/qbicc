@@ -25,7 +25,6 @@ import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.TerminatorVisitor;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
@@ -37,18 +36,19 @@ import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.generic.MethodSignature;
@@ -1094,37 +1094,43 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 case OP_GETSTATIC: {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
-                    FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
+                    TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
+                    TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
+                    String name = getNameOfFieldRef(fieldRef);
                     // todo: signature context
-                    ValueType type = fieldElement.getType(ctxt, List.of());
-                    Value value = gf.readStaticField(fieldElement, type, JavaAccessMode.DETECT);
-                    push(fieldElement.hasClass2Type() ? fatten(value) : value);
+                    Value value = gf.readStaticField(owner, name, desc, JavaAccessMode.DETECT);
+                    push(desc.isClass2() ? fatten(value) : value);
                     break;
                 }
                 case OP_PUTSTATIC: {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
-                    FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
-                    gf.writeStaticField(fieldElement, fieldElement.hasClass2Type() ? pop2() : pop(), JavaAccessMode.DETECT);
+                    TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
+                    TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
+                    String name = getNameOfFieldRef(fieldRef);
+                    gf.writeStaticField(owner, name, desc, desc.isClass2() ? pop2() : pop(), JavaAccessMode.DETECT);
                     break;
                 }
                 case OP_GETFIELD: {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
-                    FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
+                    TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
+                    TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
+                    String name = getNameOfFieldRef(fieldRef);
                     // todo: signature context
-                    ValueType type = fieldElement.getType(ctxt, List.of());
-                    Value value = gf.readInstanceField(pop(), fieldElement, type, JavaAccessMode.DETECT);
-                    push(fieldElement.hasClass2Type() ? fatten(value) : value);
+                    Value value = gf.readInstanceField(pop(), owner, name, desc, JavaAccessMode.DETECT);
+                    push(desc.isClass2() ? fatten(value) : value);
                     break;
                 }
                 case OP_PUTFIELD: {
                     // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
                     int fieldRef = buffer.getShort() & 0xffff;
-                    FieldElement fieldElement = resolveTargetOfFieldRef(fieldRef);
-                    v2 = fieldElement.hasClass2Type() ? pop2() : pop();
+                    TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
+                    TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
+                    String name = getNameOfFieldRef(fieldRef);
+                    v2 = desc.isClass2() ? pop2() : pop();
                     v1 = pop();
-                    gf.writeInstanceField(v1, fieldElement, v2, JavaAccessMode.DETECT);
+                    gf.writeInstanceField(v1, owner, name, desc, v2, JavaAccessMode.DETECT);
                     break;
                 }
                 case OP_INVOKEVIRTUAL:
@@ -1132,58 +1138,31 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 case OP_INVOKESTATIC:
                 case OP_INVOKEINTERFACE: {
                     int methodRef = buffer.getShort() & 0xffff;
-                    TypeIdLiteral owner;
-                    int nameAndType;
+                    TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getMethodrefConstantClassIndex(methodRef));
+                    int nameAndType = getNameAndTypeOfMethodRef(methodRef);
                     if (opcode == OP_INVOKEINTERFACE) {
-                        owner = getOwnerOfInterfaceMethodRef(methodRef);
-                        nameAndType = getNameAndTypeOfInterfaceMethodRef(methodRef);
-                        int checkCount = buffer.get() & 0xff;
+                        buffer.get(); // discard `count`
                         buffer.get(); // discard 0
-                    } else {
-                        owner = getOwnerOfMethodRef(methodRef);
-                        nameAndType = getNameAndTypeOfMethodRef(methodRef);
                     }
                     if (owner == null) {
                         gf.classNotFoundError(getClassFile().getMethodrefConstantClassName(methodRef));
                         return;
                     }
-                    DefinedTypeDefinition found = ctxt.resolveDefinedTypeLiteral(owner);
-                    if (found == null) {
-                        gf.classNotFoundError(owner.toString());
-                        return;
+                    String name = getNameOfMethodRef(methodRef);
+                    if (name == null) {
+                        throw new InvalidConstantException("Method name is null");
                     }
-                    ResolvedTypeDefinition resolved = found.validate().resolve();
                     MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(nameAndType));
-                    InvokableElement target;
-                    if (opcode == OP_INVOKESTATIC || opcode == OP_INVOKESPECIAL) {
-                        target = resolveTargetOfDescriptor(resolved, desc, nameAndType);
-                    } else if (opcode == OP_INVOKEVIRTUAL) {
-                        target = resolveVirtualTargetOfDescriptor(resolved, desc, nameAndType);
-                    } else {
-                        assert opcode == OP_INVOKEINTERFACE;
-                        target = resolveInterfaceTargetOfDescriptor(resolved, desc, nameAndType);
+                    if (desc == null) {
+                        throw new InvalidConstantException("Method descriptor is null");
                     }
-                    if (target == null) {
-                        String methodName = getClassFile().getNameAndTypeConstantName(nameAndType);
-                        gf.noSuchMethodError(owner, desc, methodName);
-                        // end block
-                        return;
-                    }
-                    int cnt = target.getParameters().size();
+                    int cnt = desc.getParameterTypes().size();
                     Value[] args = new Value[cnt];
                     for (int i = cnt - 1; i >= 0; i --) {
-                        if (target.getParameters().get(i).hasClass2Type()) {
+                        if (desc.getParameterTypes().get(i).isClass2()) {
                             args[i] = pop2();
                         } else {
                             args[i] = pop1();
-                        }
-                        // narrow arguments if needed
-                        ValueType argType = args[i].getType();
-                        if (argType instanceof IntegerType) {
-                            IntegerType intType = (IntegerType) argType;
-                            if (intType.getMinBits() < 32) {
-                                args[i] = gf.truncate(args[i], intType);
-                            }
                         }
                     }
                     if (opcode != OP_INVOKESTATIC) {
@@ -1193,47 +1172,30 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         // definite initialization
                         v1 = null;
                     }
-                    if (target instanceof ConstructorElement) {
+                    if (name.equals("<init>")) {
                         if (opcode != OP_INVOKESPECIAL) {
                             throw new InvalidByteCodeException();
                         }
-                        v2 = gf.invokeConstructor(v1, (ConstructorElement) target, List.of(args));
+                        v2 = gf.invokeConstructor(v1, owner, desc, List.of(args));
                         replaceAll(v1, v2);
                     } else {
-                        assert target instanceof MethodElement;
-                        MethodElement method = (MethodElement) target;
-                        // TODO: add the signature resolution context here
-                        FunctionType methodType = method.getType(ctxt, List.of());
-                        ValueType returnType = methodType.getReturnType();
-                        if (returnType instanceof VoidType) {
+                        TypeDescriptor returnType = desc.getReturnType();
+                        if (returnType == BaseTypeDescriptor.V) {
                             if (opcode == OP_INVOKESTATIC) {
                                 // return type is implicitly void
-                                gf.invokeStatic(method, List.of(args));
+                                gf.invokeStatic(owner, name, desc, List.of(args));
                             } else {
                                 // return type is implicitly void
-                                gf.invokeInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, method, List.of(args));
+                                gf.invokeInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, owner, name, desc, List.of(args));
                             }
                         } else {
                             Value result;
                             if (opcode == OP_INVOKESTATIC) {
-                                result = gf.invokeValueStatic(method, returnType, List.of(args));
+                                result = gf.invokeValueStatic(owner, name, desc, List.of(args));
                             } else {
-                                result = gf.invokeValueInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, method, returnType, List.of(args));
+                                result = gf.invokeValueInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, owner, name, desc, List.of(args));
                             }
-                            if (returnType instanceof IntegerType) {
-                                IntegerType intType = (IntegerType) returnType;
-                                if (intType.getMinBits() < 32) {
-                                    // extend it back out again
-                                    if (intType instanceof UnsignedIntegerType) {
-                                        // first extend, then cast
-                                        result = gf.extend(result, ts.getUnsignedInteger32Type());
-                                        result = gf.bitCast(result, ts.getSignedInteger32Type());
-                                    } else {
-                                        result = gf.extend(result, ts.getSignedInteger32Type());
-                                    }
-                                }
-                            }
-                            if (method.getDescriptor().getReturnType().isClass2()) {
+                            if (desc.getReturnType().isClass2()) {
                                 fatten(result);
                             }
                             push(result);
@@ -1301,9 +1263,16 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     break;
                 }
 
-                case OP_NEW:
-                    push(gf.new_(getConstantValue(buffer.getShort() & 0xffff, ClassTypeIdLiteral.class)));
+                case OP_NEW: {
+                    TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
+                    if (desc instanceof ClassTypeDescriptor) {
+                        push(gf.new_((ClassTypeDescriptor) desc));
+                    } else {
+                        ctxt.getCompilationContext().error(gf.getLocation(), "Wrong kind of descriptor for `new`: %s", desc);
+                        push(lf.literalOfNull());
+                    }
                     break;
+                }
                 case OP_NEWARRAY:
                     ArrayTypeIdLiteral arrayType;
                     switch (buffer.get() & 0xff) {
@@ -1321,9 +1290,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     push(gf.newArray(arrayType, pop1()));
                     break;
                 case OP_ANEWARRAY: {
-                    arrayType = lf.literalOfArrayType(ts.getReferenceType(getConstantValue(buffer.getShort() & 0xffff, TypeIdLiteral.class)));
+                    TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
                     // todo: check for negative array size
-                    push(gf.newArray(arrayType, pop1()));
+                    push(gf.newArray(ArrayTypeDescriptor.of(ctxt, desc), pop1()));
                     break;
                 }
                 case OP_ARRAYLENGTH:
@@ -1335,15 +1304,14 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     return;
                 case OP_CHECKCAST: {
                     v1 = pop1();
-                    Value narrowed = gf.narrow(v1, getClassFile().getTypeConstant(buffer.getShort() & 0xffff));
+                    Value narrowed = gf.narrow(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff));
                     replaceAll(v1, narrowed);
                     push(narrowed);
                     break;
                 }
                 case OP_INSTANCEOF: {
-                    ValueType expected = getClassFile().getTypeConstant(buffer.getShort() & 0xffff);
                     v1 = pop1();
-                    push(gf.instanceOf(v1, expected));
+                    push(gf.instanceOf(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff)));
                     break;
                 }
                 case OP_MONITORENTER:
@@ -1353,7 +1321,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     gf.monitorExit(pop());
                     break;
                 case OP_MULTIANEWARRAY:
-                    int cpIdx = buffer.getShort() & 0xffff;
+                    TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
                     Value[] dims = new Value[buffer.get() & 0xff];
                     if (dims.length == 0) {
                         throw new InvalidByteCodeException();
@@ -1361,7 +1329,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     for (int i = dims.length - 1; i >= 0; i --) {
                         dims[i] = pop1();
                     }
-                    push(gf.multiNewArray(getConstantValue(cpIdx, ArrayTypeIdLiteral.class), List.of(dims)));
+                    push(gf.multiNewArray(ArrayTypeDescriptor.of(ctxt, desc), List.of(dims)));
                     break;
                 case OP_IFNULL:
                     processIf(buffer, gf.cmpEq(pop(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());

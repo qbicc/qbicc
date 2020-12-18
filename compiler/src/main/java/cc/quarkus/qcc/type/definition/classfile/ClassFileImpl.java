@@ -10,7 +10,6 @@ import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
@@ -47,29 +46,19 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     private static final VarHandle annotationArrayArrayHandle = MethodHandles.arrayElementVarHandle(Annotation[][].class);
     private static final VarHandle descriptorArrayHandle = MethodHandles.arrayElementVarHandle(Descriptor[].class);
 
-    private static final int[] NO_INTS = new int[0];
-    private static final int[][] NO_INT_ARRAYS = new int[0][];
-
     private final int[] cpOffsets;
     private final String[] strings;
     private final Literal[] literals;
     private final Descriptor[] descriptors;
     /**
-     * This is the method parameter part of every method descriptor.
-     */
-    private final boolean[][] methodParamClass2;
-    /**
      * This is the type of every field descriptor or the return type of every method descriptor.
      */
-    private final ValueType[] types;
     private final int interfacesOffset;
     private final int[] fieldOffsets;
     private final int[][] fieldAttributeOffsets;
     private final int[] methodOffsets;
     private final int[][] methodAttributeOffsets;
     private final int[] attributeOffsets;
-    private final int thisClassIdx;
-    private final TypeSystem typeSystem;
     private final LiteralFactory literalFactory;
     private final ClassContext ctxt;
     private final String sourceFile;
@@ -77,7 +66,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     ClassFileImpl(final ClassContext ctxt, final ByteBuffer buffer) {
         super(buffer);
         this.ctxt = ctxt;
-        typeSystem = ctxt.getTypeSystem();
         literalFactory = ctxt.getLiteralFactory();
         // scan the file to build up offset tables
         ByteBuffer scanBuf = buffer.duplicate();
@@ -205,12 +193,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         this.methodAttributeOffsets = methodAttributeOffsets;
         this.attributeOffsets = attributeOffsets;
         this.cpOffsets = cpOffsets;
-        this.thisClassIdx = thisClassIdx;
         strings = new String[cpOffsets.length];
         literals = new Literal[cpOffsets.length];
         descriptors = new Descriptor[cpOffsets.length];
-        methodParamClass2 = new boolean[cpOffsets.length][];
-        types = new ValueType[cpOffsets.length];
         // read globally-relevant attributes
         String sourceFile = null;
         int cnt = getAttributeCount();
@@ -277,14 +262,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         int offs = cpOffsets[idx];
         int len = getShort(offs + 1);
         return slice(offs + 3, len);
-    }
-
-    int utf8ConstantByteAt(final int idx, final int offset) {
-        int offs = cpOffsets[idx];
-        if (offset >= getShort(offs + 1)) {
-            throw new IndexOutOfBoundsException(offset);
-        }
-        return getByte(offs + 3 + offset);
     }
 
     public void checkConstantType(final int idx, final int expectedType) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
@@ -408,39 +385,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         return cpOffset == 0 ? 0 : getLong(cpOffset + offset);
     }
 
-    TypeIdLiteral resolveSingleType(int cpIdx) {
-        int cpOffset = cpOffsets[cpIdx];
-        return resolveSingleType(cpOffset + 3, getShort(cpOffset + 1));
-    }
-
-    TypeIdLiteral resolveSingleType(int offs, int maxLen) {
-        return loadClass(offs + 1, maxLen - 1, false);
-    }
-
     TypeIdLiteral resolveSingleType(String name) {
         DefinedTypeDefinition definedType = ctxt.findDefinedType(name);
-        return definedType == null ? null : definedType.validate().getTypeId();
-    }
-
-    public TypeIdLiteral resolveType() {
-        int nameIdx = getShort(cpOffsets[thisClassIdx] + 1);
-        int offset = cpOffsets[nameIdx];
-        return loadClass(offset + 3, getShort(offset + 1), false);
-    }
-
-    private ValueType loadClassAsReferenceType(final int offs, final int len, final boolean expectTerminator) {
-        TypeIdLiteral typeId = loadClass(offs, len, expectTerminator);
-        if (typeId != null) {
-            return typeSystem.getReferenceType(typeId);
-        } else {
-            String str = ctxt.deduplicate(buffer, offs, len);
-            ctxt.getCompilationContext().error("Failed to link %s (class %s not found)", getName(), str);
-            return typeSystem.getPoisonType();
-        }
-    }
-
-    private TypeIdLiteral loadClass(final int offs, final int len, final boolean expectTerminator) {
-        DefinedTypeDefinition definedType = ctxt.findDefinedType(ctxt.deduplicate(buffer, offs, len));
         return definedType == null ? null : definedType.validate().getTypeId();
     }
 
@@ -476,6 +422,20 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             return descriptor;
         } else {
             return setIfNull(descriptors, idx, Descriptor.parse(ctxt, getUtf8ConstantAsBuffer(idx)));
+        }
+    }
+
+    public TypeDescriptor getClassConstantAsDescriptor(final int idx) {
+        checkConstantType(idx, CONSTANT_Class);
+        if (idx == 0) {
+            return null;
+        }
+        int strIdx = getRawConstantShort(idx, 1);
+        TypeDescriptor descriptor = (TypeDescriptor) getVolatile(descriptors, strIdx);
+        if (descriptor != null) {
+            return descriptor;
+        } else {
+            return (TypeDescriptor) setIfNull(descriptors, strIdx, TypeDescriptor.parseClassConstant(ctxt, getUtf8ConstantAsBuffer(strIdx)));
         }
     }
 
@@ -646,6 +606,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         // make sure that annotations are added first for convenience
         int acnt = getAttributeCount();
+        ClassTypeDescriptor descriptor = (ClassTypeDescriptor) getClassConstantAsDescriptor(getShort(interfacesOffset - 6));
+        builder.setDescriptor(descriptor);
         ClassSignature signature = null;
         for (int i = 0; i < acnt; i ++) {
             if (attributeNameEquals(i, "RuntimeVisibleAnnotations")) {

@@ -451,12 +451,12 @@ public interface Node {
 
             public Value visit(final Copier param, final InstanceFieldRead node) {
                 param.copyNode(node.getBasicDependency(0));
-                return param.getBlockBuilder().readInstanceField(param.copyValue(node.getInstance()), node.getFieldElement(), node.getType(), node.getMode());
+                return param.getBlockBuilder().readInstanceField(param.copyValue(node.getInstance()), node.getFieldElement(), node.getMode());
             }
 
             public Value visit(final Copier param, final InstanceInvocationValue node) {
                 param.copyNode(node.getBasicDependency(0));
-                return param.getBlockBuilder().invokeValueInstance(node.getKind(), param.copyValue(node.getInstance()), node.getInvocationTarget(), node.getType(), param.copyValues(node.getArguments()));
+                return param.getBlockBuilder().invokeValueInstance(node.getKind(), param.copyValue(node.getInstance()), node.getInvocationTarget(), param.copyValues(node.getArguments()));
             }
 
             public Value visit(final Copier param, final InstanceOf node) {
@@ -548,12 +548,12 @@ public interface Node {
 
             public Value visit(final Copier param, final StaticFieldRead node) {
                 param.copyNode(node.getBasicDependency(0));
-                return param.getBlockBuilder().readStaticField(node.getFieldElement(), node.getType(), node.getMode());
+                return param.getBlockBuilder().readStaticField(node.getFieldElement(), node.getMode());
             }
 
             public Value visit(final Copier param, final StaticInvocationValue node) {
                 param.copyNode(node.getBasicDependency(0));
-                return param.getBlockBuilder().invokeValueStatic(node.getInvocationTarget(), node.getType(), param.copyValues(node.getArguments()));
+                return param.getBlockBuilder().invokeValueStatic(node.getInvocationTarget(), param.copyValues(node.getArguments()));
             }
 
             public Value visit(final Copier param, final StringLiteral node) {

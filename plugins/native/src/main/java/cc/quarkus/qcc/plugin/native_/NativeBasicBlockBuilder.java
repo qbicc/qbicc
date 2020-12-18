@@ -11,13 +11,18 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.NullType;
+import cc.quarkus.qcc.type.PointerType;
+import cc.quarkus.qcc.type.SignedIntegerType;
+import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.WordType;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 /**
  *
@@ -30,57 +35,89 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         this.ctxt = ctxt;
     }
 
-    public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
+    public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
-        NativeFunctionInfo functionInfo = nativeInfo.nativeFunctions.get(target);
+        NativeFunctionInfo functionInfo = nativeInfo.getFunctionInfo(owner, name, descriptor);
         if (functionInfo != null) {
             ctxt.getOrAddProgramModule(getCurrentElement().getEnclosingType())
                 .getOrAddSection(IMPLICIT_SECTION_NAME)
-                .declareFunction(target, functionInfo.symbolLiteral.getName(), (FunctionType) functionInfo.symbolLiteral.getType());
+                .declareFunction(null, functionInfo.symbolLiteral.getName(), (FunctionType) functionInfo.symbolLiteral.getType());
             // todo: prologue, epilogue (store current thread, GC state, etc.)
             return callFunction(functionInfo.symbolLiteral, arguments);
         }
-        if (target.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.C_NATIVE)) {
-            switch (target.getName()) {
+        if (owner.equals(nativeInfo.cNativeDesc)) {
+            switch (name) {
                 case "word": {
                     return arguments.get(0);
                 }
                 case "uword": {
                     return bitCast(arguments.get(0), ((IntegerType)arguments.get(0).getType()).asUnsigned());
                 }
+                case "sizeofArray":
                 case "sizeof": {
-                    return ctxt.getLiteralFactory().literalOf(arguments.get(0).getType().getSize());
+                    ValueType argType = arguments.get(0).getType();
+                    long size;
+//                    if (argType instanceof TypeType) {
+//                        size = ((TypeType) argType).getUpperBound().getSize();
+//                    } else {
+                        size = argType.getSize();
+//                    }
+                    return ctxt.getLiteralFactory().literalOf(size);
                 }
                 case "alignof": {
-                    return ctxt.getLiteralFactory().literalOf(arguments.get(0).getType().getAlign());
+                    ValueType argType = arguments.get(0).getType();
+                    long align;
+//                    if (argType instanceof TypeType) {
+//                        align = ((TypeType) argType).getUpperBound().getAlign();
+//                    } else {
+                        align = argType.getAlign();
+//                    }
+                    return ctxt.getLiteralFactory().literalOf(align);
+                }
+                case "defined": {
+                    return ctxt.getLiteralFactory().literalOf(! (arguments.get(0) instanceof UndefinedLiteral));
+                }
+                case "isComplete": {
+                    return ctxt.getLiteralFactory().literalOf(arguments.get(0).getType().isComplete());
+                }
+                case "isSigned": {
+                    return ctxt.getLiteralFactory().literalOf(arguments.get(0).getType() instanceof SignedIntegerType);
+                }
+                case "isUnsigned": {
+                    return ctxt.getLiteralFactory().literalOf(arguments.get(0).getType() instanceof UnsignedIntegerType);
+                }
+                case "typesAreEquivalent": {
+                    return ctxt.getLiteralFactory().literalOf(arguments.get(0).getType().equals(arguments.get(1).getType()));
+                }
+                // no args
+                case "zero": {
+                    return ctxt.getLiteralFactory().literalOf(0);
                 }
             }
         }
         // no special behaviors
-        return super.invokeValueStatic(target, type, arguments);
+        return super.invokeValueStatic(owner, name, descriptor, arguments);
     }
 
-    public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
+    public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
-        NativeFunctionInfo functionInfo = nativeInfo.nativeFunctions.get(target);
+        NativeFunctionInfo functionInfo = nativeInfo.getFunctionInfo(owner, name, descriptor);
         if (functionInfo != null) {
             // todo: store current thread into TLS for recursive Java call-in
             return callFunction(functionInfo.symbolLiteral, arguments);
         }
         // no special behaviors
-        return super.invokeStatic(target, arguments);
+        return super.invokeStatic(owner, name, descriptor, arguments);
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value input, final MethodElement target, final ValueType returnType, final List<Value> arguments) {
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value input, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
+        NativeInfo nativeInfo = NativeInfo.get(ctxt);
         ValueType type = input.getType();
         LiteralFactory lf = ctxt.getLiteralFactory();
         if (type instanceof NullType) {
             // treat `null` as a null (zero) pointer value
-            if (target.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.PTR)
-                || target.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.WORD)
-                || target.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.OBJECT)) {
-                String methodName = target.getName();
-                switch (methodName) {
+            if (owner.equals(nativeInfo.ptrDesc) || owner.equals(nativeInfo.wordDesc) || owner.equals(nativeInfo.cObjectDesc)) {
+                switch (name) {
                     case "byteValue": {
                         return lf.literalOf((byte) 0);
                     }
@@ -107,65 +144,76 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                     }
                 }
             }
-        } else if (type instanceof IntegerType) {
-            IntegerType inputType = (IntegerType) type;
-            // special handling for conversion methods
-            String methodName = target.getName();
-            switch (methodName) {
-                case "byteValue":
-                case "shortValue":
-                case "intValue":
-                case "longValue":
-                case "charValue": {
-                    // integer to integer
-                    IntegerType outputType = (IntegerType) returnType;
-                    if (outputType.getMinBits() > inputType.getMinBits()) {
-                        return super.extend(input, outputType);
-                    } else if (outputType.getMinBits() < inputType.getMinBits()) {
-                        return super.truncate(input, outputType);
-                    } else {
-                        return super.bitCast(input, outputType);
-                    }
+        } else if (type instanceof IntegerType || type instanceof FloatType || type instanceof PointerType) {
+            TypeSystem ts = ctxt.getTypeSystem();
+            switch (name) {
+                case "byteValue": {
+                    return doConvert(input, type, ts.getSignedInteger8Type());
                 }
-                case "floatValue":
+                case "shortValue": {
+                    return doConvert(input, type, ts.getSignedInteger16Type());
+                }
+                case "intValue": {
+                    return doConvert(input, type, ts.getSignedInteger32Type());
+                }
+                case "longValue": {
+                    return doConvert(input, type, ts.getSignedInteger64Type());
+                }
+                case "charValue": {
+                    return doConvert(input, type, ts.getUnsignedInteger16Type());
+                }
+                case "floatValue": {
+                    return doConvert(input, type, ts.getFloat32Type());
+                }
                 case "doubleValue": {
-                    // integer to float
-                    return valueConvert(input, (WordType) returnType);
+                    return doConvert(input, type, ts.getFloat64Type());
                 }
                 case "isZero": {
                     return cmpEq(input, lf.literalOf(0));
                 }
             }
-        } else if (type instanceof FloatType) {
-            FloatType inputType = (FloatType) type;
-            // special handling for conversion methods
-            String methodName = target.getName();
-            switch (methodName) {
-                case "byteValue":
-                case "shortValue":
-                case "intValue":
-                case "longValue":
-                case "charValue": {
-                    // float to integer
-                    return valueConvert(input, (WordType) returnType);
+        }
+        return super.invokeValueInstance(kind, input, owner, name, descriptor, arguments);
+    }
+
+    private Value doConvert(final Value input, final ValueType from, final IntegerType outputType) {
+        if (from instanceof IntegerType) {
+            IntegerType inputType = (IntegerType) from;
+            if (outputType.getMinBits() > inputType.getMinBits()) {
+                return super.extend(input, outputType);
+            } else if (outputType.getMinBits() < inputType.getMinBits()) {
+                return super.truncate(input, outputType);
+            } else {
+                return super.bitCast(input, outputType);
+            }
+        } else if (from instanceof FloatType || from instanceof PointerType) {
+            return super.valueConvert(input, outputType);
+        } else {
+            // ??
+            return input;
+        }
+    }
+
+    private Value doConvert(final Value input, final ValueType from, final FloatType outputType) {
+        if (from instanceof IntegerType) {
+            return super.valueConvert(input, outputType);
+        } else if (from instanceof PointerType) {
+            ctxt.error(getLocation(), "Invalid conversion from pointer to floating-point type");
+            return super.valueConvert(input, outputType);
+        } else {
+            if (from instanceof FloatType) {
+                FloatType inputType = (FloatType) from;
+                if (outputType.getMinBits() > inputType.getMinBits()) {
+                    return super.extend(input, outputType);
+                } else if (outputType.getMinBits() < inputType.getMinBits()) {
+                    return super.truncate(input, outputType);
+                } else {
+                    return input;
                 }
-                case "floatValue":
-                case "doubleValue": {
-                    // float to float
-                    FloatType outputType = (FloatType) returnType;
-                    if (outputType.getMinBits() > inputType.getMinBits()) {
-                        return super.extend(input, outputType);
-                    } else if (outputType.getMinBits() < inputType.getMinBits()) {
-                        return super.truncate(input, outputType);
-                    } else {
-                        return input;
-                    }
-                }
-                case "isZero": {
-                    return cmpEq(input, lf.literalOf(0.0));
-                }
+            } else {
+                // ??
+                return input;
             }
         }
-        return super.invokeValueInstance(kind, input, target, returnType, arguments);
     }
 }

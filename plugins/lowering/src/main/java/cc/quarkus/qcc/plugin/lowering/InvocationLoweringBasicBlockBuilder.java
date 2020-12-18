@@ -47,7 +47,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return super.callFunction(functionLiteral(function), args);
     }
 
-    public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
+    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
         Function function = ctxt.getExactFunction(target);
         List<Value> args = new ArrayList<>(arguments.size() + 1);
         args.add(ctxt.getCurrentThreadValue());
@@ -55,7 +55,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return super.callFunction(functionLiteral(function), args);
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         if (kind == DispatchInvocation.Kind.INTERFACE || kind == DispatchInvocation.Kind.VIRTUAL) {
             ctxt.warning(getLocation(), "Virtual invocation not supported yet");
             // but continue anyway just to see what would happen

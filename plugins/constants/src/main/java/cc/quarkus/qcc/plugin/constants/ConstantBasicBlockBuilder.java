@@ -5,7 +5,6 @@ import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 
 /**
@@ -19,8 +18,8 @@ public class ConstantBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         this.ctxt = ctxt;
     }
 
-    public Value readStaticField(final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
+    public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
         Value constantValue = Constants.get(ctxt).getConstantValue(fieldElement);
-        return constantValue == null ? getDelegate().readStaticField(fieldElement, type, mode) : constantValue;
+        return constantValue == null ? getDelegate().readStaticField(fieldElement, mode) : constantValue;
     }
 }

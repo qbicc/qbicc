@@ -39,7 +39,9 @@ import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.reachability.ReachabilityBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.SynchronizedMethodBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.verification.MemberResolvingBasicBlockBuilder;
 import cc.quarkus.qcc.tool.llvm.LlvmToolChain;
 import cc.quarkus.qcc.type.TypeSystem;
 
@@ -204,9 +206,11 @@ public class Main {
                                 builder.addResolverFactory(FunctionTypeResolver::new);
                                 builder.addResolverFactory(NativeTypeResolver::new);
                                 builder.addResolverFactory(PointerTypeResolver::new);
+                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
+                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, LocalThrowHandlingBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);

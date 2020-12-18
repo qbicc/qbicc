@@ -13,7 +13,10 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 /**
  * A graph factory which delegates all operations to another graph factory.  Can be used as a base class for graph
@@ -68,6 +71,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().narrow(value, toType);
     }
 
+    public Value narrow(final Value value, final TypeDescriptor desc) {
+        return getDelegate().narrow(value, desc);
+    }
+
     public BasicBlock classCastException(final Value fromType, final Value toType) {
         return getDelegate().classCastException(fromType, toType);
     }
@@ -104,12 +111,24 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().new_(typeId);
     }
 
+    public Value new_(final ClassTypeDescriptor desc) {
+        return getDelegate().new_(desc);
+    }
+
     public Value newArray(final ArrayTypeIdLiteral arrayTypeId, final Value size) {
         return getDelegate().newArray(arrayTypeId, size);
     }
 
+    public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
+        return getDelegate().newArray(desc, size);
+    }
+
     public Value multiNewArray(final ArrayTypeIdLiteral arrayTypeId, final List<Value> dimensions) {
         return getDelegate().multiNewArray(arrayTypeId, dimensions);
+    }
+
+    public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
+        return getDelegate().multiNewArray(desc, dimensions);
     }
 
     public Value clone(final Value object) {
@@ -120,12 +139,20 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().pointerLoad(pointer, accessMode, atomicityMode);
     }
 
-    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
-        return getDelegate().readInstanceField(instance, fieldElement, type, mode);
+    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
+        return getDelegate().readInstanceField(instance, fieldElement, mode);
     }
 
-    public Value readStaticField(final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
-        return getDelegate().readStaticField(fieldElement, type, mode);
+    public Value readInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
+        return getDelegate().readInstanceField(instance, owner, name, descriptor, mode);
+    }
+
+    public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
+        return getDelegate().readStaticField(fieldElement, mode);
+    }
+
+    public Value readStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
+        return getDelegate().readStaticField(owner, name, descriptor, mode);
     }
 
     public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
@@ -140,8 +167,16 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().writeInstanceField(instance, fieldElement, value, mode);
     }
 
+    public Node writeInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
+        return getDelegate().writeInstanceField(instance, owner, name, descriptor, value, mode);
+    }
+
     public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
         return getDelegate().writeStaticField(fieldElement, value, mode);
+    }
+
+    public Node writeStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
+        return getDelegate().writeStaticField(owner, name, descriptor, value, mode);
     }
 
     public Node writeArrayValue(final Value array, final Value index, final Value value, final JavaAccessMode mode) {
@@ -164,20 +199,36 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().invokeStatic(target, arguments);
     }
 
+    public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
+        return getDelegate().invokeStatic(owner, name, descriptor, arguments);
+    }
+
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         return getDelegate().invokeInstance(kind, instance, target, arguments);
+    }
+
+    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
+        return getDelegate().invokeInstance(kind, instance, owner, name, descriptor, arguments);
     }
 
     public Node invokeDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final List<Value> arguments) {
         return getDelegate().invokeDynamic(bootstrapMethod, staticArguments, arguments);
     }
 
-    public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
-        return getDelegate().invokeValueStatic(target, type, arguments);
+    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
+        return getDelegate().invokeValueStatic(target, arguments);
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
-        return getDelegate().invokeValueInstance(kind, instance, target, type, arguments);
+    public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
+        return getDelegate().invokeValueStatic(owner, name, descriptor, arguments);
+    }
+
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        return getDelegate().invokeValueInstance(kind, instance, target, arguments);
+    }
+
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
+        return getDelegate().invokeValueInstance(kind, instance, owner, name, descriptor, arguments);
     }
 
     public Value invokeValueDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final ValueType type, final List<Value> arguments) {
@@ -324,6 +375,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().instanceOf(input, expectedType);
     }
 
+    public Value instanceOf(final Value input, final TypeDescriptor desc) {
+        return getDelegate().instanceOf(input, desc);
+    }
+
     public Value populationCount(final Value v) {
         return getDelegate().populationCount(v);
     }
@@ -346,6 +401,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
         return getDelegate().invokeConstructor(instance, target, arguments);
+    }
+
+    public Value invokeConstructor(final Value instance, final TypeDescriptor owner, final MethodDescriptor descriptor, final List<Value> arguments) {
+        return getDelegate().invokeConstructor(instance, owner, descriptor, arguments);
     }
 
     public Value callFunction(final Value callTarget, final List<Value> arguments) {

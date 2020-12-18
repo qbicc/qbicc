@@ -58,9 +58,12 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                             String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
                             // register as a function
                             FunctionType type = origMethod.getType(classCtxt, List.of(/*todo*/));
-                            nativeInfo.nativeFunctions.put(origMethod, new NativeFunctionInfo(ctxt.getLiteralFactory().literalOfSymbol(
-                                name, type
-                            )));
+                            nativeInfo.registerFunctionInfo(
+                                origMethod.getEnclosingType().getDescriptor(),
+                                origMethod.getName(),
+                                origMethod.getDescriptor(),
+                                new NativeFunctionInfo(ctxt.getLiteralFactory().literalOfSymbol(name, type))
+                            );
                             // all done
                             break;
                         } else if (desc.getClassName().equals(Native.ANN_EXPORT)) {

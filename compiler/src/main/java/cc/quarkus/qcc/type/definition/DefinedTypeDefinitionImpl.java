@@ -15,6 +15,7 @@ import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.NestedClassElement;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.generic.ClassSignature;
 import io.smallrye.common.constraint.Assert;
 
@@ -28,6 +29,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final String superClassName;
     private final int modifiers;
     private final String[] interfaceNames;
+    private final ClassTypeDescriptor descriptor;
     private final ClassSignature signature;
     private final MethodResolver[] methodResolvers;
     private final int[] methodIndexes;
@@ -71,6 +73,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int interfaceCount = builder.interfaceCount;
         this.interfaceNames = interfaceCount == 0 ? NO_INTERFACES : Arrays.copyOf(builder.interfaceNames, interfaceCount);
         int methodCount = builder.methodCount;
+        this.descriptor = Assert.checkNotNullParam("builder.descriptor", builder.descriptor);
         this.signature = Assert.checkNotNullParam("builder.signature", builder.signature);
         this.methodResolvers = methodCount == 0 ? NO_METHODS : Arrays.copyOf(builder.methodResolvers, methodCount);
         this.methodIndexes = methodCount == 0 ? NO_INTS : Arrays.copyOf(builder.methodIndexes, methodCount);
@@ -117,6 +120,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             && intPackageName.regionMatches(0, internalName, 0, pkgLen)
             && internalName.charAt(pkgLen) == '/'
             && className.regionMatches(0, internalName, pkgLen + 1, classLen);
+    }
+
+    public ClassTypeDescriptor getDescriptor() {
+        return descriptor;
     }
 
     public ClassSignature getSignature() {
@@ -267,6 +274,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int modifiers = ClassFile.ACC_SUPER;
         int interfaceCount;
         String[] interfaceNames = NO_INTERFACES;
+        ClassTypeDescriptor descriptor;
         ClassSignature signature;
         int methodCount;
         MethodResolver[] methodResolvers = NO_METHODS;
@@ -454,6 +462,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         public void setSignature(final ClassSignature signature) {
             Assert.checkNotNullParam("signature", signature);
             this.signature = signature;
+        }
+
+        public void setDescriptor(final ClassTypeDescriptor descriptor) {
+            this.descriptor = Assert.checkNotNullParam("descriptor", descriptor);
         }
 
         public void setVisibleAnnotations(final List<Annotation> annotations) {
