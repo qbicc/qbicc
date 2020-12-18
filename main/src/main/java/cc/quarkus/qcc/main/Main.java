@@ -21,6 +21,7 @@ import cc.quarkus.qcc.machine.object.ObjectFileProvider;
 import cc.quarkus.qcc.machine.probe.CProbe;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.plugin.constants.ConstantBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.conversion.CloneConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.linker.LinkStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
@@ -206,6 +207,7 @@ public class Main {
                                 builder.addResolverFactory(FunctionTypeResolver::new);
                                 builder.addResolverFactory(PointerTypeResolver::new);
                                 builder.addResolverFactory(NativeTypeResolver::new);
+                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, CloneConversionBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
