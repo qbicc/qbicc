@@ -142,9 +142,12 @@ public interface Schedule {
             // make sure phi entries were scheduled
             PhiValue phiValue = (PhiValue) node;
             for (BasicBlock block : phiValue.incomingBlocks()) {
-                Value value = phiValue.getValueForBlock(block);
-                if (value != null) {
-                    scheduleEarly(root, blockInfos, scheduledNodes, value);
+                // skip unreachable inputs
+                if (blockInfos.containsKey(block)) {
+                    Value value = phiValue.getValueForBlock(block);
+                    if (value != null) {
+                        scheduleEarly(root, blockInfos, scheduledNodes, value);
+                    }
                 }
             }
         }
