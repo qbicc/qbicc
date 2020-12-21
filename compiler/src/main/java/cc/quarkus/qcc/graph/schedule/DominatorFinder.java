@@ -60,7 +60,7 @@ final class DominatorFinder {
                 DFS(w);
             }
             pred[w].set(v);
-            w = succ[v].nextSetBit(w);
+            w = succ[v].nextSetBit(w + 1);
         }
     }
 
@@ -202,7 +202,7 @@ final class DominatorFinder {
                 if (semi[u] < semi[w]) {
                     semi[w] = semi[u];
                 }
-                v = pred[w].nextSetBit(0);
+                v = pred[w].nextSetBit(v + 1);
             }
             bucket[vertex[semi[w]]].set(w);
             LINK(parent[w], w);
@@ -212,7 +212,7 @@ final class DominatorFinder {
                 bucket[parent[w]].clear(v);
                 int u = EVAL(v);
                 allBlocks[v].dominator = allBlocks[semi[u] < semi[v] ? u : parent[w]];
-                v = bucket[parent[w]].nextSetBit(0);
+                v = bucket[parent[w]].nextSetBit(v + 1);
             }
         }
         // step 4
