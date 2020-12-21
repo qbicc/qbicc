@@ -62,7 +62,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                                 origMethod.getEnclosingType().getDescriptor(),
                                 origMethod.getName(),
                                 origMethod.getDescriptor(),
-                                new NativeFunctionInfo(ctxt.getLiteralFactory().literalOfSymbol(name, type))
+                                new NativeFunctionInfo(origMethod, ctxt.getLiteralFactory().literalOfSymbol(name, type))
                             );
                             // all done
                             break;

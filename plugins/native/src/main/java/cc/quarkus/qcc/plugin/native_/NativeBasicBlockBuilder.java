@@ -42,7 +42,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (functionInfo != null) {
             ctxt.getOrAddProgramModule(getCurrentElement().getEnclosingType())
                 .getOrAddSection(IMPLICIT_SECTION_NAME)
-                .declareFunction(null, functionInfo.symbolLiteral.getName(), (FunctionType) functionInfo.symbolLiteral.getType());
+                .declareFunction(functionInfo.origMethod, functionInfo.symbolLiteral.getName(), (FunctionType) functionInfo.symbolLiteral.getType());
             // todo: prologue, epilogue (store current thread, GC state, etc.)
             return callFunction(functionInfo.symbolLiteral, arguments);
         }
