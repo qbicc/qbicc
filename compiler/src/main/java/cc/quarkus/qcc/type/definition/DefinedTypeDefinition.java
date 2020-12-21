@@ -11,6 +11,7 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.generic.ClassSignature;
 
 /**
@@ -30,6 +31,8 @@ public interface DefinedTypeDefinition extends FieldResolver,
     boolean internalNameEquals(String internalName);
 
     boolean internalPackageAndNameEquals(String intPackageName, String className);
+
+    ClassTypeDescriptor getDescriptor();
 
     ClassSignature getSignature();
 
@@ -206,6 +209,8 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
         void addInterfaceName(String interfaceInternalName);
 
+        void setDescriptor(ClassTypeDescriptor descriptor);
+
         void setSignature(ClassSignature signature);
 
         void setVisibleAnnotations(List<Annotation> annotations);
@@ -289,6 +294,10 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
             default void addInterfaceName(String interfaceInternalName) {
                 getDelegate().addInterfaceName(interfaceInternalName);
+            }
+
+            default void setDescriptor(ClassTypeDescriptor descriptor) {
+                getDelegate().setDescriptor(descriptor);
             }
 
             default void setSignature(ClassSignature signature) {

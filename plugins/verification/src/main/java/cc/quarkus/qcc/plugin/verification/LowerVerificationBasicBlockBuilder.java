@@ -79,12 +79,12 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return nop();
     }
 
-    public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
+    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
         invalidNode("invokeValueStatic");
         return ctxt.getLiteralFactory().literalOfNull();
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         invalidNode("invokeValueInstance");
         return ctxt.getLiteralFactory().literalOfNull();
     }

@@ -28,6 +28,18 @@ public abstract class TypeDescriptor extends Descriptor {
         return super.equals(other);
     }
 
+    public static TypeDescriptor parseClassConstant(final ClassContext classContext, final ByteBuffer buf) {
+        int i = peek(buf);
+        if (i == '[') {
+            // regular array type
+            return ArrayTypeDescriptor.parse(classContext, buf);
+        } else if (buf.remaining() == 1) {
+            return BaseTypeDescriptor.parse(buf);
+        } else {
+            return ClassTypeDescriptor.parseClassConstant(classContext, buf);
+        }
+    }
+
     public static TypeDescriptor parse(final ClassContext classContext, final ByteBuffer buf) {
         int i = peek(buf);
         if (i == '[') {

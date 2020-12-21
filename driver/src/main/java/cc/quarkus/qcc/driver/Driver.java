@@ -222,6 +222,7 @@ public class Driver implements Closeable {
         }
         String fileName = name + ".class";
         ByteBuffer buffer;
+        ClassContext ctxt = compilationContext.getBootstrapClassContext();
         for (ClassPathElement element : bootClassPath) {
             try (ClassPathElement.Resource resource = element.getResource(fileName)) {
                 buffer = resource.getBuffer();
@@ -229,7 +230,6 @@ public class Driver implements Closeable {
                     // non existent
                     continue;
                 }
-                ClassContext ctxt = compilationContext.getBootstrapClassContext();
                 ClassFile classFile = ClassFile.of(ctxt, buffer);
                 DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
                 for (BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder> factory : typeBuilderFactories) {
@@ -240,6 +240,7 @@ public class Driver implements Closeable {
                 ctxt.defineClass(name, def);
                 return def;
             } catch (Exception e) {
+                ctxt.getCompilationContext().warning(e, "Failed to load class \"%s\" from the bootstrap loader due to an exception: %s", name, e);
                 return null;
             }
         }

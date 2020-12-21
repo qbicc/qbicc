@@ -26,12 +26,14 @@ final class Native {
     static final String ANN_RESTRICT = className(restrict.class);
     static final String ANN_ARRAY_SIZE = className(array_size.class);
 
-    static final String OBJECT_INT_NAME = intName(object.class.getName());
-    static final String WORD_INT_NAME = intName(word.class.getName());
+    static final String OBJECT_INT_NAME = intName(object.class);
+    static final String WORD_INT_NAME = intName(word.class);
     static final String PTR = className(ptr.class);
     static final String WORD = className(word.class);
     static final String OBJECT = className(object.class);
     static final String FUNCTION = className(function.class);
+    static final String C_NATIVE_INT_NAME = intName(CNative.class);
+    static final String PTR_INT_NAME = intName(ptr.class);
 
     private static String className(Class<?> clz) {
         String name = clz.getName();
@@ -40,5 +42,9 @@ final class Native {
 
     private static String intName(String orig) {
         return orig.replace('.', '/');
+    }
+
+    private static String intName(Class<?> clz) {
+        return intName(clz.getName());
     }
 }

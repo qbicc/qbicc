@@ -16,7 +16,10 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuilder.ExceptionHandler {
@@ -203,8 +206,16 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new InstanceOf(line, bci, input, expectedType, typeSystem.getBooleanType());
     }
 
+    public Value instanceOf(final Value input, final TypeDescriptor desc) {
+        throw new IllegalStateException("InstanceOf of unresolved type");
+    }
+
     public Value narrow(final Value value, final ValueType toType) {
         return new Narrow(line, bci, value, toType);
+    }
+
+    public Value narrow(final Value value, final TypeDescriptor desc) {
+        throw new IllegalStateException("Narrow of unresolved type");
     }
 
     public Value receiver(final TypeIdLiteral upperBound) {
@@ -235,12 +246,24 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new New(line, bci, requireDependency(), typeSystem.getReferenceType(typeId), typeId));
     }
 
+    public Value new_(final ClassTypeDescriptor desc) {
+        throw new IllegalStateException("New of unresolved class");
+    }
+
     public Value newArray(final ArrayTypeIdLiteral arrayTypeId, final Value size) {
         return asDependency(new NewArray(line, bci, requireDependency(), arrayTypeId, typeSystem.getReferenceType(arrayTypeId), size));
     }
 
+    public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
+        throw new IllegalStateException("New of unresolved array type");
+    }
+
     public Value multiNewArray(final ArrayTypeIdLiteral arrayTypeId, final List<Value> dimensions) {
         return asDependency(new MultiNewArray(line, bci, requireDependency(), arrayTypeId, typeSystem.getReferenceType(arrayTypeId), dimensions));
+    }
+
+    public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
+        throw new IllegalStateException("New of unresolved array type");
     }
 
     public Value clone(final Value object) {
@@ -251,12 +274,20 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw Assert.unsupported();
     }
 
-    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
-        return asDependency(new InstanceFieldRead(line, bci, requireDependency(), instance, fieldElement, type, mode));
+    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
+        return asDependency(new InstanceFieldRead(line, bci, requireDependency(), instance, fieldElement, fieldElement.getType(element.getEnclosingType().getContext(), List.of()), mode));
     }
 
-    public Value readStaticField(final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
-        return asDependency(new StaticFieldRead(line, bci, requireDependency(), fieldElement, type, mode));
+    public Value readInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
+        throw new IllegalStateException("Access of unresolved field");
+    }
+
+    public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
+        return asDependency(new StaticFieldRead(line, bci, requireDependency(), fieldElement, fieldElement.getType(element.getEnclosingType().getContext(), List.of()), mode));
+    }
+
+    public Value readStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
+        throw new IllegalStateException("Access of unresolved field");
     }
 
     public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
@@ -273,8 +304,16 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new InstanceFieldWrite(line, bci, requireDependency(), instance, fieldElement, value, mode));
     }
 
+    public Node writeInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
+        throw new IllegalStateException("Access of unresolved field");
+    }
+
     public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
         return asDependency(new StaticFieldWrite(line, bci, requireDependency(), fieldElement, value, mode));
+    }
+
+    public Node writeStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
+        throw new IllegalStateException("Access of unresolved field");
     }
 
     public Node writeArrayValue(final Value array, final Value index, final Value value, final JavaAccessMode mode) {
@@ -332,20 +371,36 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return optionallyTry(new StaticInvocation(line, bci, requireDependency(), target, arguments));
     }
 
+    public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
+        throw new IllegalStateException("Invoke of unresolved method");
+    }
+
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         return optionallyTry(new InstanceInvocation(line, bci, requireDependency(), kind, instance, target, arguments));
+    }
+
+    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
+        throw new IllegalStateException("Invoke of unresolved method");
     }
 
     public Node invokeDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final List<Value> arguments) {
         return optionallyTry(new DynamicInvocation(line, bci, requireDependency(), bootstrapMethod, staticArguments, arguments));
     }
 
-    public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
-        return optionallyTry(new StaticInvocationValue(line, bci, requireDependency(), target, type, arguments));
+    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
+        return optionallyTry(new StaticInvocationValue(line, bci, requireDependency(), target, target.getType(element.getEnclosingType().getContext(), List.of()).getReturnType(), arguments));
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
-        return optionallyTry(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, type, arguments));
+    public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
+        throw new IllegalStateException("Invoke of unresolved method");
+    }
+
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        return optionallyTry(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, target.getType(element.getEnclosingType().getContext(), List.of()).getReturnType(), arguments));
+    }
+
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
+        throw new IllegalStateException("Invoke of unresolved method");
     }
 
     public Value invokeValueDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final ValueType type, final List<Value> arguments) {
@@ -354,6 +409,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
         return optionallyTry(new ConstructorInvocation(line, bci, requireDependency(), instance, target, arguments));
+    }
+
+    public Value invokeConstructor(final Value instance, final TypeDescriptor owner, final MethodDescriptor descriptor, final List<Value> arguments) {
+        throw new IllegalStateException("Invoke of unresolved constructor");
     }
 
     public Value callFunction(final Value callTarget, final List<Value> arguments) {

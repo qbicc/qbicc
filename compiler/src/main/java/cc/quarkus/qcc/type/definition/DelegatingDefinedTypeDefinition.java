@@ -5,6 +5,7 @@ import java.util.List;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.classfile.BootstrapMethod;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.generic.ClassSignature;
 
 /**
@@ -33,6 +34,10 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
 
     public boolean internalPackageAndNameEquals(final String intPackageName, final String className) {
         return getDelegate().internalPackageAndNameEquals(intPackageName, className);
+    }
+
+    public ClassTypeDescriptor getDescriptor() {
+        return getDelegate().getDescriptor();
     }
 
     public int getModifiers() {

@@ -8,7 +8,6 @@ import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
@@ -33,14 +32,14 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.invokeInstance(kind, instance, target, arguments);
     }
 
-    public Value invokeValueStatic(final MethodElement target, final ValueType type, final List<Value> arguments) {
+    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
         ctxt.enqueue(target);
-        return super.invokeValueStatic(target, type, arguments);
+        return super.invokeValueStatic(target, arguments);
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final ValueType type, final List<Value> arguments) {
+    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         ctxt.enqueue(target);
-        return super.invokeValueInstance(kind, instance, target, type, arguments);
+        return super.invokeValueInstance(kind, instance, target, arguments);
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {

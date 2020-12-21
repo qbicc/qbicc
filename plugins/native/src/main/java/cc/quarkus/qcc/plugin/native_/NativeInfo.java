@@ -1,6 +1,8 @@
 package cc.quarkus.qcc.plugin.native_;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,8 +24,9 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.NestedClassElement;
-import cc.quarkus.qcc.type.definition.element.VariableElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 /**
  *
@@ -33,12 +36,21 @@ final class NativeInfo {
 
     private final CompilationContext ctxt;
 
-    final Map<MethodElement, NativeFunctionInfo> nativeFunctions = new ConcurrentHashMap<>();
+    final ClassTypeDescriptor cNativeDesc;
+    final ClassTypeDescriptor ptrDesc;
+    final ClassTypeDescriptor wordDesc;
+    final ClassTypeDescriptor cObjectDesc;
+
+    final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, NativeFunctionInfo>>> nativeFunctions = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, AtomicReference<ValueType>> nativeTypes = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, MethodElement> functionalInterfaceMethods = new ConcurrentHashMap<>();
 
     private NativeInfo(final CompilationContext ctxt) {
         this.ctxt = ctxt;
+        cNativeDesc = ClassTypeDescriptor.parseClassConstant(ctxt.getBootstrapClassContext(), ByteBuffer.wrap(Native.C_NATIVE_INT_NAME.getBytes(StandardCharsets.UTF_8)));
+        ptrDesc = ClassTypeDescriptor.parseClassConstant(ctxt.getBootstrapClassContext(), ByteBuffer.wrap(Native.PTR_INT_NAME.getBytes(StandardCharsets.UTF_8)));
+        wordDesc = ClassTypeDescriptor.parseClassConstant(ctxt.getBootstrapClassContext(), ByteBuffer.wrap(Native.WORD_INT_NAME.getBytes(StandardCharsets.UTF_8)));
+        cObjectDesc = ClassTypeDescriptor.parseClassConstant(ctxt.getBootstrapClassContext(), ByteBuffer.wrap(Native.OBJECT_INT_NAME.getBytes(StandardCharsets.UTF_8)));
     }
 
     static NativeInfo get(final CompilationContext ctxt) {
@@ -225,5 +237,17 @@ final class NativeInfo {
             }
         }
         return found;
+    }
+
+    public NativeFunctionInfo getFunctionInfo(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor) {
+        return nativeFunctions.getOrDefault(owner, Map.of()).getOrDefault(name, Map.of()).get(descriptor);
+    }
+
+    public void registerFunctionInfo(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, NativeFunctionInfo info) {
+        nativeFunctions.computeIfAbsent(owner, NativeInfo::newMap).computeIfAbsent(name, NativeInfo::newMap).put(descriptor, info);
+    }
+
+    private static <K, V> Map<K, V> newMap(final Object key) {
+        return new ConcurrentHashMap<>();
     }
 }

@@ -16,7 +16,10 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 /**
  * A program graph builder, which builds each basic block in succession and wires them together.
@@ -169,6 +172,8 @@ public interface BasicBlockBuilder {
 
     Value instanceOf(Value input, ValueType expectedType);
 
+    Value instanceOf(Value input, TypeDescriptor desc);
+
     /**
      * Narrow a value with reference type to another (typically more specific) type.
      *
@@ -178,21 +183,33 @@ public interface BasicBlockBuilder {
      */
     Value narrow(Value value, ValueType toType);
 
+    Value narrow(Value value, TypeDescriptor desc);
+
     // memory
 
     Value new_(ClassTypeIdLiteral typeId);
 
+    Value new_(ClassTypeDescriptor desc);
+
     Value newArray(ArrayTypeIdLiteral arrayTypeId, Value size);
 
+    Value newArray(ArrayTypeDescriptor desc, Value size);
+
     Value multiNewArray(ArrayTypeIdLiteral arrayTypeId, List<Value> dimensions);
+
+    Value multiNewArray(ArrayTypeDescriptor desc, List<Value> dimensions);
 
     Value clone(Value object);
 
     Value pointerLoad(Value pointer, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
 
-    Value readInstanceField(Value instance, FieldElement fieldElement, ValueType type, JavaAccessMode mode);
+    Value readInstanceField(Value instance, FieldElement fieldElement, JavaAccessMode mode);
 
-    Value readStaticField(FieldElement fieldElement, ValueType type, JavaAccessMode mode);
+    Value readInstanceField(Value instance, TypeDescriptor owner, String name, TypeDescriptor descriptor, JavaAccessMode mode);
+
+    Value readStaticField(FieldElement fieldElement, JavaAccessMode mode);
+
+    Value readStaticField(TypeDescriptor owner, String name, TypeDescriptor descriptor, JavaAccessMode mode);
 
     Value readArrayValue(Value array, Value index, JavaAccessMode mode);
 
@@ -200,7 +217,11 @@ public interface BasicBlockBuilder {
 
     Node writeInstanceField(Value instance, FieldElement fieldElement, Value value, JavaAccessMode mode);
 
+    Node writeInstanceField(Value instance, TypeDescriptor owner, String name, TypeDescriptor descriptor, Value value, JavaAccessMode mode);
+
     Node writeStaticField(FieldElement fieldElement, Value value, JavaAccessMode mode);
+
+    Node writeStaticField(TypeDescriptor owner, String name, TypeDescriptor descriptor, Value value, JavaAccessMode mode);
 
     Node writeArrayValue(Value array, Value index, Value value, JavaAccessMode mode);
 
@@ -214,15 +235,24 @@ public interface BasicBlockBuilder {
 
     Node invokeStatic(MethodElement target, List<Value> arguments);
 
+    Node invokeStatic(TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
+
     Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
+
+    Node invokeInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
 
     Node invokeDynamic(MethodElement bootstrapMethod, List<Value> staticArguments, List<Value> arguments);
 
-    Value invokeValueStatic(MethodElement target, ValueType type, List<Value> arguments);
+    Value invokeValueStatic(MethodElement target, List<Value> arguments);
 
-    Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, ValueType type, List<Value> arguments);
+    Value invokeValueStatic(TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
+
+    Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
+
+    Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
 
     Value invokeValueDynamic(MethodElement bootstrapMethod, List<Value> staticArguments, ValueType type, List<Value> arguments);
+
     /**
      * Invoke an object instance initializer.  The value returned has an initialized type.  The returned value should
      * replace all occurrences of the uninitialized value when processing bytecode.
@@ -233,6 +263,8 @@ public interface BasicBlockBuilder {
      * @return the initialized value
      */
     Value invokeConstructor(Value instance, ConstructorElement target, List<Value> arguments);
+
+    Value invokeConstructor(Value instance, TypeDescriptor owner, MethodDescriptor descriptor, List<Value> arguments);
 
     // misc
 
