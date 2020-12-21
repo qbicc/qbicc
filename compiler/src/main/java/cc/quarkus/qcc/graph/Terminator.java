@@ -13,8 +13,4 @@ public interface Terminator extends Node {
     default BasicBlock getSuccessor(int index) {
         throw new IndexOutOfBoundsException(index);
     }
-
-    default <T, R> R accept(OldNodeVisitor<T, R> visitor, T param) {
-        return visitor.visit(param, this);
-    }
 }

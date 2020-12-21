@@ -55,8 +55,6 @@ public interface Node {
         }
     }
 
-    <T, R> R accept(OldNodeVisitor<T, R> visitor, T param);
-
     /**
      * A node copier, which uses a visitor chain to allow observation and transformation of the graph nodes as they
      * are copied.
