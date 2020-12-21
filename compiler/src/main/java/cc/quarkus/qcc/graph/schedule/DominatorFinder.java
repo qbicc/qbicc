@@ -49,6 +49,9 @@ final class DominatorFinder {
     //         od
     //       end DFS;
     void DFS(int v) {
+        if (n + 1 >= graphSize)
+            return;
+
         semi[v] = ++n;
         vertex[n] = label[v] = v;
         ancestor[v] = child[v] = 0;
@@ -60,7 +63,7 @@ final class DominatorFinder {
                 DFS(w);
             }
             pred[w].set(v);
-            w = succ[v].nextSetBit(w);
+            w = succ[v].nextSetBit(w + 1);
         }
     }
 
@@ -188,6 +191,11 @@ final class DominatorFinder {
             pred[v] = new BitSet();
             bucket[v] = new BitSet();
             succ[v] = new BitSet();
+            final BlockInfo blockInfo = allBlocks[v];
+            final var successorCount = blockInfo.block.getTerminator().getSuccessorCount();
+            if (successorCount > 0) {
+                succ[v].set(v + 1, v + successorCount + 1);
+            }
             semi[v] = 0;
         }
         n = 0;
@@ -202,7 +210,7 @@ final class DominatorFinder {
                 if (semi[u] < semi[w]) {
                     semi[w] = semi[u];
                 }
-                v = pred[w].nextSetBit(0);
+                v = pred[w].nextSetBit(v + 1);
             }
             bucket[vertex[semi[w]]].set(w);
             LINK(parent[w], w);
@@ -212,7 +220,7 @@ final class DominatorFinder {
                 bucket[parent[w]].clear(v);
                 int u = EVAL(v);
                 allBlocks[v].dominator = allBlocks[semi[u] < semi[v] ? u : parent[w]];
-                v = bucket[parent[w]].nextSetBit(0);
+                v = bucket[parent[w]].nextSetBit(v + 1);
             }
         }
         // step 4
