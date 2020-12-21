@@ -600,7 +600,7 @@ public class Driver implements Closeable {
 
         public Builder addPostAdditiveHook(Consumer<? super CompilationContext> hook) {
             if (hook != null) {
-                preAddHooks.add(hook);
+                postAddHooks.add(hook);
             }
             return this;
         }

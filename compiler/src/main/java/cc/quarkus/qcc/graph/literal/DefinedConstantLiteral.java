@@ -9,14 +9,20 @@ import cc.quarkus.qcc.type.ValueType;
  * expression.  A defined constant with an undefined value cannot be used directly, but can be probed for definedness.
  */
 public final class DefinedConstantLiteral extends Literal {
+    private final String name;
     private final Value value;
 
-    DefinedConstantLiteral(final Value value) {
+    DefinedConstantLiteral(final String name, final Value value) {
+        this.name = name;
         this.value = value;
     }
 
     public ValueType getType() {
         return value.getType();
+    }
+
+    public String getName() {
+        return name;
     }
 
     public Value getValue() {

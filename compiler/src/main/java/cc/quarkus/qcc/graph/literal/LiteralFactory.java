@@ -47,7 +47,7 @@ public interface LiteralFactory {
 
     UndefinedLiteral literalOfUndefined();
 
-    DefinedConstantLiteral literalOfDefinedConstant(Value constantValue);
+    DefinedConstantLiteral literalOfDefinedConstant(String name, Value constantValue);
 
     TypeLiteral literalOfType(ValueType type);
 
@@ -118,8 +118,8 @@ public interface LiteralFactory {
                 return undef;
             }
 
-            public DefinedConstantLiteral literalOfDefinedConstant(final Value constantValue) {
-                return new DefinedConstantLiteral(constantValue);
+            public DefinedConstantLiteral literalOfDefinedConstant(final String name, final Value constantValue) {
+                return new DefinedConstantLiteral(name, constantValue);
             }
 
             public ObjectLiteral literalOf(final VmObject value) {

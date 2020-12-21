@@ -46,11 +46,9 @@ public interface Node {
         throw new IndexOutOfBoundsException(index);
     }
 
-    default Node getSingleDependency(BasicBlockBuilder graphFactory, Node defaultValue) {
-        int cnt = getValueDependencyCount();
-        if (cnt == 0) {
-            return defaultValue;
-        } else if (cnt == 1) {
+    default Node getDependency() {
+        int cnt = getBasicDependencyCount();
+        if (cnt == 1) {
             return getBasicDependency(0);
         } else {
             throw new IllegalStateException();

@@ -57,6 +57,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-plugin-dot</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qcc-plugin-linker</artifactId>
         </dependency>
         <dependency>

@@ -104,7 +104,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             val = lf.literalOfUndefined();
         }
         if (constantInfo.isDefined()) {
-            val = lf.literalOfDefinedConstant(val);
+            val = lf.literalOfDefinedConstant(name, val);
         }
         constants.registerConstant(fieldElement, val);
     }

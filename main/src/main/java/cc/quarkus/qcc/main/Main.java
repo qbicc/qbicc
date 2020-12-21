@@ -23,6 +23,7 @@ import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.plugin.constants.ConstantBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.CloneConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.dot.DotGenerator;
 import cc.quarkus.qcc.plugin.linker.LinkStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
@@ -198,6 +199,7 @@ public class Main {
                                 assert mainClass != null; // else errors would be != 0
                                 // keep it simple to start with
                                 builder.setMainClass(mainClass.replace('.', '/'));
+                                builder.addGenerateVisitor(DotGenerator.genPhase());
                                 builder.addPostAnalyticHook(new LLVMGenerator());
                                 builder.addPostAnalyticHook(new LLVMCompileStage());
                                 builder.addPostAnalyticHook(new LinkStage());

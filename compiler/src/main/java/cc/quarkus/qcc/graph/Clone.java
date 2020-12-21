@@ -5,7 +5,7 @@ import cc.quarkus.qcc.type.ValueType;
 /**
  *
  */
-public class Clone extends AbstractValue {
+public class Clone extends AbstractValue implements UnaryValue {
     private final Node dependency;
     private final Value original;
 

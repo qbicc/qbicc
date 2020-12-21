@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph.literal;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.type.BlockType;
@@ -23,6 +24,10 @@ public final class BlockLiteral extends Literal {
 
     public BlockLabel getBlockLabel() {
         return blockLabel;
+    }
+
+    public BasicBlock getBlock() {
+        return BlockLabel.getTargetOf(blockLabel);
     }
 
     public boolean equals(final Literal other) {
