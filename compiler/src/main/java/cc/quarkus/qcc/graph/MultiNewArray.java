@@ -3,36 +3,39 @@ package cc.quarkus.qcc.graph;
 import java.util.List;
 import java.util.Objects;
 
-import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.ValueType;
 
 /**
  * A {@code new} allocation operation for multi-dimensional array objects.
  */
 public final class MultiNewArray extends AbstractValue {
     private final Node dependency;
-    private final ReferenceType type;
+    private final ArrayObjectType type;
     private final List<Value> dimensions;
-    private final Literal elementTypeId;
 
-    MultiNewArray(final int line, final int bci, final Node dependency, final Literal elementTypeId, final ReferenceType type, final List<Value> dimensions) {
+    MultiNewArray(final int line, final int bci, final Node dependency, final ArrayObjectType type, final List<Value> dimensions) {
         super(line, bci);
         this.dependency = dependency;
-        this.elementTypeId = elementTypeId;
         this.type = type;
         this.dimensions = dimensions;
     }
 
     public ReferenceType getType() {
-        return type;
+        return type.getReference();
     }
 
     public List<Value> getDimensions() {
         return dimensions;
     }
 
-    public Literal getElementTypeId() {
-        return elementTypeId;
+    public ValueType getElementType() {
+        return type.getElementType();
+    }
+
+    public ArrayObjectType getArrayType() {
+        return type;
     }
 
     public int getBasicDependencyCount() {
@@ -56,7 +59,7 @@ public final class MultiNewArray extends AbstractValue {
     }
 
     int calcHashCode() {
-        return Objects.hash(dependency, type, elementTypeId, dimensions);
+        return Objects.hash(dependency, type, dimensions);
     }
 
     public boolean equals(final Object other) {
@@ -67,7 +70,6 @@ public final class MultiNewArray extends AbstractValue {
         return this == other || other != null
             && dependency.equals(other.dependency)
             && type.equals(other.type)
-            && elementTypeId.equals(other.elementTypeId)
             && dimensions.equals(other.dimensions);
     }
 }

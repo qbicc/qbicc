@@ -8,8 +8,6 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
@@ -27,7 +25,6 @@ import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 import cc.quarkus.qcc.type.definition.element.ParameterElement;
-import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.Descriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -291,7 +288,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         int constantType = getConstantType(idx);
         switch (constantType) {
-            case CONSTANT_Class: return setIfNull(literals, idx, getClassConstant(idx));
+            case CONSTANT_Class: return setIfNull(literals, idx, literalFactory.literalOfType(getTypeConstant(idx)));
             case CONSTANT_String:
                 return setIfNull(literals, idx, literalFactory.literalOf(getStringConstant(idx)));
             case CONSTANT_Integer:
@@ -309,24 +306,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             default: {
                 throw new IllegalArgumentException("Unexpected constant of type " + constantType + " at index " + idx);
             }
-        }
-    }
-
-    @Deprecated
-    TypeIdLiteral getClassConstant(int idx) {
-        int nameIdx = getClassConstantNameIdx(idx);
-        String name = getUtf8Constant(nameIdx);
-        assert name != null;
-        if (name.startsWith("[")) {
-            ArrayTypeDescriptor desc = (ArrayTypeDescriptor) getDescriptorConstant(nameIdx);
-            ValueType type = ctxt.resolveTypeFromDescriptor(desc, List.of(), TypeSignature.synthesize(ctxt, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
-            return ((ReferenceType) type).getUpperBound();
-        } else {
-            DefinedTypeDefinition definedType = ctxt.findDefinedType(name);
-            if (definedType == null) {
-                throw new DefineFailedException("No class named " + name + " found");
-            }
-            return definedType.validate().getTypeId();
         }
     }
 
@@ -383,11 +362,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     public long getRawConstantLong(final int idx, final int offset) throws IndexOutOfBoundsException {
         int cpOffset = cpOffsets[idx];
         return cpOffset == 0 ? 0 : getLong(cpOffset + offset);
-    }
-
-    TypeIdLiteral resolveSingleType(String name) {
-        DefinedTypeDefinition definedType = ctxt.findDefinedType(name);
-        return definedType == null ? null : definedType.validate().getTypeId();
     }
 
     public int getAccess() {

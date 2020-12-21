@@ -11,22 +11,21 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.ReferenceArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.Type;
-import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.InvokableElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder implements BasicBlockBuilder {
     /**
      * A mapping of patch-to-patched class types.
      */
-    private final Map<ClassTypeIdLiteral, ClassTypeIdLiteral> patchTypes = new ConcurrentHashMap<>();
+    private final Map<ClassObjectType, ClassObjectType> patchTypes = new ConcurrentHashMap<>();
     /**
      * A mapping of patch-to-patched fields.
      */
@@ -34,7 +33,7 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
     /**
      * A mapping of patched fields to accessors.
      */
-    private final Map<FieldElement, ClassTypeIdLiteral> accessors = new ConcurrentHashMap<>();
+    private final Map<FieldElement, ClassObjectType> accessors = new ConcurrentHashMap<>();
     /**
      * A mapping of methods to their replacements.
      */
@@ -48,23 +47,12 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
 
     @SuppressWarnings("unchecked")
     private <T extends Type> T remapType(T original) {
-        if (original instanceof ReferenceType) {
-            final ReferenceType classType = (ReferenceType) original;
-            TypeIdLiteral upperBound = classType.getUpperBound();
-            TypeSystem ts = ctxt.getTypeSystem();
-            return (T) ts.getReferenceType(remapTypeId(upperBound));
-        } else {
-            return original;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T extends TypeIdLiteral> T remapTypeId(T original) {
-        if (original instanceof ClassTypeIdLiteral) {
-            return (T) patchTypes.getOrDefault(original, (ClassTypeIdLiteral) original);
-        } else if (original instanceof ArrayTypeIdLiteral) {
-            ArrayTypeIdLiteral arrayTypeIdLiteral = (ArrayTypeIdLiteral) original;
-            return (T) ctxt.getLiteralFactory().literalOfArrayType(remapType(arrayTypeIdLiteral.getElementType()));
+        if (original instanceof ClassObjectType) {
+            return (T) patchTypes.getOrDefault(original, (ClassObjectType) original);
+        } else if (original instanceof ReferenceArrayObjectType) {
+            return (T) remapType(((ReferenceArrayObjectType) original).getElementType()).getReferenceArrayObject();
+        } else if (original instanceof ReferenceType) {
+            return (T) remapType(((ReferenceType) original).getUpperBound()).getReference();
         } else {
             return original;
         }
@@ -74,16 +62,16 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
         return patchMethods.getOrDefault(original, original);
     }
 
-    public Value new_(final ClassTypeIdLiteral typeId) {
-        return super.new_(remapTypeId(typeId));
+    public Value new_(final ClassObjectType type) {
+        return super.new_(remapType(type));
     }
 
-    public Value newArray(final ArrayTypeIdLiteral arrayTypeId, final Value size) {
-        return super.newArray(remapTypeId(arrayTypeId), size);
+    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+        return super.newArray(remapType(arrayType), size);
     }
 
     public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
-        ClassTypeIdLiteral accessor = accessors.get(fieldElement);
+        ClassObjectType accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
@@ -97,7 +85,7 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
     }
 
     public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
-        ClassTypeIdLiteral accessor = accessors.get(fieldElement);
+        ClassObjectType accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
@@ -111,7 +99,7 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
     }
 
     public Node writeInstanceField(final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        ClassTypeIdLiteral accessor = accessors.get(fieldElement);
+        ClassObjectType accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
@@ -125,7 +113,7 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
     }
 
     public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        ClassTypeIdLiteral accessor = accessors.get(fieldElement);
+        ClassObjectType accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {

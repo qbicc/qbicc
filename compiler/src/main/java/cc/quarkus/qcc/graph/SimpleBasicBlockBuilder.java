@@ -3,10 +3,10 @@ package cc.quarkus.qcc.graph;
 import java.util.List;
 
 import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -218,16 +218,16 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("Narrow of unresolved type");
     }
 
-    public Value receiver(final TypeIdLiteral upperBound) {
-        return new ThisValue(typeSystem.getReferenceType(Assert.checkNotNullParam("upperBound", upperBound)));
+    public Value receiver(final ObjectType upperBound) {
+        return new ThisValue(Assert.checkNotNullParam("upperBound", upperBound).getReference());
     }
 
     public Value parameter(final ValueType type, final int index) {
         return new ParameterValue(type, index);
     }
 
-    public Value catch_(final TypeIdLiteral upperBound) {
-        return new Catch(typeSystem.getReferenceType(Assert.checkNotNullParam("upperBound", upperBound)));
+    public Value catch_(final ClassObjectType upperBound) {
+        return new Catch(Assert.checkNotNullParam("upperBound", upperBound));
     }
 
     public PhiValue phi(final ValueType type, final BlockLabel owner) {
@@ -242,24 +242,24 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new TypeIdOf(line, bci, typeSystem.getTypeIdType(), value);
     }
 
-    public Value new_(final ClassTypeIdLiteral typeId) {
-        return asDependency(new New(line, bci, requireDependency(), typeSystem.getReferenceType(typeId), typeId));
+    public Value new_(final ClassObjectType type) {
+        return asDependency(new New(line, bci, requireDependency(), type));
     }
 
     public Value new_(final ClassTypeDescriptor desc) {
         throw new IllegalStateException("New of unresolved class");
     }
 
-    public Value newArray(final ArrayTypeIdLiteral arrayTypeId, final Value size) {
-        return asDependency(new NewArray(line, bci, requireDependency(), arrayTypeId, typeSystem.getReferenceType(arrayTypeId), size));
+    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+        return asDependency(new NewArray(line, bci, requireDependency(), arrayType, size));
     }
 
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
         throw new IllegalStateException("New of unresolved array type");
     }
 
-    public Value multiNewArray(final ArrayTypeIdLiteral arrayTypeId, final List<Value> dimensions) {
-        return asDependency(new MultiNewArray(line, bci, requireDependency(), arrayTypeId, typeSystem.getReferenceType(arrayTypeId), dimensions));
+    public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
+        return asDependency(new MultiNewArray(line, bci, requireDependency(), arrayType, dimensions));
     }
 
     public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
@@ -267,7 +267,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value clone(final Value object) {
-        throw Assert.unsupported();
+        return asDependency(new Clone(line, bci, requireDependency(), object));
     }
 
     public Value pointerLoad(final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
@@ -291,7 +291,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
-        ArrayTypeIdLiteral arrayTypeBound = (ArrayTypeIdLiteral) ((ReferenceType) array.getType()).getUpperBound();
+        ArrayObjectType arrayTypeBound = (ArrayObjectType) ((ReferenceType) array.getType()).getUpperBound();
         ValueType type = arrayTypeBound.getElementType();
         return asDependency(new ArrayElementRead(line, bci, requireDependency(), type, array, index, mode));
     }
@@ -339,8 +339,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             BasicBlock block = try_(op, resume, exceptionHandler.getHandler());
             ClassContext classContext = element.getEnclosingType().getContext();
             // todo: cache or eliminate
-            TypeIdLiteral typeId = classContext.findDefinedType("java/lang/Throwable").validate().getTypeId();
-            exceptionHandler.enterHandler(block, catch_(typeId));
+            ClassObjectType type = classContext.findDefinedType("java/lang/Throwable").validate().getClassType();
+            exceptionHandler.enterHandler(block, catch_(type));
             begin(resume);
             return op;
         } else {
@@ -352,8 +352,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         PhiValue exceptionPhi = this.exceptionPhi;
         if (exceptionPhi == null) {
             // first time called
-            TypeIdLiteral typeId = getCurrentElement().getEnclosingType().getContext().findDefinedType("java/lang/Throwable").validate().getTypeId();
-            exceptionPhi = this.exceptionPhi = phi(typeSystem.getReferenceType(typeId), new BlockLabel());
+            ClassObjectType typeId = getCurrentElement().getEnclosingType().getContext().findDefinedType("java/lang/Throwable").validate().getClassType();
+            exceptionPhi = this.exceptionPhi = phi(typeId.getReference(), new BlockLabel());
         }
         return exceptionPhi.getPinnedBlockLabel();
     }
@@ -476,7 +476,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return terminate(requireCurrentBlock(), new ClassCastErrorNode(line, bci, dependency, fromType, toType));
     }
 
-    public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final MethodDescriptor desc, final String name) {
+    public BasicBlock noSuchMethodError(final ObjectType owner, final MethodDescriptor desc, final String name) {
         return terminate(requireCurrentBlock(), new NoSuchMethodErrorNode(line, bci, dependency, owner, desc, name));
     }
 

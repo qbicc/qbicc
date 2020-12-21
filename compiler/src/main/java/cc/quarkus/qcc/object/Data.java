@@ -2,7 +2,6 @@ package cc.quarkus.qcc.object;
 
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.type.definition.element.BasicElement;
 import cc.quarkus.qcc.type.definition.element.Element;
 
 /**

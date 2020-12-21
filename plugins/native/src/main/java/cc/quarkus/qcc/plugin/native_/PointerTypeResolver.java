@@ -5,13 +5,12 @@ import static cc.quarkus.qcc.runtime.CNative.*;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.IntAnnotationValue;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotation;
@@ -23,6 +22,7 @@ import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.generic.AnyTypeArgument;
+import cc.quarkus.qcc.type.generic.ArrayTypeSignature;
 import cc.quarkus.qcc.type.generic.BaseTypeSignature;
 import cc.quarkus.qcc.type.generic.BoundTypeArgument;
 import cc.quarkus.qcc.type.generic.ClassTypeSignature;
@@ -48,6 +48,15 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
 
     public DescriptorTypeResolver getDelegate() {
         return delegate;
+    }
+
+    public ValueType resolveTypeFromClassName(final String packageName, final String internalName) {
+        if (packageName.equals(Native.NATIVE_PKG)) {
+            if (internalName.equals(Native.PTR)) {
+                return ctxt.getTypeSystem().getVoidType().getPointer();
+            }
+        }
+        return getDelegate().resolveTypeFromClassName(packageName, internalName);
     }
 
     public ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, List<ParameterizedSignature> typeParamCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations) {
@@ -92,6 +101,9 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                                 // todo: use context to resolve type variable bounds
                                 TypeDescriptor pointeeDesc = pointeeSig.asDescriptor(classCtxt);
                                 pointeeType = classCtxt.resolveTypeFromDescriptor(pointeeDesc, typeParamCtxt, pointeeSig, visibleAnnotations, invisibleAnnotations);
+                                if (pointeeType instanceof ReferenceType) {
+                                    pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, typeParamCtxt, BaseTypeSignature.V, visibleAnnotations, invisibleAnnotations);
+                                }
                             } else {
                                 ctxt.warning("Incorrect number of generic signature arguments (expected a %s but got \"%s\")", ptr.class, sig);
                                 pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, typeParamCtxt, BaseTypeSignature.V, visibleAnnotations, invisibleAnnotations);
@@ -112,35 +124,17 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
             }
         } else if (descriptor instanceof ArrayTypeDescriptor) {
             TypeDescriptor elemDesc = ((ArrayTypeDescriptor) descriptor).getElementTypeDescriptor();
-            if (elemDesc instanceof ArrayTypeDescriptor) {
-                // check to see if the delegate gives us a reference array of "real" arrays.
-                ValueType delegateResolved = getDelegate().resolveTypeFromDescriptor(descriptor, typeParamCtxt, signature, visibleAnnotations, invisibleAnnotations);
-                if (delegateResolved instanceof ReferenceType) {
-                    ReferenceType refResolved = (ReferenceType) delegateResolved;
-                    TypeIdLiteral upperBound = refResolved.getUpperBound();
-                    if (upperBound instanceof ValueArrayTypeIdLiteral) {
-                        // it's a value array, but is the value an array type?
-                        ValueType elementType = ((ValueArrayTypeIdLiteral) upperBound).getElementType();
-                        if (elementType instanceof ArrayType) {
-                            // yes, it's really an array of "real" arrays, so return a "real" array here as well.
-                            return ctxt.getTypeSystem().getArrayType(elementType, detectArraySize(visibleAnnotations));
-                        }
-                    }
-                }
-                // else fall out
-            } else if (elemDesc instanceof ClassTypeDescriptor) {
-                // it's a class, not a primitive; see if it gets magically converted to a primitive reference array
-                ValueType delegateResolved = getDelegate().resolveTypeFromDescriptor(descriptor, typeParamCtxt, signature, visibleAnnotations, invisibleAnnotations);
-                if (delegateResolved instanceof ReferenceType) {
-                    ReferenceType refResolved = (ReferenceType) delegateResolved;
-                    TypeIdLiteral upperBound = refResolved.getUpperBound();
-                    if (upperBound instanceof ValueArrayTypeIdLiteral) {
-                        // aha! this means it's an array of native type and should be transformed to a "real" array type
-                        return ctxt.getTypeSystem().getArrayType(((ValueArrayTypeIdLiteral) upperBound).getElementType(), detectArraySize(visibleAnnotations));
-                    }
-                }
-                // else fall out
+            TypeSignature elemSig = signature instanceof ArrayTypeSignature ? ((ArrayTypeSignature) signature).getElementTypeSignature() : TypeSignature.synthesize(classCtxt, elemDesc);
+            // resolve element type
+            ValueType elemType = classCtxt.resolveTypeFromDescriptor(elemDesc, typeParamCtxt, elemSig, visibleAnnotations.inArray(), invisibleAnnotations.inArray());
+            if (elemType instanceof ArrayType) {
+                // it's an array of arrays, make it into a native array instead of a reference array
+                return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(visibleAnnotations));
+            } else if (elemType instanceof WordType && elemDesc instanceof ClassTypeDescriptor) {
+                // this means it's an array of native type (wrapped as ref type) and should be transformed to a "real" array type
+                return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(visibleAnnotations));
             }
+            // else fall out
         }
         if (restrict) {
             ctxt.error("Only pointers can have `restrict` qualifier (\"%s\" \"%s\")", descriptor, signature);

@@ -19,6 +19,7 @@ import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -57,21 +58,21 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 case "sizeof": {
                     ValueType argType = arguments.get(0).getType();
                     long size;
-//                    if (argType instanceof TypeType) {
-//                        size = ((TypeType) argType).getUpperBound().getSize();
-//                    } else {
+                    if (argType instanceof TypeType) {
+                        size = ((TypeType) argType).getUpperBound().getSize();
+                    } else {
                         size = argType.getSize();
-//                    }
+                    }
                     return ctxt.getLiteralFactory().literalOf(size);
                 }
                 case "alignof": {
                     ValueType argType = arguments.get(0).getType();
                     long align;
-//                    if (argType instanceof TypeType) {
-//                        align = ((TypeType) argType).getUpperBound().getAlign();
-//                    } else {
+                    if (argType instanceof TypeType) {
+                        align = ((TypeType) argType).getUpperBound().getAlign();
+                    } else {
                         align = argType.getAlign();
-//                    }
+                    }
                     return ctxt.getLiteralFactory().literalOf(align);
                 }
                 case "defined": {

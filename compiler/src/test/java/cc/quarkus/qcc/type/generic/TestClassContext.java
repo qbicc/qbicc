@@ -14,15 +14,13 @@ import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
-import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
@@ -179,7 +177,7 @@ public class TestClassContext implements ClassContext {
         return null;
     }
 
-    public DefinedTypeDefinition resolveDefinedTypeLiteral(final TypeIdLiteral typeId) {
+    public DefinedTypeDefinition resolveDefinedTypeLiteral(final ObjectType typeId) {
         return null;
     }
 
@@ -198,14 +196,6 @@ public class TestClassContext implements ClassContext {
 
     public TypeSystem getTypeSystem() {
         return null;
-    }
-
-    public void registerClassLiteral(final ClassTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
-
-    }
-
-    public void registerInterfaceLiteral(final InterfaceTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
-
     }
 
     public LiteralFactory getLiteralFactory() {

@@ -6,10 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -30,7 +27,6 @@ import io.smallrye.common.constraint.Assert;
 public class Dictionary implements ClassContext {
 
     private final ConcurrentHashMap<String, DefinedTypeDefinition> typesByName = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<TypeIdLiteral, DefinedTypeDefinition> typesByLiteral = new ConcurrentHashMap<>();
     private final VmObject classLoader;
     private final VmImpl vm;
 
@@ -50,7 +46,6 @@ public class Dictionary implements ClassContext {
         if (loaded == null) {
             loaded = vm.loadClass(classLoader, name);
             typesByName.put(name, loaded);
-            typesByLiteral.put(loaded.validate().getTypeId(), loaded);
         }
         return loaded;
     }
@@ -91,14 +86,6 @@ public class Dictionary implements ClassContext {
         return def;
     }
 
-    public boolean replaceTypeDefinition(final String name, final DefinedTypeDefinition oldVal, final DefinedTypeDefinition newVal) {
-        return typesByName.replace(name, oldVal, newVal);
-    }
-
-    public DefinedTypeDefinition resolveDefinedTypeLiteral(final TypeIdLiteral typeId) {
-        return typesByLiteral.get(typeId);
-    }
-
     public String deduplicate(final ByteBuffer buffer, final int offset, final int length) {
         // todo
 
@@ -112,14 +99,6 @@ public class Dictionary implements ClassContext {
 
     public TypeSystem getTypeSystem() {
         return vm.getTypeSystem();
-    }
-
-    public void registerClassLiteral(final ClassTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
-
-    }
-
-    public void registerInterfaceLiteral(final InterfaceTypeIdLiteral literal, final DefinedTypeDefinition typeDef) {
-
     }
 
     public LiteralFactory getLiteralFactory() {

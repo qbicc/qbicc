@@ -3,10 +3,10 @@ package cc.quarkus.qcc.graph;
 import java.util.List;
 
 import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeIdType;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -84,11 +84,11 @@ public interface BasicBlockBuilder {
 
     // values
 
-    Value receiver(TypeIdLiteral upperBound);
+    Value receiver(ObjectType upperBound);
 
     Value parameter(ValueType type, int index);
 
-    Value catch_(TypeIdLiteral upperBound);
+    Value catch_(ClassObjectType upperBound);
 
     // phi
 
@@ -187,15 +187,15 @@ public interface BasicBlockBuilder {
 
     // memory
 
-    Value new_(ClassTypeIdLiteral typeId);
+    Value new_(ClassObjectType type);
 
     Value new_(ClassTypeDescriptor desc);
 
-    Value newArray(ArrayTypeIdLiteral arrayTypeId, Value size);
+    Value newArray(ArrayObjectType arrayType, Value size);
 
     Value newArray(ArrayTypeDescriptor desc, Value size);
 
-    Value multiNewArray(ArrayTypeIdLiteral arrayTypeId, List<Value> dimensions);
+    Value multiNewArray(ArrayObjectType arrayType, List<Value> dimensions);
 
     Value multiNewArray(ArrayTypeDescriptor desc, List<Value> dimensions);
 
@@ -349,7 +349,7 @@ public interface BasicBlockBuilder {
      */
     BasicBlock classCastException(Value fromType, Value toType);
 
-    BasicBlock noSuchMethodError(TypeIdLiteral owner, MethodDescriptor desc, String name);
+    BasicBlock noSuchMethodError(ObjectType owner, MethodDescriptor desc, String name);
 
     BasicBlock classNotFoundError(String name);
 

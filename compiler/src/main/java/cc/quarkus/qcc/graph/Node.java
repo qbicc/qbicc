@@ -9,22 +9,17 @@ import java.util.Queue;
 import java.util.function.BiFunction;
 
 import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.DefinedConstantLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.ObjectLiteral;
-import cc.quarkus.qcc.graph.literal.ReferenceArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
-import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -381,11 +376,12 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final Catch node) {
-                return param.getBlockBuilder().catch_(node.getType().getUpperBound());
+                return param.getBlockBuilder().catch_(node.getThrowableType());
             }
 
-            public Value visit(final Copier param, final ClassTypeIdLiteral node) {
-                return node;
+            public Value visit(final Copier param, final Clone node) {
+                param.copyNode(node.getBasicDependency(0));
+                return param.getBlockBuilder().clone(param.copyValue(node.getInput()));
             }
 
             public Value visit(final Copier param, final CmpEq node) {
@@ -467,16 +463,12 @@ public interface Node {
                 return node;
             }
 
-            public Value visit(final Copier param, final InterfaceTypeIdLiteral node) {
-                return node;
-            }
-
             public Value visit(final Copier param, final Mod node) {
                 return param.getBlockBuilder().remainder(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
             public Value visit(final Copier param, final MultiNewArray node) {
-                return param.getBlockBuilder().multiNewArray((ArrayTypeIdLiteral) node.getType().getUpperBound(), param.copyValues(node.getDimensions()));
+                return param.getBlockBuilder().multiNewArray(node.getArrayType(), param.copyValues(node.getDimensions()));
             }
 
             public Value visit(final Copier param, final Multiply node) {
@@ -493,12 +485,12 @@ public interface Node {
 
             public Value visit(final Copier param, final New node) {
                 param.copyNode(node.getBasicDependency(0));
-                return param.getBlockBuilder().new_(node.getInstanceTypeId());
+                return param.getBlockBuilder().new_(node.getClassObjectType());
             }
 
             public Value visit(final Copier param, final NewArray node) {
                 param.copyNode(node.getBasicDependency(0));
-                return param.getBlockBuilder().newArray((ArrayTypeIdLiteral)node.getType().getUpperBound(), param.copyValue(node.getSize()));
+                return param.getBlockBuilder().newArray(node.getArrayType(), param.copyValue(node.getSize()));
             }
 
             public Value visit(final Copier param, final NullLiteral node) {
@@ -520,10 +512,6 @@ public interface Node {
             public Value visit(final Copier param, final PhiValue node) {
                 param.enqueue(node);
                 return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()));
-            }
-
-            public Value visit(final Copier param, final ReferenceArrayTypeIdLiteral node) {
-                return node;
             }
 
             public Value visit(final Copier param, final Rol node) {
@@ -581,10 +569,6 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final UndefinedLiteral node) {
-                return node;
-            }
-
-            public Value visit(final Copier param, final ValueArrayTypeIdLiteral node) {
                 return node;
             }
 

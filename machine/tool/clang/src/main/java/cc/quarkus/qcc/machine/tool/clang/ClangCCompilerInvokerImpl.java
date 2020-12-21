@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.List;
 
 import cc.quarkus.qcc.machine.arch.Platform;
-import cc.quarkus.qcc.machine.tool.CCompilerInvoker;
 import cc.quarkus.qcc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
 

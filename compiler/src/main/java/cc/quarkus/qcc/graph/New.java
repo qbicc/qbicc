@@ -2,31 +2,28 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
+import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.ValueType;
 
 /**
  * A {@code new} allocation operation.
  */
 public final class New extends AbstractValue {
     private final Node dependency;
-    private final ReferenceType type;
-    private final ClassTypeIdLiteral instanceTypeId;
+    private final ClassObjectType type;
 
-    New(final int line, final int bci, final Node dependency, final ReferenceType type, final ClassTypeIdLiteral instanceTypeId) {
+    New(final int line, final int bci, final Node dependency, final ClassObjectType type) {
         super(line, bci);
         this.dependency = dependency;
         this.type = type;
-        this.instanceTypeId = instanceTypeId;
     }
 
-    public ValueType getType() {
+    public ReferenceType getType() {
+        return type.getReference();
+    }
+
+    public ClassObjectType getClassObjectType() {
         return type;
-    }
-
-    public ClassTypeIdLiteral getInstanceTypeId() {
-        return instanceTypeId;
     }
 
     public int getBasicDependencyCount() {
@@ -42,7 +39,7 @@ public final class New extends AbstractValue {
     }
 
     int calcHashCode() {
-        return Objects.hash(dependency, type, instanceTypeId);
+        return Objects.hash(dependency, type);
     }
 
     public boolean equals(final Object other) {
@@ -52,7 +49,6 @@ public final class New extends AbstractValue {
     public boolean equals(final New other) {
         return this == other || other != null
             && dependency.equals(other.dependency)
-            && type.equals(other.type)
-            && instanceTypeId.equals(other.instanceTypeId);
+            && type.equals(other.type);
     }
 }

@@ -11,9 +11,9 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
@@ -57,9 +57,9 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         ClassContext cc = getClassContext();
         ValueType type = cc.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
         if (type instanceof ReferenceType) {
-            TypeIdLiteral upperBound = ((ReferenceType) type).getUpperBound();
-            if (upperBound instanceof ClassTypeIdLiteral) {
-                return super.new_((ClassTypeIdLiteral) upperBound);
+            ObjectType upperBound = ((ReferenceType) type).getUpperBound();
+            if (upperBound instanceof ClassObjectType) {
+                return super.new_((ClassObjectType) upperBound);
             }
         }
         ctxt.error(getLocation(), "Invalid type resolved for `new`: %s", type);
@@ -70,9 +70,9 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         ClassContext cc = getClassContext();
         ValueType type = cc.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
         if (type instanceof ReferenceType) {
-            TypeIdLiteral upperBound = ((ReferenceType) type).getUpperBound();
-            if (upperBound instanceof ArrayTypeIdLiteral) {
-                return super.newArray((ArrayTypeIdLiteral) upperBound, size);
+            ObjectType upperBound = ((ReferenceType) type).getUpperBound();
+            if (upperBound instanceof ArrayObjectType) {
+                return super.newArray((ArrayObjectType) upperBound, size);
             }
         }
         ctxt.error(getLocation(), "Invalid type resolved for `newArray`: %s", type);
@@ -83,9 +83,9 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         ClassContext cc = getClassContext();
         ValueType type = cc.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
         if (type instanceof ReferenceType) {
-            TypeIdLiteral upperBound = ((ReferenceType) type).getUpperBound();
-            if (upperBound instanceof ArrayTypeIdLiteral) {
-                return super.multiNewArray((ArrayTypeIdLiteral) upperBound, dimensions);
+            ObjectType upperBound = ((ReferenceType) type).getUpperBound();
+            if (upperBound instanceof ArrayObjectType) {
+                return super.multiNewArray((ArrayObjectType) upperBound, dimensions);
             }
         }
         ctxt.error(getLocation(), "Invalid type resolved for `multiNewArray`: %s", type);
@@ -243,7 +243,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     private void nsfe() {
         Info info = Info.get(ctxt);
         // todo: add class name to exception string
-        Value nsme = invokeConstructor(new_(info.nsfeClassId), info.nsfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
+        Value nsme = invokeConstructor(new_(info.nsfeClass), info.nsfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
         throw_(nsme);
         // this is an unreachable block
         begin(new BlockLabel());
@@ -252,7 +252,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     private void nsme() {
         Info info = Info.get(ctxt);
         // todo: add class name to exception string
-        Value nsme = invokeConstructor(new_(info.nsmeClassId), info.nsmeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
+        Value nsme = invokeConstructor(new_(info.nsmeClass), info.nsmeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
         throw_(nsme);
         // this is an unreachable block
         begin(new BlockLabel());
@@ -263,17 +263,13 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     static final class Info {
-        final ClassTypeIdLiteral nsmeClassId;
         final ClassTypeDescriptor nsmeClass;
-        final ClassTypeIdLiteral nsfeClassId;
         final ClassTypeDescriptor nsfeClass;
 
         private Info(final CompilationContext ctxt) {
             DefinedTypeDefinition type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/NoSuchMethodError");
-            nsmeClassId = (ClassTypeIdLiteral) type.validate().getTypeId();
             nsmeClass = type.getDescriptor();
             type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/NoSuchFieldError");
-            nsfeClassId = (ClassTypeIdLiteral) type.validate().getTypeId();
             nsfeClass = type.getDescriptor();
         }
 

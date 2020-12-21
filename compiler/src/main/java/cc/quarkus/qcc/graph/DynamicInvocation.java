@@ -3,7 +3,6 @@ package cc.quarkus.qcc.graph;
 import java.util.List;
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**

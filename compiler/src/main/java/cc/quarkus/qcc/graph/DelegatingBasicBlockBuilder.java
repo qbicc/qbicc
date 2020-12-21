@@ -3,10 +3,10 @@ package cc.quarkus.qcc.graph;
 import java.util.List;
 
 import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.graph.literal.ArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -79,7 +79,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().classCastException(fromType, toType);
     }
 
-    public BasicBlock noSuchMethodError(final TypeIdLiteral owner, final MethodDescriptor desc, final String name) {
+    public BasicBlock noSuchMethodError(final ObjectType owner, final MethodDescriptor desc, final String name) {
         return getDelegate().noSuchMethodError(owner, desc, name);
     }
 
@@ -107,24 +107,24 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().arrayLength(array);
     }
 
-    public Value new_(final ClassTypeIdLiteral typeId) {
-        return getDelegate().new_(typeId);
+    public Value new_(final ClassObjectType type) {
+        return getDelegate().new_(type);
     }
 
     public Value new_(final ClassTypeDescriptor desc) {
         return getDelegate().new_(desc);
     }
 
-    public Value newArray(final ArrayTypeIdLiteral arrayTypeId, final Value size) {
-        return getDelegate().newArray(arrayTypeId, size);
+    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+        return getDelegate().newArray(arrayType, size);
     }
 
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
         return getDelegate().newArray(desc, size);
     }
 
-    public Value multiNewArray(final ArrayTypeIdLiteral arrayTypeId, final List<Value> dimensions) {
-        return getDelegate().multiNewArray(arrayTypeId, dimensions);
+    public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
+        return getDelegate().multiNewArray(arrayType, dimensions);
     }
 
     public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
@@ -391,11 +391,11 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().ret(address);
     }
 
-    public Value receiver(final TypeIdLiteral upperBound) {
+    public Value receiver(final ObjectType upperBound) {
         return getDelegate().receiver(upperBound);
     }
 
-    public Value catch_(final TypeIdLiteral upperBound) {
+    public Value catch_(final ClassObjectType upperBound) {
         return getDelegate().catch_(upperBound);
     }
 

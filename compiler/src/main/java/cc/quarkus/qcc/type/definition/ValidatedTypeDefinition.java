@@ -3,7 +3,9 @@ package cc.quarkus.qcc.type.definition;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.InterfaceObjectType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -22,26 +24,22 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
         return this;
     }
 
-    TypeIdLiteral getTypeId();
+    ObjectType getType();
+
+    default ClassObjectType getClassType() {
+        return (ClassObjectType) getType();
+    }
+
+    default InterfaceObjectType getInterfaceType() {
+        return (InterfaceObjectType) getType();
+    }
 
     ValidatedTypeDefinition getSuperClass();
 
     ValidatedTypeDefinition getInterface(int index) throws IndexOutOfBoundsException;
 
     default boolean isSubtypeOf(ValidatedTypeDefinition other) {
-        if (other.getTypeId() == this.getTypeId()) {
-            return true;
-        }
-        if (hasSuperClass() && getSuperClass().isSubtypeOf(other)) {
-            return true;
-        }
-        int cnt = getInterfaceCount();
-        for (int i = 0; i < cnt; i ++) {
-            if (getInterface(i).isSubtypeOf(other)) {
-                return true;
-            }
-        }
-        return false;
+        return getType().isSubtypeOf(other.getType());
     }
 
     FieldSet getInstanceFieldSet();

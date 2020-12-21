@@ -1,11 +1,11 @@
 package cc.quarkus.qcc.interpreter;
 
-import cc.quarkus.qcc.graph.literal.RealTypeIdLiteral;
+import cc.quarkus.qcc.type.PhysicalObjectType;
 
 /**
  * A Java object handle.
  */
 public interface VmObject {
 
-    RealTypeIdLiteral getObjectType();
+    PhysicalObjectType getObjectType();
 }

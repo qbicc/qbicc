@@ -1,19 +1,24 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 
 /**
  * A caught value.
  */
 public final class Catch extends AbstractValue {
-    private final ReferenceType throwableType;
+    private final ClassObjectType throwableType;
 
-    Catch(final ReferenceType throwableType) {
+    Catch(final ClassObjectType throwableType) {
         super(0, -1);
         this.throwableType = throwableType;
     }
 
     public ReferenceType getType() {
+        return throwableType.getReference();
+    }
+
+    public ClassObjectType getThrowableType() {
         return throwableType;
     }
 

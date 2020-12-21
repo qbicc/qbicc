@@ -1,12 +1,7 @@
 package cc.quarkus.qcc.type.definition.element;
 
-import java.util.List;
-
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.generic.ParameterizedSignature;
 import io.smallrye.common.constraint.Assert;
 
 /**

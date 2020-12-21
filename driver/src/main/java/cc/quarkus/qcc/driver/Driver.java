@@ -27,7 +27,6 @@ import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NodeVisitor;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.interpreter.Vm;
 import cc.quarkus.qcc.interpreter.VmObject;
@@ -297,14 +296,10 @@ public class Driver implements Closeable {
         if (stringClass == null) {
             return false;
         }
-        TypeIdLiteral stringId = stringClass.getTypeId();
         ResolvedTypeDefinition threadClass = loadAndResolveBootstrapClass("java/lang/Thread");
         if (threadClass == null) {
             return false;
         }
-        TypeIdLiteral threadTypeId = threadClass.getTypeId();
-        TypeSystem ts = compilationContext.getTypeSystem();
-        LiteralFactory lf = compilationContext.getLiteralFactory();
         int idx = resolvedMainClass.findMethodIndex(e -> {
             // todo: maybe we could simplify this a little...?
             MethodDescriptor desc = e.getDescriptor();

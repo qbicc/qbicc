@@ -9,8 +9,10 @@ import java.lang.invoke.VarHandle;
  */
 public abstract class ValueType extends Type {
     private static final VarHandle constTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "constType", VarHandle.class, ValueType.class, ValueType.class);
+    private static final VarHandle typeTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "typeType", VarHandle.class, ValueType.class, TypeType.class);
 
     private volatile ValueType constType;
+    private volatile TypeType typeType;
 
     ValueType(final TypeSystem typeSystem, final int hashCode, final boolean const_) {
         super(typeSystem, hashCode * 19 + Boolean.hashCode(const_));
@@ -49,6 +51,26 @@ public abstract class ValueType extends Type {
 
     public boolean isConst() {
         return this == constType;
+    }
+
+    /**
+     * Get the {@code TypeType} of this type.  The initial type is not const.
+     *
+     * @return the type's type type
+     */
+    public final TypeType getTypeType() {
+        TypeType typeType = this.typeType;
+        if (typeType != null) {
+            return typeType;
+        }
+        TypeType newTypeType = typeSystem.createTypeType(this);
+        while (! typeTypeHandle.compareAndSet(this, null, newTypeType)) {
+            typeType = this.typeType;
+            if (typeType != null) {
+                return typeType;
+            }
+        }
+        return newTypeType;
     }
 
     public final boolean equals(final Type other) {

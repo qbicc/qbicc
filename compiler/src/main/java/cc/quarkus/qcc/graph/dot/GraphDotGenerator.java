@@ -91,16 +91,12 @@ import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
-import cc.quarkus.qcc.graph.literal.ClassTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.graph.literal.InterfaceTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.ObjectLiteral;
-import cc.quarkus.qcc.graph.literal.ReferenceArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
-import cc.quarkus.qcc.graph.literal.ValueArrayTypeIdLiteral;
 import cc.quarkus.qcc.graph.opt.DotGenerator;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -397,19 +393,11 @@ public class GraphDotGenerator {
             return node(node);
         }
 
-        public String visit(final Void param, final ClassTypeIdLiteral node) {
-            return node(node);
-        }
-
         public String visit(final Void param, final FloatLiteral node) {
             return node(node);
         }
 
         public String visit(final Void param, final IntegerLiteral node) {
-            return node(node);
-        }
-
-        public String visit(final Void param, final InterfaceTypeIdLiteral node) {
             return node(node);
         }
 
@@ -421,15 +409,7 @@ public class GraphDotGenerator {
             return node(node);
         }
 
-        public String visit(final Void param, final ReferenceArrayTypeIdLiteral node) {
-            return node(node);
-        }
-
         public String visit(final Void param, final StringLiteral node) {
-            return node(node);
-        }
-
-        public String visit(final Void param, final ValueArrayTypeIdLiteral node) {
             return node(node);
         }
 
@@ -756,7 +736,7 @@ public class GraphDotGenerator {
         String node(New node) {
             String name = register(node);
             target.append(name).append(' ').append('[');
-            appendAttr("label", "new " + node.getInstanceTypeId()).append(',');
+            appendAttr("label", "new " + node.getClassObjectType()).append(',');
             appendAttr("shape", "house").append(',');
             appendAttr("fixedsize", "shape");
             target.append(']');
@@ -770,7 +750,7 @@ public class GraphDotGenerator {
         String node(NewArray node) {
             String name = register(node);
             target.append(name).append(' ').append('[');
-            appendAttr("label", "new array " + node.getElementTypeId()).append(',');
+            appendAttr("label", "new array " + node.getElementType()).append(',');
             appendAttr("shape", "house").append(',');
             appendAttr("fixedsize", "shape");
             target.append(']');

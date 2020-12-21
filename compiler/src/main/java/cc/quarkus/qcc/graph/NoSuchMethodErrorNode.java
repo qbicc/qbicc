@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.graph.literal.TypeIdLiteral;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
@@ -10,11 +10,11 @@ import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
  */
 public final class NoSuchMethodErrorNode extends AbstractNode implements Error {
     private final Node dependency;
-    private final TypeIdLiteral owner;
+    private final ObjectType owner;
     private final MethodDescriptor desc;
     private final String name;
 
-    NoSuchMethodErrorNode(final int line, final int bci, final Node dependency, final TypeIdLiteral owner, final MethodDescriptor desc, final String name) {
+    NoSuchMethodErrorNode(final int line, final int bci, final Node dependency, final ObjectType owner, final MethodDescriptor desc, final String name) {
         super(line, bci);
         this.dependency = dependency;
         this.owner = owner;
@@ -30,7 +30,7 @@ public final class NoSuchMethodErrorNode extends AbstractNode implements Error {
         return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
     }
 
-    public TypeIdLiteral getOwner() {
+    public ObjectType getOwner() {
         return owner;
     }
 
