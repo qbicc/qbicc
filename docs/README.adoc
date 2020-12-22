@@ -25,7 +25,9 @@ To run the driver, first build the project and then use https://jbang.dev[`jbang
 
 [source,shell]
 -----
-jbang --quiet cc.quarkus:qcc-main:1.0.0-SNAPSHOT --boot-module-path /path/to/main.jar:/my/.m2/repository/cc/quarkus/qccrc/qccrt-java.base-11.0.1-SNAPSHOT --output-path /tmp/output the/main/Class
+jbang --quiet cc.quarkus:qcc-main:1.0.0-SNAPSHOT --boot-module-path /path/to/main.jar:~/.m2/repository/cc/quarkus/qccrc/qccrt-java.base-11.0.1-SNAPSHOT --output-path /tmp/output the/main/Class
 -----
 
 Replace the `java.base` JAR with your locally-built JAR path from <<Class Library>>.
+
+For a step-by-step example, see `examples/helloworld/hello/world/Main.java`
