@@ -140,7 +140,7 @@ public interface Node {
             return copy;
         }
 
-        void copyNode(Node original) {
+        public void copyNode(Node original) {
             if (original instanceof Value) {
                 copyValue((Value) original);
             } else if (original instanceof Action) {

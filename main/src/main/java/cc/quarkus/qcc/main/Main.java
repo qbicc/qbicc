@@ -38,6 +38,7 @@ import cc.quarkus.qcc.plugin.native_.NativeBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeResolver;
 import cc.quarkus.qcc.plugin.native_.PointerTypeResolver;
+import cc.quarkus.qcc.plugin.opt.GotoRemovingVisitor;
 import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.reachability.ReachabilityBlockBuilder;
@@ -222,6 +223,7 @@ public class Main {
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                                builder.addCopyFactory(GotoRemovingVisitor::new);
                                 builder.addCopyFactory(PhiOptimizerVisitor::new);
                                 builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                                 builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
