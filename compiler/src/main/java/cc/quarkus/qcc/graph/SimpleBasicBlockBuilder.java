@@ -25,6 +25,7 @@ import io.smallrye.common.constraint.Assert;
 final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuilder.ExceptionHandler {
     private final ExecutableElement element;
     private final TypeSystem typeSystem;
+    private BlockLabel firstBlock;
     private ExceptionHandlerPolicy policy;
     private int line;
     private int bci;
@@ -74,6 +75,19 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     public void finish() {
         if (currentBlock != null) {
             throw new IllegalStateException("Current block not terminated");
+        }
+        if (firstBlock != null) {
+            mark(BlockLabel.getTargetOf(firstBlock), null);
+        }
+    }
+
+    private void mark(BasicBlock block, BasicBlock from) {
+        if (block.setReachableFrom(from)) {
+            Terminator terminator = block.getTerminator();
+            int cnt = terminator.getSuccessorCount();
+            for (int i = 0; i < cnt; i ++) {
+                mark(terminator.getSuccessor(i), from);
+            }
         }
     }
 
@@ -437,6 +451,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             throw new IllegalStateException("Block already in progress");
         }
         currentBlock = blockLabel;
+        if (firstBlock == null) {
+            firstBlock = blockLabel;
+        }
         return dependency = blockEntry = new BlockEntry(blockLabel);
     }
 
