@@ -209,8 +209,8 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 goto_(resume);
                 begin(resume);
                 PhiValue result = phi(toType, resume);
-                result.setValueForBlock(ctxt, getCurrentElement(), overMax, upperLit);
-                result.setValueForBlock(ctxt, getCurrentElement(), underMin, lowerLit);
+                result.setValueForBlock(ctxt, getCurrentElement(), overMax, super.valueConvert(upperLit, toType));
+                result.setValueForBlock(ctxt, getCurrentElement(), underMin, super.valueConvert(lowerLit, toType));
                 result.setValueForBlock(ctxt, getCurrentElement(), notOverMax, super.valueConvert(from, toType));
                 return result;
             }
