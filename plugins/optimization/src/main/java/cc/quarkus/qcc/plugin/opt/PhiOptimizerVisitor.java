@@ -30,18 +30,20 @@ public class PhiOptimizerVisitor implements NodeVisitor.Delegating<Node.Copier, 
         Iterator<BasicBlock> iterator = node.incomingBlocks().iterator();
         while (iterator.hasNext()) {
             BasicBlock b1 = iterator.next();
-            Value v1 = node.getValueForBlock(b1);
-            if (v1 != null && ! v1.equals(node)) {
-                while (iterator.hasNext()) {
-                    BasicBlock b2 = iterator.next();
-                    Value v2 = node.getValueForBlock(b2);
-                    if (v2 != null && ! v2.equals(v1) && ! v2.equals(node)) {
-                        // multiple values; process as phi node
-                        return (PhiValue) NodeVisitor.Delegating.super.visit(param, node);
+            if (b1.isReachable()) {
+                Value v1 = node.getValueForBlock(b1);
+                if (v1 != null && ! v1.equals(node)) {
+                    while (iterator.hasNext()) {
+                        BasicBlock b2 = iterator.next();
+                        Value v2 = node.getValueForBlock(b2);
+                        if (v2 != null && ! v2.equals(v1) && ! v2.equals(node)) {
+                            // multiple values; process as phi node
+                            return (PhiValue) NodeVisitor.Delegating.super.visit(param, node);
+                        }
                     }
+                    // one value; process as specific value
+                    return param.copyValue(v1);
                 }
-                // one value; process as specific value
-                return param.copyValue(v1);
             }
         }
         // *no* inputs; should be impossible!
