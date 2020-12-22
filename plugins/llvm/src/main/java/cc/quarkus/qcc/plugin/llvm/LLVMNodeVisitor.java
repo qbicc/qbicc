@@ -281,7 +281,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     public LLValue visit(final Void param, final PhiValue node) {
         Phi phi = map(schedule.getBlockForNode(node)).phi(map(node.getType()));
-        mappedValues.put(node, phi.asLocal());
+        LLValue result = phi.asLocal();
+        mappedValues.put(node, result);
         for (BasicBlock knownBlock : node.incomingBlocks()) {
             Value v = node.getValueForBlock(knownBlock);
             if (v != null) {
@@ -290,7 +291,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
                 phi.item(map(v), map(knownBlock));
             }
         }
-        return phi.asLocal();
+        return result;
     }
 
     public LLValue visit(final Void param, final Neg node) {
