@@ -857,7 +857,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     private void addEdge(Appendable param, Terminator from, BasicBlock to) {
         String fromName = getNodeName(param, from);
-        String toName = getNodeName(param, to.getBlockEntry());
+        String toName = getNodeName(param, to.getTerminator());
         appendTo(param, fromName);
         appendTo(param, " -> ");
         appendTo(param, toName);
@@ -960,7 +960,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     private String getNodeName(Appendable param, Terminator node) {
         String name = visited.get(node);
         if (name == null) {
-            node.accept(this, param);
+            name = node.accept(this, param);
         }
         return name;
     }
