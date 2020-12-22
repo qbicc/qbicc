@@ -4,6 +4,7 @@ import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 
 import cc.quarkus.qcc.type.Type;
@@ -28,7 +29,7 @@ final class ClassMethodInfo {
     private final int codeLen;
     private final short[] exTable; // format: start end handler type_idx
 
-    private final short[] entryPoints; // format: dest-bci (unsigned) cnt (unsigned), sorted by dest-bci
+    private final short[] entryPoints; // format: dest-bci (unsigned), sorted by dest-bci
 
     private final short[] lineNumbers; // format: start_pc line_number (alternating), sorted uniquely by start_pc (ascending)
     /**
@@ -68,16 +69,57 @@ final class ClassMethodInfo {
         ByteBuffer bc = codeAttr.slice();
         codeAttr.limit(lim);
         codeAttr.position(codeOffs + codeLen);
-        short[] entryPoints = NO_SHORTS;
-        int entryPointLen = 0;
         // process bytecodes for entry points
         int target;
+        BitSet enteredOnce = new BitSet(bc.capacity());
+        BitSet enteredMulti = new BitSet(bc.capacity());
         while (bc.position() < bc.limit()) {
             int src = bc.position();
             int opcode = bc.get() & 0xff;
             switch (opcode) {
                 // interesting cases first
-                case OP_JSR:
+                case OP_JSR: {
+                    target = src + bc.getShort();
+                    if (enteredOnce.get(target)) {
+                        enteredMulti.set(target);
+                    } else {
+                        enteredOnce.set(target);
+                    }
+                    // next instruction is entered by ret as well as fall-through
+                    enteredMulti.set(bc.position());
+                    break;
+                }
+                case OP_JSR_W: {
+                    target = src + 5;
+                    if (enteredOnce.get(target)) {
+                        enteredMulti.set(target);
+                    } else {
+                        enteredOnce.set(target);
+                    }
+                    // next instruction is entered by ret as well as fall-through
+                    enteredMulti.set(bc.position());
+                    break;
+                }
+                case OP_GOTO: {
+                    target = src + bc.getShort();
+                    if (enteredOnce.get(target)) {
+                        enteredMulti.set(target);
+                    } else {
+                        enteredOnce.set(target);
+                    }
+                    // do not set entered flag for next instruction
+                    continue;
+                }
+                case OP_GOTO_W: {
+                    target = src + bc.getInt();
+                    if (enteredOnce.get(target)) {
+                        enteredMulti.set(target);
+                    } else {
+                        enteredOnce.set(target);
+                    }
+                    // do not set entered flag for next instruction
+                    continue;
+                }
                 case OP_IF_ACMPEQ:
                 case OP_IF_ACMPNE:
                 case OP_IF_ICMPEQ:
@@ -94,69 +136,57 @@ final class ClassMethodInfo {
                 case OP_IFGE:
                 case OP_IFNONNULL:
                 case OP_IFNULL: {
-                    // just like GOTO except we also need to fall through
-                    target = src + 3;
-                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
-                    if (idx < 0) {
-                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
-                        if (opcode == OP_JSR) {
-                            // bump it again to support multi-ret blocks
-                            entryPoints[(idx << 1) + 1]++;
-                        }
-                    }
-                    //goto case OP_GOTO;
-                }
-                case OP_GOTO: {
                     target = src + bc.getShort();
-                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
-                    if (idx < 0) {
-                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
+                    if (enteredOnce.get(target)) {
+                        enteredMulti.set(target);
+                    } else {
+                        enteredOnce.set(target);
                     }
                     break;
                 }
-                case OP_JSR_W: {
-                    // just like GOTO_W except we also need to fall through
-                    target = src + 5;
-                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
-                    if (idx < 0) {
-                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
-                        // bump it again to support multi-ret blocks
-                        entryPoints[(idx << 1) + 1]++;
-                    }
-                    //goto case OP_GOTO_W;
+                case OP_RET: {
+                    // next instruction is not entered
+                    bc.get();
+                    continue;
                 }
-                case OP_GOTO_W: {
-                    target = src + bc.getInt();
-                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
-                    if (idx < 0) {
-                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
-                    }
-                    break;
+                case OP_ATHROW:
+                case OP_RETURN:
+                case OP_DRETURN:
+                case OP_FRETURN:
+                case OP_IRETURN:
+                case OP_LRETURN:
+                case OP_ARETURN: {
+                    // next instruction is not entered
+                    continue;
                 }
                 case OP_LOOKUPSWITCH: {
                     align(bc, 4);
                     target = src + bc.getInt();
-                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
-                    if (idx < 0) {
-                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
+                    if (enteredOnce.get(target)) {
+                        enteredMulti.set(target);
+                    } else {
+                        enteredOnce.set(target);
                     }
                     int cnt = bc.getInt();
                     for (int i = 0; i < cnt; i ++) {
                         bc.getInt(); // match
                         target = src + bc.getInt();
-                        idx = findEntryPoint(entryPoints, entryPointLen, target);
-                        if (idx < 0) {
-                            entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
+                        if (enteredOnce.get(target)) {
+                            enteredMulti.set(target);
+                        } else {
+                            enteredOnce.set(target);
                         }
                     }
-                    break;
+                    // do not set entered flag for next instruction
+                    continue;
                 }
                 case OP_TABLESWITCH: {
                     align(bc, 4);
                     target = src + bc.getInt();
-                    int idx = findEntryPoint(entryPoints, entryPointLen, target);
-                    if (idx < 0) {
-                        entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
+                    if (enteredOnce.get(target)) {
+                        enteredMulti.set(target);
+                    } else {
+                        enteredOnce.set(target);
                     }
                     int low = bc.getInt();
                     int high = bc.getInt();
@@ -166,17 +196,26 @@ final class ClassMethodInfo {
                     }
                     for (int i = 0; i < cnt; i ++) {
                         target = src + bc.getInt();
-                        idx = findEntryPoint(entryPoints, entryPointLen, target);
-                        if (idx < 0) {
-                            entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
+                        if (enteredOnce.get(target)) {
+                            enteredMulti.set(target);
+                        } else {
+                            enteredOnce.set(target);
                         }
                     }
-                    break;
+                    // do not set entered flag for next instruction
+                    continue;
                 }
                 default: {
                     skipInstruction(bc, opcode);
                     break;
                 }
+            }
+            // next instruction is entered by continuing execution
+            src = bc.position();
+            if (enteredOnce.get(src)) {
+                enteredMulti.set(src);
+            } else {
+                enteredOnce.set(src);
             }
         }
         int exTableLen = codeAttr.getShort() & 0xffff;
@@ -188,10 +227,16 @@ final class ClassMethodInfo {
             exTable[base + 1] = codeAttr.getShort();
             target = exTable[base + 2] = codeAttr.getShort();
             exTable[base + 3] = codeAttr.getShort();
-            int idx = findEntryPoint(entryPoints, entryPointLen, target);
-            if (idx < 0) {
-                entryPoints = insertNewEntryPoint(entryPoints, idx, entryPointLen++, target);
+            if (enteredOnce.get(target)) {
+                enteredMulti.set(target);
+            } else {
+                enteredOnce.set(target);
             }
+        }
+        int etCnt = enteredMulti.cardinality();
+        short[] entryPoints = new short[etCnt];
+        for (int j = 0, i = enteredMulti.nextSetBit(0); i >= 0; i = enteredMulti.nextSetBit(i+1)) {
+            entryPoints[j ++] = (short) i;
         }
         this.exTable = exTable;
         int attrCnt = codeAttr.getShort() & 0xffff;
@@ -330,7 +375,7 @@ final class ClassMethodInfo {
         this.visibleTypeAnnotationsLen = visibleTypeAnnotationsLen;
         this.invisibleTypeAnnotationsOffs = invisibleTypeAnnotationsOffs;
         this.invisibleTypeAnnotationsLen = invisibleTypeAnnotationsLen;
-        this.entryPoints = Arrays.copyOf(entryPoints, entryPointLen << 1);
+        this.entryPoints = entryPoints;
         codeAttr.position(save);
         Type[][] variableTypes1 = new Type[maxLocals][];
         for (int i = 0; i < maxLocals; i ++) {
@@ -634,46 +679,6 @@ final class ClassMethodInfo {
         }
     }
 
-    static short[] insertNewEntryPoint(short[] entryPoints, int idx, final int entryPointLen, final int target) {
-        assert idx < 0;
-        idx = -idx - 1;
-        if (entryPointLen << 1 == entryPoints.length) {
-            entryPoints = Arrays.copyOf(entryPoints, entryPointLen == 0 ? 4 : entryPointLen << 2);
-        }
-        int base = idx << 1;
-        if (idx < entryPointLen) {
-            // make a hole
-            System.arraycopy(entryPoints, base, entryPoints, base + 2, (entryPointLen - idx) << 1);
-        }
-        entryPoints[base] = (short) target;
-        entryPoints[base + 1] = 1;
-        return entryPoints;
-    }
-
-    static int findEntryPoint(final short[] entryPoints, final int entryPointLen, final int target) {
-        if (entryPoints == null) {
-            return -1;
-        }
-        int low = 0;
-        int high = entryPointLen - 1;
-
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            int midVal = entryPoints[mid << 1] & 0xffff;
-            if (midVal < target) {
-                low = mid + 1;
-            } else if (midVal > target) {
-                high = mid - 1;
-            } else {
-                // target matches; bump the count and return it
-                entryPoints[(mid << 1) + 1]++;
-                return mid;
-            }
-        }
-        // not present
-        return -low - 1;
-    }
-
     static void align(ByteBuffer buf, int align) {
         assert Integer.bitCount(align) == 1;
         int p = buf.position();
@@ -753,11 +758,7 @@ final class ClassMethodInfo {
     }
 
     int getEntryPointCount() {
-        return entryPoints.length >> 1;
-    }
-
-    int getEntryPointDestination(int index) {
-        return entryPoints[index << 1];
+        return entryPoints.length;
     }
 
     int getEntryPointIndex(final int target) {
@@ -765,7 +766,7 @@ final class ClassMethodInfo {
         int high = getEntryPointCount() - 1;
         while (low <= high) {
             int mid = (low + high) >>> 1;
-            int midVal = entryPoints[mid << 1];
+            int midVal = entryPoints[mid];
             if (midVal < target) {
                 low = mid + 1;
             } else if (midVal > target) {
@@ -775,10 +776,6 @@ final class ClassMethodInfo {
             }
         }
         return -low - 1;
-    }
-
-    int getEntryPointSourceCount(final int epIdx) {
-        return entryPoints[(epIdx << 1) + 1] & 0xffff;
     }
 
     int getLineNumber(int bci) {

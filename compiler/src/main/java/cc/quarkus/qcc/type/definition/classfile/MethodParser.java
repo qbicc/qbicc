@@ -1341,7 +1341,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             }
             // now check to see if the new position is an entry point
             int epIdx = info.getEntryPointIndex(buffer.position());
-            if (epIdx >= 0 && info.getEntryPointSourceCount(epIdx) > 1) {
+            if (epIdx >= 0) {
                 // two or more blocks enter here; start a new block via goto
                 processBlock(gf.goto_(blockHandles[epIdx]));
                 return;
