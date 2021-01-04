@@ -35,6 +35,7 @@ import cc.quarkus.qcc.graph.NodeVisitor;
 import cc.quarkus.qcc.graph.Or;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.PointerLoad;
+import cc.quarkus.qcc.graph.PointerStore;
 import cc.quarkus.qcc.graph.Return;
 import cc.quarkus.qcc.graph.Select;
 import cc.quarkus.qcc.graph.Shl;
@@ -47,8 +48,8 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
-import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
@@ -113,6 +114,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     public Void visit(final Void param, final BlockEntry node) {
         // no operation
+        return null;
+    }
+
+    public Void visit(final Void param, final PointerStore node) {
+        map(node.getDependency());
+        LLValue ptrType = map(node.getPointer().getType());
+        LLValue value = map(node.getValue());
+        LLValue type = map(node.getValue().getType());
+        LLValue ptr = map(node.getPointer());
+        map(schedule.getBlockForNode(node)).store(ptrType, value, type, ptr);
         return null;
     }
 

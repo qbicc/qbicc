@@ -265,6 +265,11 @@ public interface Node {
                 return param.getBlockBuilder().monitorExit(param.copyValue(node.getInstance()));
             }
 
+            public Node visit(Copier param, PointerStore node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().pointerStore(param.copyValue(node.getPointer()), param.copyValue(node.getValue()), node.getAccessMode(), node.getAtomicityMode());
+            }
+
             public Node visit(Copier param, StaticFieldWrite node) {
                 param.copyNode(node.getBasicDependency(0));
                 return param.getBlockBuilder().writeStaticField(node.getFieldElement(), param.copyValue(node.getWriteValue()), node.getMode());
