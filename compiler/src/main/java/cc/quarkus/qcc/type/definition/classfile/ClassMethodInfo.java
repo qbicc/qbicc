@@ -73,6 +73,7 @@ final class ClassMethodInfo {
         int target;
         BitSet enteredOnce = new BitSet(bc.capacity());
         BitSet enteredMulti = new BitSet(bc.capacity());
+        enteredOnce.set(0); // method entry
         while (bc.position() < bc.limit()) {
             int src = bc.position();
             int opcode = bc.get() & 0xff;
