@@ -35,7 +35,9 @@ final class BlockInfo {
         Terminator terminator = block.getTerminator();
         int cnt = terminator.getSuccessorCount();
         for (int i = 0; i < cnt; i ++) {
-            processBlock(blockInfos, holder, terminator.getSuccessor(i));
+            BasicBlock block = terminator.getSuccessor(i);
+            processBlock(blockInfos, holder, block);
+            succ.set(blockInfos.get(block).index);
         }
     }
 
