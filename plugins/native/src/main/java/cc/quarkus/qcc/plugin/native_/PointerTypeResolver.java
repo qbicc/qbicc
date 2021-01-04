@@ -82,34 +82,38 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                             break out;
                         }
                         List<TypeArgument> args = sig.getTypeArguments();
-                        if (args.size() != 1) {
-                            ctxt.warning("Incorrect number of generic signature arguments (expected a %s but got \"%s\")", ptr.class, sig);
-                            break out;
-                        }
-                        TypeArgument typeArgument = args.get(0);
-                        ValueType pointeeType;
-                        visibleAnnotations = visibleAnnotations.onTypeArgument(0);
-                        invisibleAnnotations = invisibleAnnotations.onTypeArgument(0);
-                        if (typeArgument instanceof AnyTypeArgument) {
-                            pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, typeParamCtxt, BaseTypeSignature.V, visibleAnnotations, invisibleAnnotations);
+                        if (args.size() == 0) {
+                            pointerType = ctxt.getTypeSystem().getVoidType().getPointer();
                         } else {
-                            assert typeArgument instanceof BoundTypeArgument;
-                            BoundTypeArgument bound = (BoundTypeArgument) typeArgument;
-                            if (bound.getVariance() == Variance.INVARIANT) {
-                                // looks right, get the proper pointee type
-                                ReferenceTypeSignature pointeeSig = bound.getBound();
-                                // todo: use context to resolve type variable bounds
-                                TypeDescriptor pointeeDesc = pointeeSig.asDescriptor(classCtxt);
-                                pointeeType = classCtxt.resolveTypeFromDescriptor(pointeeDesc, typeParamCtxt, pointeeSig, visibleAnnotations, invisibleAnnotations);
-                                if (pointeeType instanceof ReferenceType) {
+                            if (args.size() != 1) {
+                                ctxt.warning("Incorrect number of generic signature arguments (expected a %s but got \"%s\")", ptr.class, sig);
+                                break out;
+                            }
+                            TypeArgument typeArgument = args.get(0);
+                            ValueType pointeeType;
+                            visibleAnnotations = visibleAnnotations.onTypeArgument(0);
+                            invisibleAnnotations = invisibleAnnotations.onTypeArgument(0);
+                            if (typeArgument instanceof AnyTypeArgument) {
+                                pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, typeParamCtxt, BaseTypeSignature.V, visibleAnnotations, invisibleAnnotations);
+                            } else {
+                                assert typeArgument instanceof BoundTypeArgument;
+                                BoundTypeArgument bound = (BoundTypeArgument) typeArgument;
+                                if (bound.getVariance() == Variance.INVARIANT) {
+                                    // looks right, get the proper pointee type
+                                    ReferenceTypeSignature pointeeSig = bound.getBound();
+                                    // todo: use context to resolve type variable bounds
+                                    TypeDescriptor pointeeDesc = pointeeSig.asDescriptor(classCtxt);
+                                    pointeeType = classCtxt.resolveTypeFromDescriptor(pointeeDesc, typeParamCtxt, pointeeSig, visibleAnnotations, invisibleAnnotations);
+                                    if (pointeeType instanceof ReferenceType) {
+                                        pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, typeParamCtxt, BaseTypeSignature.V, visibleAnnotations, invisibleAnnotations);
+                                    }
+                                } else {
+                                    ctxt.warning("Incorrect number of generic signature arguments (expected a %s but got \"%s\")", ptr.class, sig);
                                     pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, typeParamCtxt, BaseTypeSignature.V, visibleAnnotations, invisibleAnnotations);
                                 }
-                            } else {
-                                ctxt.warning("Incorrect number of generic signature arguments (expected a %s but got \"%s\")", ptr.class, sig);
-                                pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, typeParamCtxt, BaseTypeSignature.V, visibleAnnotations, invisibleAnnotations);
                             }
+                            pointerType = pointeeType.getPointer();
                         }
-                        pointerType = pointeeType.getPointer();
                     } else {
                         // todo: how can we cleanly get the location from here?
                         ctxt.warning("Generic signature type mismatch (expected a %s but got a %s)", ClassTypeSignature.class, signature.getClass());

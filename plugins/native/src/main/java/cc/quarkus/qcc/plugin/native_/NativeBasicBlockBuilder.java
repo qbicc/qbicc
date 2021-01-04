@@ -8,6 +8,9 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
+import cc.quarkus.qcc.graph.JavaAccessMode;
+import cc.quarkus.qcc.graph.MemoryAccessMode;
+import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
@@ -143,6 +146,21 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                     case "isZero": {
                         return lf.literalOf(true);
                     }
+                    case "deref": {
+                        return pointerLoad(input, MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
+                    }
+                    case "asArray": {
+                        return input;
+                    }
+                    case "get": {
+                        return readArrayValue(input, arguments.get(0), JavaAccessMode.DETECT);
+                    }
+                    case "plus": {
+                        return add(input, arguments.get(0));
+                    }
+                    case "minus": {
+                        return sub(input, arguments.get(0));
+                    }
                 }
             }
         } else if (type instanceof IntegerType || type instanceof FloatType || type instanceof PointerType) {
@@ -172,9 +190,32 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 case "isZero": {
                     return cmpEq(input, lf.literalOf(0));
                 }
+                case "deref": {
+                    return pointerLoad(input, MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
+                }
+                case "asArray": {
+                    return input;
+                }
+                case "get": {
+                    return readArrayValue(input, arguments.get(0), JavaAccessMode.DETECT);
+                }
+                case "plus": {
+                    return add(input, arguments.get(0));
+                }
+                case "minus": {
+                    return sub(input, arguments.get(0));
+                }
             }
         }
         return super.invokeValueInstance(kind, input, owner, name, descriptor, arguments);
+    }
+
+    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value input, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
+        NativeInfo nativeInfo = NativeInfo.get(ctxt);
+        if (owner.equals(nativeInfo.ptrDesc) && name.equals("set")) {
+            return writeArrayValue(input, arguments.get(0), arguments.get(1), JavaAccessMode.DETECT);
+        }
+        return super.invokeInstance(kind, input, owner, name, descriptor, arguments);
     }
 
     private Value doConvert(final Value input, final ValueType from, final IntegerType outputType) {
@@ -215,6 +256,26 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 // ??
                 return input;
             }
+        }
+    }
+
+    public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
+        ValueType type = array.getType();
+        if (type instanceof PointerType) {
+            // todo: these access modes are only approximately correct
+            return pointerLoad(add(array, index), MemoryAccessMode.PLAIN, mode == JavaAccessMode.PLAIN ? MemoryAtomicityMode.UNORDERED : MemoryAtomicityMode.ACQUIRE);
+        } else {
+            return super.readArrayValue(array, index, mode);
+        }
+    }
+
+    public Node writeArrayValue(final Value array, final Value index, final Value value, final JavaAccessMode mode) {
+        ValueType type = array.getType();
+        if (type instanceof PointerType) {
+            // todo: these access modes are only approximately correct
+            return pointerStore(add(array, index), value, MemoryAccessMode.PLAIN, mode == JavaAccessMode.PLAIN ? MemoryAtomicityMode.UNORDERED : MemoryAtomicityMode.RELEASE);
+        } else {
+            return super.writeArrayValue(array, index, value, mode);
         }
     }
 }
