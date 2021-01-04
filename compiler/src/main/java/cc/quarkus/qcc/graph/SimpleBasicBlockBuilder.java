@@ -5,6 +5,7 @@ import java.util.List;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -305,9 +306,18 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
-        ArrayObjectType arrayTypeBound = (ArrayObjectType) ((ReferenceType) array.getType()).getUpperBound();
-        ValueType type = arrayTypeBound.getElementType();
-        return asDependency(new ArrayElementRead(line, bci, requireDependency(), type, array, index, mode));
+        ValueType arrayType = array.getType();
+        ValueType type;
+        if (arrayType instanceof ReferenceType) {
+            ArrayObjectType arrayTypeBound = (ArrayObjectType) ((ReferenceType) arrayType).getUpperBound();
+            type = arrayTypeBound.getElementType();
+            return asDependency(new ArrayElementRead(line, bci, requireDependency(), type, array, index, mode));
+        } else if (arrayType instanceof ArrayType) {
+            type = ((ArrayType) arrayType).getElementType();
+            return asDependency(new ArrayElementRead(line, bci, requireDependency(), type, array, index, mode));
+        } else {
+            return asDependency(new ArrayElementRead(line, bci, requireDependency(), typeSystem.getPoisonType(), array, index, mode));
+        }
     }
 
     public Node pointerStore(final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
