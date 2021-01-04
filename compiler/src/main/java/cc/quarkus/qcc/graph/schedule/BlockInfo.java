@@ -10,7 +10,7 @@ import io.smallrye.common.constraint.Assert;
 final class BlockInfo {
     final BasicBlock block;
     final int index;
-    BlockInfo dominator;
+    int dominator;
     int domDepth = -1;
 
     // dominator finder fields
@@ -37,7 +37,7 @@ final class BlockInfo {
         for (int i = 0; i < cnt; i ++) {
             BasicBlock block = terminator.getSuccessor(i);
             processBlock(blockInfos, holder, block);
-            succ.set(blockInfos.get(block).index);
+            succ.set(blockInfos.get(block).index - 1);
         }
     }
 
@@ -47,10 +47,10 @@ final class BlockInfo {
         }
     }
 
-    int findDomDepths() {
+    int findDomDepths(final BlockInfo[] infos) {
         int domDepth = this.domDepth;
         if (domDepth == -1) {
-            domDepth = this.domDepth = dominator == null ? 0 : dominator.findDomDepths() + 1;
+            domDepth = this.domDepth = dominator == 0 ? 0 : infos[dominator - 1].findDomDepths(infos) + 1;
         }
         return domDepth;
     }

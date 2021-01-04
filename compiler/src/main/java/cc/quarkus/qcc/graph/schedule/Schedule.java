@@ -35,13 +35,13 @@ public interface Schedule {
         // Simplified algorithm which simply finds *any* valid schedule.
         // todo: Find an optimized schedule.
 
-        int[] indexHolder = new int[] { 1 };
+        int[] indexHolder = new int[] { 2 };
         Map<BasicBlock, BlockInfo> blockInfos = new HashMap<>();
         // 1. First, assign numeric indices for each block
-        BlockInfo root = new BlockInfo(entryBlock, 0);
+        BlockInfo root = new BlockInfo(entryBlock, 1);
         root.computeIndices(blockInfos, indexHolder);
-        final int graphSize = indexHolder[0];
-        if (graphSize == 1) {
+        final int maxOneBasedIndex = indexHolder[0];
+        if (maxOneBasedIndex == 2) {
             // trivial schedule
             return new Schedule() {
                 public BasicBlock getBlockForNode(final Node node) {
@@ -49,16 +49,16 @@ public interface Schedule {
                 }
             };
         }
-        BlockInfo[] allBlocks = new BlockInfo[graphSize];
+        BlockInfo[] allBlocks = new BlockInfo[maxOneBasedIndex - 1];
         // a. Map blocks into the array
         for (BlockInfo value : blockInfos.values()) {
-            allBlocks[value.index] = value;
+            allBlocks[value.index - 1] = value;
         }
         // 2. Now execute algorithm to get dominators mapping
         new DominatorFinder().main(allBlocks);
         // 3. Find the dominator tree depths.
         for (BlockInfo block : allBlocks) {
-            block.findDomDepths();
+            block.findDomDepths(allBlocks);
         }
 
         // now, use the dominator depths to calculate the simplest possible schedule.
