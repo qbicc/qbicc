@@ -14,6 +14,13 @@ public final class Main {
     private Main() {
     }
 
+    /**
+     * This is a stub that gets redirected to the real main method by the main method plugin.
+     *
+     * @param args the arguments to pass to the main program
+     */
+    static native void userMain(String[] args);
+
     @export
     @Detached
     public static c_int main(c_int argc, ptr<c_char>[] argv) {
@@ -23,12 +30,14 @@ public final class Main {
         // next set up the initial thread
         // ...
         // now cause the initial thread to invoke main
+        //noinspection InstantiatingAThreadWithDefaultRunMethod
+        attachNew(new Thread());
         final String[] args = new String[argc.intValue()];
         for (int i = 1; i < argc.intValue(); i++) {
             args[i] = utf8zToJavaString(argv[i].cast());
         }
         String execName = utf8zToJavaString(argv[0].cast());
-
+        userMain(args);
         if (Build.Target.isPosix()) {
             pthread_exit(zero());
         }

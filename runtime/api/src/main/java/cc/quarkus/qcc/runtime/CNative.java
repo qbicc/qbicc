@@ -403,6 +403,23 @@ public final class CNative {
      */
     public static native <T extends object> ptr<T> alloca(size_t size);
 
+    // thread attach
+
+    /**
+     * Attach to the new (unstarted) thread.  Only call if there is no currently attached thread.
+     *
+     * @param thread the new (unstarted) thread
+     */
+    public static native void attachNew(Thread thread);
+
+    /**
+     * Reattach to the given running thread (used for native-to-Java call-ins).  The thread must be reattached from
+     * the same system thread or the resultant behavior will be undefined.
+     *
+     * @param thread the running thread to reattach to
+     */
+    public static native void reattach(Thread thread);
+
     /**
      * A native object. Native objects are allocated on the stack or in the system heap, or are otherwise externally
      * managed.
