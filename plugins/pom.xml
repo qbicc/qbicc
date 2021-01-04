@@ -18,6 +18,7 @@
         <module>constants</module>
         <module>conversion</module>
         <module>dot</module>
+        <module>intrinsics</module>
         <module>linker</module>
         <module>llvm</module>
         <module>lowering</module>
