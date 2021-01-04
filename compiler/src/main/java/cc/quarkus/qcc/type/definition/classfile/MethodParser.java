@@ -147,7 +147,12 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 // first time being entered
                 gf.begin(label);
                 ReferenceType exType = (ReferenceType) getClassFile().getTypeConstant(info.getExTableEntryTypeIdx(index));
-                BasicBlock innerFrom = gf.if_(gf.instanceOf(phi, exType), getBlockForIndex(pc), delegate.getHandler());
+                BlockLabel block = getBlockForIndexIfExists(pc);
+                boolean single = block == null;
+                if (single) {
+                    block = new BlockLabel();
+                }
+                BasicBlock innerFrom = gf.if_(gf.instanceOf(phi, exType), block, delegate.getHandler());
                 // enter the delegate handler
                 delegate.enterHandler(innerFrom, phi);
                 // enter our handler
@@ -157,7 +162,12 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 push(phi);
                 int pos = buffer.position();
                 buffer.position(pc);
-                processBlock(from);
+                if (single) {
+                    gf.begin(block);
+                    processNewBlock();
+                } else {
+                    processBlock(from);
+                }
                 // restore everything like nothing happened...
                 buffer.position(pos);
                 restoreLocals(locals);
@@ -317,11 +327,16 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     }
 
     BlockLabel getBlockForIndex(int target) {
-        int idx = info.getEntryPointIndex(target);
-        if (idx < 0) {
+        BlockLabel block = getBlockForIndexIfExists(target);
+        if (block == null) {
             throw new IllegalStateException("Block not found for target bci " + target);
         }
-        return blockHandles[idx];
+        return block;
+    }
+
+    BlockLabel getBlockForIndexIfExists(int target) {
+        int idx = info.getEntryPointIndex(target);
+        return idx >= 0 ? blockHandles[idx] : null;
     }
 
     void replaceAll(Value from, Value to) {
@@ -373,7 +388,6 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         // this is the canonical map key handle
         int bci = buffer.position();
         BlockLabel block = getBlockForIndex(bci);
-        assert block != null : "No block registered for BCI " + bci;
         gf.setBytecodeIndex(bci);
         gf.setLineNumber(info.getLineNumber(bci));
         PhiValue[] entryLocalsArray;
@@ -983,10 +997,22 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 case OP_GOTO:
                 case OP_GOTO_W: {
                     int target = src + (opcode == OP_GOTO ? buffer.getShort() : buffer.getInt());
-                    BasicBlock from = gf.goto_(getBlockForIndex(target));
-                    // set the position after, so that the bci for the instruction is correct
-                    buffer.position(target);
-                    processBlock(from);
+                    BlockLabel block = getBlockForIndexIfExists(target);
+                    BasicBlock from;
+                    if (block == null) {
+                        // only one entry point
+                        block = new BlockLabel();
+                        gf.goto_(block);
+                        // set the position after, so that the bci for the instruction is correct
+                        buffer.position(target);
+                        gf.begin(block);
+                        processNewBlock();
+                    } else {
+                        from = gf.goto_(block);
+                        // set the position after, so that the bci for the instruction is correct
+                        buffer.position(target);
+                        processBlock(from);
+                    }
                     return;
                 }
                 case OP_JSR:
@@ -994,14 +1020,24 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     int target = src + (opcode == OP_JSR ? buffer.getShort() : buffer.getInt());
                     int ret = buffer.position();
                     // jsr destination
-                    BlockLabel dest = getBlockForIndex(target);
+                    BlockLabel dest = getBlockForIndexIfExists(target);
+                    // ret point is always registered as a multiple return point
                     BlockLabel retBlock = getBlockForIndex(ret);
                     push(lf.literalOf(retBlock));
-                    // the jsr call
-                    BasicBlock termBlock = gf.jsr(dest, lf.literalOf(retBlock));
-                    // process the jsr call target block with our current stack
-                    buffer.position(target);
-                    processBlock(termBlock);
+                    if (dest == null) {
+                        // only called from one site
+                        dest = new BlockLabel();
+                        gf.jsr(dest, lf.literalOf(retBlock));
+                        buffer.position(target);
+                        gf.begin(dest);
+                        processNewBlock();
+                    } else {
+                        // the jsr call
+                        BasicBlock termBlock = gf.jsr(dest, lf.literalOf(retBlock));
+                        // process the jsr call target block with our current stack
+                        buffer.position(target);
+                        processBlock(termBlock);
+                    }
                     // now process the return block once for each returning path (as if the ret is a goto);
                     // the ret visitor will continue parsing if the jsr returns (as opposed to throwing)
                     new RetVisitor(buffer, ret).handleBlock(BlockLabel.getTargetOf(dest));
@@ -1020,25 +1056,49 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     int cnt = high - low;
                     int[] dests = new int[cnt];
                     int[] vals = new int[cnt];
+                    boolean[] singles = new boolean[cnt];
                     BlockLabel[] handles = new BlockLabel[cnt];
                     for (int i = 0; i < cnt; i++) {
                         vals[i] = low + i;
-                        handles[i] = getBlockForIndex(dests[i] = buffer.getInt() + src);
+                        BlockLabel block = getBlockForIndexIfExists(dests[i] = buffer.getInt() + src);
+                        if (block == null) {
+                            handles[i] = new BlockLabel();
+                            singles[i] = true;
+                        } else {
+                            handles[i] = block;
+                        }
                     }
                     Set<BlockLabel> seen = new HashSet<>();
-                    BlockLabel defaultBlock = getBlockForIndex(db + src);
+                    boolean defaultSingle;
+                    BlockLabel defaultBlock = getBlockForIndexIfExists(db + src);
+                    if (defaultBlock == null) {
+                        defaultSingle = true;
+                        defaultBlock = new BlockLabel();
+                    } else {
+                        defaultSingle = false;
+                    }
                     seen.add(defaultBlock);
                     BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock);
                     Value[] stackSnap = saveStack();
                     Value[] varSnap = saveLocals();
                     buffer.position(db + src);
-                    processBlock(exited);
+                    if (defaultSingle) {
+                        gf.begin(defaultBlock);
+                        processNewBlock();
+                    } else {
+                        processBlock(exited);
+                    }
                     for (int i = 0; i < handles.length; i++) {
-                        if (seen.add(getBlockForIndex(dests[i]))) {
+                        if (seen.add(handles[i])) {
                             restoreStack(stackSnap);
                             restoreLocals(varSnap);
                             buffer.position(dests[i]);
-                            processBlock(exited);
+                            if (singles[i]) {
+                                gf.begin(handles[i]);
+                                processNewBlock();
+                            } else {
+                                processBlock(exited);
+                            }
                         }
                     }
                     // done
@@ -1049,26 +1109,50 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     int db = buffer.getInt();
                     int cnt = buffer.getInt();
                     int[] dests = new int[cnt];
-                    int[]vals = new int[cnt];
+                    int[] vals = new int[cnt];
+                    boolean[] singles = new boolean[cnt];
                     BlockLabel[] handles = new BlockLabel[cnt];
                     for (int i = 0; i < cnt; i++) {
                         vals[i] = buffer.getInt();
-                        handles[i] = getBlockForIndex(dests[i] = buffer.getInt() + src);
+                        BlockLabel block = getBlockForIndexIfExists(dests[i] = buffer.getInt() + src);
+                        if (block == null) {
+                            handles[i] = new BlockLabel();
+                            singles[i] = true;
+                        } else {
+                            handles[i] = block;
+                        }
                     }
                     Set<BlockLabel> seen = new HashSet<>();
-                    BlockLabel defaultBlock = getBlockForIndex(db + src);
+                    boolean defaultSingle;
+                    BlockLabel defaultBlock = getBlockForIndexIfExists(db + src);
+                    if (defaultBlock == null) {
+                        defaultSingle = true;
+                        defaultBlock = new BlockLabel();
+                    } else {
+                        defaultSingle = false;
+                    }
                     seen.add(defaultBlock);
                     BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock);
                     Value[] stackSnap = saveStack();
                     Value[] varSnap = saveLocals();
                     buffer.position(db + src);
-                    processBlock(exited);
+                    if (defaultSingle) {
+                        gf.begin(defaultBlock);
+                        processNewBlock();
+                    } else {
+                        processBlock(exited);
+                    }
                     for (int i = 0; i < handles.length; i++) {
-                        if (seen.add(getBlockForIndex(dests[i]))) {
+                        if (seen.add(handles[i])) {
                             restoreStack(stackSnap);
                             restoreLocals(varSnap);
                             buffer.position(dests[i]);
-                            processBlock(exited);
+                            if (singles[i]) {
+                                gf.begin(handles[i]);
+                                processNewBlock();
+                            } else {
+                                processBlock(exited);
+                            }
                         }
                     }
                     // done
@@ -1363,17 +1447,35 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     }
 
     private void processIf(final ByteBuffer buffer, final Value cond, final int dest1, final int dest2) {
-        BlockLabel b1 = getBlockForIndex(dest1);
-        BlockLabel b2 = getBlockForIndex(dest2);
+        BlockLabel b1 = getBlockForIndexIfExists(dest1);
+        boolean b1s = b1 == null;
+        if (b1s) {
+            b1 = new BlockLabel();
+        }
+        BlockLabel b2 = getBlockForIndexIfExists(dest2);
+        boolean b2s = b2 == null;
+        if (b2s) {
+            b2 = new BlockLabel();
+        }
         BasicBlock from = gf.if_(cond, b1, b2);
         Value[] varSnap = saveLocals();
         Value[] stackSnap = saveStack();
         buffer.position(dest1);
-        processBlock(from);
+        if (b1s) {
+            gf.begin(b1);
+            processNewBlock();
+        } else {
+            processBlock(from);
+        }
         restoreStack(stackSnap);
         restoreLocals(varSnap);
         buffer.position(dest2);
-        processBlock(from);
+        if (b2s) {
+            gf.begin(b2);
+            processNewBlock();
+        } else {
+            processBlock(from);
+        }
     }
 
     private ClassFileImpl getClassFile() {

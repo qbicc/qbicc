@@ -96,18 +96,18 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
                 j += class2 ? 2 : 1;
             }
             // process the main entry point
-            int idx = classMethodInfo.getEntryPointIndex(0);
-            BlockLabel entryBlockHandle;
-            entryBlockHandle = new BlockLabel();
-            gf.begin(entryBlockHandle);
-            if (idx < 0) {
+            BlockLabel entryBlockHandle = methodParser.getBlockForIndexIfExists(0);
+            if (entryBlockHandle == null) {
                 // no loop to start block; just process it as a new block
+                entryBlockHandle = new BlockLabel();
+                gf.begin(entryBlockHandle);
                 byteCode.position(0);
                 methodParser.processNewBlock();
             } else {
                 // we have to jump into it because there is a loop that includes index 0
                 byteCode.position(0);
-                methodParser.processBlock(gf.goto_(methodParser.getBlockForIndex(0)));
+                gf.begin(new BlockLabel());
+                methodParser.processBlock(gf.goto_(entryBlockHandle));
             }
             gf.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
