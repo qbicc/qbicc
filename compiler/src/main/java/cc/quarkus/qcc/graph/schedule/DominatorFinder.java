@@ -30,18 +30,18 @@ final class DominatorFinder {
     //         od
     //       end DFS;
     void DFS(BlockInfo[] infos, int v) {
-        infos[v].semi = ++n;
-        infos[n].vertex = infos[v].label = v;
-        infos[v].ancestor = infos[v].child = 0;
-        infos[v].size = 1;
-        int w = infos[v].succ.nextSetBit(0);
-        while (w != -1) {
-            if (infos[w].semi == 0) {
-                infos[w].parent = v;
+        info(infos, v).semi = ++n;
+        info(infos, n).vertex = info(infos, v).label = v;
+        info(infos, v).ancestor = info(infos, v).child = 0;
+        info(infos, v).size = 1;
+        int w = info(infos, v).succ.nextSetBit(0) + 1; // one-based arrays
+        while (w != 0) {
+            if (semi(infos, w) == 0) {
+                info(infos, w).parent = v;
                 DFS(infos, w);
             }
-            infos[w].pred.set(v);
-            w = infos[v].succ.nextSetBit(w + 1);
+            info(infos, w).pred.set(v - 1); // one-based arrays, zero-based bitset
+            w = info(infos, v).succ.nextSetBit(w) + 1; // w is already increased by one
         }
     }
 
@@ -54,12 +54,12 @@ final class DominatorFinder {
     //         ancestor(v) := ancestor(ancestor(v))
     //       fi;
     void COMPRESS(BlockInfo[] infos, int v) {
-        if (infos[infos[v].ancestor].ancestor != 0) {
-            COMPRESS(infos, infos[v].ancestor);
-            if (infos[infos[infos[v].ancestor].label].semi < infos[infos[v].label].semi) {
-                infos[v].label = infos[infos[v].ancestor].label;
+        if (info(infos, info(infos, v).ancestor).ancestor != 0) {
+            COMPRESS(infos, info(infos, v).ancestor);
+            if (semi(infos, label(infos, info(infos, v).ancestor)) < semi(infos, label(infos, v))) {
+                info(infos, v).label = label(infos, info(infos, v).ancestor);
             }
-            infos[v].ancestor = infos[infos[v].ancestor].ancestor;
+            info(infos, v).ancestor = info(infos, info(infos, v).ancestor).ancestor;
         }
     }
 
@@ -73,16 +73,18 @@ final class DominatorFinder {
     //                 else label(ancestor(v)) fi
     //       fi ]
     int EVAL(BlockInfo[] infos, int v) {
-        if (infos[v].ancestor == 0) {
-            return infos[v].label;
+        if (info(infos, v).ancestor == 0) {
+            return label(infos, v);
         } else {
             COMPRESS(infos, v);
-            return infos[infos[infos[v].ancestor].label].semi >= infos[infos[v].label].semi ? infos[v].label : infos[infos[v].ancestor].label;
+            return semi(infos, label(infos, info(infos, v).ancestor)) >= semi(infos, label(infos, v)) ? label(infos, v) : label(infos, info(infos, v).ancestor);
         }
     }
 
     //   [ procedure LINK(integer v, w);
     //       begin
+    //         comment this procedure assumes for convenience that
+    //           size(0) = label(0) = semi(0) = 0;
     //         integer s;
     //         s := w;
     //         while semi(label(w)) < semi(label(child(s))) do
@@ -106,25 +108,25 @@ final class DominatorFinder {
     //       end LINK; ]
     void LINK(BlockInfo[] infos, int v, int w) {
         int s = w;
-        while (infos[infos[w].label].semi < infos[infos[infos[s].child].label].semi) {
-            if (infos[s].size + infos[infos[infos[s].child].child].size >= 2 * infos[infos[s].child].size) {
-                infos[infos[s].child].ancestor = s;
-                infos[s].child = infos[infos[s].child].child;
+        while (semi(infos, label(infos, w)) < semi(infos, label(infos, child(infos, s)))) {
+            if (size(infos, s) + size(infos, child(infos, child(infos, s))) >= 2 * size(infos, child(infos, s))) {
+                info(infos, child(infos, s)).ancestor = s;
+                info(infos, s).child = child(infos, child(infos, s));
             } else {
-                infos[infos[s].child].size = infos[s].size;
-                s = infos[s].ancestor = infos[s].child;
+                info(infos, child(infos, s)).size = size(infos, s);
+                s = info(infos, s).ancestor = child(infos, s);
             }
         }
-        infos[s].label = infos[w].label;
-        infos[v].size += infos[w].size;
-        if (infos[v].size < 2 * infos[w].size) {
-            int tmp = infos[v].child;
-            infos[v].child = s;
+        info(infos, s).label = label(infos, w);
+        info(infos, v).size += size(infos, w);
+        if (size(infos, v) < 2 * size(infos, w)) {
+            int tmp = child(infos, v);
+            info(infos, v).child = s;
             s = tmp;
         }
         while (s != 0) {
-            infos[s].ancestor = v;
-            s = infos[s].child;
+            info(infos, s).ancestor = v;
+            s = child(infos, s);
         }
     }
 
@@ -165,37 +167,70 @@ final class DominatorFinder {
     void main(final BlockInfo[] infos) {
         // step 1
         n = 0;
-        DFS(infos, 0); // r == 0
+        DFS(infos, 1); // r == 1
         //     [ size(0) := label(0) := semi(0) := 0; ] (implicit)
-        for (int i = infos.length - 1; i >= 1; i --) {
-            int w = infos[i].vertex;
+        for (int i = infos.length - 1; i >= 2; i --) {
+            int w = vertex(infos, i);
             // step 2
-            int v = infos[w].pred.nextSetBit(0);
-            while (v != -1) {
+            int v = info(infos, w).pred.nextSetBit(0) + 1; // one-based arrays
+            while (v != 0) {
                 int u = EVAL(infos, v);
-                if (infos[u].semi < infos[w].semi) {
-                    infos[w].semi = infos[u].semi;
+                if (semi(infos, u) < semi(infos, w)) {
+                    info(infos, w).semi = semi(infos, u);
                 }
-                v = infos[w].pred.nextSetBit(v + 1);
+                v = info(infos, w).pred.nextSetBit(v) + 1; // v is already increased by one
             }
-            infos[infos[infos[w].semi].vertex].bucket.set(w);
-            LINK(infos, infos[w].parent, w);
+            info(infos, vertex(infos, semi(infos, w))).bucket.set(w - 1);
+            LINK(infos, parent(infos, w), w);
             // step 3
-            v = infos[infos[w].parent].bucket.nextSetBit(0);
-            while (v != -1) {
-                infos[infos[w].parent].bucket.clear(v);
+            v = info(infos, parent(infos, w)).bucket.nextSetBit(0) + 1; // one-based arrays
+            while (v != 0) {
+                info(infos, parent(infos, w)).bucket.clear(v - 1); // one-based arrays, zero-based bitset
                 int u = EVAL(infos, v);
-                infos[v].dominator = infos[infos[u].semi < infos[v].semi ? u : infos[w].parent];
-                v = infos[infos[w].parent].bucket.nextSetBit(v + 1);
+                info(infos, v).dominator = semi(infos, u) < semi(infos, v) ? u : parent(infos, w);
+                v = info(infos, parent(infos, w)).bucket.nextSetBit(v) + 1; // v is already increased by 1
             }
         }
         // step 4
-        for (int i = 2; i < n; i ++) {
-            int w = infos[i].vertex;
-            if (infos[w].dominator.index != infos[infos[w].semi].vertex) {
-                infos[w].dominator = infos[infos[w].dominator.index];
+        for (int i = 2; i <= n; i ++) {
+            int w = vertex(infos, i);
+            if (dominator(infos, w) != vertex(infos, semi(infos, w))) {
+                info(infos, w).dominator = dominator(infos, w);
             }
         }
-        infos[0].dominator = null;
+        info(infos, 1).dominator = 0;
     }
+
+    private BlockInfo info(final BlockInfo[] infos, final int i) {
+        return infos[i - 1];
+    }
+
+    private int parent(final BlockInfo[] infos, final int i) {
+        return i == 0 ? 0 : info(infos, i).parent;
+    }
+
+    private int dominator(final BlockInfo[] infos, final int i) {
+        return i == 0 ? 0 : info(infos, i).dominator;
+    }
+
+    private int vertex(final BlockInfo[] infos, final int i) {
+        return i == 0 ? 0 : info(infos, i).vertex;
+    }
+
+    private int child(final BlockInfo[] infos, final int i) {
+        return i == 0 ? 0 : info(infos, i).child;
+    }
+
+    private int label(final BlockInfo[] infos, final int i) {
+        return i == 0 ? 0 : info(infos, i).label;
+    }
+
+    private int semi(final BlockInfo[] infos, final int i) {
+        return i == 0 ? 0 : info(infos, i).semi;
+    }
+
+    private int size(final BlockInfo[] infos, final int i) {
+        return i == 0 ? 0 : info(infos, i).size;
+    }
+
 }
