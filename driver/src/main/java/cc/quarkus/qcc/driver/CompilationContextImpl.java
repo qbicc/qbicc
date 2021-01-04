@@ -286,8 +286,8 @@ final class CompilationContextImpl implements CompilationContext {
             b.append(((MethodElement)element).getName()).append('.');
             type.getReturnType().toFriendlyString(b).append('.');
         }
-        b.append(parameterCount);
-        for (int i = 0; i < parameterCount; i ++) {
+        b.append(parameterCount - 1);
+        for (int i = 1; i < parameterCount; i ++) {
             b.append('.');
             type.getParameterType(i).toFriendlyString(b);
         }
@@ -303,8 +303,8 @@ final class CompilationContextImpl implements CompilationContext {
         b.append(internalDotName).append('.');
         b.append(element.getName()).append('.');
         type.getReturnType().toFriendlyString(b).append('.');
-        b.append(parameterCount);
-        for (int i = 0; i < parameterCount; i ++) {
+        b.append(parameterCount - 1);
+        for (int i = 1; i < parameterCount; i ++) {
             b.append('.');
             type.getParameterType(i).toFriendlyString(b);
         }
