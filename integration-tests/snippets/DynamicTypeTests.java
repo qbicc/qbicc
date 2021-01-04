@@ -38,17 +38,11 @@ public class DynamicTypeTests {
         putchar('#');
     }
 
-    @export
-    public static int main() {
+    public static void main(String[] args) {
         testInstanceOf(new Bottom_1());
         testInstanceOf(new Middle[1]);
         testInstanceOf(new I[1][1]);
         testInstanceOf(new Bottom_1[1]);
         testInstanceOf(new Bottom_2[1][1]);
-        return 0;
-    }
-
-    public static void main(String[] args) {
-        main();
     }
 }

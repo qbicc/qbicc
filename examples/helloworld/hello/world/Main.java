@@ -21,8 +21,7 @@ public class Main {
     @extern
     public static native int putchar(int arg);
 
-    @export
-    public static int main() {
+    public static void main(String[] args) {
         putchar('h');
         putchar('e');
         putchar('l');
@@ -35,11 +34,6 @@ public class Main {
         putchar('l');
         putchar('d');
         putchar('\n');
-        return 0;
-    }
-
-    public static void main(String[] args) {
-        // make driver happy
     }
 }
 

@@ -5,8 +5,7 @@ public class ArithmeticCompare {
     @extern
     public static native int putchar(int arg);
 
-    @export
-    public static int main() {
+    public static void main(String[] args) {
         doubleLessThan();
         putchar(' ');
 
@@ -44,7 +43,6 @@ public class ArithmeticCompare {
         putchar(' ');
 
         javaLangShortCompareUnsigned();
-        return 0;
     }
 
     static void doubleLessThan() {
@@ -169,9 +167,5 @@ public class ArithmeticCompare {
         putchar(Short.compareUnsigned((short) -14, (short) 9564) > 0 ? '_' : 'F');
         putchar(Short.compareUnsigned((short) -32767, (short) -32767) == 0 ? '_' : 'F');
         putchar(Short.compareUnsigned((short) -25818, (short) -29) < 0 ? '_' : 'F');
-    }
-
-    public static void main(String[] args) {
-        // make driver happy
     }
 }

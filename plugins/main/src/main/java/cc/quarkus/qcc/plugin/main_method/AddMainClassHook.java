@@ -18,6 +18,9 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
  *
  */
 public class AddMainClassHook implements Consumer<CompilationContext> {
+
+    private static final String MAIN_CLASS = "cc/quarkus/qcc/runtime/main/Main";
+
     public AddMainClassHook() {
     }
 
@@ -60,8 +63,14 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
                     ctxt.error("Main method must be declared public static on \"%s\"", mainClass);
                     return;
                 }
-                ctxt.registerEntryPoint(mainMethodElement);
                 UserMainIntrinsic.register(ctxt, mainMethodElement);
+                // now, load and resolve the class with the real entry point on it, causing it to be registered
+                DefinedTypeDefinition runtimeMain = ctxt.getBootstrapClassContext().findDefinedType(MAIN_CLASS);
+                if (runtimeMain == null) {
+                    ctxt.error("Unable to find runtime main class \"%s\"", MAIN_CLASS);
+                } else {
+                    runtimeMain.validate();
+                }
             }
         }
     }
