@@ -60,6 +60,7 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
                     return;
                 }
                 ctxt.registerEntryPoint(mainMethodElement);
+                UserMainIntrinsic.register(ctxt, mainMethodElement);
             }
         }
     }
