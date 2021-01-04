@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.graph.schedule;
 
-import java.util.BitSet;
-
 // This is a mostly exact transliteration of "A Fast Algorithm for Finding Dominators in a Flowgraph"
 //    by Lengauer and Tarjan.  At some point, it'd probably be worth optimizing a bit.
 //
@@ -13,26 +11,9 @@ import java.util.BitSet;
 //     integer u, v, x;
 final class DominatorFinder {
     // global parameters
-    final int graphSize;
     int n;
-    final BitSet[] succ;
 
-    // global variables
-    final int[] parent, ancestor, child, vertex;
-    final int[] label, semi, size;
-    final BitSet[] pred;
-
-    DominatorFinder(int graphSize) {
-        this.graphSize = graphSize;
-        succ = new BitSet[graphSize];
-        parent = new int[graphSize];
-        ancestor = new int[graphSize];
-        child = new int[graphSize];
-        vertex = new int[graphSize];
-        label = new int[graphSize];
-        semi = new int[graphSize];
-        size = new int[graphSize];
-        pred = new BitSet[graphSize];
+    DominatorFinder() {
     }
 
     //     procedure DFS(integer v);
@@ -48,19 +29,19 @@ final class DominatorFinder {
     //           add v to pred(w);
     //         od
     //       end DFS;
-    void DFS(int v) {
-        semi[v] = ++n;
-        vertex[n] = label[v] = v;
-        ancestor[v] = child[v] = 0;
-        size[v] = 1;
-        int w = succ[v].nextSetBit(0);
+    void DFS(BlockInfo[] infos, int v) {
+        infos[v].semi = ++n;
+        infos[n].vertex = infos[v].label = v;
+        infos[v].ancestor = infos[v].child = 0;
+        infos[v].size = 1;
+        int w = infos[v].succ.nextSetBit(0);
         while (w != -1) {
-            if (semi[w] == 0) {
-                parent[w] = v;
-                DFS(w);
+            if (infos[w].semi == 0) {
+                infos[w].parent = v;
+                DFS(infos, w);
             }
-            pred[w].set(v);
-            w = succ[v].nextSetBit(w + 1);
+            infos[w].pred.set(v);
+            w = infos[v].succ.nextSetBit(w + 1);
         }
     }
 
@@ -72,13 +53,13 @@ final class DominatorFinder {
     //         fi;
     //         ancestor(v) := ancestor(ancestor(v))
     //       fi;
-    void COMPRESS(int v) {
-        if (ancestor[ancestor[v]] != 0) {
-            COMPRESS(ancestor[v]);
-            if (semi[label[ancestor[v]]] < semi[label[v]]) {
-                label[v] = label[ancestor[v]];
+    void COMPRESS(BlockInfo[] infos, int v) {
+        if (infos[infos[v].ancestor].ancestor != 0) {
+            COMPRESS(infos, infos[v].ancestor);
+            if (infos[infos[infos[v].ancestor].label].semi < infos[infos[v].label].semi) {
+                infos[v].label = infos[infos[v].ancestor].label;
             }
-            ancestor[v] = ancestor[ancestor[v]];
+            infos[v].ancestor = infos[infos[v].ancestor].ancestor;
         }
     }
 
@@ -91,12 +72,12 @@ final class DominatorFinder {
     //                 then label(v)
     //                 else label(ancestor(v)) fi
     //       fi ]
-    int EVAL(int v) {
-        if (ancestor[v] == 0) {
-            return label[v];
+    int EVAL(BlockInfo[] infos, int v) {
+        if (infos[v].ancestor == 0) {
+            return infos[v].label;
         } else {
-            COMPRESS(v);
-            return semi[label[ancestor[v]]] >= semi[label[v]] ? label[v] : label[ancestor[v]];
+            COMPRESS(infos, v);
+            return infos[infos[infos[v].ancestor].label].semi >= infos[infos[v].label].semi ? infos[v].label : infos[infos[v].ancestor].label;
         }
     }
 
@@ -123,27 +104,27 @@ final class DominatorFinder {
     //           s := child(s)
     //         od
     //       end LINK; ]
-    void LINK(int v, int w) {
+    void LINK(BlockInfo[] infos, int v, int w) {
         int s = w;
-        while (semi[label[w]] < semi[label[child[s]]]) {
-            if (size[s] + size[child[child[s]]] >= size[child[s]] << 1) {
-                ancestor[child[s]] = s;
-                child[s] = child[child[s]];
+        while (infos[infos[w].label].semi < infos[infos[infos[s].child].label].semi) {
+            if (infos[s].size + infos[infos[infos[s].child].child].size >= 2 * infos[infos[s].child].size) {
+                infos[infos[s].child].ancestor = s;
+                infos[s].child = infos[infos[s].child].child;
             } else {
-                size[child[s]] = size[s];
-                s = ancestor[s] = child[s];
+                infos[infos[s].child].size = infos[s].size;
+                s = infos[s].ancestor = infos[s].child;
             }
         }
-        label[s] = label[w];
-        size[v] += size[w];
-        if (size[v] < size[w] << 1) {
-            int tmp = child[v];
-            child[v] = s;
+        infos[s].label = infos[w].label;
+        infos[v].size += infos[w].size;
+        if (infos[v].size < 2 * infos[w].size) {
+            int tmp = infos[v].child;
+            infos[v].child = s;
             s = tmp;
         }
         while (s != 0) {
-            ancestor[s] = v;
-            s = child[s];
+            infos[s].ancestor = v;
+            s = infos[s].child;
         }
     }
 
@@ -181,47 +162,40 @@ final class DominatorFinder {
     //     od
     //     dom(r) := 0
     //   end DOMINATORS
-    void main(final BlockInfo[] allBlocks) {
-        BitSet[] bucket = new BitSet[graphSize];
+    void main(final BlockInfo[] infos) {
         // step 1
-        for (int v = 0; v < graphSize; v ++) {
-            pred[v] = new BitSet();
-            bucket[v] = new BitSet();
-            succ[v] = new BitSet();
-            semi[v] = 0;
-        }
         n = 0;
-        DFS(0); // r == 0
-        size[0] = label[0] = semi[0] = 0;
-        for (int i = n; i >= 2; i --) {
-            int w = vertex[i];
+        DFS(infos, 0); // r == 0
+        //     [ size(0) := label(0) := semi(0) := 0; ] (implicit)
+        for (int i = infos.length - 1; i >= 1; i --) {
+            int w = infos[i].vertex;
             // step 2
-            int v = pred[w].nextSetBit(0);
+            int v = infos[w].pred.nextSetBit(0);
             while (v != -1) {
-                int u = EVAL(v);
-                if (semi[u] < semi[w]) {
-                    semi[w] = semi[u];
+                int u = EVAL(infos, v);
+                if (infos[u].semi < infos[w].semi) {
+                    infos[w].semi = infos[u].semi;
                 }
-                v = pred[w].nextSetBit(v + 1);
+                v = infos[w].pred.nextSetBit(v + 1);
             }
-            bucket[vertex[semi[w]]].set(w);
-            LINK(parent[w], w);
+            infos[infos[infos[w].semi].vertex].bucket.set(w);
+            LINK(infos, infos[w].parent, w);
             // step 3
-            v = bucket[parent[w]].nextSetBit(0);
+            v = infos[infos[w].parent].bucket.nextSetBit(0);
             while (v != -1) {
-                bucket[parent[w]].clear(v);
-                int u = EVAL(v);
-                allBlocks[v].dominator = allBlocks[semi[u] < semi[v] ? u : parent[w]];
-                v = bucket[parent[w]].nextSetBit(v + 1);
+                infos[infos[w].parent].bucket.clear(v);
+                int u = EVAL(infos, v);
+                infos[v].dominator = infos[infos[u].semi < infos[v].semi ? u : infos[w].parent];
+                v = infos[infos[w].parent].bucket.nextSetBit(v + 1);
             }
         }
         // step 4
         for (int i = 2; i < n; i ++) {
-            int w = vertex[i];
-            if (allBlocks[w].dominator.index != vertex[semi[w]]) {
-                allBlocks[w].dominator = allBlocks[allBlocks[w].dominator.index];
+            int w = infos[i].vertex;
+            if (infos[w].dominator.index != infos[infos[w].semi].vertex) {
+                infos[w].dominator = infos[infos[w].dominator.index];
             }
         }
-        allBlocks[0].dominator = null;
+        infos[0].dominator = null;
     }
 }

@@ -55,7 +55,7 @@ public interface Schedule {
             allBlocks[value.index] = value;
         }
         // 2. Now execute algorithm to get dominators mapping
-        new DominatorFinder(graphSize).main(allBlocks);
+        new DominatorFinder().main(allBlocks);
         // 3. Find the dominator tree depths.
         for (BlockInfo block : allBlocks) {
             block.findDomDepths();

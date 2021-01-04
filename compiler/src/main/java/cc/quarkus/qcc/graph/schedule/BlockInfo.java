@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.graph.schedule;
 
+import java.util.BitSet;
 import java.util.Map;
 
 import cc.quarkus.qcc.graph.BasicBlock;
@@ -11,6 +12,18 @@ final class BlockInfo {
     final int index;
     BlockInfo dominator;
     int domDepth = -1;
+
+    // dominator finder fields
+    final BitSet pred = new BitSet();
+    final BitSet succ = new BitSet();
+    final BitSet bucket = new BitSet();
+    int parent;
+    int ancestor;
+    int child;
+    int vertex;
+    int label;
+    int semi;
+    int size;
 
     BlockInfo(final BasicBlock block, final int index) {
         this.block = Assert.checkNotNullParam("block", block);
