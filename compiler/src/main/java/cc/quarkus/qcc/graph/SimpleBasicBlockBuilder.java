@@ -285,7 +285,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value pointerLoad(final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-        throw Assert.unsupported();
+        return asDependency(new PointerLoad(line, bci, requireDependency(), pointer, accessMode, atomicityMode));
     }
 
     public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {

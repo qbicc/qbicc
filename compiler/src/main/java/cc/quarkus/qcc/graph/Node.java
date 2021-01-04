@@ -521,6 +521,11 @@ public interface Node {
                 return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()));
             }
 
+            public Value visit(final Copier param, final PointerLoad node) {
+                param.copyNode(node.getBasicDependency(0));
+                return param.getBlockBuilder().pointerLoad(param.copyValue(node.getPointer()), node.getAccessMode(), node.getAtomicityMode());
+            }
+
             public Value visit(final Copier param, final Rol node) {
                 return param.getBlockBuilder().rol(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }

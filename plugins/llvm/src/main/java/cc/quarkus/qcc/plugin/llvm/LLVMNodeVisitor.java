@@ -34,6 +34,7 @@ import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NodeVisitor;
 import cc.quarkus.qcc.graph.Or;
 import cc.quarkus.qcc.graph.PhiValue;
+import cc.quarkus.qcc.graph.PointerLoad;
 import cc.quarkus.qcc.graph.Return;
 import cc.quarkus.qcc.graph.Select;
 import cc.quarkus.qcc.graph.Shl;
@@ -292,6 +293,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
             }
         }
         return result;
+    }
+
+    public LLValue visit(final Void param, final PointerLoad node) {
+        LLValue ptr = map(node.getPointer());
+        LLValue ptrType = map(node.getPointer().getType());
+        LLValue type = map(node.getType());
+        return map(schedule.getBlockForNode(node)).load(ptrType, type, ptr).asLocal();
     }
 
     public LLValue visit(final Void param, final Neg node) {
