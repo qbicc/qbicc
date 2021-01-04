@@ -21,6 +21,7 @@
         <module>linker</module>
         <module>llvm</module>
         <module>lowering</module>
+        <module>main</module>
         <module>native</module>
         <module>optimization</module>
         <module>patcher</module>

@@ -28,6 +28,8 @@ import cc.quarkus.qcc.plugin.linker.LinkStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
 import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.main_method.AddMainClassHook;
+import cc.quarkus.qcc.plugin.main_method.MainMethod;
 import cc.quarkus.qcc.plugin.native_.ConstTypeResolver;
 import cc.quarkus.qcc.plugin.native_.ConstantDefiningBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.ExternExportTypeBuilder;
@@ -200,6 +202,7 @@ public class Main {
                                 // keep it simple to start with
                                 builder.setMainClass(mainClass.replace('.', '/'));
                                 builder.addGenerateVisitor(DotGenerator.genPhase());
+                                builder.addPreAdditiveHook(new AddMainClassHook());
                                 builder.addPostAnalyticHook(new LLVMGenerator());
                                 builder.addPostAnalyticHook(new LLVMCompileStage());
                                 builder.addPostAnalyticHook(new LinkStage());
@@ -226,9 +229,9 @@ public class Main {
                                 builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.LOWERING, InvocationLoweringBasicBlockBuilder::new);
                                 builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 CompilationContext ctxt;
-                                boolean result;
                                 try (Driver driver = builder.build()) {
                                     ctxt = driver.getCompilationContext();
+                                    MainMethod.get(ctxt).setMainClass(mainClass);
                                     driver.execute();
                                 }
                                 errors = ctxt.errors();

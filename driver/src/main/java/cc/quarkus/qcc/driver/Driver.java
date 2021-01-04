@@ -48,11 +48,6 @@ import cc.quarkus.qcc.type.definition.element.ElementVisitor;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -65,8 +60,6 @@ public class Driver implements Closeable {
     public static final AttachmentKey<CToolChain> C_TOOL_CHAIN_KEY = new AttachmentKey<>();
     public static final AttachmentKey<LlvmToolChain> LLVM_TOOL_KEY = new AttachmentKey<>();
     public static final AttachmentKey<ObjectFileProvider> OBJ_PROVIDER_TOOL_KEY = new AttachmentKey<>();
-
-    private static final AttachmentKey<String> MAIN_CLASS_KEY = new AttachmentKey<>();
 
     final BaseDiagnosticContext initialContext;
     final CompilationContextImpl compilationContext;
@@ -81,7 +74,6 @@ public class Driver implements Closeable {
     final Map<String, BootModule> bootModules;
     final List<ClassPathElement> bootClassPath;
     final AtomicReference<Phase> phaseSwitch = new AtomicReference<>(Phase.ADD);
-    final String mainClass;
     final Path outputDir;
 
     /*
@@ -103,10 +95,8 @@ public class Driver implements Closeable {
 
     Driver(final Builder builder) {
         initialContext = Assert.checkNotNullParam("builder.initialContext", builder.initialContext);
-        mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
         outputDir = Assert.checkNotNullParam("builder.outputDirectory", builder.outputDirectory);
         typeBuilderFactories = builder.typeBuilderFactories;
-        initialContext.putAttachment(MAIN_CLASS_KEY, mainClass);
         initialContext.putAttachment(C_TOOL_CHAIN_KEY, Assert.checkNotNullParam("builder.toolChain", builder.toolChain));
         initialContext.putAttachment(LLVM_TOOL_KEY, Assert.checkNotNullParam("builder.llvmToolChain", builder.llvmToolChain));
         initialContext.putAttachment(OBJ_PROVIDER_TOOL_KEY, Assert.checkNotNullParam("builder.objectFileProvider", builder.objectFileProvider));
@@ -264,10 +254,6 @@ public class Driver implements Closeable {
         }
     }
 
-    public static String getMainClass(CompilationContext context) {
-        return context.getAttachment(MAIN_CLASS_KEY);
-    }
-
     /**
      * Execute the compilation.
      *
@@ -286,12 +272,6 @@ public class Driver implements Closeable {
                 return false;
             }
         }
-        // find all the entry points
-        // todo: for now it's just the one main method
-        ResolvedTypeDefinition resolvedMainClass = loadAndResolveBootstrapClass(this.mainClass);
-        if (resolvedMainClass == null) {
-            return false;
-        }
         ResolvedTypeDefinition stringClass = loadAndResolveBootstrapClass("java/lang/String");
         if (stringClass == null) {
             return false;
@@ -300,38 +280,6 @@ public class Driver implements Closeable {
         if (threadClass == null) {
             return false;
         }
-        int idx = resolvedMainClass.findMethodIndex(e -> {
-            // todo: maybe we could simplify this a little...?
-            MethodDescriptor desc = e.getDescriptor();
-            if (desc.getReturnType() != BaseTypeDescriptor.V) {
-                return false;
-            }
-            List<TypeDescriptor> paramTypes = desc.getParameterTypes();
-            if (paramTypes.size() != 1) {
-                return false;
-            }
-            TypeDescriptor paramType = paramTypes.get(0);
-            if (! (paramType instanceof ArrayTypeDescriptor)) {
-                return false;
-            }
-            TypeDescriptor elementType = ((ArrayTypeDescriptor) paramType).getElementTypeDescriptor();
-            if (! (elementType instanceof ClassTypeDescriptor)) {
-                return false;
-            }
-            ClassTypeDescriptor classTypeDescriptor = (ClassTypeDescriptor) elementType;
-            return classTypeDescriptor.getPackageName().equals("java/lang")
-                && classTypeDescriptor.getClassName().equals("String");
-        });
-        if (idx == -1) {
-            compilationContext.error("No valid main method found on \"%s\"", this.mainClass);
-            return false;
-        }
-        MethodElement mainMethod = resolvedMainClass.getMethod(idx);
-        if (! mainMethod.hasAllModifiersOf(ClassFile.ACC_PUBLIC | ClassFile.ACC_STATIC)) {
-            compilationContext.error("Main method must be declared public static on \"%s\"", this.mainClass);
-            return false;
-        }
-        compilationContext.registerEntryPoint(mainMethod);
 
         // trace out the program graph, enqueueing each item one time and then processing every item in the queue;
         // in this stage we're just loading everything that *might* be reachable
