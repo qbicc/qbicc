@@ -171,7 +171,7 @@ final class DominatorFinder {
         n = 0;
         DFS(1); // r == 1
         //     [ size(0) := label(0) := semi(0) := 0; ] (implicit)
-        for (int i = infos.length - 1; i >= 2; i --) {
+        for (int i = infos.length; i >= 2; i --) {
             int w = vertex(i);
             // step 2
             int v = info(w).pred.nextSetBit(0) + 1; // one-based arrays
