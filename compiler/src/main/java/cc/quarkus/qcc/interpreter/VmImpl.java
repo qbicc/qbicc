@@ -6,7 +6,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -203,17 +202,7 @@ final class VmImpl implements Vm {
         return bootstrapLoader.defineClass(name, bytes);
     }
 
-    public DefinedTypeDefinition defineClass(final String name, final VmObject classLoader, final ByteBuffer bytes) {
-        Dictionary dictionary = getDictionaryFor(classLoader);
-        return dictionary.defineClass(name, bytes).validate();
-    }
-
     private static final AtomicLong anonCounter = new AtomicLong();
-
-    public DefinedTypeDefinition defineAnonymousClass(final DefinedTypeDefinition hostClass, final ByteBuffer bytes) {
-        String newName = hostClass.getInternalName() + "/" + anonCounter.getAndIncrement();
-        return defineClass(newName, hostClass.getContext().getClassLoader(), bytes);
-    }
 
     public DefinedTypeDefinition loadClass(VmObject classLoader, final String name) throws Thrown {
         if (classLoader == null) {
@@ -599,6 +588,10 @@ final class VmImpl implements Vm {
         return target;
     }
 
+    public CompilationContext getCompilationContext() {
+        return context;
+    }
+
     public VmThread newThread(final String threadName, final VmObject threadGroup, final boolean daemon) {
         return new VmThreadImpl(threadName, threadGroup, daemon, this);
     }
@@ -650,14 +643,6 @@ final class VmImpl implements Vm {
         }
     }
 
-    public DefinedTypeDefinition getClassTypeDefinition() {
-        return classClass;
-    }
-
-    public DefinedTypeDefinition getObjectTypeDefinition() {
-        return objectClass;
-    }
-
     static VmImpl currentVm() {
         return currentVm.get();
     }
@@ -703,13 +688,6 @@ final class VmImpl implements Vm {
     public String deduplicate(final VmObject classLoader, final String string) {
         // TODO
         return string;
-    }
-
-    public String deduplicate(final VmObject classLoader, final ByteBuffer buffer, final int offset, final int length, final boolean expectTerminator) {
-        // TODO: apart from being inefficient, this is also not strictly correct! don't copy this code
-        byte[] bytes = new byte[length];
-        buffer.duplicate().position(offset).get(bytes);
-        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     public VmObject getSharedString(final String string) {

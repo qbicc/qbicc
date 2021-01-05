@@ -21,6 +21,13 @@ import io.smallrye.common.constraint.Assert;
  */
 public interface Vm extends AutoCloseable {
     /**
+     * Get the related compilation context.
+     *
+     * @return the related compilation context
+     */
+    CompilationContext getCompilationContext();
+
+    /**
      * Create a new thread.
      *
      * @param threadName the thread name
@@ -55,29 +62,6 @@ public interface Vm extends AutoCloseable {
     }
 
     void doAttached(Runnable r);
-
-    DefinedTypeDefinition getClassTypeDefinition();
-
-    DefinedTypeDefinition getObjectTypeDefinition();
-
-    /**
-     * Define an unresolved class into this VM.
-     *
-     * @param name the class name (must not be {@code null})
-     * @param classLoader the class loader instance ({@code null} indicates the bootstrap class loader)
-     * @param bytes the class bytes (must not be {@code null})
-     * @return the defined class (not {@code null})
-     */
-    DefinedTypeDefinition defineClass(String name, VmObject classLoader, ByteBuffer bytes);
-
-    /**
-     * Define an unresolved anonymous class into this VM.
-     *
-     * @param hostClass the host class (must not be {@code null})
-     * @param bytes the class bytes (must not be {@code null})
-     * @return the defined class (not {@code null})
-     */
-    DefinedTypeDefinition defineAnonymousClass(DefinedTypeDefinition hostClass, ByteBuffer bytes);
 
     /**
      * Load a class. If the class is already loaded, it is returned without entering the VM.  Otherwise the
@@ -140,7 +124,7 @@ public interface Vm extends AutoCloseable {
      * @param args the arguments, whose times must match the method's expectations
      * @return the result
      */
-    Object invokeVirtual(MethodElement method, final VmObject instance, Object... args);
+    Object invokeVirtual(MethodElement method, VmObject instance, Object... args);
 
     /**
      * Deliver a "signal" to the target environment.
@@ -165,8 +149,6 @@ public interface Vm extends AutoCloseable {
      * @return the deduplicated string
      */
     String deduplicate(VmObject classLoader, String string);
-
-    String deduplicate(VmObject classLoader, ByteBuffer buffer, int offset, int length, boolean expectTerminator);
 
     /**
      * Get a shared string instance.  The same string object will be reused for a given input string.
