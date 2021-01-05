@@ -197,7 +197,7 @@ final class DominatorFinder {
         for (int i = 2; i <= n; i ++) {
             int w = vertex(i);
             if (dominator(w) != vertex(semi(w))) {
-                info(w).dominator = dominator(w);
+                info(w).dominator = dominator(dominator(w));
             }
         }
         info(1).dominator = 0;
