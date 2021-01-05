@@ -299,7 +299,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
             Value v = node.getValueForBlock(knownBlock);
             if (v != null) {
                 // process dependencies
-                v.accept(this, param);
                 phi.item(map(v), map(knownBlock));
             }
         }
