@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.graph.schedule;
 
+import java.util.BitSet;
+
 // This is a mostly exact transliteration of "A Fast Algorithm for Finding Dominators in a Flowgraph"
 //    by Lengauer and Tarjan.  At some point, it'd probably be worth optimizing a bit.
 //
@@ -36,14 +38,14 @@ final class DominatorFinder {
         info(n).vertex = info(v).label = v;
         info(v).ancestor = info(v).child = 0;
         info(v).size = 1;
-        int w = info(v).succ.nextSetBit(0) + 1; // one-based arrays
+        int w = succ(v).nextSetBit(0) + 1; // one-based arrays
         while (w != 0) {
             if (semi(w) == 0) {
                 info(w).parent = v;
                 DFS(w);
             }
-            info(w).pred.set(v - 1); // one-based arrays, zero-based bitset
-            w = info(v).succ.nextSetBit(w) + 1; // w is already increased by one
+            pred(w).set(v - 1); // one-based arrays, zero-based bitset
+            w = succ(v).nextSetBit(w) + 1; // w is already increased by one
         }
     }
 
@@ -174,23 +176,23 @@ final class DominatorFinder {
         for (int i = infos.length; i >= 2; i --) {
             int w = vertex(i);
             // step 2
-            int v = info(w).pred.nextSetBit(0) + 1; // one-based arrays
+            int v = pred(w).nextSetBit(0) + 1; // one-based arrays
             while (v != 0) {
                 int u = EVAL(v);
                 if (semi(u) < semi(w)) {
                     info(w).semi = semi(u);
                 }
-                v = info(w).pred.nextSetBit(v) + 1; // v is already increased by one
+                v = pred(w).nextSetBit(v) + 1; // v is already increased by one
             }
-            info(vertex(semi(w))).bucket.set(w - 1);
+            bucket(vertex(semi(w))).set(w - 1);
             LINK(parent(w), w);
             // step 3
-            v = info(parent(w)).bucket.nextSetBit(0) + 1; // one-based arrays
+            v = bucket(parent(w)).nextSetBit(0) + 1; // one-based arrays
             while (v != 0) {
-                info(parent(w)).bucket.clear(v - 1); // one-based arrays, zero-based bitset
+                bucket(parent(w)).clear(v - 1); // one-based arrays, zero-based bitset
                 int u = EVAL(v);
                 info(v).dominator = semi(u) < semi(v) ? u : parent(w);
-                v = info(parent(w)).bucket.nextSetBit(v) + 1; // v is already increased by 1
+                v = bucket(parent(w)).nextSetBit(v) + 1; // v is already increased by 1
             }
         }
         // step 4
@@ -237,5 +239,17 @@ final class DominatorFinder {
 
     private int ancestor(final int i) {
         return i == 0 ? 0 : info(i).ancestor;
+    }
+
+    private BitSet bucket(final int i) {
+        return info(i).bucket;
+    }
+
+    private BitSet pred(final int i) {
+        return info(i).pred;
+    }
+
+    private BitSet succ(final int i) {
+        return info(i).succ;
     }
 }
