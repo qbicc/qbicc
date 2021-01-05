@@ -25,7 +25,8 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
         MainMethod mainMethod = MainMethod.get(ctxt);
         String mainClass = mainMethod.getMainClass();
         if (mainClass != null) {
-            DefinedTypeDefinition definedMainClass = ctxt.getBootstrapClassContext().findDefinedType(mainClass);
+            String mainType = mainClass.replace('.', '/');
+            DefinedTypeDefinition definedMainClass = ctxt.getBootstrapClassContext().findDefinedType(mainType);
             if (definedMainClass != null) {
                 ResolvedTypeDefinition resolvedMainClass = definedMainClass.validate().resolve();
                 int idx = resolvedMainClass.findMethodIndex(e -> {
