@@ -5,7 +5,7 @@ package cc.quarkus.qcc.driver;
  */
 public enum BuilderStage {
     /**
-     * This stage should be used for operations which transform nodes.
+     * This stage should be used for operations which transform or lower nodes.
      */
     TRANSFORM,
     /**
@@ -17,13 +17,8 @@ public enum BuilderStage {
      */
     OPTIMIZE,
     /**
-     * This stage should be used for lowering operations, including transforming field and method accesses to memory
-     * accesses (only during the analytic stage).
-     */
-    LOWERING,
-    /**
-     * This stage should be used for final integrity checks and error reporting.  It can also be used in the additive
-     * stage for gathering information for use in the analytic stage.
+     * This stage should be used for final integrity checks and error reporting, and for compiling information to be
+     * used in the next stage.
      */
     INTEGRITY,
     ;

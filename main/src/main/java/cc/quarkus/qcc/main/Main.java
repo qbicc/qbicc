@@ -15,6 +15,7 @@ import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.driver.BaseDiagnosticContext;
 import cc.quarkus.qcc.driver.BuilderStage;
 import cc.quarkus.qcc.driver.Driver;
+import cc.quarkus.qcc.driver.Phase;
 import cc.quarkus.qcc.driver.plugin.DriverPlugin;
 import cc.quarkus.qcc.machine.arch.Platform;
 import cc.quarkus.qcc.machine.object.ObjectFileProvider;
@@ -202,34 +203,48 @@ public class Main {
                                 assert mainClass != null; // else errors would be != 0
                                 // keep it simple to start with
                                 builder.setMainClass(mainClass.replace('.', '/'));
-                                builder.addGenerateVisitor(DotGenerator.genPhase());
-                                builder.addPreAdditiveHook(new AddMainClassHook());
-                                builder.addPostAnalyticHook(new LLVMGenerator());
-                                builder.addPostAnalyticHook(new LLVMCompileStage());
-                                builder.addPostAnalyticHook(new LinkStage());
+
                                 builder.addTypeBuilderFactory(ExternExportTypeBuilder::new);
                                 builder.addTypeBuilderFactory(NativeTypeBuilder::new);
+
                                 builder.addResolverFactory(ConstTypeResolver::new);
                                 builder.addResolverFactory(FunctionTypeResolver::new);
                                 builder.addResolverFactory(PointerTypeResolver::new);
                                 builder.addResolverFactory(NativeTypeResolver::new);
-                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, CloneConversionBasicBlockBuilder::new);
-                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
-                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
-                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
-                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
-                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
-                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, LocalThrowHandlingBasicBlockBuilder::new);
-                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
-                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
-                                builder.addAdditivePhaseBlockBuilderFactory(BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                                builder.addCopyFactory(GotoRemovingVisitor::new);
-                                builder.addCopyFactory(PhiOptimizerVisitor::new);
-                                builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
-                                builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
-                                builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.LOWERING, ReachabilityBlockBuilder::new);
-                                builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.LOWERING, InvocationLoweringBasicBlockBuilder::new);
-                                builder.addAnalyticPhaseBlockBuilderFactory(BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
+
+                                builder.addPreHook(Phase.ADD, new AddMainClassHook());
+
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CloneConversionBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalThrowHandlingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+
+                                builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
+                                builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
+
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+
+                                builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
+
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+
+                                builder.addPreHook(Phase.GENERATE, new LLVMGenerator());
+
+                                builder.addGenerateVisitor(DotGenerator.genPhase());
+
+                                builder.addPostHook(Phase.GENERATE, new LLVMCompileStage());
+                                builder.addPostHook(Phase.GENERATE, new LinkStage());
+
                                 CompilationContext ctxt;
                                 try (Driver driver = builder.build()) {
                                     ctxt = driver.getCompilationContext();

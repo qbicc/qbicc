@@ -48,7 +48,6 @@ final class CompilationContextImpl implements CompilationContext {
     final Queue<ExecutableElement> queue = new ConcurrentLinkedDeque<>();
     final Set<MethodElement> entryPoints = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext;
-    private final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
     private final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, cc.quarkus.qcc.object.Function> exactFunctions = new ConcurrentHashMap<>();
@@ -56,11 +55,13 @@ final class CompilationContextImpl implements CompilationContext {
     private final Path outputDir;
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories) {
+    // mutable state
+    private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
+
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.typeSystem = typeSystem;
         this.literalFactory = literalFactory;
-        this.blockFactory = blockFactory;
         this.finder = finder;
         this.outputDir = outputDir;
         this.resolverFactories = resolverFactories;
@@ -347,5 +348,9 @@ final class CompilationContextImpl implements CompilationContext {
 
     BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> getBlockFactory() {
         return blockFactory;
+    }
+
+    void setBlockFactory(final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory) {
+        this.blockFactory = blockFactory;
     }
 }

@@ -1,7 +1,8 @@
 package cc.quarkus.qcc.driver;
 
 /**
- * The overall build phase.  Each phase contains multiple {@linkplain BuilderStage stages}.
+ * The overall build phase.  Each phase contains multiple {@linkplain BuilderStage stages}, with the exception
+ * of the {@link #GENERATE} phase in which nodes are visited but not built.
  */
 public enum Phase {
     /**
@@ -9,8 +10,17 @@ public enum Phase {
      */
     ADD,
     /**
-     * The second stage, where the execution tracer emits nodes to be included in the final image, and these nodes
-     * are then visited by the back end generator(s).
+     * The second stage where closed-world analysis is done and all build-time code is eliminated.
+     */
+    ANALYZE,
+    /**
+     * The third stage where high level nodes such as type IDs, invocations, and field access are lowered to
+     * backend-compatible representations.
+     */
+    LOWER,
+    /**
+     * The final stage where all reachable elements and nodes are visited by the back end generator(s) to produce
+     * a runnable image.
      */
     GENERATE,
     ;

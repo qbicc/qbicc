@@ -11,7 +11,6 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.jar.JarFile;
@@ -63,17 +62,27 @@ public class Driver implements Closeable {
 
     final BaseDiagnosticContext initialContext;
     final CompilationContextImpl compilationContext;
+    // at this point, the phase is initialized to ADD
     final List<Consumer<? super CompilationContext>> preAddHooks;
     final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
+    final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> addBuilderFactory;
     final List<Consumer<? super CompilationContext>> postAddHooks;
-    final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> interStageCopy;
-    final List<Consumer<? super CompilationContext>> preCopyHooks;
+    // at this point, the phase is switched to ANALYZE
+    final List<Consumer<? super CompilationContext>> preAnalyzeHooks;
+    final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> addToAnalyzeCopiers;
+    final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> analyzeBuilderFactory;
+    final List<Consumer<? super CompilationContext>> postAnalyzeHooks;
+    // at this point, the phase is switched to LOWER
+    final List<Consumer<? super CompilationContext>> preLowerHooks;
+    final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> analyzeToLowerCopiers;
+    final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> lowerBuilderFactory;
+    final List<Consumer<? super CompilationContext>> postLowerHooks;
+    // at this point, the phase is switched to GENERATE
     final List<Consumer<? super CompilationContext>> preGenerateHooks;
-    final List<Consumer<? super CompilationContext>> postGenerateHooks;
     final List<ElementVisitor<CompilationContext, Void>> generateVisitors;
+    final List<Consumer<? super CompilationContext>> postGenerateHooks;
     final Map<String, BootModule> bootModules;
     final List<ClassPathElement> bootClassPath;
-    final AtomicReference<Phase> phaseSwitch = new AtomicReference<>(Phase.ADD);
     final Path outputDir;
 
     /*
@@ -140,48 +149,32 @@ public class Driver implements Closeable {
         this.bootModules = bootModules;
         this.bootClassPath = bootClassPath;
 
-        // phase factories
+        // ADD phase
+        preAddHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ADD, List.of()));
+        // (no copiers)
+        addBuilderFactory = constructFactory(builder, Phase.ADD);
+        postAddHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ADD, List.of()));
+
+        // ANALYZE phase
+        preAnalyzeHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ANALYZE, List.of()));
+        addToAnalyzeCopiers = constructCopiers(builder, Phase.ANALYZE);
+        analyzeBuilderFactory = constructFactory(builder, Phase.ANALYZE);
+        postAnalyzeHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ANALYZE, List.of()));
+
+        // LOWER phase
+        preLowerHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.LOWER, List.of()));
+        analyzeToLowerCopiers = constructCopiers(builder, Phase.LOWER);
+        lowerBuilderFactory = constructFactory(builder, Phase.LOWER);
+        postLowerHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.LOWER, List.of()));
+
+        // GENERATE phase
+        preGenerateHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.GENERATE, List.of()));
+        generateVisitors = List.copyOf(builder.generateVisitors); // instead of a copier
+        // (no builder factory)
+        postGenerateHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.GENERATE, List.of()));
+
         List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>(builder.resolverFactories);
         Collections.reverse(resolverFactories);
-
-        ArrayList<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> additivePhaseFactories = new ArrayList<>();
-        for (List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> list : builder.additiveFactories.values()) {
-            additivePhaseFactories.addAll(list);
-        }
-        Collections.reverse(additivePhaseFactories);
-        additivePhaseFactories.trimToSize();
-
-        ArrayList<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> analyticPhaseFactories = new ArrayList<>();
-        for (List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> list : builder.analyticFactories.values()) {
-            analyticPhaseFactories.addAll(list);
-        }
-        Collections.reverse(analyticPhaseFactories);
-        analyticPhaseFactories.trimToSize();
-
-        ArrayList<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>> copiedCopyFactories = new ArrayList<>(builder.copyFactories);
-        Collections.reverse(copiedCopyFactories);
-        this.interStageCopy = (c, res) -> {
-            for (BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> copiedCopyFactory : copiedCopyFactories) {
-                res = copiedCopyFactory.apply(c, res);
-            }
-            return res;
-        };
-
-        BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> finalFactory = (ctxt, element) -> {
-            List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> list;
-            Phase phase = phaseSwitch.get();
-            if (phase == Phase.ADD) {
-                list = additivePhaseFactories;
-            } else {
-                assert phase == Phase.GENERATE;
-                list = analyticPhaseFactories;
-            }
-            BasicBlockBuilder result = BasicBlockBuilder.simpleBuilder(typeSystem, element);
-            for (BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> item : list) {
-                result = item.apply(ctxt, result);
-            }
-            return result;
-        };
 
         final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
         Vm vm = builder.vm;
@@ -192,17 +185,58 @@ public class Driver implements Closeable {
             finder = this::defaultFinder;
         }
 
-        compilationContext = new CompilationContextImpl(initialContext, typeSystem, literalFactory, finalFactory, finder, outputDir, resolverFactories);
+        compilationContext = new CompilationContextImpl(initialContext, typeSystem, literalFactory, finder, outputDir, resolverFactories);
+        // start with ADD
+        compilationContext.setBlockFactory(addBuilderFactory);
+    }
 
-        generateVisitors = List.copyOf(builder.generateVisitors);
+    private static BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> constructCopiers(final Builder builder, final Phase phase) {
+        List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>> list = builder.copyFactories.getOrDefault(phase, List.of());
+        if (list.isEmpty()) {
+            return (c, v) -> v;
+        }
+        if (list.size() == 1) {
+            return list.get(0);
+        }
+        ArrayList<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>> copy = new ArrayList<>(list);
+        Collections.reverse(copy);
+        return (c, v) -> {
+            for (int i = 0; i < copy.size(); i ++) {
+                v = copy.get(i).apply(c, v);
+            }
+            return v;
+        };
+    }
 
-        // hooks
+    private static BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> constructFactory(final Builder builder, final Phase phase) {
+        BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> addWrapper = assembleFactories(builder.builderFactories.getOrDefault(phase, Map.of()));
+        return (ctxt, executableElement) -> addWrapper.apply(ctxt, BasicBlockBuilder.simpleBuilder(ctxt.getTypeSystem(), executableElement));
+    }
 
-        preAddHooks = List.copyOf(builder.preAddHooks);
-        postAddHooks = List.copyOf(builder.postAddHooks);
-        preCopyHooks = List.copyOf(builder.preCopyHooks);
-        preGenerateHooks = List.copyOf(builder.preGenerateHooks);
-        postGenerateHooks = List.copyOf(builder.postGenerateHooks);
+    private static BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> assembleFactories(Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> map) {
+        return assembleFactories(List.of(
+            assembleFactories(map.getOrDefault(BuilderStage.TRANSFORM, List.of())),
+            assembleFactories(map.getOrDefault(BuilderStage.CORRECT, List.of())),
+            assembleFactories(map.getOrDefault(BuilderStage.OPTIMIZE, List.of())),
+            assembleFactories(map.getOrDefault(BuilderStage.INTEGRITY, List.of()))
+        ));
+    }
+
+    private static BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> assembleFactories(List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> list) {
+        if (list.isEmpty()) {
+            return (c, b) -> b;
+        }
+        if (list.size() == 1) {
+            return list.get(0);
+        }
+        List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> copy = new ArrayList<>(list);
+        Collections.reverse(copy);
+        return (c, builder) -> {
+            for (int i = 0; i < copy.size(); i ++) {
+                builder = copy.get(i).apply(c, builder);
+            }
+            return builder;
+        };
     }
 
     private DefinedTypeDefinition defaultFinder(VmObject classLoader, String name) {
@@ -261,6 +295,9 @@ public class Driver implements Closeable {
      */
     public boolean execute() {
         CompilationContextImpl compilationContext = this.compilationContext;
+
+        // ADD phase
+
         for (Consumer<? super CompilationContext> hook : preAddHooks) {
             try {
                 hook.accept(compilationContext);
@@ -290,6 +327,7 @@ public class Driver implements Closeable {
 
         ExecutableElement element = compilationContext.dequeue();
         if (element != null) do {
+            // todo: this will be removed once the VM is functional
             // make sure the initializer is enqueued
             InitializerElement initializer = element.getEnclosingType().validate().resolve().getInitializer();
             if (initializer != null) {
@@ -330,9 +368,12 @@ public class Driver implements Closeable {
         }
 
         compilationContext.clearEnqueuedSet();
-        phaseSwitch.set(Phase.GENERATE);
 
-        for (Consumer<? super CompilationContext> hook : preCopyHooks) {
+        // ANALYZE phase
+
+        compilationContext.setBlockFactory(analyzeBuilderFactory);
+
+        for (Consumer<? super CompilationContext> hook : preAnalyzeHooks) {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
@@ -351,7 +392,8 @@ public class Driver implements Closeable {
         }
 
         element = compilationContext.dequeue();
-        while (element != null) {
+        if (element != null) do {
+            // todo: this will be removed once the VM is functional
             // make sure the initializer is enqueued
             InitializerElement initializer = element.getEnclosingType().validate().resolve().getInitializer();
             if (initializer != null) {
@@ -360,6 +402,69 @@ public class Driver implements Closeable {
             MethodHandle methodHandle = element.getMethodBody();
             if (methodHandle != null) {
                 // rewrite the method body
+                ClassContext classContext = element.getEnclosingType().getContext();
+                MethodBody original = methodHandle.getOrCreateMethodBody();
+                BasicBlock entryBlock = original.getEntryBlock();
+                BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
+                BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, addToAnalyzeCopiers);
+                builder.finish();
+                methodHandle.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), original.getThisValue(), original.getParameterValues()));
+            }
+            element = compilationContext.dequeue();
+        } while (element != null);
+
+        if (compilationContext.errors() > 0) {
+            // bail out
+            return false;
+        }
+
+        for (Consumer<? super CompilationContext> hook : postAnalyzeHooks) {
+            try {
+                hook.accept(compilationContext);
+            } catch (Exception e) {
+                compilationContext.error(e, "Post-analyze hook failed: %s", e);
+            }
+            if (compilationContext.errors() > 0) {
+                // bail out
+                return false;
+            }
+        }
+
+        compilationContext.clearEnqueuedSet();
+
+        // LOWER phase
+
+        compilationContext.setBlockFactory(lowerBuilderFactory);
+
+        for (Consumer<? super CompilationContext> hook : preLowerHooks) {
+            try {
+                hook.accept(compilationContext);
+            } catch (Exception e) {
+                compilationContext.error(e, "Pre-lower hook failed: %s", e);
+            }
+            if (compilationContext.errors() > 0) {
+                // bail out
+                return false;
+            }
+        }
+
+        // start from entry points one more time, and copy the method bodies to their corresponding function body
+
+        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+            compilationContext.enqueue(entryPoint);
+        }
+
+        element = compilationContext.dequeue();
+        while (element != null) {
+            // todo: this will be removed once the VM is functional
+            // make sure the initializer is enqueued
+            InitializerElement initializer = element.getEnclosingType().validate().resolve().getInitializer();
+            if (initializer != null) {
+                compilationContext.enqueue(initializer);
+            }
+            MethodHandle methodHandle = element.getMethodBody();
+            if (methodHandle != null) {
+                // copy to a function; todo: this should eventually be done in the lowering plugin
                 ClassContext classContext = element.getEnclosingType().getContext();
                 MethodBody original = methodHandle.getOrCreateMethodBody();
                 BasicBlock entryBlock = original.getEntryBlock();
@@ -376,7 +481,7 @@ public class Driver implements Closeable {
                 paramValues.addAll(origParamValues);
                 Function function = compilationContext.getExactFunction(element);
                 BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
-                BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, interStageCopy);
+                BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, analyzeToLowerCopiers);
                 builder.finish();
                 function.replaceBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), thisValue, paramValues));
             }
@@ -387,11 +492,28 @@ public class Driver implements Closeable {
             // bail out
             return false;
         }
+
+        for (Consumer<? super CompilationContext> hook : postLowerHooks) {
+            try {
+                hook.accept(compilationContext);
+            } catch (Exception e) {
+                compilationContext.error(e, "Post-lower hook failed: %s", e);
+            }
+            if (compilationContext.errors() > 0) {
+                // bail out
+                return false;
+            }
+        }
+
+        compilationContext.clearEnqueuedSet();
+
+        // GENERATE phase
+
         for (Consumer<? super CompilationContext> hook : preGenerateHooks) {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.error(e, "Post-copy hook failed: %s", e);
+                compilationContext.error(e, "Pre-generate hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -400,8 +522,6 @@ public class Driver implements Closeable {
         }
 
         // Visit each reachable node to build the executable program
-
-        compilationContext.clearEnqueuedSet();
 
         for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
@@ -432,7 +552,7 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.error(e, "Post-analytic hook failed: %s", e);
+                compilationContext.error(e, "Post-generate hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -468,16 +588,12 @@ public class Driver implements Closeable {
 
     public static final class Builder {
         final List<Path> bootClassPathElements = new ArrayList<>();
-        final Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> additiveFactories = new EnumMap<>(BuilderStage.class);
-        final Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>> analyticFactories = new EnumMap<>(BuilderStage.class);
-        final List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>> copyFactories = new ArrayList<>();
+        final Map<Phase, Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>>> builderFactories = new EnumMap<>(Phase.class);
+        final Map<Phase, List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>>> copyFactories = new EnumMap<>(Phase.class);
         final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories = new ArrayList<>();
         final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>();
-        final List<Consumer<? super CompilationContext>> preAddHooks = new ArrayList<>();
-        final List<Consumer<? super CompilationContext>> postAddHooks = new ArrayList<>();
-        final List<Consumer<? super CompilationContext>> preCopyHooks = new ArrayList<>();
-        final List<Consumer<? super CompilationContext>> preGenerateHooks = new ArrayList<>();
-        final List<Consumer<? super CompilationContext>> postGenerateHooks = new ArrayList<>();
+        final Map<Phase, List<Consumer<? super CompilationContext>>> preHooks = new EnumMap<>(Phase.class);
+        final Map<Phase, List<Consumer<? super CompilationContext>>> postHooks = new EnumMap<>(Phase.class);
         final List<ElementVisitor<CompilationContext, Void>> generateVisitors = new ArrayList<>();
 
         Path outputDirectory = Path.of(".");
@@ -519,18 +635,26 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Builder addAdditivePhaseBlockBuilderFactory(BuilderStage stage, BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> factory) {
-            additiveFactories.computeIfAbsent(Assert.checkNotNullParam("stage", stage), s -> new ArrayList<>()).add(Assert.checkNotNullParam("factory", factory));
+        private static <V> EnumMap<BuilderStage, V> newBuilderStageMap(Object key) {
+            return new EnumMap<BuilderStage, V>(BuilderStage.class);
+        }
+
+        private static <E> ArrayList<E> newArrayList(Object key) {
+            return new ArrayList<>();
+        }
+
+        public Builder addBuilderFactory(Phase phase, BuilderStage stage, BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> factory) {
+            Assert.checkNotNullParam("phase", phase);
+            Assert.checkNotNullParam("stage", stage);
+            Assert.checkNotNullParam("factory", factory);
+            builderFactories.computeIfAbsent(phase, Builder::newBuilderStageMap).computeIfAbsent(stage, Builder::newArrayList).add(factory);
             return this;
         }
 
-        public Builder addAnalyticPhaseBlockBuilderFactory(BuilderStage stage, BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> factory) {
-            analyticFactories.computeIfAbsent(Assert.checkNotNullParam("stage", stage), s -> new ArrayList<>()).add(Assert.checkNotNullParam("factory", factory));
-            return this;
-        }
-
-        public Builder addCopyFactory(BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> factory) {
-            copyFactories.add(Assert.checkNotNullParam("factory", factory));
+        public Builder addCopyFactory(Phase phase, BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> factory) {
+            Assert.checkNotNullParam("phase", phase);
+            Assert.checkNotNullParam("factory", factory);
+            copyFactories.computeIfAbsent(phase, Builder::newArrayList).add(factory);
             return this;
         }
 
@@ -539,30 +663,18 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Builder addPreAdditiveHook(Consumer<? super CompilationContext> hook) {
+        public Builder addPreHook(Phase phase, Consumer<? super CompilationContext> hook) {
             if (hook != null) {
-                preAddHooks.add(hook);
+                Assert.checkNotNullParam("phase", phase);
+                preHooks.computeIfAbsent(phase, Builder::newArrayList).add(hook);
             }
             return this;
         }
 
-        public Builder addPostAdditiveHook(Consumer<? super CompilationContext> hook) {
+        public Builder addPostHook(Phase phase, Consumer<? super CompilationContext> hook) {
             if (hook != null) {
-                postAddHooks.add(hook);
-            }
-            return this;
-        }
-
-        public Builder addPreAnalyticHook(Consumer<? super CompilationContext> hook) {
-            if (hook != null) {
-                preGenerateHooks.add(hook);
-            }
-            return this;
-        }
-
-        public Builder addPostAnalyticHook(Consumer<? super CompilationContext> hook) {
-            if (hook != null) {
-                preGenerateHooks.add(hook);
+                Assert.checkNotNullParam("phase", phase);
+                postHooks.computeIfAbsent(phase, Builder::newArrayList).add(hook);
             }
             return this;
         }
