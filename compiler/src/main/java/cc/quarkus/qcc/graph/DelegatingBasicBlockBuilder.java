@@ -6,6 +6,7 @@ import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
@@ -73,6 +74,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value narrow(final Value value, final TypeDescriptor desc) {
         return getDelegate().narrow(value, desc);
+    }
+
+    public Value memberPointer(final Value structPointer, final CompoundType.Member member) {
+        return getDelegate().memberPointer(structPointer, member);
     }
 
     public BasicBlock classCastException(final Value fromType, final Value toType) {

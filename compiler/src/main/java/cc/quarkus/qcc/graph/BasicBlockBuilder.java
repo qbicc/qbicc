@@ -6,6 +6,7 @@ import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeIdType;
@@ -184,6 +185,8 @@ public interface BasicBlockBuilder {
     Value narrow(Value value, ValueType toType);
 
     Value narrow(Value value, TypeDescriptor desc);
+
+    Value memberPointer(Value structPointer, CompoundType.Member member);
 
     // memory
 

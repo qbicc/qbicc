@@ -467,6 +467,10 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final MemberPointer node) {
+                return param.getBlockBuilder().memberPointer(param.copyValue(node.getStructPointer()), node.getMember());
+            }
+
             public Value visit(final Copier param, final MethodDescriptorLiteral node) {
                 return node;
             }

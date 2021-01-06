@@ -7,6 +7,7 @@ import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -231,6 +232,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public Value narrow(final Value value, final TypeDescriptor desc) {
         throw new IllegalStateException("Narrow of unresolved type");
+    }
+
+    public Value memberPointer(final Value structPointer, final CompoundType.Member member) {
+        return new MemberPointer(line, bci, structPointer, member);
     }
 
     public Value receiver(final ObjectType upperBound) {

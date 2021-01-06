@@ -133,6 +133,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, MemberPointer node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, MethodDescriptorLiteral node) {
         return visitUnknown(param, node);
     }
@@ -369,6 +373,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, IntegerLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, MemberPointer node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
