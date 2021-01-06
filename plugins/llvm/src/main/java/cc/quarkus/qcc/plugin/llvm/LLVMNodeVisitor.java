@@ -67,6 +67,7 @@ import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.MethodBody;
 
 final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
@@ -211,7 +212,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
-        return isFloating(node.getType()) ?
+        return isFloating(node.getLeftInput().getType()) ?
                target.fcmp(FloatCondition.oeq, inputType, llvmLeft, llvmRight).asLocal() :
                target.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal();
     }
@@ -222,7 +223,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
-        return isFloating(node.getType()) ?
+        return isFloating(node.getLeftInput().getType()) ?
                target.fcmp(FloatCondition.one, inputType, llvmLeft, llvmRight).asLocal() :
                target.icmp(IntCondition.ne, inputType, llvmLeft, llvmRight).asLocal();
     }
@@ -233,9 +234,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
-        return isFloating(node.getLeftInput().getType()) ?
+        ValueType valueType = node.getLeftInput().getType();
+        return isFloating(valueType) ?
                target.fcmp(FloatCondition.olt, inputType, llvmLeft, llvmRight).asLocal() :
-                    isSigned(node.getType()) ?
+                    isSigned(valueType) ?
                       target.icmp(IntCondition.slt, inputType, llvmLeft, llvmRight).asLocal() :
                       target.icmp(IntCondition.ult, inputType, llvmLeft, llvmRight).asLocal();
     }
@@ -246,9 +248,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
-        return isFloating(node.getLeftInput().getType()) ?
+        ValueType valueType = node.getLeftInput().getType();
+        return isFloating(valueType) ?
                target.fcmp(FloatCondition.ole, inputType, llvmLeft, llvmRight).asLocal() :
-                    isSigned(node.getType()) ?
+                    isSigned(valueType) ?
                       target.icmp(IntCondition.sle, inputType, llvmLeft, llvmRight).asLocal() :
                       target.icmp(IntCondition.ule, inputType, llvmLeft, llvmRight).asLocal();
     }
@@ -259,9 +262,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
-        return isFloating(node.getLeftInput().getType()) ?
+        ValueType valueType = node.getLeftInput().getType();
+        return isFloating(valueType) ?
                target.fcmp(FloatCondition.ogt, inputType, llvmLeft, llvmRight).asLocal() :
-                    isSigned(node.getType()) ?
+                    isSigned(valueType) ?
                       target.icmp(IntCondition.sgt, inputType, llvmLeft, llvmRight).asLocal() :
                       target.icmp(IntCondition.ugt, inputType, llvmLeft, llvmRight).asLocal();
     }
@@ -272,9 +276,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmLeft = map(left);
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
-        return isFloating(node.getLeftInput().getType()) ?
+        ValueType valueType = node.getLeftInput().getType();
+        return isFloating(valueType) ?
                target.fcmp(FloatCondition.oge, inputType, llvmLeft, llvmRight).asLocal() :
-                    isSigned(node.getType()) ?
+                    isSigned(valueType) ?
                       target.icmp(IntCondition.sge, inputType, llvmLeft, llvmRight).asLocal() :
                       target.icmp(IntCondition.uge, inputType, llvmLeft, llvmRight).asLocal();
     }
