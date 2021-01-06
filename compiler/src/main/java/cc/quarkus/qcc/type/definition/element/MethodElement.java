@@ -37,6 +37,10 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         return hasAllModifiersOf(ClassFile.ACC_ABSTRACT);
     }
 
+    public boolean isFinal() {
+        return hasAllModifiersOf(ClassFile.ACC_FINAL);
+    }
+
     public boolean isVirtual() {
         return hasNoModifiersOf(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC);
     }

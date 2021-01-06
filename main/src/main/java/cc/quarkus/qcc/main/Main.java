@@ -24,6 +24,7 @@ import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.plugin.constants.ConstantBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.CloneConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dot.DotGenerator;
 import cc.quarkus.qcc.plugin.linker.LinkStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
@@ -233,6 +234,8 @@ public class Main {
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
 
                                 builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
+
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);

@@ -17,6 +17,7 @@
     <modules>
         <module>constants</module>
         <module>conversion</module>
+        <module>dispatch</module>
         <module>dot</module>
         <module>intrinsics</module>
         <module>linker</module>
