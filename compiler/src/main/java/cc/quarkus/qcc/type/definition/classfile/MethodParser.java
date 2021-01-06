@@ -976,23 +976,35 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     return;
                 case OP_IF_ICMPEQ:
                 case OP_IF_ACMPEQ:
-                    processIf(buffer, gf.cmpEq(pop1(), pop1()), buffer.getShort() + src, buffer.position());
+                    v2 = pop1();
+                    v1 = pop1();
+                    processIf(buffer, gf.cmpEq(v1, v2), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPNE:
                 case OP_IF_ACMPNE:
-                    processIf(buffer, gf.cmpNe(pop1(), pop1()), buffer.getShort() + src, buffer.position());
+                    v2 = pop1();
+                    v1 = pop1();
+                    processIf(buffer, gf.cmpNe(v1, v2), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPLT:
-                    processIf(buffer, gf.cmpLt(pop1(), pop1()), buffer.getShort() + src, buffer.position());
+                    v2 = pop1();
+                    v1 = pop1();
+                    processIf(buffer, gf.cmpLt(v1, v2), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPGE:
-                    processIf(buffer, gf.cmpGe(pop1(), pop1()), buffer.getShort() + src, buffer.position());
+                    v2 = pop1();
+                    v1 = pop1();
+                    processIf(buffer, gf.cmpGe(v1, v2), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPGT:
-                    processIf(buffer, gf.cmpGt(pop1(), pop1()), buffer.getShort() + src, buffer.position());
+                    v2 = pop1();
+                    v1 = pop1();
+                    processIf(buffer, gf.cmpGt(v1, v2), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_IF_ICMPLE:
-                    processIf(buffer, gf.cmpLe(pop1(), pop1()), buffer.getShort() + src, buffer.position());
+                    v2 = pop1();
+                    v1 = pop1();
+                    processIf(buffer, gf.cmpLe(v1, v2), buffer.getShort() + src, buffer.position());
                     return;
                 case OP_GOTO:
                 case OP_GOTO_W: {
