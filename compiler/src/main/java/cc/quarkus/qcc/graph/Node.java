@@ -9,6 +9,7 @@ import java.util.Queue;
 import java.util.function.BiFunction;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
@@ -366,6 +367,10 @@ public interface Node {
 
             public Value visit(final Copier param, final ArrayLength node) {
                 return param.getBlockBuilder().arrayLength(param.copyValue(node.getInstance()));
+            }
+
+            public Value visit(final Copier param, final ArrayLiteral node) {
+                return node;
             }
 
             public Value visit(final Copier param, final BitCast node) {

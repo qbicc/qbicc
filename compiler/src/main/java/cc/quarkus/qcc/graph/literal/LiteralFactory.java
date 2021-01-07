@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.graph.literal;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -7,6 +8,7 @@ import java.util.function.Function;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.interpreter.VmObject;
+import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -52,6 +54,8 @@ public interface LiteralFactory {
     TypeLiteral literalOfType(ValueType type);
 
     ZeroInitializerLiteral zeroInitializerLiteralOfType(ValueType type);
+
+    ArrayLiteral literalOf(ArrayType type, List<Literal> values);
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
@@ -158,6 +162,15 @@ public interface LiteralFactory {
             public ZeroInitializerLiteral zeroInitializerLiteralOfType(final ValueType type) {
                 Assert.checkNotNullParam("type", type);
                 return zeroLiterals.computeIfAbsent(type, ZeroInitializerLiteral::new);
+            }
+
+            public ArrayLiteral literalOf(final ArrayType type, final List<Literal> values) {
+                Assert.checkNotNullParam("type", type);
+                Assert.checkNotNullParam("values", values);
+                if (type.getElementCount() != values.size()) {
+                    throw new IllegalArgumentException("Cannot construct array literal with different element count than the size of the list of values");
+                }
+                return new ArrayLiteral(type, values);
             }
         };
     }

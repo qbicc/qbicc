@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
@@ -37,6 +38,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, ArrayLength node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, ArrayLiteral node) {
         return visitUnknown(param, node);
     }
 
@@ -286,6 +291,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, ArrayLength node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ArrayLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
