@@ -26,6 +26,10 @@ public final class CompoundLiteral extends Literal {
         return type;
     }
 
+    public Map<CompoundType.Member, Literal> getValues() {
+        return values;
+    }
+
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
