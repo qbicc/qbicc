@@ -16,15 +16,29 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueVisitor;
+import cc.quarkus.qcc.graph.literal.ArrayLiteral;
+import cc.quarkus.qcc.graph.literal.CompoundLiteral;
+import cc.quarkus.qcc.graph.literal.FloatLiteral;
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
+import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.graph.literal.NullLiteral;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
+import cc.quarkus.qcc.machine.llvm.Array;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
-import cc.quarkus.qcc.machine.llvm.LLStruct;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.Module;
+import cc.quarkus.qcc.machine.llvm.Struct;
+import cc.quarkus.qcc.machine.llvm.StructType;
 import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
+import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 import cc.quarkus.qcc.object.Data;
 import cc.quarkus.qcc.object.DataDeclaration;
 import cc.quarkus.qcc.object.Function;
@@ -50,10 +64,11 @@ import io.smallrye.common.constraint.Assert;
 /**
  *
  */
-public class LLVMGenerator implements Consumer<CompilationContext> {
+public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor<CompilationContext, LLValue> {
 
     final Map<Type, LLValue> types = new HashMap<>();
     final Map<CompoundType.Member, LLValue> structureOffsets = new HashMap<>();
+    final Map<Value, LLValue> globalValues = new HashMap<>();
 
     public void accept(final CompilationContext ctxt) {
         for (ProgramModule programModule : ctxt.getAllProgramModules()) {
@@ -171,7 +186,7 @@ public class LLVMGenerator implements Consumer<CompilationContext> {
             CompoundType compoundType = (CompoundType) type;
             int memberCnt = compoundType.getMemberCount();
             long offs = 0;
-            LLStruct struct = struct();
+            StructType struct = structType();
             int index = 0;
             for (int i = 0; i < memberCnt; i ++) {
                 CompoundType.Member member = compoundType.getMember(i);
@@ -206,5 +221,87 @@ public class LLVMGenerator implements Consumer<CompilationContext> {
         // populate map
         map(compoundType);
         return structureOffsets.get(member);
+    }
+
+    LLValue map(final CompilationContext ctxt, final Literal value) {
+        LLValue mapped = globalValues.get(value);
+        if (mapped != null) {
+            return mapped;
+        }
+        mapped = value.accept(this, ctxt);
+        globalValues.put(value, mapped);
+        return mapped;
+    }
+
+    public LLValue visit(final CompilationContext param, final ArrayLiteral node) {
+        List<Literal> values = node.getValues();
+        Array array = Values.array(map(node.getType().getElementType()));
+        for (int i = 0; i < values.size(); i++) {
+            array.item(map(param, values.get(i)));
+        }
+        return array;
+    }
+
+    public LLValue visit(final CompilationContext param, final CompoundLiteral node) {
+        CompoundType type = node.getType();
+        Map<CompoundType.Member, Literal> values = node.getValues();
+        // very similar to emitting a struct type, but we don't have to cache the structure offsets
+        int memberCnt = type.getMemberCount();
+        long offs = 0;
+        Struct struct = struct();
+        for (int i = 0; i < memberCnt; i ++) {
+            CompoundType.Member member = type.getMember(i);
+            int memberOffset = member.getOffset(); // already includes alignment
+            if (memberOffset > offs) {
+                // we have to pad it out
+                struct.item(array((int) (memberOffset - offs), i8), zeroinitializer);
+            }
+            // actual member
+            Literal literal = values.get(member);
+            ValueType memberType = member.getType();
+            if (literal == null) {
+                // no value for this member
+                struct.item(map(memberType), zeroinitializer);
+            } else {
+                struct.item(map(memberType), map(param, literal));
+            }
+            // the target will already pad out for normal alignment
+            offs += max(memberType.getAlign(), memberType.getSize());
+        }
+        long size = type.getSize();
+        if (offs < size) {
+            // yet more padding
+            struct.item(array((int) (size - offs), i8), zeroinitializer);
+        }
+        return struct;
+    }
+
+    public LLValue visit(final CompilationContext param, final FloatLiteral node) {
+        if (((FloatType) node.getType()).getMinBits() == 32) {
+            return Values.floatConstant(node.floatValue());
+        } else { // Should be 64
+            return Values.floatConstant(node.doubleValue());
+        }
+    }
+
+    public LLValue visit(final CompilationContext param, final IntegerLiteral node) {
+        return Values.intConstant(node.longValue());
+    }
+
+    public LLValue visit(final CompilationContext param, final NullLiteral node) {
+        return NULL;
+    }
+
+    public LLValue visit(final CompilationContext param, final SymbolLiteral node) {
+        return Values.global(node.getName());
+    }
+
+    public LLValue visit(final CompilationContext param, final ZeroInitializerLiteral node) {
+        return Values.zeroinitializer;
+    }
+
+    public LLValue visitUnknown(final CompilationContext ctxt, final Value node) {
+        ctxt.error(Location.builder().setNode(node).build(), "llvm: Unrecognized value %s", node.getClass());
+        return LLVM.FALSE;
     }
 }

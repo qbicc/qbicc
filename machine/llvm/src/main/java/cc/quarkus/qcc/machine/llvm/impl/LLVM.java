@@ -2,7 +2,9 @@ package cc.quarkus.qcc.machine.llvm.impl;
 
 import java.util.List;
 
-import cc.quarkus.qcc.machine.llvm.LLStruct;
+import cc.quarkus.qcc.machine.llvm.Array;
+import cc.quarkus.qcc.machine.llvm.Struct;
+import cc.quarkus.qcc.machine.llvm.StructType;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 
@@ -45,8 +47,8 @@ public final class LLVM {
         return new PointerTo((AbstractValue) type, addrSpace);
     }
 
-    public static LLValue array(int dimension, LLValue elementType) {
-        return new ArrayOf(dimension, (AbstractValue) elementType);
+    public static LLValue arrayType(int dimension, LLValue elementType) {
+        return new ArrayType(dimension, (AbstractValue) elementType);
     }
 
     public static LLValue vector(final boolean vscale, final int dimension, final LLValue elementType) {
@@ -69,6 +71,10 @@ public final class LLVM {
         return new DoubleConstant(val);
     }
 
+    public static Array array(LLValue elementType) {
+        return new ArrayImpl(elementType);
+    }
+
     public static LLValue global(final String name) {
         return new NamedGlobalValueOf(name);
     }
@@ -77,7 +83,11 @@ public final class LLVM {
         return new FunctionType(returnType, argTypes);
     }
 
-    public static LLStruct struct() {
-        return new StructType();
+    public static StructType structType() {
+        return new StructTypeImpl();
+    }
+
+    public static Struct struct() {
+        return new StructImpl();
     }
 }

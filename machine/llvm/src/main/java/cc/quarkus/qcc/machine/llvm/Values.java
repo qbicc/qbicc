@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.machine.llvm;
 
+import java.util.List;
+
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 
 /**
@@ -34,5 +36,13 @@ public final class Values {
 
     public static LLValue global(String name) {
         return LLVM.global(name);
+    }
+
+    public static Array array(LLValue elementType) {
+        return LLVM.array(elementType);
+    }
+
+    public static Struct struct() {
+        return LLVM.struct();
     }
 }

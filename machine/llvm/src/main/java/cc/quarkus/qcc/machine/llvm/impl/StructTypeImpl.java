@@ -4,14 +4,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import cc.quarkus.qcc.machine.llvm.LLStruct;
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.StructType;
 import io.smallrye.common.constraint.Assert;
 
-final class StructType extends AbstractValue implements LLStruct {
+final class StructTypeImpl extends AbstractValue implements StructType {
     final ArrayList<AbstractValue> members = new ArrayList<>();
 
-    public LLStruct member(final LLValue type) {
+    public StructType member(final LLValue type) {
         members.add((AbstractValue) Assert.checkNotNullParam("type", type));
         return this;
     }

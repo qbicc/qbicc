@@ -54,18 +54,12 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
-import cc.quarkus.qcc.graph.literal.FloatLiteral;
-import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.graph.literal.NullLiteral;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
@@ -472,32 +466,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         return call.asLocal();
     }
 
-    // literals
-
-    public LLValue visit(final Void param, final IntegerLiteral node) {
-        return Values.intConstant(node.longValue());
-    }
-
-    public LLValue visit(final Void param, final FloatLiteral node) {
-        if (((FloatType) node.getType()).getMinBits() == 32) {
-            return Values.floatConstant(node.floatValue());
-        } else { // Should be 64
-            return Values.floatConstant(node.doubleValue());
-        }
-    }
-
-    public LLValue visit(final Void param, final SymbolLiteral node) {
-        return Values.global(node.getName());
-    }
-
-    public LLValue visit(final Void param, final NullLiteral node) {
-        return Values.NULL;
-    }
-
-    public LLValue visit(final Void param, final ZeroInitializerLiteral node) {
-        return Values.zeroinitializer;
-    }
-
     // GEP
 
     private GetElementPtr processGetElementPtr(final LLBasicBlock block, final Value current) {
@@ -532,8 +500,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     // unknown node catch-all methods
 
     public LLValue visitUnknown(final Void param, final Value node) {
-        ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unrecognized value %s", node.getClass());
-        return LLVM.FALSE;
+        return node.accept(gen, ctxt);
     }
 
     public Void visitUnknown(final Void param, final Action node) {

@@ -5,11 +5,11 @@ import java.io.IOException;
 /**
  *
  */
-final class ArrayOf extends AbstractValue {
+final class ArrayType extends AbstractValue {
     private final int dimension;
     private final AbstractValue elementType;
 
-    ArrayOf(final int dimension, final AbstractValue elementType) {
+    ArrayType(final int dimension, final AbstractValue elementType) {
         this.dimension = dimension;
         this.elementType = elementType;
     }

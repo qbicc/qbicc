@@ -34,7 +34,7 @@ public final class Types {
     }
 
     public static LLValue array(int dimension, LLValue elementType) {
-        return LLVM.array(dimension, elementType);
+        return LLVM.arrayType(dimension, elementType);
     }
 
     public static LLValue vector(boolean vscale, int dimension, LLValue elementType) {
@@ -45,7 +45,7 @@ public final class Types {
         return LLVM.function(returnType, argTypes);
     }
 
-    public static LLStruct struct() {
-        return LLVM.struct();
+    public static StructType structType() {
+        return LLVM.structType();
     }
 }
