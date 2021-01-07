@@ -106,7 +106,8 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                         module.global(map(item.getType())).external().asGlobal(item.getName());
                     } else {
                         assert item instanceof Data;
-                        module.global(map(item.getType())).value(zeroinitializer).linkage(Linkage.COMMON).asGlobal(item.getName());
+                        Literal value = (Literal) ((Data) item).getValue();
+                        module.global(map(item.getType())).value(map(ctxt, value)).linkage(Linkage.COMMON).asGlobal(item.getName());
                     }
                 }
             }
