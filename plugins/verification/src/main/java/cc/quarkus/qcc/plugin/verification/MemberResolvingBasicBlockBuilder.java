@@ -138,7 +138,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        MethodElement target = resolveMethod(DispatchInvocation.Kind.EXACT, owner, name, descriptor);
+        MethodElement target = resolveMethod(kind, owner, name, descriptor);
         if (target != null) {
             return super.invokeInstance(kind, instance, target, arguments);
         } else {
@@ -156,7 +156,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        MethodElement target = resolveMethod(DispatchInvocation.Kind.EXACT, owner, name, descriptor);
+        MethodElement target = resolveMethod(kind, owner, name, descriptor);
         if (target != null) {
             return super.invokeValueInstance(kind, instance, target, arguments);
         } else {
