@@ -33,6 +33,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value narrow(final Value value, TypeDescriptor desc) {
+        TypeDescriptor orig = desc;
         while (desc instanceof ArrayTypeDescriptor) {
             desc = ((ArrayTypeDescriptor) desc).getElementTypeDescriptor();
         }
@@ -42,7 +43,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 return ctxt.getLiteralFactory().literalOfNull();
             }
         }
-        return super.narrow(value, desc);
+        return super.narrow(value, orig);
     }
 
     public Value instanceOf(final Value input, TypeDescriptor desc) {
