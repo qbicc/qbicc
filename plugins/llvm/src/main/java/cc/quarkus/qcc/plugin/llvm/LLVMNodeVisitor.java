@@ -165,7 +165,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     public Void visit(final Void param, final ValueReturn node) {
         map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
-        block.ret(map(node.getReturnValue().getType()), map(node.getReturnValue()));
+        ValueType funcType = functionObj.getType().getReturnType();
+        if (funcType.getSize() < 4 /*bytes*/) { // Narrows the return type for boolean, byte, short, or char
+            block.ret(map(funcType), map(node.getReturnValue()));
+        } else {
+            block.ret(map(node.getReturnValue().getType()), map(node.getReturnValue()));
+        }
         return null;
     }
 

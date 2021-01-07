@@ -1171,7 +1171,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     return;
                 }
                 case OP_IRETURN:
-                    // TODO: narrow the return type if it's narrower than i32
+                    // Narrow the return type in LLVMNodeVisitor if it's narrower than i32
                 case OP_FRETURN:
                 case OP_ARETURN:
                     gf.return_(pop1());
