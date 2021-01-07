@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph.literal;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -9,6 +10,7 @@ import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.ArrayType;
+import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -56,6 +58,8 @@ public interface LiteralFactory {
     ZeroInitializerLiteral zeroInitializerLiteralOfType(ValueType type);
 
     ArrayLiteral literalOf(ArrayType type, List<Literal> values);
+
+    CompoundLiteral literalOf(CompoundType type, Map<CompoundType.Member, Literal> values);
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
@@ -171,6 +175,12 @@ public interface LiteralFactory {
                     throw new IllegalArgumentException("Cannot construct array literal with different element count than the size of the list of values");
                 }
                 return new ArrayLiteral(type, values);
+            }
+
+            public CompoundLiteral literalOf(final CompoundType type, final Map<CompoundType.Member, Literal> values) {
+                Assert.checkNotNullParam("type", type);
+                Assert.checkNotNullParam("values", values);
+                return new CompoundLiteral(type, values);
             }
         };
     }

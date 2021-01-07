@@ -12,6 +12,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
+import cc.quarkus.qcc.graph.literal.CompoundLiteral;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.DefinedConstantLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
@@ -416,6 +417,10 @@ public interface Node {
 
             public Value visit(final Copier param, final CmpNe node) {
                 return param.getBlockBuilder().cmpNe(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(final Copier param, final CompoundLiteral node) {
+                return node;
             }
 
             public Value visit(final Copier param, final ConstructorInvocation node) {
