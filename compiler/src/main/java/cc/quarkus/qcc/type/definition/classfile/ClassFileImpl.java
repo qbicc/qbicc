@@ -694,7 +694,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setEnclosingType(enclosing);
         TypeDescriptor typeDescriptor = (TypeDescriptor) getDescriptorConstant(getShort(fieldOffsets[index] + 4));
         builder.setDescriptor(typeDescriptor);
-        builder.setModifiers(getShort(fieldOffsets[index]));
+        int modifiers = getShort(fieldOffsets[index]);
+        builder.setModifiers(modifiers);
         builder.setName(getUtf8Constant(getShort(fieldOffsets[index] + 2)));
         // process attributes
         TypeSignature signature = null;
@@ -725,6 +726,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             } else if (fieldAttributeNameEquals(index, i, "RuntimeInvisibleTypeAnnotations")) {
                 TypeAnnotationList list = TypeAnnotationList.parse(this, ctxt, getFieldRawAttributeContent(index, i));
                 builder.setInvisibleTypeAnnotations(list);
+            } else if (fieldAttributeNameEquals(index, i, "ConstantValue")) {
+                if ((modifiers & ACC_STATIC) != 0) {
+                    builder.setInitialValue(getConstantValue(getFieldRawAttributeShort(index, i, 0)));
+                }
             }
         }
         if (signature == null) {

@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.type.ValueType;
@@ -40,7 +41,11 @@ public class LoweredStaticFields {
             return appearing;
         }
         Section section = ctxt.getOrAddProgramModule(enclosingType).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
-        section.addData(fieldElement, itemName, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType));
+        Literal initialValue = fieldElement.getInitialValue();
+        if (initialValue == null) {
+            initialValue = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType);
+        }
+        section.addData(fieldElement, itemName, initialValue);
         return symbol;
     }
 }
