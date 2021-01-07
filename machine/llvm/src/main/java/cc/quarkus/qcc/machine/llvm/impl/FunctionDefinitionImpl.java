@@ -22,6 +22,7 @@ import cc.quarkus.qcc.machine.llvm.op.ExactBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
+import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
@@ -361,6 +362,10 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
 
     public AtomicRmwInstruction atomicrmw() {
         return rootBlock.atomicrmw();
+    }
+
+    public GetElementPtr getelementptr(final LLValue type, final LLValue ptrType, final LLValue pointer) {
+        return rootBlock.getelementptr(type, ptrType, pointer);
     }
 
     void assignName(final BasicBlockImpl basicBlock) {

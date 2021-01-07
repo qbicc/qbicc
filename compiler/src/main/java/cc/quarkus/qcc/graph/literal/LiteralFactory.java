@@ -51,6 +51,8 @@ public interface LiteralFactory {
 
     TypeLiteral literalOfType(ValueType type);
 
+    ZeroInitializerLiteral zeroInitializerLiteralOfType(ValueType type);
+
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
             private final BooleanLiteral TRUE = new BooleanLiteral(typeSystem.getBooleanType().asConst(), true);
@@ -62,6 +64,7 @@ public interface LiteralFactory {
             private final ConcurrentMap<IntegerLiteral, IntegerLiteral> integerLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<FloatLiteral, FloatLiteral> floatLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, TypeLiteral> typeLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<ValueType, ZeroInitializerLiteral> zeroLiterals = new ConcurrentHashMap<>();
 
             public BlockLiteral literalOf(final BlockLabel blockLabel) {
                 return new BlockLiteral(typeSystem.getBlockType(), blockLabel);
@@ -150,6 +153,11 @@ public interface LiteralFactory {
             public TypeLiteral literalOfType(final ValueType type) {
                 Assert.checkNotNullParam("type", type);
                 return typeLiterals.computeIfAbsent(type, TypeLiteral::new);
+            }
+
+            public ZeroInitializerLiteral zeroInitializerLiteralOfType(final ValueType type) {
+                Assert.checkNotNullParam("type", type);
+                return zeroLiterals.computeIfAbsent(type, ZeroInitializerLiteral::new);
             }
         };
     }

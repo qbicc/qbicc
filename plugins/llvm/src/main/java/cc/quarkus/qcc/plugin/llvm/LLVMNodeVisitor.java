@@ -1,5 +1,8 @@
 package cc.quarkus.qcc.plugin.llvm;
 
+import static cc.quarkus.qcc.machine.llvm.Types.*;
+import static cc.quarkus.qcc.machine.llvm.Values.*;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -7,9 +10,11 @@ import java.util.Map;
 import java.util.Set;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.Action;
 import cc.quarkus.qcc.graph.Add;
 import cc.quarkus.qcc.graph.And;
+import cc.quarkus.qcc.graph.ArrayElementRead;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockEntry;
@@ -26,6 +31,7 @@ import cc.quarkus.qcc.graph.Extend;
 import cc.quarkus.qcc.graph.FunctionCall;
 import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.If;
+import cc.quarkus.qcc.graph.MemberPointer;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.Multiply;
 import cc.quarkus.qcc.graph.Narrow;
@@ -52,6 +58,7 @@ import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
@@ -61,10 +68,14 @@ import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 import cc.quarkus.qcc.machine.llvm.op.Call;
+import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.type.ArrayType;
+import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.ValueType;
@@ -169,11 +180,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public LLValue visit(final Void param, final Add node) {
-        LLValue inputType = map(node.getType());
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
+        ValueType type = node.getType();
+        if (type instanceof PointerType) {
+            // actually a GEP calculation
+            return processGetElementPtr(target, node).asLocal();
+        }
+        LLValue inputType = map(type);
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        LLBasicBlock target = map(schedule.getBlockForNode(node));
-        return isFloating(node.getType()) ?
+        return isFloating(type) ?
                target.fadd(inputType, llvmLeft, llvmRight).asLocal() :
                target.add(inputType, llvmLeft, llvmRight).asLocal();
     }
@@ -194,6 +210,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
         return map(schedule.getBlockForNode(node)).xor(map(node.getType()), llvmLeft, llvmRight).asLocal();
+    }
+
+    public LLValue visit(final Void param, final ZeroInitializerLiteral node) {
+        return Values.zeroinitializer;
     }
 
     public LLValue visit(final Void param, final Multiply node) {
@@ -310,7 +330,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         return result;
     }
 
+    public LLValue visit(final Void param, final MemberPointer node) {
+        return processGetElementPtr(map(schedule.getBlockForNode(node)), node).asLocal();
+    }
+
     public LLValue visit(final Void param, final PointerLoad node) {
+        map(node.getBasicDependency(0));
         LLValue ptr = map(node.getPointer());
         LLValue ptrType = map(node.getPointer().getType());
         LLValue type = map(node.getType());
@@ -473,6 +498,37 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         return Values.NULL;
     }
 
+    // GEP
+
+    private GetElementPtr processGetElementPtr(final LLBasicBlock block, final Value current) {
+        if (current instanceof MemberPointer) {
+            // a nested pointer within a structure
+            MemberPointer memberPointer = (MemberPointer) current;
+            return processGetElementPtr(block, memberPointer.getStructPointer()).arg(false, i32, map(memberPointer.getStructType(), memberPointer.getMember()));
+        } else if (current instanceof ArrayElementRead) {
+            ArrayElementRead read = (ArrayElementRead) current;
+            Value array = read.getInstance();
+            if (array.getType() instanceof ArrayType) {
+                // real array
+                return processGetElementPtr(block, array).arg(false, map(read.getIndex().getType()), map(read.getIndex()));
+            }
+            // else it's some other array access (reference array?)
+        } else if (current instanceof Add) {
+            // a pointer add; we want the nth one (and terminate)
+            Add add = (Add) current;
+            Value leftInput = add.getLeftInput();
+            if (leftInput.getType() instanceof PointerType) {
+                Value index = add.getRightInput();
+                return block.getelementptr(block, map(((PointerType) leftInput.getType()).getPointeeType()), map(current)).arg(false, map(index.getType()), map(index));
+            } else {
+                ctxt.error(Location.builder().setNode(current).build(), "LLVM: Invalid pointer or array expression type (left input of Add must be the pointer or array)");
+            }
+        }
+        // some other kind of pointer; we want the zeroth one (and terminate)
+        PointerType pointerType = (PointerType) current.getType();
+        return block.getelementptr(map(pointerType.getPointeeType()), map(pointerType), map(current)).arg(false, i32, ZERO);
+    }
+
     // unknown node catch-all methods
 
     public LLValue visitUnknown(final Void param, final Value node) {
@@ -531,5 +587,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         } else {
             throw new IllegalStateException();
         }
+    }
+
+    private LLValue map(CompoundType compoundType, CompoundType.Member member) {
+        return gen.map(compoundType, member);
     }
 }

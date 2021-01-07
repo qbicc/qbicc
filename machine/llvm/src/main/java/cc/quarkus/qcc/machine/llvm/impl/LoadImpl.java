@@ -73,10 +73,10 @@ final class LoadImpl extends AbstractYieldingInstruction implements Load {
             target.append(' ').append("volatile");
         }
         target.append(' ');
-        type.appendTo(target);
-        target.append(',').append(' ');
         pointeeType.appendTo(target);
-        target.append('*').append(' ');
+        target.append(',').append(' ');
+        type.appendTo(target);
+        target.append(' ');
         pointer.appendTo(target);
         if (constraint != null) {
             final String syncScope = this.syncScope;

@@ -9,6 +9,7 @@ import cc.quarkus.qcc.machine.llvm.op.ExactBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
+import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
@@ -122,6 +123,8 @@ public interface LLBasicBlock extends LLValue {
     Fence fence(OrderingConstraint ordering);
 
     AtomicRmwInstruction atomicrmw();
+
+    GetElementPtr getelementptr(LLValue type, LLValue ptrType, LLValue pointer);
 
     // create more blocks
 

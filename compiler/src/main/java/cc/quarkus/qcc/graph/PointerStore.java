@@ -54,6 +54,22 @@ public final class PointerStore extends AbstractNode implements Action {
             && value.equals(other.value) && accessMode == other.accessMode && atomicityMode == other.atomicityMode;
     }
 
+    public int getValueDependencyCount() {
+        return 2;
+    }
+
+    public Value getValueDependency(final int index) throws IndexOutOfBoundsException {
+        return index == 0 ? pointer : index == 1 ? value : Util.throwIndexOutOfBounds(index);
+    }
+
+    public int getBasicDependencyCount() {
+        return 1;
+    }
+
+    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
+        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    }
+
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }

@@ -39,6 +39,8 @@ public final class LLVM {
 
     public static final LLValue NULL = new SingleWord("null");
 
+    public static final LLValue zeroinitializer = new SingleWord("zeroinitializer");
+
     public static LLValue ptrTo(LLValue type, int addrSpace) {
         return new PointerTo((AbstractValue) type, addrSpace);
     }

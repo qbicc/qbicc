@@ -75,12 +75,12 @@ final class StoreImpl extends AbstractInstruction implements Store {
             target.append(' ').append("volatile");
         }
         target.append(' ');
-        type.appendTo(target);
+        pointeeType.appendTo(target);
         target.append(' ');
         value.appendTo(target);
         target.append(',').append(' ');
-        pointeeType.appendTo(target);
-        target.append('*').append(' ');
+        type.appendTo(target);
+        target.append(' ');
         pointer.appendTo(target);
         if (constraint != null) {
             final String syncScope = this.syncScope;

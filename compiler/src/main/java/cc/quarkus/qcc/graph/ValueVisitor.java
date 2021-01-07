@@ -14,6 +14,7 @@ import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 
 /**
  * A visitor over a graph of values.  Values form a directed acyclic graph (DAG).
@@ -261,6 +262,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, ZeroInitializerLiteral node) {
+        return visitUnknown(param, node);
+    }
+
     interface Delegating<T, R> extends ValueVisitor<T, R> {
         ValueVisitor<T, R> getDelegateValueVisitor();
 
@@ -501,6 +506,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, Xor node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ZeroInitializerLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
     }

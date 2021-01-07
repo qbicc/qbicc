@@ -18,6 +18,7 @@ import cc.quarkus.qcc.machine.llvm.op.ExactBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
+import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
@@ -384,6 +385,13 @@ final class BasicBlockImpl extends AbstractEmittable implements LLBasicBlock {
 
     public AtomicRmwInstruction atomicrmw() {
         throw Assert.unsupported();
+    }
+
+    public GetElementPtr getelementptr(final LLValue type, final LLValue ptrType, final LLValue pointer) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("ptrType", ptrType);
+        Assert.checkNotNullParam("pointer", pointer);
+        return add(new GetElementPtrImpl(this, (AbstractValue) type, (AbstractValue) ptrType, (AbstractValue) pointer));
     }
 
     public LLBasicBlock createBlock() {

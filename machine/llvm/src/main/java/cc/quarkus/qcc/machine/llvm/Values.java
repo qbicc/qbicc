@@ -14,6 +14,8 @@ public final class Values {
     public static final LLValue FALSE = LLVM.FALSE;
     public static final LLValue NULL = LLVM.NULL;
 
+    public static final LLValue zeroinitializer = LLVM.zeroinitializer;
+
     public static LLValue intConstant(int val) {
         return LLVM.intConstant(val);
     }

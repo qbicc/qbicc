@@ -8,9 +8,8 @@ import java.util.List;
 import cc.quarkus.qcc.machine.llvm.Function;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.Global;
-import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.op.Assignment;
+import cc.quarkus.qcc.machine.llvm.Module;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -35,26 +34,14 @@ final class ModuleImpl implements Module {
         return add(new FunctionDeclarationImpl(name));
     }
 
-    public Assignment assign(final LLValue type, final LLValue value) {
-        Assert.checkNotNullParam("type", type);
-        Assert.checkNotNullParam("value", value);
-        return null;
-    }
-
     public Global global(final LLValue type) {
         Assert.checkNotNullParam("type", type);
-        return null;
+        return add(new GlobalImpl(this, false, (AbstractValue) type));
     }
 
     public Global constant(final LLValue type) {
         Assert.checkNotNullParam("type", type);
-        return null;
-    }
-
-    public Assignment global(final LLValue type, final LLValue value) {
-        Assert.checkNotNullParam("type", type);
-        Assert.checkNotNullParam("value", value);
-        return null;
+        return add(new GlobalImpl(this, true, (AbstractValue) type));
     }
 
     int nextGlobalId() {

@@ -16,8 +16,6 @@ public interface Module {
     // todo: metadata goes after `declare` for declarations
     Function declare(String name);
 
-    Assignment assign(LLValue type, LLValue value);
-
     Global global(LLValue type);
 
     Global constant(LLValue type);

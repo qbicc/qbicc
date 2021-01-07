@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.plugin.llvm;
 
 import static cc.quarkus.qcc.machine.llvm.Types.*;
+import static cc.quarkus.qcc.machine.llvm.Values.*;
 import static java.lang.Math.*;
 
 import java.io.BufferedWriter;
@@ -20,10 +21,12 @@ import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.LLStruct;
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.object.Data;
+import cc.quarkus.qcc.object.DataDeclaration;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.FunctionDeclaration;
 import cc.quarkus.qcc.object.ProgramModule;
@@ -81,12 +84,14 @@ public class LLVMGenerator implements Consumer<CompilationContext> {
                         FunctionType fnType = fn.getType();
                         decl.returns(map(fnType.getReturnType()));
                         int cnt = fnType.getParameterCount();
-                        for (int i = 0; i < cnt; i ++) {
+                        for (int i = 0; i < cnt; i++) {
                             decl.param(map(fnType.getParameterType(i)));
                         }
+                    } else if (item instanceof DataDeclaration) {
+                        module.global(map(item.getType())).external().asGlobal(item.getName());
                     } else {
                         assert item instanceof Data;
-                        // todo: support data output
+                        module.global(map(item.getType())).value(zeroinitializer).linkage(Linkage.COMMON).asGlobal(item.getName());
                     }
                 }
             }
@@ -189,6 +194,7 @@ public class LLVMGenerator implements Consumer<CompilationContext> {
                 // yet more padding
                 struct.member(array((int) (size - offs), i8));
             }
+            res = struct;
         } else {
             throw new IllegalStateException();
         }
@@ -196,4 +202,9 @@ public class LLVMGenerator implements Consumer<CompilationContext> {
         return res;
     }
 
+    LLValue map(final CompoundType compoundType, final CompoundType.Member member) {
+        // populate map
+        map(compoundType);
+        return structureOffsets.get(member);
+    }
 }

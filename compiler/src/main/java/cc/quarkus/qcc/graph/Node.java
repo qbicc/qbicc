@@ -23,6 +23,7 @@ import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -599,6 +600,10 @@ public interface Node {
 
             public Value visit(final Copier param, final Xor node) {
                 return param.getBlockBuilder().xor(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(final Copier param, final ZeroInitializerLiteral node) {
+                return node;
             }
         }
     }

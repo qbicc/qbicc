@@ -7,15 +7,22 @@ import cc.quarkus.qcc.machine.llvm.op.YieldingInstruction;
 
 abstract class AbstractYieldingInstruction extends AbstractInstruction implements YieldingInstruction {
 
-    final BasicBlockImpl block;
+    final ModuleImpl module;
+    final FunctionDefinitionImpl func;
     AbstractValue lvalue;
 
+    AbstractYieldingInstruction(final ModuleImpl module) {
+        this.module = module;
+        func = null;
+    }
+
     AbstractYieldingInstruction(final BasicBlockImpl block) {
-        this.block = block;
+        this.module = block.func.module;
+        func = block.func;
     }
 
     public LLValue asGlobal() {
-        return setLValue(new GlobalValueOf(this, block.func.module.nextGlobalId()));
+        return setLValue(new GlobalValueOf(this, module.nextGlobalId()));
     }
 
     public LLValue asGlobal(final String name) {
@@ -23,7 +30,10 @@ abstract class AbstractYieldingInstruction extends AbstractInstruction implement
     }
 
     public LLValue asLocal() {
-        return setLValue(new LocalValueOf(this, block.func.nextLocalId()));
+        if (func == null) {
+            throw new IllegalStateException("Cannot get global value as local");
+        }
+        return setLValue(new LocalValueOf(this, func.nextLocalId()));
     }
 
     public LLValue asLocal(final String name) {

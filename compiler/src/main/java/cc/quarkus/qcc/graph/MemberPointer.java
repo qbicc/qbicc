@@ -22,6 +22,10 @@ public class MemberPointer extends AbstractValue {
         return structPointer;
     }
 
+    public CompoundType getStructType() {
+        return (CompoundType) ((PointerType)structPointer.getType()).getPointeeType();
+    }
+
     public CompoundType.Member getMember() {
         return member;
     }

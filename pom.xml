@@ -227,6 +227,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-plugin-layout</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qcc-plugin-lowering</artifactId>
                 <version>${project.version}</version>
             </dependency>
