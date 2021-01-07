@@ -79,6 +79,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                 String sectionName = section.getName();
                 for (ProgramObject item : section.contents()) {
                     String name = item.getName();
+                    Linkage linkage = map(item.getLinkage());
                     if (item instanceof Function) {
                         MethodBody body = ((Function) item).getBody();
                         if (body == null) {
@@ -86,7 +87,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             continue;
                         }
                         BasicBlock entryBlock = body.getEntryBlock();
-                        FunctionDefinition functionDefinition = module.define(name);
+                        FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
                         LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, this, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
                         if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                             functionDefinition.section(sectionName);
@@ -95,7 +96,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                         nodeVisitor.execute();
                     } else if (item instanceof FunctionDeclaration) {
                         FunctionDeclaration fn = (FunctionDeclaration) item;
-                        cc.quarkus.qcc.machine.llvm.Function decl = module.declare(name);
+                        cc.quarkus.qcc.machine.llvm.Function decl = module.declare(name).linkage(linkage);
                         FunctionType fnType = fn.getType();
                         decl.returns(map(fnType.getReturnType()));
                         int cnt = fnType.getParameterCount();
@@ -103,11 +104,11 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             decl.param(map(fnType.getParameterType(i)));
                         }
                     } else if (item instanceof DataDeclaration) {
-                        module.global(map(item.getType())).external().asGlobal(item.getName());
+                        module.global(map(item.getType())).external().linkage(linkage).asGlobal(item.getName());
                     } else {
                         assert item instanceof Data;
                         Literal value = (Literal) ((Data) item).getValue();
-                        module.global(map(item.getType())).value(map(ctxt, value)).linkage(Linkage.COMMON).asGlobal(item.getName());
+                        module.global(map(item.getType())).value(map(ctxt, value)).linkage(linkage).asGlobal(item.getName());
                     }
                 }
             }
@@ -127,6 +128,17 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
             }
             LLVMState llvmState = ctxt.computeAttachmentIfAbsent(LLVMState.KEY, LLVMState::new);
             llvmState.addModulePath(outputFile);
+        }
+    }
+
+    Linkage map(cc.quarkus.qcc.object.Linkage linkage) {
+        switch (linkage) {
+            case COMMON: return Linkage.COMMON;
+            case INTERNAL: return Linkage.INTERNAL;
+            case PRIVATE: return Linkage.PRIVATE;
+            case WEAK: return Linkage.EXTERN_WEAK;
+            case EXTERNAL: return Linkage.EXTERNAL;
+            default: throw Assert.impossibleSwitchCase(linkage);
         }
     }
 
