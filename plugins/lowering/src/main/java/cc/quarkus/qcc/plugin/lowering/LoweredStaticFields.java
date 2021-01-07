@@ -8,6 +8,8 @@ import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
+import cc.quarkus.qcc.object.Linkage;
 import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
@@ -42,10 +44,12 @@ public class LoweredStaticFields {
         }
         Section section = ctxt.getOrAddProgramModule(enclosingType).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
         Literal initialValue = fieldElement.getInitialValue();
-        if (initialValue == null) {
+        Linkage linkage = Linkage.INTERNAL;
+        if (initialValue == null || initialValue instanceof ZeroInitializerLiteral) {
+            linkage = Linkage.COMMON;
             initialValue = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType);
         }
-        section.addData(fieldElement, itemName, initialValue);
+        section.addData(fieldElement, itemName, initialValue).setLinkage(linkage);
         return symbol;
     }
 }
