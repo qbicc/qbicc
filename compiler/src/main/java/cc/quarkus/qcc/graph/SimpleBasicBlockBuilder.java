@@ -295,7 +295,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
-        return asDependency(new InstanceFieldRead(line, bci, requireDependency(), instance, fieldElement, fieldElement.getType(element.getEnclosingType().getContext(), List.of()), mode));
+        return asDependency(new InstanceFieldRead(line, bci, requireDependency(), instance, fieldElement, fieldElement.getType(List.of()), mode));
     }
 
     public Value readInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
@@ -303,7 +303,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
-        return asDependency(new StaticFieldRead(line, bci, requireDependency(), fieldElement, fieldElement.getType(element.getEnclosingType().getContext(), List.of()), mode));
+        return asDependency(new StaticFieldRead(line, bci, requireDependency(), fieldElement, fieldElement.getType(List.of()), mode));
     }
 
     public Value readStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
@@ -417,7 +417,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new StaticInvocationValue(line, bci, requireDependency(), target, target.getType(element.getEnclosingType().getContext(), List.of()).getReturnType(), arguments));
+        return optionallyTry(new StaticInvocationValue(line, bci, requireDependency(), target, target.getType(List.of()).getReturnType(), arguments));
     }
 
     public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
@@ -425,7 +425,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, target.getType(element.getEnclosingType().getContext(), List.of()).getReturnType(), arguments));
+        return optionallyTry(new InstanceInvocationValue(line, bci, requireDependency(), kind, instance, target, target.getType(List.of()).getReturnType(), arguments));
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {

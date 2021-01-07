@@ -43,7 +43,7 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
         DefinedTypeDefinition ourHolder = getCurrentElement().getEnclosingType();
         if (! fieldHolder.equals(ourHolder)) {
             // we have to declare it in our translation unit
-            ValueType fieldType = fieldElement.getType(fieldHolder.getContext(), List.of());
+            ValueType fieldType = fieldElement.getType(List.of());
             Section section = ctxt.getOrAddProgramModule(ourHolder).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
             section.declareData(fieldElement, symbol.getName(), fieldType);
         }

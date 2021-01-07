@@ -122,7 +122,7 @@ final class NativeInfo {
                     tb.setName(simpleName);
                     tb.setQualifier(q);
                     for (int i = 0; i < fc; i ++) {
-                        ValueType type = vt.getField(i).getType(classContext, List.of(/*todo*/));
+                        ValueType type = vt.getField(i).getType(List.of(/*todo*/));
                         // compound type
                         tb.addMember(vt.getField(i).getName());
                     }
@@ -170,7 +170,7 @@ final class NativeInfo {
                             } else {
                                 CompoundType.Member[] members = new CompoundType.Member[fc];
                                 for (int i = 0; i < fc; i ++) {
-                                    ValueType type = vt.getField(i).getType(classContext, List.of(/*todo*/));
+                                    ValueType type = vt.getField(i).getType(List.of(/*todo*/));
                                     // compound type
                                     String name = vt.getField(i).getName();
                                     CProbe.Type.Info member = result.getTypeInfoOfMember(probeType, name);
@@ -195,7 +195,7 @@ final class NativeInfo {
         if (method == null) {
             return ctxt.getTypeSystem().getFunctionType(ctxt.getTypeSystem().getVoidType());
         }
-        return method.getType(definedType.getContext(), List.of(/* todo */));
+        return method.getType(List.of(/* todo */));
     }
 
     public MethodElement getFunctionalInterfaceMethod(final DefinedTypeDefinition definedType) {

@@ -32,7 +32,7 @@ public class LoweredStaticFields {
         DefinedTypeDefinition enclosingType = fieldElement.getEnclosingType();
         ClassContext classContext = enclosingType.getContext();
         CompilationContext ctxt = classContext.getCompilationContext();
-        ValueType fieldType = fieldElement.getType(classContext, List.of());
+        ValueType fieldType = fieldElement.getType(List.of());
         String itemName = "static-" + enclosingType.getInternalName().replace('/', '.') + "-" + fieldElement.getName() + "-" + fieldElement.getIndex();
         symbol = ctxt.getLiteralFactory().literalOfSymbol(itemName, fieldType.getPointer());
         SymbolLiteral appearing = staticFields.putIfAbsent(fieldElement, symbol);

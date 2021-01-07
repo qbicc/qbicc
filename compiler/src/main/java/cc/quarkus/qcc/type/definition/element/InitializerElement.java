@@ -29,7 +29,8 @@ public final class InitializerElement extends BasicElement implements Executable
         return methodBody;
     }
 
-    public FunctionType getType(final ClassContext classContext, final List<ParameterizedSignature> signatureContext) {
+    public FunctionType getType(final List<ParameterizedSignature> signatureContext) {
+        ClassContext classContext = getEnclosingType().getContext();
         TypeSystem ts = classContext.getTypeSystem();
         return ts.getFunctionType(ts.getVoidType());
     }

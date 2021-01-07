@@ -129,12 +129,12 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
         }
         cnt = getFieldCount();
         for (int i = 0; i < cnt; i ++) {
-            fields[i].getType(getContext(), List.of());
+            fields[i].getType(List.of());
         }
         cnt = getMethodCount();
         for (int i = 0; i < cnt; i ++) {
             MethodElement method = methods[i];
-            method.getType(getContext(), List.of());
+            method.getType(List.of());
         }
         synchronized (this) {
             resolved = this.resolved;

@@ -73,7 +73,7 @@ public final class Layout {
             if (field.isStatic()) {
                 continue;
             }
-            allMembers[i] = instanceMembers[ic++] = computeMember(classContext, allocated, field);
+            allMembers[i] = instanceMembers[ic++] = computeMember(allocated, field);
         }
         int size = allocated.length();
         List<CompoundType.Member> fieldIndexToMember = List.of(allMembers);
@@ -83,9 +83,9 @@ public final class Layout {
         return appearing != null ? appearing : layoutInfo;
     }
 
-    private CompoundType.Member computeMember(final ClassContext classContext, final BitSet allocated, final FieldElement field) {
+    private CompoundType.Member computeMember(final BitSet allocated, final FieldElement field) {
         TypeSystem ts = ctxt.getTypeSystem();
-        ValueType fieldType = field.getType(classContext, List.of(/* todo */));
+        ValueType fieldType = field.getType(List.of(/* todo */));
         int size = (int) fieldType.getSize();
         int align = fieldType.getAlign();
         int idx = find(allocated, align, size);

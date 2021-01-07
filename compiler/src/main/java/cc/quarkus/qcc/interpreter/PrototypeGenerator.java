@@ -55,7 +55,7 @@ public class PrototypeGenerator {
                 (field) -> proto.visitField(
                         field.getModifiers(),
                         field.getName(),
-                        ci(javaTypeFromFieldType(field.getType(null, List.of()))),
+                        ci(javaTypeFromFieldType(field.getType(List.of()))),
                         null, null));
 
         proto.visitEnd();

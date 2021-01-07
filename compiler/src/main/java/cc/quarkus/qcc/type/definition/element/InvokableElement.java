@@ -62,7 +62,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         return methodBody;
     }
 
-    public FunctionType getType(final ClassContext classContext, final List<ParameterizedSignature> signatureContext) {
+    public FunctionType getType(final List<ParameterizedSignature> signatureContext) {
+        ClassContext classContext = getEnclosingType().getContext();
         FunctionType type = this.type;
         if (type == null) {
             this.type = type = classContext.resolveMethodFunctionType(

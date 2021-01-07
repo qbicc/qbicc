@@ -3,7 +3,6 @@ package cc.quarkus.qcc.type.definition.element;
 import java.util.List;
 
 import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.generic.MethodSignature;
@@ -17,7 +16,7 @@ public interface ExecutableElement extends MemberElement {
 
     MethodHandle getMethodBody();
 
-    FunctionType getType(ClassContext classContext, List<ParameterizedSignature> signatureContext);
+    FunctionType getType(List<ParameterizedSignature> signatureContext);
 
     MethodDescriptor getDescriptor();
 

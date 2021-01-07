@@ -55,11 +55,11 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
      * Get or resolve the type of the variable.  This may cause classes to be loaded, resolved, and/or initialized
      * recursively.
      *
-     * @param classContext the class context (must not be {@code null})
      * @param signatureContext the signature context (must not be {@code null})
      * @return the resolved type of the variable
      */
-    public ValueType getType(ClassContext classContext, List<ParameterizedSignature> signatureContext) {
+    public ValueType getType(List<ParameterizedSignature> signatureContext) {
+        ClassContext classContext = getEnclosingType().getContext();
         ValueType type = this.type;
         if (type == null) {
             this.type = type = resolveTypeDescriptor(classContext, signatureContext);

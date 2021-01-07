@@ -318,7 +318,7 @@ final class CompilationContextImpl implements CompilationContext {
             return ts.getFunctionType(ts.getVoidType());
         }
         assert element instanceof InvokableElement;
-        FunctionType methodType = element.getType(element.getEnclosingType().getContext(), List.of(/*todo*/));
+        FunctionType methodType = element.getType(List.of(/*todo*/));
         // function type is the same as the method type, except with current thread/receiver first
         int pcnt = methodType.getParameterCount();
         ValueType[] argTypes;

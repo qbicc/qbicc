@@ -93,7 +93,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         }
         CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
         // compute the type and raw value
-        ValueType type = fieldElement.getType(fieldElement.getEnclosingType().getContext(), List.of(/*todo*/));
+        ValueType type = fieldElement.getType(List.of(/*todo*/));
         Value val;
         // todo: if constant value is actually a symbol ref...
         if (type instanceof IntegerType) {
