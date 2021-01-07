@@ -6,7 +6,6 @@ import java.util.List;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.generic.MethodSignature;
@@ -23,7 +22,6 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     private final TypeAnnotationList returnInvisibleTypeAnnotations;
     private final List<ParameterElement> parameters;
     private final MethodHandle methodBody;
-    private final DefinedTypeDefinition enclosingType;
     private List<TypeAnnotationList> parameterVisibleTypeAnnotations;
     private List<TypeAnnotationList> parameterInvisibleTypeAnnotations;
     private FunctionType type;
@@ -36,7 +34,6 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.returnVisibleTypeAnnotations = null;
         this.returnInvisibleTypeAnnotations = null;
         this.methodBody = null;
-        this.enclosingType = null;
     }
 
     InvokableElement(Builder builder) {
@@ -47,7 +44,6 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.returnVisibleTypeAnnotations = builder.returnVisibleTypeAnnotations;
         this.returnInvisibleTypeAnnotations = builder.returnInvisibleTypeAnnotations;
         this.methodBody = builder.methodBody;
-        this.enclosingType = Assert.checkNotNullParam("builder.enclosingType", builder.enclosingType);
     }
 
     public MethodDescriptor getDescriptor() {
@@ -64,10 +60,6 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
 
     public MethodHandle getMethodBody() {
         return methodBody;
-    }
-
-    public DefinedTypeDefinition getEnclosingType() {
-        return enclosingType;
     }
 
     public FunctionType getType(final ClassContext classContext, final List<ParameterizedSignature> signatureContext) {
@@ -123,7 +115,6 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         TypeAnnotationList returnVisibleTypeAnnotations = TypeAnnotationList.empty();
         TypeAnnotationList returnInvisibleTypeAnnotations = TypeAnnotationList.empty();
         MethodHandle methodBody;
-        DefinedTypeDefinition enclosingType;
 
         Builder() {}
 
@@ -149,10 +140,6 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
 
         public void setMethodBody(final MethodHandle methodHandle) {
             this.methodBody = methodHandle;
-        }
-
-        public void setEnclosingType(final DefinedTypeDefinition enclosingType) {
-            this.enclosingType = Assert.checkNotNullParam("enclosingType", enclosingType);
         }
 
         public abstract InvokableElement build();

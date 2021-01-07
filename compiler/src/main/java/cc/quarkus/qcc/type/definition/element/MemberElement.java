@@ -27,11 +27,7 @@ public interface MemberElement extends Element {
         return hasAllModifiersOf(ClassFile.ACC_PRIVATE);
     }
 
-    DefinedTypeDefinition getEnclosingType();
-
     interface Builder extends Element.Builder {
-        void setEnclosingType(DefinedTypeDefinition enclosingType);
-
         MemberElement build();
     }
 }

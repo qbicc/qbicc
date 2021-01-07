@@ -882,6 +882,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         ParameterElement[] parameters = new ParameterElement[realCnt];
         for (int i = 0; i < realCnt; i ++) {
             ParameterElement.Builder paramBuilder = ParameterElement.builder();
+            paramBuilder.setEnclosingType(enclosing);
             paramBuilder.setIndex(i);
             paramBuilder.setDescriptor(methodDescriptor.getParameterTypes().get(i));
             paramBuilder.setSignature(signature.getParameterTypes().get(i));

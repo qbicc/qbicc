@@ -10,22 +10,16 @@ public final class NestedClassElement extends BasicElement implements MemberElem
     public static final NestedClassElement[] NO_NESTED_CLASSES = new NestedClassElement[0];
 
     private final String name;
-    private final DefinedTypeDefinition enclosingType;
     private final DefinedTypeDefinition correspondingType;
 
     NestedClassElement(final Builder builder) {
         super(builder);
         this.name = Assert.checkNotNullParam("builder.name", builder.name);
-        this.enclosingType = Assert.checkNotNullParam("builder.enclosingType", builder.enclosingType);
         this.correspondingType = Assert.checkNotNullParam("builder.correspondingType", builder.correspondingType);
     }
 
     public String getName() {
         return name;
-    }
-
-    public DefinedTypeDefinition getEnclosingType() {
-        return enclosingType;
     }
 
     public DefinedTypeDefinition getCorrespondingType() {
@@ -42,17 +36,12 @@ public final class NestedClassElement extends BasicElement implements MemberElem
 
     public static final class Builder extends BasicElement.Builder implements MemberElement.Builder, NamedElement.Builder {
         private String name;
-        private DefinedTypeDefinition enclosingType;
         private DefinedTypeDefinition correspondingType;
 
         Builder() {}
 
         public void setName(final String name) {
             this.name = name;
-        }
-
-        public void setEnclosingType(final DefinedTypeDefinition enclosingType) {
-            this.enclosingType = enclosingType;
         }
 
         public void setCorrespondingType(final DefinedTypeDefinition correspondingType) {
