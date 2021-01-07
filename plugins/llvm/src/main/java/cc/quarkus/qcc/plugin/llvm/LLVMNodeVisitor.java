@@ -212,10 +212,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         return map(schedule.getBlockForNode(node)).xor(map(node.getType()), llvmLeft, llvmRight).asLocal();
     }
 
-    public LLValue visit(final Void param, final ZeroInitializerLiteral node) {
-        return Values.zeroinitializer;
-    }
-
     public LLValue visit(final Void param, final Multiply node) {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
@@ -496,6 +492,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     public LLValue visit(final Void param, final NullLiteral node) {
         return Values.NULL;
+    }
+
+    public LLValue visit(final Void param, final ZeroInitializerLiteral node) {
+        return Values.zeroinitializer;
     }
 
     // GEP
