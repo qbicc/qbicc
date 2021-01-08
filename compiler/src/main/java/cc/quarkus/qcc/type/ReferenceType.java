@@ -9,7 +9,7 @@ import java.lang.invoke.VarHandle;
  * pointee contains, somewhere, a value of type {@link TypeIdType} representing the object's polymorphic
  * type.  Alternatively, a reference value may be equal to {@code null}.
  */
-public final class ReferenceType extends ValueType {
+public final class ReferenceType extends WordType {
     private static final VarHandle refArrayTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "refArrayType", VarHandle.class, ReferenceType.class, ReferenceArrayObjectType.class);
 
     private final ObjectType upperBound;
@@ -60,6 +60,10 @@ public final class ReferenceType extends ValueType {
 
     public ReferenceType asConst() {
         return (ReferenceType) super.asConst();
+    }
+
+    public int getMinBits() {
+        return typeSystem.getReferenceSize() * typeSystem.getByteBits();
     }
 
     /**
