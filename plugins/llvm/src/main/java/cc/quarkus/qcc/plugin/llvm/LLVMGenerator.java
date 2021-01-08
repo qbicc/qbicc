@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.plugin.llvm;
 
+import static cc.quarkus.qcc.machine.llvm.Types.array;
 import static cc.quarkus.qcc.machine.llvm.Types.*;
 import static cc.quarkus.qcc.machine.llvm.Values.*;
 import static java.lang.Math.*;
@@ -53,10 +54,10 @@ import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.PointerType;
-import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
+import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import io.smallrye.common.constraint.Assert;
@@ -160,9 +161,22 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
         } else if (type instanceof BooleanType) {
             // todo: sometimes it's one byte instead
             res = i1;
-        } else if (type instanceof IntegerType) {
+        } else if (type instanceof FloatType) {
+            int bytes = (int) ((FloatType) type).getSize();
+            if (bytes == 4) {
+                res = float32;
+            } else if (bytes == 8) {
+                res = float64;
+            } else {
+                throw Assert.unreachableCode();
+            }
+        } else if (type instanceof PointerType) {
+            Type pointeeType = ((PointerType) type).getPointeeType();
+            res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType));
+        } else if (type instanceof WordType) {
+            // all other words are integers
             // LLVM doesn't really care about signedness
-            int bytes = (int) ((IntegerType) type).getSize();
+            int bytes = (int) ((WordType) type).getSize();
             if (bytes == 1) {
                 res = i8;
             } else if (bytes == 2) {
@@ -174,21 +188,6 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
             } else {
                 throw Assert.unreachableCode();
             }
-        } else if (type instanceof FloatType) {
-            int bytes = (int) ((FloatType) type).getSize();
-            if (bytes == 4) {
-                res = float32;
-            } else if (bytes == 8) {
-                res = float64;
-            } else {
-                throw Assert.unreachableCode();
-            }
-        } else if (type instanceof ReferenceType) {
-            // todo: lower class types to ref types at some earlier point
-            res = ptrTo(i8);
-        } else if (type instanceof PointerType) {
-            Type pointeeType = ((PointerType) type).getPointeeType();
-            res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType));
         } else if (type instanceof ArrayType) {
             ArrayType arrayType = (ArrayType) type;
             Type elementType = arrayType.getElementType();
@@ -302,7 +301,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
     }
 
     public LLValue visit(final CompilationContext param, final NullLiteral node) {
-        return NULL;
+        return zeroinitializer;
     }
 
     public LLValue visit(final CompilationContext param, final SymbolLiteral node) {

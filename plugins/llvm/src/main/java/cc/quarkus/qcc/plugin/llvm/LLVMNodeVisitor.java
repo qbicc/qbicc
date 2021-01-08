@@ -46,6 +46,7 @@ import cc.quarkus.qcc.graph.Return;
 import cc.quarkus.qcc.graph.Select;
 import cc.quarkus.qcc.graph.Shl;
 import cc.quarkus.qcc.graph.Shr;
+import cc.quarkus.qcc.graph.StackAllocation;
 import cc.quarkus.qcc.graph.Sub;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.ThisValue;
@@ -60,7 +61,6 @@ import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
@@ -443,6 +443,15 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         return isFloating(javaInputType) ?
                target.ftrunc(inputType, llvmInput, outputType).asLocal() :
                target.trunc(inputType, llvmInput, outputType).asLocal();
+    }
+
+    public LLValue visit(final Void param, final StackAllocation node) {
+        LLValue pointeeType = map(node.getType().getPointeeType());
+        LLValue countType = map(node.getCount().getType());
+        LLValue count = map(node.getCount());
+        LLValue alignment = map(node.getAlign());
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
+        return target.alloca(pointeeType).elements(countType, count).align(alignment).asLocal();
     }
 
     // calls
