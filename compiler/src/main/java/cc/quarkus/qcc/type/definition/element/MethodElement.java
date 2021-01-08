@@ -29,6 +29,10 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         this.name = builder.name;
     }
 
+    public String toString() {
+        return getEnclosingType().getDescriptor().getPackageName()+"."+getEnclosingType().getDescriptor().getClassName()+"."+getName()+getDescriptor();
+    }
+
     public String getName() {
         return name;
     }

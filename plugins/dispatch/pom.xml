@@ -21,6 +21,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qcc-driver</artifactId>
         </dependency>
+        <dependency>
+            <groupId>cc.quarkus</groupId>
+            <artifactId>qcc-plugin-reachability</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

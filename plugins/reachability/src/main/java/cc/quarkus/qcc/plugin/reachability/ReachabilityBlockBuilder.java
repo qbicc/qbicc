@@ -3,6 +3,7 @@ package cc.quarkus.qcc.plugin.reachability;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
@@ -19,11 +20,9 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
  * the set of reachable call sites and instantiated types.
  */
 public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
-    private final CompilationContext ctxt;
+    private static final boolean DEBUG_RTA = false;
 
-    private final Set<ValidatedTypeDefinition> instantiatedClasses = ConcurrentHashMap.newKeySet();
-    private final Set<MethodElement> invokableMethods = ConcurrentHashMap.newKeySet();
-    private final Map<ValidatedTypeDefinition, List<ValidatedTypeDefinition>> subclassMap = new ConcurrentHashMap<ValidatedTypeDefinition, List<ValidatedTypeDefinition>>();
+    private final CompilationContext ctxt;
 
     public ReachabilityBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
@@ -36,8 +35,10 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        if (!ctxt.wasEnqueued(target)) {
+            processNewTarget(target);
+        }
         ctxt.enqueue(target);
-        processInvokedInstanceMethod(target);
         return super.invokeInstance(kind, instance, target, arguments);
     }
 
@@ -47,34 +48,54 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        if (!ctxt.wasEnqueued(target)) {
+            processNewTarget(target);
+        }
         ctxt.enqueue(target);
-        processInvokedInstanceMethod(target);
         return super.invokeValueInstance(kind, instance, target, arguments);
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
-        ctxt.enqueue(target);
         processInstantiatedClass(target.getEnclosingType().validate());
+        ctxt.enqueue(target);
         return super.invokeConstructor(instance, target, arguments);
     }
 
     private void processInstantiatedClass(final ValidatedTypeDefinition type) {
-        if (instantiatedClasses.add(type)) {
+        RTAInfo info = RTAInfo.get(ctxt);
+        if (!info.isLiveClass(type)) {
             if (type.hasSuperClass()) {
-                ValidatedTypeDefinition superClass = type.getSuperClass();
-                processInstantiatedClass(superClass);
-                List<ValidatedTypeDefinition> subclasses = subclassMap.getOrDefault(superClass, new ArrayList<ValidatedTypeDefinition>());
-                subclasses.add(type);
-            }
+                processInstantiatedClass(type.getSuperClass());
+                info.addLiveClass(type);
 
-            ctxt.info("AJA: Added "+type.getClassType().toFriendlyString());
+                // For every defined virtual method, check to see if it is overriding an enqueued method.
+                // If so, then conservatively enqueue it (if it is not already enqueued).
+                for (int i = 0; i < type.getMethodCount(); i++) {
+                    MethodElement defMethod = type.getMethod(i);
+                    if (defMethod.isVirtual() && !ctxt.wasEnqueued(defMethod)) {
+                        MethodElement overiddenMethod = type.getSuperClass().resolveMethodElementVirtual(defMethod.getName(), defMethod.getDescriptor());
+                        if (overiddenMethod != null && ctxt.wasEnqueued(overiddenMethod)) {
+                            ctxt.enqueue(defMethod);
+                            if (DEBUG_RTA) ctxt.debug("Enqueued method (defined in added type): " + defMethod);
+                        }
+                    }
+                }
+            }
         }
     }
 
-    private void processInvokedInstanceMethod(final MethodElement target) {
-        if (invokableMethods.add(target)) {
-            propagateDown(target.getEnclosingType())
-            ctxt.info("AJA: Added "+target.getEnclosingType().getDescriptor().getClassName()+"::"+target.getName());
-        }
+    private void processNewTarget(final MethodElement target) {
+        if (DEBUG_RTA) ctxt.debug("Adding method (invoke target): " + target);
+        // Traverse the instantiated subclasses of target's defining class and
+        // ensure that all overriding implementations of this method are marked invokable.
+        ValidatedTypeDefinition definingClass = target.getEnclosingType().validate();
+        RTAInfo info = RTAInfo.get(ctxt);
+        info.visitLiveSubclasses(target.getEnclosingType().validate(), (sc) -> {
+            MethodElement cand = sc.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
+            if (!ctxt.wasEnqueued(cand)) {
+                if (DEBUG_RTA) ctxt.debug("Adding method (subclass override): "+cand);
+                ctxt.enqueue(cand);
+            }
+        });
     }
 }
