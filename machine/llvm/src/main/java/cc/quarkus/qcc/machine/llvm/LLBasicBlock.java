@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.machine.llvm;
 
+import cc.quarkus.qcc.machine.llvm.op.Alloca;
 import cc.quarkus.qcc.machine.llvm.op.Assignment;
 import cc.quarkus.qcc.machine.llvm.op.AtomicRmwInstruction;
 import cc.quarkus.qcc.machine.llvm.op.Binary;
@@ -125,6 +126,8 @@ public interface LLBasicBlock extends LLValue {
     AtomicRmwInstruction atomicrmw();
 
     GetElementPtr getelementptr(LLValue type, LLValue ptrType, LLValue pointer);
+
+    Alloca alloca(LLValue type);
 
     // create more blocks
 

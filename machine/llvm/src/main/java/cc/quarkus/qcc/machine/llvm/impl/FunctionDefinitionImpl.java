@@ -13,6 +13,7 @@ import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.RuntimePreemption;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Visibility;
+import cc.quarkus.qcc.machine.llvm.op.Alloca;
 import cc.quarkus.qcc.machine.llvm.op.Assignment;
 import cc.quarkus.qcc.machine.llvm.op.AtomicRmwInstruction;
 import cc.quarkus.qcc.machine.llvm.op.Binary;
@@ -366,6 +367,10 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
 
     public GetElementPtr getelementptr(final LLValue type, final LLValue ptrType, final LLValue pointer) {
         return rootBlock.getelementptr(type, ptrType, pointer);
+    }
+
+    public Alloca alloca(final LLValue type) {
+        return rootBlock.alloca(type);
     }
 
     void assignName(final BasicBlockImpl basicBlock) {

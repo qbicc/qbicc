@@ -9,6 +9,7 @@ import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.op.Alloca;
 import cc.quarkus.qcc.machine.llvm.op.Assignment;
 import cc.quarkus.qcc.machine.llvm.op.AtomicRmwInstruction;
 import cc.quarkus.qcc.machine.llvm.op.Binary;
@@ -392,6 +393,11 @@ final class BasicBlockImpl extends AbstractEmittable implements LLBasicBlock {
         Assert.checkNotNullParam("ptrType", ptrType);
         Assert.checkNotNullParam("pointer", pointer);
         return add(new GetElementPtrImpl(this, (AbstractValue) type, (AbstractValue) ptrType, (AbstractValue) pointer));
+    }
+
+    public Alloca alloca(final LLValue type) {
+        Assert.checkNotNullParam("type", type);
+        return add(new AllocaImpl(this, (AbstractValue) type));
     }
 
     public LLBasicBlock createBlock() {
