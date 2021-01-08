@@ -113,6 +113,10 @@ public interface LLBasicBlock extends LLValue {
 
     YieldingInstruction uitofp(LLValue type, LLValue value, LLValue toType);
 
+    YieldingInstruction ptrtoint(LLValue type, LLValue value, LLValue toType);
+
+    YieldingInstruction inttoptr(LLValue type, LLValue value, LLValue toType);
+
     Call call(LLValue type, LLValue function);
 
     Call invoke(LLValue type, LLValue function, LLBasicBlock normal, LLBasicBlock unwind);

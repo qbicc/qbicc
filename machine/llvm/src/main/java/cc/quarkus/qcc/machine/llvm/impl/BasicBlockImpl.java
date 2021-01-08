@@ -358,6 +358,20 @@ final class BasicBlockImpl extends AbstractEmittable implements LLBasicBlock {
         return add(new UIToFP(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
+    public YieldingInstruction ptrtoint(final LLValue type, final LLValue value, final LLValue toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new PtrToInt(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
+    public YieldingInstruction inttoptr(final LLValue type, final LLValue value, final LLValue toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return add(new IntToPtr(this, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
     public Call call(final LLValue type, final LLValue function) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("function", function);

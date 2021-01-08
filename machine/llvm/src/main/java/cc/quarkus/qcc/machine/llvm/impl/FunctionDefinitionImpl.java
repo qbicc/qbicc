@@ -341,6 +341,14 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         return rootBlock.uitofp(type, value, toType);
     }
 
+    public YieldingInstruction ptrtoint(final LLValue type, final LLValue value, final LLValue toType) {
+        return rootBlock.ptrtoint(type, value, toType);
+    }
+
+    public YieldingInstruction inttoptr(final LLValue type, final LLValue value, final LLValue toType) {
+        return rootBlock.inttoptr(type, value, toType);
+    }
+
     public Call call(final LLValue type, final LLValue function) {
         return rootBlock.call(type, function);
     }
