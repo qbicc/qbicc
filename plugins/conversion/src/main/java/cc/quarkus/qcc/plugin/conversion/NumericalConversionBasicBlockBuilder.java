@@ -10,6 +10,7 @@ import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
@@ -36,12 +37,9 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     if (fromType.getMinBits() > toType.getMinBits()) {
                         // OK
                         return super.truncate(from, toType);
-                    } else if (fromType.getMinBits() == toType.getMinBits()) {
+                    } else if (fromType.getMinBits() <= toType.getMinBits()) {
                         // no actual truncation needed
                         return from;
-                    } else {
-                        assert fromType.getMinBits() < toType.getMinBits();
-                        // actually an extension; not OK (fall out)
                     }
                 } else if (toType instanceof UnsignedIntegerType) {
                     // OK in general but needs to be converted first
@@ -53,12 +51,9 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     if (fromType.getMinBits() > toType.getMinBits()) {
                         // OK
                         return super.truncate(from, toType);
-                    } else if (fromType.getMinBits() == toType.getMinBits()) {
+                    } else if (fromType.getMinBits() <= toType.getMinBits()) {
                         // no actual truncation needed
                         return from;
-                    } else {
-                        assert fromType.getMinBits() < toType.getMinBits();
-                        // actually an extension; not OK (fall out)
                     }
                 } else if (toType instanceof SignedIntegerType) {
                     // OK in general but needs to be converted first
@@ -70,12 +65,9 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     if (fromType.getMinBits() > toType.getMinBits()) {
                         // OK
                         return super.truncate(from, toType);
-                    } else if (fromType.getMinBits() == toType.getMinBits()) {
+                    } else if (fromType.getMinBits() <= toType.getMinBits()) {
                         // no actual truncation needed
                         return from;
-                    } else {
-                        assert fromType.getMinBits() < toType.getMinBits();
-                        // actually an extension; not OK (fall out)
                     }
                 }
             }
@@ -94,12 +86,9 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     if (fromType.getMinBits() < toType.getMinBits()) {
                         // OK
                         return super.extend(from, toType);
-                    } else if (fromType.getMinBits() == toType.getMinBits()) {
+                    } else if (fromType.getMinBits() >= toType.getMinBits()) {
                         // no actual extension needed
                         return from;
-                    } else {
-                        assert fromType.getMinBits() > toType.getMinBits();
-                        // actually a truncation; not OK (fall out)
                     }
                 } else if (toType instanceof UnsignedIntegerType) {
                     // not OK specifically
@@ -115,12 +104,9 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     if (fromType.getMinBits() < toType.getMinBits()) {
                         // OK
                         return super.extend(from, toType);
-                    } else if (fromType.getMinBits() == toType.getMinBits()) {
+                    } else if (fromType.getMinBits() >= toType.getMinBits()) {
                         // no actual extension needed
                         return from;
-                    } else {
-                        assert fromType.getMinBits() < toType.getMinBits();
-                        // actually a truncation; not OK (fall out)
                     }
                 } else if (toType instanceof SignedIntegerType) {
                     // OK in general but needs to be zero-extended first
@@ -132,12 +118,9 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     if (fromType.getMinBits() < toType.getMinBits()) {
                         // OK
                         return super.extend(from, toType);
-                    } else if (fromType.getMinBits() == toType.getMinBits()) {
+                    } else if (fromType.getMinBits() >= toType.getMinBits()) {
                         // no actual extension needed
                         return from;
-                    } else {
-                        assert fromType.getMinBits() < toType.getMinBits();
-                        // actually a truncation; not OK (fall out)
                     }
                 }
             }
@@ -217,6 +200,19 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
         } else if (fromTypeRaw instanceof IntegerType) {
             if (toTypeRaw instanceof FloatType) {
                 // no bounds check needed in this case
+                return super.valueConvert(from, toTypeRaw);
+            } else if (toTypeRaw instanceof PointerType) {
+                // pointer conversions are allowed
+                if (fromTypeRaw.getSize() < toTypeRaw.getSize()) {
+                    ctxt.error(getLocation(), "Invalid pointer conversion from narrower type %s", fromTypeRaw);
+                }
+                return super.valueConvert(from, toTypeRaw);
+            }
+        } else if (fromTypeRaw instanceof PointerType) {
+            if (toTypeRaw instanceof IntegerType) {
+                if (fromTypeRaw.getSize() > toTypeRaw.getSize()) {
+                    ctxt.error(getLocation(), "Invalid pointer conversion to narrower type %s", fromTypeRaw);
+                }
                 return super.valueConvert(from, toTypeRaw);
             }
         }
