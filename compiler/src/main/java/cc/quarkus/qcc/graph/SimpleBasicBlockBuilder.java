@@ -238,6 +238,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new MemberPointer(line, bci, structPointer, member);
     }
 
+    public Value stackAllocate(final ValueType type, final Value count, final Value align) {
+        return new StackAllocation(line, bci, type, count, align);
+    }
+
     public Value receiver(final ObjectType upperBound) {
         return new ThisValue(Assert.checkNotNullParam("upperBound", upperBound).getReference());
     }

@@ -190,6 +190,8 @@ public interface BasicBlockBuilder {
 
     // memory
 
+    Value stackAllocate(ValueType type, Value count, Value align);
+
     Value new_(ClassObjectType type);
 
     Value new_(ClassTypeDescriptor desc);

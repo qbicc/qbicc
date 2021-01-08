@@ -566,6 +566,10 @@ public interface Node {
                 return param.getBlockBuilder().shr(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
+            public Value visit(final Copier param, final StackAllocation node) {
+                return param.getBlockBuilder().stackAllocate(node.getType(), param.copyValue(node.getCount()), param.copyValue(node.getAlign()));
+            }
+
             public Value visit(final Copier param, final StaticFieldRead node) {
                 param.copyNode(node.getBasicDependency(0));
                 return param.getBlockBuilder().readStaticField(node.getFieldElement(), node.getMode());

@@ -80,6 +80,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().memberPointer(structPointer, member);
     }
 
+    public Value stackAllocate(final ValueType type, final Value count, final Value align) {
+        return getDelegate().stackAllocate(type, count, align);
+    }
+
     public BasicBlock classCastException(final Value fromType, final Value toType) {
         return getDelegate().classCastException(fromType, toType);
     }
