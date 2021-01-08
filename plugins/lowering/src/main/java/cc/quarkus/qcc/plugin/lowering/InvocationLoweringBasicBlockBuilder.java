@@ -30,6 +30,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         List<Value> args = new ArrayList<>(arguments.size() + 1);
         args.add(ctxt.getCurrentThreadValue());
         args.addAll(arguments);
+        ctxt.enqueue(target);
         return super.callFunction(functionLiteral(function), args);
     }
 
@@ -43,6 +44,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.add(ctxt.getCurrentThreadValue());
         args.add(instance);
         args.addAll(arguments);
+        ctxt.enqueue(target);
         return super.callFunction(functionLiteral(function), args);
     }
 
@@ -51,6 +53,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         List<Value> args = new ArrayList<>(arguments.size() + 1);
         args.add(ctxt.getCurrentThreadValue());
         args.addAll(arguments);
+        ctxt.enqueue(target);
         return super.callFunction(functionLiteral(function), args);
     }
 
@@ -64,6 +67,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.add(ctxt.getCurrentThreadValue());
         args.add(instance);
         args.addAll(arguments);
+        ctxt.enqueue(target);
         return super.callFunction(functionLiteral(function), args);
     }
 
@@ -73,6 +77,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.add(ctxt.getCurrentThreadValue());
         args.add(instance);
         args.addAll(arguments);
+        ctxt.enqueue(target);
         return super.callFunction(functionLiteral(function), args);
     }
 
