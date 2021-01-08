@@ -11,7 +11,6 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -65,7 +64,6 @@ public final class Layout {
         int ic = 0;
         CompoundType.Member[] allMembers = new CompoundType.Member[cnt];
         CompoundType.Member[] instanceMembers = new CompoundType.Member[cnt];
-        ClassContext classContext = type.getContext();
 
         for (int i = 0; i < cnt; i ++) {
             // todo: skip unused fields?
