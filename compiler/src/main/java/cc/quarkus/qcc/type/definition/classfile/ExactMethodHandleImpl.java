@@ -63,6 +63,10 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
         resolved = newBody;
     }
 
+    public MethodBody getMethodBody() {
+        return resolved;
+    }
+
     public MethodBody getOrCreateMethodBody() throws ResolutionFailedException {
         MethodBody resolved = this.resolved;
         if (resolved != null) {

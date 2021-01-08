@@ -328,7 +328,7 @@ final class CompilationContextImpl implements CompilationContext {
             j = 1;
         } else {
             argTypes = new ValueType[pcnt + 2];
-            argTypes[1] = element.getEnclosingType().validate().getType();
+            argTypes[1] = element.getEnclosingType().validate().getType().getReference();
             j = 2;
         }
         argTypes[0] = threadType.getReference();

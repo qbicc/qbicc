@@ -1398,14 +1398,14 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     // terminate
                     return;
                 case OP_CHECKCAST: {
-                    v1 = pop1();
+                    v1 = pop();
                     Value narrowed = gf.narrow(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff));
                     replaceAll(v1, narrowed);
                     push(narrowed);
                     break;
                 }
                 case OP_INSTANCEOF: {
-                    v1 = pop1();
+                    v1 = pop();
                     push(gf.instanceOf(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff)));
                     break;
                 }

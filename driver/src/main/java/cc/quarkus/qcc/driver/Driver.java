@@ -463,10 +463,14 @@ public class Driver implements Closeable {
                 compilationContext.enqueue(initializer);
             }
             MethodHandle methodHandle = element.getMethodBody();
-            if (methodHandle != null) {
+            out: if (methodHandle != null) {
                 // copy to a function; todo: this should eventually be done in the lowering plugin
                 ClassContext classContext = element.getEnclosingType().getContext();
-                MethodBody original = methodHandle.getOrCreateMethodBody();
+                MethodBody original = methodHandle.getMethodBody();
+                if (original == null) {
+                    classContext.getCompilationContext().error(element, "No body created for element");
+                    break out;
+                }
                 BasicBlock entryBlock = original.getEntryBlock();
                 List<Value> origParamValues = original.getParameterValues();
                 List<Value> paramValues = new ArrayList<>(origParamValues.size() + 2);

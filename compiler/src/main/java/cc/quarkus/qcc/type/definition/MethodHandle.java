@@ -12,4 +12,6 @@ public interface MethodHandle {
     void replaceMethodBody(MethodBody newBody);
 
     MethodBody getOrCreateMethodBody() throws ResolutionFailedException;
+
+    MethodBody getMethodBody();
 }
