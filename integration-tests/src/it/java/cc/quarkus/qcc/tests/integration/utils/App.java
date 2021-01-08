@@ -25,6 +25,12 @@ public final class App {
                     ".m2", "repository", "cc", "quarkus", "qcc-runtime-main", "1.0.0-SNAPSHOT", "qcc-runtime-main-1.0.0-SNAPSHOT.jar")
                     .toString());
 
+    public static final String QCC_RUNTIME_NOGC_JAR = getProperty(
+            new String[]{"QCC_RUNTIME_NOGC_JAR", "qcc.runtime.nogc.jar"},
+            Path.of(System.getProperty("user.home"),
+                    ".m2", "repository", "cc", "quarkus", "qcc-runtime-gc-nogc", "1.0.0-SNAPSHOT", "qcc-runtime-gc-nogc-1.0.0-SNAPSHOT.jar")
+                    .toString());
+
     public static final String QCC_MAIN_JAR = getProperty(
             new String[]{"QCC_MAIN_JAR", "qcc.main.jar"},
             Path.of(BASE_DIR, "main", "target", "qcc-main-1.0.0-SNAPSHOT.jar")
@@ -42,7 +48,7 @@ public final class App {
 
     public static final String QCC_BOOT_MODULE_PATH = getProperty(
             new String[]{"QCC_BOOT_MODULE_PATH", "qcc.boot.module.path"},
-            QCCRT_JAVA_BASE_JAR + ":" + QCCRT_UNWIND_JAR + ":" + QCC_RUNTIME_API_JAR + ":" + QCC_RUNTIME_MAIN_JAR);
+            QCCRT_JAVA_BASE_JAR + ":" + QCCRT_UNWIND_JAR + ":" + QCC_RUNTIME_API_JAR + ":" + QCC_RUNTIME_MAIN_JAR + ":" + QCC_RUNTIME_NOGC_JAR);
 
     public static final String APP_BUILD_OUT_DIR = "out";
 

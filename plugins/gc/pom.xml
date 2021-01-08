@@ -6,27 +6,15 @@
 
     <parent>
         <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-parent</artifactId>
+        <artifactId>qcc-plugin-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-runtime-parent</artifactId>
+    <artifactId>qcc-plugin-gc-parent</artifactId>
 
     <packaging>pom</packaging>
 
     <modules>
-        <!-- API module -->
-        <module>api</module>
-
-        <!-- Main entry module -->
-        <module>main</module>
-
-        <!-- Native interface modules -->
-        <module>linux</module>
-        <module>posix</module>
-        <module>unwind</module>
-
-        <!-- Plugin implementation modules -->
-        <module>gc</module>
+        <module>nogc</module>
     </modules>
 </project>

@@ -1,0 +1,90 @@
+package cc.quarkus.qcc.plugin.gc.nogc;
+
+import java.util.List;
+
+import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
+import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
+import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.plugin.layout.Layout;
+import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.CompoundType;
+import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.WordType;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
+
+/**
+ *
+ */
+public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+    private final CompilationContext ctxt;
+
+    public NoGcBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+        super(delegate);
+        this.ctxt = ctxt;
+    }
+
+    public Value new_(final ClassObjectType type) {
+        NoGc noGc = NoGc.get(ctxt);
+        Layout layout = Layout.get(ctxt);
+        Layout.LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
+        CompoundType compoundType = info.getCompoundType();
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        IntegerLiteral align = lf.literalOf(compoundType.getAlign());
+        Value ptrVal;
+        if (type.isSubtypeOf(noGc.getStackObjectType()) /*|| objectDoesNotEscape && objectIsSmallEnough */) {
+            ptrVal = stackAllocate(compoundType, lf.literalOf(1), align);
+        } else {
+            long size = compoundType.getSize();
+            ptrVal = invokeValueStatic(noGc.getAllocateMethod(), List.of(lf.literalOf(size), align));
+        }
+        // todo: field-by-field zero initialization...
+        return valueConvert(ptrVal, type.getReference());
+    }
+
+    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+        NoGc noGc = NoGc.get(ctxt);
+        Layout layout = Layout.get(ctxt);
+        FieldElement arrayContentField = layout.getArrayContentField(arrayType);
+        Layout.LayoutInfo info = layout.getInstanceLayoutInfo(arrayContentField.getEnclosingType());
+        CompoundType compoundType = info.getCompoundType();
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        IntegerLiteral align = lf.literalOf(compoundType.getAlign());
+        IntegerLiteral baseSize = lf.literalOf(compoundType.getSize());
+        Value realSize = add(baseSize, multiply(lf.literalOf(arrayType.getElementType().getSize()), size));
+        Value ptrVal = invokeValueStatic(noGc.getAllocateMethod(), List.of(realSize, align));
+        // todo: zero-fill...
+        return valueConvert(ptrVal, arrayType.getReference());
+    }
+
+    public Value clone(final Value object) {
+        ValueType objType = object.getType();
+        NoGc noGc = NoGc.get(ctxt);
+        Layout layout = Layout.get(ctxt);
+        if (objType instanceof ClassObjectType) {
+            ClassObjectType type = (ClassObjectType) objType;
+            Layout.LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            CompoundType compoundType = info.getCompoundType();
+            IntegerLiteral size = lf.literalOf(compoundType.getSize());
+            IntegerLiteral align = lf.literalOf(compoundType.getAlign());
+            Value ptrVal;
+            if (type.isSubtypeOf(noGc.getStackObjectType())) {
+                ptrVal = stackAllocate(compoundType, lf.literalOf(1), align);
+            } else {
+                ptrVal = invokeValueStatic(noGc.getAllocateMethod(), List.of(size, align));
+            }
+            // TODO: replace with field-by-field copy once we have a redundant assignment elimination optimization
+            invokeStatic(noGc.getCopyMethod(), List.of(ptrVal, valueConvert(object, (WordType) ptrVal.getType()), size));
+            return valueConvert(ptrVal, type.getReference());
+        } else if (objType instanceof ArrayObjectType) {
+            ctxt.error(getLocation(), "Array allocations not supported until layout supports arrays");
+            return ctxt.getLiteralFactory().literalOfNull();
+        } else {
+            return super.clone(object);
+        }
+    }
+}
