@@ -57,10 +57,10 @@ public class FieldAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
         } else if (instanceType instanceof ClassObjectType) {
             // todo: value
             ctxt.error(getLocation(), "Value types not yet supported");
-            return ctxt.getLiteralFactory().literalOfNull();
+            return nop();
         } else {
-            ctxt.error(getLocation(), "Read instance field on a non-object");
-            return ctxt.getLiteralFactory().literalOfNull();
+            ctxt.error(getLocation(), "Write instance field on a non-object");
+            return nop();
         }
     }
 }
