@@ -11,6 +11,8 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
+import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -92,6 +94,21 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
         invalidNode("invokeConstructor");
         return instance;
+    }
+
+    public Value new_(final ClassObjectType type) {
+        invalidNode("new");
+        return super.new_(type);
+    }
+
+    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+        invalidNode("new");
+        return super.newArray(arrayType, size);
+    }
+
+    public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
+        invalidNode("new");
+        return super.multiNewArray(arrayType, dimensions);
     }
 
     private void invalidNode(String name) {
