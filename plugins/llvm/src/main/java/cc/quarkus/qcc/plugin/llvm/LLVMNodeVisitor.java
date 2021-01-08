@@ -173,6 +173,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         return type instanceof SignedIntegerType;
     }
 
+    boolean isPointer(Type type) {
+        return type instanceof PointerType;
+    }
+
     public LLValue visit(final Void param, final Add node) {
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         ValueType type = node.getType();
@@ -406,7 +410,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
             return llvmInput;
         }
         LLBasicBlock target = map(schedule.getBlockForNode(node));
-        return isFloating(javaInputType) ?
+        return isPointer(javaInputType) ?
+                    target.ptrtoint(inputType, llvmInput, outputType).asLocal() :
+                    isPointer(javaOutputType) ?
+                    target.inttoptr(inputType, llvmInput, outputType).asLocal() :
+                    isFloating(javaInputType) ?
                     isSigned(javaOutputType) ?
                     target.fptosi(inputType, llvmInput, outputType).asLocal() :
                     target.fptoui(inputType, llvmInput, outputType).asLocal() :
