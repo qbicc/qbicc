@@ -78,7 +78,8 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.add(instance);
         args.addAll(arguments);
         ctxt.enqueue(target);
-        return super.callFunction(functionLiteral(function), args);
+        super.callFunction(functionLiteral(function), args);
+        return instance;
     }
 
     private SymbolLiteral functionLiteral(final Function function) {
