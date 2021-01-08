@@ -74,7 +74,7 @@ public final class Layout {
             allMembers[i] = instanceMembers[ic++] = computeMember(allocated, field);
         }
         int size = allocated.length();
-        List<CompoundType.Member> fieldIndexToMember = List.of(allMembers);
+        List<CompoundType.Member> fieldIndexToMember = Arrays.asList(allMembers);
         CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, 1, Arrays.copyOf(instanceMembers, ic));
         layoutInfo = new LayoutInfo(allocated, compoundType, fieldIndexToMember);
         LayoutInfo appearing = instanceLayouts.putIfAbsent(validated, layoutInfo);
