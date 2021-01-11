@@ -4,8 +4,10 @@ import static java.lang.Math.*;
 
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.type.definition.element.BasicElement;
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MemberElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.NamedElement;
@@ -137,6 +139,7 @@ public final class Location {
     public enum MemberKind {
         NONE("member"),
         FIELD("field"),
+        CONSTRUCTOR("constructor"),
         METHOD("method"),
         VARIABLE("variable"),
         FUNCTION("function"),
@@ -248,16 +251,23 @@ public final class Location {
         }
 
         public Builder setElement(Element element) {
-            setMemberKind(element instanceof MethodElement ? Location.MemberKind.METHOD : element instanceof FieldElement ? Location.MemberKind.FIELD : Location.MemberKind.NONE);
+            if (element instanceof MethodElement) {
+                setMemberKind(MemberKind.METHOD);
+            } else if (element instanceof ConstructorElement) {
+                setMemberKind(MemberKind.CONSTRUCTOR);
+                setMemberName("<init>");
+            } else if (element instanceof FieldElement) {
+                setMemberKind(MemberKind.FIELD);
+            } else {
+                setMemberKind(MemberKind.NONE);
+            }
             if (element instanceof NamedElement) {
                 setMemberName(((NamedElement) element).getName());
             }
             if (element instanceof BasicElement) {
                 setSourceFilePath(((BasicElement) element).getSourceFileName());
             }
-            if (element instanceof MemberElement) {
-                setClassInternalName(((MemberElement) element).getEnclosingType().getInternalName());
-            }
+            setClassInternalName(element.getEnclosingType().getInternalName());
             return this;
         }
 
