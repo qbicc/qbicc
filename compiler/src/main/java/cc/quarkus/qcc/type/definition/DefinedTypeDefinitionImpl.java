@@ -2,6 +2,7 @@ package cc.quarkus.qcc.type.definition;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -175,9 +176,9 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             interfaces[i] = context.findDefinedType(getInterfaceInternalName(i)).validate();
         }
         cnt = getFieldCount();
-        FieldElement[] fields = cnt == 0 ? FieldElement.NO_FIELDS : new FieldElement[cnt];
+        ArrayList<FieldElement> fields = new ArrayList<>(cnt);
         for (int i = 0; i < cnt; i ++) {
-            fields[i] = fieldResolvers[i].resolveField(fieldIndexes[i], this);
+            fields.add(fieldResolvers[i].resolveField(fieldIndexes[i], this));
         }
         cnt = getMethodCount();
         MethodElement[] methods = cnt == 0 ? MethodElement.NO_METHODS : new MethodElement[cnt];
