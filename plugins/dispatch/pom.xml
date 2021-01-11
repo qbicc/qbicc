@@ -22,7 +22,7 @@
             <artifactId>qcc-driver</artifactId>
         </dependency>
         <dependency>
-            <groupId>cc.quarkus</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qcc-plugin-reachability</artifactId>
         </dependency>
     </dependencies>
