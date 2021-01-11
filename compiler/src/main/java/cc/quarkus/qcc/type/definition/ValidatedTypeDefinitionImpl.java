@@ -1,14 +1,17 @@
 package cc.quarkus.qcc.type.definition;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import cc.quarkus.qcc.type.InterfaceObjectType;
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.NestedClassElement;
+import io.smallrye.common.constraint.Assert;
 
 /**
  *
@@ -18,7 +21,7 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     private final DefinedTypeDefinitionImpl delegate;
     private final ValidatedTypeDefinition superType;
     private final ValidatedTypeDefinition[] interfaces;
-    private final FieldElement[] fields;
+    private final ArrayList<FieldElement> fields;
     private final MethodElement[] methods;
     private final ConstructorElement[] ctors;
     private final InitializerElement init;
@@ -28,7 +31,7 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     private final NestedClassElement[] enclosedClasses;
     private volatile ResolvedTypeDefinition resolved;
 
-    ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final FieldElement[] fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
+    ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
         this.delegate = delegate;
         this.superType = superType;
         this.interfaces = interfaces;
@@ -96,8 +99,20 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
         return instanceFieldSet;
     }
 
+    public int getFieldCount() {
+        return fields.size();
+    }
+
     public FieldElement getField(final int index) {
-        return fields[index];
+        return fields.get(index);
+    }
+
+    public void injectField(final FieldElement field) {
+        Assert.checkNotNullParam("field", field);
+        if ((field.getModifiers() & ClassFile.I_ACC_HIDDEN) == 0) {
+            throw new IllegalArgumentException("Injected fields must be hidden");
+        }
+        fields.add(field);
     }
 
     public MethodElement getMethod(final int index) {
@@ -129,7 +144,7 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
         }
         cnt = getFieldCount();
         for (int i = 0; i < cnt; i ++) {
-            fields[i].getType(List.of());
+            fields.get(i).getType(List.of());
         }
         cnt = getMethodCount();
         for (int i = 0; i < cnt; i ++) {

@@ -114,7 +114,8 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
     default int getFieldIndex(String name) {
         int cnt = getFieldCount();
         for (int i = 0; i < cnt; i ++) {
-            if (getField(i).nameEquals(name)) {
+            FieldElement field = getField(i);
+            if ((field.getModifiers() & ClassFile.I_ACC_HIDDEN) == 0 && field.nameEquals(name)) {
                 return i;
             }
         }
@@ -125,6 +126,8 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
         int idx = getFieldIndex(name);
         return idx == - 1 ? null : getField(idx);
     }
+
+    void injectField(FieldElement field);
 
     MethodElement getMethod(int index);
 

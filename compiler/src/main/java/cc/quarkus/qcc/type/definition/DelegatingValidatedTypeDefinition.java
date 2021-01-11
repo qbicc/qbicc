@@ -63,6 +63,10 @@ public abstract class DelegatingValidatedTypeDefinition extends DelegatingDefine
         return getDelegate().getField(index);
     }
 
+    public void injectField(final FieldElement field) {
+        getDelegate().injectField(field);
+    }
+
     public MethodElement getMethod(final int index) {
         return getDelegate().getMethod(index);
     }
