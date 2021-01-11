@@ -89,8 +89,6 @@ public interface BasicBlockBuilder {
 
     Value parameter(ValueType type, int index);
 
-    Value catch_(ClassObjectType upperBound);
-
     // phi
 
     PhiValue phi(ValueType type, BlockLabel owner);

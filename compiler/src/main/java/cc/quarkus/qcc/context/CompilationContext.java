@@ -12,6 +12,7 @@ import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MemberElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
@@ -51,4 +52,6 @@ public interface CompilationContext extends DiagnosticContext {
     Function getExactFunction(ExecutableElement element);
 
     CurrentThreadLiteral getCurrentThreadValue();
+
+    FieldElement getExceptionField();
 }

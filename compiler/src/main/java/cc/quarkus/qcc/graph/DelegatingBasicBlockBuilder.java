@@ -404,10 +404,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().receiver(upperBound);
     }
 
-    public Value catch_(final ClassObjectType upperBound) {
-        return getDelegate().catch_(upperBound);
-    }
-
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
         return getDelegate().invokeConstructor(instance, target, arguments);
     }

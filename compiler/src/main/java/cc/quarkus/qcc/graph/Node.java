@@ -386,10 +386,6 @@ public interface Node {
                 return node;
             }
 
-            public Value visit(final Copier param, final Catch node) {
-                return param.getBlockBuilder().catch_(node.getThrowableType());
-            }
-
             public Value visit(final Copier param, final Clone node) {
                 param.copyNode(node.getBasicDependency(0));
                 return param.getBlockBuilder().clone(param.copyValue(node.getInput()));

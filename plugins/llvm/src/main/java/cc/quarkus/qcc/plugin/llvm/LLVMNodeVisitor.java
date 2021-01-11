@@ -18,7 +18,6 @@ import cc.quarkus.qcc.graph.ArrayElementRead;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockEntry;
-import cc.quarkus.qcc.graph.Catch;
 import cc.quarkus.qcc.graph.CmpEq;
 import cc.quarkus.qcc.graph.CmpGe;
 import cc.quarkus.qcc.graph.CmpGt;
@@ -303,11 +302,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(trueValue.getType());
         Value falseValue = node.getFalseValue();
         return map(schedule.getBlockForNode(node)).select(map(node.getCondition().getType()), map(node.getCondition()), inputType, map(trueValue), map(falseValue)).asLocal();
-    }
-
-    public LLValue visit(final Void param, final Catch node) {
-        // todo: landingpad
-        return null;
     }
 
     public LLValue visit(final Void param, final PhiValue node) {
