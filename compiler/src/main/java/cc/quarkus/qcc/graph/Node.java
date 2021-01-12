@@ -506,8 +506,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final New node) {
-                param.copyNode(node.getBasicDependency(0));
-                return param.getBlockBuilder().new_(node.getClassObjectType());
+                return node;
             }
 
             public Value visit(final Copier param, final NewArray node) {

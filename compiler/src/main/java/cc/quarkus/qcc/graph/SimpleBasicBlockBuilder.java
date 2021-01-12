@@ -265,7 +265,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value new_(final ClassObjectType type) {
-        return asDependency(new New(line, bci, requireDependency(), type));
+        return new New(line, bci, type);
     }
 
     public Value new_(final ClassTypeDescriptor desc) {
