@@ -424,6 +424,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().typeIdOf(value);
     }
 
+    public Value classOf(final Value typeId) {
+        return getDelegate().classOf(typeId);
+    }
+
     public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel, final BlockLabel exceptionHandler) {
         return getDelegate().try_(operation, resumeLabel, exceptionHandler);
     }

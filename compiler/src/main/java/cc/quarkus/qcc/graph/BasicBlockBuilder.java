@@ -161,6 +161,15 @@ public interface BasicBlockBuilder {
      */
     Value typeIdOf(Value value);
 
+    /**
+     * Get the {@link Class} object for the given type ID value, whose type must be a {@link TypeType} with
+     * an upper bound which is a {@link ObjectType}.
+     *
+     * @param typeId the type ID value
+     * @return a non-nullable narrowed reference to the class object for the given type ID value
+     */
+    Value classOf(Value typeId);
+
     Value truncate(Value value, WordType toType);
 
     Value extend(Value value, WordType toType);

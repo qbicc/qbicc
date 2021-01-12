@@ -385,6 +385,10 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final ClassOf node) {
+                return param.getBlockBuilder().classOf(param.copyValue(node.getInput()));
+            }
+
             public Value visit(final Copier param, final Clone node) {
                 param.copyNode(node.getBasicDependency(0));
                 return param.getBlockBuilder().clone(param.copyValue(node.getInput()));
