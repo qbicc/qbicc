@@ -20,6 +20,7 @@
         <module>correctness</module>
         <module>dispatch</module>
         <module>dot</module>
+        <module>instanceof-checkcast</module>
         <module>intrinsics</module>
         <module>layout</module>
         <module>linker</module>

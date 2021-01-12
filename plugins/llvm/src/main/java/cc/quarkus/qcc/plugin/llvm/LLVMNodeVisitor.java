@@ -32,6 +32,7 @@ import cc.quarkus.qcc.graph.FunctionCall;
 import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.MemberPointer;
+import cc.quarkus.qcc.graph.InstanceOf;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.Multiply;
 import cc.quarkus.qcc.graph.Narrow;
@@ -438,6 +439,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public LLValue visit(final Void param, final Narrow node) {
+        System.out.println("[Visiting] Narrow("+ node +")");
         return map(node.getInput());
     }
 
@@ -512,6 +514,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         // some other kind of pointer; we want the zeroth one (and terminate)
         PointerType pointerType = (PointerType) current.getType();
         return block.getelementptr(map(pointerType.getPointeeType()), map(pointerType), map(current)).arg(false, i32, ZERO);
+    }
+
+    public LLValue visit(final Void param, final TypeLiteral node) {
+        //Values.global(node.)
+        //TODO: figure out how to implement this
+        return Values.NULL;
     }
 
     // unknown node catch-all methods

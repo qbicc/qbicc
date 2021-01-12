@@ -28,6 +28,7 @@ import cc.quarkus.qcc.plugin.correctness.ZeroDivisorChecking;
 import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.VTableBuilder;
 import cc.quarkus.qcc.plugin.dot.DotGenerator;
+import cc.quarkus.qcc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.layout.FieldAccessLoweringBuilder;
 import cc.quarkus.qcc.plugin.linker.LinkStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
@@ -239,6 +240,8 @@ public class Main {
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
+
                                 builder.addPostHook(Phase.ANALYZE, new VTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, ctxt -> RTAInfo.clear(ctxt));
 
@@ -259,6 +262,7 @@ public class Main {
 
                                 builder.addPostHook(Phase.GENERATE, new LLVMCompileStage());
                                 builder.addPostHook(Phase.GENERATE, new LinkStage());
+
 
                                 CompilationContext ctxt;
                                 try (Driver driver = builder.build()) {

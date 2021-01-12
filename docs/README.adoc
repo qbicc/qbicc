@@ -31,3 +31,12 @@ jbang --quiet cc.quarkus:qcc-main:1.0.0-SNAPSHOT --boot-module-path /path/to/mai
 Replace the `java.base` JAR with your locally-built JAR path from <<Class Library>>.
 
 For a step-by-step example, see `examples/helloworld/hello/world/Main.java`
+
+== JBang cache
+
+When plugins are added or removed, the jbang cache may become inconsistent and result in build errors.  If that happens, the cache can be
+cleared with:
+[source,shell]
+-----
+jbang cache clear
+-----
