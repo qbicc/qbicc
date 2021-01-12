@@ -48,6 +48,27 @@ public final class Unwind {
     public static final _Unwind_Action _UA_FORCE_UNWIND = constant();
     public static final _Unwind_Action _UA_END_OF_STACK = constant(); // gcc extension...
 
+    public static final c_int SP;
+
+    static {
+        if (Build.Target.isAarch64()) {
+            SP = word(31); // SP
+        } else if (Build.Target.isArm()) {
+            SP = word(13); // R13
+        } else if (Build.Target.isAmd64()) {
+            SP = word(7); // rsp
+        } else if (Build.Target.isI386()) {
+            SP = word(4); // esp
+        } else {
+            throw new IllegalStateException("Unsupported architecture");
+        }
+    }
+
+    /**
+     * The value for QCC's exception class; equal to {@code "QCC\0JAVA"}.
+     */
+    public static final uint64_t QCC_EXCEPTION_CLASS = word(0x514343004a415641L);
+
     /**
      * The header for a thrown exception.  The runtime is expected to create its own thrown structure which includes
      * this structure as a member.  The runtime is responsible for allocating and freeing instances.
@@ -80,7 +101,7 @@ public final class Unwind {
 
     @FunctionalInterface
     public interface _Unwind_Stop_Fn {
-        _Unwind_Reason_Code run(int version, _Unwind_Action actions, uint64_t exception_class, ptr<_Unwind_Context> exception_object, ptr<_Unwind_Context> context, ptr<?> stop_parameter);
+        _Unwind_Reason_Code run(c_int version, _Unwind_Action actions, uint64_t exception_class, ptr<_Unwind_Context> exception_object, ptr<_Unwind_Context> context, ptr<?> stop_parameter);
     }
 
     // TODO: support for classic ARM EHABI needs a different prototype for _Unwind_Stop_Fn
