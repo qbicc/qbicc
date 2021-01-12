@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeType;
 
 /**
@@ -9,14 +10,17 @@ import cc.quarkus.qcc.type.TypeType;
  */
 public final class TypeIdOf extends AbstractValue implements InstanceOperation {
     private final Value instance;
+    private final TypeType type;
 
     TypeIdOf(final int line, final int bci, final Value instance) {
         super(line, bci);
         this.instance = instance;
+        ReferenceType referenceType = (ReferenceType) instance.getType();
+        type = referenceType.getUpperBound().getTypeType();
     }
 
     public TypeType getType() {
-        return instance.getType().getTypeType();
+        return type;
     }
 
     public Value getInstance() {
