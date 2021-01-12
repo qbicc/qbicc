@@ -9,8 +9,8 @@ import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.TypeIdType;
 import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -157,7 +157,7 @@ public interface BasicBlockBuilder {
      * Get the type ID of the given reference value.
      *
      * @param value the value, whose type must be a {@link ReferenceType}
-     * @return the type ID, whose type must be a {@link TypeIdType}
+     * @return the type ID, whose type must be a {@link TypeType}
      */
     Value typeIdOf(Value value);
 

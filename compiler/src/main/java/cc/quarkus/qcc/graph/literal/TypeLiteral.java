@@ -20,13 +20,15 @@ public final class TypeLiteral extends Literal {
     }
 
     public boolean equals(final Literal other) {
-        // every instance is unique
-        return this == other;
+        return other instanceof TypeLiteral && equals((TypeLiteral) other);
+    }
+
+    public boolean equals(final TypeLiteral other) {
+        return this == other || other != null && value.equals(other.value);
     }
 
     public int hashCode() {
-        // every instance is unique
-        return System.identityHashCode(this);
+        return value.hashCode();
     }
 
     public String toString() {

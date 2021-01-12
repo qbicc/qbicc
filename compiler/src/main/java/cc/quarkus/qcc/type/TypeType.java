@@ -1,39 +1,49 @@
 package cc.quarkus.qcc.type;
 
-import io.smallrye.common.constraint.Assert;
+import java.util.Objects;
 
 /**
- * A type that represents the type of a value that is itself a type.  Used to represent {@code Class<? extends object>}.
- * Values of this type are considered incomplete and cannot be stored or lowered.
- * <p>
- * To represent the identifier of a class or interface type, see {@link TypeIdType}.
+ * A type that represents the type of a value that is itself a type.  Values of this type are lowered to type identifiers
+ * once the full set of reachable types is determined.
  */
 public final class TypeType extends ValueType {
     private final ValueType upperBound;
 
-    TypeType(final TypeSystem typeSystem, final ValueType upperBound) {
-        super(typeSystem, TypeType.class.hashCode(), true);
+    TypeType(final TypeSystem typeSystem, final ValueType upperBound, final boolean const_) {
+        super(typeSystem, Objects.hash(TypeType.class, upperBound), const_);
         this.upperBound = upperBound;
     }
 
     public boolean isComplete() {
-        return false;
+        return true;
     }
 
     public long getSize() {
-        return 1;
+        return typeSystem.getTypeIdSize();
+    }
+
+    public int getAlign() {
+        return typeSystem.getTypeIdAlignment();
     }
 
     public ValueType getUpperBound() {
         return upperBound;
     }
 
-    ValueType constructConst() {
-        throw Assert.unsupported();
+    public TypeType asConst() {
+        return (TypeType) super.asConst();
     }
 
-    public int getAlign() {
-        return 1;
+    ValueType constructConst() {
+        return new TypeType(typeSystem, upperBound, true);
+    }
+
+    public boolean equals(final ValueType other) {
+        return other instanceof TypeType && equals((TypeType) other);
+    }
+
+    public boolean equals(final TypeType other) {
+        return super.equals(other) && upperBound.equals(other.upperBound);
     }
 
     public StringBuilder toString(final StringBuilder b) {
