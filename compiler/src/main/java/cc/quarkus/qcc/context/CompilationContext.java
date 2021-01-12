@@ -37,6 +37,15 @@ public interface CompilationContext extends DiagnosticContext {
 
     ExecutableElement dequeue();
 
+    /**
+     * EntryPoints form the "root set" of methods that must be included
+     * in the final image.  The initial set of EntryPoints must be added
+     * prior to the start of the {@link cc.quarkus.qcc.driver.Phase#ADD}.
+     * After that, only `method`s that have been previously processed
+     * during the ADD Phase can be included in the root set.
+     *
+     * @param method The methodElement to register as an entrypoint
+     */
     void registerEntryPoint(MethodElement method);
 
     Path getOutputDirectory();
