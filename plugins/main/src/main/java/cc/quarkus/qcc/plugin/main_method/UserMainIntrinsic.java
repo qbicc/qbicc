@@ -33,7 +33,7 @@ public class UserMainIntrinsic implements StaticIntrinsic {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
         TypeDescriptor runtimeMainDesc = TypeDescriptor.parseClassConstant(classContext, ByteBuffer.wrap("cc/quarkus/qcc/runtime/main/Main".getBytes(StandardCharsets.UTF_8)));
-        MethodDescriptor runtimeMainMethodDesc = MethodDescriptor.parse(classContext, ByteBuffer.wrap(("([L" + "java/lang/String;)V").getBytes(StandardCharsets.UTF_8)));
+        MethodDescriptor runtimeMainMethodDesc = MethodDescriptor.parse(classContext, ByteBuffer.wrap(("([Ljava/lang/String;)V").getBytes(StandardCharsets.UTF_8)));
         intrinsics.registerIntrinsic(runtimeMainDesc, "userMain", runtimeMainMethodDesc, new UserMainIntrinsic(mainMethod));
     }
 }
