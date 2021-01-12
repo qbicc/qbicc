@@ -102,26 +102,25 @@ public interface Node {
          */
         public BasicBlock copyProgram() {
             BlockLabel entryCopy = copyBlock(entryBlock);
-            while (! blockQueue.isEmpty() || ! phiQueue.isEmpty()) {
-                BasicBlock block = blockQueue.poll();
-                if (block != null) do {
-                    // process and map all queued blocks - might enqueue more blocks or phis
-                    blockBuilder.begin(copiedBlocks.get(block));
-                    copyTerminator(block.getTerminator());
-                    block = blockQueue.poll();
-                } while (block != null);
-                PhiValue orig = phiQueue.poll();
-                if (orig != null) do {
-                    PhiValue copy = (PhiValue) copiedNodes.get(orig);
-                    // process and map all incoming values - might enqueue more blocks or phis
-                    for (final BasicBlock incomingBlock : orig.incomingBlocks()) {
+            BasicBlock block;
+            while ((block = blockQueue.poll()) != null) {
+                // process and map all queued blocks - might enqueue more blocks or phis
+                blockBuilder.begin(copiedBlocks.get(block));
+                copyTerminator(block.getTerminator());
+            }
+            // now process all phis (all blocks will have been enqueued)
+            PhiValue orig;
+            while ((orig = phiQueue.poll()) != null) {
+                PhiValue copy = (PhiValue) copiedNodes.get(orig);
+                // process and map all incoming values - might enqueue more blocks or phis
+                for (final BasicBlock incomingBlock : orig.incomingBlocks()) {
+                    if (incomingBlock.isReachable()) {
                         Value val = orig.getValueForBlock(incomingBlock);
                         if (val != null) {
-                            copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copyBlock(incomingBlock), copyValue(val));
+                            copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copiedBlocks.get(incomingBlock), copyValue(val));
                         }
                     }
-                    orig = phiQueue.poll();
-                } while (orig != null);
+                }
             }
             return BlockLabel.getTargetOf(entryCopy);
         }
@@ -534,6 +533,13 @@ public interface Node {
 
             public Value visit(final Copier param, final PhiValue node) {
                 param.enqueue(node);
+                for (Map.Entry<BasicBlock, Value> entry : node.getIncomingValues()) {
+                    // ensure all reachable incoming blocks are enqueued
+                    BasicBlock block = entry.getKey();
+                    if (block.isReachable()) {
+                        param.copyBlock(block);
+                    }
+                }
                 return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()));
             }
 
