@@ -29,6 +29,7 @@ import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.VTableBuilder;
 import cc.quarkus.qcc.plugin.dot.DotGenerator;
 import cc.quarkus.qcc.plugin.layout.FieldAccessLoweringBuilder;
+import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.plugin.linker.LinkStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
@@ -219,6 +220,7 @@ public class Main {
                                 builder.addResolverFactory(PointerTypeResolver::new);
                                 builder.addResolverFactory(NativeTypeResolver::new);
 
+                                builder.addPreHook(Phase.ADD, Layout::get);
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
 
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CloneConversionBasicBlockBuilder::new);

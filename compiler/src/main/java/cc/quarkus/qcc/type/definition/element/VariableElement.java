@@ -29,6 +29,10 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         this.typeSignature = Assert.checkNotNullParam("builder.typeSignature", builder.typeSignature);
         this.visibleTypeAnnotations = builder.visibleTypeAnnotations;
         this.invisibleTypeAnnotations = builder.invisibleTypeAnnotations;
+        ValueType type = builder.type;
+        if (type != null) {
+            this.type = type;
+        }
     }
 
     public String getName() {
@@ -90,6 +94,7 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         private TypeSignature typeSignature;
         private TypeAnnotationList visibleTypeAnnotations = TypeAnnotationList.empty();
         private TypeAnnotationList invisibleTypeAnnotations = TypeAnnotationList.empty();
+        private ValueType type;
 
         Builder() {}
 
@@ -111,6 +116,10 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
 
         public void setInvisibleTypeAnnotations(TypeAnnotationList annotations) {
             this.invisibleTypeAnnotations = Assert.checkNotNullParam("annotations", annotations);
+        }
+
+        public void setType(final ValueType type) {
+            this.type = type;
         }
 
         public abstract VariableElement build();
