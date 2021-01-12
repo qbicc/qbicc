@@ -15,7 +15,6 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockEntry;
 import cc.quarkus.qcc.graph.CastValue;
-import cc.quarkus.qcc.graph.Catch;
 import cc.quarkus.qcc.graph.ClassCastErrorNode;
 import cc.quarkus.qcc.graph.ClassNotFoundErrorNode;
 import cc.quarkus.qcc.graph.Clone;
@@ -428,10 +427,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final BooleanLiteral node) {
         return literal(param, String.valueOf(node.booleanValue()));
-    }
-
-    public String visit(final Appendable param, final Catch node) {
-        return literal(param, "catch");
     }
 
     public String visit(final Appendable param, final Clone node) {

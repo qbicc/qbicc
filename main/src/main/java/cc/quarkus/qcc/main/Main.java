@@ -51,6 +51,7 @@ import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.plugin.reachability.ReachabilityBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.SynchronizedMethodBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.trycatch.ThrowValueBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.MemberResolvingBasicBlockBuilder;
@@ -221,12 +222,13 @@ public class Main {
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
 
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CloneConversionBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalThrowHandlingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalThrowHandlingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThrowValueBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, ZeroDivisorChecking::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
@@ -245,7 +247,6 @@ public class Main {
                                 builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
-
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, FieldAccessLoweringBuilder::new);

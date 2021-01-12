@@ -28,6 +28,7 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MemberElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -97,6 +98,10 @@ public class TestClassContext implements ClassContext {
         }
 
         public CurrentThreadLiteral getCurrentThreadValue() {
+            return null;
+        }
+
+        public FieldElement getExceptionField() {
             return null;
         }
 

@@ -2,8 +2,10 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
+import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
+import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
@@ -250,10 +252,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new ParameterValue(type, index);
     }
 
-    public Value catch_(final ClassObjectType upperBound) {
-        return new Catch(Assert.checkNotNullParam("upperBound", upperBound));
-    }
-
     public PhiValue phi(final ValueType type, final BlockLabel owner) {
         return new PhiValue(line, bci, type, owner);
     }
@@ -369,11 +367,19 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         ExceptionHandler exceptionHandler = getExceptionHandler();
         if (exceptionHandler != null) {
             BlockLabel resume = new BlockLabel();
-            BasicBlock block = try_(op, resume, exceptionHandler.getHandler());
+            BlockLabel handler = exceptionHandler.getHandler();
+            BlockLabel setupHandler = new BlockLabel();
+            try_(op, resume, setupHandler);
+            // this is the entry point for the stack unwinder
+            begin(setupHandler);
             ClassContext classContext = element.getEnclosingType().getContext();
-            // todo: cache or eliminate
-            ClassObjectType type = classContext.findDefinedType("java/lang/Throwable").validate().getClassType();
-            exceptionHandler.enterHandler(block, catch_(type));
+            CompilationContext ctxt = classContext.getCompilationContext();
+            CurrentThreadLiteral thr = ctxt.getCurrentThreadValue();
+            FieldElement exceptionField = ctxt.getExceptionField();
+            Value exceptionValue = readInstanceField(thr, exceptionField, JavaAccessMode.PLAIN);
+            writeInstanceField(thr, exceptionField, ctxt.getLiteralFactory().literalOfNull(), JavaAccessMode.PLAIN);
+            BasicBlock sourceBlock = goto_(handler);
+            exceptionHandler.enterHandler(sourceBlock, exceptionValue);
             begin(resume);
             return op;
         } else {

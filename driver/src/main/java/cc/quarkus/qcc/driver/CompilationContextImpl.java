@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -30,6 +31,7 @@ import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
@@ -38,6 +40,8 @@ import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MemberElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import cc.quarkus.qcc.type.generic.TypeSignature;
 
 final class CompilationContextImpl implements CompilationContext {
     private final TypeSystem typeSystem;
@@ -54,6 +58,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final ConcurrentMap<MethodElement, cc.quarkus.qcc.object.Function> virtualFunctions = new ConcurrentHashMap<>();
     private final Path outputDir;
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
+    private final AtomicReference<FieldElement> exceptionFieldHolder = new AtomicReference<>();
 
     // mutable state
     private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
@@ -266,6 +271,31 @@ final class CompilationContextImpl implements CompilationContext {
         ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
         // construct the literal - todo: cache
         return literalFactory.literalOfCurrentThread(threadType.getReference());
+    }
+
+    public FieldElement getExceptionField() {
+        AtomicReference<FieldElement> exceptionFieldHolder = this.exceptionFieldHolder;
+        FieldElement fieldElement = exceptionFieldHolder.get();
+        if (fieldElement == null) {
+            synchronized (exceptionFieldHolder) {
+                fieldElement = exceptionFieldHolder.get();
+                if (fieldElement == null) {
+                    FieldElement.Builder builder = FieldElement.builder();
+                    builder.setName("thrown");
+                    ClassContext classContext = this.bootstrapClassContext;
+                    DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
+                    ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
+                    builder.setDescriptor(desc);
+                    builder.setSignature(TypeSignature.synthesize(classContext, desc));
+                    builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
+                    builder.setEnclosingType(jlt);
+                    fieldElement = builder.build();
+                    jlt.validate().injectField(fieldElement);
+                    exceptionFieldHolder.set(fieldElement);
+                }
+            }
+        }
+        return fieldElement;
     }
 
     private String getExactNameForElement(final ExecutableElement element, final FunctionType type) {
