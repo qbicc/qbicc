@@ -12,6 +12,7 @@ public abstract class ValueType extends Type {
     private static final VarHandle typeTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "typeType", VarHandle.class, ValueType.class, TypeType.class);
 
     private volatile ValueType constType;
+    @SuppressWarnings("unused") // VarHandle
     private volatile TypeType typeType;
 
     ValueType(final TypeSystem typeSystem, final int hashCode, final boolean const_) {
