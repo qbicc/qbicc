@@ -39,26 +39,26 @@ public final class Layout {
         ValidatedTypeDefinition jlc = jlcDef.validate();
         // inject a field of ClassObjectType to hold the object class
         FieldElement.Builder builder = FieldElement.builder();
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
         builder.setName("class");
         builder.setEnclosingType(jloDef);
         // void for now, but this is cheating terribly
         builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         // the type is really the self-type, but we don't have one of those so use j.l.Object
-        builder.setType(jlo.getClassType().getTypeType());
+        builder.setType(jlo.getClassType().getTypeType().asConst());
         FieldElement field = builder.build();
         jlo.injectField(field);
         objectClassField = field;
         // now inject a field of ClassObjectType into Class to hold the corresponding run time type
         builder = FieldElement.builder();
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
         builder.setName("id");
         builder.setEnclosingType(jlcDef);
         // void for now, but this is cheating terribly
         builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
-        builder.setType(jlo.getClassType().getTypeType());
+        builder.setType(jlo.getClassType().getTypeType().asConst());
         field = builder.build();
         jlc.injectField(field);
         classTypeIdField = field;
