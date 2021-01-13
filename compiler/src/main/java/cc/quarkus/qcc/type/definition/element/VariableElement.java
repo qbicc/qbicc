@@ -2,6 +2,7 @@ package cc.quarkus.qcc.type.definition.element;
 
 import java.util.List;
 
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
@@ -66,7 +67,14 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         ClassContext classContext = getEnclosingType().getContext();
         ValueType type = this.type;
         if (type == null) {
-            this.type = type = resolveTypeDescriptor(classContext, signatureContext);
+            type = resolveTypeDescriptor(classContext, signatureContext);
+            if (type instanceof ReferenceType) {
+                // all fields are considered nullable for now
+                // todo: add a flag for non-nullable fields
+                // todo: initial heap final fields are non-nullable
+                type = ((ReferenceType) type).asNullable();
+            }
+            this.type = type;
         }
         return type;
     }
