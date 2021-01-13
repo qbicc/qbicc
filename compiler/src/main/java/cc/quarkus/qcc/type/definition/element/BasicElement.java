@@ -1,5 +1,9 @@
 package cc.quarkus.qcc.type.definition.element;
 
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
@@ -7,10 +11,13 @@ import io.smallrye.common.constraint.Assert;
  *
  */
 public abstract class BasicElement implements Element {
+    private static final VarHandle modifiersHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "modifiers", VarHandle.class, BasicElement.class, int.class);
+
     private final DefinedTypeDefinition enclosingType;
     private final String sourceFileName;
-    private final int modifiers;
     private final int index;
+    @SuppressWarnings("FieldMayBeFinal") // VarHandle
+    private volatile int modifiers;
 
     BasicElement() {
         enclosingType = null;
@@ -44,6 +51,14 @@ public abstract class BasicElement implements Element {
 
     public boolean hasNoModifiersOf(int mask) {
         return (getModifiers() & mask) == mask;
+    }
+
+    public void setModifierFlags(int flags) {
+        modifiersHandle.getAndBitwiseOr(this, flags);
+    }
+
+    public void clearModifierFlags(int flags) {
+        modifiersHandle.getAndBitwiseAnd(this, ~flags);
     }
 
     public DefinedTypeDefinition getEnclosingType() {
