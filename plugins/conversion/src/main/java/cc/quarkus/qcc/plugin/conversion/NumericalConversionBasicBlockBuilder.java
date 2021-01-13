@@ -176,7 +176,6 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     upperLit = lf.literalOf(upper);
                     lowerLit = lf.literalOf(lower);
                 }
-                FloatLiteral max = lf.literalOf(upper);
 
                 // create the necessary Java bounds check
 
@@ -193,7 +192,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 goto_(resume);
                 begin(resume);
                 PhiValue result = phi(toType, resume);
-                result.setValueForBlock(ctxt, getCurrentElement(), overMax, super.valueConvert(max, toType));
+                result.setValueForBlock(ctxt, getCurrentElement(), overMax, super.valueConvert(lf.literalOf(upper), toType));
                 result.setValueForBlock(ctxt, getCurrentElement(), underMin, super.valueConvert(lowerLit, toType));
                 result.setValueForBlock(ctxt, getCurrentElement(), notOverMax, super.valueConvert(from, toType));
                 return result;
