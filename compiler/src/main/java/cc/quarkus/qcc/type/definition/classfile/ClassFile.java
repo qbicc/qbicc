@@ -73,6 +73,14 @@ public interface ClassFile extends FieldResolver,
      *   (v) is native.
      */
     int I_ACC_SIGNATURE_POLYMORPHIC = 1 << 16;
+    /**
+     * For fields which are declared as {@code final} but are actually mutable, including:
+     * <ul>
+     *     <li>{@code System.in}/{@code .out}/{@code .err}</li>
+     *     <li>fields that are reflected upon or mutated via {@code Unsafe}</li>
+     * </ul>
+     */
+    int I_ACC_NOT_REALLY_FINAL = 1 << 16;
     int I_ACC_DEPRECATED = 1 << 17;
     int I_ACC_HIDDEN = 1 << 18;
 
