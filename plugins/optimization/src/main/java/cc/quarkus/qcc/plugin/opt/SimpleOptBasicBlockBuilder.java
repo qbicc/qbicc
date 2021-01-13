@@ -8,13 +8,48 @@ import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.NewArray;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
+import cc.quarkus.qcc.type.NullType;
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.ValueType;
 
 /**
  * A graph factory which performs simple optimizations opportunistically.
  */
 public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
-    public SimpleOptBasicBlockBuilder(final CompilationContext context, final BasicBlockBuilder delegate) {
+    private final CompilationContext ctxt;
+
+    public SimpleOptBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
+        this.ctxt = ctxt;
+    }
+
+    public Value cmpEq(final Value v1, final Value v2) {
+        if (isAlwaysNull(v1) && isAlwaysNull(v2)) {
+            return ctxt.getLiteralFactory().literalOf(true);
+        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2)) {
+            return ctxt.getLiteralFactory().literalOf(false);
+        } else {
+            return super.cmpEq(v1, v2);
+        }
+    }
+
+    public Value cmpNe(final Value v1, final Value v2) {
+        if (isAlwaysNull(v1) && isAlwaysNull(v2)) {
+            return ctxt.getLiteralFactory().literalOf(false);
+        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2)) {
+            return ctxt.getLiteralFactory().literalOf(true);
+        } else {
+            return super.cmpNe(v1, v2);
+        }
+    }
+
+    private boolean isAlwaysNull(final Value v1) {
+        return v1.getType() instanceof NullType;
+    }
+
+    private boolean isNeverNull(final Value v1) {
+        ValueType type = v1.getType();
+        return isAlwaysNull(v1) || ! (type instanceof ReferenceType) || ! ((ReferenceType) type).isNullable();
     }
 
     public Value arrayLength(final Value array) {
