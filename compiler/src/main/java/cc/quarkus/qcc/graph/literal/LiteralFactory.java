@@ -11,6 +11,8 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.CompoundType;
+import cc.quarkus.qcc.type.FloatType;
+import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -28,12 +30,16 @@ public interface LiteralFactory {
 
     FloatLiteral literalOf(double value);
 
+    FloatLiteral literalOf(FloatType type, double value);
+
     IntegerLiteral literalOf(long value);
     IntegerLiteral literalOf(int value);
     IntegerLiteral literalOf(short value);
     IntegerLiteral literalOf(byte value);
 
     IntegerLiteral literalOf(char value);
+
+    IntegerLiteral literalOf(IntegerType type, long value);
 
     StringLiteral literalOf(String value);
 
@@ -83,37 +89,40 @@ public interface LiteralFactory {
             }
 
             public FloatLiteral literalOf(final float value) {
-                FloatLiteral v = new FloatLiteral(typeSystem.getFloat32Type(), value);
-                return floatLiterals.computeIfAbsent(v, Function.identity());
+                return literalOf(typeSystem.getFloat32Type(), value);
             }
 
             public FloatLiteral literalOf(final double value) {
-                FloatLiteral v = new FloatLiteral(typeSystem.getFloat64Type(), value);
+                return literalOf(typeSystem.getFloat64Type(), value);
+            }
+
+            public FloatLiteral literalOf(FloatType type, final double value) {
+                FloatLiteral v = new FloatLiteral(type, value);
                 return floatLiterals.computeIfAbsent(v, Function.identity());
             }
 
             public IntegerLiteral literalOf(final long value) {
-                IntegerLiteral v = new IntegerLiteral(typeSystem.getSignedInteger64Type(), value);
-                return integerLiterals.computeIfAbsent(v, Function.identity());
+                return literalOf(typeSystem.getSignedInteger64Type(), value);
             }
 
             public IntegerLiteral literalOf(final int value) {
-                IntegerLiteral v = new IntegerLiteral(typeSystem.getSignedInteger32Type(), value);
-                return integerLiterals.computeIfAbsent(v, Function.identity());
+                return literalOf(typeSystem.getSignedInteger32Type(), value);
             }
 
             public IntegerLiteral literalOf(final short value) {
-                IntegerLiteral v = new IntegerLiteral(typeSystem.getSignedInteger16Type(), value);
-                return integerLiterals.computeIfAbsent(v, Function.identity());
+                return literalOf(typeSystem.getSignedInteger16Type(), value);
             }
 
             public IntegerLiteral literalOf(final byte value) {
-                IntegerLiteral v = new IntegerLiteral(typeSystem.getSignedInteger8Type(), value);
-                return integerLiterals.computeIfAbsent(v, Function.identity());
+                return literalOf(typeSystem.getSignedInteger8Type(), value);
             }
 
             public IntegerLiteral literalOf(final char value) {
-                IntegerLiteral v = new IntegerLiteral(typeSystem.getUnsignedInteger16Type(), value);
+                return literalOf(typeSystem.getUnsignedInteger16Type(), value);
+            }
+
+            public IntegerLiteral literalOf(IntegerType type, final long value) {
+                IntegerLiteral v = new IntegerLiteral(type, value);
                 return integerLiterals.computeIfAbsent(v, Function.identity());
             }
 
