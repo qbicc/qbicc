@@ -53,7 +53,7 @@ public class ShiftDistanceMaskingBasicBlockBuilder extends DelegatingBasicBlockB
         // Mask the shift distance
         final LiteralFactory lf = ctxt.getLiteralFactory();
         final long bits = op.getType().getSize() * ctxt.getTypeSystem().getByteBits();
-        shiftDistance = and(shiftDistance, lf.literalOf(bits - 1));
+        shiftDistance = and(shiftDistance, lf.literalOf((IntegerType) shiftType, bits - 1));
 
         return shiftDistance;
     }
