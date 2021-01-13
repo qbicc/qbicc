@@ -11,6 +11,7 @@ import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
+import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -34,19 +35,25 @@ public class NullCheckingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value readArrayValue(Value array, Value index, JavaAccessMode mode) {
-        nullCheck(array);
+        if (!(array.getType() instanceof ArrayType)) {
+            nullCheck(array);
+        }
         return super.readArrayValue(array, index, mode);
     }
 
     @Override
     public Node writeArrayValue(Value array, Value index, Value value, JavaAccessMode mode) {
-        nullCheck(array);
+        if (!(array.getType() instanceof ArrayType)) {
+            nullCheck(array);
+        }
         return super.writeArrayValue(array, index, value, mode);
     }
 
     @Override
     public Value arrayLength(Value array) {
-        nullCheck(array);
+        if (!(array.getType() instanceof ArrayType)) {
+            nullCheck(array);
+        }
         return super.arrayLength(array);
     }
 
