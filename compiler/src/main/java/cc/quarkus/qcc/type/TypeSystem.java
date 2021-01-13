@@ -19,6 +19,8 @@ public final class TypeSystem {
     private final int funcAlign;
     private final int referenceSize;
     private final int referenceAlign;
+    private final int typeIdSize;
+    private final int typeIdAlign;
     private final PoisonType poisonType = new PoisonType(this);
     private final VoidType voidType = new VoidType(this, false);
     private final NullType nullType = new NullType(this);
@@ -28,7 +30,6 @@ public final class TypeSystem {
     private final MethodHandleType methodHandleType = new MethodHandleType(this);
     private final MethodDescriptorType methodDescriptorType = new MethodDescriptorType(this);
     private final BooleanType booleanType;
-    private final TypeIdType typeIdType;
     private final FloatType float32Type;
     private final FloatType float64Type;
     private final SignedIntegerType signedInteger8Type;
@@ -52,7 +53,8 @@ public final class TypeSystem {
         referenceSize = builder.getReferenceSize();
         referenceAlign = builder.getReferenceAlignment();
         booleanType = new BooleanType(this, builder.getBoolSize(), builder.getBoolAlignment(), false);
-        typeIdType = new TypeIdType(this, builder.getTypeIdSize(), builder.getTypeIdAlignment(), false);
+        typeIdSize = builder.getTypeIdSize();
+        typeIdAlign = builder.getTypeIdAlignment();
         int float32Size = builder.getFloat32Size();
         if (float32Size * byteBits < 32) {
             throw typeTooSmall("float32");
@@ -153,6 +155,24 @@ public final class TypeSystem {
         return funcAlign;
     }
 
+    /**
+     * Get the size of type ID values for this type system.
+     *
+     * @return the size of type ID values for this type system
+     */
+    public int getTypeIdSize() {
+        return typeIdSize;
+    }
+
+    /**
+     * Get the alignment of type ID values for this type system.
+     *
+     * @return the alignment of type ID values for this type system
+     */
+    public int getTypeIdAlignment() {
+        return typeIdAlign;
+    }
+
     public CompoundType.Member getCompoundTypeMember(String name, ValueType type, int offset, int align) {
         Assert.checkNotNullParam("name", name);
         TypeUtil.checkAlignmentParameter("align", align);
@@ -221,15 +241,6 @@ public final class TypeSystem {
      */
     public BlockType getBlockType() {
         return blockType;
-    }
-
-    /**
-     * Get the type of identifier for class, interface, or array references.
-     *
-     * @return the class identifier type
-     */
-    public TypeIdType getTypeIdType() {
-        return typeIdType;
     }
 
     /**
@@ -373,7 +384,7 @@ public final class TypeSystem {
     }
 
     TypeType createTypeType(final ValueType upperBound) {
-        return new TypeType(this, upperBound);
+        return new TypeType(this, upperBound, false);
     }
 
     public static Builder builder() {

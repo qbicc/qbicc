@@ -26,6 +26,7 @@ import cc.quarkus.qcc.graph.TerminatorVisitor;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
@@ -318,12 +319,17 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     }
 
     Value getFattenedConstantValue(int cpIndex) {
-        Literal value = getConstantValue(cpIndex);
+        Value value = getConstantValue(cpIndex);
         return value.getType() instanceof WordType && ((WordType) value.getType()).getMinBits() == 64 ? fatten(value) : value;
     }
 
-    Literal getConstantValue(int cpIndex) {
-        return getClassFile().getConstantValue(cpIndex);
+    Value getConstantValue(int cpIndex) {
+        Literal literal = getClassFile().getConstantValue(cpIndex);
+        if (literal instanceof TypeLiteral) {
+            return gf.classOf(literal);
+        } else {
+            return literal;
+        }
     }
 
     BlockLabel getBlockForIndex(int target) {

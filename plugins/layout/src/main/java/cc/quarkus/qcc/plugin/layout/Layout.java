@@ -11,9 +11,13 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
+import cc.quarkus.qcc.type.generic.BaseTypeSignature;
 
 /**
  *
@@ -23,9 +27,41 @@ public final class Layout {
 
     private final Map<ValidatedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
+    private final FieldElement objectClassField;
+    private final FieldElement classTypeIdField;
 
     private Layout(final CompilationContext ctxt) {
         this.ctxt = ctxt;
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
+        DefinedTypeDefinition jlcDef = classContext.findDefinedType("java/lang/Class");
+        ValidatedTypeDefinition jlo = jloDef.validate();
+        ValidatedTypeDefinition jlc = jlcDef.validate();
+        // inject a field of ClassObjectType to hold the object class
+        FieldElement.Builder builder = FieldElement.builder();
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
+        builder.setName("class");
+        builder.setEnclosingType(jloDef);
+        // void for now, but this is cheating terribly
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        // the type is really the self-type, but we don't have one of those so use j.l.Object
+        builder.setType(jlo.getClassType().getTypeType().asConst());
+        FieldElement field = builder.build();
+        jlo.injectField(field);
+        objectClassField = field;
+        // now inject a field of ClassObjectType into Class to hold the corresponding run time type
+        builder = FieldElement.builder();
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
+        builder.setName("id");
+        builder.setEnclosingType(jlcDef);
+        // void for now, but this is cheating terribly
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        builder.setType(jlo.getClassType().getTypeType().asConst());
+        field = builder.build();
+        jlc.injectField(field);
+        classTypeIdField = field;
     }
 
     public static Layout get(CompilationContext ctxt) {
@@ -38,6 +74,24 @@ public final class Layout {
             }
         }
         return layout;
+    }
+
+    /**
+     * Get the object field which holds the run time type identifier.
+     *
+     * @return the type identifier field
+     */
+    public FieldElement getObjectClassField() {
+        return objectClassField;
+    }
+
+    /**
+     * Get the field on {@code Class} which holds the type identifier of its corresponding instance type.
+     *
+     * @return the class type identifier field
+     */
+    public FieldElement getClassTypeIdField() {
+        return classTypeIdField;
     }
 
     public LayoutInfo getInstanceLayoutInfo(DefinedTypeDefinition type) {

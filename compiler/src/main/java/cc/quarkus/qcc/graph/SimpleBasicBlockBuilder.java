@@ -261,7 +261,12 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value typeIdOf(final Value value) {
-        return new TypeIdOf(line, bci, typeSystem.getTypeIdType(), value);
+        return new TypeIdOf(line, bci, value);
+    }
+
+    public Value classOf(final Value typeId) {
+        ClassObjectType type = element.getEnclosingType().getContext().findDefinedType("java/lang/Class").validate().getClassType();
+        return new ClassOf(line, bci, typeId, type.getReference());
     }
 
     public Value new_(final ClassObjectType type) {

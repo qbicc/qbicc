@@ -25,6 +25,10 @@ public class FieldAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
         this.ctxt = ctxt;
     }
 
+    public Value typeIdOf(final Value value) {
+        return readInstanceField(value, Layout.get(ctxt).getObjectClassField(), JavaAccessMode.PLAIN);
+    }
+
     public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
         ValueType instanceType = instance.getType();
         if (instanceType instanceof ReferenceType) {

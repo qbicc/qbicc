@@ -2,23 +2,24 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.TypeIdType;
-import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.TypeType;
 
 /**
  * The type ID of a given value.
  */
 public final class TypeIdOf extends AbstractValue implements InstanceOperation {
-    private final TypeIdType type;
     private final Value instance;
+    private final TypeType type;
 
-    TypeIdOf(final int line, final int bci, final TypeIdType type, final Value instance) {
+    TypeIdOf(final int line, final int bci, final Value instance) {
         super(line, bci);
-        this.type = type;
         this.instance = instance;
+        ReferenceType referenceType = (ReferenceType) instance.getType();
+        type = referenceType.getUpperBound().getTypeType();
     }
 
-    public ValueType getType() {
+    public TypeType getType() {
         return type;
     }
 
