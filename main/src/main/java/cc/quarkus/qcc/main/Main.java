@@ -26,6 +26,7 @@ import cc.quarkus.qcc.plugin.conversion.CloneConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.correctness.ArrayIndexOutOfBoundsCheckingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.correctness.NullCheckingBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.correctness.ShiftDistanceMaskingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.correctness.ZeroDivisorCheckingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.VTableBuilder;
@@ -234,6 +235,7 @@ public class Main {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, ArrayIndexOutOfBoundsCheckingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, NullCheckingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, ShiftDistanceMaskingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, ZeroDivisorCheckingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
