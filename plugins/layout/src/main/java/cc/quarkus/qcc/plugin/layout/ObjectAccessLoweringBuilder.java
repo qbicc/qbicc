@@ -17,16 +17,61 @@ import cc.quarkus.qcc.type.definition.element.FieldElement;
 /**
  *
  */
-public class FieldAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
+public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public FieldAccessLoweringBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public ObjectAccessLoweringBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
     }
 
     public Value typeIdOf(final Value value) {
         return readInstanceField(value, Layout.get(ctxt).getObjectClassField(), JavaAccessMode.PLAIN);
+    }
+
+    public Value arrayLength(final Value array) {
+        if (array.getType() instanceof ReferenceType) {
+            return readInstanceField(array, Layout.get(ctxt).getArrayLengthField(), JavaAccessMode.PLAIN);
+        }
+        return super.arrayLength(array);
+    }
+
+    public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
+        ValueType arrayType = array.getType();
+        if (arrayType instanceof ReferenceType) {
+            ReferenceType arrayRefType = (ReferenceType) arrayType;
+            Layout layout = Layout.get(ctxt);
+            FieldElement contentField = layout.getArrayContentField(arrayRefType.getUpperBound());
+            if (contentField == null) {
+                // punt
+                return super.readArrayValue(array, index, mode);
+            }
+            Layout.LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(contentField.getEnclosingType());
+            CompoundType.Member member = layoutInfo.getMember(contentField);
+            MemoryAtomicityMode atomicityMode = mode == JavaAccessMode.VOLATILE ? MemoryAtomicityMode.ACQUIRE : MemoryAtomicityMode.UNORDERED;
+            return pointerLoad(add(memberPointer(valueConvert(array, layoutInfo.getCompoundType().getPointer()), member), index), MemoryAccessMode.PLAIN, atomicityMode);
+        } else {
+            return super.readArrayValue(array, index, mode);
+        }
+    }
+
+    public Node writeArrayValue(final Value array, final Value index, final Value value, final JavaAccessMode mode) {
+        ValueType arrayType = array.getType();
+        if (arrayType instanceof ReferenceType) {
+            ReferenceType arrayRefType = (ReferenceType) arrayType;
+            Layout layout = Layout.get(ctxt);
+            FieldElement contentField = layout.getArrayContentField(arrayRefType.getUpperBound());
+            if (contentField == null) {
+                // punt
+                return super.readArrayValue(array, index, mode);
+            }
+            Layout.LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(contentField.getEnclosingType());
+            CompoundType.Member member = layoutInfo.getMember(contentField);
+            MemoryAtomicityMode atomicityMode = mode == JavaAccessMode.VOLATILE ? MemoryAtomicityMode.ACQUIRE : MemoryAtomicityMode.UNORDERED;
+            return pointerStore(add(memberPointer(valueConvert(array, layoutInfo.getCompoundType().getPointer()), member), index), value, MemoryAccessMode.PLAIN, atomicityMode);
+        } else {
+            return super.writeArrayValue(array, index, value, mode);
+        }
     }
 
     public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {

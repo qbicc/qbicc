@@ -32,7 +32,7 @@ import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.VTableBuilder;
 import cc.quarkus.qcc.plugin.dot.DotGenerator;
 import cc.quarkus.qcc.plugin.intrinsics.core.CoreIntrinsics;
-import cc.quarkus.qcc.plugin.layout.FieldAccessLoweringBuilder;
+import cc.quarkus.qcc.plugin.layout.ObjectAccessLoweringBuilder;
 import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.plugin.linker.LinkStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
@@ -259,7 +259,7 @@ public class Main {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldLoweringBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, FieldAccessLoweringBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addPostHook(Phase.LOWER, ctxt -> RTAInfo.clear(ctxt));
