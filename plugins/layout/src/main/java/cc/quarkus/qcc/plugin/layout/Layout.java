@@ -40,7 +40,7 @@ public final class Layout {
         // inject a field of ClassObjectType to hold the object class
         FieldElement.Builder builder = FieldElement.builder();
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
-        builder.setName("class");
+        builder.setName("klass");
         builder.setEnclosingType(jloDef);
         // void for now, but this is cheating terribly
         builder.setDescriptor(BaseTypeDescriptor.V);
