@@ -18,10 +18,10 @@ import java.util.List;
 /**
  * This builder checks for zero divisor in integer divisions.
  */
-public class ZeroDivisorChecking extends DelegatingBasicBlockBuilder {
+public class ZeroDivisorCheckingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public ZeroDivisorChecking(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public ZeroDivisorCheckingBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
     }
