@@ -146,8 +146,8 @@ public class NullCheckingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
         ValidatedTypeDefinition npe = classContext.findDefinedType("java/lang/NullPointerException").validate();
         Value ex = new_(npe.getClassType());
-        ex = invokeConstructor(ex, npe.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-        throw_(ex); // Throw java.lang.NullPointerException
+        ex = super.invokeConstructor(ex, npe.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+        super.throw_(ex); // Throw java.lang.NullPointerException
         begin(goAhead);
     }
 }
