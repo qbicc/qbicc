@@ -16,4 +16,15 @@ jobs:
     - name: Check out
       uses: actions/checkout@v2
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn -B clean install --file pom.xml
+    - name: Check out qcc-lib
+      uses: actions/checkout@v2
+      with:
+        repository: quarkuscc/qcc-class-library
+        ref: master
+        path: qcc-class-library
+        submodules: recursive
+    - name: Build library with Maven
+      run: |
+        cd qcc-class-library
+        mvn -B clean install --file pom.xml
