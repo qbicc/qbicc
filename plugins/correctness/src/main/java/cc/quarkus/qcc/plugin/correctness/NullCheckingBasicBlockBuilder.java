@@ -33,6 +33,11 @@ public class NullCheckingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         this.ctxt = ctxt;
     }
 
+    public Value typeIdOf(final Value value) {
+        nullCheck(value);
+        return super.typeIdOf(value);
+    }
+
     @Override
     public Value readArrayValue(Value array, Value index, JavaAccessMode mode) {
         if (!(array.getType() instanceof ArrayType)) {
