@@ -89,13 +89,12 @@ abstract class AbstractEmittable implements Emittable {
         return target;
     }
 
-    static <A extends Appendable> A appendDecimal(A target, double val) throws IOException {
-        target.append(Double.toString(val));
+    static <A extends Appendable> A appendHex(A target, double val) throws IOException {
+        target.append("0x" + Long.toHexString(Double.doubleToRawLongBits((double) val)));
         return target;
     }
 
     static <A extends Appendable> A appendHex(A target, float val) throws IOException {
-        target.append("0x" + Long.toHexString(Double.doubleToRawLongBits((double) val)));
-        return target;
+        return appendHex(target, (double) val);
     }
 }

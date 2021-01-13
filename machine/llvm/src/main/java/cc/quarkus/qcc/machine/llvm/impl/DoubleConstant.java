@@ -10,6 +10,6 @@ final class DoubleConstant extends AbstractValue {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendDecimal(target, value);
+        return appendHex(target, value);
     }
 }
