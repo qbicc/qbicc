@@ -28,6 +28,7 @@ import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.machine.llvm.op.Return;
 import cc.quarkus.qcc.machine.llvm.op.Select;
 import cc.quarkus.qcc.machine.llvm.op.Store;
+import cc.quarkus.qcc.machine.llvm.op.Switch;
 import cc.quarkus.qcc.machine.llvm.op.YieldingInstruction;
 import io.smallrye.common.constraint.Assert;
 
@@ -112,6 +113,16 @@ final class BasicBlockImpl extends AbstractEmittable implements LLBasicBlock {
         ValueReturn valueReturn = new ValueReturn((AbstractValue) type, (AbstractValue) val);
         terminator = valueReturn;
         return valueReturn;
+    }
+
+    public Switch switch_(final LLValue type, final LLValue value, final LLBasicBlock defaultTarget) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("defaultTarget", defaultTarget);
+        checkTerminated();
+        SwitchImpl switchInst = new SwitchImpl((AbstractValue) type, (AbstractValue) value, (BasicBlockImpl) defaultTarget);
+        terminator = switchInst;
+        return switchInst;
     }
 
     public void unreachable() {

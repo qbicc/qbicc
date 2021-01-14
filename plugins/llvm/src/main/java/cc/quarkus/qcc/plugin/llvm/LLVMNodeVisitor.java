@@ -47,6 +47,7 @@ import cc.quarkus.qcc.graph.Shl;
 import cc.quarkus.qcc.graph.Shr;
 import cc.quarkus.qcc.graph.StackAllocation;
 import cc.quarkus.qcc.graph.Sub;
+import cc.quarkus.qcc.graph.Switch;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.ThisValue;
 import cc.quarkus.qcc.graph.Triable;
@@ -63,6 +64,7 @@ import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
@@ -157,6 +159,17 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
         block.ret();
+        return null;
+    }
+
+    public Void visit(final Void param, final Switch node) {
+        map(node.getBasicDependency(0));
+        LLBasicBlock block = map(schedule.getBlockForNode(node));
+        cc.quarkus.qcc.machine.llvm.op.Switch switchInst = block.switch_(i32, map(node.getSwitchValue()), map(node.getDefaultTarget()));
+
+        for (int i = 0; i < node.getNumberOfValues(); i++)
+            switchInst.case_(Values.intConstant(node.getValueForIndex(i)), map(node.getTargetForIndex(i)));
+
         return null;
     }
 

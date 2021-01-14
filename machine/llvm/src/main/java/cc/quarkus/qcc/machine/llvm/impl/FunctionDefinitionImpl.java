@@ -32,6 +32,7 @@ import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.machine.llvm.op.Return;
 import cc.quarkus.qcc.machine.llvm.op.Select;
 import cc.quarkus.qcc.machine.llvm.op.Store;
+import cc.quarkus.qcc.machine.llvm.op.Switch;
 import cc.quarkus.qcc.machine.llvm.op.YieldingInstruction;
 import io.smallrye.common.constraint.Assert;
 
@@ -212,6 +213,10 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
 
     public Select select(final LLValue condType, final LLValue cond, final LLValue valueType, final LLValue trueValue, final LLValue falseValue) {
         return rootBlock.select(condType, cond, valueType, trueValue, falseValue);
+    }
+
+    public Switch switch_(final LLValue type, final LLValue value, final LLBasicBlock defaultTarget) {
+        return rootBlock.switch_(type, value, defaultTarget);
     }
 
     public void unreachable() {
