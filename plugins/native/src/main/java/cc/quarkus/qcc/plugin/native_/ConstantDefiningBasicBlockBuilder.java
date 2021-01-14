@@ -21,6 +21,7 @@ import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
+import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -38,11 +39,22 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         this.ctxt = ctxt;
     }
 
+    public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
+        if (fieldElement.hasAllModifiersOf(ClassFile.ACC_STATIC | ClassFile.ACC_FINAL)) {
+            // initialize the constant if any
+            MethodHandle initializer = fieldElement.getEnclosingType().validate().getInitializer().getMethodBody();
+            if (initializer != null) {
+                initializer.getOrCreateMethodBody();
+            }
+        }
+        return super.readStaticField(fieldElement, mode);
+    }
+
     public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
         if (value instanceof StaticInvocationValue) {
             StaticInvocationValue inv = (StaticInvocationValue) value;
             MethodElement invocationTarget = inv.getInvocationTarget();
-            if (invocationTarget.getEnclosingType().getInternalName().equals(Native.C_NATIVE)) {
+            if (invocationTarget.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.C_NATIVE)) {
                 if (invocationTarget.getName().equals("constant")) {
                     // it's a constant
                     if (! fieldElement.hasAllModifiersOf(ClassFile.ACC_STATIC | ClassFile.ACC_FINAL)) {
@@ -80,7 +92,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         LiteralFactory lf = ctxt.getLiteralFactory();
         CProbe.Result result;
         try {
-            result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), ctxt);
+            result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
             if (result == null) {
                 // constant is undefined
                 constants.registerConstant(fieldElement, lf.literalOfUndefined());
