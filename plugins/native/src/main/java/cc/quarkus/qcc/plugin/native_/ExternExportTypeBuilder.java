@@ -23,6 +23,7 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodResolver;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 
@@ -33,6 +34,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
     private final ClassContext classCtxt;
     private final CompilationContext ctxt;
     private final DefinedTypeDefinition.Builder delegate;
+    private boolean hasInclude;
 
     public ExternExportTypeBuilder(final ClassContext classCtxt, final DefinedTypeDefinition.Builder delegate) {
         this.classCtxt = classCtxt;
@@ -42,6 +44,19 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
 
     public DefinedTypeDefinition.Builder getDelegate() {
         return delegate;
+    }
+
+    public void setVisibleAnnotations(final List<Annotation> annotations) {
+        for (Annotation annotation : annotations) {
+            ClassTypeDescriptor desc = annotation.getDescriptor();
+            if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
+                if (desc.getClassName().equals(Native.ANN_INCLUDE) || desc.getClassName().equals(Native.ANN_INCLUDE_LIST)) {
+                    hasInclude = true;
+                    break;
+                }
+            }
+        }
+        getDelegate().setVisibleAnnotations(annotations);
     }
 
     public void addMethod(final MethodResolver resolver, final int index) {
@@ -57,55 +72,67 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                             AnnotationValue nameVal = annotation.getValue("withName");
                             String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
                             // register as a function
-                            FunctionType type = origMethod.getType(List.of(/*todo*/));
-                            nativeInfo.registerFunctionInfo(
-                                origMethod.getEnclosingType().getDescriptor(),
-                                origMethod.getName(),
-                                origMethod.getDescriptor(),
-                                new NativeFunctionInfo(origMethod, ctxt.getLiteralFactory().literalOfSymbol(name, type))
-                            );
+                            addExtern(nativeInfo, origMethod, name);
                             // all done
-                            break;
+                            return origMethod;
                         } else if (desc.getClassName().equals(Native.ANN_EXPORT)) {
                             // immediately generate the call-in stub
                             AnnotationValue nameVal = annotation.getValue("withName");
                             String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
-                            Function exactFunction = ctxt.getExactFunction(origMethod);
-                            FunctionType fnType = origMethod.getType(List.of(/*todo*/));
-                            Function function = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(IMPLICIT_SECTION_NAME).addFunction(origMethod, name, fnType);
-                            BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(origMethod);
-                            BlockLabel entry = new BlockLabel();
-                            gf.begin(entry);
-                            LiteralFactory lf = ctxt.getLiteralFactory();
-                            SymbolLiteral fn = lf.literalOfSymbol(exactFunction.getName(), exactFunction.getType());
-                            int pcnt = origMethod.getParameters().size();
-                            List<Value> args = new ArrayList<>(pcnt + 1);
-                            List<Value> pv = new ArrayList<>(pcnt);
-                            // for now, thread is null!
-                            // todo: insert prolog here
-                            args.add(lf.literalOfNull());
-                            for (int j = 0; j < pcnt; j ++) {
-                                Value parameter = gf.parameter(fnType.getParameterType(j), j);
-                                pv.add(parameter);
-                                args.add(parameter);
-                            }
-                            Value result = gf.callFunction(fn, args);
-                            if (fnType.getReturnType() instanceof VoidType) {
-                                gf.return_();
-                            } else {
-                                gf.return_(result);
-                            }
-                            gf.finish();
-                            BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
-                            function.replaceBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, pv));
-                            // ensure the method is reachable
-                            ctxt.registerEntryPoint(origMethod);
+                            addExport(enclosing, origMethod, name);
                             // all done
-                            break;
+                            return origMethod;
                         }
                     }
                 }
+                if (origMethod.hasAllModifiersOf(ClassFile.ACC_NATIVE) && hasInclude) {
+                    // treat it as extern with the default name
+                    addExtern(nativeInfo, origMethod, origMethod.getName());
+                }
                 return origMethod;
+            }
+
+            private void addExtern(final NativeInfo nativeInfo, final MethodElement origMethod, final String name) {
+                FunctionType type = origMethod.getType(List.of(/*todo*/));
+                nativeInfo.registerFunctionInfo(
+                    origMethod.getEnclosingType().getDescriptor(),
+                    origMethod.getName(),
+                    origMethod.getDescriptor(),
+                    new NativeFunctionInfo(origMethod, ctxt.getLiteralFactory().literalOfSymbol(name, type))
+                );
+            }
+
+            private void addExport(final DefinedTypeDefinition enclosing, final MethodElement origMethod, final String name) {
+                Function exactFunction = ctxt.getExactFunction(origMethod);
+                FunctionType fnType = origMethod.getType(List.of(/*todo*/));
+                Function function = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(IMPLICIT_SECTION_NAME).addFunction(origMethod, name, fnType);
+                BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(origMethod);
+                BlockLabel entry = new BlockLabel();
+                gf.begin(entry);
+                LiteralFactory lf = ctxt.getLiteralFactory();
+                SymbolLiteral fn = lf.literalOfSymbol(exactFunction.getName(), exactFunction.getType());
+                int pcnt = origMethod.getParameters().size();
+                List<Value> args = new ArrayList<>(pcnt + 1);
+                List<Value> pv = new ArrayList<>(pcnt);
+                // for now, thread is null!
+                // todo: insert prolog here
+                args.add(lf.literalOfNull());
+                for (int j = 0; j < pcnt; j ++) {
+                    Value parameter = gf.parameter(fnType.getParameterType(j), j);
+                    pv.add(parameter);
+                    args.add(parameter);
+                }
+                Value result = gf.callFunction(fn, args);
+                if (fnType.getReturnType() instanceof VoidType) {
+                    gf.return_();
+                } else {
+                    gf.return_(result);
+                }
+                gf.finish();
+                BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
+                function.replaceBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, pv));
+                // ensure the method is reachable
+                ctxt.registerEntryPoint(origMethod);
             }
         }, index);
     }
