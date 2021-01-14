@@ -49,7 +49,10 @@ import cc.quarkus.qcc.graph.StackAllocation;
 import cc.quarkus.qcc.graph.Sub;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.ThisValue;
+import cc.quarkus.qcc.graph.Triable;
+import cc.quarkus.qcc.graph.TriableVisitor;
 import cc.quarkus.qcc.graph.Truncate;
+import cc.quarkus.qcc.graph.Try;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
@@ -84,7 +87,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final Set<Action> visitedActions = new HashSet<>();
     final Map<Value, LLValue> mappedValues = new HashMap<>();
     final Map<BasicBlock, LLBasicBlock> mappedBlocks = new HashMap<>();
+    final Map<BasicBlock, LLBasicBlock> mappedCatchBlocks = new HashMap<>();
     final MethodBody methodBody;
+    final TriableVisitor<Try, Void> triableVisitor = new Triables();
 
     LLVMNodeVisitor(final CompilationContext ctxt, final LLVMGenerator gen, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
@@ -126,7 +131,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         map(node.getDependency());
         LLValue ptrType = map(node.getPointer().getType());
         LLValue value = map(node.getValue());
-        LLValue type = map(node.getValue().getType());
+        LLValue type = map(((PointerType)node.getPointer().getType()).getPointeeType());
         LLValue ptr = map(node.getPointer());
         map(schedule.getBlockForNode(node)).store(ptrType, value, type, ptr);
         return null;
@@ -152,6 +157,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
         block.ret();
+        return null;
+    }
+
+    public Void visit(final Void param, final Try node) {
+        node.getDelegateOperation().accept(triableVisitor, node);
         return null;
     }
 
@@ -477,6 +487,25 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         return call.asLocal();
     }
 
+    public LLValue visit(final Try try_, final FunctionCall node) {
+        map(node.getBasicDependency(0));
+        LLBasicBlock target = map(schedule.getBlockForNode(node));
+        FunctionType functionType = node.getFunctionType();
+        List<Value> arguments = node.getArguments();
+        LLValue llType = map(functionType);
+        LLValue llTarget = map(node.getCallTarget());
+        // two scans - once to populate the maps, and then once to emit the call in the right order
+        for (int i = 0; i < arguments.size(); i++) {
+            map(functionType.getParameterType(i));
+            map(arguments.get(i));
+        }
+        Call call = target.invoke(llType, llTarget, map(try_.getResumeTarget()), mapCatch(try_.getExceptionHandler()));
+        for (int i = 0; i < arguments.size(); i++) {
+            call.arg(map(functionType.getParameterType(i)), map(arguments.get(i)));
+        }
+        return call.asLocal();
+    }
+
     // GEP
 
     private GetElementPtr processGetElementPtr(final LLBasicBlock block, final Value current) {
@@ -537,6 +566,18 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         return mapped;
     }
 
+    private LLBasicBlock mapCatch(BasicBlock block) {
+        LLBasicBlock mapped = mappedCatchBlocks.get(block);
+        if (mapped != null) {
+            return mapped;
+        }
+        mapped = func.createBlock();
+        mapped.landingpad(ptrTo(i8)).catch_(ptrTo(i8), NULL);
+        LLBasicBlock handler = map(block);
+        mapped.br(handler);
+        return mapped;
+    }
+
     private LLValue map(Type type) {
         return gen.map(type);
     }
@@ -569,5 +610,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     private LLValue map(CompoundType compoundType, CompoundType.Member member) {
         return gen.map(compoundType, member);
+    }
+
+    class Triables implements TriableVisitor<Try, Void> {
+        public Void visitUnknown(final Try param, final Triable node) {
+            return LLVMNodeVisitor.this.visitUnknown(null, param);
+        }
+
+        public Void visit(final Try param, final FunctionCall node) {
+            mappedValues.put(node, LLVMNodeVisitor.this.visit(param, node));
+            return null;
+        }
     }
 }
