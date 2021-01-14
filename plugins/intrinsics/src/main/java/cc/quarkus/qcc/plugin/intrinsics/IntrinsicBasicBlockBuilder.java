@@ -8,12 +8,15 @@ import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 /**
  * The basic block builder which substitutes invocations of intrinsic methods.
+ * 
+ * This only handles the "unresolved" form of method calls and assumes that all
+ * methods to be replaced by intrinsics originate from descriptors (ie: classfile
+ * parsing).
  */
 public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
@@ -41,11 +44,6 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return super.invokeValueStatic(owner, name, descriptor, arguments);
     }
 
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        // TODO: do we need to handle this form as well
-        return getDelegate().invokeInstance(kind, instance, target, arguments);
-    }
-
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(owner, name, descriptor);
         if (intrinsic != null) {
@@ -53,11 +51,6 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
             return intrinsic.emitIntrinsic(this, kind, instance, owner, name, descriptor, arguments);
         }
         return super.invokeInstance(kind, instance, owner, name, descriptor, arguments);
-    }
-
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        // TODO: do we need to handle this form as well
-        return getDelegate().invokeValueInstance(kind, instance, target, arguments);
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
