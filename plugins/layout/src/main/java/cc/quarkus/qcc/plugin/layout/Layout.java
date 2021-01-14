@@ -423,7 +423,7 @@ public final class Layout {
                 return i;
             }
             // try the next spot
-            i = bitSet.nextClearBit(i);
+            i = bitSet.nextClearBit(n);
         }
     }
 
