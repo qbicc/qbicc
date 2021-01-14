@@ -9,9 +9,14 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.type.ArrayType;
+import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.SignedIntegerType;
+import cc.quarkus.qcc.type.UnsignedIntegerType;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -23,16 +28,23 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import java.util.List;
 
 /**
- * This builder introduces null checks for dereferences of methods, fields, and array accesses.
+ * This builder injects runtime checks and transformations to:
+ * <ul>
+ *     <li>Throw {@link NullPointerException} if a {@code null} method, array, object gets dereferenced.</li>
+ *     <li>Throw {@link IndexOutOfBoundsException} if an array index is out of bounds.</li>
+ *     <li>Throw {@link ArithmeticException} when the divisor in an integer division is zero.</li>
+ *     <li>Mask shift distances in {@code *shl}, {@code *shr}, and {@code *ushr}.</li>
+ * </ul>
  */
-public class NullCheckingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public NullCheckingBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    public RuntimeChecksBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
     }
 
+    @Override
     public Value typeIdOf(final Value value) {
         nullCheck(value);
         return super.typeIdOf(value);
@@ -40,25 +52,21 @@ public class NullCheckingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value readArrayValue(Value array, Value index, JavaAccessMode mode) {
-        if (!(array.getType() instanceof ArrayType)) {
-            nullCheck(array);
-        }
+        nullCheck(array);
+        indexOutOfBoundsCheck(array, index);
         return super.readArrayValue(array, index, mode);
     }
 
     @Override
     public Node writeArrayValue(Value array, Value index, Value value, JavaAccessMode mode) {
-        if (!(array.getType() instanceof ArrayType)) {
-            nullCheck(array);
-        }
+        nullCheck(array);
+        indexOutOfBoundsCheck(array, index);
         return super.writeArrayValue(array, index, value, mode);
     }
 
     @Override
     public Value arrayLength(Value array) {
-        if (!(array.getType() instanceof ArrayType)) {
-            nullCheck(array);
-        }
+        nullCheck(array);
         return super.arrayLength(array);
     }
 
@@ -140,11 +148,47 @@ public class NullCheckingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.throw_(value);
     }
 
+    @Override
+    public Value shl(Value v1, Value v2) {
+        return super.shl(v1, castAndMaskShiftDistance(v1, v2));
+    }
+
+    @Override
+    public Value shr(Value v1, Value v2) {
+        return super.shr(v1, castAndMaskShiftDistance(v1, v2));
+    }
+
+    @Override
+    public Value divide(Value v1, Value v2) {
+        ValueType v1Type = v1.getType();
+        ValueType v2Type = v2.getType();
+        if (v1Type instanceof IntegerType && v2Type instanceof IntegerType) {
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            final IntegerLiteral zero = lf.literalOf(0);
+            final BlockLabel throwIt = new BlockLabel();
+            final BlockLabel goAhead = new BlockLabel();
+
+            if_(cmpEq(v2, zero), throwIt, goAhead);
+            begin(throwIt);
+            ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
+            ValidatedTypeDefinition ae = classContext.findDefinedType("java/lang/ArithmeticException").validate();
+            Value ex = new_(ae.getClassType());
+            ex = invokeConstructor(ex, ae.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+            throw_(ex); // Throw java.lang.ArithmeticException
+            begin(goAhead);
+        }
+        return super.divide(v1, v2);
+    }
+
     private void nullCheck(Value value) {
-        final LiteralFactory lf = ctxt.getLiteralFactory();
-        final NullLiteral nullLiteral = lf.literalOfNull();
+        if (value.getType() instanceof ArrayType) {
+            return;
+        }
+
         final BlockLabel throwIt = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        final NullLiteral nullLiteral = lf.literalOfNull();
 
         if_(cmpEq(value, nullLiteral), throwIt, goAhead);
         begin(throwIt);
@@ -154,5 +198,56 @@ public class NullCheckingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         ex = super.invokeConstructor(ex, npe.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
         super.throw_(ex); // Throw java.lang.NullPointerException
         begin(goAhead);
+    }
+
+    private void indexOutOfBoundsCheck(Value array, Value index) {
+        if (array.getType() instanceof ArrayType) {
+            return;
+        }
+
+        final BlockLabel notNegative = new BlockLabel();
+        final BlockLabel throwIt = new BlockLabel();
+        final BlockLabel goAhead = new BlockLabel();
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        final IntegerLiteral zero = lf.literalOf(0);
+
+        if_(cmpLt(index, zero), throwIt, notNegative);
+        begin(notNegative);
+        final Value length = arrayLength(array);
+        if_(cmpGe(index, length), throwIt, goAhead);
+        begin(throwIt);
+        ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
+        ValidatedTypeDefinition aiobe = classContext.findDefinedType("java/lang/ArrayIndexOutOfBoundsException").validate();
+        Value ex = new_(aiobe.getClassType());
+        ex = invokeConstructor(ex, aiobe.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+        throw_(ex); // Throw java.lang.ArrayIndexOutOfBoundsException
+        begin(goAhead);
+    }
+
+    private Value castAndMaskShiftDistance(Value op, Value shiftDistance) {
+        final ValueType opType = op.getType();
+
+        // Correct shiftDistance's signdness to match that of op
+        ValueType shiftType = shiftDistance.getType();
+        if (opType instanceof SignedIntegerType && shiftType instanceof UnsignedIntegerType) {
+            shiftDistance = bitCast(shiftDistance, ((UnsignedIntegerType) shiftType).asSigned());
+        } else if (opType instanceof UnsignedIntegerType && shiftType instanceof SignedIntegerType) {
+            shiftDistance = bitCast(shiftDistance, ((SignedIntegerType) shiftType).asUnsigned());
+        }
+
+        // Correct shiftDistance's size to match that of op
+        shiftType = shiftDistance.getType();
+        if (opType.getSize() < shiftType.getSize()) {
+            shiftDistance = truncate(shiftDistance, (IntegerType) opType);
+        } else if (opType.getSize() > shiftType.getSize()) {
+            shiftDistance = extend(shiftDistance, (IntegerType) opType);
+        }
+
+        // Mask the shift distance
+        final LiteralFactory lf = ctxt.getLiteralFactory();
+        final long bits = op.getType().getSize() * ctxt.getTypeSystem().getByteBits();
+        shiftDistance = and(shiftDistance, lf.literalOf((IntegerType) shiftType, bits - 1));
+
+        return shiftDistance;
     }
 }
