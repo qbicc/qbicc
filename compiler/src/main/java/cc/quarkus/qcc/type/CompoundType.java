@@ -91,11 +91,10 @@ public final class CompoundType extends ValueType {
         }
         b.append(name).append(" {");
         if (members.length > 0) {
-            Member member = members[0];
-            member.toString(b);
+            members[0].toString(b);
             for (int i = 1; i < members.length; i++) {
                 b.append(',');
-                member.toString(b);
+                members[i].toString(b);
             }
         }
         return b.append('}');
