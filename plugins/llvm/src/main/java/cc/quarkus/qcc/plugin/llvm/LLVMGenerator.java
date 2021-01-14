@@ -206,7 +206,9 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                 int memberOffset = member.getOffset(); // already includes alignment
                 if (memberOffset > offs) {
                     // we have to pad it out
-                    struct.member(array((int) (memberOffset - offs), i8));
+                    int pad = (int) (memberOffset - offs);
+                    struct.member(array(pad, i8));
+                    offs += pad;
                     index ++;
                 }
                 ValueType memberType = member.getType();
