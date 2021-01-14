@@ -31,6 +31,7 @@ import cc.quarkus.qcc.plugin.correctness.ZeroDivisorCheckingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.VTableBuilder;
 import cc.quarkus.qcc.plugin.dot.DotGenerator;
+import cc.quarkus.qcc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.intrinsics.core.CoreIntrinsics;
 import cc.quarkus.qcc.plugin.layout.ObjectAccessLoweringBuilder;
 import cc.quarkus.qcc.plugin.layout.Layout;
@@ -227,7 +228,7 @@ public class Main {
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, Layout::get);
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
-
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CloneConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalThrowHandlingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);

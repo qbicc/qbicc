@@ -17,6 +17,9 @@ public final class Intrinsics {
     private final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, StaticIntrinsic>>> staticIntrinsics = new ConcurrentHashMap<>();
     private final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, StaticValueIntrinsic>>> staticValueIntrinsics = new ConcurrentHashMap<>();
 
+    private final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, InstanceIntrinsic>>> instanceIntrinsics = new ConcurrentHashMap<>();
+    private final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, InstanceValueIntrinsic>>> instanceValueIntrinsics = new ConcurrentHashMap<>();
+
     private Intrinsics() {}
 
     public static Intrinsics get(CompilationContext ctxt) {
@@ -26,6 +29,8 @@ public final class Intrinsics {
     private static <K, V> Map<K, V> map(Object ignored) {
         return new ConcurrentHashMap<>();
     }
+
+    // Static intrinsics
 
     public boolean registerIntrinsic(TypeDescriptor owner, String name, MethodDescriptor desc, StaticIntrinsic intrinsic) {
         return staticIntrinsics.computeIfAbsent(owner, Intrinsics::map).computeIfAbsent(name, Intrinsics::map).putIfAbsent(desc, intrinsic) != null;
@@ -41,6 +46,24 @@ public final class Intrinsics {
 
     public StaticValueIntrinsic getStaticValueIntrinsic(TypeDescriptor owner, String name, MethodDescriptor desc) {
         return staticValueIntrinsics.getOrDefault(owner, Map.of()).getOrDefault(name, Map.of()).get(desc);
+    }
+
+    // Instance intrisics
+
+    public boolean registerIntrinsic(TypeDescriptor owner, String name, MethodDescriptor desc, InstanceIntrinsic intrinsic) {
+        return instanceIntrinsics.computeIfAbsent(owner, Intrinsics::map).computeIfAbsent(name, Intrinsics::map).putIfAbsent(desc, intrinsic) != null;
+    }
+
+    public boolean registerIntrinsic(TypeDescriptor owner, String name, MethodDescriptor desc, InstanceValueIntrinsic intrinsic) {
+        return instanceValueIntrinsics.computeIfAbsent(owner, Intrinsics::map).computeIfAbsent(name, Intrinsics::map).putIfAbsent(desc, intrinsic) != null;
+    }
+
+    public InstanceIntrinsic getInstanceIntrinsic(TypeDescriptor owner, String name, MethodDescriptor desc) {
+        return instanceIntrinsics.getOrDefault(owner, Map.of()).getOrDefault(name, Map.of()).get(desc);
+    }
+
+    public InstanceValueIntrinsic getInstanceValueIntrinsic(TypeDescriptor owner, String name, MethodDescriptor desc) {
+        return instanceValueIntrinsics.getOrDefault(owner, Map.of()).getOrDefault(name, Map.of()).get(desc);
     }
 
 }
