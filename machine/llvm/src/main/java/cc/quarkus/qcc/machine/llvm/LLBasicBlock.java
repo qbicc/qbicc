@@ -11,6 +11,7 @@ import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
 import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
+import cc.quarkus.qcc.machine.llvm.op.LandingPad;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
@@ -46,6 +47,8 @@ public interface LLBasicBlock extends LLValue {
     void unreachable();
 
     // starters
+
+    LandingPad landingpad(LLValue resultType);
 
     Assignment assign(LLValue value);
 

@@ -20,6 +20,7 @@ import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
 import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
+import cc.quarkus.qcc.machine.llvm.op.LandingPad;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
@@ -130,6 +131,11 @@ final class BasicBlockImpl extends AbstractEmittable implements LLBasicBlock {
     }
 
     // starters
+
+    public LandingPad landingpad(final LLValue resultType) {
+        Assert.checkNotNullParam("resultType", resultType);
+        return add(new LandingPadImpl(this, (AbstractValue) resultType));
+    }
 
     public Assignment assign(final LLValue value) {
         Assert.checkNotNullParam("value", value);

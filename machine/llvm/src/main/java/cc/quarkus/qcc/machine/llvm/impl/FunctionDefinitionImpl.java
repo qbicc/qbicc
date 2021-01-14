@@ -24,6 +24,7 @@ import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
 import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
+import cc.quarkus.qcc.machine.llvm.op.LandingPad;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
@@ -215,6 +216,10 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
 
     public void unreachable() {
         rootBlock.unreachable();
+    }
+
+    public LandingPad landingpad(final LLValue resultType) {
+        return rootBlock.landingpad(resultType);
     }
 
     public NuwNswBinary add(final LLValue type, final LLValue arg1, final LLValue arg2) {
