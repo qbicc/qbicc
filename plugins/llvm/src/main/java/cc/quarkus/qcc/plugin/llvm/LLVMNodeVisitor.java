@@ -498,7 +498,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
             Value leftInput = add.getLeftInput();
             if (leftInput.getType() instanceof PointerType) {
                 Value index = add.getRightInput();
-                return block.getelementptr(block, map(((PointerType) leftInput.getType()).getPointeeType()), map(leftInput)).arg(false, map(index.getType()), map(index));
+                return block.getelementptr(map(((PointerType) leftInput.getType()).getPointeeType()), map(leftInput.getType()), map(leftInput)).arg(false, map(index.getType()), map(index));
             } else {
                 ctxt.error(Location.builder().setNode(current).build(), "LLVM: Invalid pointer or array expression type (left input of Add must be the pointer or array)");
             }
