@@ -423,6 +423,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final ConstructorInvocation node) {
+                param.copyNode(node.getBasicDependency(0));
                 return param.getBlockBuilder().invokeConstructor(param.copyValue(node.getInstance()), node.getInvocationTarget(), param.copyValues(node.getArguments()));
             }
 
@@ -510,7 +511,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final New node) {
-                return node;
+                return param.getBlockBuilder().new_(node.getClassObjectType());
             }
 
             public Value visit(final Copier param, final NewArray node) {
