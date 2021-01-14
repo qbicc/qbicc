@@ -22,6 +22,7 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.graph.literal.ArrayLiteral;
+import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.CompoundLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
@@ -310,6 +311,10 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
 
     public LLValue visit(final CompilationContext param, final ZeroInitializerLiteral node) {
         return Values.zeroinitializer;
+    }
+
+    public LLValue visit(final CompilationContext param, final BooleanLiteral node) {
+        return node.booleanValue() ? TRUE : FALSE;
     }
 
     public LLValue visitUnknown(final CompilationContext ctxt, final Value node) {
