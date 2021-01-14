@@ -47,10 +47,11 @@ final class NativeInfo {
 
     private NativeInfo(final CompilationContext ctxt) {
         this.ctxt = ctxt;
-        cNativeDesc = ClassTypeDescriptor.parseClassConstant(ctxt.getBootstrapClassContext(), ByteBuffer.wrap(Native.C_NATIVE_INT_NAME.getBytes(StandardCharsets.UTF_8)));
-        ptrDesc = ClassTypeDescriptor.parseClassConstant(ctxt.getBootstrapClassContext(), ByteBuffer.wrap(Native.PTR_INT_NAME.getBytes(StandardCharsets.UTF_8)));
-        wordDesc = ClassTypeDescriptor.parseClassConstant(ctxt.getBootstrapClassContext(), ByteBuffer.wrap(Native.WORD_INT_NAME.getBytes(StandardCharsets.UTF_8)));
-        cObjectDesc = ClassTypeDescriptor.parseClassConstant(ctxt.getBootstrapClassContext(), ByteBuffer.wrap(Native.OBJECT_INT_NAME.getBytes(StandardCharsets.UTF_8)));
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        cNativeDesc = ClassTypeDescriptor.parseClassConstant(classContext, ByteBuffer.wrap(Native.C_NATIVE_INT_NAME.getBytes(StandardCharsets.UTF_8)));
+        ptrDesc = ClassTypeDescriptor.parseClassConstant(classContext, ByteBuffer.wrap(Native.PTR_INT_NAME.getBytes(StandardCharsets.UTF_8)));
+        wordDesc = ClassTypeDescriptor.parseClassConstant(classContext, ByteBuffer.wrap(Native.WORD_INT_NAME.getBytes(StandardCharsets.UTF_8)));
+        cObjectDesc = ClassTypeDescriptor.parseClassConstant(classContext, ByteBuffer.wrap(Native.OBJECT_INT_NAME.getBytes(StandardCharsets.UTF_8)));
     }
 
     static NativeInfo get(final CompilationContext ctxt) {
