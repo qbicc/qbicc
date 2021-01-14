@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.plugin.opt;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import cc.quarkus.qcc.context.CompilationContext;
@@ -32,10 +33,9 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
 
     public BasicBlock visit(final Node.Copier param, final Goto node) {
         BasicBlock target = node.getResumeTarget();
-        if (target.getIncoming().size() == 1) {
+        if (target.getIncoming().size() == 1 && Objects.equals(node.getCallSite(), target.getTerminator().getCallSite())) {
             // delete the goto target and fold it into the current block
             deleted.add(target);
-            param.copyNode(node.getDependency());
             return param.copyTerminator(target.getTerminator());
         } else {
             return getDelegateTerminatorVisitor().visit(param, node);
@@ -52,11 +52,12 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
     }
 
     public Node visit(final Node.Copier param, final BlockEntry node) {
-        if (deleted.contains(node.getPinnedBlock())) {
-            // just delete it
-            return param.getBlockBuilder().nop();
-        } else {
-            return getDelegateActionVisitor().visit(param, node);
+        // the block being entered
+        BasicBlock block = node.getPinnedBlock();
+        if (deleted.contains(block)) {
+            // prepend the deleted predecessors' nodes
+            return param.copyNode(block.getIncoming().iterator().next().getTerminator().getDependency());
         }
+        return getDelegateActionVisitor().visit(param, node);
     }
 }
