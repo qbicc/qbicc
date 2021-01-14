@@ -112,6 +112,6 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     private void invalidNode(String name) {
-        ctxt.error(getLocation(), "Invalid node encountered (cannot directly lower %s)", name);
+        ctxt.warning(getLocation(), "Invalid node encountered (cannot directly lower %s)", name);
     }
 }
