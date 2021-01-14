@@ -9,6 +9,7 @@ import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.JavaAccessMode;
+import cc.quarkus.qcc.graph.Narrow;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.StaticInvocationValue;
 import cc.quarkus.qcc.graph.Value;
@@ -51,8 +52,12 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
     }
 
     public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        if (value instanceof StaticInvocationValue) {
-            StaticInvocationValue inv = (StaticInvocationValue) value;
+        Value test = value;
+        while (test instanceof Narrow) {
+            test = ((Narrow) test).getInput();
+        }
+        if (test instanceof StaticInvocationValue) {
+            StaticInvocationValue inv = (StaticInvocationValue) test;
             MethodElement invocationTarget = inv.getInvocationTarget();
             if (invocationTarget.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.C_NATIVE)) {
                 if (invocationTarget.getName().equals("constant")) {
