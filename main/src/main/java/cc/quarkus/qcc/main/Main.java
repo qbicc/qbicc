@@ -243,7 +243,7 @@ public class Main {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, ZeroDivisorCheckingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                                builder.addPostHook(Phase.ADD, ctxt -> RTAInfo.clear(ctxt));
+                                builder.addPostHook(Phase.ADD, RTAInfo::clear);
 
                                 builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
                                 builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
@@ -252,7 +252,7 @@ public class Main {
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addPostHook(Phase.ANALYZE, new VTableBuilder());
-                                builder.addPostHook(Phase.ANALYZE, ctxt -> RTAInfo.clear(ctxt));
+                                builder.addPostHook(Phase.ANALYZE, RTAInfo::clear);
 
                                 builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
 
@@ -262,7 +262,7 @@ public class Main {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                                builder.addPostHook(Phase.LOWER, ctxt -> RTAInfo.clear(ctxt));
+                                builder.addPostHook(Phase.LOWER, RTAInfo::clear);
 
                                 builder.addPreHook(Phase.GENERATE, new LLVMGenerator());
 
