@@ -19,6 +19,7 @@ import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.machine.llvm.op.Return;
 import cc.quarkus.qcc.machine.llvm.op.Select;
 import cc.quarkus.qcc.machine.llvm.op.Store;
+import cc.quarkus.qcc.machine.llvm.op.Switch;
 import cc.quarkus.qcc.machine.llvm.op.YieldingInstruction;
 
 /**
@@ -43,6 +44,8 @@ public interface LLBasicBlock extends LLValue {
     Return ret();
 
     Return ret(LLValue type, LLValue val);
+
+    Switch switch_(LLValue type, LLValue value, LLBasicBlock defaultTarget);
 
     void unreachable();
 
