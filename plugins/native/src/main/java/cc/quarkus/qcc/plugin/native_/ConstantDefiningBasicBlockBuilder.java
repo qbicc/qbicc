@@ -25,6 +25,7 @@ import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
 import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 
@@ -43,9 +44,12 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
     public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
         if (fieldElement.hasAllModifiersOf(ClassFile.ACC_STATIC | ClassFile.ACC_FINAL)) {
             // initialize the constant if any
-            MethodHandle initializer = fieldElement.getEnclosingType().validate().getInitializer().getMethodBody();
-            if (initializer != null) {
-                initializer.getOrCreateMethodBody();
+            InitializerElement initializerElement = fieldElement.getEnclosingType().validate().getInitializer();
+            if (NativeInfo.get(ctxt).registerInitializer(initializerElement)) {
+                MethodHandle initializer = initializerElement.getMethodBody();
+                if (initializer != null) {
+                    initializer.getOrCreateMethodBody();
+                }
             }
         }
         return super.readStaticField(fieldElement, mode);

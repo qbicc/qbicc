@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -22,6 +23,7 @@ import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -44,6 +46,7 @@ final class NativeInfo {
     final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, NativeFunctionInfo>>> nativeFunctions = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, AtomicReference<ValueType>> nativeTypes = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, MethodElement> functionalInterfaceMethods = new ConcurrentHashMap<>();
+    final Set<InitializerElement> initializers = ConcurrentHashMap.newKeySet();
 
     private NativeInfo(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -250,5 +253,9 @@ final class NativeInfo {
 
     private static <K, V> Map<K, V> newMap(final Object key) {
         return new ConcurrentHashMap<>();
+    }
+
+    public boolean registerInitializer(final InitializerElement initializerElement) {
+        return initializers.add(initializerElement);
     }
 }
