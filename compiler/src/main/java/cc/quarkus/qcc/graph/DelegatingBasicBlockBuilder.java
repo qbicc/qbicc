@@ -30,7 +30,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
     public DelegatingBasicBlockBuilder(final BasicBlockBuilder delegate) {
         this.delegate = delegate;
         if (delegate instanceof DelegatingBasicBlockBuilder) {
-            last = ((DelegatingBasicBlockBuilder) delegate).getDelegate();
+            last = ((DelegatingBasicBlockBuilder) delegate).last;
         } else {
             last = delegate;
         }
