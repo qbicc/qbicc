@@ -71,6 +71,7 @@ public interface Node {
         private final NodeVisitor<Copier, Value, Node, BasicBlock> nodeVisitor;
         private final Map<BasicBlock, BlockLabel> copiedBlocks = new HashMap<>();
         private final HashMap<Node, Node> copiedNodes = new HashMap<>();
+        private final HashMap<Terminator, BasicBlock> copiedTerminators = new HashMap<>();
         private final Queue<PhiValue> phiQueue = new ArrayDeque<>();
         private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
         private final Terminus terminus = new Terminus();
@@ -113,11 +114,12 @@ public interface Node {
             while ((orig = phiQueue.poll()) != null) {
                 PhiValue copy = (PhiValue) copiedNodes.get(orig);
                 // process and map all incoming values - might enqueue more blocks or phis
-                for (final BasicBlock incomingBlock : orig.incomingBlocks()) {
+                for (final Terminator incomingTerminator : orig.incomingTerminators()) {
+                    BasicBlock incomingBlock = incomingTerminator.getTerminatedBlock();
                     if (incomingBlock.isReachable()) {
-                        Value val = orig.getValueForBlock(incomingBlock);
+                        Value val = orig.getValueForInput(incomingTerminator);
                         if (val != null) {
-                            copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copiedBlocks.get(incomingBlock), copyValue(val));
+                            copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copiedTerminators.get(incomingTerminator), copyValue(val));
                         }
                     }
                 }
@@ -208,7 +210,9 @@ public interface Node {
             int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
             int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
             try {
-                return original.accept(nodeVisitor, this);
+                BasicBlock block = original.accept(nodeVisitor, this);
+                copiedTerminators.put(original, block);
+                return block;
             } finally {
                 blockBuilder.setLineNumber(oldLine);
                 blockBuilder.setBytecodeIndex(oldBci);
@@ -537,9 +541,10 @@ public interface Node {
 
             public Value visit(final Copier param, final PhiValue node) {
                 param.enqueue(node);
-                for (Map.Entry<BasicBlock, Value> entry : node.getIncomingValues()) {
+                for (Map.Entry<Terminator, Value> entry : node.getIncomingValues()) {
                     // ensure all reachable incoming blocks are enqueued
-                    BasicBlock block = entry.getKey();
+                    Terminator terminator = entry.getKey();
+                    BasicBlock block = terminator.getTerminatedBlock();
                     if (block.isReachable()) {
                         param.copyBlock(block);
                     }

@@ -331,11 +331,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         Phi phi = map(schedule.getBlockForNode(node)).phi(map(node.getType()));
         LLValue result = phi.asLocal();
         mappedValues.put(node, result);
-        for (BasicBlock knownBlock : node.incomingBlocks()) {
-            Value v = node.getValueForBlock(knownBlock);
+        for (Terminator terminator : node.incomingTerminators()) {
+            Value v = node.getValueForInput(terminator);
             if (v != null) {
                 // process dependencies
-                phi.item(map(v), map(knownBlock));
+                phi.item(map(v), map(terminator.getTerminatedBlock()));
             }
         }
         return result;

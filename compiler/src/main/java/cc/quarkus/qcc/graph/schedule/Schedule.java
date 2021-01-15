@@ -141,10 +141,10 @@ public interface Schedule {
         if (node instanceof PhiValue) {
             // make sure phi entries were scheduled
             PhiValue phiValue = (PhiValue) node;
-            for (BasicBlock block : phiValue.incomingBlocks()) {
+            for (Terminator terminator : phiValue.incomingTerminators()) {
                 // skip unreachable inputs
-                if (blockInfos.containsKey(block)) {
-                    Value value = phiValue.getValueForBlock(block);
+                if (blockInfos.containsKey(terminator.getTerminatedBlock())) {
+                    Value value = phiValue.getValueForInput(terminator);
                     if (value != null) {
                         scheduleEarly(root, blockInfos, scheduledNodes, value);
                     }

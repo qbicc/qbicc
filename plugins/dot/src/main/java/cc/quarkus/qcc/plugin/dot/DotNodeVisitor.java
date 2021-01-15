@@ -662,7 +662,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         addEdge(param, node, node.getPinnedBlock().getBlockEntry());
-        for (Map.Entry<BasicBlock, Value> entry : node.getIncomingValues()) {
+        for (Map.Entry<Terminator, Value> entry : node.getIncomingValues()) {
             addEdge(param, node, entry.getValue());
         }
         return name;

@@ -12,7 +12,7 @@ import io.smallrye.common.constraint.Assert;
 public final class PhiValue extends AbstractValue implements PinnedNode {
     private ValueType type;
     private final BlockLabel blockLabel;
-    private final HashMap<BasicBlock, Value> incomingValues = new HashMap<>();
+    private final HashMap<Terminator, Value> incomingValues = new HashMap<>();
 
     PhiValue(final int line, final int bci, final ValueType type, final BlockLabel blockLabel) {
         super(line, bci);
@@ -20,11 +20,11 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         this.blockLabel = blockLabel;
     }
 
-    public Value getValueForBlock(final BasicBlock input) {
+    public Value getValueForInput(final Terminator input) {
         return incomingValues.get(Assert.checkNotNullParam("input", input));
     }
 
-    public void setValueForBlock(final CompilationContext ctxt, final Element element, final BasicBlock input, final Value value) {
+    public void setValueForTerminator(final CompilationContext ctxt, final Element element, final Terminator input, final Value value) {
         Assert.checkNotNullParam("value", value);
         if (! value.getType().equals(getType())) {
             try {
@@ -34,30 +34,25 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
             }
         }
         if (incomingValues.containsKey(input)) {
-            ctxt.error(element, this, "Phi already has a value for block %s", input);
+            ctxt.error(element, this, "Phi already has a value for block %s", input.getTerminatedBlock());
             return;
         }
         incomingValues.put(input, value);
+    }
+
+    public void setValueForBlock(final CompilationContext ctxt, final Element element, final BasicBlock input, final Value value) {
+        setValueForTerminator(ctxt, element, input.getTerminator(), value);
     }
 
     public void setValueForBlock(final CompilationContext ctxt, final Element element, final BlockLabel input, final Value value) {
         setValueForBlock(ctxt, element, BlockLabel.getTargetOf(input), value);
     }
 
-    public boolean changeValueForBlock(final BasicBlock input, final Value oldVal, final Value newVal) {
-        Assert.checkNotNullParam("input", input);
-        return incomingValues.replace(input, Assert.checkNotNullParam("oldVal", oldVal), Assert.checkNotNullParam("newVal", newVal));
-    }
-
-    public Value removeValueForBlock(final BasicBlock input) {
-        return incomingValues.remove(Assert.checkNotNullParam("input", input));
-    }
-
-    public Set<BasicBlock> incomingBlocks() {
+    public Set<Terminator> incomingTerminators() {
         return incomingValues.keySet();
     }
 
-    public Set<Map.Entry<BasicBlock, Value>> getIncomingValues() {
+    public Set<Map.Entry<Terminator, Value>> getIncomingValues() {
         return incomingValues.entrySet();
     }
 

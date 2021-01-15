@@ -7,6 +7,7 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NodeVisitor;
 import cc.quarkus.qcc.graph.PhiValue;
+import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.Value;
 
 /**
@@ -27,18 +28,22 @@ public class PhiOptimizerVisitor implements NodeVisitor.Delegating<Node.Copier, 
 
     public Value visit(final Node.Copier param, final PhiValue node) {
         // see if there is more than one input
-        Iterator<BasicBlock> iterator = node.incomingBlocks().iterator();
+        Iterator<Terminator> iterator = node.incomingTerminators().iterator();
         while (iterator.hasNext()) {
-            BasicBlock b1 = iterator.next();
+            Terminator t1 = iterator.next();
+            BasicBlock b1 = t1.getTerminatedBlock();
             if (b1.isReachable()) {
-                Value v1 = node.getValueForBlock(b1);
+                Value v1 = node.getValueForInput(t1);
                 if (v1 != null && ! v1.equals(node)) {
                     while (iterator.hasNext()) {
-                        BasicBlock b2 = iterator.next();
-                        Value v2 = node.getValueForBlock(b2);
-                        if (v2 != null && ! v2.equals(v1) && ! v2.equals(node)) {
-                            // multiple values; process as phi node
-                            return (PhiValue) NodeVisitor.Delegating.super.visit(param, node);
+                        Terminator t2 = iterator.next();
+                        BasicBlock b2 = t2.getTerminatedBlock();
+                        if (b2.isReachable()) {
+                            Value v2 = node.getValueForInput(t2);
+                            if (v2 != null && ! v2.equals(v1) && ! v2.equals(node)) {
+                                // multiple values; process as phi node
+                                return (PhiValue) NodeVisitor.Delegating.super.visit(param, node);
+                            }
                         }
                     }
                     // one value; process as specific value

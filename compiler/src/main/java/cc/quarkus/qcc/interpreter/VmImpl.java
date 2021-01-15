@@ -408,7 +408,7 @@ final class VmImpl implements Vm {
                     // no phi in entry block
                     assert predecessor != null;
                     PhiValue phiValue = (PhiValue) node;
-                    frame.bindValue(phiValue, frame.getValue(phiValue.getValueForBlock(predecessor)));
+                    frame.bindValue(phiValue, frame.getValue(phiValue.getValueForInput(predecessor.getTerminator())));
                 } else if (node instanceof Invocation) {
                     Invocation op = (Invocation) node;
                     if (op instanceof InstanceInvocation) {
