@@ -26,6 +26,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
     private final ByteBuffer byteCode;
     private final int maxStack;
     private final int maxLocals;
+    private volatile MethodBody previous;
     private volatile MethodBody resolved;
 
     ExactMethodHandleImpl(final ClassFileImpl classFile, final int modifiers, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing) {
@@ -60,11 +61,19 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
     }
 
     public void replaceMethodBody(final MethodBody newBody) {
-        resolved = newBody;
+        MethodBody resolved = this.resolved;
+        if (resolved != null) {
+            previous = resolved;
+        }
+        this.resolved = newBody;
     }
 
     public MethodBody getMethodBody() {
         return resolved;
+    }
+
+    public MethodBody getPreviousMethodBody() {
+        return previous;
     }
 
     public MethodBody getOrCreateMethodBody() throws ResolutionFailedException {
@@ -116,7 +125,7 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             gf.finish();
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
             Schedule schedule = Schedule.forMethod(entryBlock);
-            return this.resolved = MethodBody.of(entryBlock, schedule, thisValue, parameters);
+            return this.resolved = this.previous = MethodBody.of(entryBlock, schedule, thisValue, parameters);
         }
     }
 }
