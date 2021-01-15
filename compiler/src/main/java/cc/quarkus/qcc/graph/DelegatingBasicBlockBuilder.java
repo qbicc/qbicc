@@ -215,6 +215,46 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().load(handle, mode);
     }
 
+    public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getDelegate().getAndAdd(target, update, atomicityMode);
+    }
+
+    public Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getDelegate().getAndBitwiseAnd(target, update, atomicityMode);
+    }
+
+    public Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getDelegate().getAndBitwiseNand(target, update, atomicityMode);
+    }
+
+    public Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getDelegate().getAndBitwiseOr(target, update, atomicityMode);
+    }
+
+    public Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getDelegate().getAndBitwiseXor(target, update, atomicityMode);
+    }
+
+    public Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getDelegate().getAndSet(target, update, atomicityMode);
+    }
+
+    public Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getDelegate().getAndSetMax(target, update, atomicityMode);
+    }
+
+    public Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getDelegate().getAndSetMin(target, update, atomicityMode);
+    }
+
+    public Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return getDelegate().getAndSub(target, update, atomicityMode);
+    }
+
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode) {
+        return getDelegate().cmpAndSwap(target, expect, update, successMode, failureMode);
+    }
+
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
         return getDelegate().store(handle, value, mode);
     }

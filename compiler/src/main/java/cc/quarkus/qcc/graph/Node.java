@@ -439,6 +439,12 @@ public interface Node {
                 return param.getBlockBuilder().clone(param.copyValue(node.getInput()));
             }
 
+            public Value visit(final Copier param, final CmpAndSwap node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().cmpAndSwap(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getExpectedValue()),
+                    param.copyValue(node.getUpdateValue()), node.getSuccessAtomicityMode(), node.getFailureAtomicityMode());
+            }
+
             public Value visit(final Copier param, final CmpEq node) {
                 return param.getBlockBuilder().cmpEq(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
@@ -505,6 +511,51 @@ public interface Node {
             public Value visit(final Copier param, final FunctionCall node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().callFunction(param.copyValue(node.getCallTarget()), param.copyValues(node.getArguments()));
+            }
+
+            public Value visit(final Copier param, final GetAndAdd node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().getAndAdd(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+            }
+
+            public Value visit(final Copier param, final GetAndBitwiseAnd node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().getAndBitwiseAnd(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+            }
+
+            public Value visit(final Copier param, final GetAndBitwiseNand node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().getAndBitwiseNand(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+            }
+
+            public Value visit(final Copier param, final GetAndBitwiseOr node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().getAndBitwiseOr(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+            }
+
+            public Value visit(final Copier param, final GetAndBitwiseXor node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().getAndBitwiseXor(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+            }
+
+            public Value visit(final Copier param, final GetAndSet node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().getAndSet(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+            }
+
+            public Value visit(final Copier param, final GetAndSetMax node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().getAndSetMax(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+            }
+
+            public Value visit(final Copier param, final GetAndSetMin node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().getAndSetMin(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+            }
+
+            public Value visit(final Copier param, final GetAndSub node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().getAndSub(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
             }
 
             public Value visit(final Copier param, final InstanceInvocationValue node) {
