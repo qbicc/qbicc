@@ -6,6 +6,8 @@ package cc.quarkus.qcc.graph;
 public interface Terminator extends Node {
     <T, R> R accept(TerminatorVisitor<T, R> visitor, T param);
 
+    BasicBlock getTerminatedBlock();
+
     default int getSuccessorCount() {
         return 0;
     }

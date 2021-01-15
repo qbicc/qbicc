@@ -9,12 +9,18 @@ public final class Try extends AbstractNode implements Resume {
     private final Triable delegateOperation;
     private final BlockLabel resumeTargetLabel;
     private final BlockLabel exceptionHandler;
+    private final BasicBlock terminatedBlock;
 
-    Try(final Triable delegateOperation, final BlockLabel resumeTargetLabel, final BlockLabel exceptionHandler) {
+    Try(final Triable delegateOperation, final BlockEntry blockEntry, final BlockLabel resumeTargetLabel, final BlockLabel exceptionHandler) {
         super(delegateOperation.getSourceLine(), delegateOperation.getBytecodeIndex());
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.delegateOperation = delegateOperation;
         this.resumeTargetLabel = resumeTargetLabel;
         this.exceptionHandler = exceptionHandler;
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
     }
 
     public Triable getDelegateOperation() {

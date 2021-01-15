@@ -11,12 +11,18 @@ public final class Jsr extends AbstractNode implements Resume, Terminator {
     private final Node dependency;
     private final BlockLabel jsrTargetLabel;
     private final BlockLiteral returnAddress;
+    private final BasicBlock terminatedBlock;
 
-    Jsr(final int line, final int bci, final Node dependency, final BlockLabel jsrTargetLabel, final BlockLiteral returnAddress) {
+    Jsr(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final BlockLabel jsrTargetLabel, final BlockLiteral returnAddress) {
         super(line, bci);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.jsrTargetLabel = jsrTargetLabel;
         this.returnAddress = returnAddress;
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
     }
 
     public BlockLabel getJsrTargetLabel() {

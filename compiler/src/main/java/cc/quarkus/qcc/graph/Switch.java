@@ -15,9 +15,11 @@ public final class Switch extends AbstractNode implements Terminator {
     private final int[] values;
     private final BlockLabel[] targetLabels;
     private final Value switchValue;
+    private final BasicBlock terminatedBlock;
 
-    Switch(final int line, final int bci, final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue) {
+    Switch(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue) {
         super(line, bci);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.defaultTargetLabel = defaultTargetLabel;
         // check values to make sure they're in order
@@ -33,6 +35,10 @@ public final class Switch extends AbstractNode implements Terminator {
         this.values = values;
         this.targetLabels = targetLabels;
         this.switchValue = switchValue;
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
     }
 
     public Value getSwitchValue() {

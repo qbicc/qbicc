@@ -8,11 +8,17 @@ import java.util.Objects;
 public final class Goto extends AbstractNode implements Resume {
     private final Node dependency;
     private final BlockLabel targetLabel;
+    private final BasicBlock terminatedBlock;
 
-    Goto(final int line, final int bci, Node dependency, BlockLabel targetLabel) {
+    Goto(final int line, final int bci, final BlockEntry blockEntry, Node dependency, BlockLabel targetLabel) {
         super(line, bci);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.targetLabel = targetLabel;
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
     }
 
     public BlockLabel getResumeTargetLabel() {

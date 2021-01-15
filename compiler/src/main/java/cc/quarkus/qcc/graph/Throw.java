@@ -9,11 +9,17 @@ import java.util.Objects;
 public final class Throw extends AbstractNode implements Terminator {
     private final Node dependency;
     private final Value thrownValue;
+    private final BasicBlock terminatedBlock;
 
-    Throw(final int line, final int bci, final Node dependency, final Value thrownValue) {
+    Throw(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value thrownValue) {
         super(line, bci);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.thrownValue = thrownValue;
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
     }
 
     public Value getThrownValue() {

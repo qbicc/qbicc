@@ -13,13 +13,19 @@ public final class NoSuchMethodErrorNode extends AbstractNode implements Error {
     private final ObjectType owner;
     private final MethodDescriptor desc;
     private final String name;
+    private final BasicBlock terminatedBlock;
 
-    NoSuchMethodErrorNode(final int line, final int bci, final Node dependency, final ObjectType owner, final MethodDescriptor desc, final String name) {
+    NoSuchMethodErrorNode(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final ObjectType owner, final MethodDescriptor desc, final String name) {
         super(line, bci);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.owner = owner;
         this.desc = desc;
         this.name = name;
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
     }
 
     public int getBasicDependencyCount() {

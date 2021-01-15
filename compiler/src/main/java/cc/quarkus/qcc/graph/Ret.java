@@ -8,11 +8,17 @@ import java.util.Objects;
 public final class Ret extends AbstractNode implements Terminator {
     private final Node dependency;
     private final Value returnAddressValue;
+    private final BasicBlock terminatedBlock;
 
-    Ret(final int line, final int bci, final Node dependency, final Value returnAddressValue) {
+    Ret(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnAddressValue) {
         super(line, bci);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.returnAddressValue = returnAddressValue;
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
     }
 
     public Value getReturnAddressValue() {

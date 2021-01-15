@@ -8,11 +8,17 @@ import java.util.Objects;
 public final class ClassNotFoundErrorNode extends AbstractNode implements Error {
     private final Node dependency;
     private final String name;
+    private final BasicBlock terminatedBlock;
 
-    ClassNotFoundErrorNode(final int line, final int bci, final Node dependency, final String name) {
+    ClassNotFoundErrorNode(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final String name) {
         super(line, bci);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.name = name;
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
     }
 
     public int getBasicDependencyCount() {

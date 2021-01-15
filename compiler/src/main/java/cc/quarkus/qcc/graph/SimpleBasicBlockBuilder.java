@@ -497,47 +497,47 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public BasicBlock goto_(final BlockLabel resumeLabel) {
-        return terminate(requireCurrentBlock(), new Goto(line, bci, dependency, resumeLabel));
+        return terminate(requireCurrentBlock(), new Goto(line, bci, blockEntry, dependency, resumeLabel));
     }
 
     public BasicBlock if_(final Value condition, final BlockLabel trueTarget, final BlockLabel falseTarget) {
-        return terminate(requireCurrentBlock(), new If(line, bci, dependency, condition, trueTarget, falseTarget));
+        return terminate(requireCurrentBlock(), new If(line, bci, blockEntry, dependency, condition, trueTarget, falseTarget));
     }
 
     public BasicBlock return_() {
-        return terminate(requireCurrentBlock(), new Return(line, bci, dependency));
+        return terminate(requireCurrentBlock(), new Return(line, bci, blockEntry, dependency));
     }
 
     public BasicBlock return_(final Value value) {
-        return terminate(requireCurrentBlock(), new ValueReturn(line, bci, dependency, value));
+        return terminate(requireCurrentBlock(), new ValueReturn(line, bci, blockEntry, dependency, value));
     }
 
     public BasicBlock throw_(final Value value) {
-        return terminate(requireCurrentBlock(), new Throw(line, bci, dependency, value));
+        return terminate(requireCurrentBlock(), new Throw(line, bci, blockEntry, dependency, value));
     }
 
     public BasicBlock jsr(final BlockLabel subLabel, final BlockLiteral returnAddress) {
-        return terminate(requireCurrentBlock(), new Jsr(line, bci, dependency, subLabel, returnAddress));
+        return terminate(requireCurrentBlock(), new Jsr(line, bci, blockEntry, dependency, subLabel, returnAddress));
     }
 
     public BasicBlock ret(final Value address) {
-        return terminate(requireCurrentBlock(), new Ret(line, bci, dependency, address));
+        return terminate(requireCurrentBlock(), new Ret(line, bci, blockEntry, dependency, address));
     }
 
     public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel, final BlockLabel exceptionHandler) {
-        return terminate(requireCurrentBlock(), new Try(operation, resumeLabel, exceptionHandler));
+        return terminate(requireCurrentBlock(), new Try(operation, blockEntry, resumeLabel, exceptionHandler));
     }
 
     public BasicBlock classCastException(final Value fromType, final Value toType) {
-        return terminate(requireCurrentBlock(), new ClassCastErrorNode(line, bci, dependency, fromType, toType));
+        return terminate(requireCurrentBlock(), new ClassCastErrorNode(line, bci, blockEntry, dependency, fromType, toType));
     }
 
     public BasicBlock noSuchMethodError(final ObjectType owner, final MethodDescriptor desc, final String name) {
-        return terminate(requireCurrentBlock(), new NoSuchMethodErrorNode(line, bci, dependency, owner, desc, name));
+        return terminate(requireCurrentBlock(), new NoSuchMethodErrorNode(line, bci, blockEntry, dependency, owner, desc, name));
     }
 
     public BasicBlock classNotFoundError(final String name) {
-        return terminate(requireCurrentBlock(), new ClassNotFoundErrorNode(line, bci, dependency, name));
+        return terminate(requireCurrentBlock(), new ClassNotFoundErrorNode(line, bci, blockEntry, dependency, name));
     }
 
     public BlockEntry getBlockEntry() {
@@ -546,11 +546,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {
-        return terminate(requireCurrentBlock(), new Switch(line, bci, dependency, defaultTarget, checkValues, targets, value));
+        return terminate(requireCurrentBlock(), new Switch(line, bci, blockEntry, dependency, defaultTarget, checkValues, targets, value));
     }
 
     private BasicBlock terminate(final BlockLabel block, final Terminator op) {
-        BasicBlock realBlock = new BasicBlock(blockEntry, op);
+        BasicBlock realBlock = op.getTerminatedBlock();
         block.setTarget(realBlock);
         blockEntry = null;
         currentBlock = null;

@@ -7,14 +7,20 @@ import java.util.Objects;
  */
 public final class ClassCastErrorNode extends AbstractNode implements Error {
     private final Node dependency;
+    private final BasicBlock terminatedBlock;
     private final Value fromType;
     private final Value toType;
 
-    ClassCastErrorNode(final int line, final int bci, final Node dependency, final Value fromType, final Value toType) {
+    ClassCastErrorNode(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value fromType, final Value toType) {
         super(line, bci);
         this.dependency = dependency;
         this.fromType = fromType;
         this.toType = toType;
+        terminatedBlock = new BasicBlock(blockEntry, this);
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
     }
 
     public Value getFromType() {

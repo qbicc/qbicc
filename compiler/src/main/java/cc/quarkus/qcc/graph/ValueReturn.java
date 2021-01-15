@@ -9,10 +9,17 @@ public final class ValueReturn extends AbstractNode implements Terminator {
     private final Node dependency;
     private final Value returnValue;
 
-    ValueReturn(final int line, final int bci, final Node dependency, final Value returnValue) {
+    private final BasicBlock terminatedBlock;
+
+    ValueReturn(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnValue) {
         super(line, bci);
+        terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.returnValue = returnValue;
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
     }
 
     public Value getReturnValue() {

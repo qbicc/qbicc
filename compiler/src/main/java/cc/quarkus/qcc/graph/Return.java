@@ -7,10 +7,16 @@ import java.util.Objects;
  */
 public final class Return extends AbstractNode implements Terminator {
     private final Node dependency;
+    private final BasicBlock terminatedBlock;
 
-    Return(final int line, final int bci, Node dependency) {
+    Return(final int line, final int bci, final BlockEntry blockEntry, Node dependency) {
         super(line, bci);
         this.dependency = dependency;
+        terminatedBlock = new BasicBlock(blockEntry, this);
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
     }
 
     public int getBasicDependencyCount() {
