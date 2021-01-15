@@ -37,11 +37,20 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     private BlockEntry blockEntry;
     private BlockLabel currentBlock;
     private PhiValue exceptionPhi;
+    private BasicBlockBuilder firstBuilder;
 
     SimpleBasicBlockBuilder(final ExecutableElement element, final TypeSystem typeSystem) {
         this.element = element;
         this.typeSystem = typeSystem;
         bci = - 1;
+    }
+
+    public BasicBlockBuilder getFirstBuilder() {
+        return firstBuilder;
+    }
+
+    public void setFirstBuilder(final BasicBlockBuilder first) {
+        firstBuilder = Assert.checkNotNullParam("first", first);
     }
 
     public ExecutableElement getCurrentElement() {

@@ -29,6 +29,20 @@ public interface BasicBlockBuilder {
     // context
 
     /**
+     * Get the first builder in this chain.
+     *
+     * @return the first builder ((must not be {@code null}))
+     */
+    BasicBlockBuilder getFirstBuilder();
+
+    /**
+     * Set the first builder in this chain.
+     *
+     * @param first the first builder (must not be {@code null})
+     */
+    void setFirstBuilder(BasicBlockBuilder first);
+
+    /**
      * Get the element currently being built.
      *
      * @return the element currently being built

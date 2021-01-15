@@ -34,6 +34,15 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         } else {
             last = delegate;
         }
+        setFirstBuilder(this);
+    }
+
+    public BasicBlockBuilder getFirstBuilder() {
+        return last.getFirstBuilder();
+    }
+
+    public void setFirstBuilder(final BasicBlockBuilder first) {
+        last.setFirstBuilder(first);
     }
 
     public ExecutableElement getCurrentElement() {
