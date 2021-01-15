@@ -18,7 +18,6 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.EnclosedClassResolver;
 import cc.quarkus.qcc.type.definition.EnclosingClassResolver;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.InvokableElement;
@@ -790,7 +789,14 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         boolean mayHaveExact = (methodModifiers & ACC_ABSTRACT) == 0;
         boolean hasVirtual = (methodModifiers & (ACC_STATIC | ACC_PRIVATE)) == 0;
         if (mayHaveExact) {
-            addMethodBody(builder, index, enclosing);
+            int attrCount = getMethodAttributeCount(index);
+            for (int i = 0; i < attrCount; i ++) {
+                if (methodAttributeNameEquals(index, i, "Code")) {
+                    int modifiers = getShort(methodOffsets[index]);
+                    builder.setMethodBody(new ExactMethodHandleImpl.Method(this, modifiers, index, getMethodRawAttributeContent(index, i), enclosing, this));
+                    break;
+                }
+            }
         }
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
@@ -804,7 +810,14 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setEnclosingType(enclosing);
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
-        addMethodBody(builder, index, enclosing);
+        int attrCount = getMethodAttributeCount(index);
+        for (int i = 0; i < attrCount; i ++) {
+            if (methodAttributeNameEquals(index, i, "Code")) {
+                int modifiers = getShort(methodOffsets[index]);
+                builder.setMethodBody(new ExactMethodHandleImpl.Constructor(this, modifiers, index, getMethodRawAttributeContent(index, i), enclosing, this));
+                break;
+            }
+        }
         addParameters(builder, index, enclosing);
         addMethodAnnotations(index, builder);
         builder.setIndex(index);
@@ -817,26 +830,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setEnclosingType(enclosing);
         builder.setModifiers(ACC_STATIC);
         if (index != 0) {
-            addMethodBody(builder, index, enclosing);
+            int attrCount = getMethodAttributeCount(index);
+            for (int i = 0; i < attrCount; i ++) {
+                if (methodAttributeNameEquals(index, i, "Code")) {
+                    int modifiers = getShort(methodOffsets[index]);
+                    builder.setMethodBody(new ExactMethodHandleImpl.Initializer(this, modifiers, index, getMethodRawAttributeContent(index, i), enclosing, this));
+                    break;
+                }
+            }
         }
         builder.setSourceFileName(sourceFile);
         builder.setIndex(index);
         return builder.build();
-    }
-
-    private void addMethodBody(ExecutableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
-        int attrCount = getMethodAttributeCount(index);
-        for (int i = 0; i < attrCount; i ++) {
-            if (methodAttributeNameEquals(index, i, "Code")) {
-                addExactBody(builder, index, getMethodRawAttributeContent(index, i), enclosing);
-                return;
-            }
-        }
-    }
-
-    private void addExactBody(final ExecutableElement.Builder builder, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing) {
-        int modifiers = getShort(methodOffsets[index]);
-        builder.setMethodBody(new ExactMethodHandleImpl(this, modifiers, index, codeAttr, enclosing));
     }
 
     private void addParameters(InvokableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {

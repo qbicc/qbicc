@@ -5,10 +5,6 @@ package cc.quarkus.qcc.type.definition;
  */
 public interface MethodHandle {
 
-    int getModifiers();
-
-    int getParameterCount();
-
     void replaceMethodBody(MethodBody newBody);
 
     MethodBody getOrCreateMethodBody() throws ResolutionFailedException;

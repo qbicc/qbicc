@@ -9,20 +9,28 @@ import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.ConstructorResolver;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.InitializerResolver;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodHandle;
+import cc.quarkus.qcc.type.definition.MethodResolver;
 import cc.quarkus.qcc.type.definition.ResolutionFailedException;
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.InitializerElement;
+import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.element.ParameterElement;
 
 /**
  *
  */
-final class ExactMethodHandleImpl extends AbstractBufferBacked implements MethodHandle {
+abstract class ExactMethodHandleImpl extends AbstractBufferBacked implements MethodHandle {
     private final ClassFileImpl classFile;
     private final int modifiers;
-    private final int index;
-    private final DefinedTypeDefinition enclosing;
+    final int index;
+    final DefinedTypeDefinition enclosing;
     private final ByteBuffer byteCode;
     private final int maxStack;
     private final int maxLocals;
@@ -52,14 +60,6 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
         codeAttr.position(save);
     }
 
-    public int getModifiers() {
-        return modifiers;
-    }
-
-    public int getParameterCount() {
-        return classFile.resolveMethod(index, enclosing).getParameters().size();
-    }
-
     public void replaceMethodBody(final MethodBody newBody) {
         MethodBody resolved = this.resolved;
         if (resolved != null) {
@@ -67,6 +67,8 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
         }
         this.resolved = newBody;
     }
+
+    abstract ExecutableElement resolveElement();
 
     public MethodBody getMethodBody() {
         return resolved;
@@ -87,26 +89,33 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
                 return resolved;
             }
             ClassMethodInfo classMethodInfo = new ClassMethodInfo(classFile, modifiers, index, getBackingBuffer().duplicate());
-            MethodElement methodElement = classFile.resolveMethod(index, enclosing);
-            int paramCount = methodElement.getParameters().size();
-            BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder(methodElement);
+            ExecutableElement element = resolveElement();
+            BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder(element);
             MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, byteCode, gf);
-            Value[] parameters = new Value[paramCount];
-            int j = 0;
             Value thisValue;
-            if ((modifiers & ClassFile.ACC_STATIC) == 0) {
-                // instance method or constructor
-                thisValue = gf.receiver(enclosing.validate().getType());
-                methodParser.setLocal(j++, thisValue);
+            Value[] parameters;
+            if (element instanceof InvokableElement) {
+                List<ParameterElement> elementParameters = ((InvokableElement) element).getParameters();
+                int paramCount = elementParameters.size();
+                parameters = new Value[paramCount];
+                int j = 0;
+                if ((modifiers & ClassFile.ACC_STATIC) == 0) {
+                    // instance method or constructor
+                    thisValue = gf.receiver(enclosing.validate().getType());
+                    methodParser.setLocal(j++, thisValue);
+                } else {
+                    thisValue = null;
+                }
+                for (int i = 0; i < paramCount; i ++) {
+                    ValueType type = elementParameters.get(i).getType(List.of());
+                    parameters[i] = gf.parameter(type, i);
+                    boolean class2 = elementParameters.get(i).hasClass2Type();
+                    methodParser.setLocal(j, class2 ? methodParser.fatten(parameters[i]) : parameters[i]);
+                    j += class2 ? 2 : 1;
+                }
             } else {
                 thisValue = null;
-            }
-            for (int i = 0; i < paramCount; i ++) {
-                ValueType type = methodElement.getParameters().get(i).getType(List.of());
-                parameters[i] = gf.parameter(type, i);
-                boolean class2 = methodElement.getParameters().get(i).hasClass2Type();
-                methodParser.setLocal(j, class2 ? methodParser.fatten(parameters[i]) : parameters[i]);
-                j += class2 ? 2 : 1;
+                parameters = Value.NO_VALUES;
             }
             // process the main entry point
             BlockLabel entryBlockHandle = methodParser.getBlockForIndexIfExists(0);
@@ -126,6 +135,45 @@ final class ExactMethodHandleImpl extends AbstractBufferBacked implements Method
             BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
             Schedule schedule = Schedule.forMethod(entryBlock);
             return this.resolved = this.previous = MethodBody.of(entryBlock, schedule, thisValue, parameters);
+        }
+    }
+
+    static final class Constructor extends ExactMethodHandleImpl {
+        private final ConstructorResolver resolver;
+
+        Constructor(final ClassFileImpl classFile, final int modifiers, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing, final ConstructorResolver resolver) {
+            super(classFile, modifiers, index, codeAttr, enclosing);
+            this.resolver = resolver;
+        }
+
+        ConstructorElement resolveElement() {
+            return resolver.resolveConstructor(index, enclosing);
+        }
+    }
+
+    static final class Initializer extends ExactMethodHandleImpl {
+        private final InitializerResolver resolver;
+
+        Initializer(final ClassFileImpl classFile, final int modifiers, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing, final InitializerResolver resolver) {
+            super(classFile, modifiers, index, codeAttr, enclosing);
+            this.resolver = resolver;
+        }
+
+        InitializerElement resolveElement() {
+            return resolver.resolveInitializer(index, enclosing);
+        }
+    }
+
+    static final class Method extends ExactMethodHandleImpl {
+        private final MethodResolver resolver;
+
+        Method(final ClassFileImpl classFile, final int modifiers, final int index, final ByteBuffer codeAttr, final DefinedTypeDefinition enclosing, final MethodResolver resolver) {
+            super(classFile, modifiers, index, codeAttr, enclosing);
+            this.resolver = resolver;
+        }
+
+        MethodElement resolveElement() {
+            return resolver.resolveMethod(index, enclosing);
         }
     }
 }
