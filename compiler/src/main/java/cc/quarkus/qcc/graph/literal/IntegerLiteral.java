@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.graph.literal;
 
-import cc.quarkus.qcc.constraint.Constraint;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
@@ -19,10 +18,6 @@ public final class IntegerLiteral extends Literal {
 
     public ValueType getType() {
         return type;
-    }
-
-    public Constraint getConstraint() {
-        return Constraint.equalTo(this);
     }
 
     public long longValue() {

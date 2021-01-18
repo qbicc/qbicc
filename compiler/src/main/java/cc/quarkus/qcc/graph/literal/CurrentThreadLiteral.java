@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.graph.literal;
 
-import cc.quarkus.qcc.constraint.Constraint;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.type.ReferenceType;
 
@@ -16,10 +15,6 @@ public final class CurrentThreadLiteral extends Literal {
 
     public ReferenceType getType() {
         return type;
-    }
-
-    public Constraint getConstraint() {
-        return Constraint.equalTo(this);
     }
 
     public boolean equals(final Literal other) {

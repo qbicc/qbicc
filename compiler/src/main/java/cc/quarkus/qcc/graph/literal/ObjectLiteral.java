@@ -2,7 +2,6 @@ package cc.quarkus.qcc.graph.literal;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.constraint.Constraint;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.PhysicalObjectType;
@@ -33,10 +32,6 @@ public final class ObjectLiteral extends Literal {
 
     public VmObject getValue() {
         return value;
-    }
-
-    public Constraint getConstraint() {
-        return null;
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
