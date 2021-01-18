@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.interpreter.impl;
 
+import cc.quarkus.qcc.interpreter.VmClass;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.definition.FieldContainer;
@@ -12,6 +13,10 @@ class VmObjectImpl implements VmObject {
     VmObjectImpl(final ValidatedTypeDefinition definition) {
         this.definition = definition;
         fields = FieldContainer.forInstanceFieldsOf(definition);
+    }
+
+    public VmClass getVmClass() {
+        return null;
     }
 
     public PhysicalObjectType getObjectType() {
