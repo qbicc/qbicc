@@ -63,6 +63,12 @@ public final class NestedClassTypeSignature extends ClassTypeSignature {
 
     ClassTypeDescriptor makeDescriptor(final ClassContext classContext) {
         ClassTypeDescriptor encDesc = enclosing.asDescriptor(classContext);
-        return ClassTypeDescriptor.synthesize(classContext, encDesc.getPackageName() + '/' + encDesc.getClassName() + '$' + getIdentifier());
+        final String internalName;
+        if (encDesc.getPackageName().isEmpty()) {
+            internalName = encDesc.getClassName() + '$' + getIdentifier();
+        } else {
+            internalName = encDesc.getPackageName() + '/' + encDesc.getClassName() + '$' + getIdentifier();
+        }
+        return ClassTypeDescriptor.synthesize(classContext, internalName);
     }
 }

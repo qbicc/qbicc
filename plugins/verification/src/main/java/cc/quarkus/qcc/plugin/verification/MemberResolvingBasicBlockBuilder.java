@@ -237,7 +237,13 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     private DefinedTypeDefinition resolveDescriptor(final ClassTypeDescriptor owner) {
-        return getClassContext().findDefinedType(owner.getPackageName() + "/" + owner.getClassName());
+        final String typeName;
+        if (owner.getPackageName().isEmpty()) {
+            typeName = owner.getClassName();
+        } else {
+            typeName = owner.getPackageName() + "/" + owner.getClassName();
+        }
+        return getClassContext().findDefinedType(typeName);
     }
 
     private void nsfe() {

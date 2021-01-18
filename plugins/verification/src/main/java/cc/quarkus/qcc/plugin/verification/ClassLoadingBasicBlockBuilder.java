@@ -181,7 +181,13 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private boolean loadClass(ClassTypeDescriptor desc) {
-        DefinedTypeDefinition definedType = getClassContext().findDefinedType(desc.getPackageName() + "/" + desc.getClassName());
+        final String typeName;
+        if (desc.getPackageName().isEmpty()) {
+            typeName = desc.getClassName();
+        } else {
+            typeName = desc.getPackageName() + "/" + desc.getClassName();
+        }
+        DefinedTypeDefinition definedType = getClassContext().findDefinedType(typeName);
         if (definedType == null) {
             return false;
         }
