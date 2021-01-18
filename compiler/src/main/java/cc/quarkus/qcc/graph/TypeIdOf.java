@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeType;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
  * The type ID of a given value.
@@ -12,8 +13,8 @@ public final class TypeIdOf extends AbstractValue implements InstanceOperation {
     private final Value instance;
     private final TypeType type;
 
-    TypeIdOf(final int line, final int bci, final Value instance) {
-        super(line, bci);
+    TypeIdOf(final Element element, final int line, final int bci, final Value instance) {
+        super(element, line, bci);
         this.instance = instance;
         ReferenceType referenceType = (ReferenceType) instance.getType();
         type = referenceType.getUpperBound().getTypeType();

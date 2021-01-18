@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
  *
@@ -16,8 +17,8 @@ public final class FunctionCall extends AbstractValue implements Triable {
     private final Value callTarget;
     private final List<Value> arguments;
 
-    FunctionCall(final int line, final int bci, final Node dependency, final Value callTarget, final List<Value> arguments) {
-        super(line, bci);
+    FunctionCall(final Element element, final int line, final int bci, final Node dependency, final Value callTarget, final List<Value> arguments) {
+        super(element, line, bci);
         this.dependency = dependency;
         this.callTarget = callTarget;
         this.arguments = arguments;

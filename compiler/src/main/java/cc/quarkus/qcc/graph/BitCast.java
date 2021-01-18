@@ -1,13 +1,14 @@
 package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.type.WordType;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
  *
  */
 public final class BitCast extends AbstractWordCastValue {
-    BitCast(final int line, final int bci, final Value value, final WordType toType) {
-        super(line, bci, value, toType);
+    BitCast(final Element element, final int line, final int bci, final Value value, final WordType toType) {
+        super(element, line, bci, value, toType);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

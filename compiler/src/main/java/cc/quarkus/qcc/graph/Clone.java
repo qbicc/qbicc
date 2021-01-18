@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
  *
@@ -9,8 +10,8 @@ public class Clone extends AbstractValue implements UnaryValue {
     private final Node dependency;
     private final Value original;
 
-    Clone(final int line, final int bci, final Node dependency, final Value original) {
-        super(line, bci);
+    Clone(final Element element, final int line, final int bci, final Node dependency, final Value original) {
+        super(element, line, bci);
         this.dependency = dependency;
         this.original = original;
     }

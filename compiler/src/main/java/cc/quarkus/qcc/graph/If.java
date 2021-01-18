@@ -2,6 +2,8 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.definition.element.Element;
+
 /**
  *
  */
@@ -12,8 +14,8 @@ public final class If extends AbstractNode implements Terminator {
     private final BlockLabel falseBranchLabel;
     private final BasicBlock terminatedBlock;
 
-    If(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value condition, final BlockLabel trueBranchLabel, final BlockLabel falseBranchLabel) {
-        super(line, bci);
+    If(final Element element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value condition, final BlockLabel trueBranchLabel, final BlockLabel falseBranchLabel) {
+        super(element, line, bci);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.condition = condition;

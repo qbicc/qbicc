@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.constraint;
 
 import cc.quarkus.qcc.graph.ValueVisitor;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 public class SymbolicValueImpl implements SymbolicValue {
 
@@ -23,6 +24,10 @@ public class SymbolicValueImpl implements SymbolicValue {
     }
 
     private final String label;
+
+    public Element getElement() {
+        return null;
+    }
 
     public int getSourceLine() {
         return 0;

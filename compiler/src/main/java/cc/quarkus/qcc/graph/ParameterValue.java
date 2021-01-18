@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
  *
@@ -11,8 +12,8 @@ public final class ParameterValue extends AbstractValue {
     private final ValueType type;
     private final int index;
 
-    ParameterValue(final ValueType type, final int index) {
-        super(0, -1);
+    ParameterValue(final Element element, final ValueType type, final int index) {
+        super(element, 0, -1);
         this.type = type;
         this.index = index;
     }

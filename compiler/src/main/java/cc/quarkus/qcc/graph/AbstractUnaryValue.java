@@ -2,11 +2,13 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.definition.element.Element;
+
 abstract class AbstractUnaryValue extends AbstractValue implements UnaryValue {
     final Value input;
 
-    AbstractUnaryValue(final int line, final int bci, final Value input) {
-        super(line, bci);
+    AbstractUnaryValue(final Element element, final int line, final int bci, final Value input) {
+        super(element, line, bci);
         this.input = input;
     }
 

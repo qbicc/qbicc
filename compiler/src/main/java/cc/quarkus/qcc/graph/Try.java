@@ -2,6 +2,8 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.definition.element.Element;
+
 /**
  * An operation which may throw an exception.
  */
@@ -11,8 +13,8 @@ public final class Try extends AbstractNode implements Resume {
     private final BlockLabel exceptionHandler;
     private final BasicBlock terminatedBlock;
 
-    Try(final Triable delegateOperation, final BlockEntry blockEntry, final BlockLabel resumeTargetLabel, final BlockLabel exceptionHandler) {
-        super(delegateOperation.getSourceLine(), delegateOperation.getBytecodeIndex());
+    Try(final Element element, final Triable delegateOperation, final BlockEntry blockEntry, final BlockLabel resumeTargetLabel, final BlockLabel exceptionHandler) {
+        super(element, delegateOperation.getSourceLine(), delegateOperation.getBytecodeIndex());
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.delegateOperation = delegateOperation;
         this.resumeTargetLabel = resumeTargetLabel;

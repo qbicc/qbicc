@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
  * A narrowed value.  The input value is assumed to be wider; violating this assumption can cause problems.
@@ -11,8 +12,8 @@ public final class Narrow extends AbstractValue implements CastValue {
     private final Value input;
     private final ValueType type;
 
-    Narrow(final int line, final int bci, final Value input, final ValueType type) {
-        super(line, bci);
+    Narrow(final Element element, final int line, final int bci, final Value input, final ValueType type) {
+        super(element, line, bci);
         this.input = input;
         this.type = type;
     }

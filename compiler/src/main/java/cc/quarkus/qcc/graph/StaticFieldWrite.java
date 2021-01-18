@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 
 /**
@@ -13,8 +14,8 @@ public final class StaticFieldWrite extends AbstractNode implements FieldWrite, 
     private final Value value;
     private final JavaAccessMode mode;
 
-    StaticFieldWrite(final int line, final int bci, final Node dependency, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        super(line, bci);
+    StaticFieldWrite(final Element element, final int line, final int bci, final Node dependency, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+        super(element, line, bci);
         this.dependency = dependency;
         this.fieldElement = fieldElement;
         this.value = value;

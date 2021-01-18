@@ -14,8 +14,8 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
     private final BlockLabel blockLabel;
     private final HashMap<Terminator, Value> incomingValues = new HashMap<>();
 
-    PhiValue(final int line, final int bci, final ValueType type, final BlockLabel blockLabel) {
-        super(line, bci);
+    PhiValue(final Element element, final int line, final int bci, final ValueType type, final BlockLabel blockLabel) {
+        super(element, line, bci);
         this.type = type;
         this.blockLabel = blockLabel;
     }

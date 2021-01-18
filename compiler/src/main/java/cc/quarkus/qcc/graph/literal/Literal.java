@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph.literal;
 
 import cc.quarkus.qcc.constraint.Constraint;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.type.definition.element.Element;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -10,18 +11,16 @@ import io.smallrye.common.constraint.Assert;
 public abstract class Literal implements Value {
     Literal() {}
 
+    public Element getElement() {
+        return null;
+    }
+
     public int getSourceLine() {
         return 0;
     }
 
-    public void setSourceLine(final int sourceLine) {
-    }
-
     public int getBytecodeIndex() {
         return -1;
-    }
-
-    public void setBytecodeIndex(final int bytecodeIndex) {
     }
 
     public Constraint getConstraint() {

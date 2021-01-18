@@ -3,6 +3,7 @@ package cc.quarkus.qcc.constraint;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 public class ValueImpl implements Value {
 
@@ -10,6 +11,9 @@ public class ValueImpl implements Value {
         this.label = label;
     }
 
+    public Element getElement() {
+        return null;
+    }
 
     public void setConstraint(Constraint constraint) {
         this.constraint = constraint;
