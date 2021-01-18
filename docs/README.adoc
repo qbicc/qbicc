@@ -34,8 +34,9 @@ For a step-by-step example, see `examples/helloworld/hello/world/Main.java`
 
 == JBang cache
 
-When plugins are added or removed, the jbang cache may become inconsistent and result in build errors.  If that happens, the cache can be
-cleared with:
+When plugins are added or removed, the jbang cache may become inconsistent and result in build errors.
+If that happens, add the `--fresh` option to the above command line. Eg: `jbang --fresh ...`
+Alternatively, clear the entire cache using:
 [source,shell]
 -----
 jbang cache clear
