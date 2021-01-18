@@ -16,8 +16,6 @@ public interface ResolvedTypeDefinition extends ValidatedTypeDefinition {
         return this;
     }
 
-    PreparedTypeDefinition prepare() throws PrepareFailedException;
-
     // ==================
     // Superclass
     // ==================

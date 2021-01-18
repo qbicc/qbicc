@@ -8,10 +8,6 @@ public abstract class DelegatingResolvedTypeDefinition extends DelegatingValidat
 
     protected abstract ResolvedTypeDefinition getDelegate();
 
-    public PreparedTypeDefinition prepare() throws PrepareFailedException {
-        return getDelegate().prepare();
-    }
-
     public ResolvedTypeDefinition validate() {
         return this;
     }
