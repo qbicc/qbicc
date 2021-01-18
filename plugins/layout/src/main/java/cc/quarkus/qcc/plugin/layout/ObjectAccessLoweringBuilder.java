@@ -39,49 +39,29 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
     public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
         ValueType arrayType = array.getType();
         if (arrayType instanceof ReferenceType) {
-            ReferenceType arrayRefType = (ReferenceType) arrayType;
-            Layout layout = Layout.get(ctxt);
-            FieldElement contentField = layout.getArrayContentField(arrayRefType.getUpperBound());
-            if (contentField == null) {
-                // punt
-                return super.readArrayValue(array, index, mode);
+            Value arrayMemberPointer = getArrayMemberPointer(array, index, (ReferenceType) arrayType);
+            if (arrayMemberPointer != null) {
+                return pointerLoad(arrayMemberPointer, MemoryAccessMode.PLAIN, getReadMode(mode, false));
             }
-            Layout.LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(contentField.getEnclosingType());
-            CompoundType.Member member = layoutInfo.getMember(contentField);
-            MemoryAtomicityMode atomicityMode = mode == JavaAccessMode.VOLATILE ? MemoryAtomicityMode.ACQUIRE : MemoryAtomicityMode.UNORDERED;
-            return pointerLoad(add(memberPointer(valueConvert(array, layoutInfo.getCompoundType().getPointer()), member), index), MemoryAccessMode.PLAIN, atomicityMode);
-        } else {
-            return super.readArrayValue(array, index, mode);
         }
+        return super.readArrayValue(array, index, mode);
     }
 
     public Node writeArrayValue(final Value array, final Value index, final Value value, final JavaAccessMode mode) {
         ValueType arrayType = array.getType();
         if (arrayType instanceof ReferenceType) {
-            ReferenceType arrayRefType = (ReferenceType) arrayType;
-            Layout layout = Layout.get(ctxt);
-            FieldElement contentField = layout.getArrayContentField(arrayRefType.getUpperBound());
-            if (contentField == null) {
-                // punt
-                return super.readArrayValue(array, index, mode);
+            Value arrayMemberPointer = getArrayMemberPointer(array, index, (ReferenceType) arrayType);
+            if (arrayMemberPointer != null) {
+                return pointerStore(arrayMemberPointer, value, MemoryAccessMode.PLAIN, getWriteMode(mode, false));
             }
-            Layout.LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(contentField.getEnclosingType());
-            CompoundType.Member member = layoutInfo.getMember(contentField);
-            MemoryAtomicityMode atomicityMode = mode == JavaAccessMode.VOLATILE ? MemoryAtomicityMode.ACQUIRE : MemoryAtomicityMode.UNORDERED;
-            return pointerStore(add(memberPointer(valueConvert(array, layoutInfo.getCompoundType().getPointer()), member), index), value, MemoryAccessMode.PLAIN, atomicityMode);
-        } else {
-            return super.writeArrayValue(array, index, value, mode);
         }
+        return super.writeArrayValue(array, index, value, mode);
     }
 
     public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
         ValueType instanceType = instance.getType();
         if (instanceType instanceof ReferenceType) {
-            Layout layout = Layout.get(ctxt);
-            Layout.LayoutInfo info = layout.getInstanceLayoutInfo(fieldElement.getEnclosingType());
-            CompoundType.Member member = info.getMember(fieldElement);
-            MemoryAtomicityMode atomicityMode = mode == JavaAccessMode.VOLATILE ? MemoryAtomicityMode.ACQUIRE : MemoryAtomicityMode.UNORDERED;
-            return pointerLoad(memberPointer(valueConvert(instance, info.getCompoundType().getPointer()), member), MemoryAccessMode.PLAIN, atomicityMode);
+            return pointerLoad(getFieldPointer(instance, fieldElement), MemoryAccessMode.PLAIN, getReadMode(mode, fieldElement.isVolatile()));
         } else if (instanceType instanceof ClassObjectType) {
             // todo: value
             ctxt.error(getLocation(), "Value types not yet supported");
@@ -95,14 +75,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
     public Node writeInstanceField(final Value instance, final FieldElement fieldElement, final Value value, JavaAccessMode mode) {
         ValueType instanceType = instance.getType();
         if (instanceType instanceof ReferenceType) {
-            Layout layout = Layout.get(ctxt);
-            Layout.LayoutInfo info = layout.getInstanceLayoutInfo(fieldElement.getEnclosingType());
-            CompoundType.Member member = info.getMember(fieldElement);
-            if (mode == JavaAccessMode.DETECT) {
-                mode = fieldElement.isVolatile() ? JavaAccessMode.VOLATILE : JavaAccessMode.PLAIN;
-            }
-            MemoryAtomicityMode atomicityMode = mode == JavaAccessMode.VOLATILE ? MemoryAtomicityMode.RELEASE : MemoryAtomicityMode.UNORDERED;
-            return pointerStore(memberPointer(valueConvert(instance, info.getCompoundType().getPointer()), member), value, MemoryAccessMode.PLAIN, atomicityMode);
+            return pointerStore(getFieldPointer(instance, fieldElement), value, MemoryAccessMode.PLAIN, getWriteMode(mode, fieldElement.isVolatile()));
         } else if (instanceType instanceof ClassObjectType) {
             // todo: value
             ctxt.error(getLocation(), "Value types not yet supported");
@@ -110,6 +83,44 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
         } else {
             ctxt.error(getLocation(), "Write instance field on a non-object");
             return nop();
+        }
+    }
+
+    private Value getFieldPointer(final Value instance, final FieldElement fieldElement) {
+        Layout layout = Layout.get(ctxt);
+        Layout.LayoutInfo info = layout.getInstanceLayoutInfo(fieldElement.getEnclosingType());
+        CompoundType.Member member = info.getMember(fieldElement);
+        return memberPointer(valueConvert(instance, info.getCompoundType().getPointer()), member);
+    }
+
+    private Value getArrayMemberPointer(final Value array, final Value index, final ReferenceType arrayRefType) {
+        Value arrayMemberPointer;
+        Layout layout = Layout.get(ctxt);
+        FieldElement contentField = layout.getArrayContentField(arrayRefType.getUpperBound());
+        if (contentField == null) {
+            // punt
+            arrayMemberPointer = null;
+        } else {
+            Layout.LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(contentField.getEnclosingType());
+            CompoundType.Member member = layoutInfo.getMember(contentField);
+            arrayMemberPointer = add(memberPointer(valueConvert(array, layoutInfo.getCompoundType().getPointer()), member), index);
+        }
+        return arrayMemberPointer;
+    }
+
+    MemoryAtomicityMode getReadMode(JavaAccessMode mode, boolean volatile_) {
+        if (mode == JavaAccessMode.DETECT && volatile_ || mode == JavaAccessMode.VOLATILE) {
+            return MemoryAtomicityMode.RELEASE;
+        } else {
+            return MemoryAtomicityMode.UNORDERED;
+        }
+    }
+
+    MemoryAtomicityMode getWriteMode(JavaAccessMode mode, boolean volatile_) {
+        if (mode == JavaAccessMode.DETECT && volatile_ || mode == JavaAccessMode.VOLATILE) {
+            return MemoryAtomicityMode.ACQUIRE;
+        } else {
+            return MemoryAtomicityMode.UNORDERED;
         }
     }
 }
