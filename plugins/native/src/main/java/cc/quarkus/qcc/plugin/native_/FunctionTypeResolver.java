@@ -76,7 +76,12 @@ public class FunctionTypeResolver implements DescriptorTypeResolver.Delegating {
                             TypeDescriptor pointeeDesc = pointeeSig.asDescriptor(classCtxt);
                             if (pointeeDesc instanceof ClassTypeDescriptor) {
                                 ClassTypeDescriptor classDesc = (ClassTypeDescriptor) pointeeDesc;
-                                String name = classDesc.getPackageName() + '/' + classDesc.getClassName();
+                                final String name;
+                                if (classDesc.getPackageName().isEmpty()) {
+                                    name = classDesc.getClassName();
+                                } else {
+                                    name = classDesc.getPackageName() + '/' + classDesc.getClassName();
+                                }
                                 if (name.equals("java/lang/Object")) {
                                     // special case: it's really an "any" pointer with extra front-end guards on it
                                     return ts.getVoidType().asConst().getPointer();
