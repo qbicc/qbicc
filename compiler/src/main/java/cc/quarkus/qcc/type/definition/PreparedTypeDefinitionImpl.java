@@ -1,8 +1,5 @@
 package cc.quarkus.qcc.type.definition;
 
-import cc.quarkus.qcc.interpreter.Thrown;
-import cc.quarkus.qcc.interpreter.Vm;
-
 /**
  *
  */
@@ -44,39 +41,6 @@ final class PreparedTypeDefinitionImpl extends DelegatingResolvedTypeDefinition 
     }
 
     public InitializedTypeDefinition initialize() throws InitializationFailedException {
-        PreparedTypeDefinition initialized = this.initialized;
-        if (initialized != null) {
-            return initialized.initialize();
-        }
-        PreparedTypeDefinition superClass = getSuperClass();
-        if (superClass != null) {
-            superClass.initialize();
-        }
-        int interfaceCount = getInterfaceCount();
-        for (int i = 0; i < interfaceCount; i ++) {
-            getInterface(i).initialize();
-        }
-        synchronized (this) {
-            initialized = this.initialized;
-            if (initialized == null) {
-                if (initializing != null) {
-                    // init in progress from this same thread
-                    return initializing.initialize();
-                }
-                this.initializing = initialized = new InitializedTypeDefinitionImpl(this);
-                Vm vm = Vm.requireCurrent();
-                try {
-                    vm.initialize(getType());
-                } catch (Thrown t) {
-                    InitializationFailedException ex = new InitializationFailedException(t);
-                    this.initialized = new InitializationFailedDefinitionImpl(this, ex);
-                    this.initializing = null;
-                    throw ex;
-                }
-                this.initialized = initialized;
-                this.initializing = null;
-            }
-        }
-        return initialized.initialize();
+        throw new UnsupportedOperationException("To be removed");
     }
 }

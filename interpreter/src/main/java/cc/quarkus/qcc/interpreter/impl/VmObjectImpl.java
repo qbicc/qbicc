@@ -1,5 +1,6 @@
-package cc.quarkus.qcc.interpreter;
+package cc.quarkus.qcc.interpreter.impl;
 
+import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.definition.FieldContainer;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;

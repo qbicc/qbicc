@@ -1,11 +1,6 @@
 package cc.quarkus.qcc.interpreter;
 
 import java.nio.ByteBuffer;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.type.ArrayObjectType;
@@ -19,7 +14,8 @@ import io.smallrye.common.constraint.Assert;
 /**
  * A virtual machine.
  */
-public interface Vm extends AutoCloseable {
+public interface Vm {
+
     /**
      * Get the related compilation context.
      *
@@ -37,8 +33,31 @@ public interface Vm extends AutoCloseable {
      */
     VmThread newThread(String threadName, VmObject threadGroup, boolean daemon);
 
+    /**
+     * Perform the given action with the given thread attached to the host thread.  Any previously attached thread is
+     * suspended.
+     *
+     * @param thread the thread to attach (must not be {@code null})
+     * @param action the action to perform (must not be {@code null})
+     */
+    default void doAttached(VmThread thread, Runnable action) {
+        Assert.checkNotNullParam("thread", thread);
+        Assert.checkNotNullParam("action", action);
+        VmThread old = VmPrivate.CURRENT_THREAD.get();
+        VmPrivate.CURRENT_THREAD.set(thread);
+        try {
+            action.run();
+        } finally {
+            if (old == null) {
+                VmPrivate.CURRENT_THREAD.remove();
+            } else {
+                VmPrivate.CURRENT_THREAD.set(old);
+            }
+        }
+    }
+
     static VmThread currentThread() {
-        return VmImpl.currentThread();
+        return VmPrivate.CURRENT_THREAD.get();
     }
 
     static VmThread requireCurrentThread() {
@@ -50,7 +69,7 @@ public interface Vm extends AutoCloseable {
     }
 
     static Vm current() {
-        return VmImpl.currentVm();
+        return currentThread().getVM();
     }
 
     static Vm requireCurrent() {
@@ -60,8 +79,6 @@ public interface Vm extends AutoCloseable {
         }
         return current;
     }
-
-    void doAttached(Runnable r);
 
     /**
      * Load a class. If the class is already loaded, it is returned without entering the VM.  Otherwise the
@@ -114,7 +131,7 @@ public interface Vm extends AutoCloseable {
      */
     Object invokeExact(MethodElement method, VmObject instance, Object... args);
 
-    void initialize(ObjectType typeId);
+    void initialize(VmClass vmClass);
 
     /**
      * Invoke a method reflectively.  Primitive arguments should be boxed.
@@ -132,23 +149,6 @@ public interface Vm extends AutoCloseable {
      * @param signal the signal to deliver
      */
     void deliverSignal(Signal signal);
-
-    /**
-     * Wait for the VM to terminate, returning the exit code.
-     *
-     * @return the VM exit code
-     * @throws InterruptedException if the calling thread was interrupted before the VM terminates
-     */
-    int awaitTermination() throws InterruptedException;
-
-    /**
-     * Get a deduplicated string.
-     *
-     * @param classLoader the class loader whose deduplication table should be used
-     * @param string the string to deduplicate
-     * @return the deduplicated string
-     */
-    String deduplicate(VmObject classLoader, String string);
 
     /**
      * Get a shared string instance.  The same string object will be reused for a given input string.
@@ -169,11 +169,6 @@ public interface Vm extends AutoCloseable {
     VmObject allocateDirectBuffer(ByteBuffer backingBuffer);
 
     /**
-     * Kill the VM, terminating all in-progress threads and releasing all heap objects.
-     */
-    void close();
-
-    /**
      * Get a builder for a type definition.  The given class loader is only used to resolve classes, and does
      * not cause the new class to be registered to that class loader (which is something that must be done
      * by the dictionary).
@@ -184,90 +179,9 @@ public interface Vm extends AutoCloseable {
     DefinedTypeDefinition.Builder newTypeDefinitionBuilder(VmObject classLoader);
 
     /**
-     * Get a builder for a new VM.
-     *
-     * @return the builder (not {@code null})
-     */
-    static Builder builder() {
-        return new Builder();
-    }
-
-    /**
      * Get the main (root) thread group for the VM.
      *
      * @return the thread group (not {@code null})
      */
     VmObject getMainThreadGroup();
-
-    /**
-     * A builder for the VM.
-     */
-    class Builder {
-        final List<Path> bootstrapModules = new ArrayList<>();
-        final List<Path> platformModules = new ArrayList<>();
-        final Map<String, String> systemProperties = new HashMap<>();
-        CompilationContext context;
-
-        Builder() {
-        }
-
-        /**
-         * Add a bootstrap module.
-         *
-         * @param modulePath the path to the module JAR (must not be {@code null})
-         * @return this builder
-         */
-        public Builder addBootstrapModule(Path modulePath) {
-            bootstrapModules.add(Assert.checkNotNullParam("modulePath", modulePath));
-            return this;
-        }
-
-        /**
-         * Add all of the given bootstrap modules.
-         *
-         * @param modulePaths the paths to the module JARs (must not be {@code null})
-         * @return this builder
-         */
-        public Builder addBootstrapModules(final List<Path> modulePaths) {
-            bootstrapModules.addAll(modulePaths);
-            return this;
-        }
-
-        /**
-         * Add a platform (non-bootstrap) module.
-         *
-         * @param modulePath the path to the module JAR (must not be {@code null})
-         * @return this builder
-         */
-        public Builder addPlatformModule(Path modulePath) {
-            platformModules.add(Assert.checkNotNullParam("modulePath", modulePath));
-            return this;
-        }
-
-        /**
-         * Set an initial system property.
-         *
-         * @param propertyName  the property name (must not be {@code null})
-         * @param propertyValue the property value (must not be {@code null})
-         * @return this builder
-         */
-        public Builder setSystemProperty(String propertyName, String propertyValue) {
-            systemProperties.put(Assert.checkNotNullParam("propertyName", propertyName), Assert.checkNotNullParam("propertyValue", propertyValue));
-            return this;
-        }
-
-        public Builder setContext(final CompilationContext context) {
-            this.context = Assert.checkNotNullParam("context", context);
-            return this;
-        }
-
-        /**
-         * Construct the new VM.
-         *
-         * @return the new VM (not {@code null})
-         */
-        public Vm build() {
-            return new VmImpl(this);
-        }
-    }
 }

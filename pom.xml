@@ -29,6 +29,7 @@
     <modules>
         <module>compiler</module>
         <module>driver</module>
+        <module>interpreter</module>
         <module>main</module>
         <module>machine</module>
         <module>runtime</module>

@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.interpreter;
+package cc.quarkus.qcc.interpreter.impl;
 
-import static cc.quarkus.qcc.interpreter.CodegenUtils.*;
+import static cc.quarkus.qcc.interpreter.impl.CodegenUtils.*;
 
 import java.util.HashMap;
 import java.util.List;

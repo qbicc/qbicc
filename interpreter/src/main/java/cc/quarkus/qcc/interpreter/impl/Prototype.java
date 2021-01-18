@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.interpreter;
+package cc.quarkus.qcc.interpreter.impl;
 
 import cc.quarkus.qcc.type.definition.FieldContainer;
 
