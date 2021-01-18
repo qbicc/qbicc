@@ -2,6 +2,8 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.definition.element.Element;
+
 /**
  *
  */
@@ -12,8 +14,8 @@ public final class PointerStore extends AbstractNode implements Action {
     private final MemoryAccessMode accessMode;
     private final MemoryAtomicityMode atomicityMode;
 
-    PointerStore(final int line, final int bci, final Node dependency, final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-        super(line, bci);
+    PointerStore(final Element element, final int line, final int bci, final Node dependency, final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
+        super(element, line, bci);
         this.dependency = dependency;
         this.pointer = pointer;
         this.value = value;

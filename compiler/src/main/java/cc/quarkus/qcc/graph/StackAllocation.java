@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
  *
@@ -11,8 +12,8 @@ public final class StackAllocation extends AbstractValue {
     private final Value count;
     private final Value align;
 
-    StackAllocation(final int line, final int bci, final ValueType type, final Value count, final Value align) {
-        super(line, bci);
+    StackAllocation(final Element element, final int line, final int bci, final ValueType type, final Value count, final Value align) {
+        super(element, line, bci);
         this.type = type;
         this.count = count;
         this.align = align;

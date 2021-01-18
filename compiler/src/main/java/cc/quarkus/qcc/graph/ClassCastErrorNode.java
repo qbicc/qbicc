@@ -2,6 +2,8 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.definition.element.Element;
+
 /**
  *
  */
@@ -11,8 +13,8 @@ public final class ClassCastErrorNode extends AbstractNode implements Error {
     private final Value fromType;
     private final Value toType;
 
-    ClassCastErrorNode(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value fromType, final Value toType) {
-        super(line, bci);
+    ClassCastErrorNode(final Element element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value fromType, final Value toType) {
+        super(element, line, bci);
         this.dependency = dependency;
         this.fromType = fromType;
         this.toType = toType;

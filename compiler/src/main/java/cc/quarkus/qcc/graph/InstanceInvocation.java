@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.List;
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
@@ -15,8 +16,8 @@ public final class InstanceInvocation extends AbstractNode implements InstanceOp
     private final MethodElement target;
     private final List<Value> arguments;
 
-    InstanceInvocation(final int line, final int bci, final Node dependency, final Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        super(line, bci);
+    InstanceInvocation(final Element element, final int line, final int bci, final Node dependency, final Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
+        super(element, line, bci);
         this.dependency = dependency;
         this.kind = kind;
         this.instance = instance;

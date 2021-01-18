@@ -5,6 +5,7 @@ import java.util.Objects;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
  * A {@code new} allocation operation for array objects.
@@ -14,8 +15,8 @@ public final class NewArray extends AbstractValue {
     private final ArrayObjectType type;
     private final Value size;
 
-    NewArray(final int line, final int bci, final Node dependency, final ArrayObjectType type, final Value size) {
-        super(line, bci);
+    NewArray(final Element element, final int line, final int bci, final Node dependency, final ArrayObjectType type, final Value size) {
+        super(element, line, bci);
         this.dependency = dependency;
         this.type = type;
         this.size = size;

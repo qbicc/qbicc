@@ -2,6 +2,8 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.definition.element.Element;
+
 /**
  * A terminator which designates a subsequent block for normal execution.
  */
@@ -10,8 +12,8 @@ public final class Goto extends AbstractNode implements Resume {
     private final BlockLabel targetLabel;
     private final BasicBlock terminatedBlock;
 
-    Goto(final int line, final int bci, final BlockEntry blockEntry, Node dependency, BlockLabel targetLabel) {
-        super(line, bci);
+    Goto(final Element element, final int line, final int bci, final BlockEntry blockEntry, Node dependency, BlockLabel targetLabel) {
+        super(element, line, bci);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.targetLabel = targetLabel;

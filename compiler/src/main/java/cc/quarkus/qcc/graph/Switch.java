@@ -3,6 +3,8 @@ package cc.quarkus.qcc.graph;
 import java.util.Arrays;
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.definition.element.Element;
+
 /**
  *
  */
@@ -17,8 +19,8 @@ public final class Switch extends AbstractNode implements Terminator {
     private final Value switchValue;
     private final BasicBlock terminatedBlock;
 
-    Switch(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue) {
-        super(line, bci);
+    Switch(final Element element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final BlockLabel defaultTargetLabel, final int[] values, final BlockLabel[] targetLabels, final Value switchValue) {
+        super(element, line, bci);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.defaultTargetLabel = defaultTargetLabel;

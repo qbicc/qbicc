@@ -1,11 +1,13 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.type.definition.element.Element;
+
 /**
  *
  */
 public final class Neg extends AbstractUnaryValue {
-    Neg(final int line, final int bci, final Value v) {
-        super(line, bci, v);
+    Neg(final Element element, final int line, final int bci, final Value v) {
+        super(element, line, bci, v);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

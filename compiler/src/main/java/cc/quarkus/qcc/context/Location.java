@@ -7,8 +7,6 @@ import cc.quarkus.qcc.type.definition.element.BasicElement;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.InvokableElement;
-import cc.quarkus.qcc.type.definition.element.MemberElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.NamedElement;
 import io.smallrye.common.constraint.Assert;
@@ -272,6 +270,7 @@ public final class Location {
         }
 
         public Builder setNode(Node node) {
+            setElement(node.getElement());
             setLineNumber(node.getSourceLine());
             setByteCodeIndex(node.getBytecodeIndex());
             return this;

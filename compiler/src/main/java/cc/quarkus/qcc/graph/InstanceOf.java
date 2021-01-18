@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
  * A node that represents a check of the upper bound of the value against the given type.
@@ -13,8 +14,8 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
     private final ValueType checkType;
     private final BooleanType booleanType;
 
-    InstanceOf(final int line, final int bci, final Value input, final ValueType checkType, final BooleanType booleanType) {
-        super(line, bci);
+    InstanceOf(final Element element, final int line, final int bci, final Value input, final ValueType checkType, final BooleanType booleanType) {
+        super(element, line, bci);
         this.input = input;
         this.checkType = checkType;
         this.booleanType = booleanType;

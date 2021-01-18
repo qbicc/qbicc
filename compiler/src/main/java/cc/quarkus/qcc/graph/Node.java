@@ -26,12 +26,20 @@ import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
+import cc.quarkus.qcc.type.definition.element.Element;
 import io.smallrye.common.constraint.Assert;
 
 /**
  *
  */
 public interface Node {
+    /**
+     * Get the source element.  Literals will have no source element.
+     *
+     * @return the source element, or {@code null} if there is none
+     */
+    Element getElement();
+
     int getSourceLine();
 
     int getBytecodeIndex();

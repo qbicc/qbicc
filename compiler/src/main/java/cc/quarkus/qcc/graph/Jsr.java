@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
+import cc.quarkus.qcc.type.definition.element.Element;
 
 /**
  *
@@ -13,8 +14,8 @@ public final class Jsr extends AbstractNode implements Resume, Terminator {
     private final BlockLiteral returnAddress;
     private final BasicBlock terminatedBlock;
 
-    Jsr(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final BlockLabel jsrTargetLabel, final BlockLiteral returnAddress) {
-        super(line, bci);
+    Jsr(final Element element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final BlockLabel jsrTargetLabel, final BlockLiteral returnAddress) {
+        super(element, line, bci);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.jsrTargetLabel = jsrTargetLabel;

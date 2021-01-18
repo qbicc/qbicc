@@ -2,6 +2,8 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.definition.element.Element;
+
 /**
  *
  */
@@ -9,8 +11,8 @@ public final class Return extends AbstractNode implements Terminator {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
 
-    Return(final int line, final int bci, final BlockEntry blockEntry, Node dependency) {
-        super(line, bci);
+    Return(final Element element, final int line, final int bci, final BlockEntry blockEntry, Node dependency) {
+        super(element, line, bci);
         this.dependency = dependency;
         terminatedBlock = new BasicBlock(blockEntry, this);
     }

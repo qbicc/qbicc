@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 
 /**
@@ -15,8 +16,8 @@ public final class InstanceFieldRead extends AbstractValue implements FieldRead,
     private final ValueType type;
     private final JavaAccessMode mode;
 
-    InstanceFieldRead(final int line, final int bci, final Node dependency, final Value instance, final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
-        super(line, bci);
+    InstanceFieldRead(final Element element, final int line, final int bci, final Node dependency, final Value instance, final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
+        super(element, line, bci);
         this.dependency = dependency;
         this.instance = instance;
         this.fieldElement = fieldElement;

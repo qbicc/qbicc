@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
@@ -15,8 +16,8 @@ public final class NoSuchMethodErrorNode extends AbstractNode implements Error {
     private final String name;
     private final BasicBlock terminatedBlock;
 
-    NoSuchMethodErrorNode(final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final ObjectType owner, final MethodDescriptor desc, final String name) {
-        super(line, bci);
+    NoSuchMethodErrorNode(final Element element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final ObjectType owner, final MethodDescriptor desc, final String name) {
+        super(element, line, bci);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.owner = owner;
