@@ -7,6 +7,7 @@ import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
+import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.IntegerType;
@@ -152,28 +153,37 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
         if (fromTypeRaw instanceof FloatType) {
             FloatType fromType = (FloatType) fromTypeRaw;
             if (toTypeRaw instanceof IntegerType) {
+                LiteralFactory lf = ctxt.getLiteralFactory();
                 IntegerType toType = (IntegerType) toTypeRaw;
                 // insert a bounds check
                 boolean signed = toType instanceof SignedIntegerType;
-                // the highest allowed value (inclusive)
-                double upper;
+                // number of bits for desired target type
+                int numBits;
                 // the lowest allowed value (inclusive)
                 double lower;
                 // subtracting 1.0 should be safe here since the ulp for these values should always be smaller than 1.0...
                 if (signed) {
-                    upper = Math.scalb(1.0, toType.getMinBits() - 1) - 1.0;
-                    lower = -Math.scalb(1.0, toType.getMinBits() - 1);
+                    numBits = toType.getMinBits() - 1;
+                    lower = -Math.scalb(1.0, numBits);
                 } else {
-                    upper = Math.scalb(1.0, toType.getMinBits()) - 1.0;
+                    numBits = toType.getMinBits();
                     lower = 0;
                 }
-                LiteralFactory lf = ctxt.getLiteralFactory();
-                FloatLiteral upperLit, lowerLit;
+
+                // the highest allowed value (inclusive)
+                double upper;
+                // the highest allowed value literal
+                // it cannot be the same as the literal used in cmp cos they're different types
+                Literal upperLit;
+                upper = Math.scalb(1.0, numBits) - 1.0;
+                upperLit = lf.literalOf(toType, (1L << numBits) - 1);
+
+                FloatLiteral upperLitCmp, lowerLit;
                 if (fromType.getMinBits() == 32) {
-                    upperLit = lf.literalOf((float) upper);
+                    upperLitCmp = lf.literalOf((float) upper);
                     lowerLit = lf.literalOf((float) lower);
                 } else {
-                    upperLit = lf.literalOf(upper);
+                    upperLitCmp = lf.literalOf(upper);
                     lowerLit = lf.literalOf(lower);
                 }
 
@@ -183,7 +193,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 final BlockLabel notOverMax = new BlockLabel();
                 final BlockLabel underMin = new BlockLabel();
                 final BlockLabel resume = new BlockLabel();
-                if_(cmpGe(from, upperLit), overMax, notOverMax);
+                if_(cmpGe(from, upperLitCmp), overMax, notOverMax);
                 begin(overMax);
                 goto_(resume);
                 begin(notOverMax);
@@ -192,7 +202,8 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 goto_(resume);
                 begin(resume);
                 PhiValue result = phi(toType, resume);
-                result.setValueForBlock(ctxt, getCurrentElement(), overMax, super.valueConvert(lf.literalOf(upper), toType));
+
+                result.setValueForBlock(ctxt, getCurrentElement(), overMax, super.valueConvert(upperLit, toType));
                 result.setValueForBlock(ctxt, getCurrentElement(), underMin, super.valueConvert(lowerLit, toType));
                 result.setValueForBlock(ctxt, getCurrentElement(), notOverMax, super.valueConvert(from, toType));
                 return result;
