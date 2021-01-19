@@ -357,7 +357,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     public LLValue visit(final Void param, final Sub node) {
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        return map(schedule.getBlockForNode(node)).sub(map(node.getType()), llvmLeft, llvmRight).asLocal();
+        final var target = map(schedule.getBlockForNode(node));
+        return isFloating(node.getLeftInput().getType())
+            ? target.fsub(map(node.getType()), llvmLeft, llvmRight).asLocal()
+            : target.sub(map(node.getType()), llvmLeft, llvmRight).asLocal();
     }
 
     public LLValue visit(final Void param, final Div node) {
