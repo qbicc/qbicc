@@ -21,16 +21,16 @@ public class RegisterHelperBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public RegisterHelperBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+        vmHelpersVTD = getVMHelpersVTD(ctxt);
     }
 
-    private ValidatedTypeDefinition getVMHelpersVTD() {
-        ValidatedTypeDefinition vtd = vmHelpersVTD;
-        if (vtd == null) {
+    private static ValidatedTypeDefinition getVMHelpersVTD(final CompilationContext ctxt) {
+        ValidatedTypeDefinition vtd = null;
+        if (!InstanceOfCheckCastBasicBlockBuilder.PLUGIN_DISABLED) {
             ClassContext bootstrapCC = ctxt.getBootstrapClassContext();
             DefinedTypeDefinition dtd = bootstrapCC.findDefinedType("cc/quarkus/qcc/runtime/main/VMHelpers");
             if (dtd != null) {
                 vtd = dtd.validate();
-                vmHelpersVTD = vtd; // racy write - OK as all VTDs for the same class are equivalent
             }
         }
         return vtd;
@@ -39,10 +39,9 @@ public class RegisterHelperBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public Value instanceOf(final Value input, final ValueType expectedType) {
         if (!InstanceOfCheckCastBasicBlockBuilder.PLUGIN_DISABLED) {
             // Only force loading if the plugin is enabled
-            ValidatedTypeDefinition resolved = getVMHelpersVTD();
-            int idx = resolved.findMethodIndex(e -> "fast_instanceof".equals(e.getName()));
+            int idx = vmHelpersVTD.findMethodIndex(e -> "fast_instanceof".equals(e.getName()));
             assert(idx != -1);
-            MethodElement methodElement = resolved.getMethod(idx);
+            MethodElement methodElement = vmHelpersVTD.getMethod(idx);
             ctxt.registerEntryPoint(methodElement);
             ctxt.enqueue(methodElement);
         }
