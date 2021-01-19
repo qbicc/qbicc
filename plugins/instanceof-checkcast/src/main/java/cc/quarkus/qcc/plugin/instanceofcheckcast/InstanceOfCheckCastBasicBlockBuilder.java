@@ -60,9 +60,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         ctxt.registerEntryPoint(methodElement);
         LiteralFactory lf = ctxt.getLiteralFactory();
         Function function = ctxt.getExactFunction(methodElement);
-        List<Value> args = new ArrayList<>(2);
-        args.add(input);
-        args.add(lf.literalOfType(expectedType));
+        List<Value> args = List.of(input, lf.literalOfType(expectedType));
         return super.callFunction(lf.literalOfSymbol(function.getName(), function.getType()), args);
     }
 
