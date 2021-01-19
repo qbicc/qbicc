@@ -31,6 +31,8 @@ import cc.quarkus.qcc.plugin.dot.DotGenerator;
 import cc.quarkus.qcc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.intrinsics.core.CoreIntrinsics;
 import cc.quarkus.qcc.plugin.layout.ObjectAccessLoweringBuilder;
+import cc.quarkus.qcc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.instanceofcheckcast.RegisterHelperBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.plugin.linker.LinkStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
@@ -238,6 +240,7 @@ public class Main {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, RegisterHelperBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.ADD, RTAInfo::clear);
 
                                 builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
@@ -246,6 +249,8 @@ public class Main {
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
+
                                 builder.addPostHook(Phase.ANALYZE, new VTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, RTAInfo::clear);
 
@@ -265,6 +270,7 @@ public class Main {
 
                                 builder.addPostHook(Phase.GENERATE, new LLVMCompileStage());
                                 builder.addPostHook(Phase.GENERATE, new LinkStage());
+
 
                                 CompilationContext ctxt;
                                 try (Driver driver = builder.build()) {
