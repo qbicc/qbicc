@@ -3,8 +3,8 @@ package cc.quarkus.qcc.machine.llvm;
 import java.io.BufferedWriter;
 import java.io.IOException;
 
+import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataTuple;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
-import cc.quarkus.qcc.machine.llvm.op.Assignment;
 
 /**
  *
@@ -19,6 +19,9 @@ public interface Module {
     Global global(LLValue type);
 
     Global constant(LLValue type);
+
+    MetadataTuple metadataTuple();
+    MetadataTuple metadataTuple(String name);
 
     void writeTo(BufferedWriter output) throws IOException;
 
