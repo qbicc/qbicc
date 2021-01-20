@@ -45,5 +45,9 @@ public abstract class IntegerType extends NumericType {
         return minBits;
     }
 
+    public abstract long getMaxValue();
+
+    public abstract long getMinValue();
+
     public abstract String toString(final IntegerLiteral literal);
 }

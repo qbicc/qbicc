@@ -176,7 +176,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 // it cannot be the same as the literal used in cmp cos they're different types
                 Literal upperLit;
                 upper = Math.scalb(1.0, numBits) - 1.0;
-                upperLit = lf.literalOf(toType, (1L << numBits) - 1);
+                upperLit = lf.literalOf(toType, toType.getMaxValue());
 
                 FloatLiteral upperLitCmp, lowerLit;
                 if (fromType.getMinBits() == 32) {
