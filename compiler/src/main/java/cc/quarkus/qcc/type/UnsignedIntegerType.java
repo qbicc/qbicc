@@ -42,6 +42,16 @@ public final class UnsignedIntegerType extends IntegerType {
         return 0;
     }
 
+    @Override
+    public double getUpperInclusiveBound() {
+        return Math.scalb(1.0, minBits) - 1.0;
+    }
+
+    @Override
+    public double getLowerInclusiveBound() {
+        return 0;
+    }
+
     public ValueType join(final ValueType other) {
         if (other instanceof UnsignedIntegerType) {
             return join((UnsignedIntegerType) other);

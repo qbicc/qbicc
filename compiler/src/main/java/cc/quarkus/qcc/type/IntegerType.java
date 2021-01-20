@@ -49,5 +49,9 @@ public abstract class IntegerType extends NumericType {
 
     public abstract long getMinValue();
 
+    public abstract double getUpperInclusiveBound();
+
+    public abstract double getLowerInclusiveBound();
+
     public abstract String toString(final IntegerLiteral literal);
 }

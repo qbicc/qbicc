@@ -155,28 +155,13 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
             if (toTypeRaw instanceof IntegerType) {
                 LiteralFactory lf = ctxt.getLiteralFactory();
                 IntegerType toType = (IntegerType) toTypeRaw;
-                // insert a bounds check
-                boolean signed = toType instanceof SignedIntegerType;
-                // number of bits for desired target type
-                int numBits;
                 // the lowest allowed value (inclusive)
-                double lower;
-                // subtracting 1.0 should be safe here since the ulp for these values should always be smaller than 1.0...
-                if (signed) {
-                    numBits = toType.getMinBits() - 1;
-                    lower = -Math.scalb(1.0, numBits);
-                } else {
-                    numBits = toType.getMinBits();
-                    lower = 0;
-                }
-
+                double lower = toType.getLowerInclusiveBound();
                 // the highest allowed value (inclusive)
-                double upper;
+                double upper = toType.getUpperInclusiveBound();
                 // the highest allowed value literal
                 // it cannot be the same as the literal used in cmp cos they're different types
-                Literal upperLit;
-                upper = Math.scalb(1.0, numBits) - 1.0;
-                upperLit = lf.literalOf(toType, toType.getMaxValue());
+                Literal upperLit = lf.literalOf(toType, toType.getMaxValue());
 
                 FloatLiteral upperLitCmp, lowerLit;
                 if (fromType.getMinBits() == 32) {
