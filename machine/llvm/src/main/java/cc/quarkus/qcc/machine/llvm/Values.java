@@ -45,4 +45,8 @@ public final class Values {
     public static Struct struct() {
         return LLVM.struct();
     }
+
+    public static LLValue metadataString(String value) {
+        return LLVM.metadataString(value);
+    }
 }
