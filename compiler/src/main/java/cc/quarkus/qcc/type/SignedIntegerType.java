@@ -43,6 +43,26 @@ public final class SignedIntegerType extends IntegerType {
         }
     }
 
+    @Override
+    public long getMaxValue() {
+        return (1L << (minBits - 1)) - 1;
+    }
+
+    @Override
+    public long getMinValue() {
+        return ~getMaxValue();
+    }
+
+    @Override
+    public double getUpperInclusiveBound() {
+        return Math.scalb(1.0, minBits - 1) - 1.0;
+    }
+
+    @Override
+    public double getLowerInclusiveBound() {
+        return -Math.scalb(1.0, minBits - 1);
+    }
+
     public ValueType join(final ValueType other) {
         if (other instanceof SignedIntegerType) {
             return join((SignedIntegerType) other);

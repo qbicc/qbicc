@@ -31,6 +31,27 @@ public final class UnsignedIntegerType extends IntegerType {
         return this;
     }
 
+    @Override
+    public long getMaxValue() {
+        final var numBits = minBits - 1;
+        return 1L << numBits | (1L << numBits) - 1;
+    }
+
+    @Override
+    public long getMinValue() {
+        return 0;
+    }
+
+    @Override
+    public double getUpperInclusiveBound() {
+        return Math.scalb(1.0, minBits) - 1.0;
+    }
+
+    @Override
+    public double getLowerInclusiveBound() {
+        return 0;
+    }
+
     public ValueType join(final ValueType other) {
         if (other instanceof UnsignedIntegerType) {
             return join((UnsignedIntegerType) other);
