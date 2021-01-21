@@ -272,7 +272,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         ValueType valueType = node.getLeftInput().getType();
         return isFloating(valueType) ?
-               target.fcmp(FloatCondition.olt, inputType, llvmLeft, llvmRight).asLocal() :
+               target.fcmp(FloatCondition.ult, inputType, llvmLeft, llvmRight).asLocal() :
                     isSigned(valueType) ?
                       target.icmp(IntCondition.slt, inputType, llvmLeft, llvmRight).asLocal() :
                       target.icmp(IntCondition.ult, inputType, llvmLeft, llvmRight).asLocal();
@@ -300,7 +300,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         ValueType valueType = node.getLeftInput().getType();
         return isFloating(valueType) ?
-               target.fcmp(FloatCondition.ogt, inputType, llvmLeft, llvmRight).asLocal() :
+               target.fcmp(FloatCondition.ugt, inputType, llvmLeft, llvmRight).asLocal() :
                     isSigned(valueType) ?
                       target.icmp(IntCondition.sgt, inputType, llvmLeft, llvmRight).asLocal() :
                       target.icmp(IntCondition.ugt, inputType, llvmLeft, llvmRight).asLocal();
