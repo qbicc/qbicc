@@ -22,8 +22,8 @@ import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
-import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -38,6 +38,10 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
 
     public ConstantDefiningBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
+        ExecutableElement element = getCurrentElement();
+        if (element instanceof InitializerElement) {
+            NativeInfo.get(ctxt).registerInitializer((InitializerElement) element);
+        }
         this.ctxt = ctxt;
     }
 
@@ -46,9 +50,8 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             // initialize the constant if any
             InitializerElement initializerElement = fieldElement.getEnclosingType().validate().getInitializer();
             if (NativeInfo.get(ctxt).registerInitializer(initializerElement)) {
-                MethodHandle initializer = initializerElement.getMethodBody();
-                if (initializer != null) {
-                    initializer.getOrCreateMethodBody();
+                if (initializerElement.hasMethodBody()) {
+                    initializerElement.getOrCreateMethodBody();
                 }
             }
         }
