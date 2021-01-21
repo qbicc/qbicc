@@ -23,6 +23,14 @@ final class GetElementPtrImpl extends AbstractYieldingInstruction implements Get
         this.pointer = pointer;
     }
 
+    public GetElementPtr comment(final String comment) {
+        return (GetElementPtr) super.comment(comment);
+    }
+
+    public GetElementPtr meta(final String name, final LLValue data) {
+        return (GetElementPtr) super.meta(name, data);
+    }
+
     public GetElementPtr arg(final boolean inRange, final LLValue type, final LLValue index) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("index", index);
