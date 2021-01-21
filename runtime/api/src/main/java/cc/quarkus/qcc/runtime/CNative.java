@@ -299,9 +299,7 @@ public final class CNative {
      * @param <T> the word type
      * @return the word value
      */
-    public static <T extends word> T word(float floatValue) {
-        return uword(Float.floatToRawIntBits(floatValue));
-    }
+    public static native <T extends word> T word(float floatValue);
 
     /**
      * Make a word type instance directly out of the given value by zero-extending the raw 64-bit representation of the
@@ -311,13 +309,9 @@ public final class CNative {
      * @param <T> the word type
      * @return the word value
      */
-    public static <T extends word> T word(double doubleValue) {
-        return uword(Double.doubleToRawLongBits(doubleValue));
-    }
+    public static native <T extends word> T word(double doubleValue);
 
-    public static <T extends word> T word(boolean booleanValue) {
-        return word(booleanValue ? 1 : 0);
-    }
+    public static native <T extends word> T word(boolean booleanValue);
 
     public static int8_t wordExact(byte byteValue) {
         return word(byteValue);
@@ -800,9 +794,13 @@ public final class CNative {
 
     // floating point
 
+    // todo: revisit this with a more sophisticated probe
+    @name("float")
     public static final class _Float32 extends word {
     }
 
+    // todo: revisit this with a more sophisticated probe
+    @name("double")
     public static final class _Float64 extends word {
     }
 
