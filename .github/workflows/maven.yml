@@ -9,29 +9,11 @@ on:
 
 jobs:
   build-linux:
-    name: "Linux Build"
-    runs-on: ubuntu-latest
+    name: "Linux Build AArch64"
+    runs-on: [self-hosted, linux, arm64]
 
     steps:
     - name: Check out
       uses: actions/checkout@v2
-    - name: Set up JDK 
-      uses: actions/setup-java@v1
-      with:
-        java-version: 11
-    - name: Build with Maven
-      run: mvn -B package --file pom.xml
-  build-mac:
-    name: "Mac OS Build"
-    runs-on: macos-latest
-    if: ${{ false }} # because GitHub charges 10x for mac runners :-|
-
-    steps:
-    - name: Check out
-      uses: actions/checkout@v2
-    - name: Set up JDK 
-      uses: actions/setup-java@v1
-      with:
-        java-version: 11
     - name: Build with Maven
       run: mvn -B package --file pom.xml
