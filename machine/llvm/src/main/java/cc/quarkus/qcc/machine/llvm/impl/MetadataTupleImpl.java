@@ -59,7 +59,12 @@ final class MetadataTupleImpl extends AbstractMetadataNode implements MetadataTu
                 target.append(' ');
             }
 
-            value.appendTo(target);
+            if (value != null) {
+                value.appendTo(target);
+            } else {
+                target.append("null");
+            }
+
             return target;
         }
     }
