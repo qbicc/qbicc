@@ -39,7 +39,6 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
 import cc.quarkus.qcc.type.definition.MethodBody;
-import cc.quarkus.qcc.type.definition.MethodHandle;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
 import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
@@ -333,11 +332,10 @@ public class Driver implements Closeable {
             if (initializer != null) {
                 compilationContext.enqueue(initializer);
             }
-            MethodHandle methodHandle = element.getMethodBody();
-            if (methodHandle != null) {
+            if (element.hasMethodBody()) {
                 // cause method and field references to be resolved
                 try {
-                    methodHandle.getOrCreateMethodBody();
+                    element.getOrCreateMethodBody();
                 } catch (Exception e) {
                     compilationContext.error(e, element, "Exception while constructing method body: %s", e);
                 }
@@ -399,16 +397,15 @@ public class Driver implements Closeable {
             if (initializer != null) {
                 compilationContext.enqueue(initializer);
             }
-            MethodHandle methodHandle = element.getMethodBody();
-            if (methodHandle != null) {
+            if (element.hasMethodBody()) {
                 // rewrite the method body
                 ClassContext classContext = element.getEnclosingType().getContext();
-                MethodBody original = methodHandle.getOrCreateMethodBody();
+                MethodBody original = element.getOrCreateMethodBody();
                 BasicBlock entryBlock = original.getEntryBlock();
                 BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
                 BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, addToAnalyzeCopiers);
                 builder.finish();
-                methodHandle.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), original.getThisValue(), original.getParameterValues()));
+                element.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), original.getThisValue(), original.getParameterValues()));
             }
             element = compilationContext.dequeue();
         } while (element != null);
@@ -462,15 +459,10 @@ public class Driver implements Closeable {
             if (initializer != null) {
                 compilationContext.enqueue(initializer);
             }
-            MethodHandle methodHandle = element.getMethodBody();
-            out: if (methodHandle != null) {
+            if (element.hasMethodBody()) {
                 // copy to a function; todo: this should eventually be done in the lowering plugin
                 ClassContext classContext = element.getEnclosingType().getContext();
-                MethodBody original = methodHandle.getMethodBody();
-                if (original == null) {
-                    classContext.getCompilationContext().error(element, "No body created for element");
-                    break out;
-                }
+                MethodBody original = element.getMethodBody();
                 BasicBlock entryBlock = original.getEntryBlock();
                 List<Value> origParamValues = original.getParameterValues();
                 List<Value> paramValues = new ArrayList<>(origParamValues.size() + 2);

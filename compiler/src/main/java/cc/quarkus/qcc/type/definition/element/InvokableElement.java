@@ -6,7 +6,8 @@ import java.util.List;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.MethodHandle;
+import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.MethodBodyFactory;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.generic.MethodSignature;
 import cc.quarkus.qcc.type.generic.ParameterizedSignature;
@@ -21,10 +22,13 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     private final TypeAnnotationList returnVisibleTypeAnnotations;
     private final TypeAnnotationList returnInvisibleTypeAnnotations;
     private final List<ParameterElement> parameters;
-    private final MethodHandle methodBody;
     private List<TypeAnnotationList> parameterVisibleTypeAnnotations;
     private List<TypeAnnotationList> parameterInvisibleTypeAnnotations;
     private FunctionType type;
+    final MethodBodyFactory methodBodyFactory;
+    final int methodBodyFactoryIndex;
+    volatile MethodBody previousMethodBody;
+    volatile MethodBody methodBody;
 
     InvokableElement() {
         super();
@@ -33,7 +37,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.parameters = null;
         this.returnVisibleTypeAnnotations = null;
         this.returnInvisibleTypeAnnotations = null;
-        this.methodBody = null;
+        this.methodBodyFactory = null;
+        this.methodBodyFactoryIndex = 0;
     }
 
     InvokableElement(Builder builder) {
@@ -43,7 +48,44 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.parameters = builder.parameters;
         this.returnVisibleTypeAnnotations = builder.returnVisibleTypeAnnotations;
         this.returnInvisibleTypeAnnotations = builder.returnInvisibleTypeAnnotations;
-        this.methodBody = builder.methodBody;
+        this.methodBodyFactory = builder.methodBodyFactory;
+        this.methodBodyFactoryIndex = builder.methodBodyFactoryIndex;
+    }
+
+    public boolean hasMethodBody() {
+        return methodBodyFactory != null;
+    }
+
+    public MethodBody getPreviousMethodBody() {
+        return previousMethodBody;
+    }
+
+    public MethodBody getMethodBody() {
+        return methodBody;
+    }
+
+    public MethodBody getOrCreateMethodBody() {
+        MethodBody methodBody = this.methodBody;
+        if (methodBody == null) {
+            MethodBodyFactory factory = this.methodBodyFactory;
+            if (factory != null) {
+                synchronized (this) {
+                    methodBody = this.methodBody;
+                    if (methodBody == null) {
+                        this.methodBody = previousMethodBody = methodBody = factory.createMethodBody(methodBodyFactoryIndex, this);
+                    }
+                }
+            }
+        }
+        return methodBody;
+    }
+
+    public void replaceMethodBody(final MethodBody replacement) {
+        MethodBody existing = this.methodBody;
+        if (existing != null) {
+            previousMethodBody = existing;
+        }
+        this.methodBody = replacement;
     }
 
     public MethodDescriptor getDescriptor() {
@@ -52,14 +94,6 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
 
     public MethodSignature getSignature() {
         return signature;
-    }
-
-    public boolean hasMethodBody() {
-        return methodBody != null;
-    }
-
-    public MethodHandle getMethodBody() {
-        return methodBody;
     }
 
     public FunctionType getType(final List<ParameterizedSignature> signatureContext) {
@@ -115,7 +149,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         MethodSignature signature = MethodSignature.VOID_METHOD_SIGNATURE;
         TypeAnnotationList returnVisibleTypeAnnotations = TypeAnnotationList.empty();
         TypeAnnotationList returnInvisibleTypeAnnotations = TypeAnnotationList.empty();
-        MethodHandle methodBody;
+        MethodBodyFactory methodBodyFactory;
+        int methodBodyFactoryIndex;
 
         Builder() {}
 
@@ -139,8 +174,9 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
             this.returnInvisibleTypeAnnotations = Assert.checkNotNullParam("returnInvisibleTypeAnnotations", returnInvisibleTypeAnnotations);
         }
 
-        public void setMethodBody(final MethodHandle methodHandle) {
-            this.methodBody = methodHandle;
+        public void setMethodBodyFactory(final MethodBodyFactory factory, final int index) {
+            this.methodBodyFactory = Assert.checkNotNullParam("factory", factory);
+            this.methodBodyFactoryIndex = index;
         }
 
         public abstract InvokableElement build();

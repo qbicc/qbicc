@@ -5,28 +5,62 @@ import java.util.List;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.MethodHandle;
+import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.MethodBodyFactory;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.generic.MethodSignature;
 import cc.quarkus.qcc.type.generic.ParameterizedSignature;
+import io.smallrye.common.constraint.Assert;
 
 /**
  *
  */
 public final class InitializerElement extends BasicElement implements ExecutableElement {
-    final MethodHandle methodBody;
+    final MethodBodyFactory methodBodyFactory;
+    final int methodBodyFactoryIndex;
+    volatile MethodBody previousMethodBody;
+    volatile MethodBody methodBody;
 
     InitializerElement(Builder builder) {
         super(builder);
-        this.methodBody = builder.methodBody;
+        this.methodBodyFactory = builder.methodBodyFactory;
+        this.methodBodyFactoryIndex = builder.methodBodyFactoryIndex;
     }
 
     public boolean hasMethodBody() {
-        return methodBody != null;
+        return methodBodyFactory != null;
     }
 
-    public MethodHandle getMethodBody() {
+    public MethodBody getPreviousMethodBody() {
+        return previousMethodBody;
+    }
+
+    public MethodBody getMethodBody() {
         return methodBody;
+    }
+
+    public MethodBody getOrCreateMethodBody() {
+        MethodBody methodBody = this.methodBody;
+        if (methodBody == null) {
+            MethodBodyFactory factory = this.methodBodyFactory;
+            if (factory != null) {
+                synchronized (this) {
+                    methodBody = this.methodBody;
+                    if (methodBody == null) {
+                        this.methodBody = methodBody = factory.createMethodBody(methodBodyFactoryIndex, this);
+                    }
+                }
+            }
+        }
+        return methodBody;
+    }
+
+    public void replaceMethodBody(final MethodBody replacement) {
+        MethodBody existing = this.methodBody;
+        if (existing != null) {
+            previousMethodBody = existing;
+        }
+        this.methodBody = replacement;
     }
 
     public FunctionType getType(final List<ParameterizedSignature> signatureContext) {
@@ -52,12 +86,14 @@ public final class InitializerElement extends BasicElement implements Executable
     }
 
     public static final class Builder extends BasicElement.Builder implements ExecutableElement.Builder {
-        MethodHandle methodBody;
+        MethodBodyFactory methodBodyFactory;
+        int methodBodyFactoryIndex;
 
         Builder() {}
 
-        public void setMethodBody(final MethodHandle methodHandle) {
-            this.methodBody = methodHandle;
+        public void setMethodBodyFactory(final MethodBodyFactory factory, final int index) {
+            this.methodBodyFactory = Assert.checkNotNullParam("factory", factory);
+            this.methodBodyFactoryIndex = index;
         }
 
         public InitializerElement build() {

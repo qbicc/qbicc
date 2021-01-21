@@ -6,8 +6,13 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
 
+import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
@@ -17,7 +22,10 @@ import cc.quarkus.qcc.type.definition.DefineFailedException;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.EnclosedClassResolver;
 import cc.quarkus.qcc.type.definition.EnclosingClassResolver;
+import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.MethodBodyFactory;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.InvokableElement;
@@ -33,7 +41,7 @@ import cc.quarkus.qcc.type.generic.ClassTypeSignature;
 import cc.quarkus.qcc.type.generic.MethodSignature;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 
-final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, EnclosingClassResolver, EnclosedClassResolver {
+final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, EnclosingClassResolver, EnclosedClassResolver, MethodBodyFactory {
     private static final VarHandle intArrayHandle = MethodHandles.arrayElementVarHandle(int[].class);
     private static final VarHandle intArrayArrayHandle = MethodHandles.arrayElementVarHandle(int[][].class);
     private static final VarHandle literalArrayHandle = MethodHandles.arrayElementVarHandle(Literal[].class);
@@ -786,14 +794,12 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         int methodModifiers = getShort(methodOffsets[index]);
         builder.setModifiers(methodModifiers);
         builder.setName(getUtf8Constant(getShort(methodOffsets[index] + 2)));
-        boolean mayHaveExact = (methodModifiers & ACC_ABSTRACT) == 0;
-        boolean hasVirtual = (methodModifiers & (ACC_STATIC | ACC_PRIVATE)) == 0;
-        if (mayHaveExact) {
+        boolean mayHaveBody = (methodModifiers & ACC_ABSTRACT) == 0;
+        if (mayHaveBody) {
             int attrCount = getMethodAttributeCount(index);
             for (int i = 0; i < attrCount; i ++) {
                 if (methodAttributeNameEquals(index, i, "Code")) {
-                    int modifiers = getShort(methodOffsets[index]);
-                    builder.setMethodBody(new ExactMethodHandleImpl.Method(this, modifiers, index, getMethodRawAttributeContent(index, i), enclosing, this));
+                    builder.setMethodBodyFactory(this, index);
                     break;
                 }
             }
@@ -813,8 +819,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         int attrCount = getMethodAttributeCount(index);
         for (int i = 0; i < attrCount; i ++) {
             if (methodAttributeNameEquals(index, i, "Code")) {
-                int modifiers = getShort(methodOffsets[index]);
-                builder.setMethodBody(new ExactMethodHandleImpl.Constructor(this, modifiers, index, getMethodRawAttributeContent(index, i), enclosing, this));
+                builder.setMethodBodyFactory(this, index);
                 break;
             }
         }
@@ -833,8 +838,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             int attrCount = getMethodAttributeCount(index);
             for (int i = 0; i < attrCount; i ++) {
                 if (methodAttributeNameEquals(index, i, "Code")) {
-                    int modifiers = getShort(methodOffsets[index]);
-                    builder.setMethodBody(new ExactMethodHandleImpl.Initializer(this, modifiers, index, getMethodRawAttributeContent(index, i), enclosing, this));
+                    builder.setMethodBodyFactory(this, index);
                     break;
                 }
             }
@@ -1049,5 +1053,71 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
         }
         return newVal;
+    }
+
+    public MethodBody createMethodBody(final int index, final ExecutableElement element) {
+        ByteBuffer codeAttr = null;
+        int attrCount = getMethodAttributeCount(index);
+        for (int i = 0; i < attrCount; i ++) {
+            if (methodAttributeNameEquals(index, i, "Code")) {
+                codeAttr = getMethodRawAttributeContent(index, i);
+                break;
+            }
+        }
+        if (codeAttr == null) {
+            throw new IllegalArgumentException("Create method body with no method body");
+        }
+        int modifiers = element.getModifiers();
+        ClassMethodInfo classMethodInfo = new ClassMethodInfo(this, modifiers, index, codeAttr);
+        DefinedTypeDefinition enclosing = element.getEnclosingType();
+        BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder(element);
+        int offs = classMethodInfo.getCodeOffs();
+        codeAttr.position(offs);
+        codeAttr.limit(offs + classMethodInfo.getCodeLen());
+        ByteBuffer byteCode = codeAttr.slice();
+        MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, byteCode, gf);
+        Value thisValue;
+        Value[] parameters;
+        if (element instanceof InvokableElement) {
+            List<ParameterElement> elementParameters = ((InvokableElement) element).getParameters();
+            int paramCount = elementParameters.size();
+            parameters = new Value[paramCount];
+            int j = 0;
+            if ((modifiers & ClassFile.ACC_STATIC) == 0) {
+                // instance method or constructor
+                thisValue = gf.receiver(enclosing.validate().getType());
+                methodParser.setLocal(j++, thisValue);
+            } else {
+                thisValue = null;
+            }
+            for (int i = 0; i < paramCount; i ++) {
+                ValueType type = elementParameters.get(i).getType(List.of());
+                parameters[i] = gf.parameter(type, i);
+                boolean class2 = elementParameters.get(i).hasClass2Type();
+                methodParser.setLocal(j, class2 ? methodParser.fatten(parameters[i]) : parameters[i]);
+                j += class2 ? 2 : 1;
+            }
+        } else {
+            thisValue = null;
+            parameters = Value.NO_VALUES;
+        }
+        // process the main entry point
+        BlockLabel entryBlockHandle = methodParser.getBlockForIndexIfExists(0);
+        if (entryBlockHandle == null) {
+            // no loop to start block; just process it as a new block
+            entryBlockHandle = new BlockLabel();
+            gf.begin(entryBlockHandle);
+            byteCode.position(0);
+            methodParser.processNewBlock();
+        } else {
+            // we have to jump into it because there is a loop that includes index 0
+            byteCode.position(0);
+            gf.begin(new BlockLabel());
+            methodParser.processBlock(gf.goto_(entryBlockHandle));
+        }
+        gf.finish();
+        BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
+        Schedule schedule = Schedule.forMethod(entryBlock);
+        return MethodBody.of(entryBlock, schedule, thisValue, parameters);
     }
 }

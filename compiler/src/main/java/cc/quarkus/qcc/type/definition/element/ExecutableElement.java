@@ -3,7 +3,8 @@ package cc.quarkus.qcc.type.definition.element;
 import java.util.List;
 
 import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.definition.MethodHandle;
+import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.MethodBodyFactory;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.generic.MethodSignature;
 import cc.quarkus.qcc.type.generic.ParameterizedSignature;
@@ -14,7 +15,13 @@ import cc.quarkus.qcc.type.generic.ParameterizedSignature;
 public interface ExecutableElement extends MemberElement {
     boolean hasMethodBody();
 
-    MethodHandle getMethodBody();
+    MethodBody getPreviousMethodBody();
+
+    MethodBody getMethodBody();
+
+    MethodBody getOrCreateMethodBody();
+
+    void replaceMethodBody(MethodBody replacement);
 
     FunctionType getType(List<ParameterizedSignature> signatureContext);
 
@@ -23,7 +30,8 @@ public interface ExecutableElement extends MemberElement {
     MethodSignature getSignature();
 
     interface Builder extends Element.Builder {
-        void setMethodBody(MethodHandle methodHandle);
+
+        void setMethodBodyFactory(MethodBodyFactory factory, int index);
 
         ExecutableElement build();
     }
