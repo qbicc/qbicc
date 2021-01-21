@@ -2,6 +2,7 @@ package cc.quarkus.qcc.machine.llvm.impl;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import cc.quarkus.qcc.machine.llvm.LLValue;
 
@@ -96,5 +97,23 @@ abstract class AbstractEmittable implements Emittable {
 
     static <A extends Appendable> A appendHex(A target, float val) throws IOException {
         return appendHex(target, (double) val);
+    }
+
+    static <A extends Appendable> A appendEscapedString(A target, String val) throws IOException {
+        byte[] valBytes = val.getBytes(StandardCharsets.UTF_8);
+
+        target.append('"');
+        for (byte b : valBytes) {
+            if (b < ' ' || b > '~' || b == '"' || b == '\\') {
+                target.append('\\');
+                target.append(hexDigit(b >>> 4));
+                target.append(hexDigit(b & 0xf));
+            } else {
+                target.append((char)b);
+            }
+        }
+        target.append('"');
+
+        return target;
     }
 }

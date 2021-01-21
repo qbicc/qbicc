@@ -53,7 +53,6 @@ import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.ValueType;
@@ -77,6 +76,20 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
             DefinedTypeDefinition def = programModule.getTypeDefinition();
             Path path = ctxt.getOutputDirectory(def);
             final Module module = Module.newModule();
+
+            final LLValue diVersionTuple = module.metadataTuple()
+                    .elem(Types.i32, Values.intConstant(2))
+                    .elem(null, Values.metadataString("Debug Info Version"))
+                    .elem(Types.i32, Values.intConstant(3))
+                    .asRef();
+            final LLValue dwarfVersionTuple = module.metadataTuple()
+                    .elem(Types.i32, Values.intConstant(2))
+                    .elem(null, Values.metadataString("Dwarf Version"))
+                    .elem(Types.i32, Values.intConstant(4))
+                    .asRef();
+
+            module.metadataTuple("llvm.module.flags").elem(null, diVersionTuple).elem(null, dwarfVersionTuple);
+
             for (Section section : programModule.sections()) {
                 String sectionName = section.getName();
                 for (ProgramObject item : section.contents()) {

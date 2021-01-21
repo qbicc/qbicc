@@ -90,4 +90,8 @@ public final class LLVM {
     public static Struct struct() {
         return new StructImpl();
     }
+
+    public static LLValue metadataString(final String value) {
+        return new MetadataString(value);
+    }
 }
