@@ -33,6 +33,7 @@ import cc.quarkus.qcc.plugin.intrinsics.core.CoreIntrinsics;
 import cc.quarkus.qcc.plugin.layout.ObjectAccessLoweringBuilder;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.RegisterHelperBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.plugin.linker.LinkStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
@@ -252,6 +253,7 @@ public class Main {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
 
                                 builder.addPostHook(Phase.ANALYZE, new VTableBuilder());
+                                builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
                                 builder.addPostHook(Phase.ANALYZE, RTAInfo::clear);
 
                                 builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
