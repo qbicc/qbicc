@@ -62,12 +62,16 @@ import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.MemberResolvingBasicBlockBuilder;
 import cc.quarkus.qcc.tool.llvm.LlvmToolChain;
 import cc.quarkus.qcc.type.TypeSystem;
+import org.jboss.logmanager.Level;
+import org.jboss.logmanager.LogManager;
+import org.jboss.logmanager.Logger;
 
 /**
  * The main entry point.
  */
 public class Main {
     public static void main(String[] args) {
+        System.setProperty("java.util.logging.manager", LogManager.class.getName());
         final BaseDiagnosticContext initialContext = new BaseDiagnosticContext();
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);
@@ -86,6 +90,12 @@ public class Main {
                     }
                 } else if (arg.equals("--output-path") || arg.equals("-o")) {
                     outputPath = Path.of(argIter.next());
+                } else if (arg.equals("--debug")) {
+                    Logger.getLogger("").setLevel(Level.DEBUG);
+                } else if (arg.equals("--debug-vtables")) {
+                    Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables").setLevel(Level.DEBUG);
+                } else if (arg.equals("--debug-rta")) {
+                    Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
                 } else {
                     initialContext.error("Unrecognized argument \"%s\"", arg);
                     break;

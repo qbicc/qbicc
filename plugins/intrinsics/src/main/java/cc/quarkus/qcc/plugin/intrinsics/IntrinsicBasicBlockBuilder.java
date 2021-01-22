@@ -10,6 +10,7 @@ import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import org.jboss.logging.Logger;
 
 /**
  * The basic block builder which substitutes invocations of intrinsic methods.
@@ -19,6 +20,8 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
  * parsing).
  */
 public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+    public static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.intrinsics");
+
     private final CompilationContext ctxt;
 
     public IntrinsicBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
@@ -29,7 +32,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(owner, name, descriptor);
         if (intrinsic != null) {
-            ctxt.debug("[IntrinsicBasicBlockBuilder] found StaticIntrisic for owner(%s) name(%s) descriptor(%s)", owner.toString(), name, descriptor.toString());
+            log.debugf("found StaticIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
             return intrinsic.emitIntrinsic(this, owner, name, descriptor, arguments);
         }
         return super.invokeStatic(owner, name, descriptor, arguments);
@@ -38,7 +41,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         StaticValueIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticValueIntrinsic(owner, name, descriptor);
         if (intrinsic != null) {
-            ctxt.debug("[IntrinsicBasicBlockBuilder] found StaticValueIntrisic for owner(%s) name(%s) descriptor(%s)", owner.toString(), name, descriptor.toString());
+            log.debugf("found StaticValueIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
             return intrinsic.emitIntrinsic(this, owner, name, descriptor, arguments);
         }
         return super.invokeValueStatic(owner, name, descriptor, arguments);
@@ -47,7 +50,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(owner, name, descriptor);
         if (intrinsic != null) {
-            ctxt.debug("[IntrinsicBasicBlockBuilder] found InstanceIntrisic for owner(%s) name(%s) descriptor(%s)", owner.toString(), name, descriptor.toString());
+            log.debugf("found InstanceIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
             return intrinsic.emitIntrinsic(this, kind, instance, owner, name, descriptor, arguments);
         }
         return super.invokeInstance(kind, instance, owner, name, descriptor, arguments);
@@ -56,7 +59,7 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         InstanceValueIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceValueIntrinsic(owner, name, descriptor);
         if (intrinsic != null) {
-            ctxt.debug("[IntrinsicBasicBlockBuilder] found InstanceValueIntrisic for owner(%s) name(%s) descriptor(%s)", owner.toString(), name, descriptor.toString());
+            log.debugf("found InstanceValueIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
             return intrinsic.emitIntrinsic(this, kind, instance, owner, name, descriptor, arguments);
         }
         return super.invokeValueInstance(kind, instance, owner, name, descriptor, arguments);

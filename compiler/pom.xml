@@ -71,5 +71,9 @@
             <artifactId>smallrye-common-function</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>jboss-logging</artifactId>
+        </dependency>
     </dependencies>
 </project>
