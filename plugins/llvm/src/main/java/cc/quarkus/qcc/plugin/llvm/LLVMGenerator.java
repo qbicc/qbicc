@@ -132,7 +132,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
 
                         BasicBlock entryBlock = body.getEntryBlock();
                         FunctionDefinition functionDefinition = module.define(name).linkage(linkage).meta("dbg", diSubprogram.asRef());
-                        LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, this, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
+                        LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, module, diSubprogram.asRef(), this, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
                         if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                             functionDefinition.section(sectionName);
                         }

@@ -12,6 +12,7 @@ import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DICompileUnit;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIFile;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DILocation;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubroutineType;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
@@ -81,6 +82,11 @@ final class ModuleImpl implements Module {
         Assert.checkNotNullParam("filename", filename);
         Assert.checkNotNullParam("directory", directory);
         return add(new DIFileImpl(nextMetadataNodeId(), filename, directory));
+    }
+
+    public DILocation diLocation(final int line, final int column, final LLValue scope, final LLValue inlinedAt) {
+        Assert.checkNotNullParam("file", scope);
+        return add(new DILocationImpl(nextMetadataNodeId(), line, column, (AbstractValue)scope, (AbstractValue)inlinedAt));
     }
 
     public DISubprogram diSubprogram(final String name, final LLValue type, final LLValue unit) {

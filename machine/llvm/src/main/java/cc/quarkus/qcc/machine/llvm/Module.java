@@ -5,6 +5,7 @@ import java.io.IOException;
 
 import cc.quarkus.qcc.machine.llvm.debuginfo.DICompileUnit;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIFile;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DILocation;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubroutineType;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
@@ -30,6 +31,7 @@ public interface Module {
 
     DICompileUnit diCompileUnit(String language, LLValue file, DebugEmissionKind emissionKind);
     DIFile diFile(String filename, String directory);
+    DILocation diLocation(int line, int column, LLValue scope, LLValue inlinedAt);
     DISubprogram diSubprogram(String name, LLValue type, LLValue unit);
     DISubroutineType diSubroutineType(LLValue types);
 

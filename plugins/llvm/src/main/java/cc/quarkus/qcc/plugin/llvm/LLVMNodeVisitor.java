@@ -64,6 +64,7 @@ import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
 import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
@@ -81,6 +82,8 @@ import cc.quarkus.qcc.type.definition.MethodBody;
 
 final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final CompilationContext ctxt;
+    final Module module;
+    final LLValue diSubprogram;
     final LLVMGenerator gen;
     final Schedule schedule;
     final Function functionObj;
@@ -93,8 +96,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final MethodBody methodBody;
     final TriableVisitor<Try, Void> triableVisitor = new Triables();
 
-    LLVMNodeVisitor(final CompilationContext ctxt, final LLVMGenerator gen, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
+    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLValue diSubprogram, final LLVMGenerator gen, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
+        this.module = module;
+        this.diSubprogram = diSubprogram;
         this.gen = gen;
         this.schedule = schedule;
         this.functionObj = functionObj;
@@ -135,7 +140,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue value = map(node.getValue());
         LLValue type = map(((PointerType)node.getPointer().getType()).getPointeeType());
         LLValue ptr = map(node.getPointer());
-        map(schedule.getBlockForNode(node)).store(ptrType, value, type, ptr);
+        map(schedule.getBlockForNode(node)).store(ptrType, value, type, ptr).meta("dbg", dbg(node));
         return null;
     }
 
@@ -144,28 +149,28 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     public Void visit(final Void param, final Goto node) {
         map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
-        block.br(map(node.getResumeTarget()));
+        block.br(map(node.getResumeTarget())).meta("dbg", dbg(node));
         return null;
     }
 
     public Void visit(final Void param, final If node) {
         map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
-        block.br(map(node.getCondition()), map(node.getTrueBranch()), map(node.getFalseBranch()));
+        block.br(map(node.getCondition()), map(node.getTrueBranch()), map(node.getFalseBranch())).meta("dbg", dbg(node));
         return null;
     }
 
     public Void visit(final Void param, final Return node) {
         map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
-        block.ret();
+        block.ret().meta("dbg", dbg(node));
         return null;
     }
 
     public Void visit(final Void param, final Switch node) {
         map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
-        cc.quarkus.qcc.machine.llvm.op.Switch switchInst = block.switch_(i32, map(node.getSwitchValue()), map(node.getDefaultTarget()));
+        cc.quarkus.qcc.machine.llvm.op.Switch switchInst = block.switch_(i32, map(node.getSwitchValue()), map(node.getDefaultTarget())).meta("dbg", dbg(node));
 
         for (int i = 0; i < node.getNumberOfValues(); i++)
             switchInst.case_(Values.intConstant(node.getValueForIndex(i)), map(node.getTargetForIndex(i)));
@@ -181,7 +186,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     public Void visit(final Void param, final ValueReturn node) {
         map(node.getBasicDependency(0));
         LLBasicBlock block = map(schedule.getBlockForNode(node));
-        block.ret(map(node.getReturnValue().getType()), map(node.getReturnValue()));
+        block.ret(map(node.getReturnValue().getType()), map(node.getReturnValue())).meta("dbg", dbg(node));
         return null;
     }
 
@@ -210,26 +215,26 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
         return isFloating(type) ?
-               target.fadd(inputType, llvmLeft, llvmRight).asLocal() :
-               target.add(inputType, llvmLeft, llvmRight).asLocal();
+               target.fadd(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
+               target.add(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final And node) {
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        return map(schedule.getBlockForNode(node)).and(map(node.getType()), llvmLeft, llvmRight).asLocal();
+        return map(schedule.getBlockForNode(node)).and(map(node.getType()), llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Or node) {
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        return map(schedule.getBlockForNode(node)).or(map(node.getType()), llvmLeft, llvmRight).asLocal();
+        return map(schedule.getBlockForNode(node)).or(map(node.getType()), llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Xor node) {
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        return map(schedule.getBlockForNode(node)).xor(map(node.getType()), llvmLeft, llvmRight).asLocal();
+        return map(schedule.getBlockForNode(node)).xor(map(node.getType()), llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Multiply node) {
@@ -238,8 +243,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
-               target.fmul(inputType, llvmLeft, llvmRight).asLocal() :
-               target.mul(inputType, llvmLeft, llvmRight).asLocal();
+               target.fmul(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
+               target.mul(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final CmpEq node) {
@@ -249,8 +254,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getLeftInput().getType()) ?
-               target.fcmp(FloatCondition.oeq, inputType, llvmLeft, llvmRight).asLocal() :
-               target.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal();
+               target.fcmp(FloatCondition.oeq, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
+               target.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final CmpNe node) {
@@ -260,8 +265,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getLeftInput().getType()) ?
-               target.fcmp(FloatCondition.one, inputType, llvmLeft, llvmRight).asLocal() :
-               target.icmp(IntCondition.ne, inputType, llvmLeft, llvmRight).asLocal();
+               target.fcmp(FloatCondition.one, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
+               target.icmp(IntCondition.ne, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final CmpLt node) {
@@ -272,10 +277,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         ValueType valueType = node.getLeftInput().getType();
         return isFloating(valueType) ?
-               target.fcmp(FloatCondition.ult, inputType, llvmLeft, llvmRight).asLocal() :
+               target.fcmp(FloatCondition.ult, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
                     isSigned(valueType) ?
-                      target.icmp(IntCondition.slt, inputType, llvmLeft, llvmRight).asLocal() :
-                      target.icmp(IntCondition.ult, inputType, llvmLeft, llvmRight).asLocal();
+                      target.icmp(IntCondition.slt, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
+                      target.icmp(IntCondition.ult, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final CmpLe node) {
@@ -286,10 +291,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         ValueType valueType = node.getLeftInput().getType();
         return isFloating(valueType) ?
-               target.fcmp(FloatCondition.ole, inputType, llvmLeft, llvmRight).asLocal() :
+               target.fcmp(FloatCondition.ole, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
                     isSigned(valueType) ?
-                      target.icmp(IntCondition.sle, inputType, llvmLeft, llvmRight).asLocal() :
-                      target.icmp(IntCondition.ule, inputType, llvmLeft, llvmRight).asLocal();
+                      target.icmp(IntCondition.sle, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
+                      target.icmp(IntCondition.ule, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final CmpGt node) {
@@ -300,10 +305,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         ValueType valueType = node.getLeftInput().getType();
         return isFloating(valueType) ?
-               target.fcmp(FloatCondition.ugt, inputType, llvmLeft, llvmRight).asLocal() :
+               target.fcmp(FloatCondition.ugt, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
                     isSigned(valueType) ?
-                      target.icmp(IntCondition.sgt, inputType, llvmLeft, llvmRight).asLocal() :
-                      target.icmp(IntCondition.ugt, inputType, llvmLeft, llvmRight).asLocal();
+                      target.icmp(IntCondition.sgt, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
+                      target.icmp(IntCondition.ugt, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final CmpGe node) {
@@ -314,21 +319,21 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         ValueType valueType = node.getLeftInput().getType();
         return isFloating(valueType) ?
-               target.fcmp(FloatCondition.oge, inputType, llvmLeft, llvmRight).asLocal() :
+               target.fcmp(FloatCondition.oge, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
                     isSigned(valueType) ?
-                      target.icmp(IntCondition.sge, inputType, llvmLeft, llvmRight).asLocal() :
-                      target.icmp(IntCondition.uge, inputType, llvmLeft, llvmRight).asLocal();
+                      target.icmp(IntCondition.sge, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
+                      target.icmp(IntCondition.uge, inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Select node) {
         Value trueValue = node.getTrueValue();
         LLValue inputType = map(trueValue.getType());
         Value falseValue = node.getFalseValue();
-        return map(schedule.getBlockForNode(node)).select(map(node.getCondition().getType()), map(node.getCondition()), inputType, map(trueValue), map(falseValue)).asLocal();
+        return map(schedule.getBlockForNode(node)).select(map(node.getCondition().getType()), map(node.getCondition()), inputType, map(trueValue), map(falseValue)).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final PhiValue node) {
-        Phi phi = map(schedule.getBlockForNode(node)).phi(map(node.getType()));
+        Phi phi = map(schedule.getBlockForNode(node)).phi(map(node.getType())).meta("dbg", dbg(node));
         LLValue result = phi.asLocal();
         mappedValues.put(node, result);
         for (Terminator terminator : node.incomingTerminators()) {
@@ -350,7 +355,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue ptr = map(node.getPointer());
         LLValue ptrType = map(node.getPointer().getType());
         LLValue type = map(node.getType());
-        return map(schedule.getBlockForNode(node)).load(ptrType, type, ptr).asLocal();
+        return map(schedule.getBlockForNode(node)).load(ptrType, type, ptr).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Neg node) {
@@ -358,7 +363,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue inputType = map(javaInputType);
         LLValue llvmInput = map(node.getInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
-        return target.fneg(inputType, llvmInput).asLocal();
+        return target.fneg(inputType, llvmInput).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Shr node) {
@@ -367,14 +372,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isSigned(node.getType()) ?
-               target.ashr(inputType, llvmLeft, llvmRight).asLocal() :
-               target.lshr(inputType, llvmLeft, llvmRight).asLocal();
+               target.ashr(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
+               target.lshr(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Shl node) {
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
-        return map(schedule.getBlockForNode(node)).shl(map(node.getType()), llvmLeft, llvmRight).asLocal();
+        return map(schedule.getBlockForNode(node)).shl(map(node.getType()), llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Sub node) {
@@ -382,8 +387,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmRight = map(node.getRightInput());
         final var target = map(schedule.getBlockForNode(node));
         return isFloating(node.getLeftInput().getType())
-            ? target.fsub(map(node.getType()), llvmLeft, llvmRight).asLocal()
-            : target.sub(map(node.getType()), llvmLeft, llvmRight).asLocal();
+            ? target.fsub(map(node.getType()), llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal()
+            : target.sub(map(node.getType()), llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Div node) {
@@ -392,10 +397,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
-               target.fdiv(inputType, llvmLeft, llvmRight).asLocal() :
+               target.fdiv(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
                     isSigned(node.getType()) ?
-                      target.sdiv(inputType, llvmLeft, llvmRight).asLocal() :
-                      target.udiv(inputType, llvmLeft, llvmRight).asLocal();
+                      target.sdiv(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
+                      target.udiv(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Mod node) {
@@ -404,10 +409,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmRight = map(node.getRightInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(node.getType()) ?
-               target.frem(inputType, llvmLeft, llvmRight).asLocal() :
+               target.frem(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
                     isSigned(node.getType()) ?
-                      target.srem(inputType, llvmLeft, llvmRight).asLocal() :
-                      target.urem(inputType, llvmLeft, llvmRight).asLocal();
+                      target.srem(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal() :
+                      target.urem(inputType, llvmLeft, llvmRight).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final BitCast node) {
@@ -417,7 +422,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue outputType = map(javaOutputType);
         LLValue llvmInput = map(node.getInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
-        return target.bitcast(inputType, llvmInput, outputType).asLocal();
+        return target.bitcast(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Convert node) {
@@ -431,16 +436,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         }
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isPointer(javaInputType) ?
-                    target.ptrtoint(inputType, llvmInput, outputType).asLocal() :
+                    target.ptrtoint(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal() :
                     isPointer(javaOutputType) ?
-                    target.inttoptr(inputType, llvmInput, outputType).asLocal() :
+                    target.inttoptr(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal() :
                     isFloating(javaInputType) ?
                     isSigned(javaOutputType) ?
-                    target.fptosi(inputType, llvmInput, outputType).asLocal() :
-                    target.fptoui(inputType, llvmInput, outputType).asLocal() :
+                    target.fptosi(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal() :
+                    target.fptoui(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal() :
                     isSigned(javaInputType) ?
-                    target.sitofp(inputType, llvmInput, outputType).asLocal() :
-                    target.uitofp(inputType, llvmInput, outputType).asLocal();
+                    target.sitofp(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal() :
+                    target.uitofp(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Extend node) {
@@ -451,10 +456,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmInput = map(node.getInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(javaInputType) ?
-               target.fpext(inputType, llvmInput, outputType).asLocal() :
+               target.fpext(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal() :
                     isSigned(javaInputType) ?
-                    target.sext(inputType, llvmInput, outputType).asLocal() :
-                    target.zext(inputType, llvmInput, outputType).asLocal();
+                    target.sext(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal() :
+                    target.zext(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final Narrow node) {
@@ -469,8 +474,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llvmInput = map(node.getInput());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
         return isFloating(javaInputType) ?
-               target.ftrunc(inputType, llvmInput, outputType).asLocal() :
-               target.trunc(inputType, llvmInput, outputType).asLocal();
+               target.ftrunc(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal() :
+               target.trunc(inputType, llvmInput, outputType).meta("dbg", dbg(node)).asLocal();
     }
 
     public LLValue visit(final Void param, final StackAllocation node) {
@@ -479,7 +484,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue count = map(node.getCount());
         LLValue alignment = map(node.getAlign());
         LLBasicBlock target = map(schedule.getBlockForNode(node));
-        return target.alloca(pointeeType).elements(countType, count).align(alignment).asLocal();
+        return target.alloca(pointeeType).elements(countType, count).align(alignment).meta("dbg", dbg(node)).asLocal();
     }
 
     // calls
@@ -496,7 +501,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
             map(functionType.getParameterType(i));
             map(arguments.get(i));
         }
-        Call call = target.call(llType, llTarget);
+        Call call = target.call(llType, llTarget).meta("dbg", dbg(node));
         for (int i = 0; i < arguments.size(); i++) {
             call.arg(map(functionType.getParameterType(i)), map(arguments.get(i)));
         }
@@ -515,7 +520,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
             map(functionType.getParameterType(i));
             map(arguments.get(i));
         }
-        Call call = target.invoke(llType, llTarget, map(try_.getResumeTarget()), mapCatch(try_.getExceptionHandler()));
+        Call call = target.invoke(llType, llTarget, map(try_.getResumeTarget()), mapCatch(try_.getExceptionHandler())).meta("dbg", dbg(node));
         for (int i = 0; i < arguments.size(); i++) {
             call.arg(map(functionType.getParameterType(i)), map(arguments.get(i)));
         }
@@ -543,14 +548,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
             Value leftInput = add.getLeftInput();
             if (leftInput.getType() instanceof PointerType) {
                 Value index = add.getRightInput();
-                return block.getelementptr(map(((PointerType) leftInput.getType()).getPointeeType()), map(leftInput.getType()), map(leftInput)).arg(false, map(index.getType()), map(index));
+                return block.getelementptr(map(((PointerType) leftInput.getType()).getPointeeType()), map(leftInput.getType()), map(leftInput)).arg(false, map(index.getType()), map(index)).meta("dbg", dbg(current));
             } else {
                 ctxt.error(Location.builder().setNode(current).build(), "LLVM: Invalid pointer or array expression type (left input of Add must be the pointer or array)");
             }
         }
         // some other kind of pointer; we want the zeroth one (and terminate)
         PointerType pointerType = (PointerType) current.getType();
-        return block.getelementptr(map(pointerType.getPointeeType()), map(pointerType), map(current)).arg(false, i32, ZERO);
+        return block.getelementptr(map(pointerType.getPointeeType()), map(pointerType), map(current)).arg(false, i32, ZERO).meta("dbg", dbg(current));
     }
 
     // unknown node catch-all methods
@@ -570,6 +575,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     // mapping
+
+    private LLValue dbg(final Node node) {
+        return module.diLocation(node.getSourceLine(), 0, diSubprogram, null).asRef();
+    }
 
     private LLBasicBlock map(BasicBlock block) {
         LLBasicBlock mapped = mappedBlocks.get(block);
