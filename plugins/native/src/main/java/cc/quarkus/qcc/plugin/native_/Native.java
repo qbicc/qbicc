@@ -2,6 +2,9 @@ package cc.quarkus.qcc.plugin.native_;
 
 import static cc.quarkus.qcc.runtime.CNative.*;
 
+import java.util.List;
+import java.util.function.IntFunction;
+
 import cc.quarkus.qcc.runtime.CNative;
 
 final class Native {
@@ -46,5 +49,25 @@ final class Native {
 
     private static String intName(Class<?> clz) {
         return intName(clz.getName());
+    }
+
+    static <T> List<T> copyWithPrefix(List<T> orig, T newVal, IntFunction<T[]> generator) {
+        int size = orig.size();
+        if (size == 0) {
+            return List.of(newVal);
+        } else if (size == 1) {
+            return List.of(newVal, orig.get(0));
+        } else if (size == 2) {
+            return List.of(newVal, orig.get(0), orig.get(1));
+        } else if (size == 3) {
+            return List.of(newVal, orig.get(0), orig.get(1), orig.get(2));
+        } else {
+            T[] array = generator.apply(size + 1);
+            array[0] = newVal;
+            for (int i = 0; i < size; i ++) {
+                array[i + 1] = orig.get(i);
+            }
+            return List.of(array);
+        }
     }
 }

@@ -25,6 +25,7 @@ import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
@@ -41,6 +42,10 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
+        MethodElement binding = nativeInfo.getNativeBinding(owner, name, descriptor);
+        if (binding != null) {
+            return super.invokeValueStatic(binding, arguments);
+        }
         NativeFunctionInfo functionInfo = nativeInfo.getFunctionInfo(owner, name, descriptor);
         if (functionInfo != null) {
             ctxt.getOrAddProgramModule(getCurrentElement().getEnclosingType())
@@ -105,6 +110,10 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
+        MethodElement binding = nativeInfo.getNativeBinding(owner, name, descriptor);
+        if (binding != null) {
+            return super.invokeStatic(binding, arguments);
+        }
         NativeFunctionInfo functionInfo = nativeInfo.getFunctionInfo(owner, name, descriptor);
         if (functionInfo != null) {
             // todo: store current thread into TLS for recursive Java call-in
@@ -116,6 +125,10 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value input, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
+        MethodElement binding = nativeInfo.getNativeBinding(owner, name, descriptor);
+        if (binding != null) {
+            return super.invokeValueStatic(binding, Native.copyWithPrefix(arguments, input, Value[]::new));
+        }
         ValueType type = input.getType();
         LiteralFactory lf = ctxt.getLiteralFactory();
         if (type instanceof NullType) {
@@ -212,6 +225,10 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value input, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
+        MethodElement binding = nativeInfo.getNativeBinding(owner, name, descriptor);
+        if (binding != null) {
+            return super.invokeStatic(binding, Native.copyWithPrefix(arguments, input, Value[]::new));
+        }
         if (owner.equals(nativeInfo.ptrDesc) && name.equals("set")) {
             return writeArrayValue(input, arguments.get(0), arguments.get(1), JavaAccessMode.DETECT);
         }

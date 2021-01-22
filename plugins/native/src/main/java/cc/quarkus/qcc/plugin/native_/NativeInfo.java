@@ -44,6 +44,7 @@ final class NativeInfo {
     final ClassTypeDescriptor cObjectDesc;
 
     final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, NativeFunctionInfo>>> nativeFunctions = new ConcurrentHashMap<>();
+    final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, MethodElement>>> nativeBindings = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, AtomicReference<ValueType>> nativeTypes = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, MethodElement> functionalInterfaceMethods = new ConcurrentHashMap<>();
     final Set<InitializerElement> initializers = ConcurrentHashMap.newKeySet();
@@ -257,5 +258,15 @@ final class NativeInfo {
 
     public boolean registerInitializer(final InitializerElement initializerElement) {
         return initializers.add(initializerElement);
+    }
+
+    public void registerNativeBinding(final MethodElement origMethod, final MethodElement nativeMethod) {
+        nativeBindings.computeIfAbsent(origMethod.getEnclosingType().getDescriptor(), NativeInfo::newMap)
+            .computeIfAbsent(origMethod.getName(), NativeInfo::newMap)
+            .put(origMethod.getDescriptor(), nativeMethod);
+    }
+
+    public MethodElement getNativeBinding(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor) {
+        return nativeBindings.getOrDefault(owner, Map.of()).getOrDefault(name, Map.of()).get(descriptor);
     }
 }
