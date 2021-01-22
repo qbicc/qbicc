@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.plugin.main_method;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
@@ -12,6 +10,8 @@ import cc.quarkus.qcc.plugin.intrinsics.Intrinsics;
 import cc.quarkus.qcc.plugin.intrinsics.StaticIntrinsic;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
@@ -32,8 +32,9 @@ public class UserMainIntrinsic implements StaticIntrinsic {
     public static void register(CompilationContext ctxt, MethodElement mainMethod) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        TypeDescriptor runtimeMainDesc = TypeDescriptor.parseClassConstant(classContext, ByteBuffer.wrap("cc/quarkus/qcc/runtime/main/Main".getBytes(StandardCharsets.UTF_8)));
-        MethodDescriptor runtimeMainMethodDesc = MethodDescriptor.parse(classContext, ByteBuffer.wrap(("([L" + "java/lang/String;)V").getBytes(StandardCharsets.UTF_8)));
+        TypeDescriptor runtimeMainDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/Main");
+        MethodDescriptor runtimeMainMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V,
+            List.of(ClassTypeDescriptor.synthesize(classContext, "java/lang/String")));
         intrinsics.registerIntrinsic(runtimeMainDesc, "userMain", runtimeMainMethodDesc, new UserMainIntrinsic(mainMethod));
     }
 }

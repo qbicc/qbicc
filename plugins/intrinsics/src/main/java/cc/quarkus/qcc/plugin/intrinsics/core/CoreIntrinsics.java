@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.plugin.intrinsics.core;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.JavaAccessMode;
@@ -14,6 +13,7 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
@@ -41,7 +41,8 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic returnNull = (builder, owner, name, descriptor, arguments) ->
             builder.getCurrentElement().getEnclosingType().getContext().getCompilationContext().getLiteralFactory().literalOfNull();
         intrinsics.registerIntrinsic(systemDesc, "getSecurityManager",
-            MethodDescriptor.parse(classContext, ByteBuffer.wrap("()Ljava/lang/SecurityManager;".getBytes(StandardCharsets.UTF_8))),
+            MethodDescriptor.synthesize(classContext,
+                ClassTypeDescriptor.synthesize(classContext,"java/lang/SecurityManager"), List.of()),
             returnNull);
 
         // System public API
@@ -56,7 +57,9 @@ public final class CoreIntrinsics {
 
         // Setters
 
-        MethodDescriptor setPrintStreamDesc = MethodDescriptor.parse(classContext, ByteBuffer.wrap("(Ljava/io/PrintStream;)V".getBytes(StandardCharsets.UTF_8)));
+        MethodDescriptor setPrintStreamDesc =
+            MethodDescriptor.synthesize(classContext,
+                BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(classContext, ("java/io/PrintStream"))));
 
         intrinsics.registerIntrinsic(systemDesc, "setIn", setPrintStreamDesc, setVolatile(in));
         intrinsics.registerIntrinsic(systemDesc, "setOut", setPrintStreamDesc, setVolatile(out));
@@ -70,7 +73,9 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
 
         // Object#getClass()Ljava/lang/Class; --> field read of the "klass" field
-        MethodDescriptor getClassDesc = MethodDescriptor.parse(classContext, ByteBuffer.wrap("()Ljava/lang/Class;".getBytes(StandardCharsets.UTF_8)));
+        MethodDescriptor getClassDesc =
+            MethodDescriptor.synthesize(classContext,
+                ClassTypeDescriptor.synthesize(classContext, "java/lang/Class"), List.of());
         final FieldElement classFieldElement = layout.getObjectClassField();
         InstanceValueIntrinsic getClassIntrinsic = (builder, kind, instance, owner, name, descriptor, arguments) ->
             builder.readInstanceField(instance, classFieldElement, JavaAccessMode.PLAIN);

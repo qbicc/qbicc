@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.interpreter.impl;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,6 +20,7 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import io.smallrye.common.constraint.Assert;
 
@@ -34,8 +35,8 @@ public final class VmImpl implements Vm {
         loadClass = bcc.findDefinedType("java/lang/ClassLoader")
             .validate()
             .resolveMethodElementExact("loadClass",
-                MethodDescriptor.parse(bcc, ByteBuffer.wrap("(Ljava/lang/String;)Ljava/lang/Class;".getBytes(StandardCharsets.UTF_8)))
-            );
+                MethodDescriptor.synthesize(bcc, ClassTypeDescriptor.synthesize(bcc, "java/lang/String"),
+                                            List.of(ClassTypeDescriptor.synthesize(bcc, "java/lang/Class"))));
     }
 
     public CompilationContext getCompilationContext() {
