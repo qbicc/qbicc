@@ -8,6 +8,7 @@ import cc.quarkus.qcc.machine.llvm.op.Instruction;
 abstract class AbstractInstruction extends AbstractMetable implements Instruction {
 
     AbstractInstruction() {
+        metaHasComma = true;
     }
 
     public Instruction meta(final String name, final LLValue data) {
