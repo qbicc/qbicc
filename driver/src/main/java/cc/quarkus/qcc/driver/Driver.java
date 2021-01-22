@@ -47,11 +47,13 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 
 /**
  * A simple driver to run all the stages of compilation.
  */
 public class Driver implements Closeable {
+    private static final Logger log = Logger.getLogger("cc.quarkus.qcc.driver");
 
     static final String MODULE_INFO = "module-info.class";
 
@@ -262,7 +264,8 @@ public class Driver implements Closeable {
                 ctxt.defineClass(name, def);
                 return def;
             } catch (Exception e) {
-                ctxt.getCompilationContext().warning(e, "Failed to load class \"%s\" from the bootstrap loader due to an exception: %s", name, e);
+                log.warnf(e, "An exception was thrown while loading class \"%s\" from the bootstrap loader", name);
+                ctxt.getCompilationContext().warning("Failed to load class \"%s\" from the bootstrap loader due to an exception: %s", name, e);
                 return null;
             }
         }
@@ -282,7 +285,8 @@ public class Driver implements Closeable {
         try {
             return clazz.validate().resolve();
         } catch (Exception ex) {
-            compilationContext.error(ex, "Failed to resolve bootstrap class \"%s\": %s", name, ex);
+            log.error("An exception was thrown while resolving a bootstrap class", ex);
+            compilationContext.error("Failed to resolve bootstrap class \"%s\": %s", name, ex);
             return null;
         }
     }
@@ -301,7 +305,8 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.error(e, "Pre-additive hook failed: %s", e);
+                log.error("An exception was thrown in a pre-add hook", e);
+                compilationContext.error(e, "Pre-add hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -337,7 +342,8 @@ public class Driver implements Closeable {
                 try {
                     element.getOrCreateMethodBody();
                 } catch (Exception e) {
-                    compilationContext.error(e, element, "Exception while constructing method body: %s", e);
+                    log.error("An exception was thrown while constructing a method body", e);
+                    compilationContext.error(element, "Exception while constructing method body: %s", e);
                 }
             }
             element = compilationContext.dequeue();
@@ -352,7 +358,8 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.error(e, "Post-additive hook failed: %s", e);
+                log.error("An exception was thrown in a post-add hook", e);
+                compilationContext.error("Post-add hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -375,7 +382,8 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.error(e, "Pre-analytic hook failed: %s", e);
+                log.error("An exception was thrown in a pre-analyze hook", e);
+                compilationContext.error("Pre-analyze hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -419,7 +427,8 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.error(e, "Post-analyze hook failed: %s", e);
+                log.error("An exception was thrown in a post-analyze hook", e);
+                compilationContext.error("Post-analyze hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -437,7 +446,8 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.error(e, "Pre-lower hook failed: %s", e);
+                log.error("An exception was thrown in a pre-lower hook", e);
+                compilationContext.error("Pre-lower hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -493,7 +503,8 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.error(e, "Post-lower hook failed: %s", e);
+                log.error("An exception was thrown in a post-lower hook", e);
+                compilationContext.error("Post-lower hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -509,7 +520,8 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.error(e, "Pre-generate hook failed: %s", e);
+                log.error("An exception was thrown in a pre-generate hook", e);
+                compilationContext.error("Pre-generate hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
@@ -531,7 +543,8 @@ public class Driver implements Closeable {
                 try {
                     element.accept(elementVisitor, compilationContext);
                 } catch (Exception e) {
-                    compilationContext.error(e, element, "Element visitor threw an exception: %s", e);
+                    log.error("An exception was thrown in an element visitor", e);
+                    compilationContext.error(element, "Element visitor threw an exception: %s", e);
                 }
             }
             element = compilationContext.dequeue();
@@ -548,7 +561,8 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                compilationContext.error(e, "Post-generate hook failed: %s", e);
+                log.error("An exception was thrown in a post-generate hook", e);
+                compilationContext.error("Post-generate hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {
                 // bail out
