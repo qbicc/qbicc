@@ -11,6 +11,7 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import org.jboss.logging.Logger;
 
 /**
  * A block builder stage which recursively enqueues all referenced executable elements.
@@ -18,7 +19,7 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
  * the set of reachable call sites and instantiated types.
  */
 public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
-    private static final boolean DEBUG_RTA = false;
+    private static final Logger rtaLog = Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta");
 
     private final CompilationContext ctxt;
 
@@ -74,7 +75,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                         MethodElement overiddenMethod = type.getSuperClass().resolveMethodElementVirtual(defMethod.getName(), defMethod.getDescriptor());
                         if (overiddenMethod != null && ctxt.wasEnqueued(overiddenMethod)) {
                             ctxt.enqueue(defMethod);
-                            if (DEBUG_RTA) ctxt.debug("Enqueued method (defined in added type): " + defMethod);
+                            rtaLog.debugf("Enqueued method (defined in added type): %s", defMethod);
                         }
                     }
                 }
@@ -83,7 +84,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private void processNewTarget(final MethodElement target) {
-        if (DEBUG_RTA) ctxt.debug("Adding method (invoke target): " + target);
+        rtaLog.debugf("Adding method (invoke target): %s", target);
         // Traverse the instantiated subclasses of target's defining class and
         // ensure that all overriding implementations of this method are marked invokable.
         ValidatedTypeDefinition definingClass = target.getEnclosingType().validate();
@@ -91,7 +92,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         info.visitLiveSubclasses(target.getEnclosingType().validate(), (sc) -> {
             MethodElement cand = sc.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
             if (!ctxt.wasEnqueued(cand)) {
-                if (DEBUG_RTA) ctxt.debug("Adding method (subclass override): "+cand);
+                rtaLog.debugf("Adding method (subclass override): %s", cand);
                 ctxt.enqueue(cand);
             }
         });

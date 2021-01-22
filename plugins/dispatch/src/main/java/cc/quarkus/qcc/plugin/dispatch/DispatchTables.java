@@ -1,19 +1,21 @@
 package cc.quarkus.qcc.plugin.dispatch;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import cc.quarkus.qcc.context.AttachmentKey;
+import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
+import org.jboss.logging.Logger;
+
 public class DispatchTables {
+    private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch");
+    private static final Logger vtLog = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables");
+
     private static final AttachmentKey<DispatchTables> KEY = new AttachmentKey<>();
-    private static final boolean DEBUG_VTABLES = false;
 
     private final CompilationContext ctxt;
     private final Map<ValidatedTypeDefinition, MethodElement[]> vtables = new ConcurrentHashMap<>();
@@ -39,26 +41,26 @@ public class DispatchTables {
     }
 
     void buildFilteredVTable(ValidatedTypeDefinition cls) {
-        if (DEBUG_VTABLES) ctxt.debug("Building VTable for "+cls.getDescriptor());
+        log.debugf("Building VTable for %s", cls.getDescriptor());
 
         MethodElement[] inherited = cls.hasSuperClass() ? getVTable(cls.getSuperClass()) : MethodElement.NO_METHODS;
         ArrayList<MethodElement> vtableVector = new ArrayList<>(List.of(inherited));
-        if (DEBUG_VTABLES) ctxt.debug("\t inheriting %d methods", inherited.length);
+        vtLog.debugf("\t inheriting %d methods", inherited.length);
         outer: for (int i=0; i<cls.getMethodCount(); i++) {
             MethodElement m = cls.getMethod(i);
             if (!m.isStatic() && ctxt.wasEnqueued(m)) {
                 for (int j=0; j<inherited.length; j++) {
                     if (m.getName().equals(inherited[j].getName()) && m.getDescriptor().equals(inherited[j].getDescriptor())) {
-                        if (DEBUG_VTABLES) ctxt.debug("\tfound override for %s%s", m.getName(), m.getDescriptor().toString());
+                        vtLog.debugf("\tfound override for %s%s", m.getName(), m.getDescriptor().toString());
                         vtableVector.set(j, m);
                         continue  outer;
                     }
                 }
-                if (DEBUG_VTABLES) ctxt.debug("\tadded new method  %s%s", m.getName(), m.getDescriptor().toString());
+                vtLog.debugf("\tadded new method  %s%s", m.getName(), m.getDescriptor().toString());
                 vtableVector.add(m);
             }
         }
 
-        vtables.put(cls, vtableVector.toArray(new MethodElement[vtableVector.size()]));
+        vtables.put(cls, vtableVector.toArray(MethodElement.NO_METHODS));
     }
 }
