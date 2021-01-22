@@ -40,6 +40,8 @@ import cc.quarkus.qcc.machine.llvm.Struct;
 import cc.quarkus.qcc.machine.llvm.StructType;
 import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DISubroutineType;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 import cc.quarkus.qcc.object.Data;
@@ -61,6 +63,7 @@ import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.element.Element;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -101,13 +104,34 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                     String name = item.getName();
                     Linkage linkage = map(item.getLinkage());
                     if (item instanceof Function) {
+                        Element element = ((Function) item).getOriginalElement();
                         MethodBody body = ((Function) item).getBody();
                         if (body == null) {
                             ctxt.error("Function `%s` has no body", name);
                             continue;
                         }
+
+                        String sourceFileName = element.getSourceFileName();
+                        String sourceFileDirectory = "";
+
+                        if (sourceFileName != null) {
+                            String typeName = element.getEnclosingType().getInternalName();
+                            int typeNamePackageEnd = typeName.lastIndexOf('/');
+
+                            if (typeNamePackageEnd != -1) {
+                                sourceFileDirectory = typeName.substring(0, typeNamePackageEnd);
+                            }
+                        } else {
+                            sourceFileName = "<unknown>";
+                        }
+
+                        // TODO Generate correct subroutine types
+                        DISubroutineType type = module.diSubroutineType(module.metadataTuple().elem(null, null).asRef());
+                        DISubprogram diSubprogram = module.diSubprogram(name, type.asRef(), compileUnit)
+                                .location(module.diFile(sourceFileName, sourceFileDirectory).asRef(), 0, 0);
+
                         BasicBlock entryBlock = body.getEntryBlock();
-                        FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
+                        FunctionDefinition functionDefinition = module.define(name).linkage(linkage).meta("dbg", diSubprogram.asRef());
                         LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, this, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
                         if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                             functionDefinition.section(sectionName);

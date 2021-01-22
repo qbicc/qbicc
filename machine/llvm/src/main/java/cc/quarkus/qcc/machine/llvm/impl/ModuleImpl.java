@@ -12,6 +12,8 @@ import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DICompileUnit;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIFile;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DISubroutineType;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
 import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataTuple;
 import io.smallrye.common.constraint.Assert;
@@ -79,6 +81,17 @@ final class ModuleImpl implements Module {
         Assert.checkNotNullParam("filename", filename);
         Assert.checkNotNullParam("directory", directory);
         return add(new DIFileImpl(nextMetadataNodeId(), filename, directory));
+    }
+
+    public DISubprogram diSubprogram(final String name, final LLValue type, final LLValue unit) {
+        Assert.checkNotNullParam("name", name);
+        Assert.checkNotNullParam("unit", unit);
+        return add(new DISubprogramImpl(nextMetadataNodeId(), name, (AbstractValue)type, (AbstractValue)unit));
+    }
+
+    public DISubroutineType diSubroutineType(final LLValue types) {
+        Assert.checkNotNullParam("types", types);
+        return add(new DISubroutineTypeImpl(nextMetadataNodeId(), (AbstractValue)types));
     }
 
     int nextGlobalId() {

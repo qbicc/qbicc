@@ -3,8 +3,11 @@ package cc.quarkus.qcc.machine.llvm.impl;
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.EnumSet;
 
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DIFlags;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DISPFlags;
 
 abstract class AbstractEmittable implements Emittable {
     public abstract Appendable appendTo(Appendable target) throws IOException;
@@ -113,6 +116,46 @@ abstract class AbstractEmittable implements Emittable {
             }
         }
         target.append('"');
+
+        return target;
+    }
+
+    static <A extends Appendable> A appendDiFlags(A target, EnumSet<DIFlags> flags) throws IOException {
+        if (flags.isEmpty()) {
+            target.append("DIFlagZero");
+        } else {
+            boolean first = true;
+
+            for (DIFlags flag : flags) {
+                if (first) {
+                    first = false;
+                } else {
+                    target.append(" | ");
+                }
+
+                target.append(flag.name);
+            }
+        }
+
+        return target;
+    }
+
+    static <A extends Appendable> A appendDiSpFlags(A target, EnumSet<DISPFlags> flags) throws IOException {
+        if (flags.isEmpty()) {
+            target.append("DISPFlagZero");
+        } else {
+            boolean first = true;
+
+            for (DISPFlags flag : flags) {
+                if (first) {
+                    first = false;
+                } else {
+                    target.append(" | ");
+                }
+
+                target.append(flag.name);
+            }
+        }
 
         return target;
     }
