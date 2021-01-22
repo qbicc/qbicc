@@ -25,12 +25,18 @@ public final class Types {
 
     public static final LLValue void_ = LLVM.void_;
 
+    public static final LLValue metadata = LLVM.metadata;
+
     public static LLValue ptrTo(LLValue type) {
         return LLVM.ptrTo(type, 0);
     }
 
     public static LLValue ptrTo(LLValue type, int addrSpace) {
         return LLVM.ptrTo(type, addrSpace);
+    }
+
+    public static LLValue metadata(LLValue type) {
+        return LLVM.metadata(type);
     }
 
     public static LLValue array(int dimension, LLValue elementType) {
