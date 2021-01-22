@@ -40,6 +40,8 @@ import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
 import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.lowering.StaticFieldLoweringBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.lowering.ThrowExceptionHelper;
+import cc.quarkus.qcc.plugin.lowering.ThrowLoweringBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.main_method.AddMainClassHook;
 import cc.quarkus.qcc.plugin.main_method.MainMethod;
 import cc.quarkus.qcc.plugin.native_.ConstTypeResolver;
@@ -237,6 +239,7 @@ public class Main {
 
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, Layout::get);
+                                builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CloneConversionBasicBlockBuilder::new);
@@ -268,6 +271,7 @@ public class Main {
 
                                 builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
 
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldLoweringBasicBlockBuilder::new);
