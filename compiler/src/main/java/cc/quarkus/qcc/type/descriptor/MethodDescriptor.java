@@ -95,5 +95,9 @@ public final class MethodDescriptor extends Descriptor {
         return Cache.get(classContext).getMethodDescriptor(paramTypes, TypeDescriptor.parse(classContext, buf));
     }
 
+    public static MethodDescriptor synthesize(ClassContext classContext, TypeDescriptor returnType, List<TypeDescriptor> paramTypes) {
+        return cc.quarkus.qcc.type.descriptor.Cache.get(classContext).getMethodDescriptor(paramTypes, returnType);
+    }
+
     public static final MethodDescriptor VOID_METHOD_DESCRIPTOR = new MethodDescriptor(List.of(), BaseTypeDescriptor.V);
 }
