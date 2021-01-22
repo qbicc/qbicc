@@ -10,6 +10,9 @@ import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.Global;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DICompileUnit;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DIFile;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
 import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataTuple;
 import io.smallrye.common.constraint.Assert;
 
@@ -20,6 +23,8 @@ final class ModuleImpl implements Module {
     private final List<Emittable> items = new ArrayList<>();
     private int globalCounter;
     private int metadataNodeCounter;
+
+    private MetadataTuple compileUnits;
 
     private <E extends Emittable> E add(E item) {
         items.add(item);
@@ -53,6 +58,27 @@ final class ModuleImpl implements Module {
     public MetadataTuple metadataTuple(final String name) {
         Assert.checkNotNullParam("name", name);
         return add(new MetadataTupleImpl(name));
+    }
+
+    public DICompileUnit diCompileUnit(final String language, final LLValue file, final DebugEmissionKind emissionKind) {
+        Assert.checkNotNullParam("language", language);
+        Assert.checkNotNullParam("file", file);
+        Assert.checkNotNullParam("emissionKind", emissionKind);
+
+        DICompileUnitImpl diCompileUnit = new DICompileUnitImpl(nextMetadataNodeId(), language, (AbstractValue)file, emissionKind);
+
+        if (compileUnits == null) {
+            compileUnits = metadataTuple("llvm.dbg.cu");
+        }
+        compileUnits.elem(null, diCompileUnit.asRef());
+
+        return add(diCompileUnit);
+    }
+
+    public DIFile diFile(final String filename, final String directory) {
+        Assert.checkNotNullParam("filename", filename);
+        Assert.checkNotNullParam("directory", directory);
+        return add(new DIFileImpl(nextMetadataNodeId(), filename, directory));
     }
 
     int nextGlobalId() {

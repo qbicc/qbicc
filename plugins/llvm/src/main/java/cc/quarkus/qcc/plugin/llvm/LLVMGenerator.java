@@ -40,6 +40,7 @@ import cc.quarkus.qcc.machine.llvm.Struct;
 import cc.quarkus.qcc.machine.llvm.StructType;
 import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 import cc.quarkus.qcc.object.Data;
 import cc.quarkus.qcc.object.DataDeclaration;
@@ -89,6 +90,10 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                     .asRef();
 
             module.metadataTuple("llvm.module.flags").elem(null, diVersionTuple).elem(null, dwarfVersionTuple);
+
+            // TODO Generate correct filenames
+            final LLValue compileUnit = module.diCompileUnit("DW_LANG_Java", module.diFile("<stdin>", "").asRef(), DebugEmissionKind.FullDebug)
+                    .asRef();
 
             for (Section section : programModule.sections()) {
                 String sectionName = section.getName();
