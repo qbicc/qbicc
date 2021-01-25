@@ -273,6 +273,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().return_(value);
     }
 
+    public BasicBlock unreachable() {
+        return getDelegate().unreachable();
+    }
+
     public BasicBlock throw_(final Value value) {
         return getDelegate().throw_(value);
     }

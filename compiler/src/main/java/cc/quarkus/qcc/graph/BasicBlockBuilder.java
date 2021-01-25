@@ -338,6 +338,8 @@ public interface BasicBlockBuilder {
 
     BasicBlock return_(Value value);
 
+    BasicBlock unreachable();
+
     BasicBlock throw_(Value value);
 
     BasicBlock switch_(Value value, int[] checkValues, BlockLabel[] targets, BlockLabel defaultTarget);

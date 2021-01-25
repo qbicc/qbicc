@@ -20,6 +20,7 @@ import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
 import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
+import cc.quarkus.qcc.machine.llvm.op.Instruction;
 import cc.quarkus.qcc.machine.llvm.op.LandingPad;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
@@ -125,9 +126,10 @@ final class BasicBlockImpl extends AbstractEmittable implements LLBasicBlock {
         return switchInst;
     }
 
-    public void unreachable() {
+    public Instruction unreachable() {
         checkTerminated();
         terminator = Unreachable.INSTANCE;
+        return Unreachable.INSTANCE;
     }
 
     public Call invoke(final LLValue type, final LLValue function, final LLBasicBlock normal, final LLBasicBlock unwind) {

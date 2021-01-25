@@ -44,6 +44,8 @@ public interface TerminatorVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, Unreachable node) { return visitUnknown(param, node); }
+
     // Errors
 
     default R visit(T param, ClassCastErrorNode node) {
@@ -82,6 +84,10 @@ public interface TerminatorVisitor<T, R> {
         }
 
         default R visit(T param, Return node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Unreachable node) {
             return getDelegateTerminatorVisitor().visit(param, node);
         }
 

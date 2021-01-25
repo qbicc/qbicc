@@ -54,6 +54,7 @@ import cc.quarkus.qcc.graph.Triable;
 import cc.quarkus.qcc.graph.TriableVisitor;
 import cc.quarkus.qcc.graph.Truncate;
 import cc.quarkus.qcc.graph.Try;
+import cc.quarkus.qcc.graph.Unreachable;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
@@ -161,6 +162,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         block.ret();
         return null;
     }
+
+    public Void visit(final Void param, final Unreachable node) {
+        map(node.getBasicDependency(0));
+        LLBasicBlock block = map(schedule.getBlockForNode(node));
+        block.unreachable();
+        return null;
+    }
+
 
     public Void visit(final Void param, final Switch node) {
         map(node.getBasicDependency(0));

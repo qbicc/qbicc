@@ -77,6 +77,7 @@ import cc.quarkus.qcc.graph.Truncate;
 import cc.quarkus.qcc.graph.Try;
 import cc.quarkus.qcc.graph.TypeIdOf;
 import cc.quarkus.qcc.graph.UnaryValue;
+import cc.quarkus.qcc.graph.Unreachable;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
@@ -281,6 +282,18 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "shape", "rectangle");
         attr(param, "style", "diagonals, filled");
         attr(param, "label", "return");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getDependency());
+        return name;
+    }
+
+    public String visit(final Appendable param, final Unreachable node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "rectangle");
+        attr(param, "style", "diagonals, filled");
+        attr(param, "label", "unreachable");
         attr(param, "fixedsize", "shape");
         nl(param);
         addEdge(param, node, node.getDependency());
