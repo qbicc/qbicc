@@ -11,13 +11,14 @@ import io.smallrye.common.constraint.Assert;
  */
 abstract class AbstractMetable extends AbstractCommentable implements Metable {
     MetaItem lastMetaItem;
+    boolean metaHasComma;
 
     AbstractMetable() {}
 
     public Metable meta(final String name, final LLValue data) {
         Assert.checkNotNullParam("name", name);
         Assert.checkNotNullParam("data", data);
-        lastMetaItem = new MetaItem(lastMetaItem, name, (AbstractValue) data);
+        lastMetaItem = new MetaItem(this, lastMetaItem, name, (AbstractValue) data);
         return this;
     }
 
@@ -40,11 +41,13 @@ abstract class AbstractMetable extends AbstractCommentable implements Metable {
     }
 
     static final class MetaItem extends AbstractEmittable {
+        final AbstractMetable parent;
         final MetaItem prev;
         final String name;
         final AbstractValue metaValue;
 
-        MetaItem(final MetaItem prev, final String name, final AbstractValue metaValue) {
+        MetaItem(final AbstractMetable parent, final MetaItem prev, final String name, final AbstractValue metaValue) {
+            this.parent = parent;
             this.prev = prev;
             this.name = name;
             this.metaValue = metaValue;
@@ -54,7 +57,10 @@ abstract class AbstractMetable extends AbstractCommentable implements Metable {
             if (prev != null) {
                 prev.appendTo(target);
             }
-            target.append(',').append(' ').append('!').append(name).append(' ');
+            if (parent.metaHasComma) {
+                target.append(',');
+            }
+            target.append(' ').append('!').append(name).append(' ');
             metaValue.appendTo(target);
             return target;
         }

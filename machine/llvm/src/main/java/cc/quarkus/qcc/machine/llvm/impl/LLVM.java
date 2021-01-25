@@ -34,6 +34,8 @@ public final class LLVM {
 
     public static final LLValue void_ = new SingleWord("void");
 
+    public static final LLValue metadata = new MetadataType(null);
+
     public static final LLValue ZERO = new IntConstant(0);
 
     public static final LLValue FALSE = new SingleWord("false");
@@ -45,6 +47,10 @@ public final class LLVM {
 
     public static LLValue ptrTo(LLValue type, int addrSpace) {
         return new PointerTo((AbstractValue) type, addrSpace);
+    }
+
+    public static LLValue metadata(LLValue type) {
+        return type == null ? metadata : new MetadataType((AbstractValue)type);
     }
 
     public static LLValue arrayType(int dimension, LLValue elementType) {

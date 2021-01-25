@@ -6,6 +6,8 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
  *
  */
 public interface Element {
+    String getSourceFileName();
+
     int getModifiers();
 
     int getIndex();
