@@ -319,6 +319,11 @@ public interface Node {
                 return param.getBlockBuilder().return_();
             }
 
+            public BasicBlock visit(Copier param, Unreachable node) {
+                param.copyNode(node.getBasicDependency(0));
+                return param.getBlockBuilder().unreachable();
+            }
+
             public BasicBlock visit(Copier param, Switch node) {
                 param.copyNode(node.getBasicDependency(0));
                 int cnt = node.getNumberOfValues();

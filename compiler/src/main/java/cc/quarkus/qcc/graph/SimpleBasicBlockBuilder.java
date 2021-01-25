@@ -512,6 +512,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return terminate(requireCurrentBlock(), new ValueReturn(element, line, bci, blockEntry, dependency, value));
     }
 
+    public BasicBlock unreachable() {
+        return terminate(requireCurrentBlock(), new Unreachable(element, line, bci, blockEntry, dependency));
+    }
+
     public BasicBlock throw_(final Value value) {
         return terminate(requireCurrentBlock(), new Throw(element, line, bci, blockEntry, dependency, value));
     }

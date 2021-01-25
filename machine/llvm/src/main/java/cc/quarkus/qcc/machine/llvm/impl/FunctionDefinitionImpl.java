@@ -24,6 +24,7 @@ import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
 import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
+import cc.quarkus.qcc.machine.llvm.op.Instruction;
 import cc.quarkus.qcc.machine.llvm.op.LandingPad;
 import cc.quarkus.qcc.machine.llvm.op.Load;
 import cc.quarkus.qcc.machine.llvm.op.NuwNswBinary;
@@ -211,16 +212,16 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         return rootBlock.ret(type, val);
     }
 
+    public Instruction unreachable() {
+        return rootBlock.unreachable();
+    }
+
     public Select select(final LLValue condType, final LLValue cond, final LLValue valueType, final LLValue trueValue, final LLValue falseValue) {
         return rootBlock.select(condType, cond, valueType, trueValue, falseValue);
     }
 
     public Switch switch_(final LLValue type, final LLValue value, final LLBasicBlock defaultTarget) {
         return rootBlock.switch_(type, value, defaultTarget);
-    }
-
-    public void unreachable() {
-        rootBlock.unreachable();
     }
 
     public LandingPad landingpad(final LLValue resultType) {
