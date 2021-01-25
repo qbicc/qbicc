@@ -5,7 +5,6 @@ import java.nio.ByteBuffer;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;

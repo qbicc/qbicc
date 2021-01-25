@@ -2,13 +2,13 @@ package cc.quarkus.qcc.interpreter;
 
 @SuppressWarnings("serial")
 public final class Thrown extends RuntimeException {
-    private final VmObject throwable;
+    private final VmThrowable throwable;
 
-    public Thrown(final VmObject throwable) {
+    public Thrown(final VmThrowable throwable) {
         this.throwable = throwable;
     }
 
-    public VmObject getThrowable() {
+    public VmThrowable getThrowable() {
         return throwable;
     }
 }
