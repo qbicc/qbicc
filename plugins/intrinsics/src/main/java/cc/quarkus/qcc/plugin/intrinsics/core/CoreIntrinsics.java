@@ -3,12 +3,15 @@ package cc.quarkus.qcc.plugin.intrinsics.core;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.JavaAccessMode;
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.plugin.intrinsics.InstanceValueIntrinsic;
 import cc.quarkus.qcc.plugin.intrinsics.Intrinsics;
 import cc.quarkus.qcc.plugin.intrinsics.StaticIntrinsic;
 import cc.quarkus.qcc.plugin.intrinsics.StaticValueIntrinsic;
 import cc.quarkus.qcc.plugin.layout.Layout;
+import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
@@ -24,6 +27,7 @@ public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangObjectIntrinsics(ctxt);
+        registerJavaLangIntegerLongMathIntrinsics(ctxt);
     }
 
     private static StaticIntrinsic setVolatile(FieldElement field) {
@@ -64,6 +68,51 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(systemDesc, "setIn", setPrintStreamDesc, setVolatile(in));
         intrinsics.registerIntrinsic(systemDesc, "setOut", setPrintStreamDesc, setVolatile(out));
         intrinsics.registerIntrinsic(systemDesc, "setErr", setPrintStreamDesc, setVolatile(err));
+    }
+
+    public static void registerJavaLangIntegerLongMathIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        // Mathematical intrinsics
+
+        ClassTypeDescriptor integerDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Integer");
+        ClassTypeDescriptor longDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Long");
+
+        // binary operations
+
+        MethodDescriptor binaryIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.I, BaseTypeDescriptor.I));
+        MethodDescriptor binaryLongDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J, BaseTypeDescriptor.J));
+        MethodDescriptor longIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J, BaseTypeDescriptor.I));
+
+        StaticValueIntrinsic divideUnsigned = (builder, owner, name, descriptor, arguments) ->
+            builder.divide(asUnsigned(builder, arguments.get(0)), asUnsigned(builder, arguments.get(1)));
+
+        StaticValueIntrinsic remainderUnsigned = (builder, owner, name, descriptor, arguments) ->
+            builder.remainder(asUnsigned(builder, arguments.get(0)), asUnsigned(builder, arguments.get(1)));
+
+        intrinsics.registerIntrinsic(integerDesc, "divideUnsigned", binaryIntDesc, divideUnsigned);
+        intrinsics.registerIntrinsic(longDesc, "divideUnsigned", binaryLongDesc, divideUnsigned);
+
+        intrinsics.registerIntrinsic(integerDesc, "remainderUnsigned", binaryIntDesc, remainderUnsigned);
+        intrinsics.registerIntrinsic(longDesc, "remainderUnsigned", binaryLongDesc, remainderUnsigned);
+
+        StaticValueIntrinsic ror = (builder, owner, name, descriptor, arguments) ->
+            builder.ror(arguments.get(0), arguments.get(1));
+
+        StaticValueIntrinsic rol = (builder, owner, name, descriptor, arguments) ->
+            builder.rol(arguments.get(0), arguments.get(1));
+
+        intrinsics.registerIntrinsic(integerDesc, "rotateRight", binaryIntDesc, ror);
+        intrinsics.registerIntrinsic(longDesc, "rotateRight", longIntDesc, ror);
+
+        intrinsics.registerIntrinsic(integerDesc, "rotateLeft", binaryIntDesc, rol);
+        intrinsics.registerIntrinsic(longDesc, "rotateLeft", longIntDesc, rol);
+    }
+
+    static Value asUnsigned(BasicBlockBuilder builder, Value value) {
+        IntegerType type = (IntegerType) value.getType();
+        return builder.bitCast(value, type.asUnsigned());
     }
 
     public static void registerJavaLangObjectIntrinsics(CompilationContext ctxt) {
