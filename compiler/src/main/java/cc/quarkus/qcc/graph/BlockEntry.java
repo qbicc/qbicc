@@ -1,6 +1,6 @@
 package cc.quarkus.qcc.graph;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  * A node representing block entry.  Block entry nodes have no dependencies.
@@ -8,8 +8,8 @@ import cc.quarkus.qcc.type.definition.element.Element;
 public final class BlockEntry extends AbstractNode implements PinnedNode, Action {
     private final BlockLabel blockLabel;
 
-    BlockEntry(final Element element, final BlockLabel blockLabel) {
-        super(element, 0, -1);
+    BlockEntry(final Node callSite, final ExecutableElement element, final BlockLabel blockLabel) {
+        super(callSite, element, 0, -1);
         this.blockLabel = blockLabel;
     }
 

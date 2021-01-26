@@ -1,7 +1,8 @@
 package cc.quarkus.qcc.graph.literal;
 
+import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  * A literal is a value that was directly specified in a program.
@@ -9,7 +10,12 @@ import cc.quarkus.qcc.type.definition.element.Element;
 public abstract class Literal implements Value {
     Literal() {}
 
-    public Element getElement() {
+    public Node getCallSite() {
+        // no call site for literals
+        return null;
+    }
+
+    public ExecutableElement getElement() {
         return null;
     }
 

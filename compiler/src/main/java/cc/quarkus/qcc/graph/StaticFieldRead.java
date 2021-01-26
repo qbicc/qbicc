@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 
 /**
@@ -15,8 +15,8 @@ public final class StaticFieldRead extends AbstractValue implements FieldRead {
     private final ValueType type;
     private final JavaAccessMode mode;
 
-    StaticFieldRead(final Element element, final int line, final int bci, final Node dependency, final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
-        super(element, line, bci);
+    StaticFieldRead(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final FieldElement fieldElement, final ValueType type, final JavaAccessMode mode) {
+        super(callSite, element, line, bci);
         this.dependency = dependency;
         this.fieldElement = fieldElement;
         this.type = type;

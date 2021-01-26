@@ -50,6 +50,29 @@ public interface BasicBlockBuilder {
     ExecutableElement getCurrentElement();
 
     /**
+     * Set the element currently being built, returning the previously-set element.  Used for inlining.
+     *
+     * @param element the new current element
+     * @return the previously set current element
+     */
+    ExecutableElement setCurrentElement(ExecutableElement element);
+
+    /**
+     * Get the currently set call site node.  Used for inlining.
+     *
+     * @return the currently set call site node
+     */
+    Node getCallSite();
+
+    /**
+     * Set the call site node.  Used for inlining.
+     *
+     * @param callSite the call site node
+     * @return the previously set call site node
+     */
+    Node setCallSite(Node callSite);
+
+    /**
      * Get a location for the element currently being built, suitable for passing to diagnostics.
      *
      * @return the location

@@ -3,14 +3,14 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.WordType;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 abstract class AbstractWordCastValue extends AbstractValue implements WordCastValue {
     final Value value;
     final WordType toType;
 
-    AbstractWordCastValue(final Element element, final int line, final int bci, final Value value, final WordType toType) {
-        super(element, line, bci);
+    AbstractWordCastValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value value, final WordType toType) {
+        super(callSite, element, line, bci);
         this.value = value;
         this.toType = toType;
     }

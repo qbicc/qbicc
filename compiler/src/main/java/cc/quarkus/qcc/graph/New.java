@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  * A {@code new} allocation operation.
@@ -10,8 +10,8 @@ import cc.quarkus.qcc.type.definition.element.Element;
 public final class New extends AbstractValue {
     private final ClassObjectType type;
 
-    New(final Element element, final int line, final int bci, final ClassObjectType type) {
-        super(element, line, bci);
+    New(final Node callSite, final ExecutableElement element, final int line, final int bci, final ClassObjectType type) {
+        super(callSite, element, line, bci);
         this.type = type;
     }
 

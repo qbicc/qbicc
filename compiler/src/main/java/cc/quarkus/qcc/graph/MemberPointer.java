@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.PointerType;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -13,8 +13,8 @@ public class MemberPointer extends AbstractValue {
     private final Value structPointer;
     private final CompoundType.Member member;
 
-    MemberPointer(final Element element, final int line, final int bci, final Value structPointer, final CompoundType.Member member) {
-        super(element, line, bci);
+    MemberPointer(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value structPointer, final CompoundType.Member member) {
+        super(callSite, element, line, bci);
         this.structPointer = structPointer;
         this.member = member;
     }

@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.List;
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
@@ -15,8 +15,8 @@ public final class DynamicInvocation extends AbstractNode implements /* MethodIn
     private final List<Value> staticArguments;
     private final List<Value> arguments;
 
-    DynamicInvocation(final Element element, final int line, final int bci, final Node dependency, final MethodElement bootstrapMethod, final List<Value> staticArguments, final List<Value> arguments) {
-        super(element, line, bci);
+    DynamicInvocation(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final MethodElement bootstrapMethod, final List<Value> staticArguments, final List<Value> arguments) {
+        super(callSite, element, line, bci);
         this.dependency = dependency;
         this.bootstrapMethod = bootstrapMethod;
         this.staticArguments = staticArguments;

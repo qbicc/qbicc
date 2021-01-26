@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -11,8 +11,8 @@ abstract class AbstractBinaryValue extends AbstractValue implements BinaryValue 
     final Value left;
     final Value right;
 
-    AbstractBinaryValue(final Element element, final int line, final int bci, final Value left, final Value right) {
-        super(element, line, bci);
+    AbstractBinaryValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value left, final Value right) {
+        super(callSite, element, line, bci);
         this.left = left;
         this.right = right;
     }

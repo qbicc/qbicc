@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  * An instruction which throws an exception <em>to the caller</em>.  To throw an exception to a catch block,
@@ -13,8 +13,8 @@ public final class Throw extends AbstractNode implements Terminator {
     private final Value thrownValue;
     private final BasicBlock terminatedBlock;
 
-    Throw(final Element element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value thrownValue) {
-        super(element, line, bci);
+    Throw(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value thrownValue) {
+        super(callSite, element, line, bci);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.thrownValue = thrownValue;

@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
@@ -16,8 +16,8 @@ public final class StaticInvocationValue extends AbstractValue implements Method
     private final ValueType type;
     private final List<Value> arguments;
 
-    StaticInvocationValue(final Element element, final int line, final int bci, final Node dependency, final MethodElement target, final ValueType type, final List<Value> arguments) {
-        super(element, line, bci);
+    StaticInvocationValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final MethodElement target, final ValueType type, final List<Value> arguments) {
+        super(callSite, element, line, bci);
         this.dependency = dependency;
         this.target = target;
         this.type = type;

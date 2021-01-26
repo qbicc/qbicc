@@ -7,6 +7,7 @@ import java.util.Set;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 public final class PhiValue extends AbstractValue implements PinnedNode {
@@ -14,8 +15,8 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
     private final BlockLabel blockLabel;
     private final HashMap<Terminator, Value> incomingValues = new HashMap<>();
 
-    PhiValue(final Element element, final int line, final int bci, final ValueType type, final BlockLabel blockLabel) {
-        super(element, line, bci);
+    PhiValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueType type, final BlockLabel blockLabel) {
+        super(callSite, element, line, bci);
         this.type = type;
         this.blockLabel = blockLabel;
     }

@@ -5,7 +5,7 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  * An invocation on an object instance which returns a value.
@@ -16,8 +16,8 @@ public final class ConstructorInvocation extends AbstractValue implements Instan
     private final ConstructorElement target;
     private final List<Value> arguments;
 
-    ConstructorInvocation(final Element element, final int line, final int bci, final Node dependency, final Value instance, final ConstructorElement target, final List<Value> arguments) {
-        super(element, line, bci);
+    ConstructorInvocation(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value instance, final ConstructorElement target, final List<Value> arguments) {
+        super(callSite, element, line, bci);
         this.dependency = dependency;
         this.instance = instance;
         this.target = target;

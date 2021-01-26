@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -14,8 +14,8 @@ public final class ArrayElementWrite extends AbstractNode implements ArrayElemen
     private final Value value;
     private final JavaAccessMode mode;
 
-    ArrayElementWrite(final Element element, final int line, final int bci, final Node dependency, final Value instance, final Value index, final Value value, final JavaAccessMode mode) {
-        super(element, line, bci);
+    ArrayElementWrite(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value instance, final Value index, final Value value, final JavaAccessMode mode) {
+        super(callSite, element, line, bci);
         this.dependency = dependency;
         this.instance = instance;
         this.index = index;

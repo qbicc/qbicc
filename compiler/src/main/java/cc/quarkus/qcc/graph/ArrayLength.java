@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.SignedIntegerType;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  * The length of a Java array instance.
@@ -12,8 +12,8 @@ public final class ArrayLength extends AbstractValue implements InstanceOperatio
     private final Value instance;
     private final SignedIntegerType type;
 
-    ArrayLength(final Element element, final int line, final int bci, final Value instance, final SignedIntegerType type) {
-        super(element, line, bci);
+    ArrayLength(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value instance, final SignedIntegerType type) {
+        super(callSite, element, line, bci);
         this.instance = instance;
         this.type = type;
     }

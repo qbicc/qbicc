@@ -1,20 +1,26 @@
 package cc.quarkus.qcc.graph;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 abstract class AbstractNode implements Node {
-    private final Element element;
+    private final Node callSite;
+    private final ExecutableElement element;
     private final int line;
     private final int bci;
     private int hashCode;
 
-    AbstractNode(final Element element, final int line, final int bci) {
+    AbstractNode(final Node callSite, final ExecutableElement element, final int line, final int bci) {
+        this.callSite = callSite;
         this.element = element;
         this.line = line;
         this.bci = bci;
     }
 
-    public Element getElement() {
+    public Node getCallSite() {
+        return callSite;
+    }
+
+    public ExecutableElement getElement() {
         return element;
     }
 
