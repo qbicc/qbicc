@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.plugin.instanceofcheckcast;
 
 import java.util.List;
-import java.util.ArrayList;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
@@ -13,7 +12,8 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.NullType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 
 /**
@@ -31,6 +31,19 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     public Value instanceOf(final Value input, final ValueType expectedType) {
+        // "null" instanceof <X> is always false
+        if (NullType.isAlwaysNull(input)) {
+            return ctxt.getLiteralFactory().literalOf(false);
+        }
+        // x instanceof Object is equivalent to x != null
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        if (expectedType instanceof ReferenceType) {
+            ReferenceType refExpectedType = (ReferenceType) expectedType;
+            if (!refExpectedType.getUpperBound().hasSuperClass()) {
+                return super.cmpNe(input, lf.literalOfNull());
+            }
+        }
+
         if (PLUGIN_DISABLED) {
             return super.instanceOf(input, expectedType);
         }
@@ -58,14 +71,9 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         assert(idx != -1);
         MethodElement methodElement = resolved.getMethod(idx);
         ctxt.registerEntryPoint(methodElement);
-        LiteralFactory lf = ctxt.getLiteralFactory();
         Function function = ctxt.getExactFunction(methodElement);
         List<Value> args = List.of(input, lf.literalOfType(expectedType));
         return super.callFunction(lf.literalOfSymbol(function.getName(), function.getType()), args);
-    }
-
-    public Value instanceOf(final Value input, final TypeDescriptor desc) {
-        return super.instanceOf(input, desc);
     }
 
     // TODO: Find equivalent checkcast methods to implement here as well

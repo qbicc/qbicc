@@ -8,9 +8,10 @@ import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.NewArray;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
-import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
+
+import static cc.quarkus.qcc.type.NullType.isAlwaysNull;
 
 /**
  * A graph factory which performs simple optimizations opportunistically.
@@ -41,10 +42,6 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         } else {
             return super.cmpNe(v1, v2);
         }
-    }
-
-    private boolean isAlwaysNull(final Value v1) {
-        return v1.getType() instanceof NullType;
     }
 
     private boolean isNeverNull(final Value v1) {

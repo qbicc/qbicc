@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.type;
 
+import cc.quarkus.qcc.graph.Value;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -50,5 +51,10 @@ public final class NullType extends ValueType {
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
         return b.append("null");
+    }
+
+    public static boolean isAlwaysNull(Value val) {
+        Assert.assertNotNull(val);
+        return val.getType() instanceof NullType;
     }
 }
