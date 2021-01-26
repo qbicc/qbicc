@@ -59,15 +59,6 @@ public abstract class Type {
     }
 
     /**
-     * Determine whether variables of this type are writable.
-     *
-     * @return {@code true} if the variable of this type would be writable, {@code false} otherwise
-     */
-    public boolean isWritable() {
-        return ! isConst();
-    }
-
-    /**
      * Determine whether this type is complete (that is, it has a size and can be instantiated).
      *
      * @return {@code true} if the type is complete, or {@code false} if it is incomplete

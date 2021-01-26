@@ -38,6 +38,8 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
     int getModifiers();
 
+    String getEnclosingClassInternalName();
+
     default boolean hasAllModifiersOf(int mask) {
         return (getModifiers() & mask) == mask;
     }
@@ -193,7 +195,7 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
         void addConstructor(ConstructorResolver resolver, int index);
 
-        void setEnclosingClass(EnclosingClassResolver resolver, int index);
+        void setEnclosingClass(String internalName, EnclosingClassResolver resolver, int index);
 
         void addEnclosedClass(EnclosedClassResolver resolver, int index);
 
@@ -264,8 +266,8 @@ public interface DefinedTypeDefinition extends FieldResolver,
                 getDelegate().addConstructor(resolver, index);
             }
 
-            default void setEnclosingClass(EnclosingClassResolver resolver, int index) {
-                getDelegate().setEnclosingClass(resolver, index);
+            default void setEnclosingClass(String internalName, EnclosingClassResolver resolver, int index) {
+                getDelegate().setEnclosingClass(internalName, resolver, index);
             }
 
             default void addEnclosedClass(EnclosedClassResolver resolver, int index) {

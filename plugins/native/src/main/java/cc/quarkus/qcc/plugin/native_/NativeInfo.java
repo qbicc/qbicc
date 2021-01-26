@@ -3,6 +3,7 @@ package cc.quarkus.qcc.plugin.native_;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,6 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
@@ -84,6 +84,7 @@ final class NativeInfo {
                     CProbe.Builder pb = CProbe.builder();
                     String simpleName = null;
                     Qualifier q = Qualifier.NONE;
+                    boolean incomplete = false;
                     for (Annotation annotation : definedType.getVisibleAnnotations()) {
                         ClassTypeDescriptor annDesc = annotation.getDescriptor();
                         if (ProbeUtils.processCommonAnnotation(pb, annotation)) {
@@ -92,17 +93,19 @@ final class NativeInfo {
                         if (annDesc.getPackageName().equals(Native.NATIVE_PKG)) {
                             if (annDesc.getClassName().equals(Native.ANN_NAME)) {
                                 simpleName = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                            } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
+                                incomplete = true;
                             }
                         }
                         // todo: lib (add to native info)
                     }
-                    NestedClassElement enclosing = definedType.validate().getEnclosingNestedClass();
-                    while (enclosing != null) {
-                        DefinedTypeDefinition enclosingType = enclosing.getEnclosingType();
+                    String enclosingName = definedType.getEnclosingClassInternalName();
+                    while (enclosingName != null) {
+                        DefinedTypeDefinition enclosingType = classContext.findDefinedType(enclosingName);
                         for (Annotation annotation : enclosingType.getVisibleAnnotations()) {
                             ProbeUtils.processCommonAnnotation(pb, annotation);
                         }
-                        enclosing = enclosingType.validate().getEnclosingNestedClass();
+                        enclosingName = enclosingType.getEnclosingClassInternalName();
                     }
                     if (simpleName == null) {
                         String fullName = definedType.getInternalName();
@@ -120,74 +123,79 @@ final class NativeInfo {
                     }
                     // begin the real work
                     ValidatedTypeDefinition vt = definedType.validate();
-                    NativeInfo nativeInfo = ctxt.getAttachment(NativeInfo.KEY);
                     int fc = vt.getFieldCount();
                     TypeSystem ts = ctxt.getTypeSystem();
                     CProbe.Type.Builder tb = CProbe.Type.builder();
                     tb.setName(simpleName);
                     tb.setQualifier(q);
                     for (int i = 0; i < fc; i ++) {
-                        ValueType type = vt.getField(i).getType(List.of(/*todo*/));
                         // compound type
                         tb.addMember(vt.getField(i).getName());
                     }
-                    CProbe.Type probeType = tb.build();
-                    pb.probeType(probeType);
-                    CProbe probe = pb.build();
                     CompoundType.Tag tag = q == Qualifier.NONE ? CompoundType.Tag.NONE : q == Qualifier.STRUCT ? CompoundType.Tag.STRUCT : CompoundType.Tag.UNION;
-                    try {
-                        CProbe.Result result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), ctxt);
-                        if (result != null) {
-                            CProbe.Type.Info typeInfo = result.getTypeInfo(probeType);
-                            long size = typeInfo.getSize();
-                            if (typeInfo.isFloating()) {
-                                if (size == 4) {
-                                    resolved = ts.getFloat32Type();
-                                } else if (size == 8) {
-                                    resolved = ts.getFloat64Type();
+                    if (incomplete) {
+                        resolved = ts.getIncompleteCompoundType(tag, simpleName);
+                    } else {
+                        CProbe.Type probeType = tb.build();
+                        pb.probeType(probeType);
+                        CProbe probe = pb.build();
+                        try {
+                            CProbe.Result result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), ctxt);
+                            if (result != null) {
+                                CProbe.Type.Info typeInfo = result.getTypeInfo(probeType);
+                                long size = typeInfo.getSize();
+                                if (typeInfo.isFloating()) {
+                                    if (size == 4) {
+                                        resolved = ts.getFloat32Type();
+                                    } else if (size == 8) {
+                                        resolved = ts.getFloat64Type();
+                                    } else {
+                                        resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign(), List::of);
+                                    }
+                                } else if (typeInfo.isSigned()) {
+                                    if (size == 1) {
+                                        resolved = ts.getSignedInteger8Type();
+                                    } else if (size == 2) {
+                                        resolved = ts.getSignedInteger16Type();
+                                    } else if (size == 4) {
+                                        resolved = ts.getSignedInteger32Type();
+                                    } else if (size == 8) {
+                                        resolved = ts.getSignedInteger64Type();
+                                    } else {
+                                        resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign(), List::of);
+                                    }
+                                } else if (typeInfo.isUnsigned()) {
+                                    if (size == 1) {
+                                        resolved = ts.getUnsignedInteger8Type();
+                                    } else if (size == 2) {
+                                        resolved = ts.getUnsignedInteger16Type();
+                                    } else if (size == 4) {
+                                        resolved = ts.getUnsignedInteger32Type();
+                                    } else if (size == 8) {
+                                        resolved = ts.getUnsignedInteger64Type();
+                                    } else {
+                                        resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign(), List::of);
+                                    }
                                 } else {
-                                    resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign());
+                                    resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign(), () -> {
+                                        CompoundType.Member[] members = new CompoundType.Member[fc];
+                                        for (int i = 0; i < fc; i ++) {
+                                            ValueType type = vt.getField(i).getType(List.of(/*todo*/));
+                                            // compound type
+                                            String name = vt.getField(i).getName();
+                                            CProbe.Type.Info member = result.getTypeInfoOfMember(probeType, name);
+                                            members[i] = ts.getCompoundTypeMember(name, type, (int) member.getOffset(), 1);
+                                        }
+                                        Arrays.sort(members);
+                                        return List.of(members);
+                                    });
                                 }
-                            } else if (typeInfo.isSigned()) {
-                                if (size == 1) {
-                                    resolved = ts.getSignedInteger8Type();
-                                } else if (size == 2) {
-                                    resolved = ts.getSignedInteger16Type();
-                                } else if (size == 4) {
-                                    resolved = ts.getSignedInteger32Type();
-                                } else if (size == 8) {
-                                    resolved = ts.getSignedInteger64Type();
-                                } else {
-                                    resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign());
-                                }
-                            } else if (typeInfo.isUnsigned()) {
-                                if (size == 1) {
-                                    resolved = ts.getUnsignedInteger8Type();
-                                } else if (size == 2) {
-                                    resolved = ts.getUnsignedInteger16Type();
-                                } else if (size == 4) {
-                                    resolved = ts.getUnsignedInteger32Type();
-                                } else if (size == 8) {
-                                    resolved = ts.getUnsignedInteger64Type();
-                                } else {
-                                    resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign());
-                                }
-                            } else {
-                                CompoundType.Member[] members = new CompoundType.Member[fc];
-                                for (int i = 0; i < fc; i ++) {
-                                    ValueType type = vt.getField(i).getType(List.of(/*todo*/));
-                                    // compound type
-                                    String name = vt.getField(i).getName();
-                                    CProbe.Type.Info member = result.getTypeInfoOfMember(probeType, name);
-                                    members[i] = ts.getCompoundTypeMember(name, type, (int) member.getOffset(), 1);
-                                }
-                                resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign(), members);
                             }
+                            ref.set(resolved);
+                        } catch (IOException e) {
+                            ctxt.error(e, "Failed to define native type " + simpleName);
+                            return ts.getPoisonType();
                         }
-                        ref.set(resolved);
-                    } catch (IOException e) {
-                        ctxt.error(e, "Failed to define native type " + simpleName);
-                        return ts.getPoisonType();
                     }
                 }
             }

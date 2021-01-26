@@ -1,62 +1,73 @@
 package cc.quarkus.qcc.type;
 
-import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  *
  */
 public final class CompoundType extends ValueType {
+
     private final Tag tag;
     private final String name;
-    private final Member[] members;
-    private final boolean writable;
     private final long size;
     private final int align;
+    private final boolean complete;
+    private volatile Supplier<List<Member>> membersResolver;
+    private volatile List<Member> members;
 
-    private CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Member[] members, final long size, final int overallAlign, boolean const_, int sorted) {
-        super(typeSystem, (int) ((Objects.hash((Object[]) members) * 19 + size) * 19 + Integer.numberOfTrailingZeros(overallAlign)), const_);
+    CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver, final long size, final int overallAlign, boolean const_) {
+        super(typeSystem, (int) size * 19 + Integer.numberOfTrailingZeros(overallAlign), const_);
         // name/tag do not contribute to hash or equality
         this.tag = tag;
         this.name = name == null ? "<anon>" : name;
-        this.members = members;
         // todo: assert size ≥ end of last member w/alignment etc.
         this.size = size;
         assert Integer.bitCount(overallAlign) == 1;
         this.align = overallAlign;
-        boolean isWritable = ! const_;
-        if (isWritable) for (Member member : members) {
-            if (! member.getType().isWritable()) {
-                isWritable = false;
-                break;
-            }
-        }
-        this.writable = isWritable;
+        this.membersResolver = membersResolver;
+        this.complete = true;
     }
 
-    CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Member[] members, final long size, final int overallAlign, boolean const_) {
-        this(typeSystem, tag, name, sort(members), size, overallAlign, const_, 0);
-    }
-
-    private static Member[] sort(Member[] array) {
-        Arrays.sort(array);
-        return array;
+    CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, boolean const_) {
+        super(typeSystem, 0, const_);
+        this.tag = tag;
+        this.name = name;
+        this.size = 0;
+        this.align = 1;
+        this.complete = false;
+        this.members = List.of();
     }
 
     public String getName() {
         return name;
     }
 
+    public List<Member> getMembers() {
+        List<Member> members = this.members;
+        if (members == null) {
+            synchronized (this) {
+                members = this.members;
+                if (members == null) {
+                    members = this.members = membersResolver.get();
+                    membersResolver = null;
+                }
+            }
+        }
+        return members;
+    }
+
     public int getMemberCount() {
-        return members.length;
+        return getMembers().size();
     }
 
     public Member getMember(int index) throws IndexOutOfBoundsException {
-        return members[index];
+        return getMembers().get(index);
     }
 
-    public boolean isWritable() {
-        return writable;
+    public boolean isComplete() {
+        return complete;
     }
 
     public long getSize() {
@@ -68,7 +79,7 @@ public final class CompoundType extends ValueType {
     }
 
     ValueType constructConst() {
-        return new CompoundType(typeSystem, tag, name, members, size, align, true, 0);
+        return complete ? new CompoundType(typeSystem, tag, name, this::getMembers, size, align, true) : new CompoundType(typeSystem, tag, name, true);
     }
 
     public CompoundType asConst() {
@@ -80,7 +91,7 @@ public final class CompoundType extends ValueType {
     }
 
     public boolean equals(final CompoundType other) {
-        return this == other || super.equals(other) && size == other.size && align == other.align && Arrays.deepEquals(members, other.members);
+        return this == other || super.equals(other) && size == other.size && align == other.align && getMembers().equals(other.getMembers());
     }
 
     public StringBuilder toString(final StringBuilder b) {
@@ -90,11 +101,13 @@ public final class CompoundType extends ValueType {
             b.append(tag).append(' ');
         }
         b.append(name).append(" {");
-        if (members.length > 0) {
-            members[0].toString(b);
-            for (int i = 1; i < members.length; i++) {
+        List<Member> members = getMembers();
+        if (! members.isEmpty()) {
+            members.get(0).toString(b);
+            int size = members.size();
+            for (int i = 1; i < size; i++) {
                 b.append(',');
-                members[i].toString(b);
+                members.get(i).toString(b);
             }
         }
         return b.append('}');

@@ -33,10 +33,6 @@ public final class ArrayType extends ValueType {
         return elementType;
     }
 
-    public boolean isWritable() {
-        return false;
-    }
-
     public long getElementCount() {
         return elementCount;
     }

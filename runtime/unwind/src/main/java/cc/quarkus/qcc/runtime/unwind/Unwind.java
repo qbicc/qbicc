@@ -14,16 +14,16 @@ public final class Unwind {
     private Unwind() {
     }
 
-    public static native _Unwind_Reason_Code _Unwind_RaiseException(ptr<_Unwind_Exception> exception_object);
-    public static native void _Unwind_Resume(ptr<_Unwind_Exception> exception_object);
-    public static native void _Unwind_DeleteException(ptr<_Unwind_Exception> exception_object);
-    public static native uint64_t _Unwind_GetGR(ptr<_Unwind_Context> context, c_int index);
-    public static native void _Unwind_SetGR(ptr<_Unwind_Context> context, c_int index, uint64_t new_value);
-    public static native uint64_t _Unwind_GetIP(ptr<_Unwind_Context> context);
-    public static native void _Unwind_SetIP(ptr<_Unwind_Context> context, uint64_t new_value);
-    public static native uint64_t _Unwind_GetRegionStart(ptr<_Unwind_Context> context);
-    public static native uint64_t _Unwind_GetLanguageSpecificData(ptr<_Unwind_Context> context);
-    public static native _Unwind_Reason_Code _Unwind_ForcedUnwind(ptr<_Unwind_Exception> exception_object, ptr<function<_Unwind_Stop_Fn>> stop, ptr<?> stop_parameter);
+    public static native _Unwind_Reason_Code _Unwind_RaiseException(ptr<struct__Unwind_Exception> exception_object);
+    public static native void _Unwind_Resume(ptr<struct__Unwind_Exception> exception_object);
+    public static native void _Unwind_DeleteException(ptr<struct__Unwind_Exception> exception_object);
+    public static native uint64_t _Unwind_GetGR(ptr<struct__Unwind_Context> context, c_int index);
+    public static native void _Unwind_SetGR(ptr<struct__Unwind_Context> context, c_int index, uint64_t new_value);
+    public static native uint64_t _Unwind_GetIP(ptr<struct__Unwind_Context> context);
+    public static native void _Unwind_SetIP(ptr<struct__Unwind_Context> context, uint64_t new_value);
+    public static native uint64_t _Unwind_GetRegionStart(ptr<struct__Unwind_Context> context);
+    public static native uint64_t _Unwind_GetLanguageSpecificData(ptr<struct__Unwind_Context> context);
+    public static native _Unwind_Reason_Code _Unwind_ForcedUnwind(ptr<struct__Unwind_Exception> exception_object, ptr<function<_Unwind_Stop_Fn>> stop, ptr<?> stop_parameter);
 
     public static final class _Unwind_Reason_Code extends word {}
 
@@ -73,7 +73,7 @@ public final class Unwind {
      * The header for a thrown exception.  The runtime is expected to create its own thrown structure which includes
      * this structure as a member.  The runtime is responsible for allocating and freeing instances.
      */
-    public static final class _Unwind_Exception extends object {
+    public static final class struct__Unwind_Exception extends object {
         /**
          * "A language- and implementation-specific identifier of the kind of exception. It allows a personality routine
          * to distinguish between native and foreign exceptions, for example. By convention, the high 4 bytes indicate
@@ -94,14 +94,15 @@ public final class Unwind {
 
     @FunctionalInterface
     public interface _Unwind_Exception_Cleanup_Fn {
-        void cleanup(_Unwind_Reason_Code reason, ptr<_Unwind_Exception> exc);
+        void cleanup(_Unwind_Reason_Code reason, ptr<struct__Unwind_Exception> exc);
     }
 
-    public static final class _Unwind_Context extends object {}
+    @incomplete
+    public static final class struct__Unwind_Context extends object {}
 
     @FunctionalInterface
     public interface _Unwind_Stop_Fn {
-        _Unwind_Reason_Code run(c_int version, _Unwind_Action actions, uint64_t exception_class, ptr<_Unwind_Context> exception_object, ptr<_Unwind_Context> context, ptr<?> stop_parameter);
+        _Unwind_Reason_Code run(c_int version, _Unwind_Action actions, uint64_t exception_class, ptr<struct__Unwind_Context> exception_object, ptr<struct__Unwind_Context> context, ptr<?> stop_parameter);
     }
 
     // TODO: support for classic ARM EHABI needs a different prototype for _Unwind_Stop_Fn

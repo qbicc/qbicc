@@ -44,6 +44,10 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
         return getDelegate().getModifiers();
     }
 
+    public String getEnclosingClassInternalName() {
+        return getDelegate().getEnclosingClassInternalName();
+    }
+
     public boolean hasSuperClass() {
         return getDelegate().hasSuperClass();
     }
