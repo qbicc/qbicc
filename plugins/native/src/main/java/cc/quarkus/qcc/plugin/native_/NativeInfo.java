@@ -25,7 +25,6 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
@@ -96,13 +95,13 @@ final class NativeInfo {
                         }
                         // todo: lib (add to native info)
                     }
-                    NestedClassElement enclosing = definedType.validate().getEnclosingNestedClass();
-                    while (enclosing != null) {
-                        DefinedTypeDefinition enclosingType = enclosing.getEnclosingType();
+                    String enclosingName = definedType.getEnclosingClassInternalName();
+                    while (enclosingName != null) {
+                        DefinedTypeDefinition enclosingType = classContext.findDefinedType(enclosingName);
                         for (Annotation annotation : enclosingType.getVisibleAnnotations()) {
                             ProbeUtils.processCommonAnnotation(pb, annotation);
                         }
-                        enclosing = enclosingType.validate().getEnclosingNestedClass();
+                        enclosingName = enclosingType.getEnclosingClassInternalName();
                     }
                     if (simpleName == null) {
                         String fullName = definedType.getInternalName();

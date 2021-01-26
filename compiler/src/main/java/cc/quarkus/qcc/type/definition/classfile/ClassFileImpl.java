@@ -649,7 +649,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                         }
                         access |= (innerFlags & (ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC));
                         if (outerClassInfoIdx != 0) {
-                            builder.setEnclosingClass(this, attributeOffsets[i] + 8 + j * 8);
+                            builder.setEnclosingClass(getClassConstantName(outerClassInfoIdx), this, attributeOffsets[i] + 8 + j * 8);
                         }
                     } else {
                         // it might be an inner class of ours...

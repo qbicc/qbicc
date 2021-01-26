@@ -47,6 +47,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final List<BootstrapMethod> bootstrapMethods;
     private final EnclosingClassResolver enclosingClassResolver;
     private final int enclosingClassResolverIndex;
+    private final String enclosingClassName;
     private final EnclosedClassResolver[] enclosedClassResolvers;
     private final int[] enclosedClassResolverIndexes;
 
@@ -93,6 +94,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         this.initializerIndex = builder.initializerIndex;
         this.enclosingClassResolver = builder.enclosingClassResolver;
         this.enclosingClassResolverIndex = builder.enclosingClassResolverIndex;
+        this.enclosingClassName = builder.enclosingClassInternalName;
         int enclosedClassCount = builder.enclosedClassCount;
         this.enclosedClassResolvers = enclosedClassCount == 0 ? NO_ENCLOSED : Arrays.copyOf(builder.enclosedClassResolvers, enclosedClassCount);
         this.enclosedClassResolverIndexes = enclosedClassCount == 0 ? NO_INTS : Arrays.copyOf(builder.enclosedClassResolverIndexes, enclosedClassCount);
@@ -133,6 +135,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
     public int getModifiers() {
         return modifiers;
+    }
+
+    public String getEnclosingClassInternalName() {
+        return enclosingClassName;
     }
 
     public String getSuperClassInternalName() {
@@ -295,6 +301,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         List<BootstrapMethod> bootstrapMethods = List.of();
         String simpleName;
         EnclosingClassResolver enclosingClassResolver;
+        String enclosingClassInternalName;
         int enclosingClassResolverIndex;
         int enclosedClassCount;
         EnclosedClassResolver[] enclosedClassResolvers = NO_ENCLOSED;
@@ -410,10 +417,12 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             this.simpleName = simpleName;
         }
 
-        public void setEnclosingClass(final EnclosingClassResolver resolver, final int index) {
+        public void setEnclosingClass(final String internalName, final EnclosingClassResolver resolver, final int index) {
+            Assert.checkNotNullParam("internalName", internalName);
             Assert.checkNotNullParam("resolver", resolver);
             this.enclosingClassResolver = resolver;
             this.enclosingClassResolverIndex = index;
+            this.enclosingClassInternalName = internalName;
         }
 
         public void addEnclosedClass(final EnclosedClassResolver resolver, final int index) {
