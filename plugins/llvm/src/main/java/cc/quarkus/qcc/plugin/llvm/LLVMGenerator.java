@@ -78,7 +78,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
     public void accept(final CompilationContext ctxt) {
         for (ProgramModule programModule : ctxt.getAllProgramModules()) {
             DefinedTypeDefinition def = programModule.getTypeDefinition();
-            Path path = ctxt.getOutputDirectory(def);
+            Path outputFile = ctxt.getOutputFile(def, "ll");
             final Module module = Module.newModule();
 
             final LLValue diVersionTuple = module.metadataTuple()
@@ -156,7 +156,6 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                     }
                 }
             }
-            Path outputFile = path.resolve("output.ll");
             try {
                 Files.createDirectories(outputFile.getParent());
                 try (BufferedWriter writer = Files.newBufferedWriter(outputFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {

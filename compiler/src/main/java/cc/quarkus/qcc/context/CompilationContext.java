@@ -50,6 +50,8 @@ public interface CompilationContext extends DiagnosticContext {
 
     Path getOutputDirectory();
 
+    Path getOutputFile(DefinedTypeDefinition type, String suffix);
+
     Path getOutputDirectory(DefinedTypeDefinition type);
 
     Path getOutputDirectory(MemberElement element);
