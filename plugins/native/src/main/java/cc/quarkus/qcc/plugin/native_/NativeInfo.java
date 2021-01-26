@@ -119,14 +119,12 @@ final class NativeInfo {
                     }
                     // begin the real work
                     ValidatedTypeDefinition vt = definedType.validate();
-                    NativeInfo nativeInfo = ctxt.getAttachment(NativeInfo.KEY);
                     int fc = vt.getFieldCount();
                     TypeSystem ts = ctxt.getTypeSystem();
                     CProbe.Type.Builder tb = CProbe.Type.builder();
                     tb.setName(simpleName);
                     tb.setQualifier(q);
                     for (int i = 0; i < fc; i ++) {
-                        ValueType type = vt.getField(i).getType(List.of(/*todo*/));
                         // compound type
                         tb.addMember(vt.getField(i).getName());
                     }
