@@ -19,7 +19,7 @@ public class SimpleTest {
     public void testOutput() throws IOException {
         final Module module = Module.newModule();
         final FunctionDefinition main = module.define("main").returns(i32).comment("This is the function");
-        main.ret(i32, Values.ZERO).comment("This is the return statement").comment("It is the end of the block");
+        main.getRootBlock().ret(i32, Values.ZERO).comment("This is the return statement").comment("It is the end of the block");
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(System.out))) {
             module.writeTo(writer);
             writer.flush();

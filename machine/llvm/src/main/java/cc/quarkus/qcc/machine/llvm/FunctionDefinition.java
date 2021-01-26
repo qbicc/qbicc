@@ -3,7 +3,10 @@ package cc.quarkus.qcc.machine.llvm;
 /**
  *
  */
-public interface FunctionDefinition extends Function, LLBasicBlock {
+public interface FunctionDefinition extends Function {
+
+    LLBasicBlock createBlock();
+    LLBasicBlock getRootBlock();
 
     // overrides
 

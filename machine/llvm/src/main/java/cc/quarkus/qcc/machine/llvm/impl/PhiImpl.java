@@ -33,7 +33,7 @@ final class PhiImpl extends AbstractYieldingInstruction implements Phi {
     public Phi item(final LLValue data, final LLBasicBlock incoming) {
         Assert.checkNotNullParam("data", data);
         Assert.checkNotNullParam("incoming", incoming);
-        lastItem = new Item(lastItem, (AbstractValue) data, incoming instanceof FunctionDefinitionImpl ? ((FunctionDefinitionImpl) incoming).rootBlock : (BasicBlockImpl) incoming);
+        lastItem = new Item(lastItem, (AbstractValue) data, (BasicBlockImpl) incoming);
         return this;
     }
 
