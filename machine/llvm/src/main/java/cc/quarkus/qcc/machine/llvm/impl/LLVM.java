@@ -3,6 +3,8 @@ package cc.quarkus.qcc.machine.llvm.impl;
 import java.util.List;
 
 import cc.quarkus.qcc.machine.llvm.Array;
+import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
+import cc.quarkus.qcc.machine.llvm.LLBuilder;
 import cc.quarkus.qcc.machine.llvm.Struct;
 import cc.quarkus.qcc.machine.llvm.StructType;
 import cc.quarkus.qcc.machine.llvm.Module;
@@ -99,5 +101,9 @@ public final class LLVM {
 
     public static LLValue metadataString(final String value) {
         return new MetadataString(value);
+    }
+
+    public static LLBuilder newBuilder(final LLBasicBlock block) {
+        return new BuilderImpl((BasicBlockImpl) block);
     }
 }

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
+import cc.quarkus.qcc.machine.llvm.LLBuilder;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Values;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ public class SimpleTest {
     public void testOutput() throws IOException {
         final Module module = Module.newModule();
         final FunctionDefinition main = module.define("main").returns(i32).comment("This is the function");
-        main.getRootBlock().ret(i32, Values.ZERO).comment("This is the return statement").comment("It is the end of the block");
+        LLBuilder.newBuilder(main.getRootBlock()).ret(i32, Values.ZERO).comment("This is the return statement").comment("It is the end of the block");
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(System.out))) {
             module.writeTo(writer);
             writer.flush();
