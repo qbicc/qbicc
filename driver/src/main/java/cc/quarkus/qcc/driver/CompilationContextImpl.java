@@ -191,6 +191,12 @@ final class CompilationContextImpl implements CompilationContext {
         return outputDir;
     }
 
+    public Path getOutputFile(final DefinedTypeDefinition type, final String suffix) {
+        Path basePath = getOutputDirectory(type);
+        String fileName = basePath.getFileName().toString() + '.' + suffix;
+        return basePath.resolveSibling(fileName);
+    }
+
     public Path getOutputDirectory(final DefinedTypeDefinition type) {
         Path base = outputDir;
         String internalName = type.getInternalName();

@@ -77,6 +77,10 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public Path getOutputFile(final DefinedTypeDefinition type, final String suffix) {
+            return null;
+        }
+
         public Path getOutputDirectory(final DefinedTypeDefinition type) {
             return null;
         }
