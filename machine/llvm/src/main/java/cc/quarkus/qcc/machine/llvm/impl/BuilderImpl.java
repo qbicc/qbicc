@@ -106,7 +106,7 @@ final class BuilderImpl implements LLBuilder {
     }
 
     public Return ret() {
-        return appendTerminator(VoidReturn.INSTANCE);
+        return appendTerminator(new VoidReturn());
     }
 
     public Return ret(final LLValue type, final LLValue val) {
@@ -123,7 +123,7 @@ final class BuilderImpl implements LLBuilder {
     }
 
     public Instruction unreachable() {
-        return appendTerminator(Unreachable.INSTANCE);
+        return appendTerminator(new Unreachable());
     }
 
     public Call invoke(final LLValue type, final LLValue function, final LLBasicBlock normal, final LLBasicBlock unwind) {
