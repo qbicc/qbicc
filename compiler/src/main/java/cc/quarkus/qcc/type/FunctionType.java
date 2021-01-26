@@ -32,10 +32,6 @@ public final class FunctionType extends ValueType {
         return false;
     }
 
-    public boolean isWritable() {
-        return false;
-    }
-
     public long getSize() {
         throw new UnsupportedOperationException("Incomplete type");
     }

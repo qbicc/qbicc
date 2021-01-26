@@ -5,6 +5,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
@@ -208,12 +209,18 @@ public final class TypeSystem {
         return functionType;
     }
 
-    public CompoundType getCompoundType(final CompoundType.Tag tag, String name, long size, int align, CompoundType.Member... members) {
+    public CompoundType getCompoundType(final CompoundType.Tag tag, String name, long size, int align, Supplier<List<CompoundType.Member>> memberResolver) {
         Assert.checkNotNullParam("tag", tag);
         Assert.checkNotNullParam("name", name);
         Assert.checkMinimumParameter("size", 0, size);
         TypeUtil.checkAlignmentParameter("align", align);
-        return new CompoundType(this, tag, name, members, size, align, false);
+        return new CompoundType(this, tag, name, memberResolver, size, align, false);
+    }
+
+    public CompoundType getIncompleteCompoundType(final CompoundType.Tag tag, final String name) {
+        Assert.checkNotNullParam("tag", tag);
+        Assert.checkNotNullParam("name", name);
+        return new CompoundType(this, tag, name, false);
     }
 
     public ArrayType getArrayType(ValueType memberType, long elements) {

@@ -379,7 +379,10 @@ public final class Layout {
         }
         int size = allocated.length();
         List<CompoundType.Member> fieldIndexToMember = Arrays.asList(allMembers);
-        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, 1, Arrays.copyOf(instanceMembers, ic));
+        CompoundType.Member[] membersArray = Arrays.copyOf(instanceMembers, ic);
+        Arrays.sort(membersArray);
+        List<CompoundType.Member> membersList = List.of(membersArray);
+        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, 1, () -> membersList);
         layoutInfo = new LayoutInfo(allocated, compoundType, fieldIndexToMember);
         LayoutInfo appearing = instanceLayouts.putIfAbsent(validated, layoutInfo);
         return appearing != null ? appearing : layoutInfo;
