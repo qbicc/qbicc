@@ -6,7 +6,7 @@ import java.util.Objects;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  * A {@code new} allocation operation for multi-dimensional array objects.
@@ -16,8 +16,8 @@ public final class MultiNewArray extends AbstractValue {
     private final ArrayObjectType type;
     private final List<Value> dimensions;
 
-    MultiNewArray(final Element element, final int line, final int bci, final Node dependency, final ArrayObjectType type, final List<Value> dimensions) {
-        super(element, line, bci);
+    MultiNewArray(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ArrayObjectType type, final List<Value> dimensions) {
+        super(callSite, element, line, bci);
         this.dependency = dependency;
         this.type = type;
         this.dimensions = dimensions;

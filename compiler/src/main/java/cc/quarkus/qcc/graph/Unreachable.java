@@ -1,15 +1,15 @@
 package cc.quarkus.qcc.graph;
 
-import cc.quarkus.qcc.type.definition.element.Element;
-
 import java.util.Objects;
+
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 public class Unreachable extends AbstractNode implements Terminator {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
 
-    Unreachable(final Element element, final int line, final int bci, final BlockEntry blockEntry, Node dependency) {
-        super(element, line, bci);
+    Unreachable(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, Node dependency) {
+        super(callSite, element, line, bci);
         this.dependency = dependency;
         terminatedBlock = new BasicBlock(blockEntry, this);
     }

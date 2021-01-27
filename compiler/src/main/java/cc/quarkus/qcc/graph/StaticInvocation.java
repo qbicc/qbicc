@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.List;
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
@@ -14,8 +14,8 @@ public final class StaticInvocation extends AbstractNode implements MethodInvoca
     private final MethodElement target;
     private final List<Value> arguments;
 
-    StaticInvocation(final Element element, final int line, final int bci, final Node dependency, final MethodElement target, final List<Value> arguments) {
-        super(element, line, bci);
+    StaticInvocation(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final MethodElement target, final List<Value> arguments) {
+        super(callSite, element, line, bci);
         this.dependency = dependency;
         this.target = target;
         this.arguments = arguments;

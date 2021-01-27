@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -13,8 +13,8 @@ public final class Select extends AbstractValue {
     private final Value trueValue;
     private final Value falseValue;
 
-    Select(final Element element, final int line, final int bci, final Value condition, final Value trueValue, final Value falseValue) {
-        super(element, line, bci);
+    Select(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value condition, final Value trueValue, final Value falseValue) {
+        super(callSite, element, line, bci);
         this.condition = condition;
         this.trueValue = trueValue;
         this.falseValue = falseValue;

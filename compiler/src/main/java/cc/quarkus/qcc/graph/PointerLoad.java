@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  * A pointer load operation.
@@ -15,8 +15,8 @@ public final class PointerLoad extends AbstractValue {
     private final MemoryAccessMode accessMode;
     private final MemoryAtomicityMode atomicityMode;
 
-    PointerLoad(final Element element, final int line, final int bci, final Node dependency, final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-        super(element, line, bci);
+    PointerLoad(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
+        super(callSite, element, line, bci);
         this.dependency = dependency;
         this.pointer = pointer;
         this.accessMode = accessMode;

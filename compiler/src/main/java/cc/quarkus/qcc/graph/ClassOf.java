@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  * The class object for a given type ID value.
@@ -12,8 +12,8 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
     private final Value input;
     private final ReferenceType type;
 
-    ClassOf(final Element element, final int line, final int bci, final Value input, final ReferenceType type) {
-        super(element, line, bci);
+    ClassOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, final ReferenceType type) {
+        super(callSite, element, line, bci);
         this.input = input;
         this.type = type;
     }

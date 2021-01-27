@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -12,8 +12,8 @@ public final class Ret extends AbstractNode implements Terminator {
     private final Value returnAddressValue;
     private final BasicBlock terminatedBlock;
 
-    Ret(final Element element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnAddressValue) {
-        super(element, line, bci);
+    Ret(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnAddressValue) {
+        super(callSite, element, line, bci);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.returnAddressValue = returnAddressValue;

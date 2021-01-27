@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -12,8 +12,8 @@ public final class ClassNotFoundErrorNode extends AbstractNode implements Error 
     private final String name;
     private final BasicBlock terminatedBlock;
 
-    ClassNotFoundErrorNode(final Element element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final String name) {
-        super(element, line, bci);
+    ClassNotFoundErrorNode(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final String name) {
+        super(callSite, element, line, bci);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.name = name;

@@ -26,7 +26,7 @@ import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -34,11 +34,20 @@ import io.smallrye.common.constraint.Assert;
  */
 public interface Node {
     /**
+     * Get the call site node if this node is part of an inlined function.  The call site node may be of
+     * any type, but must refer to the source line, bytecode index, and enclosing element of the call site
+     * that was inlined.
+     *
+     * @return the call site node, or {@code null} if this node was not inlined from another function
+     */
+    Node getCallSite();
+
+    /**
      * Get the source element.  Literals will have no source element.
      *
      * @return the source element, or {@code null} if there is none
      */
-    Element getElement();
+    ExecutableElement getElement();
 
     int getSourceLine();
 
@@ -168,12 +177,16 @@ public interface Node {
             if (copy == null) {
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
+                ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
+                Node oldCallSite = blockBuilder.setCallSite(original.getCallSite());
                 try {
                     copy = original.accept(nodeVisitor, this);
                     copiedNodes.put(original, copy);
                 } finally {
                     blockBuilder.setLineNumber(oldLine);
                     blockBuilder.setBytecodeIndex(oldBci);
+                    blockBuilder.setCurrentElement(oldElement);
+                    blockBuilder.setCallSite(oldCallSite);
                 }
             }
             return copy;
@@ -193,12 +206,16 @@ public interface Node {
             if (copy == null) {
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
+                ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
+                Node oldCallSite = blockBuilder.setCallSite(original.getCallSite());
                 try {
                     copy = original.accept(nodeVisitor, this);
                     copiedNodes.put(original, copy);
                 } finally {
                     blockBuilder.setLineNumber(oldLine);
                     blockBuilder.setBytecodeIndex(oldBci);
+                    blockBuilder.setCurrentElement(oldElement);
+                    blockBuilder.setCallSite(oldCallSite);
                 }
             }
             return copy;
@@ -217,6 +234,8 @@ public interface Node {
             // terminators can only be visited one time, by definition
             int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
             int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
+            ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
+            Node oldCallSite = blockBuilder.setCallSite(original.getCallSite());
             try {
                 BasicBlock block = original.accept(nodeVisitor, this);
                 copiedTerminators.put(original, block);
@@ -224,6 +243,8 @@ public interface Node {
             } finally {
                 blockBuilder.setLineNumber(oldLine);
                 blockBuilder.setBytecodeIndex(oldBci);
+                blockBuilder.setCurrentElement(oldElement);
+                blockBuilder.setCallSite(oldCallSite);
             }
         }
 

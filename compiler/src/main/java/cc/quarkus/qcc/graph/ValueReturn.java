@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  * A return which returns a non-{@code void} value.
@@ -13,8 +13,8 @@ public final class ValueReturn extends AbstractNode implements Terminator {
 
     private final BasicBlock terminatedBlock;
 
-    ValueReturn(final Element element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnValue) {
-        super(element, line, bci);
+    ValueReturn(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, final Node dependency, final Value returnValue) {
+        super(callSite, element, line, bci);
         terminatedBlock = new BasicBlock(blockEntry, this);
         this.dependency = dependency;
         this.returnValue = returnValue;

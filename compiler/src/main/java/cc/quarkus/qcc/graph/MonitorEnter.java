@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -11,8 +11,8 @@ public class MonitorEnter extends AbstractNode implements Action, InstanceOperat
     private final Node dependency;
     private final Value instance;
 
-    MonitorEnter(final Element element, final int line, final int bci, final Node dependency, final Value instance) {
-        super(element, line, bci);
+    MonitorEnter(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value instance) {
+        super(callSite, element, line, bci);
         this.dependency = dependency;
         this.instance = instance;
     }

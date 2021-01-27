@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -12,8 +12,8 @@ import cc.quarkus.qcc.type.definition.element.Element;
 public final class ThisValue extends AbstractValue {
     private final ReferenceType type;
 
-    ThisValue(final Element element, final ReferenceType type) {
-        super(element, 0, -1);
+    ThisValue(final Node callSite, final ExecutableElement element, final ReferenceType type) {
+        super(callSite, element, 0, -1);
         this.type = type;
     }
 
