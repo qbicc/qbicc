@@ -15,4 +15,5 @@ a.out
 .factorypath
 *.dot
 *.svg
-
+*.class
+*.jar

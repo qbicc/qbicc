@@ -52,6 +52,7 @@ import cc.quarkus.qcc.plugin.native_.NativeBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeResolver;
 import cc.quarkus.qcc.plugin.native_.PointerTypeResolver;
+import cc.quarkus.qcc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.opt.GotoRemovingVisitor;
 import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
@@ -259,12 +260,9 @@ public class Main {
 
                                 builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
                                 builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
-
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
-
                                 builder.addPostHook(Phase.ANALYZE, new VTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
                                 builder.addPostHook(Phase.ANALYZE, RTAInfo::clear);
@@ -276,6 +274,8 @@ public class Main {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectMonitorBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addPostHook(Phase.LOWER, RTAInfo::clear);
