@@ -22,6 +22,7 @@ import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.interpreter.VmObject;
+import cc.quarkus.qcc.object.FunctionDeclaration;
 import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.type.ClassObjectType;
@@ -242,12 +243,25 @@ final class CompilationContextImpl implements CompilationContext {
         }
         // look up the thread ID literal - todo: lazy cache?
         ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
-        ProgramModule programModule = getOrAddProgramModule(element.getEnclosingType());
-        Section implicit = programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+        Section implicit = getImplicitSection(element);
         return exactFunctions.computeIfAbsent(element, e -> {
             FunctionType type = getFunctionTypeForElement(typeSystem, element, threadType);
             return implicit.addFunction(element, getExactNameForElement(element, type), type);
         });
+    }
+
+    public Section getImplicitSection(ExecutableElement element) {
+        ProgramModule programModule = getOrAddProgramModule(element.getEnclosingType());
+        return programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+    }
+
+    public FunctionDeclaration declareForeignFunction(final ExecutableElement target, final cc.quarkus.qcc.object.Function function, final ExecutableElement current) {
+        if (target.getEnclosingType().equals(current.getEnclosingType())) {
+            return null;
+        }
+
+        return getImplicitSection(current)
+            .declareFunction(target, function.getName(), function.getType());
     }
 
     public cc.quarkus.qcc.object.Function getVirtualFunction(final MethodElement element) {
@@ -258,8 +272,7 @@ final class CompilationContextImpl implements CompilationContext {
         }
         // look up the thread ID literal - todo: lazy cache?
         ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
-        ProgramModule programModule = getOrAddProgramModule(element.getEnclosingType());
-        Section implicit = programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+        Section implicit = getImplicitSection(element);
         return exactFunctions.computeIfAbsent(element, e -> {
             FunctionType type = getFunctionTypeForElement(typeSystem, element, threadType);
             return implicit.addFunction(element, getVirtualNameForElement(element, type), type);
