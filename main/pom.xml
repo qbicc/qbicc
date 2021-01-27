@@ -97,6 +97,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-plugin-objectmonitor</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qcc-plugin-optimization</artifactId>
         </dependency>
         <dependency>

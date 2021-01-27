@@ -28,6 +28,7 @@
         <module>lowering</module>
         <module>main</module>
         <module>native</module>
+        <module>objectmonitor</module>
         <module>optimization</module>
         <module>patcher</module>
         <module>reachability</module>
