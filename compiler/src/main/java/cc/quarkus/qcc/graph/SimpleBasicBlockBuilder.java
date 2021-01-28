@@ -354,7 +354,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             type = ((ArrayType) arrayType).getElementType();
             return asDependency(new ArrayElementRead(callSite, element, line, bci, requireDependency(), type, array, index, mode));
         } else {
-            return asDependency(new ArrayElementRead(callSite, element, line, bci, requireDependency(), typeSystem.getPoisonType(), array, index, mode));
+            throw new IllegalStateException("Invalid array type " + arrayType);
         }
     }
 

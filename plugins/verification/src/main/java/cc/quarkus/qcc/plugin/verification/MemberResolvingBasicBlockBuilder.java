@@ -221,7 +221,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         if (owner instanceof ClassTypeDescriptor) {
             DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
             // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-            FieldElement element = definedType.validate().findField(name);
+            FieldElement element = definedType.validate().resolveField(desc, name);
             if (element == null) {
                 nsfe();
                 return null;
