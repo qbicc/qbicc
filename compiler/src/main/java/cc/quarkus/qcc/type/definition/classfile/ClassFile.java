@@ -11,6 +11,7 @@ import cc.quarkus.qcc.type.definition.FieldResolver;
 import cc.quarkus.qcc.type.definition.InitializerResolver;
 import cc.quarkus.qcc.type.definition.MethodResolver;
 import cc.quarkus.qcc.type.descriptor.Descriptor;
+import cc.quarkus.qcc.type.descriptor.MethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
 /**
@@ -488,7 +489,8 @@ public interface ClassFile extends FieldResolver,
         return getRawConstantShort(idx, 1);
     }
 
-    // todo: Dynamic
+    int getBootstrapMethodRef(int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException;
+
     // todo: Module
     // todo: Package
 
@@ -530,6 +532,8 @@ public interface ClassFile extends FieldResolver,
     Descriptor getDescriptorConstant(int idx);
 
     TypeDescriptor getClassConstantAsDescriptor(int idx);
+
+    MethodHandleDescriptor getMethodHandleDescriptor(final int idx);
 
     /**
      * Get the number of fields physically present in the class file.

@@ -33,8 +33,13 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 import cc.quarkus.qcc.type.definition.element.ParameterElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.ConstructorMethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.Descriptor;
+import cc.quarkus.qcc.type.descriptor.FieldMethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodHandleDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodHandleKind;
+import cc.quarkus.qcc.type.descriptor.MethodMethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.generic.ClassSignature;
 import cc.quarkus.qcc.type.generic.ClassTypeSignature;
@@ -237,6 +242,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         return cpOffset == 0 ? 0 : getByte(cpOffset);
     }
 
+    public int getBootstrapMethodRef(final int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        return getShort(bootstrapMethodOffsets[idx]);
+    }
+
     public boolean utf8ConstantEquals(final int idx, final String expected) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
         checkConstantType(idx, ClassFileUtil.CONSTANT_Utf8);
         int offs = cpOffsets[idx];
@@ -417,6 +426,34 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             return descriptor;
         } else {
             return (TypeDescriptor) setIfNull(descriptors, strIdx, TypeDescriptor.parseClassConstant(ctxt, getUtf8ConstantAsBuffer(strIdx)));
+        }
+    }
+
+    public MethodHandleDescriptor getMethodHandleDescriptor(final int idx) {
+        checkConstantType(idx, CONSTANT_MethodHandle);
+        if (idx == 0) {
+            return null;
+        }
+        int kindVal = getRawConstantByte(idx, 1);
+        MethodHandleKind kind = MethodHandleKind.forId(kindVal);
+        int refIdx = getRawConstantShort(idx, 2);
+        if (kind.isFieldTarget()) {
+            int ownerIdx = getFieldrefConstantClassIndex(refIdx);
+            String fieldName = getFieldrefConstantName(refIdx);
+            return new FieldMethodHandleDescriptor((ClassTypeDescriptor) getClassConstantAsDescriptor(ownerIdx), fieldName, kind);
+        } else {
+            int mrNameAndType = getMethodrefNameAndTypeIndex(refIdx);
+            MethodDescriptor desc = (MethodDescriptor) getDescriptorConstant(getNameAndTypeConstantDescriptorIdx(mrNameAndType));
+            if (desc == null) {
+                throw new IllegalStateException("No method descriptor for method ref at index " + refIdx);
+            }
+            ClassTypeDescriptor ownerDesc = (ClassTypeDescriptor) getClassConstantAsDescriptor(getMethodrefConstantClassIndex(refIdx));
+            if (kind == MethodHandleKind.NEW_INVOKE_SPECIAL) {
+                return new ConstructorMethodHandleDescriptor(ownerDesc, kind, desc);
+            } else {
+                String methodName = getMethodrefConstantName(refIdx);
+                return new MethodMethodHandleDescriptor(ownerDesc, methodName, kind, desc);
+            }
         }
     }
 
