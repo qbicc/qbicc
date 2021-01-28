@@ -47,6 +47,8 @@ import cc.quarkus.qcc.type.generic.MethodSignature;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 
 final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, EnclosingClassResolver, EnclosedClassResolver, MethodBodyFactory {
+    private static final int[] NO_INTS = new int[0];
+
     private static final VarHandle intArrayHandle = MethodHandles.arrayElementVarHandle(int[].class);
     private static final VarHandle intArrayArrayHandle = MethodHandles.arrayElementVarHandle(int[][].class);
     private static final VarHandle literalArrayHandle = MethodHandles.arrayElementVarHandle(Literal[].class);
@@ -68,6 +70,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     private final int[] methodOffsets;
     private final int[][] methodAttributeOffsets;
     private final int[] attributeOffsets;
+    private final int[] bootstrapMethodOffsets;
     private final LiteralFactory literalFactory;
     private final ClassContext ctxt;
     private final String sourceFile;
@@ -208,12 +211,21 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         // read globally-relevant attributes
         String sourceFile = null;
         int cnt = getAttributeCount();
+        int[] bootstrapMethodOffsets = NO_INTS;
         for (int i = 0; i < cnt; i ++) {
             if (attributeNameEquals(i, "SourceFile")) {
                 sourceFile = getUtf8Constant(getRawAttributeShort(i, 0));
-                break;
+            } else if (attributeNameEquals(i, "BootstrapMethods")) {
+                int pos = attributeOffsets[i] + 8;
+                int bmCnt = getShort(pos - 2);
+                bootstrapMethodOffsets = new int[bmCnt];
+                for (int j = 0; j < bmCnt; j ++) {
+                    bootstrapMethodOffsets[j] = pos;
+                    pos += (getShort(pos + 2) << 1) + 4;
+                }
             }
         }
+        this.bootstrapMethodOffsets = bootstrapMethodOffsets;
         this.sourceFile = sourceFile;
     }
 
