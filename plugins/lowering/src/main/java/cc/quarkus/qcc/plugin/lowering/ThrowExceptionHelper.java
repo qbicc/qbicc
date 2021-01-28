@@ -36,10 +36,16 @@ public class ThrowExceptionHelper {
         unwindExceptionField = field;
 
         /* Get the symbol to Unwind#_Unwind_RaiseException */
-        DefinedTypeDefinition unwindDefined = classContext.findDefinedType("cc/quarkus/qcc/runtime/unwind/Unwind");
-        ValidatedTypeDefinition unwindValidated = unwindDefined.validate();
-        int index = unwindValidated.findMethodIndex(e -> e.getName().equals("_Unwind_RaiseException"));
-        raiseExceptionMethod = unwindValidated.getMethod(index);
+        String unwindClass = "cc/quarkus/qcc/runtime/unwind/Unwind";
+        DefinedTypeDefinition unwindDefined = classContext.findDefinedType(unwindClass);
+        if (unwindDefined != null) {
+            ValidatedTypeDefinition unwindValidated = unwindDefined.validate();
+            int index = unwindValidated.findMethodIndex(e -> e.getName().equals("_Unwind_RaiseException"));
+            raiseExceptionMethod = unwindValidated.getMethod(index);
+        } else {
+            raiseExceptionMethod = null;
+            ctxt.error("Required class \"%s\" is not found on boot classpath", unwindClass);
+        }
     }
 
     public static ThrowExceptionHelper get(CompilationContext ctxt) {
