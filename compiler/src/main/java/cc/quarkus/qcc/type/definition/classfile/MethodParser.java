@@ -28,7 +28,6 @@ import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -38,7 +37,6 @@ import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
@@ -50,8 +48,9 @@ import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.generic.MethodSignature;
+import cc.quarkus.qcc.type.generic.TypeSignature;
 
 final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     final ClassMethodInfo info;
@@ -1305,57 +1304,54 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     break;
                 }
                 case OP_INVOKEDYNAMIC: {
-                    int indyInfoRef = buffer.getShort() & 0xffff;
-                    buffer.get(); // discard 0
-                    buffer.get(); // discard 0
-                    int bootstrapMethodRef = getClassFile().getInvokeDynamicBootstrapMethodIndex(indyInfoRef);
-                    // TODO: actually process bootstrapMethodRef to get the method and static args
-                    MethodElement bootstrapMethod = null;
-                    Value[] staticArgs = new Value[0];
-                    ctxt.getCompilationContext().warning(gf.getLocation(), "invokedynamic: not processing bootstrap method ref");
-
-                    int nameAndTypeRef = getClassFile().getInvokeDynamicNameAndTypeIndex(indyInfoRef);
+                    int indyIdx = buffer.getShort() & 0xffff;
+                    buffer.getShort(); // discard 0s
+                    int bootstrapMethodIdx = getClassFile().getInvokeDynamicBootstrapMethodIndex(indyIdx);
+                    // get the bootstrap handle descriptor
+                    MethodHandleDescriptor bootstrapHandle = getClassFile().getMethodHandleDescriptor(getClassFile().getBootstrapMethodRef(bootstrapMethodIdx));
+                    if (bootstrapHandle == null) {
+                        ctxt.getCompilationContext().error(gf.getLocation(), "Missing bootstrap method handle");
+                        gf.unreachable();
+                        return;
+                    }
+                    DefinedTypeDefinition enclosingType = gf.getCurrentElement().getEnclosingType();
+                    ClassTypeDescriptor callSiteDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/CallSite");
+                    FieldElement.Builder callSiteBuilder = FieldElement.builder();
+                    callSiteBuilder.setDescriptor(callSiteDesc);
+                    callSiteBuilder.setName("callSite_" + gf.getCurrentElement().getIndex() + "_" + src);
+                    callSiteBuilder.setModifiers(ACC_STATIC | ACC_FINAL | I_ACC_HIDDEN);
+                    callSiteBuilder.setSignature(TypeSignature.synthesize(ctxt, callSiteDesc));
+                    callSiteBuilder.setEnclosingType(enclosingType);
+                    FieldElement callSiteHolder = callSiteBuilder.build();
+                    // inject a new field for the call site
+                    enclosingType.validate().injectField(callSiteHolder);
+                    // TODO: inject code into the initializer to initialize the call site object by calling the bootstrap
+                    // ...
+                    // Get the call site
+                    Value callSite = gf.readStaticField(callSiteHolder, JavaAccessMode.DETECT);
+                    // Get the method handle instance from the call site
+                    ClassTypeDescriptor descOfMethodHandle = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/MethodHandle");
+                    Value methodHandle = gf.invokeValueInstance(DispatchInvocation.Kind.VIRTUAL, callSite,
+                        callSiteDesc, "getTarget",
+                        MethodDescriptor.synthesize(ctxt, descOfMethodHandle, List.of()),
+                        List.of());
+                    // Invoke on the method handle
+                    int nameAndTypeRef = getClassFile().getInvokeDynamicNameAndTypeIndex(indyIdx);
                     MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(nameAndTypeRef));
-                    int cnt = desc.getParameterTypes().size();
+                    if (desc == null) {
+                        ctxt.getCompilationContext().error(gf.getLocation(), "Invoke dynamic has no target method descriptor");
+                        gf.unreachable();
+                        return;
+                    }
+                    List<TypeDescriptor> parameterTypes = desc.getParameterTypes();
+                    int cnt = parameterTypes.size();
                     Value[] args = new Value[cnt];
                     for (int i = cnt - 1; i >= 0; i--) {
-                        if (desc.getParameterTypes().get(i).isClass2()) {
-                            args[i] = pop2();
-                        } else {
-                            args[i] = pop1();
-                        }
-                        // narrow arguments if needed
-                        ValueType argType = args[i].getType();
-                        if (argType instanceof IntegerType) {
-                            IntegerType intType = (IntegerType) argType;
-                            if (intType.getMinBits() < 32) {
-                                args[i] = gf.truncate(args[i], intType);
-                            }
-                        }
+                        args[i] = pop(parameterTypes.get(i).isClass2());
                     }
-
-                    if (desc.getReturnType().isVoid()) {
-                        gf.invokeDynamic(bootstrapMethod, List.of(staticArgs), List.of(args));
-                    } else {
-                        ctxt.getCompilationContext().warning(gf.getLocation(), "invokedynamic: sloppy resolution of return type of invoked method");
-                        MethodSignature sig = MethodSignature.synthesize(ctxt, desc);
-                        FunctionType targetMethodType = ctxt.resolveMethodFunctionType(desc, List.of(), sig, TypeAnnotationList.empty(), List.of(), TypeAnnotationList.empty(), List.of());
-                        ValueType returnType = targetMethodType.getReturnType();
-                        Value result = gf.invokeValueDynamic(bootstrapMethod, List.of(staticArgs), returnType, List.of(args));
-
-                        if (returnType instanceof IntegerType) {
-                            IntegerType intType = (IntegerType) returnType;
-                            if (intType.getMinBits() < 32) {
-                                // extend it back out again
-                                if (intType instanceof UnsignedIntegerType) {
-                                    // first extend, then cast
-                                    result = gf.extend(result, ts.getUnsignedInteger32Type());
-                                    result = gf.bitCast(result, ts.getSignedInteger32Type());
-                                } else {
-                                    result = gf.extend(result, ts.getSignedInteger32Type());
-                                }
-                            }
-                        }
+                    Value result = gf.invokeValueInstance(DispatchInvocation.Kind.EXACT, methodHandle, descOfMethodHandle, "invokeExact",
+                        desc, List.of(args));
+                    if (! desc.getReturnType().isVoid()) {
                         if (desc.getReturnType().isClass2()) {
                             fatten(result);
                         }
