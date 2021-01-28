@@ -40,9 +40,6 @@ import cc.quarkus.qcc.machine.llvm.Struct;
 import cc.quarkus.qcc.machine.llvm.StructType;
 import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISubroutineType;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 import cc.quarkus.qcc.object.Data;
 import cc.quarkus.qcc.object.DataDeclaration;
@@ -63,7 +60,7 @@ import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
-import cc.quarkus.qcc.type.definition.element.Element;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -80,23 +77,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
             DefinedTypeDefinition def = programModule.getTypeDefinition();
             Path outputFile = ctxt.getOutputFile(def, "ll");
             final Module module = Module.newModule();
-
-            final LLValue diVersionTuple = module.metadataTuple()
-                    .elem(Types.i32, Values.intConstant(2))
-                    .elem(null, Values.metadataString("Debug Info Version"))
-                    .elem(Types.i32, Values.intConstant(3))
-                    .asRef();
-            final LLValue dwarfVersionTuple = module.metadataTuple()
-                    .elem(Types.i32, Values.intConstant(2))
-                    .elem(null, Values.metadataString("Dwarf Version"))
-                    .elem(Types.i32, Values.intConstant(4))
-                    .asRef();
-
-            module.metadataTuple("llvm.module.flags").elem(null, diVersionTuple).elem(null, dwarfVersionTuple);
-
-            // TODO Generate correct filenames
-            final LLValue compileUnit = module.diCompileUnit("DW_LANG_Java", module.diFile("<stdin>", "").asRef(), DebugEmissionKind.FullDebug)
-                    .asRef();
+            final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(module, ctxt);
 
             for (Section section : programModule.sections()) {
                 String sectionName = section.getName();
@@ -104,35 +85,26 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                     String name = item.getName();
                     Linkage linkage = map(item.getLinkage());
                     if (item instanceof Function) {
-                        Element element = ((Function) item).getOriginalElement();
+                        ExecutableElement element = (ExecutableElement) ((Function) item).getOriginalElement();
                         MethodBody body = ((Function) item).getBody();
+                        boolean isExact = item == ctxt.getExactFunction(element);
                         if (body == null) {
                             ctxt.error("Function `%s` has no body", name);
                             continue;
                         }
 
-                        String sourceFileName = element.getSourceFileName();
-                        String sourceFileDirectory = "";
+                        BasicBlock entryBlock = body.getEntryBlock();
+                        FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
+                        LLValue topSubprogram = null;
 
-                        if (sourceFileName != null) {
-                            String typeName = element.getEnclosingType().getInternalName();
-                            int typeNamePackageEnd = typeName.lastIndexOf('/');
-
-                            if (typeNamePackageEnd != -1) {
-                                sourceFileDirectory = typeName.substring(0, typeNamePackageEnd);
-                            }
+                        if (isExact) {
+                            functionDefinition.meta("dbg", debugInfo.getDebugInfoForFunction(element).getSubprogram());
                         } else {
-                            sourceFileName = "<unknown>";
+                            topSubprogram = debugInfo.createThunkSubprogram((Function) item).asRef();
+                            functionDefinition.meta("dbg", topSubprogram);
                         }
 
-                        // TODO Generate correct subroutine types
-                        DISubroutineType type = module.diSubroutineType(module.metadataTuple().elem(null, null).asRef());
-                        DISubprogram diSubprogram = module.diSubprogram(name, type.asRef(), compileUnit)
-                                .location(module.diFile(sourceFileName, sourceFileDirectory).asRef(), 0, 0);
-
-                        BasicBlock entryBlock = body.getEntryBlock();
-                        FunctionDefinition functionDefinition = module.define(name).linkage(linkage).meta("dbg", diSubprogram.asRef());
-                        LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, module, diSubprogram.asRef(), this, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
+                        LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, module, debugInfo, topSubprogram, this, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
                         if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                             functionDefinition.section(sectionName);
                         }
