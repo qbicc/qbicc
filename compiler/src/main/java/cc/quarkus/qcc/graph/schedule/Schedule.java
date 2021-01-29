@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.Unschedulable;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.PhiValue;
@@ -45,6 +46,7 @@ public interface Schedule {
             // trivial schedule
             return new Schedule() {
                 public BasicBlock getBlockForNode(final Node node) {
+                    Assert.assertFalse(node instanceof Unschedulable);
                     return entryBlock;
                 }
             };
@@ -70,6 +72,7 @@ public interface Schedule {
         }
         return new Schedule() {
             public BasicBlock getBlockForNode(final Node node) {
+                Assert.assertFalse(node instanceof Unschedulable);
                 return finalMapping.get(Assert.checkNotNullParam("node", node));
             }
         };
@@ -118,7 +121,7 @@ public interface Schedule {
         if (node instanceof PinnedNode) {
             // pinned to a block; always select that block.
             return scheduleToPinnedBlock(root, blockInfos, scheduledNodes, node, ((PinnedNode) node).getPinnedBlock());
-        } else if (node instanceof Literal) {
+        } else if (node instanceof Unschedulable) {
             // always considered available; do not schedule
             return root;
         } else {

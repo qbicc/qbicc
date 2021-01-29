@@ -9,7 +9,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public final class ThisValue extends AbstractValue {
+public final class ThisValue extends AbstractValue implements Unschedulable {
     private final ReferenceType type;
 
     ThisValue(final Node callSite, final ExecutableElement element, final ReferenceType type) {
