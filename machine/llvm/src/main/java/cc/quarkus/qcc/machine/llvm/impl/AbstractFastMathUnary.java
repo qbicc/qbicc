@@ -39,6 +39,10 @@ abstract class AbstractFastMathUnary extends AbstractYieldingInstruction impleme
         for (FastMathFlag flag : flags) {
             target.append(' ').append(flag.name());
         }
+        target.append(' ');
+        type.appendTo(target);
+        target.append(' ');
+        arg.appendTo(target);
         return super.appendTrailer(target);
     }
 }

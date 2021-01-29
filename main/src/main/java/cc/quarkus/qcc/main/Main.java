@@ -23,6 +23,7 @@ import cc.quarkus.qcc.machine.probe.CProbe;
 import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.plugin.constants.ConstantBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.CloneConversionBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.conversion.LLVMCompatibleBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.correctness.RuntimeChecksBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
@@ -276,6 +277,7 @@ public class Main {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectMonitorBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LLVMCompatibleBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addPostHook(Phase.LOWER, RTAInfo::clear);
