@@ -1159,7 +1159,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 ValueType type = elementParameters.get(i).getType(List.of());
                 parameters[i] = gf.parameter(type, i);
                 boolean class2 = elementParameters.get(i).hasClass2Type();
-                methodParser.setLocal(j, class2 ? methodParser.fatten(parameters[i]) : parameters[i]);
+                methodParser.setLocal(j, class2 ? methodParser.fatten(parameters[i]) : methodParser.promote(parameters[i]));
                 j += class2 ? 2 : 1;
             }
         } else {
