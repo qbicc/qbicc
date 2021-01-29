@@ -15,11 +15,16 @@ import cc.quarkus.qcc.runtime.NoReturn;
 @lib("pthread")
 @define(value = "_POSIX_C_SOURCE", as = "200809L")
 public final class PThread {
-
     public static class pthread_t extends word {
     }
 
     public static class pthread_attr_t extends word {
+    }
+
+    public static class pthread_mutex_t extends word {
+    }
+
+    public static class pthread_mutexattr_t extends word {
     }
 
     public static native c_int pthread_attr_init(ptr<pthread_attr_t> attr);
@@ -41,4 +46,9 @@ public final class PThread {
     public static native c_int pthread_kill(pthread_t thread, c_int signal);
 
     public static native c_int pthread_sigmask(c_int how, ptr<@c_const sigset_t> set, ptr<sigset_t> oldSet);
+
+    public static native c_int pthread_mutex_init(ptr<pthread_mutex_t> mutex, ptr<@c_const pthread_mutexattr_t> attr);
+    public static native c_int pthread_mutex_lock(ptr<pthread_mutex_t> mutex);
+    public static native c_int pthread_mutex_unlock(ptr<pthread_mutex_t> mutex);
+    public static native c_int pthread_mutex_destroy(ptr<pthread_mutex_t> mutex);
 }
