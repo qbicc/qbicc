@@ -622,12 +622,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     private LLValue map(Value value) {
-        if (value instanceof Unschedulable) {
-            return value.accept(this, null);
-        }
         LLValue mapped = mappedValues.get(value);
         if (mapped != null) {
             return mapped;
+        }
+
+        if (value instanceof Unschedulable) {
+            return value.accept(this, null);
         }
 
         LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(value));
