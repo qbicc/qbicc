@@ -55,6 +55,7 @@ import cc.quarkus.qcc.graph.TriableVisitor;
 import cc.quarkus.qcc.graph.Truncate;
 import cc.quarkus.qcc.graph.Try;
 import cc.quarkus.qcc.graph.Unreachable;
+import cc.quarkus.qcc.graph.Unschedulable;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
@@ -621,6 +622,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     private LLValue map(Value value) {
+        if (value instanceof Unschedulable) {
+            return value.accept(this, null);
+        }
         LLValue mapped = mappedValues.get(value);
         if (mapped != null) {
             return mapped;

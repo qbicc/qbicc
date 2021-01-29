@@ -8,7 +8,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public final class ParameterValue extends AbstractValue {
+public final class ParameterValue extends AbstractValue implements Unschedulable {
     private final ValueType type;
     private final int index;
 
