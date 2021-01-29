@@ -85,7 +85,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                     String name = item.getName();
                     Linkage linkage = map(item.getLinkage());
                     if (item instanceof Function) {
-                        ExecutableElement element = (ExecutableElement) ((Function) item).getOriginalElement();
+                        ExecutableElement element = ((Function) item).getOriginalElement();
                         MethodBody body = ((Function) item).getBody();
                         boolean isExact = item == ctxt.getExactFunction(element);
                         if (body == null) {
