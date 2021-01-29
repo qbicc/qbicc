@@ -7,7 +7,9 @@ import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.object.FunctionDeclaration;
 import cc.quarkus.qcc.object.ProgramModule;
+import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -60,7 +62,11 @@ public interface CompilationContext extends DiagnosticContext {
 
     List<ProgramModule> getAllProgramModules();
 
+    Section getImplicitSection(ExecutableElement element);
+
     Function getExactFunction(ExecutableElement element);
+
+    FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current);
 
     CurrentThreadLiteral getCurrentThreadValue();
 

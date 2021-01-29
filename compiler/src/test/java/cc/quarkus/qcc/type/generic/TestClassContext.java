@@ -18,7 +18,9 @@ import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.object.FunctionDeclaration;
 import cc.quarkus.qcc.object.ProgramModule;
+import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -97,8 +99,16 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public Section getImplicitSection(ExecutableElement element) {
+            return null;  // TODO: Customise this generated block
+        }
+
         public Function getExactFunction(final ExecutableElement element) {
             return null;
+        }
+
+        public FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current) {
+            return null;  // TODO: Customise this generated block
         }
 
         public CurrentThreadLiteral getCurrentThreadValue() {
