@@ -9,6 +9,7 @@ public class DILocationImpl extends AbstractMetadataNode implements DILocation {
     private final int column;
     private final AbstractValue scope;
     private final AbstractValue inlinedAt;
+    private boolean distinct;
 
     DILocationImpl(final int index, final int line, final int column, final AbstractValue scope, final AbstractValue inlinedAt) {
         super(index);
@@ -20,6 +21,10 @@ public class DILocationImpl extends AbstractMetadataNode implements DILocation {
 
     public Appendable appendTo(final Appendable target) throws IOException {
         super.appendTo(target);
+
+        if (distinct) {
+            target.append("distinct ");
+        }
 
         target.append("!DILocation(line: ");
         appendDecimal(target, line);
@@ -41,5 +46,10 @@ public class DILocationImpl extends AbstractMetadataNode implements DILocation {
 
     public DILocation comment(final String comment) {
         return (DILocation) super.comment(comment);
+    }
+
+    public DILocation distinct(final boolean distinct) {
+        this.distinct = distinct;
+        return this;
     }
 }

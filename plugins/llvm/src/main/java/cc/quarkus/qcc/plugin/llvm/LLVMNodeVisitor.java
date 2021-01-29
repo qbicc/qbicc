@@ -69,6 +69,7 @@ import cc.quarkus.qcc.machine.llvm.LLBuilder;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Values;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DILocation;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
@@ -86,7 +87,8 @@ import cc.quarkus.qcc.type.definition.MethodBody;
 final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final CompilationContext ctxt;
     final Module module;
-    final LLValue diSubprogram;
+    final LLVMModuleDebugInfo debugInfo;
+    final LLValue topSubprogram;
     final LLVMGenerator gen;
     final Schedule schedule;
     final Function functionObj;
@@ -99,11 +101,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final MethodBody methodBody;
     final TriableVisitor<Try, Void> triableVisitor = new Triables();
     final LLBuilder builder;
+    final Map<Node, LLValue> inlineLocations = new HashMap<>();
 
-    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLValue diSubprogram, final LLVMGenerator gen, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
+    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLValue topSubprogram, final LLVMGenerator gen, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
         this.module = module;
-        this.diSubprogram = diSubprogram;
+        this.debugInfo = debugInfo;
+        this.topSubprogram = topSubprogram;
         this.gen = gen;
         this.schedule = schedule;
         this.functionObj = functionObj;
@@ -563,8 +567,41 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     // mapping
 
+    private DILocation createDbgLocation(final Node node) {
+        LLValue inlinedAt = dbgInlinedCallSite(node.getCallSite());
+
+        if (inlinedAt == null && node.getElement() != functionObj.getOriginalElement()) {
+            ctxt.error(Location.builder().setNode(node).build(), "LLVM: Node is not part of the root function, but has no call site");
+        }
+
+        LLValue scope = (topSubprogram != null && inlinedAt == null)
+                ? topSubprogram
+                : debugInfo.getDebugInfoForFunction(node.getElement()).getScope(node.getBytecodeIndex());
+
+        return module.diLocation(node.getSourceLine(), 0, scope, inlinedAt);
+    }
+
+    private LLValue dbgInlinedCallSite(final Node node) {
+        if (node == null) {
+            return null;
+        }
+
+        LLValue diLocation = inlineLocations.get(node);
+
+        if (diLocation == null) {
+            diLocation = createDbgLocation(node).distinct(true).asRef();
+            inlineLocations.put(node, diLocation);
+        }
+
+        return diLocation;
+    }
+
     private LLValue dbg(final Node node) {
-        return module.diLocation(node.getSourceLine(), 0, diSubprogram, null).asRef();
+        if (node.getElement() == null || debugInfo == null) {
+            return null;
+        }
+
+        return createDbgLocation(node).asRef();
     }
 
     private LLBasicBlock map(BasicBlock block) {
