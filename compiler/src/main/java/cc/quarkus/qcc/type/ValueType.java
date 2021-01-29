@@ -91,7 +91,7 @@ public abstract class ValueType extends Type {
      * @return the meet type (not {@code null})
      */
     public ValueType join(final ValueType other) {
-        return getTypeSystem().getPoisonType();
+        return equals(other) ? this : getTypeSystem().getPoisonType();
     }
 
     public StringBuilder toString(final StringBuilder b) {

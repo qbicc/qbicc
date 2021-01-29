@@ -39,6 +39,10 @@ public final class PrimitiveArrayObjectType extends ArrayObjectType {
         return elementType;
     }
 
+    public ObjectType getCommonSupertype(final ObjectType other) {
+        return equals(other) ? this : getSuperClassType();
+    }
+
     public StringBuilder toFriendlyString(final StringBuilder b) {
         return elementType.toFriendlyString(b.append("prim_array").append('.'));
     }

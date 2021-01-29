@@ -61,6 +61,8 @@ public abstract class ObjectType extends ValueType {
 
     public abstract boolean isSubtypeOf(ObjectType other);
 
+    public abstract ObjectType getCommonSupertype(ObjectType other);
+
     public boolean isSupertypeOf(ObjectType other) {
         return other.isSubtypeOf(this);
     }

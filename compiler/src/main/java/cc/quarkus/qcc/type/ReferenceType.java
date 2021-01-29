@@ -111,30 +111,9 @@ public final class ReferenceType extends WordType {
     public ReferenceType join(final ReferenceType other) {
         boolean const_ = isConst() || other.isConst();
         boolean nullable = isNullable() || other.isNullable();
-        ReferenceType result;
-        if (upperBound.isSupertypeOf(other.upperBound)) {
-            result = this;
-        } else if (upperBound.isSubtypeOf(other.upperBound)) {
-            result = other;
-        } else {
-            // find a common supertype of both
-            if (upperBound.hasSuperClass()) {
-                result = upperBound.getSuperClassType().getReference();
-                if (const_) result = result.asConst();
-                if (nullable) result = result.asNullable;
-                return other.join(result);
-            } else if (other.upperBound.hasSuperClass()) {
-                result = other.upperBound.getSuperClassType().getReference();
-                if (const_) result = result.asConst();
-                if (nullable) result = result.asNullable;
-                return result.join(this);
-            } else {
-                // both are j.l.Object
-                result = this;
-            }
-        }
-        if (const_) result = asConst();
-        if (nullable) result = asNullable();
+        ReferenceType result = getUpperBound().getCommonSupertype(other.getUpperBound()).getReference();
+        if (const_) result = result.asConst();
+        if (nullable) result = result.asNullable();
         return result;
     }
 
