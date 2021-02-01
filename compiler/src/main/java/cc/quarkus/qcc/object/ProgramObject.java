@@ -21,6 +21,10 @@ public abstract class ProgramObject {
         return name;
     }
 
+    public SymbolLiteral getLiteral() {
+        return literal;
+    }
+
     public ValueType getType() {
         return literal.getType();
     }

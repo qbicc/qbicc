@@ -1,12 +1,5 @@
 package cc.quarkus.qcc.object;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.type.FunctionType;
@@ -14,6 +7,13 @@ import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.MemberElement;
 import io.smallrye.common.constraint.Assert;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A section in a program.
@@ -44,8 +44,12 @@ public final class Section extends ProgramObject {
         }
     }
 
-    private static void twice(final MemberElement originalElement, final String name) {
-        originalElement.getEnclosingType().getContext().getCompilationContext().error(originalElement, "Object '%s' defined twice", name);
+    private void twice(MemberElement originalElement, final String name) {
+        if (originalElement != null) {
+            programModule.getTypeDefinition().getContext().getCompilationContext().error(originalElement, "Object '%s' defined twice", name);
+        } else {
+            programModule.getTypeDefinition().getContext().getCompilationContext().error("Synthetic object '%s' defined twice", name);
+        }
     }
 
     public Function addFunction(ExecutableElement originalElement, String name, FunctionType type) {
