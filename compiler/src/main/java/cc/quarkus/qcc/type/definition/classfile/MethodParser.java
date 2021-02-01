@@ -67,6 +67,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     private final LiteralFactory lf;
     private final TypeSystem ts;
     private final DefinedTypeDefinition throwable;
+    private int currentbci;
     /**
      * Exception handlers by index, then by delegate.
      */
@@ -81,6 +82,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         stack = new Value[info.getMaxStack()];
         locals = new Value[info.getMaxLocals()];
         this.buffer = buffer;
+        currentbci = buffer.position();
         int cnt = info.getEntryPointCount();
         BlockLabel[] blockHandles = new BlockLabel[cnt];
         // make a "canonical" node handle for each block
@@ -103,10 +105,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     public BasicBlockBuilder.ExceptionHandler computeCurrentExceptionHandler(BasicBlockBuilder.ExceptionHandler delegate) {
         int etl = info.getExTableLen();
         if (etl > 0) {
-            int pos = buffer.position();
             ExceptionHandlerImpl handler;
             for (int i = etl - 1; i >= 0; i --) {
-                if (info.getExTableEntryStartPc(i) <= pos && pos < info.getExTableEntryEndPc(i)) {
+                if (info.getExTableEntryStartPc(i) <= currentbci && currentbci < info.getExTableEntryEndPc(i)) {
                     // in range...
                     Map<BasicBlockBuilder.ExceptionHandler, ExceptionHandlerImpl> handlerMap = exceptionHandlers.get(i);
                     if (handlerMap == null) {
@@ -476,7 +477,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         boolean wide;
         ClassMethodInfo info = this.info;
         while (buffer.hasRemaining()) {
-            src = buffer.position();
+            currentbci = src = buffer.position();
             gf.setBytecodeIndex(src);
             gf.setLineNumber(info.getLineNumber(src));
             opcode = buffer.get() & 0xff;

@@ -126,7 +126,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             return null;
         } else {
             ExceptionHandler handler = policy.computeCurrentExceptionHandler(this);
-            return handler == this ? null : this;
+            return handler == this ? null : handler;
         }
     }
 
