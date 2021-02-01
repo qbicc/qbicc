@@ -11,9 +11,6 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 public final class PhiValue extends AbstractValue implements PinnedNode {
-    // todo: this is TEMPORARY (not an API) and should not be reused or replicated elsewhere
-    private static final boolean STRICT_JOINS = Boolean.parseBoolean(System.getProperty("qcc.strict-joins", "false"));
-
     private ValueType type;
     private final BlockLabel blockLabel;
     private final HashMap<Terminator, Value> incomingValues = new HashMap<>();
@@ -32,16 +29,8 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         Assert.checkNotNullParam("value", value);
         ValueType expected = getType();
         ValueType actual = value.getType();
-        if (STRICT_JOINS) {
-            if (! actual.join(expected).equals(expected)) {
-                ctxt.error(element, this, "Invalid input value for phi: expected %s, got %s (join is %s)", expected, actual, actual.join(expected));
-            }
-        } else {
-            try {
-                type = actual.join(expected);
-            } catch (IllegalArgumentException e) {
-                ctxt.error(element, this, "Failed to derive type for phi: %s", e.getMessage());
-            }
+        if (! actual.join(expected).equals(expected)) {
+            ctxt.error(element, this, "Invalid input value for phi: expected %s, got %s (join is %s)", expected, actual, actual.join(expected));
         }
         if (incomingValues.containsKey(input)) {
             ctxt.error(element, this, "Phi already has a value for block %s", input.getTerminatedBlock());

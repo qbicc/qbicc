@@ -241,7 +241,7 @@ final class ClassMethodInfo {
         }
         this.exTable = exTable;
         int attrCnt = codeAttr.getShort() & 0xffff;
-        int stackMapTableOffs = -1;
+        int stackMapTableOffs = classFile.getMajorVersion() < 50 ? -1 : 0;
         int stackMapTableLen = 0;
         int visibleTypeAnnotationsOffs = -1;
         int visibleTypeAnnotationsLen = 0;
@@ -723,6 +723,10 @@ final class ClassMethodInfo {
             }
         }
         return -low - 1;
+    }
+
+    int getEntryPointTarget(final int index) {
+        return entryPoints[index];
     }
 
     int getLineNumber(int bci) {

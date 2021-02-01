@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.List;
 
 import cc.quarkus.qcc.context.Location;
@@ -11,9 +12,12 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.ParameterValue;
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.schedule.Schedule;
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
@@ -50,6 +54,8 @@ import cc.quarkus.qcc.type.generic.TypeSignature;
 
 final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, EnclosingClassResolver, EnclosedClassResolver, MethodBodyFactory {
     private static final int[] NO_INTS = new int[0];
+    private static final ValueType[] NO_TYPES = new ValueType[0];
+    private static final ValueType[][] NO_TYPE_ARRAYS = new ValueType[0][];
 
     private static final VarHandle intArrayHandle = MethodHandles.arrayElementVarHandle(int[].class);
     private static final VarHandle intArrayArrayHandle = MethodHandles.arrayElementVarHandle(int[][].class);
@@ -1165,21 +1171,39 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         DefinedTypeDefinition enclosing = element.getEnclosingType();
         BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder(element);
         int offs = classMethodInfo.getCodeOffs();
+        int pos = codeAttr.position();
+        int lim = codeAttr.limit();
         codeAttr.position(offs);
         codeAttr.limit(offs + classMethodInfo.getCodeLen());
         ByteBuffer byteCode = codeAttr.slice();
+        codeAttr.position(pos);
+        codeAttr.limit(lim);
         MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, byteCode, gf);
         ParameterValue thisValue;
         ParameterValue[] parameters;
+        boolean nonStatic = (modifiers & ClassFile.ACC_STATIC) == 0;
+        ValueType[][] varTypesByEntryPoint;
+        ValueType[][] stackTypesByEntryPoint;
+        ValueType[] currentVarTypes;
         if (element instanceof InvokableElement) {
+            int initialLocals = 0;
+            if (nonStatic) {
+                initialLocals++;
+            }
             List<ParameterElement> elementParameters = ((InvokableElement) element).getParameters();
             int paramCount = elementParameters.size();
             parameters = new ParameterValue[paramCount];
+            for (int i = 0; i < paramCount; i ++) {
+                boolean class2 = elementParameters.get(i).hasClass2Type();
+                initialLocals += class2 ? 2 : 1;
+            }
+            currentVarTypes = new ValueType[initialLocals];
             int j = 0;
-            if ((modifiers & ClassFile.ACC_STATIC) == 0) {
+            if (nonStatic) {
                 // instance method or constructor
                 thisValue = gf.parameter(enclosing.validate().getType().getReference(), "this", 0);
-                methodParser.setLocal(j++, thisValue);
+                currentVarTypes[j] = thisValue.getType();
+                methodParser.setLocal1(j++, thisValue);
             } else {
                 thisValue = null;
             }
@@ -1187,13 +1211,152 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 ValueType type = elementParameters.get(i).getType(List.of());
                 parameters[i] = gf.parameter(type, "p", i);
                 boolean class2 = elementParameters.get(i).hasClass2Type();
-                methodParser.setLocal(j, class2 ? methodParser.fatten(parameters[i]) : methodParser.promote(parameters[i]));
+                Value promoted = methodParser.promote(parameters[i]);
+                currentVarTypes[j] = promoted.getType();
+                methodParser.setLocal(j, promoted, class2);
                 j += class2 ? 2 : 1;
             }
         } else {
             thisValue = null;
             parameters = ParameterValue.NO_PARAMETER_VALUES;
+            currentVarTypes = NO_TYPES;
         }
+        // create type information for phi generation
+        int smtOff = classMethodInfo.getStackMapTableOffs();
+        if (smtOff == -1) {
+            throw new IllegalArgumentException("No type information available");
+        }
+        int smtLen = classMethodInfo.getStackMapTableLen();
+        ValueType[] currentStackTypes = NO_TYPES;
+        int epCnt = classMethodInfo.getEntryPointCount();
+        if (smtLen > 0) {
+            varTypesByEntryPoint = new ValueType[smtLen][];
+            stackTypesByEntryPoint = new ValueType[smtLen][];
+            ByteBuffer sm = codeAttr.duplicate();
+            int epIdx = 0;
+            int bcIdx = 0;
+            sm.position(smtOff);
+            int tag, delta;
+            for (int i = 0; i < smtLen; i ++) {
+                tag = sm.get() & 0xff;
+                if (tag <= 63) { // SAME
+                    delta = tag;
+                } else if (tag <= 127) { // SAME_LOCALS_1_STACK_ITEM
+                    delta = tag - 64;
+                    int viTag = sm.get() & 0xff;
+                    currentStackTypes = new ValueType[getSlotSize(viTag)];
+                    currentStackTypes[currentStackTypes.length - 1] = getTypeOfVerificationInfo(viTag, element, sm, byteCode);
+                } else if (tag <= 246) { // reserved
+                    throw new IllegalStateException("Invalid stack map tag " + tag);
+                } else if (tag == 247) { // SAME_LOCALS_1_STACK_ITEM_EXTENDED
+                    delta = sm.getShort() & 0xffff;
+                    int viTag = sm.get() & 0xff;
+                    currentStackTypes = new ValueType[getSlotSize(viTag)];
+                    currentStackTypes[currentStackTypes.length - 1] = getTypeOfVerificationInfo(viTag, element, sm, byteCode);
+                } else if (tag <= 250) { // CHOP
+                    delta = sm.getShort() & 0xffff;
+                    int chop = 251 - tag;
+                    int total = 0;
+                    for (int j = 0; j < chop; j ++) {
+                        if (currentVarTypes[currentVarTypes.length - 1 - total] == null) {
+                            total += 2;
+                        } else {
+                            total++;
+                        }
+                    }
+                    currentVarTypes = Arrays.copyOf(currentVarTypes, currentVarTypes.length - total);
+                } else if (tag == 251) { // SAME_FRAME_EXTENDED
+                    delta = sm.getShort() & 0xffff;
+                } else if (tag < 255) { // APPEND
+                    delta = sm.getShort() & 0xffff;
+                    int append = tag - 251;
+                    int total = 0;
+                    int save = sm.position();
+                    for (int j = 0; j < append; j ++) {
+                        int viTag = sm.get() & 0xff;
+                        // consume
+                        getTypeOfVerificationInfo(viTag, element, sm, byteCode);
+                        total += getSlotSize(viTag);
+                    }
+                    sm.position(save);
+                    int oldLen = currentVarTypes.length;
+                    currentVarTypes = Arrays.copyOf(currentVarTypes, oldLen + total);
+                    for (int j = 0, k = oldLen; j < append; j ++) {
+                        int viTag = sm.get() & 0xff;
+                        // consume
+                        currentVarTypes[k] = getTypeOfVerificationInfo(viTag, element, sm, byteCode);
+                        k += getSlotSize(viTag);
+                    }
+                } else {
+                    assert tag == 255; // FULL_FRAME
+                    delta = sm.getShort() & 0xffff;
+                    int localCnt = sm.getShort() & 0xffff;
+                    int save = sm.position();
+                    int arraySize = 0;
+                    for (int j = 0; j < localCnt; j ++) {
+                        int viTag = sm.get() & 0xff;
+                        // consume
+                        getTypeOfVerificationInfo(viTag, element, sm, byteCode);
+                        arraySize += getSlotSize(viTag);
+                    }
+                    currentVarTypes = new ValueType[arraySize];
+                    sm.position(save);
+                    for (int j = 0, k = 0; j < localCnt; j ++) {
+                        int viTag = sm.get() & 0xff;
+                        currentVarTypes[k++] = getTypeOfVerificationInfo(viTag, element, sm, byteCode);
+                        if (getSlotSize(viTag) == 2) {
+                            currentVarTypes[k++] = null;
+                        }
+                    }
+                    int stackCnt = sm.getShort() & 0xffff;
+                    save = sm.position();
+                    arraySize = 0;
+                    for (int j = 0; j < stackCnt; j ++) {
+                        int viTag = sm.get() & 0xff;
+                        // consume
+                        getTypeOfVerificationInfo(viTag, element, sm, byteCode);
+                        arraySize += getSlotSize(viTag);
+                    }
+                    currentStackTypes = new ValueType[arraySize];
+                    sm.position(save);
+                    for (int j = 0, k = 0; j < stackCnt; j ++) {
+                        int viTag = sm.get() & 0xff;
+                        if (getSlotSize(viTag) == 2) {
+                            currentStackTypes[k++] = null;
+                        }
+                        currentStackTypes[k++] = getTypeOfVerificationInfo(viTag, element, sm, byteCode);
+                    }
+                }
+                // the bytecode index at which it applies
+                if (i == 0) {
+                    bcIdx = delta;
+                } else {
+                    bcIdx = bcIdx + 1 + delta;
+                }
+                if (epIdx < classMethodInfo.getEntryPointCount()) {
+                    int target = classMethodInfo.getEntryPointTarget(epIdx);
+                    if (target > bcIdx) {
+                        // skip this entry point
+                    } else if (target == bcIdx) {
+                        // map the entry point
+                        varTypesByEntryPoint[epIdx] = currentVarTypes;
+                        stackTypesByEntryPoint[epIdx] = currentStackTypes;
+                        epIdx++;
+                    } else {
+                        throw new IllegalStateException("Stack map does not match entry point calculation (next EP target is "
+                            + target + ", current idx is " + bcIdx + ")");
+                    }
+                }
+            }
+        } else {
+            if (epCnt == 0) {
+                varTypesByEntryPoint = NO_TYPE_ARRAYS;
+                stackTypesByEntryPoint = NO_TYPE_ARRAYS;
+            } else {
+                throw new IllegalStateException("Entry points with no type information");
+            }
+        }
+        methodParser.setTypeInformation(varTypesByEntryPoint, stackTypesByEntryPoint);
         // process the main entry point
         BlockLabel entryBlockHandle = methodParser.getBlockForIndexIfExists(0);
         if (entryBlockHandle == null) {
@@ -1212,5 +1375,41 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
         Schedule schedule = Schedule.forMethod(entryBlock);
         return MethodBody.of(entryBlock, schedule, thisValue, parameters);
+    }
+
+    int getSlotSize(int viTag) {
+        return viTag == 3 || viTag == 4 ? 2 : 1;
+    }
+
+    ValueType getTypeOfVerificationInfo(int viTag, ExecutableElement element, ByteBuffer sm, ByteBuffer byteCode) {
+        TypeSystem ts = ctxt.getTypeSystem();
+        if (viTag == 0) { // top
+            return ts.getPoisonType();
+        } else if (viTag == 1) { // int
+            return ts.getSignedInteger32Type();
+        } else if (viTag == 2) { // float
+            return ts.getFloat32Type();
+        } else if (viTag == 3) { // double
+            return ts.getFloat64Type();
+        } else if (viTag == 4) { // long
+            return ts.getSignedInteger64Type();
+        } else if (viTag == 5) { // null
+            return ts.getNullType();
+        } else if (viTag == 6) { // uninitialized this
+            return element.getEnclosingType().validate().getType().getReference();
+        } else if (viTag == 7) { // object
+            int cpIdx = sm.getShort() & 0xffff;
+            return nullable(getTypeConstant(cpIdx));
+        } else if (viTag == 8) { // uninitialized object
+            int newIdx = sm.getShort() & 0xffff;
+            int cpIdx = byteCode.getShort(newIdx + 1) & 0xffff;
+            return nullable(getTypeConstant(cpIdx));
+        } else {
+            throw new IllegalStateException("Invalid variable info tag " + viTag);
+        }
+    }
+
+    ValueType nullable(ValueType v) {
+        return v instanceof ReferenceType ? ((ReferenceType) v).asNullable() : v;
     }
 }
