@@ -23,6 +23,7 @@ import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.machine.llvm.Array;
+import cc.quarkus.qcc.machine.llvm.IdentifiedType;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Struct;
@@ -106,6 +107,14 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             long size = arrayType.getSize();
             res = array((int) size, map(elementType));
         } else if (type instanceof CompoundType) {
+            // Compound types are special in that they can be self-referential by containing pointers to themselves. To
+            // handle this, we must do two special things:
+            //   - Use an identified type in the module to avoid infinite recursion when printing the type
+            //   - Add the mapping to types early to avoid infinite recursion when mapping self-referential member types
+            IdentifiedType identifiedType = module.identifiedType();
+            res = identifiedType.asTypeRef();
+            types.put(type, res);
+
             // this is a little tricky.
             CompoundType compoundType = (CompoundType) type;
             int memberCnt = compoundType.getMemberCount();
@@ -135,7 +144,8 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                 // yet more padding
                 struct.member(array((int) (size - offs), i8));
             }
-            res = struct;
+
+            identifiedType.type(struct);
         } else {
             throw new IllegalStateException();
         }
