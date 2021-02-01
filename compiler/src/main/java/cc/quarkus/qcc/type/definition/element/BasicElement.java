@@ -81,6 +81,10 @@ public abstract class BasicElement implements Element {
             this.modifiers = modifiers;
         }
 
+        public void addModifiers(final int modifiers) {
+            this.modifiers |= modifiers;
+        }
+
         public void setIndex(final int index) {
             this.index = index;
         }

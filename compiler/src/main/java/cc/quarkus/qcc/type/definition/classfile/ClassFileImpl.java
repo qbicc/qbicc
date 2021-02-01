@@ -32,6 +32,7 @@ import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 import cc.quarkus.qcc.type.definition.element.ParameterElement;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ConstructorMethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.Descriptor;
@@ -899,6 +900,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
 
     private void addParameters(InvokableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
         int base = methodOffsets[index];
+        int modifiers = getShort(base);
         int descIdx = getShort(base + 4);
         MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(descIdx);
         int attrCnt = getMethodAttributeCount(index);
@@ -983,6 +985,20 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setDescriptor(methodDescriptor);
         builder.setSignature(signature);
         builder.setParameters(List.of(parameters));
+        if (parameters.length == 1 && (modifiers & (ACC_VARARGS | ACC_NATIVE)) == (ACC_VARARGS | ACC_NATIVE)) {
+            TypeDescriptor d0 = parameters[0].getTypeDescriptor();
+            if (d0 instanceof ArrayTypeDescriptor) {
+                TypeDescriptor ed0 = ((ArrayTypeDescriptor) d0).getElementTypeDescriptor();
+                if (ed0 instanceof ClassTypeDescriptor) {
+                    ClassTypeDescriptor cd = (ClassTypeDescriptor) ed0;
+                    if (cd.getClassName().equals("Object") && cd.getPackageName().equals("java/lang")) {
+                        if (enclosing.internalPackageAndNameEquals("java/lang/invoke", "MethodHandle") || enclosing.internalPackageAndNameEquals("java/lang/invoke", "VarHandle")) {
+                            builder.addModifiers(I_ACC_SIGNATURE_POLYMORPHIC);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void addMethodAnnotations(final int index, InvokableElement.Builder builder) {
