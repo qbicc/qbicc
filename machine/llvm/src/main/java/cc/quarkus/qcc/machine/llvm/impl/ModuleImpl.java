@@ -10,6 +10,7 @@ import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.Global;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
+import cc.quarkus.qcc.machine.llvm.IdentifiedType;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DICompileUnit;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIFile;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DILocation;
@@ -52,6 +53,15 @@ final class ModuleImpl implements Module {
     public Global constant(final LLValue type) {
         Assert.checkNotNullParam("type", type);
         return add(new GlobalImpl(this, true, (AbstractValue) type));
+    }
+
+    public IdentifiedType identifiedType() {
+        return identifiedType("T" + nextGlobalId());
+    }
+
+    public IdentifiedType identifiedType(String name) {
+        Assert.checkNotNullParam("name", name);
+        return add(new IdentifiedTypeImpl(name));
     }
 
     public MetadataTuple metadataTuple() {

@@ -26,6 +26,9 @@ public interface Module {
 
     Global constant(LLValue type);
 
+    IdentifiedType identifiedType();
+    IdentifiedType identifiedType(String name);
+
     MetadataTuple metadataTuple();
     MetadataTuple metadataTuple(String name);
 
