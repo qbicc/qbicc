@@ -101,6 +101,8 @@ public class Main {
                     Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables").setLevel(Level.DEBUG);
                 } else if (arg.equals("--debug-rta")) {
                     Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
+                } else if (arg.equals("--debug-supers")) {
+                    Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
                 } else {
                     initialContext.error("Unrecognized argument \"%s\"", arg);
                     break;

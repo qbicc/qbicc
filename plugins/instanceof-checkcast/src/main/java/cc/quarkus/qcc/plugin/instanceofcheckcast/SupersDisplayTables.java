@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
 
+import org.jboss.logging.Logger;
+
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
@@ -18,9 +20,11 @@ import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
  * including itself.
  */
 public class SupersDisplayTables {
+    private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast");
+    private static final Logger supersLog = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers");
+    
     private static final AttachmentKey<SupersDisplayTables> KEY = new AttachmentKey<>();
     private static final ValidatedTypeDefinition[] INVALID_DISPLAY = new ValidatedTypeDefinition[0];
-    public static final boolean DEBUG_SUPERSDISPLAY = true;
 
     private final CompilationContext ctxt;
     private final Map<ValidatedTypeDefinition, ValidatedTypeDefinition[]> supers = new ConcurrentHashMap<>();
@@ -58,7 +62,7 @@ public class SupersDisplayTables {
     }
 
     void buildSupersDisplay(ValidatedTypeDefinition cls) {
-        if (DEBUG_SUPERSDISPLAY) ctxt.debug("Building SupersDisplay for: " + cls.getDescriptor());
+        log.debug("Building SupersDisplay for: " + cls.getDescriptor());
         ValidatedTypeDefinition[] supersArray = getSupersDisplay(cls);
         if (supersArray == INVALID_DISPLAY) {
             RTAInfo info = RTAInfo.get(ctxt);
@@ -68,7 +72,7 @@ public class SupersDisplayTables {
                 superDisplay.add(next);
                 if (!info.isLiveClass(next)) {
                     // TODO - can we optimize here if RTA doesn't see this class as live? Can that happen?
-                    if (DEBUG_SUPERSDISPLAY) ctxt.debug("Found RTA non-live super: " + cls.getDescriptor());
+                    log.debug("Found RTA non-live super: " + cls.getDescriptor());
                 }
                 next = next.getSuperClass();
             } while (next != null);
@@ -79,7 +83,7 @@ public class SupersDisplayTables {
             supersArray = superDisplay.toArray(INVALID_DISPLAY); // Use this to ensure toArray result has right type
             supers.put(cls, supersArray); 
         }
-        if (DEBUG_SUPERSDISPLAY) ctxt.debug("Display size: " + supersArray.length);
+        log.debug("Display size: " + supersArray.length);
     }
 
     public void statistics() {
@@ -90,20 +94,20 @@ public class SupersDisplayTables {
             count += 1;
             histogram.put(column, count);
         });
-        ctxt.debug("Supers display statistics: [size, occurrance]");
+        supersLog.debug("Supers display statistics: [size, occurrance]");
         histogram.entrySet().stream().forEach(es -> {
-            ctxt.debug("\t["+ es.getKey() +", " + es.getValue()+ "]");
+            supersLog.debug("\t["+ es.getKey() +", " + es.getValue()+ "]");
         });
         int numClasses = supers.size();
-        ctxt.debug("Classes: "+ numClasses);
-        ctxt.debug("Max display size: "+ maxDisplaySizeElements);
-        ctxt.debug("Slots of storage: " + numClasses * maxDisplaySizeElements);
+        supersLog.debug("Classes: "+ numClasses);
+        supersLog.debug("Max display size: "+ maxDisplaySizeElements);
+        supersLog.debug("Slots of storage: " + numClasses * maxDisplaySizeElements);
         int emptySlots = histogram.entrySet().stream().flatMapToInt(es -> {
             int waste = maxDisplaySizeElements - es.getKey(); // max - needed number
             waste *= es.getValue(); // * number of classes in bucket
             return IntStream.of(waste);
         }).sum();
-        ctxt.debug("Slots of waste: " + emptySlots);
+        supersLog.debug("Slots of waste: " + emptySlots);
         
     }
 }
