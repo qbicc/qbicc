@@ -4,6 +4,7 @@ import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.Linkage;
 import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.type.ArrayType;
@@ -92,7 +93,11 @@ public class DispatchTables {
         Section section = ctxt.getOrAddProgramModule(type).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
         SymbolLiteral[] functions = new SymbolLiteral[vtable.length];
         for (int i=0; i<vtable.length; i++) {
-            functions[i] = ctxt.getExactFunction(vtable[i]).getLiteral();
+            Function impl = ctxt.getExactFunction(vtable[i]);
+            functions[i] = impl.getLiteral();
+            if (!vtable[i].getEnclosingType().validate().equals(type)) {
+                section.declareFunction(vtable[i], impl.getName(), impl.getType());
+            }
         }
         ArrayLiteral vtableLiteral = ctxt.getLiteralFactory().literalOf(vtableType, List.of(functions));
         section.addData(null, itemName, vtableLiteral).setLinkage(Linkage.EXTERNAL);
