@@ -26,8 +26,6 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         ValidatedTypeDefinition jlo = jloDef.validate();
         tables.buildSupersDisplay(jlo);
         info.visitLiveSubclasses(jlo, cls -> tables.buildSupersDisplay(cls));
-        if (SupersDisplayTables.DEBUG_SUPERSDISPLAY) {
-            tables.statistics();
-        }
+        tables.statistics();
     }
 }
