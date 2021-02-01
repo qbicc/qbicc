@@ -383,7 +383,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Node fence(final MemoryAtomicityMode fenceType) {
-        throw Assert.unsupported();
+        return asDependency(new Fence(callSite, element, line, bci, requireDependency(), fenceType));
     }
 
     public Node monitorEnter(final Value obj) {
