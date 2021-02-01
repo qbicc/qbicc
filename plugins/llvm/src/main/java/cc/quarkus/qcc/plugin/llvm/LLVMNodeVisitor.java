@@ -92,7 +92,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final Module module;
     final LLVMModuleDebugInfo debugInfo;
     final LLValue topSubprogram;
-    final LLVMGenerator gen;
+    final LLVMModuleNodeVisitor moduleVisitor;
     final Schedule schedule;
     final Function functionObj;
     final FunctionDefinition func;
@@ -106,12 +106,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     final LLBuilder builder;
     final Map<Node, LLValue> inlineLocations = new HashMap<>();
 
-    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLValue topSubprogram, final LLVMGenerator gen, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
+    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLValue topSubprogram, final LLVMModuleNodeVisitor moduleVisitor, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
         this.module = module;
         this.debugInfo = debugInfo;
         this.topSubprogram = topSubprogram;
-        this.gen = gen;
+        this.moduleVisitor = moduleVisitor;
         this.schedule = schedule;
         this.functionObj = functionObj;
         this.func = func;
@@ -575,7 +575,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     // unknown node catch-all methods
 
     public LLValue visitUnknown(final Void param, final Value node) {
-        return node.accept(gen, ctxt);
+        return node.accept(moduleVisitor, null);
     }
 
     public Void visitUnknown(final Void param, final Action node) {
@@ -666,7 +666,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     private LLValue map(Type type) {
-        return gen.map(type);
+        return moduleVisitor.map(type);
     }
 
     private void map(Action action) {
@@ -713,7 +713,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     private LLValue map(CompoundType compoundType, CompoundType.Member member) {
-        return gen.map(compoundType, member);
+        return moduleVisitor.map(compoundType, member);
     }
 
     class Triables implements TriableVisitor<Try, Void> {
