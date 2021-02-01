@@ -315,6 +315,11 @@ public interface Node {
                 return param.getBlockBuilder().invokeStatic(node.getInvocationTarget(), param.copyValues(node.getArguments()));
             }
 
+            public Node visit(Copier param, Fence node) {
+                param.copyNode(node.getBasicDependency(0));
+                return param.getBlockBuilder().fence(node.getAtomicityMode());
+            }
+
             public BasicBlock visit(Copier param, Goto node) {
                 param.copyNode(node.getBasicDependency(0));
                 return param.getBlockBuilder().goto_(param.copyBlock(node.getResumeTarget()));

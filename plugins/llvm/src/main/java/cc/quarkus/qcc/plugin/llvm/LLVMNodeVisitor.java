@@ -27,10 +27,12 @@ import cc.quarkus.qcc.graph.CmpNe;
 import cc.quarkus.qcc.graph.Convert;
 import cc.quarkus.qcc.graph.Div;
 import cc.quarkus.qcc.graph.Extend;
+import cc.quarkus.qcc.graph.Fence;
 import cc.quarkus.qcc.graph.FunctionCall;
 import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.MemberPointer;
+import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.Multiply;
 import cc.quarkus.qcc.graph.Narrow;
@@ -72,6 +74,7 @@ import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DILocation;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
+import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.type.ArrayType;
@@ -150,6 +153,26 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue type = map(((PointerType)node.getPointer().getType()).getPointeeType());
         LLValue ptr = map(node.getPointer());
         builder.store(ptrType, value, type, ptr);
+        return null;
+    }
+
+    public Void visit(final Void param, final Fence node) {
+        map(node.getBasicDependency(0));
+        MemoryAtomicityMode mode = node.getAtomicityMode();
+        switch (mode) {
+            case ACQUIRE:
+                builder.fence(OrderingConstraint.acquire);
+                break;
+            case RELEASE:
+                builder.fence(OrderingConstraint.release);
+                break;
+            case ACQUIRE_RELEASE:
+                builder.fence(OrderingConstraint.acq_rel);
+                break;
+            case SEQUENTIALLY_CONSISTENT:
+                builder.fence(OrderingConstraint.seq_cst);
+                break;
+        }
         return null;
     }
 

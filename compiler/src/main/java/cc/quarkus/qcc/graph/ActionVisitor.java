@@ -48,6 +48,10 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, Fence node) {
+        return visitUnknown(param, node);
+    }
+
     interface Delegating<T, R> extends ActionVisitor<T, R> {
         ActionVisitor<T, R> getDelegateActionVisitor();
 
@@ -92,6 +96,10 @@ public interface ActionVisitor<T, R> {
         }
 
         default R visit(T param, StaticInvocation node) {
+            return getDelegateActionVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Fence node) {
             return getDelegateActionVisitor().visit(param, node);
         }
     }
