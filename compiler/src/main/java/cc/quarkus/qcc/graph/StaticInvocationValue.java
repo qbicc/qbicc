@@ -10,7 +10,7 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 /**
  * An invoke instruction which returns a value.
  */
-public final class StaticInvocationValue extends AbstractValue implements MethodInvocation, Triable {
+public final class StaticInvocationValue extends AbstractValue implements MethodInvocation, Triable, OrderedNode {
     private final Node dependency;
     private final MethodElement target;
     private final ValueType type;
@@ -44,12 +44,9 @@ public final class StaticInvocationValue extends AbstractValue implements Method
         return type;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

@@ -163,7 +163,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public Void visit(final Void param, final Fence node) {
-        map(node.getBasicDependency(0));
+        map(node.getDependency());
         MemoryAtomicityMode mode = node.getAtomicityMode();
         switch (mode) {
             case ACQUIRE:
@@ -185,32 +185,32 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     // terminators
 
     public Void visit(final Void param, final Goto node) {
-        map(node.getBasicDependency(0));
+        map(node.getDependency());
         builder.br(map(node.getResumeTarget()));
         return null;
     }
 
     public Void visit(final Void param, final If node) {
-        map(node.getBasicDependency(0));
+        map(node.getDependency());
         builder.br(map(node.getCondition()), map(node.getTrueBranch()), map(node.getFalseBranch()));
         return null;
     }
 
     public Void visit(final Void param, final Return node) {
-        map(node.getBasicDependency(0));
+        map(node.getDependency());
         builder.ret();
         return null;
     }
 
     public Void visit(final Void param, final Unreachable node) {
-        map(node.getBasicDependency(0));
+        map(node.getDependency());
         builder.unreachable();
         return null;
     }
 
 
     public Void visit(final Void param, final Switch node) {
-        map(node.getBasicDependency(0));
+        map(node.getDependency());
         cc.quarkus.qcc.machine.llvm.op.Switch switchInst = builder.switch_(i32, map(node.getSwitchValue()), map(node.getDefaultTarget()));
 
         for (int i = 0; i < node.getNumberOfValues(); i++)
@@ -225,7 +225,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public Void visit(final Void param, final ValueReturn node) {
-        map(node.getBasicDependency(0));
+        map(node.getDependency());
         builder.ret(map(node.getReturnValue().getType()), map(node.getReturnValue()));
         return null;
     }
@@ -383,7 +383,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public LLValue visit(final Void param, final PointerLoad node) {
-        map(node.getBasicDependency(0));
+        map(node.getDependency());
         LLValue ptr = map(node.getPointer());
         LLValue ptrType = map(node.getPointer().getType());
         LLValue type = map(node.getType());
@@ -517,7 +517,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     // calls
 
     public LLValue visit(final Void param, final FunctionCall node) {
-        map(node.getBasicDependency(0));
+        map(node.getDependency());
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
@@ -535,7 +535,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     }
 
     public LLValue visit(final Try try_, final FunctionCall node) {
-        map(node.getBasicDependency(0));
+        map(node.getDependency());
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);

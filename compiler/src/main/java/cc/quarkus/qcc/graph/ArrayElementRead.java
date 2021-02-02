@@ -8,7 +8,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * A read of an array element.
  */
-public final class ArrayElementRead extends AbstractValue implements ArrayElementOperation {
+public final class ArrayElementRead extends AbstractValue implements ArrayElementOperation, OrderedNode {
     private final Node dependency;
     private final ValueType type;
     private final Value instance;
@@ -46,6 +46,11 @@ public final class ArrayElementRead extends AbstractValue implements ArrayElemen
 
     public Value getValueDependency(final int index) throws IndexOutOfBoundsException {
         return index == 0 ? instance : index == 1 ? this.index : Util.throwIndexOutOfBounds(index);
+    }
+
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

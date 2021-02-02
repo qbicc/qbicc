@@ -7,7 +7,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public final class PointerStore extends AbstractNode implements Action {
+public final class PointerStore extends AbstractNode implements Action, OrderedNode {
     private final Node dependency;
     private final Value pointer;
     private final Value value;
@@ -23,6 +23,7 @@ public final class PointerStore extends AbstractNode implements Action {
         this.atomicityMode = atomicityMode;
     }
 
+    @Override
     public Node getDependency() {
         return dependency;
     }
@@ -62,14 +63,6 @@ public final class PointerStore extends AbstractNode implements Action {
 
     public Value getValueDependency(final int index) throws IndexOutOfBoundsException {
         return index == 0 ? pointer : index == 1 ? value : Util.throwIndexOutOfBounds(index);
-    }
-
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
     }
 
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {

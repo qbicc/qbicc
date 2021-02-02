@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
-public class Fence extends AbstractNode implements Action {
+public class Fence extends AbstractNode implements Action, OrderedNode {
     private final Node dependency;
     private final MemoryAtomicityMode atomicityMode;
 
@@ -14,20 +14,17 @@ public class Fence extends AbstractNode implements Action {
         this.atomicityMode = atomicityMode;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
-    }
-
     public MemoryAtomicityMode getAtomicityMode() {
         return atomicityMode;
     }
 
     int calcHashCode() {
         return Objects.hash(Fence.class, dependency, atomicityMode);
+    }
+
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public boolean equals(Object other) {

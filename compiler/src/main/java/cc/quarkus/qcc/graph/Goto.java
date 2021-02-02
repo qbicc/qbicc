@@ -27,12 +27,9 @@ public final class Goto extends AbstractNode implements Resume {
         return targetLabel;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public int getSuccessorCount() {

@@ -9,7 +9,7 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 /**
  *
  */
-public final class StaticInvocation extends AbstractNode implements MethodInvocation, Triable, Action {
+public final class StaticInvocation extends AbstractNode implements MethodInvocation, Triable, Action, OrderedNode {
     private final Node dependency;
     private final MethodElement target;
     private final List<Value> arguments;
@@ -37,12 +37,9 @@ public final class StaticInvocation extends AbstractNode implements MethodInvoca
         return arguments;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {

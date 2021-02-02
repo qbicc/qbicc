@@ -8,7 +8,7 @@ import cc.quarkus.qcc.type.definition.element.FieldElement;
 /**
  *
  */
-public final class StaticFieldWrite extends AbstractNode implements FieldWrite, Action {
+public final class StaticFieldWrite extends AbstractNode implements FieldWrite, Action, OrderedNode {
     private final Node dependency;
     private final FieldElement fieldElement;
     private final Value value;
@@ -34,12 +34,9 @@ public final class StaticFieldWrite extends AbstractNode implements FieldWrite, 
         return mode;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {

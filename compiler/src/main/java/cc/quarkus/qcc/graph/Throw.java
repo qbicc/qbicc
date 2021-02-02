@@ -36,12 +36,9 @@ public final class Throw extends AbstractNode implements Terminator {
         return index == 0 ? thrownValue : Util.throwIndexOutOfBounds(index);
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {

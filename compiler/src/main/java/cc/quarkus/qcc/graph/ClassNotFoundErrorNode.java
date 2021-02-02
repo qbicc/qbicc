@@ -23,12 +23,9 @@ public final class ClassNotFoundErrorNode extends AbstractNode implements Error 
         return terminatedBlock;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public String getName() {

@@ -7,7 +7,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public class MonitorExit extends AbstractNode implements Action, InstanceOperation {
+public class MonitorExit extends AbstractNode implements Action, InstanceOperation, OrderedNode {
     private final Node dependency;
     private final Value instance;
 
@@ -21,12 +21,9 @@ public class MonitorExit extends AbstractNode implements Action, InstanceOperati
         return instance;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public <T, R> R accept(final ActionVisitor<T, R> visitor, final T param) {

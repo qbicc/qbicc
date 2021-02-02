@@ -9,7 +9,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * A pointer load operation.
  */
-public final class PointerLoad extends AbstractValue {
+public final class PointerLoad extends AbstractValue implements OrderedNode {
     private final Node dependency;
     private final Value pointer;
     private final MemoryAccessMode accessMode;
@@ -23,6 +23,7 @@ public final class PointerLoad extends AbstractValue {
         this.atomicityMode = atomicityMode;
     }
 
+    @Override
     public Node getDependency() {
         return dependency;
     }
@@ -62,14 +63,6 @@ public final class PointerLoad extends AbstractValue {
 
     public Value getValueDependency(final int index) throws IndexOutOfBoundsException {
         return index == 0 ? pointer : Util.throwIndexOutOfBounds(index);
-    }
-
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
