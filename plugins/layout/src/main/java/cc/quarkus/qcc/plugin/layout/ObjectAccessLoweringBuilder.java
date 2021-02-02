@@ -61,7 +61,14 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
     public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
         ValueType instanceType = instance.getType();
         if (instanceType instanceof ReferenceType) {
-            return pointerLoad(getFieldPointer(instance, fieldElement), MemoryAccessMode.PLAIN, getReadMode(mode, fieldElement.isVolatile()));
+            MemoryAtomicityMode atomicityMode = getReadMode(mode, fieldElement.isVolatile());
+            if (atomicityMode == MemoryAtomicityMode.ACQUIRE) {
+                Value load = pointerLoad(getFieldPointer(instance, fieldElement), MemoryAccessMode.PLAIN, atomicityMode);
+                fence(MemoryAtomicityMode.ACQUIRE);
+                return load;
+            } else {
+                return pointerLoad(getFieldPointer(instance, fieldElement), MemoryAccessMode.PLAIN, atomicityMode);
+            }
         } else if (instanceType instanceof ClassObjectType) {
             // todo: value
             ctxt.error(getLocation(), "Value types not yet supported");
@@ -75,7 +82,11 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
     public Node writeInstanceField(final Value instance, final FieldElement fieldElement, final Value value, JavaAccessMode mode) {
         ValueType instanceType = instance.getType();
         if (instanceType instanceof ReferenceType) {
-            return pointerStore(getFieldPointer(instance, fieldElement), value, MemoryAccessMode.PLAIN, getWriteMode(mode, fieldElement.isVolatile()));
+            MemoryAtomicityMode atomicityMode = getWriteMode(mode, fieldElement.isVolatile());
+            if (atomicityMode == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
+                fence(MemoryAtomicityMode.RELEASE);
+            }
+            return pointerStore(getFieldPointer(instance, fieldElement), value, MemoryAccessMode.PLAIN, atomicityMode);
         } else if (instanceType instanceof ClassObjectType) {
             // todo: value
             ctxt.error(getLocation(), "Value types not yet supported");
@@ -110,7 +121,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
 
     MemoryAtomicityMode getReadMode(JavaAccessMode mode, boolean volatile_) {
         if (mode == JavaAccessMode.DETECT && volatile_ || mode == JavaAccessMode.VOLATILE) {
-            return MemoryAtomicityMode.RELEASE;
+            return MemoryAtomicityMode.ACQUIRE;
         } else {
             return MemoryAtomicityMode.UNORDERED;
         }
@@ -118,7 +129,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
 
     MemoryAtomicityMode getWriteMode(JavaAccessMode mode, boolean volatile_) {
         if (mode == JavaAccessMode.DETECT && volatile_ || mode == JavaAccessMode.VOLATILE) {
-            return MemoryAtomicityMode.ACQUIRE;
+            return MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT;
         } else {
             return MemoryAtomicityMode.UNORDERED;
         }

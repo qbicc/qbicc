@@ -28,12 +28,23 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
-        MemoryAtomicityMode atomicityMode = mode == JavaAccessMode.VOLATILE ? MemoryAtomicityMode.ACQUIRE : MemoryAtomicityMode.UNORDERED;
-        return pointerLoad(getFieldPointer(fieldElement), MemoryAccessMode.PLAIN, atomicityMode);
+        if (mode == JavaAccessMode.DETECT && fieldElement.isVolatile() || mode == JavaAccessMode.VOLATILE) {
+            Value load = pointerLoad(getFieldPointer(fieldElement), MemoryAccessMode.PLAIN, MemoryAtomicityMode.ACQUIRE);
+            fence(MemoryAtomicityMode.ACQUIRE);
+            return load;
+        } else {
+            return pointerLoad(getFieldPointer(fieldElement), MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
+        }
     }
 
     public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        MemoryAtomicityMode atomicityMode = mode == JavaAccessMode.VOLATILE ? MemoryAtomicityMode.ACQUIRE : MemoryAtomicityMode.UNORDERED;
+        MemoryAtomicityMode atomicityMode;
+        if (mode == JavaAccessMode.DETECT && fieldElement.isVolatile() || mode == JavaAccessMode.VOLATILE) {
+            atomicityMode = MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT;
+            fence(MemoryAtomicityMode.RELEASE);
+        } else {
+            atomicityMode = MemoryAtomicityMode.UNORDERED;
+        }
         return pointerStore(getFieldPointer(fieldElement), value, MemoryAccessMode.PLAIN, atomicityMode);
     }
 
