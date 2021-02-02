@@ -161,14 +161,15 @@ public interface Node {
             return copy;
         }
 
-        public void copyNode(Node original) {
+        public Node copyNode(Node original) {
             if (original instanceof Value) {
-                copyValue((Value) original);
+                return copyValue((Value) original);
             } else if (original instanceof Action) {
-                copyAction((Action) original);
+                return copyAction((Action) original);
             } else {
                 assert original instanceof Terminator;
-                copyTerminator((Terminator) original);
+                BasicBlock block = copyTerminator((Terminator) original);
+                return block.getTerminator();
             }
         }
 
@@ -178,7 +179,8 @@ public interface Node {
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
-                Node oldCallSite = blockBuilder.setCallSite(original.getCallSite());
+                Node origCallSite = original.getCallSite();
+                Node oldCallSite = origCallSite == null ? blockBuilder.getCallSite() : blockBuilder.setCallSite(copyNode(origCallSite));
                 try {
                     copy = original.accept(nodeVisitor, this);
                     copiedNodes.put(original, copy);
@@ -207,7 +209,8 @@ public interface Node {
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
-                Node oldCallSite = blockBuilder.setCallSite(original.getCallSite());
+                Node origCallSite = original.getCallSite();
+                Node oldCallSite = origCallSite == null ? blockBuilder.getCallSite() : blockBuilder.setCallSite(copyNode(origCallSite));
                 try {
                     copy = original.accept(nodeVisitor, this);
                     copiedNodes.put(original, copy);
@@ -231,21 +234,25 @@ public interface Node {
         }
 
         public BasicBlock copyTerminator(Terminator original) {
-            // terminators can only be visited one time, by definition
-            int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
-            int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
-            ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
-            Node oldCallSite = blockBuilder.setCallSite(original.getCallSite());
-            try {
-                BasicBlock block = original.accept(nodeVisitor, this);
-                copiedTerminators.put(original, block);
-                return block;
-            } finally {
-                blockBuilder.setLineNumber(oldLine);
-                blockBuilder.setBytecodeIndex(oldBci);
-                blockBuilder.setCurrentElement(oldElement);
-                blockBuilder.setCallSite(oldCallSite);
+            BasicBlock basicBlock = copiedTerminators.get(original);
+            if (basicBlock == null) {
+                int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
+                int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
+                ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
+                Node origCallSite = original.getCallSite();
+                Node oldCallSite = origCallSite == null ? blockBuilder.getCallSite() : blockBuilder.setCallSite(copyNode(origCallSite));
+                try {
+                    BasicBlock block = original.accept(nodeVisitor, this);
+                    copiedTerminators.put(original, block);
+                    return block;
+                } finally {
+                    blockBuilder.setLineNumber(oldLine);
+                    blockBuilder.setBytecodeIndex(oldBci);
+                    blockBuilder.setCurrentElement(oldElement);
+                    blockBuilder.setCallSite(oldCallSite);
+                }
             }
+            return basicBlock;
         }
 
         public PhiValue enqueue(PhiValue originalPhi) {
