@@ -227,7 +227,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     private Value castAndMaskShiftDistance(Value op, Value shiftDistance) {
         final ValueType opType = op.getType();
 
-        // Correct shiftDistance's signdness to match that of op
+        // Correct shiftDistance's signedness to match that of op
         ValueType shiftType = shiftDistance.getType();
         if (opType instanceof SignedIntegerType && shiftType instanceof UnsignedIntegerType) {
             shiftDistance = bitCast(shiftDistance, ((UnsignedIntegerType) shiftType).asSigned());
@@ -246,7 +246,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         // Mask the shift distance
         final LiteralFactory lf = ctxt.getLiteralFactory();
         final long bits = op.getType().getSize() * ctxt.getTypeSystem().getByteBits();
-        shiftDistance = and(shiftDistance, lf.literalOf((IntegerType) shiftType, bits - 1));
+        shiftDistance = and(shiftDistance, lf.literalOf((IntegerType) opType, bits - 1));
 
         return shiftDistance;
     }
