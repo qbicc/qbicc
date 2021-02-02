@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
@@ -29,7 +30,11 @@ public final class FunctionCall extends AbstractValue implements Triable {
     }
 
     public FunctionType getFunctionType() {
-        return (FunctionType) callTarget.getType();
+        if (callTarget.getType() instanceof PointerType) {
+            return (FunctionType) ((PointerType)callTarget.getType()).getPointeeType();
+        } else {
+            return (FunctionType) callTarget.getType();
+        }
     }
 
     public int getArgumentCount() {
