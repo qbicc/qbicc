@@ -125,6 +125,7 @@ commands used to run the compilation. One can easily retrace the steps the test 
 
 ## Tests' tags and organization
 Test classes and test methods can by annotated with tags so as we can run just selected subsets. Those tags then must be explicitly included in [pom.xml](./pom.xml). See:
+
 ```xml
 ...
 <properties>
@@ -141,4 +142,5 @@ This is an alternative way to run just the `snippets` tests and nothing else:
 mvn verify -pl integration-tests -DexcludeTags=all -DincludeTags=snippets 
 ```
 
+---
 Happy testing 🔥
