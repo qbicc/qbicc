@@ -9,6 +9,7 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.PointerType;
@@ -100,7 +101,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     return super.extend(from, toType);
                 }
                 // otherwise not OK (fall out)
-            } else if (fromType instanceof UnsignedIntegerType) {
+            } else if ((fromType instanceof UnsignedIntegerType) || (fromType instanceof BooleanType)) {
                 if (toType instanceof UnsignedIntegerType) {
                     if (fromType.getMinBits() < toType.getMinBits()) {
                         // OK
