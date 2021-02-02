@@ -268,7 +268,6 @@ public class Main {
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addPostHook(Phase.ANALYZE, new VTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
-                                builder.addPostHook(Phase.ANALYZE, RTAInfo::clear);
 
                                 builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
 
@@ -282,7 +281,6 @@ public class Main {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LLVMCompatibleBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                                builder.addPostHook(Phase.LOWER, RTAInfo::clear);
 
                                 builder.addPreHook(Phase.GENERATE, new LLVMGenerator());
 
