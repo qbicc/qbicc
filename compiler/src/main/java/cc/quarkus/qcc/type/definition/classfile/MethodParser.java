@@ -29,7 +29,6 @@ import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.BooleanType;
-import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -149,7 +148,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             if (! label.hasTarget()) {
                 // first time being entered
                 gf.begin(label);
-                ReferenceType exType = (ReferenceType) getClassFile().getTypeConstant(info.getExTableEntryTypeIdx(index));
+                int exTypeIdx = info.getExTableEntryTypeIdx(index);
+                ReferenceType exType;
+                if (exTypeIdx == 0) {
+                    exType = throwable.validate().getType().getReference();
+                } else {
+                    exType = (ReferenceType) getClassFile().getTypeConstant(exTypeIdx);
+                }
                 BlockLabel block = getBlockForIndexIfExists(pc);
                 boolean single = block == null;
                 if (single) {
