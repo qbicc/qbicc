@@ -32,9 +32,15 @@ import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.element.NestedClassElement;
 import cc.quarkus.qcc.type.definition.element.ParameterElement;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.ConstructorMethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.Descriptor;
+import cc.quarkus.qcc.type.descriptor.FieldMethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodHandleDescriptor;
+import cc.quarkus.qcc.type.descriptor.MethodHandleKind;
+import cc.quarkus.qcc.type.descriptor.MethodMethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.generic.ClassSignature;
 import cc.quarkus.qcc.type.generic.ClassTypeSignature;
@@ -42,6 +48,8 @@ import cc.quarkus.qcc.type.generic.MethodSignature;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 
 final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, EnclosingClassResolver, EnclosedClassResolver, MethodBodyFactory {
+    private static final int[] NO_INTS = new int[0];
+
     private static final VarHandle intArrayHandle = MethodHandles.arrayElementVarHandle(int[].class);
     private static final VarHandle intArrayArrayHandle = MethodHandles.arrayElementVarHandle(int[][].class);
     private static final VarHandle literalArrayHandle = MethodHandles.arrayElementVarHandle(Literal[].class);
@@ -63,6 +71,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     private final int[] methodOffsets;
     private final int[][] methodAttributeOffsets;
     private final int[] attributeOffsets;
+    private final int[] bootstrapMethodOffsets;
     private final LiteralFactory literalFactory;
     private final ClassContext ctxt;
     private final String sourceFile;
@@ -203,12 +212,21 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         // read globally-relevant attributes
         String sourceFile = null;
         int cnt = getAttributeCount();
+        int[] bootstrapMethodOffsets = NO_INTS;
         for (int i = 0; i < cnt; i ++) {
             if (attributeNameEquals(i, "SourceFile")) {
                 sourceFile = getUtf8Constant(getRawAttributeShort(i, 0));
-                break;
+            } else if (attributeNameEquals(i, "BootstrapMethods")) {
+                int pos = attributeOffsets[i] + 8;
+                int bmCnt = getShort(pos - 2);
+                bootstrapMethodOffsets = new int[bmCnt];
+                for (int j = 0; j < bmCnt; j ++) {
+                    bootstrapMethodOffsets[j] = pos;
+                    pos += (getShort(pos + 2) << 1) + 4;
+                }
             }
         }
+        this.bootstrapMethodOffsets = bootstrapMethodOffsets;
         this.sourceFile = sourceFile;
     }
 
@@ -235,6 +253,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     public int getConstantType(final int poolIndex) {
         int cpOffset = cpOffsets[poolIndex];
         return cpOffset == 0 ? 0 : getByte(cpOffset);
+    }
+
+    public int getBootstrapMethodRef(final int idx) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
+        return getShort(bootstrapMethodOffsets[idx]);
     }
 
     public boolean utf8ConstantEquals(final int idx, final String expected) throws IndexOutOfBoundsException, ConstantTypeMismatchException {
@@ -417,6 +439,34 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             return descriptor;
         } else {
             return (TypeDescriptor) setIfNull(descriptors, strIdx, TypeDescriptor.parseClassConstant(ctxt, getUtf8ConstantAsBuffer(strIdx)));
+        }
+    }
+
+    public MethodHandleDescriptor getMethodHandleDescriptor(final int idx) {
+        checkConstantType(idx, CONSTANT_MethodHandle);
+        if (idx == 0) {
+            return null;
+        }
+        int kindVal = getRawConstantByte(idx, 1);
+        MethodHandleKind kind = MethodHandleKind.forId(kindVal);
+        int refIdx = getRawConstantShort(idx, 2);
+        if (kind.isFieldTarget()) {
+            int ownerIdx = getFieldrefConstantClassIndex(refIdx);
+            String fieldName = getFieldrefConstantName(refIdx);
+            return new FieldMethodHandleDescriptor((ClassTypeDescriptor) getClassConstantAsDescriptor(ownerIdx), fieldName, kind);
+        } else {
+            int mrNameAndType = getMethodrefNameAndTypeIndex(refIdx);
+            MethodDescriptor desc = (MethodDescriptor) getDescriptorConstant(getNameAndTypeConstantDescriptorIdx(mrNameAndType));
+            if (desc == null) {
+                throw new IllegalStateException("No method descriptor for method ref at index " + refIdx);
+            }
+            ClassTypeDescriptor ownerDesc = (ClassTypeDescriptor) getClassConstantAsDescriptor(getMethodrefConstantClassIndex(refIdx));
+            if (kind == MethodHandleKind.NEW_INVOKE_SPECIAL) {
+                return new ConstructorMethodHandleDescriptor(ownerDesc, kind, desc);
+            } else {
+                String methodName = getMethodrefConstantName(refIdx);
+                return new MethodMethodHandleDescriptor(ownerDesc, methodName, kind, desc);
+            }
         }
     }
 
@@ -850,6 +900,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
 
     private void addParameters(InvokableElement.Builder builder, int index, final DefinedTypeDefinition enclosing) {
         int base = methodOffsets[index];
+        int modifiers = getShort(base);
         int descIdx = getShort(base + 4);
         MethodDescriptor methodDescriptor = (MethodDescriptor) getDescriptorConstant(descIdx);
         int attrCnt = getMethodAttributeCount(index);
@@ -934,6 +985,20 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         builder.setDescriptor(methodDescriptor);
         builder.setSignature(signature);
         builder.setParameters(List.of(parameters));
+        if (parameters.length == 1 && (modifiers & (ACC_VARARGS | ACC_NATIVE)) == (ACC_VARARGS | ACC_NATIVE)) {
+            TypeDescriptor d0 = parameters[0].getTypeDescriptor();
+            if (d0 instanceof ArrayTypeDescriptor) {
+                TypeDescriptor ed0 = ((ArrayTypeDescriptor) d0).getElementTypeDescriptor();
+                if (ed0 instanceof ClassTypeDescriptor) {
+                    ClassTypeDescriptor cd = (ClassTypeDescriptor) ed0;
+                    if (cd.getClassName().equals("Object") && cd.getPackageName().equals("java/lang")) {
+                        if (enclosing.internalPackageAndNameEquals("java/lang/invoke", "MethodHandle") || enclosing.internalPackageAndNameEquals("java/lang/invoke", "VarHandle")) {
+                            builder.addModifiers(I_ACC_SIGNATURE_POLYMORPHIC);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void addMethodAnnotations(final int index, InvokableElement.Builder builder) {
