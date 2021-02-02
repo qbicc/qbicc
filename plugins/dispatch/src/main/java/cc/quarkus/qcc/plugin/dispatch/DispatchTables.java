@@ -60,11 +60,13 @@ public class DispatchTables {
                 for (int j=0; j<inherited.length; j++) {
                     if (m.getName().equals(inherited[j].getName()) && m.getDescriptor().equals(inherited[j].getDescriptor())) {
                         vtLog.debugf("\tfound override for %s%s", m.getName(), m.getDescriptor().toString());
+                        ctxt.registerEntryPoint(m);
                         vtableVector.set(j, m);
                         continue  outer;
                     }
                 }
                 vtLog.debugf("\tadded new method  %s%s", m.getName(), m.getDescriptor().toString());
+                ctxt.registerEntryPoint(m);
                 vtableVector.add(m);
             }
         }
