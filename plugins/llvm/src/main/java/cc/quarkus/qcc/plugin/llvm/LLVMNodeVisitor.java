@@ -152,7 +152,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue value = map(node.getValue());
         LLValue type = map(((PointerType)node.getPointer().getType()).getPointeeType());
         LLValue ptr = map(node.getPointer());
-        builder.store(ptrType, value, type, ptr);
+        if (node.getAtomicityMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
+            int alignment = ((ValueType)((PointerType)node.getPointer().getType()).getPointeeType()).getAlign();
+            builder.store(ptrType, value, type, ptr).atomic(OrderingConstraint.seq_cst).align(alignment);
+        } else {
+            builder.store(ptrType, value, type, ptr);
+        }
+
         return null;
     }
 
@@ -381,7 +387,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue ptr = map(node.getPointer());
         LLValue ptrType = map(node.getPointer().getType());
         LLValue type = map(node.getType());
-        return builder.load(ptrType, type, ptr).asLocal();
+        if (node.getAtomicityMode() == MemoryAtomicityMode.ACQUIRE) {
+            int alignment = node.getType().getAlign();
+            return builder.load(ptrType, type, ptr).atomic(OrderingConstraint.acquire).align(alignment).asLocal();
+        }  else {
+            return builder.load(ptrType, type, ptr).asLocal();
+        }
     }
 
     public LLValue visit(final Void param, final Neg node) {
