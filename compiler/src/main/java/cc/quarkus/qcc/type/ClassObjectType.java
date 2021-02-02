@@ -53,6 +53,7 @@ public final class ClassObjectType extends PhysicalObjectType {
 
     public boolean isSubtypeOf(final ClassObjectType other) {
         return this == other
+            || other.superClassType == null
             || superClassType != null
             && superClassType.isSubtypeOf(other);
     }
@@ -63,7 +64,26 @@ public final class ClassObjectType extends PhysicalObjectType {
                 return true;
             }
         }
-        return false;
+        return superClassType != null && superClassType.isSubtypeOf(other);
+    }
+
+    public ObjectType getCommonSupertype(final ObjectType other) {
+        if (other instanceof ClassObjectType) {
+            return getCommonSupertype((ClassObjectType) other);
+        } else if (other instanceof InterfaceObjectType) {
+            return isSubtypeOf(other) ? other : getRootType();
+        } else {
+            assert other instanceof ArrayObjectType;
+            return getRootType();
+        }
+    }
+
+    private ClassObjectType getRootType() {
+        return superClassType != null ? superClassType.getRootType() : this;
+    }
+
+    public ClassObjectType getCommonSupertype(final ClassObjectType other) {
+        return this.isSubtypeOf(other) ? other : this.isSupertypeOf(other) ? this : other.getSuperClassType().getCommonSupertype(this);
     }
 
     public StringBuilder toString(final StringBuilder b) {

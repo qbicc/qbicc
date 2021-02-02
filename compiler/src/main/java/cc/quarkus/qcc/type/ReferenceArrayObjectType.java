@@ -34,6 +34,17 @@ public final class ReferenceArrayObjectType extends ArrayObjectType {
             || elementType.getUpperBound().isSubtypeOf(other.elementType.getUpperBound());
     }
 
+    public ObjectType getCommonSupertype(final ObjectType other) {
+        if (other instanceof ReferenceArrayObjectType) {
+            ReferenceType elementType = getElementType();
+            ReferenceType otherElementType = ((ReferenceArrayObjectType) other).getElementType();
+            ObjectType commonBound = elementType.getUpperBound().getCommonSupertype(otherElementType.getUpperBound());
+            return commonBound.getReference().getReferenceArrayObject();
+        } else {
+            return getSuperClassType();
+        }
+    }
+
     public ReferenceType getElementType() {
         return elementType;
     }

@@ -64,6 +64,28 @@ public final class InterfaceObjectType extends ObjectType {
         return other.getSuperClassType() == null; // j.l.O
     }
 
+    public ObjectType getCommonSupertype(final ObjectType other) {
+        if (other instanceof ClassObjectType) {
+            return other.getCommonSupertype(this);
+        } else if (other instanceof InterfaceObjectType) {
+            if (isSubtypeOf(other)) {
+                return other;
+            } else if (isSupertypeOf(other)) {
+                return this;
+            } else {
+                return getRootType();
+            }
+        } else {
+            assert other instanceof ArrayObjectType;
+            return getRootType();
+        }
+    }
+
+    private ObjectType getRootType() {
+        // todo: this could be done more elegantly
+        return definition.getContext().findDefinedType("java/lang/Object").validate().getType();
+    }
+
     public StringBuilder toString(final StringBuilder b) {
         return super.toString(b).append("interface").append('(').append(definition.getInternalName()).append(')');
     }
