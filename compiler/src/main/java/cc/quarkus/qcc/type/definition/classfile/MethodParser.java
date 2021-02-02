@@ -28,6 +28,8 @@ import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.BooleanType;
+import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -591,7 +593,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 case OP_CALOAD: {
                     v2 = pop1();
                     v1 = pop1();
-                    v1 = gf.readArrayValue(v1, v2, JavaAccessMode.PLAIN);
+                    v1 = promote(gf.readArrayValue(v1, v2, JavaAccessMode.PLAIN));
                     push(unfatten(v1));
                     break;
                 }
@@ -1198,7 +1200,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                     String name = getNameOfFieldRef(fieldRef);
                     // todo: signature context
-                    Value value = gf.readStaticField(owner, name, desc, JavaAccessMode.DETECT);
+                    Value value = promote(gf.readStaticField(owner, name, desc, JavaAccessMode.DETECT));
                     push(desc.isClass2() ? fatten(value) : value);
                     break;
                 }
@@ -1218,7 +1220,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                     String name = getNameOfFieldRef(fieldRef);
                     // todo: signature context
-                    Value value = gf.readInstanceField(pop(), owner, name, desc, JavaAccessMode.DETECT);
+                    Value value = promote(gf.readInstanceField(pop(), owner, name, desc, JavaAccessMode.DETECT));
                     push(desc.isClass2() ? fatten(value) : value);
                     break;
                 }
@@ -1298,7 +1300,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             if (desc.getReturnType().isClass2()) {
                                 fatten(result);
                             }
-                            push(result);
+                            push(promote(result));
                         }
                     }
                     break;
@@ -1355,7 +1357,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         if (desc.getReturnType().isClass2()) {
                             fatten(result);
                         }
-                        push(result);
+                        push(promote(result));
                     }
                     break;
                 }
@@ -1490,6 +1492,24 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         } else {
             processBlock(from);
         }
+    }
+
+    Value promote(Value value) {
+        ValueType type = value.getType();
+        if (type instanceof IntegerType && ((IntegerType) type).getMinBits() < 32) {
+            // extend
+            if (type instanceof UnsignedIntegerType) {
+                // extend and cast
+                return gf.bitCast(gf.extend(value, ts.getUnsignedInteger32Type()), ts.getSignedInteger32Type());
+            } else {
+                // just extend
+                return gf.extend(value, ts.getSignedInteger32Type());
+            }
+        } else if (type instanceof BooleanType) {
+            return gf.extend(value, ts.getSignedInteger32Type());
+        }
+        // no promote necessary
+        return value;
     }
 
     private ClassFileImpl getClassFile() {
