@@ -39,6 +39,23 @@ public final class FloatType extends NumericType {
         return this;
     }
 
+    public ValueType join(ValueType other) {
+        if (other instanceof FloatType) {
+            return join((FloatType) other);
+        } else {
+            return super.join(other);
+        }
+    }
+
+    private FloatType join(FloatType other) {
+        boolean const_ = isConst() || other.isConst();
+        if (bits < other.bits) {
+            return const_ ? other.asConst() : other;
+        } else {
+            return const_ ? asConst() : this;
+        }
+    }
+
     public StringBuilder toString(final StringBuilder b) {
         return super.toString(b).append("float").append(bits);
     }
