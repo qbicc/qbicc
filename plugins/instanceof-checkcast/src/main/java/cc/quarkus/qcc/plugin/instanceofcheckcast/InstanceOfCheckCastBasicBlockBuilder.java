@@ -30,17 +30,35 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         this.ctxt = ctxt;
     }
 
+    public Value narrow(Value value, ValueType toType) {
+        if (toType instanceof ReferenceType) {
+            ReferenceType refExpectedType = (ReferenceType) toType;
+            ValueType actualType = value.getType();
+            if (actualType instanceof ReferenceType) {
+                if (((ReferenceType) actualType).instanceOf(refExpectedType)) {
+                    // the reference type matches statically
+                    return value;
+                }
+            }
+        }
+        return super.narrow(value, toType);
+    }
+
     public Value instanceOf(final Value input, final ValueType expectedType) {
         // "null" instanceof <X> is always false
         if (NullType.isAlwaysNull(input)) {
             return ctxt.getLiteralFactory().literalOf(false);
         }
-        // x instanceof Object is equivalent to x != null
+        // statically true instanceof checks are equal to x != null
         LiteralFactory lf = ctxt.getLiteralFactory();
         if (expectedType instanceof ReferenceType) {
             ReferenceType refExpectedType = (ReferenceType) expectedType;
-            if (!refExpectedType.getUpperBound().hasSuperClass()) {
-                return super.cmpNe(input, lf.literalOfNull());
+            ValueType actualType = input.getType();
+            if (actualType instanceof ReferenceType) {
+                if (((ReferenceType) actualType).instanceOf(refExpectedType)) {
+                    // the reference type matches statically
+                    return super.cmpNe(input, lf.literalOfNull());
+                }
             }
         }
 
