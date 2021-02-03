@@ -3,6 +3,8 @@ package cc.quarkus.qcc.graph.schedule;
 import java.util.HashMap;
 import java.util.Map;
 
+import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.Unschedulable;
 import cc.quarkus.qcc.graph.literal.Literal;
@@ -148,6 +150,12 @@ public interface Schedule {
                 // skip unreachable inputs
                 if (blockInfos.containsKey(terminator.getTerminatedBlock())) {
                     Value value = phiValue.getValueForInput(terminator);
+                    if (value instanceof PinnedNode && ! blockInfos.containsKey(((PinnedNode) value).getPinnedBlock())) {
+                        // the node is reachable even though its block is not!
+                        CompilationContext ctxt = root.block.getTerminator().getElement().getEnclosingType().getContext().getCompilationContext();
+                        ctxt.error(Location.builder().setNode(node).build(), "Found reachable node in unreachable block");
+                        continue;
+                    }
                     if (value != null) {
                         scheduleEarly(root, blockInfos, scheduledNodes, value);
                     }
