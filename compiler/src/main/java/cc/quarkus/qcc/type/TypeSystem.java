@@ -26,7 +26,6 @@ public final class TypeSystem {
     private final VoidType voidType = new VoidType(this, false);
     private final NullType nullType = new NullType(this);
     private final BlockType blockType = new BlockType(this);
-    private final StringType stringType = new StringType(this);
     private final UnresolvedType unresolvedType = new UnresolvedType(this, false);
     private final MethodHandleType methodHandleType = new MethodHandleType(this);
     private final MethodDescriptorType methodDescriptorType = new MethodDescriptorType(this);
@@ -111,10 +110,6 @@ public final class TypeSystem {
 
     public int getReferenceSize() {
         return referenceSize;
-    }
-
-    public StringType getStringType() {
-        return stringType;
     }
 
     public UnresolvedType getUnresolvedType() {

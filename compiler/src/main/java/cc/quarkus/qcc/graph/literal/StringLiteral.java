@@ -1,18 +1,17 @@
 package cc.quarkus.qcc.graph.literal;
 
 import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.type.StringType;
-import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.ReferenceType;
 
 /**
  *
  */
 public final class StringLiteral extends Literal {
-    private final StringType type;
+    private final ReferenceType type;
     private final String value;
     private final boolean latin1;
 
-    StringLiteral(final StringType type, final String value) {
+    StringLiteral(final ReferenceType type, final String value) {
         this.type = type;
         this.value = value;
         boolean latin1 = true;
@@ -25,7 +24,7 @@ public final class StringLiteral extends Literal {
         this.latin1 = latin1;
     }
 
-    public ValueType getType() {
+    public ReferenceType getType() {
         return type;
     }
 

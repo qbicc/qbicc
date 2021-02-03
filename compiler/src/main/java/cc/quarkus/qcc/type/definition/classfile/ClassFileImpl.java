@@ -319,7 +319,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         switch (constantType) {
             case CONSTANT_Class: return setIfNull(literals, idx, literalFactory.literalOfType(getTypeConstant(idx)));
             case CONSTANT_String:
-                return setIfNull(literals, idx, literalFactory.literalOf(getStringConstant(idx)));
+                return setIfNull(literals, idx, literalFactory.literalOf(getStringConstant(idx), ctxt.findDefinedType("java/lang/String").validate().getType().getReference()));
             case CONSTANT_Integer:
                 return setIfNull(literals, idx, literalFactory.literalOf(getIntConstant(idx)));
             case CONSTANT_Float:
