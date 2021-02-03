@@ -850,6 +850,11 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             for (int i = 0; i < attrCount; i ++) {
                 if (methodAttributeNameEquals(index, i, "Code")) {
                     builder.setMethodBodyFactory(this, index);
+
+                    LineNumberTable lnt = LineNumberTable.createForCodeAttribute(this, getMethodRawAttributeContent(index, i));
+                    builder.setMinimumLineNumber(lnt.getMinimumLineNumber());
+                    builder.setMaximumLineNumber(lnt.getMaximumLineNumber());
+
                     break;
                 }
             }
@@ -870,6 +875,11 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         for (int i = 0; i < attrCount; i ++) {
             if (methodAttributeNameEquals(index, i, "Code")) {
                 builder.setMethodBodyFactory(this, index);
+
+                LineNumberTable lnt = LineNumberTable.createForCodeAttribute(this, getMethodRawAttributeContent(index, i));
+                builder.setMinimumLineNumber(lnt.getMinimumLineNumber());
+                builder.setMaximumLineNumber(lnt.getMaximumLineNumber());
+
                 break;
             }
         }
@@ -889,6 +899,11 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             for (int i = 0; i < attrCount; i ++) {
                 if (methodAttributeNameEquals(index, i, "Code")) {
                     builder.setMethodBodyFactory(this, index);
+
+                    LineNumberTable lnt = LineNumberTable.createForCodeAttribute(this, getMethodRawAttributeContent(index, i));
+                    builder.setMinimumLineNumber(lnt.getMinimumLineNumber());
+                    builder.setMaximumLineNumber(lnt.getMaximumLineNumber());
+
                     break;
                 }
             }

@@ -20,11 +20,15 @@ public final class InitializerElement extends BasicElement implements Executable
     final int methodBodyFactoryIndex;
     volatile MethodBody previousMethodBody;
     volatile MethodBody methodBody;
+    final int minimumLineNumber;
+    final int maximumLineNumber;
 
     InitializerElement(Builder builder) {
         super(builder);
         this.methodBodyFactory = builder.methodBodyFactory;
         this.methodBodyFactoryIndex = builder.methodBodyFactoryIndex;
+        this.minimumLineNumber = builder.minimumLineNumber;
+        this.maximumLineNumber = builder.maximumLineNumber;
     }
 
     public boolean hasMethodBody() {
@@ -77,6 +81,14 @@ public final class InitializerElement extends BasicElement implements Executable
         return MethodSignature.VOID_METHOD_SIGNATURE;
     }
 
+    public int getMinimumLineNumber() {
+        return minimumLineNumber;
+    }
+
+    public int getMaximumLineNumber() {
+        return maximumLineNumber;
+    }
+
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
@@ -88,12 +100,22 @@ public final class InitializerElement extends BasicElement implements Executable
     public static final class Builder extends BasicElement.Builder implements ExecutableElement.Builder {
         MethodBodyFactory methodBodyFactory;
         int methodBodyFactoryIndex;
+        int minimumLineNumber = 1;
+        int maximumLineNumber = 1;
 
         Builder() {}
 
         public void setMethodBodyFactory(final MethodBodyFactory factory, final int index) {
             this.methodBodyFactory = Assert.checkNotNullParam("factory", factory);
             this.methodBodyFactoryIndex = index;
+        }
+
+        public void setMinimumLineNumber(int minimumLineNumber) {
+            this.minimumLineNumber = minimumLineNumber;
+        }
+
+        public void setMaximumLineNumber(int maximumLineNumber) {
+            this.maximumLineNumber = maximumLineNumber;
         }
 
         public InitializerElement build() {
