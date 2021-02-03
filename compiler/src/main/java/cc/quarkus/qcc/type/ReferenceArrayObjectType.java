@@ -20,18 +20,13 @@ public final class ReferenceArrayObjectType extends ArrayObjectType {
     }
 
     public boolean isSubtypeOf(final ObjectType other) {
-        return this == other
-            || other instanceof ClassObjectType && isSubtypeOf((ClassObjectType) other)
+        return super.isSubtypeOf(other)
             || other instanceof ReferenceArrayObjectType && isSubtypeOf((ReferenceArrayObjectType) other);
-    }
-
-    public boolean isSubtypeOf(final ClassObjectType other) {
-        return other.getSuperClassType() == null; // j.l.O
     }
 
     public boolean isSubtypeOf(final ReferenceArrayObjectType other) {
         return this == other
-            || elementType.getUpperBound().isSubtypeOf(other.elementType.getUpperBound());
+            || elementType.instanceOf(other.elementType);
     }
 
     public ObjectType getCommonSupertype(final ObjectType other) {
@@ -41,7 +36,7 @@ public final class ReferenceArrayObjectType extends ArrayObjectType {
             ObjectType commonBound = elementType.getUpperBound().getCommonSupertype(otherElementType.getUpperBound());
             return commonBound.getReference().getReferenceArrayObject();
         } else {
-            return getSuperClassType();
+            return super.getCommonSupertype(other);
         }
     }
 

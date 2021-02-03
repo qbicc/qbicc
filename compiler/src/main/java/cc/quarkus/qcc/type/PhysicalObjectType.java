@@ -1,11 +1,17 @@
 package cc.quarkus.qcc.type;
 
+import java.util.Set;
+
 /**
  * An object type that can be allocated on the heap.
  */
 public abstract class PhysicalObjectType extends ObjectType {
     PhysicalObjectType(final TypeSystem typeSystem, final int hashCode, final boolean const_) {
         super(typeSystem, hashCode, const_);
+    }
+
+    ReferenceType createReferenceType() {
+        return typeSystem.createReference(this, Set.of());
     }
 
     public boolean isComplete() {

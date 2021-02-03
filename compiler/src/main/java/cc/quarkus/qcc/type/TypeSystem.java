@@ -4,6 +4,7 @@ import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -373,8 +374,8 @@ public final class TypeSystem {
         return new PointerType(this, type, false, false);
     }
 
-    ReferenceType createReference(ObjectType objectType) {
-        return new ReferenceType(this, objectType, false, referenceSize, referenceAlign, false);
+    ReferenceType createReference(PhysicalObjectType objectType, Set<InterfaceObjectType> interfaceBounds) {
+        return new ReferenceType(this, objectType, interfaceBounds, false, referenceSize, referenceAlign, false);
     }
 
     ReferenceArrayObjectType createReferenceArrayObject(final ReferenceType elementType) {

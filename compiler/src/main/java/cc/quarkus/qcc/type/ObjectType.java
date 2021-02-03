@@ -33,7 +33,7 @@ public abstract class ObjectType extends ValueType {
         if (referenceType != null) {
             return referenceType;
         }
-        ReferenceType newReferenceType = typeSystem.createReference(this);
+        ReferenceType newReferenceType = createReferenceType();
         while (! referenceTypeHandle.compareAndSet(this, null, newReferenceType)) {
             referenceType = this.referenceType;
             if (referenceType != null) {
@@ -42,6 +42,8 @@ public abstract class ObjectType extends ValueType {
         }
         return newReferenceType;
     }
+
+    abstract ReferenceType createReferenceType();
 
     public abstract boolean hasSuperClass();
 

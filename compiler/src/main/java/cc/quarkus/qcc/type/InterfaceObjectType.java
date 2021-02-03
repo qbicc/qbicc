@@ -2,6 +2,7 @@ package cc.quarkus.qcc.type;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 
@@ -32,6 +33,10 @@ public final class InterfaceObjectType extends ObjectType {
 
     public DefinedTypeDefinition getDefinition() {
         return definition;
+    }
+
+    ReferenceType createReferenceType() {
+        return typeSystem.createReference(getRootType(), Set.of(this));
     }
 
     public boolean hasSuperClass() {
@@ -81,9 +86,9 @@ public final class InterfaceObjectType extends ObjectType {
         }
     }
 
-    private ObjectType getRootType() {
+    private PhysicalObjectType getRootType() {
         // todo: this could be done more elegantly
-        return definition.getContext().findDefinedType("java/lang/Object").validate().getType();
+        return (PhysicalObjectType) definition.getContext().findDefinedType("java/lang/Object").validate().getType();
     }
 
     public StringBuilder toString(final StringBuilder b) {
