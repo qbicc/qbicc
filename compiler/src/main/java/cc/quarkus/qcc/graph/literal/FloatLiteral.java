@@ -43,4 +43,10 @@ public final class FloatLiteral extends Literal {
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    public String toString() {
+        return type.toString(new StringBuilder()).append(' ').append(value).append(' ')
+            .append('(').append(Double.toHexString(value)).append(')').toString();
+    }
 }
