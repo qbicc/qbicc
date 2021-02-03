@@ -3,7 +3,6 @@ package cc.quarkus.qcc.type;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
 
@@ -187,6 +186,9 @@ public final class ReferenceType extends WordType {
     private static final InterfaceObjectType[] EMPTY = new InterfaceObjectType[0];
 
     private Set<InterfaceObjectType> filtered(Set<InterfaceObjectType> set, PhysicalObjectType other) {
+        if (set.isEmpty()) {
+            return set;
+        }
         InterfaceObjectType[] array = set.toArray(EMPTY);
         int len = array.length;
         int newSize = 0;
@@ -216,6 +218,9 @@ public final class ReferenceType extends WordType {
     }
 
     private Set<InterfaceObjectType> filteredWith(Set<InterfaceObjectType> set, InterfaceObjectType other) {
+        if (set.isEmpty()) {
+            return Set.of(other);
+        }
         InterfaceObjectType[] array = set.toArray(EMPTY);
         int len = array.length;
         int newSize = 0;
@@ -252,6 +257,106 @@ public final class ReferenceType extends WordType {
         }
         if (add) {
             newArray[j] = other;
+        }
+        return Set.of(newArray);
+    }
+
+    /**
+     * Return a type that is a subtype of both this and the given type, or {@code null} if such a type is not possible.
+     *
+     * @param otherType the type to meet (must not be {@code null})
+     * @return the subtype of both types, or {@code null} if no such type exists
+     */
+    public ReferenceType meet(ReferenceType otherType) {
+        if (this == otherType) {
+            return this;
+        }
+        PhysicalObjectType upperBound = getUpperBound();
+        PhysicalObjectType otherUpperBound = otherType.getUpperBound();
+        if (otherUpperBound.isSupertypeOf(upperBound)) {
+            // keep upper bound as-is
+        } else if (otherUpperBound.isSubtypeOf(upperBound)) {
+            // use other type's upper bound
+            return otherType.meet(this);
+        } else {
+            // no common bound at all
+            return null;
+        }
+        // the rest is interfaces...
+        Set<InterfaceObjectType> interfaceBounds = getInterfaceBounds();
+        Set<InterfaceObjectType> otherInterfaceBounds = otherType.getInterfaceBounds();
+        // calculate the true union, filtering out other bounds that are present on our upper bound's interface set
+        Set<InterfaceObjectType> union = union(interfaceBounds, otherInterfaceBounds, upperBound);
+        if (union == interfaceBounds) {
+            // they were equal
+            return this;
+        }
+        return new ReferenceType(typeSystem, upperBound, union, nullable, size, align, isConst());
+    }
+
+    private Set<InterfaceObjectType> union(Set<InterfaceObjectType> ours, Set<InterfaceObjectType> others, PhysicalObjectType upperBound) {
+        if (others.isEmpty()) {
+            // ours is already filtered by our own upper bound
+            return ours;
+        } else if (ours.isEmpty()) {
+            // others is *not yet* filtered by our upper bound
+            return filtered(others, upperBound);
+        }
+        // this is unfortunately an n×m operation, but we can short circuit many cases
+        InterfaceObjectType[] ourArray = ours.toArray(EMPTY);
+        InterfaceObjectType[] otherArray = others.toArray(EMPTY);
+        int ourSize = ourArray.length;
+        int otherSize = otherArray.length;
+        int write = 0;
+        // spin through otherArray first, punch out holes for every bound covered by ours or by upperBound
+        nextOther: for (int i = 0; i < otherSize; i ++) {
+            InterfaceObjectType theirItem = otherArray[i];
+            if (upperBound.isSubtypeOf(theirItem)) {
+                // our upper bound already includes this one, so skip it
+                otherArray[i] = null;
+                continue;
+            }
+            for (int j = 0; j < ourSize; j ++) {
+                InterfaceObjectType ourItem = ourArray[j];
+                if (ourItem.isSubtypeOf(theirItem)) {
+                    // ours is better than theirs; drop theirs
+                    otherArray[i] = null;
+                    continue nextOther;
+                }
+            }
+            // keep theirs
+            write ++;
+        }
+        // now spin through ourArray and punch out holes for bounds covered by theirs
+        nextOurs: for (int i = 0; i < ourSize; i++) {
+            InterfaceObjectType ourItem = ourArray[i];
+            for (int j = 0; j < otherSize; j ++) {
+                InterfaceObjectType theirItem = otherArray[j];
+                if (theirItem.isSubtypeOf(ourItem)) {
+                    // theirs is better than ours; drop ours
+                    ourArray[i] = null;
+                    continue nextOurs;
+                }
+            }
+            // keep ours
+            write ++;
+        }
+
+        if (write == 0) {
+            // none retained
+            return Set.of();
+        }
+        InterfaceObjectType[] newArray = new InterfaceObjectType[write];
+        int j = 0;
+        for (int i = 0; i < ourSize; i ++) {
+            if (ourArray[i] != null) {
+                newArray[j ++] = ourArray[i];
+            }
+        }
+        for (int i = 0; i < otherSize; i ++) {
+            if (otherArray[i] != null) {
+                newArray[j ++] = otherArray[i];
+            }
         }
         return Set.of(newArray);
     }
