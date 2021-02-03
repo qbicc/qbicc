@@ -18,6 +18,7 @@ import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.AnnotationValue;
+import cc.quarkus.qcc.type.annotation.ArrayAnnotationValue;
 import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -53,12 +54,23 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
     }
 
     public void setVisibleAnnotations(final List<Annotation> annotations) {
+        NativeInfo nativeInfo = NativeInfo.get(ctxt);
         for (Annotation annotation : annotations) {
             ClassTypeDescriptor desc = annotation.getDescriptor();
             if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
-                if (desc.getClassName().equals(Native.ANN_INCLUDE) || desc.getClassName().equals(Native.ANN_INCLUDE_LIST)) {
+                String annClassName = desc.getClassName();
+                if (annClassName.equals(Native.ANN_INCLUDE) || annClassName.equals(Native.ANN_INCLUDE_LIST)) {
                     hasInclude = true;
-                    break;
+                }
+                if (annClassName.equals(Native.ANN_LIB)) {
+                    nativeInfo.registerLibrary(((StringAnnotationValue) annotation.getValue("value")).getString());
+                } else if (annClassName.equals(Native.ANN_LIB_LIST)) {
+                    ArrayAnnotationValue array = (ArrayAnnotationValue) annotation.getValue("value");
+                    int cnt = array.getElementCount();
+                    for (int j = 0; j < cnt; j ++) {
+                        Annotation element = (Annotation) array.getValue(j);
+                        nativeInfo.registerLibrary(((StringAnnotationValue) element.getValue("value")).getString());
+                    }
                 }
             }
         }

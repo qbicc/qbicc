@@ -16,6 +16,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.machine.probe.CProbe;
 import cc.quarkus.qcc.machine.probe.Qualifier;
+import cc.quarkus.qcc.plugin.linker.Linker;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -48,6 +49,7 @@ final class NativeInfo {
     final Map<DefinedTypeDefinition, AtomicReference<ValueType>> nativeTypes = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, MethodElement> functionalInterfaceMethods = new ConcurrentHashMap<>();
     final Set<InitializerElement> initializers = ConcurrentHashMap.newKeySet();
+    final Set<String> nativeLibraries = ConcurrentHashMap.newKeySet();
 
     private NativeInfo(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -97,7 +99,6 @@ final class NativeInfo {
                                 incomplete = true;
                             }
                         }
-                        // todo: lib (add to native info)
                     }
                     String enclosingName = definedType.getEnclosingClassInternalName();
                     while (enclosingName != null) {
@@ -276,5 +277,9 @@ final class NativeInfo {
 
     public MethodElement getNativeBinding(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor) {
         return nativeBindings.getOrDefault(owner, Map.of()).getOrDefault(name, Map.of()).get(descriptor);
+    }
+
+    void registerLibrary(String library) {
+        Linker.get(ctxt).addLibrary(library);
     }
 }

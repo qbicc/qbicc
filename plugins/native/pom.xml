@@ -34,5 +34,9 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qcc-runtime-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>cc.quarkus</groupId>
+            <artifactId>qcc-plugin-linker</artifactId>
+        </dependency>
     </dependencies>
 </project>

@@ -20,8 +20,9 @@ public class LinkStage implements Consumer<CompilationContext> {
             return;
         }
         LinkerInvoker linkerInvoker = cToolChain.newLinkerInvoker();
-        linkerInvoker.addObjectFiles(Linker.get(context).getObjectFilePaths());
-        // todo: add libraries
+        Linker linker = Linker.get(context);
+        linkerInvoker.addObjectFiles(linker.getObjectFilePaths());
+        linkerInvoker.addLibraries(linker.getLibraries());
         linkerInvoker.setOutputPath(context.getOutputDirectory().resolve("a.out"));
         linkerInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
         try {
