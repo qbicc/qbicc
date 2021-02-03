@@ -3,6 +3,8 @@ package cc.quarkus.qcc.plugin.linker;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
@@ -14,6 +16,7 @@ public final class Linker {
     private static final AttachmentKey<Linker> KEY = new AttachmentKey<>();
 
     private final List<Path> objectPaths = new ArrayList<>();
+    private final Set<String> libraries = ConcurrentHashMap.newKeySet();
 
     private Linker() {}
 
@@ -34,5 +37,13 @@ public final class Linker {
         synchronized (objectPaths) {
             return List.copyOf(objectPaths);
         }
+    }
+
+    public void addLibrary(String library) {
+        libraries.add(library);
+    }
+
+    public List<String> getLibraries() {
+        return List.copyOf(libraries);
     }
 }
