@@ -41,7 +41,7 @@ public interface LiteralFactory {
 
     IntegerLiteral literalOf(IntegerType type, long value);
 
-    StringLiteral literalOf(String value);
+    StringLiteral literalOf(String value, ReferenceType stringRefType);
 
     NullLiteral literalOfNull();
 
@@ -126,8 +126,8 @@ public interface LiteralFactory {
                 return integerLiterals.computeIfAbsent(v, Function.identity());
             }
 
-            public StringLiteral literalOf(final String value) {
-                return stringLiterals.computeIfAbsent(value, v -> new StringLiteral(typeSystem.getStringType(), v));
+            public StringLiteral literalOf(final String value, ReferenceType stringRefType) {
+                return stringLiterals.computeIfAbsent(value, v -> new StringLiteral(stringRefType, v));
             }
 
             public NullLiteral literalOfNull() {
