@@ -14,6 +14,7 @@ import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
@@ -218,7 +219,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     private void nullCheck(Value value) {
-        if (value.getType() instanceof ArrayType) {
+        if (value.getType() instanceof ArrayType || value.getType() instanceof ReferenceType && ! ((ReferenceType) value.getType()).isNullable()) {
             return;
         }
 
