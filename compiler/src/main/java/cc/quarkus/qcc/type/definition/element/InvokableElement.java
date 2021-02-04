@@ -8,6 +8,7 @@ import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodBodyFactory;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.generic.MethodSignature;
 import cc.quarkus.qcc.type.generic.ParameterizedSignature;
@@ -61,6 +62,10 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
 
     public boolean hasMethodBody() {
         return methodBodyFactory != null;
+    }
+
+    public boolean isVarargs() {
+        return hasAllModifiersOf(ClassFile.ACC_VARARGS);
     }
 
     public MethodBody getPreviousMethodBody() {
