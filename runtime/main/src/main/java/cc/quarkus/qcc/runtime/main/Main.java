@@ -7,10 +7,17 @@ import cc.quarkus.qcc.runtime.Build;
 import cc.quarkus.qcc.runtime.Detached;
 import cc.quarkus.qcc.runtime.NotReachableException;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 /**
  * Holds the native image main entry point.
  */
 public final class Main {
+
+    /* map Java object to native mutex for object monitor bytecodes. */
+    static final ConcurrentMap<Object, NativeObjectMonitor> objectMonitorNatives = new ConcurrentHashMap<>();
+
     private Main() {
     }
 
