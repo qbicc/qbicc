@@ -14,6 +14,7 @@ import cc.quarkus.qcc.object.Linkage;
 import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.object.ThreadLocalMode;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.annotation.Annotation;
@@ -215,7 +216,20 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             }
 
             private void addExtern(final NativeInfo nativeInfo, final MethodElement origMethod, final String name) {
-                FunctionType type = origMethod.getType(List.of(/*todo*/));
+                FunctionType origType = origMethod.getType(List.of(/*todo*/));
+                TypeSystem ts = classCtxt.getTypeSystem();
+                FunctionType type;
+                int pc = origType.getParameterCount();
+                if (origMethod.isVarargs() && pc > 1) {
+                    ValueType[] argTypes = new ValueType[pc];
+                    for (int i = 0; i < pc - 1; i ++) {
+                        argTypes[i] = origType.getParameterType(i);
+                    }
+                    argTypes[pc - 1] = ts.getVariadicType();
+                    type = ts.getFunctionType(origType.getReturnType(), argTypes);
+                } else {
+                    type = origType;
+                }
                 nativeInfo.registerFunctionInfo(
                     origMethod.getEnclosingType().getDescriptor(),
                     origMethod.getName(),
@@ -225,6 +239,10 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             }
 
             private void addExport(final NativeInfo nativeInfo, final MethodElement origMethod, final String name) {
+                if (origMethod.isVarargs()) {
+                    ctxt.error(origMethod, "Exported vararg functions not yet supported");
+                    return;
+                }
                 FunctionElement.Builder builder = new FunctionElement.Builder();
                 builder.setName(name);
                 builder.setEnclosingType(origMethod.getEnclosingType());
