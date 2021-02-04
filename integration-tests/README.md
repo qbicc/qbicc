@@ -20,7 +20,8 @@ All those classes are compiled, executables run and their output is matched with
 
 Build logs, run logs and resulting binaries alongside their `.ll` and `.dot` files are archived in `integration-tests/target/archived-logs/` directory.
 
-All logs are scanned for error and warning messages. Messages that were not whitelisted are treated as test errors. 
+All logs are scanned for error and warning messages. 
+Messages that were not whitelisted are treated as test errors. 
 
 ## Testing
 
