@@ -1,19 +1,79 @@
 name: QCC Continuous Integration
-
 on:
   push:
+    paths-ignore:
+      - '**.md'
+      - '**.adoc'
     branches: [ master ]
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - '**.adoc'
     branches: [ master ]
     types: [ opened, synchronize, reopened ]
-
 jobs:
   build-linux:
     name: "Linux Build AArch64"
     runs-on: [self-hosted, linux, arm64]
-
     steps:
-    - name: Check out
-      uses: actions/checkout@v2
-    - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      - name: Cleanup
+        run: |
+          rm -rf ~/.m2/repository/cc/quarkus/
+          rm -rf ./*
+
+      - name: Clone QCC
+        uses: actions/checkout@v2
+        with:
+          path: myqcc
+
+      - name: Install QCC
+        run: |
+          mvn install -pl '!integration-tests'
+        working-directory: ./myqcc
+
+      - name: Get QCC Class Library HEAD
+        id: qcc-class-library-head
+        run: |
+          sed -i "/^github.com/d" ~/.ssh/known_hosts
+          ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+          git config core.sshCommand 'ssh -i ~/.ssh/id_rsa'
+          echo "::set-output name=head::$(git ls-remote git@github.com:quarkuscc/qcc-class-library.git | sed 's/\([a-z0-9]*\)[ \t]*HEAD/\1/;t;d')"
+        shell: bash
+
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: |
+            ~/.m2/repository/cc/quarkus/qccrt-annotation
+            ~/.m2/repository/cc/quarkus/qccrt-java.base
+            ~/.m2/repository/cc/quarkus/qccrt-openjdk-build-tools-maven-plugin
+            ~/.m2/repository/cc/quarkus/qccrt-parent
+          key: ${{ steps.qcc-class-library-head.outputs.head }}
+
+      - name: Clone QCC Class Library
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --recurse-submodules git@github.com:quarkuscc/qcc-class-library.git
+
+      - name: Install QCC Class Library
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          mvn install
+        working-directory: ./qcc-class-library
+
+      - name: Test QCC
+        run: |
+          mvn test -pl integration-tests
+        working-directory: ./myqcc
+
+      - name: Prepare failure archive (if maven failed)
+        if: failure()
+        shell: bash
+        run: find . -type d -name '*-reports' -o -name "*-logs" | tar -czf test-reports.tgz -T -
+
+      - name: Upload failure Archive (if maven failed)
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: test-reports
+          path: 'test-reports.tgz'
