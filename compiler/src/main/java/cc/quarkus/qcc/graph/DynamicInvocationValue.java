@@ -10,7 +10,7 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 /**
  * An invoke dynamic invocation which returns a value.
  */
-public final class DynamicInvocationValue extends AbstractValue implements /* MethodInvocation, TODO: am I a MethodInvocation? */ Triable {
+public final class DynamicInvocationValue extends AbstractValue implements /* MethodInvocation, TODO: am I a MethodInvocation? */ Triable, OrderedNode {
     private final Node dependency;
     private final MethodElement bootstrapMethod;
     private final List<Value> staticArguments;
@@ -54,12 +54,9 @@ public final class DynamicInvocationValue extends AbstractValue implements /* Me
         return arguments;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public int getValueDependencyCount() {

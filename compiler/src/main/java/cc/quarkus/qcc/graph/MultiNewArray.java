@@ -11,7 +11,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * A {@code new} allocation operation for multi-dimensional array objects.
  */
-public final class MultiNewArray extends AbstractValue {
+public final class MultiNewArray extends AbstractValue implements OrderedNode {
     private final Node dependency;
     private final ArrayObjectType type;
     private final List<Value> dimensions;
@@ -39,12 +39,9 @@ public final class MultiNewArray extends AbstractValue {
         return type;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public int getValueDependencyCount() {

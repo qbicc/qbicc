@@ -11,7 +11,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public final class FunctionCall extends AbstractValue implements Triable {
+public final class FunctionCall extends AbstractValue implements Triable, OrderedNode {
     // todo: fixed flags (such as "nothrow", "noreturn")
     // todo: native calling convention (fastcc, ccc, etc)
     private final Node dependency;
@@ -53,12 +53,9 @@ public final class FunctionCall extends AbstractValue implements Triable {
         return callTarget;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public int getValueDependencyCount() {

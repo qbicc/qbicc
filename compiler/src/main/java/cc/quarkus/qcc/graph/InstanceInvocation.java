@@ -9,7 +9,7 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 /**
  * An invocation on an object instance.
  */
-public final class InstanceInvocation extends AbstractNode implements InstanceOperation, MethodInvocation, DispatchInvocation, Triable, Action {
+public final class InstanceInvocation extends AbstractNode implements InstanceOperation, MethodInvocation, DispatchInvocation, Triable, Action, OrderedNode {
     private final Node dependency;
     private final DispatchInvocation.Kind kind;
     private final Value instance;
@@ -49,12 +49,9 @@ public final class InstanceInvocation extends AbstractNode implements InstanceOp
         return instance;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? dependency : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 
     public int getValueDependencyCount() {

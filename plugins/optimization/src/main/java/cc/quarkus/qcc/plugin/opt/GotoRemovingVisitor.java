@@ -34,7 +34,7 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
         if (target.getIncoming().size() == 1) {
             // delete the goto target and fold it into the current block
             deleted.add(target);
-            param.copyNode(node.getBasicDependency(0));
+            param.copyNode(node.getDependency());
             return target.getTerminator().accept(this, param);
         } else {
             return getDelegateTerminatorVisitor().visit(param, node);

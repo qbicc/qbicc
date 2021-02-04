@@ -6,8 +6,8 @@ import java.util.Map;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.OrderedNode;
 import cc.quarkus.qcc.graph.Unschedulable;
-import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.PinnedNode;
@@ -101,14 +101,11 @@ public interface Schedule {
                 selected = candidate;
             }
         }
-        cnt = node.getBasicDependencyCount();
-        for (int i = 0; i < cnt; i ++) {
-            Node dependency = node.getBasicDependency(i);
-            if (dependency != null) {
-                BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, dependency);
-                if (candidate.domDepth > selected.domDepth) {
-                    selected = candidate;
-                }
+        if (node instanceof OrderedNode) {
+            Node dependency = ((OrderedNode) node).getDependency();
+            BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, dependency);
+            if (candidate.domDepth > selected.domDepth) {
+                selected = candidate;
             }
         }
         return selected;

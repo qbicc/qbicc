@@ -3,7 +3,7 @@ package cc.quarkus.qcc.graph;
 /**
  * A construct which terminates a block.  It holds a dependency on the preceding sequence of inter-thread actions.
  */
-public interface Terminator extends Node {
+public interface Terminator extends OrderedNode {
     <T, R> R accept(TerminatorVisitor<T, R> visitor, T param);
 
     BasicBlock getTerminatedBlock();

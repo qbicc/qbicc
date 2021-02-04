@@ -41,12 +41,9 @@ public final class Try extends AbstractNode implements Resume {
         return resumeTargetLabel;
     }
 
-    public int getBasicDependencyCount() {
-        return 1;
-    }
-
-    public Node getBasicDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? delegateOperation : Util.throwIndexOutOfBounds(index);
+    @Override
+    public Node getDependency() {
+        return delegateOperation;
     }
 
     public int getSuccessorCount() {
