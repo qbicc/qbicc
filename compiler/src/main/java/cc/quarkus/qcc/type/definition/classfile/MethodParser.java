@@ -133,7 +133,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         ExceptionHandlerImpl(final int index, final BasicBlockBuilder.ExceptionHandler delegate) {
             this.index = index;
             this.delegate = delegate;
-            this.phi = gf.phi(throwable.validate().getType(), new BlockLabel());
+            this.phi = gf.phi(throwable.validate().getType().getReference(), new BlockLabel());
         }
 
         public BlockLabel getHandler() {

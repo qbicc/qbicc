@@ -263,9 +263,11 @@ public final class Location {
                 setMemberName(((NamedElement) element).getName());
             }
             if (element instanceof BasicElement) {
-                setSourceFilePath(((BasicElement) element).getSourceFileName());
+                setSourceFilePath(element.getSourceFileName());
             }
-            setClassInternalName(element.getEnclosingType().getInternalName());
+            if (element != null) {
+                setClassInternalName(element.getEnclosingType().getInternalName());
+            }
             return this;
         }
 
