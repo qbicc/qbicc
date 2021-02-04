@@ -12,6 +12,7 @@ import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -73,6 +74,9 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             if (upperBound instanceof ArrayObjectType) {
                 return super.newArray((ArrayObjectType) upperBound, size);
             }
+        } else if (type instanceof ArrayType) {
+            // it's a native array
+            return stackAllocate(((ArrayType) type).getElementType(), size, ctxt.getLiteralFactory().literalOf(1));
         }
         return super.newArray(desc, size);
     }
