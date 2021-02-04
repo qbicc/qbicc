@@ -1,8 +1,9 @@
 package cc.quarkus.qcc.plugin.llvm;
 
+import static cc.quarkus.qcc.machine.llvm.Types.array;
 import static cc.quarkus.qcc.machine.llvm.Types.*;
 import static cc.quarkus.qcc.machine.llvm.Values.*;
-import static java.lang.Math.*;
+import static java.lang.Math.max;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +42,7 @@ import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.VariadicType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.WordType;
 import io.smallrye.common.constraint.Assert;
@@ -69,10 +71,19 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             FunctionType fnType = (FunctionType) type;
             int cnt = fnType.getParameterCount();
             List<LLValue> argTypes = cnt == 0 ? List.of() : new ArrayList<>(cnt);
+            boolean variadic = false;
             for (int i = 0; i < cnt; i ++) {
-                argTypes.add(map(fnType.getParameterType(i)));
+                ValueType parameterType = fnType.getParameterType(i);
+                if (parameterType instanceof VariadicType) {
+                    if (i < cnt - 1) {
+                        throw new IllegalStateException("Variadic type as non-final parameter type");
+                    }
+                    variadic = true;
+                } else {
+                    argTypes.add(map(parameterType));
+                }
             }
-            res = Types.function(map(fnType.getReturnType()), argTypes);
+            res = Types.function(map(fnType.getReturnType()), argTypes, variadic);
         } else if (type instanceof BooleanType) {
             // todo: sometimes it's one byte instead
             res = i1;
@@ -167,7 +178,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                 throw new IllegalStateException("Unsupported size for type IDs: " + size);
             }
         } else {
-            throw new IllegalStateException("Can't map Type("+ type.toFriendlyString() + ")");
+            throw new IllegalStateException("Can't map Type("+ type.toString() + ")");
         }
         types.put(type, res);
         return res;

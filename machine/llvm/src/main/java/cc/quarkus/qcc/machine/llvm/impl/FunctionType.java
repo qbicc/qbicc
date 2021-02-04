@@ -9,10 +9,12 @@ import cc.quarkus.qcc.machine.llvm.LLValue;
 final class FunctionType extends AbstractValue {
     final LLValue returnType;
     private final List<LLValue> argTypes;
+    private final boolean variadic;
 
-    FunctionType(final LLValue returnType, final List<LLValue> argTypes) {
+    FunctionType(final LLValue returnType, final List<LLValue> argTypes, boolean variadic) {
         this.returnType = returnType;
         this.argTypes = argTypes;
+        this.variadic = variadic;
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
@@ -27,6 +29,13 @@ final class FunctionType extends AbstractValue {
                 target.append(' ');
                 ((AbstractValue) iterator.next()).appendTo(target);
             }
+            if (variadic) {
+                target.append(',');
+                target.append(' ');
+            }
+        }
+        if (variadic) {
+            target.append("...");
         }
         target.append(')');
         return target;
