@@ -1,8 +1,7 @@
 package cc.quarkus.qcc.plugin.llvm;
 
 import static cc.quarkus.qcc.machine.llvm.Types.*;
-import static cc.quarkus.qcc.machine.llvm.Values.NULL;
-import static cc.quarkus.qcc.machine.llvm.Values.ZERO;
+import static cc.quarkus.qcc.machine.llvm.Values.*;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -82,6 +81,7 @@ import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
@@ -527,12 +527,30 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         LLValue llTarget = map(node.getCallTarget());
         // two scans - once to populate the maps, and then once to emit the call in the right order
         for (int i = 0; i < arguments.size(); i++) {
-            map(functionType.getParameterType(i));
+            ValueType type = arguments.get(i).getType();
+            if (type instanceof NullType) {
+                // it's a null of whatever type the parameter is
+                if (i < functionType.getParameterCount()) {
+                    type = functionType.getParameterType(i);
+                    // else we'll just make it an i8*
+                }
+            }
+            map(type);
             map(arguments.get(i));
         }
         Call call = builder.call(llType, llTarget);
         for (int i = 0; i < arguments.size(); i++) {
-            call.arg(map(functionType.getParameterType(i)), map(arguments.get(i)));
+            ValueType type = arguments.get(i).getType();
+            if (type instanceof NullType) {
+                // it's a null of whatever type the parameter is
+                if (i < functionType.getParameterCount()) {
+                    call.arg(map(functionType.getParameterType(i)), zeroinitializer);
+                } else {
+                    call.arg(ptrTo(i8), zeroinitializer);
+                }
+            } else {
+                call.arg(map(type), map(arguments.get(i)));
+            }
         }
         return call.asLocal();
     }
