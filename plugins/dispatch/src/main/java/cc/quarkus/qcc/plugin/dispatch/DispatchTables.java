@@ -106,4 +106,16 @@ public class DispatchTables {
         return symbol;
     }
 
+    public int getVTableIndex(MethodElement target) {
+        ValidatedTypeDefinition definingType = target.getEnclosingType().validate();
+        MethodElement[] vtable = getVTable(definingType);
+        for (int i=0; i<vtable.length; i++) {
+            if (target.getName().equals(vtable[i].getName()) && target.getDescriptor().equals(vtable[i].getDescriptor())) {
+                return i;
+            }
+        }
+        ctxt.error("No vtable entry found for "+target);
+        return 0;
+    }
+
 }
