@@ -12,8 +12,6 @@ public interface Global extends YieldingInstruction {
 
     Global value(LLValue value);
 
-    Global external();
-
     Global dllStorageClass(DllStorageClass dllStorageClass);
 
     Global alignment(int alignment);

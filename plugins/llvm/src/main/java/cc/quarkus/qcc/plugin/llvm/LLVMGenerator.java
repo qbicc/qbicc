@@ -18,6 +18,7 @@ import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.ThreadLocalStorageModel;
+import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.object.Data;
 import cc.quarkus.qcc.object.DataDeclaration;
 import cc.quarkus.qcc.object.Function;
@@ -86,7 +87,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             decl.param(moduleVisitor.map(fnType.getParameterType(i)));
                         }
                     } else if (item instanceof DataDeclaration) {
-                        Global obj = module.global(moduleVisitor.map(item.getType())).external().linkage(linkage);
+                        Global obj = module.global(moduleVisitor.map(item.getType())).linkage(Linkage.EXTERNAL);
                         ThreadLocalMode tlm = item.getThreadLocalMode();
                         if (tlm != null) {
                             obj.threadLocal(map(tlm));
@@ -98,6 +99,8 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                         Global obj = module.global(moduleVisitor.map(item.getType()));
                         if (value != null) {
                             obj.value(moduleVisitor.map(value));
+                        } else {
+                            obj.value(Values.zeroinitializer);
                         }
                         obj.linkage(linkage);
                         ThreadLocalMode tlm = item.getThreadLocalMode();
