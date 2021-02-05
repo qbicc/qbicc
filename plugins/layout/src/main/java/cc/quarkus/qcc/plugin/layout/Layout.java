@@ -2,6 +2,7 @@ package cc.quarkus.qcc.plugin.layout;
 
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -366,24 +367,22 @@ public final class Layout {
         }
         int cnt = validated.getFieldCount();
         int ic = 0;
-        CompoundType.Member[] allMembers = new CompoundType.Member[cnt];
         CompoundType.Member[] instanceMembers = new CompoundType.Member[cnt];
-
+        Map<FieldElement, CompoundType.Member> fieldToMember = new HashMap<>(instanceMembers.length);
         for (int i = 0; i < cnt; i ++) {
             // todo: skip unused fields?
             FieldElement field = validated.getField(i);
             if (field.isStatic()) {
                 continue;
             }
-            allMembers[i] = instanceMembers[ic++] = computeMember(allocated, field);
+            fieldToMember.put(field, instanceMembers[ic++] = computeMember(allocated, field));
         }
         int size = allocated.length();
-        List<CompoundType.Member> fieldIndexToMember = Arrays.asList(allMembers);
         CompoundType.Member[] membersArray = Arrays.copyOf(instanceMembers, ic);
         Arrays.sort(membersArray);
         List<CompoundType.Member> membersList = List.of(membersArray);
         CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, 1, () -> membersList);
-        layoutInfo = new LayoutInfo(allocated, compoundType, fieldIndexToMember);
+        layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
         LayoutInfo appearing = instanceLayouts.putIfAbsent(validated, layoutInfo);
         return appearing != null ? appearing : layoutInfo;
     }
@@ -433,24 +432,20 @@ public final class Layout {
     public static final class LayoutInfo {
         private final BitSet allocated;
         private final CompoundType compoundType;
-        private final List<CompoundType.Member> fieldIndexToMember;
+        private final Map<FieldElement, CompoundType.Member> fieldToMember;
 
-        LayoutInfo(final BitSet allocated, final CompoundType compoundType, final List<CompoundType.Member> fieldIndexToMember) {
+        LayoutInfo(final BitSet allocated, final CompoundType compoundType, final Map<FieldElement, CompoundType.Member> fieldToMember) {
             this.allocated = allocated;
             this.compoundType = compoundType;
-            this.fieldIndexToMember = fieldIndexToMember;
+            this.fieldToMember = fieldToMember;
         }
 
         public CompoundType getCompoundType() {
             return compoundType;
         }
 
-        public List<CompoundType.Member> getFieldIndexToMember() {
-            return fieldIndexToMember;
-        }
-
         public CompoundType.Member getMember(FieldElement element) {
-            return fieldIndexToMember.get(element.getIndex());
+            return fieldToMember.get(element);
         }
     }
 }
