@@ -89,6 +89,6 @@ public final class SignedIntegerType extends IntegerType {
     }
 
     public String toString(final IntegerLiteral literal) {
-        return Long.toString(literal.longValue());
+        return toString(new StringBuilder()).append(' ').append(literal.longValue()).toString();
     }
 }

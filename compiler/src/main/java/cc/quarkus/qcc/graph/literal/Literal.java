@@ -1,8 +1,7 @@
 package cc.quarkus.qcc.graph.literal;
 
-import cc.quarkus.qcc.graph.Unschedulable;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.Unschedulable;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**

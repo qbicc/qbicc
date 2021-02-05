@@ -22,13 +22,8 @@ public final class PrimitiveArrayObjectType extends ArrayObjectType {
     }
 
     public boolean isSubtypeOf(final ObjectType other) {
-        return this == other
-            || other instanceof ClassObjectType && isSubtypeOf((ClassObjectType) other)
+        return super.isSubtypeOf(other)
             || other instanceof PrimitiveArrayObjectType && isSubtypeOf((PrimitiveArrayObjectType) other);
-    }
-
-    public boolean isSubtypeOf(final ClassObjectType other) {
-        return other.getSuperClassType() == null; // j.l.O
     }
 
     public boolean isSubtypeOf(final PrimitiveArrayObjectType other) {
@@ -40,7 +35,7 @@ public final class PrimitiveArrayObjectType extends ArrayObjectType {
     }
 
     public ObjectType getCommonSupertype(final ObjectType other) {
-        return equals(other) ? this : getSuperClassType();
+        return equals(other) ? this : super.getCommonSupertype(other);
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {

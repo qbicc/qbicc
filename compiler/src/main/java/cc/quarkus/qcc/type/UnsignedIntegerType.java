@@ -78,7 +78,7 @@ public final class UnsignedIntegerType extends IntegerType {
     }
 
     public String toString(final IntegerLiteral literal) {
-        return Long.toUnsignedString(literal.longValue());
+        return toString(new StringBuilder()).append(' ').append(Long.toUnsignedString(literal.longValue())).toString();
     }
 
     public SignedIntegerType asSigned() {
