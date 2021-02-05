@@ -56,6 +56,7 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.methodBodyFactoryIndex = builder.methodBodyFactoryIndex;
         this.minimumLineNumber = builder.minimumLineNumber;
         this.maximumLineNumber = builder.maximumLineNumber;
+        this.type = builder.type;
     }
 
     public boolean hasMethodBody() {
@@ -167,6 +168,7 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         int methodBodyFactoryIndex;
         int minimumLineNumber = 1;
         int maximumLineNumber = 1;
+        FunctionType type;
 
         Builder() {}
 
@@ -201,6 +203,10 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
 
         public void setMaximumLineNumber(int maximumLineNumber) {
             this.maximumLineNumber = maximumLineNumber;
+        }
+
+        void setType(FunctionType type) {
+            this.type = Assert.checkNotNullParam("type", type);
         }
 
         public abstract InvokableElement build();

@@ -11,6 +11,7 @@ import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.FunctionElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
@@ -57,6 +58,8 @@ final class LLVMModuleDebugInfo {
             b.append("<init>");
         } else if (element instanceof MethodElement) {
             b.append(((MethodElement) element).getName());
+        } else if (element instanceof FunctionElement) {
+            b.append(((FunctionElement) element).getName());
         } else {
             throw new UnsupportedOperationException("Unrecognized element " + element.toString());
         }

@@ -32,7 +32,6 @@ import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MemberElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 
@@ -71,7 +70,7 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
-        public void registerEntryPoint(final MethodElement method) {
+        public void registerEntryPoint(final ExecutableElement method) {
 
         }
 

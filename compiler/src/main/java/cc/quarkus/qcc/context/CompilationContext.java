@@ -48,7 +48,7 @@ public interface CompilationContext extends DiagnosticContext {
      *
      * @param method The methodElement to register as an entrypoint
      */
-    void registerEntryPoint(MethodElement method);
+    void registerEntryPoint(ExecutableElement method);
 
     Path getOutputDirectory();
 

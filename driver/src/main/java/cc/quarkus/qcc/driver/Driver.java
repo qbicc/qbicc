@@ -44,8 +44,8 @@ import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ElementVisitor;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.FunctionElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
 import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
@@ -325,7 +325,7 @@ public class Driver implements Closeable {
         // trace out the program graph, enqueueing each item one time and then processing every item in the queue;
         // in this stage we're just loading everything that *might* be reachable
 
-        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+        for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
 
@@ -393,7 +393,7 @@ public class Driver implements Closeable {
 
         // In this phase we start from the entry points again, and then copy (and filter) all of the nodes to a smaller reachable set
 
-        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+        for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
 
@@ -457,7 +457,7 @@ public class Driver implements Closeable {
 
         // start from entry points one more time, and copy the method bodies to their corresponding function body
 
-        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+        for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
 
@@ -468,17 +468,23 @@ public class Driver implements Closeable {
                 ClassContext classContext = element.getEnclosingType().getContext();
                 MethodBody original = element.getMethodBody();
                 BasicBlock entryBlock = original.getEntryBlock();
-                List<Value> origParamValues = original.getParameterValues();
-                List<Value> paramValues = new ArrayList<>(origParamValues.size() + 2);
-                paramValues.add(compilationContext.getCurrentThreadValue());
+                List<Value> paramValues;
                 Value thisValue;
-                if (! element.isStatic()) {
-                    thisValue = original.getThisValue();
-                    paramValues.add(thisValue);
-                } else {
+                if (element instanceof FunctionElement) {
+                    paramValues = original.getParameterValues();
                     thisValue = null;
+                } else {
+                    List<Value> origParamValues = original.getParameterValues();
+                    paramValues = new ArrayList<>(origParamValues.size() + 2);
+                    paramValues.add(compilationContext.getCurrentThreadValue());
+                    if (! element.isStatic()) {
+                        thisValue = original.getThisValue();
+                        paramValues.add(thisValue);
+                    } else {
+                        thisValue = null;
+                    }
+                    paramValues.addAll(origParamValues);
                 }
-                paramValues.addAll(origParamValues);
                 Function function = compilationContext.getExactFunction(element);
                 BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
                 BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, analyzeToLowerCopiers);
@@ -525,7 +531,7 @@ public class Driver implements Closeable {
 
         // Visit each reachable node to build the executable program
 
-        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+        for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
 
