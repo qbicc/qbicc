@@ -400,11 +400,11 @@ public final class CNative {
     // thread attach
 
     /**
-     * Attach to the new (unstarted) thread.  Only call if there is no currently attached thread.
+     * Attach to a thread which is created and started.  Only call if there is no currently attached thread.
      *
-     * @param thread the new (unstarted) thread
+     * @param name the name of the new thread
      */
-    public static native void attachNew(Thread thread);
+    public static native void attachNewThread(String name);
 
     /**
      * Reattach to the given running thread (used for native-to-Java call-ins).  The thread must be reattached from
