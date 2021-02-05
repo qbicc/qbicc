@@ -14,7 +14,6 @@ import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -83,12 +82,12 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
 
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
         invalidNode("invokeValueStatic");
-        return ctxt.getLiteralFactory().literalOfNull();
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         invalidNode("invokeValueInstance");
-        return ctxt.getLiteralFactory().literalOfNull();
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
@@ -98,17 +97,17 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
 
     public Value new_(final ClassObjectType type) {
         invalidNode("new");
-        return super.new_(type);
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(type.getReference());
     }
 
     public Value newArray(final ArrayObjectType arrayType, final Value size) {
         invalidNode("new");
-        return super.newArray(arrayType, size);
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
     }
 
     public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
         invalidNode("new");
-        return super.multiNewArray(arrayType, dimensions);
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
     }
 
     private void invalidNode(String name) {

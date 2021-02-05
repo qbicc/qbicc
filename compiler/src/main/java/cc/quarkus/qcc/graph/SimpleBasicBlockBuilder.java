@@ -10,6 +10,7 @@ import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
+import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -353,6 +354,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         } else if (arrayType instanceof ArrayType) {
             type = ((ArrayType) arrayType).getElementType();
             return asDependency(new ArrayElementRead(callSite, element, line, bci, requireDependency(), type, array, index, mode));
+        } else if (arrayType instanceof NullType) {
+            // Undefined behavior (should never be in reachable code)
+            return asDependency(new ArrayElementRead(callSite, element, line, bci, requireDependency(), arrayType, array, index, mode));
         } else {
             throw new IllegalStateException("Invalid array type " + arrayType);
         }

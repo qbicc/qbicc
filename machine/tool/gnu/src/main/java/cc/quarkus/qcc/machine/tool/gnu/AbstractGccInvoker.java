@@ -52,11 +52,17 @@ abstract class AbstractGccInvoker implements MessagingToolInvoker {
         try (BufferedReader br = new BufferedReader(reader)) {
             String line;
             Matcher matcher;
+            StringBuilder b = new StringBuilder();
+            ToolMessageHandler.Level level = null;
+            String file = "";
             while ((line = br.readLine()) != null) {
                 matcher = DIAG_PATTERN.matcher(line.trim());
                 if (matcher.matches()) {
+                    if (b.length() > 0) {
+                        handler.handleMessage(this, level, file, -1, -1, b.toString());
+                        b.setLength(0);
+                    }
                     String levelStr = matcher.group(4);
-                    ToolMessageHandler.Level level;
                     if (levelStr != null) {
                         switch (levelStr) {
                             case "note": level = ToolMessageHandler.Level.INFO; break;
@@ -67,8 +73,14 @@ abstract class AbstractGccInvoker implements MessagingToolInvoker {
                         level = ToolMessageHandler.Level.ERROR;
                     }
                     // don't log potentially misleading line numbers
-                    handler.handleMessage(this, level, matcher.group(1), -1, -1, matcher.group(5));
+                    file = matcher.group(1);
+                    b.append(matcher.group(5));
+                } else {
+                    b.append('\n').append(line);
                 }
+            }
+            if (b.length() > 0) {
+                handler.handleMessage(this, level, file, -1, -1, b.toString());
             }
         }
     }

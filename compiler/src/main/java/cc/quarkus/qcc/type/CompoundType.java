@@ -58,6 +58,10 @@ public final class CompoundType extends ValueType {
         return members;
     }
 
+    public Tag getTag() {
+        return tag;
+    }
+
     public int getMemberCount() {
         return getMembers().size();
     }
@@ -100,17 +104,7 @@ public final class CompoundType extends ValueType {
         if (tag != Tag.NONE) {
             b.append(tag).append(' ');
         }
-        b.append(name).append(" {");
-        List<Member> members = getMembers();
-        if (! members.isEmpty()) {
-            members.get(0).toString(b);
-            int size = members.size();
-            for (int i = 1; i < size; i++) {
-                b.append(',');
-                members.get(i).toString(b);
-            }
-        }
-        return b.append('}');
+        return b.append(name);
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {

@@ -105,6 +105,15 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
+    public Value invokeValueStatic(MethodElement target, List<Value> arguments) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+            throwUnsatisfiedLinkError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+        }
+        return super.invokeValueStatic(target, arguments);
+    }
+
+    @Override
     public Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
         if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
             throwUnsatisfiedLinkError();
@@ -124,7 +133,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     public Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
         if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
             throwUnsatisfiedLinkError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
         }
         nullCheck(instance);
         return super.invokeValueInstance(kind, instance, target, arguments);

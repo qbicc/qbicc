@@ -111,12 +111,18 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             // handle this, we must do two special things:
             //   - Use an identified type in the module to avoid infinite recursion when printing the type
             //   - Add the mapping to types early to avoid infinite recursion when mapping self-referential member types
-            IdentifiedType identifiedType = module.identifiedType();
+            CompoundType compoundType = (CompoundType) type;
+            String name;
+            if (compoundType.getTag() == CompoundType.Tag.NONE) {
+                name = "T." + compoundType.getName();
+            } else {
+                name = "T." + compoundType.getTag() + "." + compoundType.getName();
+            }
+            IdentifiedType identifiedType = module.identifiedType(name);
             res = identifiedType.asTypeRef();
             types.put(type, res);
 
             // this is a little tricky.
-            CompoundType compoundType = (CompoundType) type;
             int memberCnt = compoundType.getMemberCount();
             long offs = 0;
             StructType struct = structType();
