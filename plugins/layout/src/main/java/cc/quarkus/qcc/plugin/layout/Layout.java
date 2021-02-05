@@ -48,6 +48,7 @@ public final class Layout {
     private final Map<ValidatedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
     private final FieldElement objectClassField;
+    private final FieldElement objectVTableField;
     private final FieldElement classTypeIdField;
 
     private final FieldElement arrayLengthField;
@@ -75,6 +76,7 @@ public final class Layout {
         DefinedTypeDefinition jlcDef = classContext.findDefinedType("java/lang/Class");
         ValidatedTypeDefinition jlo = jloDef.validate();
         ValidatedTypeDefinition jlc = jlcDef.validate();
+
         // inject a field of ClassObjectType to hold the object class
         FieldElement.Builder builder = FieldElement.builder();
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
@@ -84,10 +86,25 @@ public final class Layout {
         builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
         // the type is really the self-type, but we don't have one of those so use j.l.Object
-        builder.setType(jlo.getClassType().getTypeType().asConst());
+        // builder.setType(jlo.getClassType().getTypeType().asConst());
+        builder.setType(classContext.getTypeSystem().getVoidType().getPointer()); // HACK: Avoid IllegalStateException from LLVMModuleNodeVisitor.map
         FieldElement field = builder.build();
         jlo.injectField(field);
         objectClassField = field;
+
+        // inject a field of type void*** to hold the vtable
+        builder = FieldElement.builder();
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
+        builder.setName("vtable");
+        builder.setEnclosingType(jloDef);
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        builder.setType(classContext.getTypeSystem().getVoidType().getPointer().getPointer().getPointer());
+        builder.setIndex(1);
+        field = builder.build();
+        jlo.injectField(field);
+        objectVTableField = field;
+
         // now inject a field of ClassObjectType into Class to hold the corresponding run time type
         builder = FieldElement.builder();
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
@@ -286,6 +303,15 @@ public final class Layout {
      */
     public FieldElement getObjectClassField() {
         return objectClassField;
+    }
+
+    /**
+     * Get the object field which holds the vtable pointer.
+     *
+     * @return the vtable field
+     */
+    public FieldElement getObjectVTableField() {
+        return objectVTableField;
     }
 
     /**

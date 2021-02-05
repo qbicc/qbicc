@@ -7,6 +7,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
+import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.MemoryAccessMode;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
@@ -14,6 +15,7 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.plugin.dispatch.DispatchTables;
+import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -113,14 +115,10 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return ctxt.getLiteralFactory().literalOfSymbol(function.getName(), function.getType());
     }
 
-    /*
-     * Implement naive scheme where first word of an object simply contains the vtable pointer.
-     * Eventually we will need to do more (mask off bottom bits, or load an index and then index into a vtable table, etc).
-     */
     private Value expandVirtualDispatch(Value instance, MethodElement target, Function invokeTarget) {
         DispatchTables dt = DispatchTables.get(ctxt);
-        Value vtable = pointerLoad(bitCast(instance, ctxt.getTypeSystem().getVoidType().getPointer().getPointer().getPointer()), MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
         Value index = ctxt.getLiteralFactory().literalOf(dt.getVTableIndex(target));
+        Value vtable = readInstanceField(instance, Layout.get(ctxt).getObjectVTableField(), JavaAccessMode.PLAIN);
         Value fptr = pointerLoad(add(vtable, index), MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
         return bitCast(fptr, invokeTarget.getType().getPointer());
     }
