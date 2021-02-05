@@ -56,11 +56,11 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-file-elf</artifactId>
+            <artifactId>qcc-machine-file-macho</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-file-macho</artifactId>
+            <artifactId>qcc-machine-file-elf</artifactId>
         </dependency>
 
         <dependency>
