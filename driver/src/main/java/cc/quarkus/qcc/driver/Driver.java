@@ -463,12 +463,6 @@ public class Driver implements Closeable {
 
         element = compilationContext.dequeue();
         while (element != null) {
-            // todo: this will be removed once the VM is functional
-            // make sure the initializer is enqueued
-            InitializerElement initializer = element.getEnclosingType().validate().resolve().getInitializer();
-            if (initializer != null) {
-                compilationContext.enqueue(initializer);
-            }
             if (element.hasMethodBody()) {
                 // copy to a function; todo: this should eventually be done in the lowering plugin
                 ClassContext classContext = element.getEnclosingType().getContext();
