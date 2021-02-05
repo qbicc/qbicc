@@ -1,0 +1,123 @@
+= QCC: Object Model Implementation
+
+== Base Assumptions
+
+QCC operates under a strong closed world assumption.  All program
+classes are statically available when the program is compiled. This
+enables the compiler to apply whole program analysis and generate
+optimized data structures to implement method dispatch and dynamic
+type checking. 
+
+== Object Header
+
+All Java objects have a common object header format. Arrays add
+additional header elements, but must start with the common object
+header to allow them to be treated as `java.lang.Object` instances.
+
+=== Common Header Elements
+
+All object instances have a 64bit header.
+
+This header is composed of two 32-bit fields.
+
+....
+LLLLLLLL LLLLLLLL LLLLLLLL LLLLLLLL  : lock word
+TTTTTTTT TTTTTTTT TTTTTTTT BBBBBBBB  : typeId + bits
+....
+
+The first 32-bit field is used for locking. Details TBD. Most likely
+we will use some variant of thin locks.  We reserve a full 32 bits for
+the thin lock because it will always be updated using 32 bit atomic
+memory operations.
+
+The second 32-bit field contains a 24 bit `typeId` in its upper three
+bytes. Its low order byte is used as a bit field. Two of these bits
+are used to support address-based hashing with a moving GC (encodes
+the three possible states: unhashed, hashed, hashed-and-moved). The
+remaining 6 are available for use by the memory management subsystem
+(or for other impl. needs).
+
+The typeId can be used in a variety of ways:
+* An object's typeId is an index into the global `vtable[]`
+* An object's typeId is an index into the global `java.lang.Class[]`
+* An object's typeId can be used for `extends` subclass testing by
+doing a simple range comparison (we assign typeIds by doing a tree
+traversal of the subclass relationships such that all subclasses of a
+class are assigned a dense range of typeIds). 
+
+=== Additional Array Header Elements
+
+An array header contains the following additional items
+* a 32 bit field which contains the array length
+* ????
+
+== Object Model Operations
+
+=== invokevirtual
+
+----
+r1 = ld(obj, 4)   # load typeId from object
+r2 = r1 >> 8      # shift with zero extend to discard bitfield bytes
+r3 = vtables[r2]  # load this class's vtable from global vtable array
+r4 = r3[meth]     # load function pointer from vtable
+call *r4          # call function
+----
+
+=== invokeinterface
+
+TODO
+
+=== instanceof/checkcast (of a class)
+
+----
+r1 = ld(obj, 4)   # load typeId from object
+r2 = r1 >> 8      # shift with zero extend to discard bitfield bytes
+if LOWER_BOUND < r2 && r2 < GREATER_BOUND
+----
+
+=== instanceof/checkcast (of an array)
+
+TODO: likely no inline fast-path
+
+=== instanceof/checkcast (of an interface)
+
+TODO
+
+=== getClass()
+
+r1 = ld(obj, 4)   # load typeId from object
+r2 = r1 >> 8      # shift with zero extend to discard bitfield bytes
+r3 = jlClass[r2]  # load this class's java.lang.Class from global Class[] array
+
+=== hashCode
+
+if hashed&moved {
+  load hashcode from 4 bytes preceding object
+} else {
+  set hashed
+  return object's address
+}
+
+=== monitorenter/monitorexit
+
+TBD:  fast path of uncontend lock/unlock
+operates on thin lock word using atomic memory ops. 
+
+== Alternative Designs
+
+The "classic" one word header object model in JVMs puts a pointer to
+some VM data structure (eg a VMClass object with a fixed-size struct
+followed by a variable length vtable) in the object header and steals
+approximately the low order byte of the pointer to use as a bit field.
+Bit stealing is enabled by ensuring that all VMClass instances are
+highly aligned (ie to steal 6 bits, VMClass instances must be
+allocated 64-byte aligned). 
+
+This design has some advantages, (a) it requires one fewer load in the
+`invokevirtual` sequence and (b) it is more amenable to dynamic class
+loading. However, it makes it much harder to acquire enough header
+bits to support inline (recursive) locking without spilling over into
+a second word. It also typically puts the `typeId` into the
+fixed-sized portion of the VMClass structure, so the simple subclass
+test against the `extends` relationship takes an additional load
+instruction.
