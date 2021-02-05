@@ -102,6 +102,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                         } else {
                             obj.value(Values.zeroinitializer);
                         }
+                        obj.alignment(item.getType().getAlign());
                         obj.linkage(linkage);
                         ThreadLocalMode tlm = item.getThreadLocalMode();
                         if (tlm != null) {
