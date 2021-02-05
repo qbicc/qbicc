@@ -59,6 +59,8 @@ import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.plugin.reachability.ReachabilityBlockBuilder;
+import cc.quarkus.qcc.plugin.threadlocal.ThreadLocalBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.threadlocal.ThreadLocalTypeBuilder;
 import cc.quarkus.qcc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.SynchronizedMethodBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.ThrowValueBasicBlockBuilder;
@@ -235,6 +237,7 @@ public class Main {
 
                                 builder.addTypeBuilderFactory(ExternExportTypeBuilder::new);
                                 builder.addTypeBuilderFactory(NativeTypeBuilder::new);
+                                builder.addTypeBuilderFactory(ThreadLocalTypeBuilder::new);
 
                                 builder.addResolverFactory(ConstTypeResolver::new);
                                 builder.addResolverFactory(FunctionTypeResolver::new);
@@ -251,6 +254,7 @@ public class Main {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThrowValueBasicBlockBuilder::new);
