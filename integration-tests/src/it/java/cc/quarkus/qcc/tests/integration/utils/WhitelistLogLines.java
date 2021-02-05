@@ -10,7 +10,9 @@ import java.util.regex.Pattern;
 public enum WhitelistLogLines {
 
     // This is appended to all undermentioned listings
-    ALL(new Pattern[]{ //empty for now
+    ALL(new Pattern[]{
+        Pattern.compile("Compilation completed with \\d+ warning.+.+"),
+        Pattern.compile(".+-Wunused-command-line-argument.+")
     }),
 
     NONE(new Pattern[]{}),
