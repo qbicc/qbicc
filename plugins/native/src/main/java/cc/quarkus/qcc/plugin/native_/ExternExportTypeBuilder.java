@@ -157,7 +157,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                             // immediately generate the call-in stub
                             AnnotationValue nameVal = annotation.getValue("withName");
                             String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
-                            addExport(enclosing, origMethod, name);
+                            addExport(nativeInfo, origMethod, name);
                             // all done
                             return origMethod;
                         }
@@ -217,16 +217,16 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 );
             }
 
-            private void addExport(final DefinedTypeDefinition enclosing, final MethodElement origMethod, final String name) {
+            private void addExport(final NativeInfo nativeInfo, final MethodElement origMethod, final String name) {
                 FunctionElement.Builder builder = new FunctionElement.Builder();
                 builder.setName(name);
-                builder.setEnclosingType(enclosing);
+                builder.setEnclosingType(origMethod.getEnclosingType());
                 builder.setDescriptor(origMethod.getDescriptor());
                 builder.setSignature(origMethod.getSignature());
-                builder.setType(origMethod.getType(List.of(/*todo*/)));
+                FunctionType fnType = origMethod.getType(List.of(/*todo*/));
+                builder.setType(fnType);
                 builder.setSourceFileName(origMethod.getSourceFileName());
                 builder.setParameters(origMethod.getParameters());
-                FunctionType fnType = origMethod.getType(List.of(/*todo*/));
                 builder.setMethodBodyFactory(new MethodBodyFactory() {
                     @Override
                     public MethodBody createMethodBody(int index, ExecutableElement element) {
@@ -250,7 +250,13 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                         return MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, args);
                     }
                 }, 0);
-                ctxt.registerEntryPoint(builder.build());
+                FunctionElement function = builder.build();
+                nativeInfo.registerFunctionInfo(
+                    origMethod.getEnclosingType().getDescriptor(),
+                    name,
+                    origMethod.getDescriptor(),
+                    new NativeFunctionInfo(function, ctxt.getLiteralFactory().literalOfSymbol(name, fnType)));
+                ctxt.registerEntryPoint(function);
             }
         }, index);
     }
