@@ -95,20 +95,34 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
         try (BufferedReader br = new BufferedReader(reader)) {
             String line;
             Matcher matcher;
+            StringBuilder b = new StringBuilder();
+            ToolMessageHandler.Level level = null;
+            int errLine = -1;
+            String file = "";
             while ((line = br.readLine()) != null) {
                 matcher = pattern.matcher(line.trim());
                 if (matcher.matches()) {
+                    if (b.length() > 0) {
+                        handler.handleMessage(this, level, file, errLine, -1, b.toString());
+                        b.setLength(0);
+                    }
                     String levelStr = matcher.group(5);
                     String otherLevelStr = matcher.group(1);
-                    ToolMessageHandler.Level level;
                     if (otherLevelStr != null) {
                         level = getLevel(levelStr).max(getLevel(otherLevelStr));
                     } else {
                         level = getLevel(levelStr);
                     }
                     // don't log potentially misleading line numbers
-                    handler.handleMessage(this, level, matcher.group(2), Integer.parseInt(matcher.group(3)), -1, matcher.group(6));
+                    errLine = Integer.parseInt(matcher.group(3));
+                    file = matcher.group(2);
+                    b.append(matcher.group(6));
+                } else {
+                    b.append('\n').append(line);
                 }
+            }
+            if (b.length() > 0) {
+                handler.handleMessage(this, level, file, errLine, -1, b.toString());
             }
         }
     }
