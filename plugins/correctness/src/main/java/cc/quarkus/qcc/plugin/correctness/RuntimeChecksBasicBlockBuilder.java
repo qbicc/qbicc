@@ -19,6 +19,7 @@ import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -95,7 +96,20 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
+    public Node invokeStatic(MethodElement target, List<Value> arguments) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+            throwUnsatisfiedLinkError();
+            return nop();
+        }
+        return super.invokeStatic(target, arguments);
+    }
+
+    @Override
     public Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+            throwUnsatisfiedLinkError();
+            return nop();
+        }
         nullCheck(instance);
         return super.invokeInstance(kind, instance, target, arguments);
     }
@@ -108,6 +122,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+            throwUnsatisfiedLinkError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(instance.getType());
+        }
         nullCheck(instance);
         return super.invokeValueInstance(kind, instance, target, arguments);
     }
@@ -178,6 +196,16 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             begin(goAhead);
         }
         return super.divide(v1, v2);
+    }
+
+    private void throwUnsatisfiedLinkError() {
+        ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
+        ValidatedTypeDefinition ule = classContext.findDefinedType("java/lang/UnsatisfiedLinkError").validate();
+        BasicBlockBuilder builder = getFirstBuilder();
+        Value ex = builder.new_(ule.getClassType());
+        ex = builder.invokeConstructor(ex, ule.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
+        builder.throw_(ex); // Throw java.lang.UnsatisfiedLinkError
+        begin(new BlockLabel());
     }
 
     private void nullCheck(Value value) {
