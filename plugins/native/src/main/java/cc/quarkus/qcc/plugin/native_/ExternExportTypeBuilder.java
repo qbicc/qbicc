@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.plugin.native_;
 
-import static cc.quarkus.qcc.context.CompilationContext.*;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,9 +21,12 @@ import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.MethodBodyFactory;
 import cc.quarkus.qcc.type.definition.MethodResolver;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.FunctionElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -158,36 +159,39 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             }
 
             private void addExport(final DefinedTypeDefinition enclosing, final MethodElement origMethod, final String name) {
-                Function exactFunction = ctxt.getExactFunction(origMethod);
+                FunctionElement.Builder builder = new FunctionElement.Builder();
+                builder.setName(name);
+                builder.setEnclosingType(enclosing);
+                builder.setDescriptor(origMethod.getDescriptor());
+                builder.setSignature(origMethod.getSignature());
+                builder.setType(origMethod.getType(List.of(/*todo*/)));
+                builder.setSourceFileName(origMethod.getSourceFileName());
+                builder.setParameters(origMethod.getParameters());
                 FunctionType fnType = origMethod.getType(List.of(/*todo*/));
-                Function function = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(IMPLICIT_SECTION_NAME).addFunction(origMethod, name, fnType);
-                BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(origMethod);
-                BlockLabel entry = new BlockLabel();
-                gf.begin(entry);
-                LiteralFactory lf = ctxt.getLiteralFactory();
-                SymbolLiteral fn = lf.literalOfSymbol(exactFunction.getName(), exactFunction.getType());
-                int pcnt = origMethod.getParameters().size();
-                List<Value> args = new ArrayList<>(pcnt + 1);
-                List<Value> pv = new ArrayList<>(pcnt);
-                // for now, thread is null!
-                // todo: insert prolog here
-                args.add(lf.literalOfNull());
-                for (int j = 0; j < pcnt; j ++) {
-                    Value parameter = gf.parameter(fnType.getParameterType(j), j);
-                    pv.add(parameter);
-                    args.add(parameter);
-                }
-                Value result = gf.callFunction(fn, args);
-                if (fnType.getReturnType() instanceof VoidType) {
-                    gf.return_();
-                } else {
-                    gf.return_(result);
-                }
-                gf.finish();
-                BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
-                function.replaceBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, pv));
-                // ensure the method is reachable
-                ctxt.registerEntryPoint(origMethod);
+                builder.setMethodBodyFactory(new MethodBodyFactory() {
+                    @Override
+                    public MethodBody createMethodBody(int index, ExecutableElement element) {
+                        FunctionElement elem = (FunctionElement) element;
+                        BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(element);
+                        BlockLabel entry = new BlockLabel();
+                        gf.begin(entry);
+                        int pcnt = elem.getParameters().size();
+                        List<Value> args = new ArrayList<>(pcnt);
+                        for (int i = 0; i < pcnt; i ++) {
+                            args.add(gf.parameter(fnType.getParameterType(i), i));
+                        }
+                        if (fnType.getReturnType() instanceof VoidType) {
+                            gf.invokeStatic(origMethod, args);
+                            gf.return_();
+                        } else {
+                            gf.return_(gf.invokeValueStatic(origMethod, args));
+                        }
+                        gf.finish();
+                        BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
+                        return MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, args);
+                    }
+                }, 0);
+                ctxt.registerEntryPoint(builder.build());
             }
         }, index);
     }
