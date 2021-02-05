@@ -46,6 +46,7 @@ final class NativeInfo {
 
     final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, NativeFunctionInfo>>> nativeFunctions = new ConcurrentHashMap<>();
     final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, MethodElement>>> nativeBindings = new ConcurrentHashMap<>();
+    final Map<TypeDescriptor, Map<String, NativeDataInfo>> nativeFields = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, AtomicReference<ValueType>> nativeTypes = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, MethodElement> functionalInterfaceMethods = new ConcurrentHashMap<>();
     final Set<InitializerElement> initializers = ConcurrentHashMap.newKeySet();
@@ -281,5 +282,13 @@ final class NativeInfo {
 
     void registerLibrary(String library) {
         Linker.get(ctxt).addLibrary(library);
+    }
+
+    public void registerFieldInfo(final TypeDescriptor owner, final String name, final NativeDataInfo info) {
+        nativeFields.computeIfAbsent(owner, NativeInfo::newMap).put(name, info);
+    }
+
+    public NativeDataInfo getFieldInfo(final TypeDescriptor owner, final String name) {
+        return nativeFields.getOrDefault(owner, Map.of()).get(name);
     }
 }

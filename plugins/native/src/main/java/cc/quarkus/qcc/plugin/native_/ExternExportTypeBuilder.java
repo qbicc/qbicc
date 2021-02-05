@@ -8,11 +8,10 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
-import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.AnnotationValue;
@@ -20,12 +19,14 @@ import cc.quarkus.qcc.type.annotation.ArrayAnnotationValue;
 import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.FieldResolver;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.MethodBodyFactory;
 import cc.quarkus.qcc.type.definition.MethodResolver;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.FunctionElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -34,7 +35,7 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import org.jboss.logging.Logger;
 
 /**
- * A delegating type builder which handles calls to and from {@code @extern} and {@code @export} methods.
+ * A delegating type builder which handles interactions with {@code @extern} and {@code @export} methods and fields.
  */
 public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
     private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.native_");
@@ -76,6 +77,64 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             }
         }
         getDelegate().setVisibleAnnotations(annotations);
+    }
+
+    public void addField(final FieldResolver resolver, final int index) {
+        delegate.addField(new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing) {
+                NativeInfo nativeInfo = NativeInfo.get(ctxt);
+                FieldElement resolved = resolver.resolveField(index, enclosing);
+                // look for annotations
+                for (Annotation annotation : resolved.getVisibleAnnotations()) {
+                    ClassTypeDescriptor desc = annotation.getDescriptor();
+                    if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
+                        if (desc.getClassName().equals(Native.ANN_EXTERN)) {
+                            AnnotationValue nameVal = annotation.getValue("withName");
+                            String name = nameVal == null ? resolved.getName() : ((StringAnnotationValue) nameVal).getString();
+                            if (! resolved.isStatic()) {
+                                ctxt.error(resolved, "External (imported) fields must be `static`");
+                            }
+                            // register as an external data object
+                            addExtern(nativeInfo, resolved, name);
+                            // all done
+                            return resolved;
+                        } else if (desc.getClassName().equals(Native.ANN_EXPORT)) {
+                            // immediately generate the call-in stub
+                            AnnotationValue nameVal = annotation.getValue("withName");
+                            String name = nameVal == null ? resolved.getName() : ((StringAnnotationValue) nameVal).getString();
+                            // register it
+                            addExport(nativeInfo, resolved, name);
+                            // and define it
+                            Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+                            ValueType fieldType = resolved.getType(List.of());
+                            section.addData(resolved, name, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType));
+                            // all done
+                            return resolved;
+                        }
+                    }
+                }
+                return resolved;
+            }
+
+            private void addExtern(final NativeInfo nativeInfo, final FieldElement resolved, final String name) {
+                ValueType fieldType = resolved.getType(List.of());
+                nativeInfo.registerFieldInfo(
+                    resolved.getEnclosingType().getDescriptor(),
+                    resolved.getName(),
+                    new NativeDataInfo(resolved, false, fieldType, ctxt.getLiteralFactory().literalOfSymbol(name, fieldType.getPointer()))
+                );
+            }
+
+            private void addExport(final NativeInfo nativeInfo, final FieldElement resolved, final String name) {
+                ValueType fieldType = resolved.getType(List.of());
+                nativeInfo.registerFieldInfo(
+                    resolved.getEnclosingType().getDescriptor(),
+                    resolved.getName(),
+                    new NativeDataInfo(resolved, true, fieldType, ctxt.getLiteralFactory().literalOfSymbol(name, fieldType.getPointer()))
+                );
+            }
+        }, index);
     }
 
     public void addMethod(final MethodResolver resolver, final int index) {
