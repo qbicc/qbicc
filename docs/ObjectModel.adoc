@@ -67,6 +67,11 @@ call *r4          # call function
 
 TODO
 
+Some options:
+
+1. Use typeId to load an array of iTables for the class and do searched iTable dispatch.
+2. Implement selector coloring style dispatch tables.
+
 === instanceof/checkcast (of a class)
 
 ----
