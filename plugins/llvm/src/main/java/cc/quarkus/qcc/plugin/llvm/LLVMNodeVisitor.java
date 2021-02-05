@@ -61,7 +61,7 @@ import cc.quarkus.qcc.graph.Unschedulable;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
-import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
+import cc.quarkus.qcc.graph.literal.CurrentThreadParameterLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
@@ -128,7 +128,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         int cnt = methodBody.getParameterCount();
         for (int i = 0, j = 0; i < cnt; i ++) {
             Value value = functionObj.getBody().getParameterValue(i);
-            if (value instanceof CurrentThreadLiteral) {
+            if (value instanceof CurrentThreadParameterLiteral) {
                 mappedValues.put(value, func.param(map(value.getType())).name("thr").asValue());
             } else if (value instanceof ThisValue) {
                 mappedValues.put(value, func.param(map(value.getType())).name("this").asValue());

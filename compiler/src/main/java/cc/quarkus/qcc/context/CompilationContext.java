@@ -3,8 +3,9 @@ package cc.quarkus.qcc.context;
 import java.nio.file.Path;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
+import cc.quarkus.qcc.graph.literal.CurrentThreadParameterLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.FunctionDeclaration;
@@ -16,7 +17,6 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MemberElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
  *
@@ -68,7 +68,9 @@ public interface CompilationContext extends DiagnosticContext {
 
     FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current);
 
-    CurrentThreadLiteral getCurrentThreadValue();
+    CurrentThreadParameterLiteral getThreadParameter();
+
+    SymbolLiteral getCurrentThreadLocalSymbolLiteral();
 
     FieldElement getExceptionField();
 }

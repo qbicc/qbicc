@@ -5,7 +5,6 @@ import java.util.List;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
-import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
@@ -279,6 +278,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new ParameterValue(callSite, element, type, index);
     }
 
+    public Value currentThread() {
+        ClassObjectType type = element.getEnclosingType().getContext().findDefinedType("java/lang/Thread").validate().getClassType();
+        return new CurrentThreadRead(callSite, element, line, bci, requireDependency(), type.getReference());
+    }
+
     public PhiValue phi(final ValueType type, final BlockLabel owner) {
         return new PhiValue(callSite, element, line, bci, type, owner);
     }
@@ -410,7 +414,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             begin(setupHandler);
             ClassContext classContext = element.getEnclosingType().getContext();
             CompilationContext ctxt = classContext.getCompilationContext();
-            CurrentThreadLiteral thr = ctxt.getCurrentThreadValue();
+            Value thr = getFirstBuilder().currentThread();
             FieldElement exceptionField = ctxt.getExceptionField();
             Value exceptionValue = readInstanceField(thr, exceptionField, JavaAccessMode.PLAIN);
             writeInstanceField(thr, exceptionField, ctxt.getLiteralFactory().literalOfNull(), JavaAccessMode.PLAIN);

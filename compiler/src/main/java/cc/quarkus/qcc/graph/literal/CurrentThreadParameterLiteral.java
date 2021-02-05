@@ -4,12 +4,12 @@ import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.type.ReferenceType;
 
 /**
- * The literal representing the current thread.
+ * The literal representing the current thread when it is used as a parameter.
  */
-public final class CurrentThreadLiteral extends Literal {
+public final class CurrentThreadParameterLiteral extends Literal {
     private final ReferenceType type;
 
-    CurrentThreadLiteral(final ReferenceType type) {
+    CurrentThreadParameterLiteral(final ReferenceType type) {
         this.type = type;
     }
 
@@ -18,10 +18,10 @@ public final class CurrentThreadLiteral extends Literal {
     }
 
     public boolean equals(final Literal other) {
-        return other instanceof CurrentThreadLiteral && equals((CurrentThreadLiteral) other);
+        return other instanceof CurrentThreadParameterLiteral && equals((CurrentThreadParameterLiteral) other);
     }
 
-    public boolean equals(final CurrentThreadLiteral other) {
+    public boolean equals(final CurrentThreadParameterLiteral other) {
         return other == this || other != null && type.equals(other.type);
     }
 
@@ -30,7 +30,7 @@ public final class CurrentThreadLiteral extends Literal {
     }
 
     public int hashCode() {
-        return CurrentThreadLiteral.class.hashCode();
+        return CurrentThreadParameterLiteral.class.hashCode();
     }
 
     public String toString() {

@@ -8,8 +8,6 @@ import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
@@ -42,11 +40,8 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 return super.writeStaticField(fieldElement, value, mode);
             }
             BasicBlockBuilder b = getFirstBuilder();
-            // get the current thread
-            ValidatedTypeDefinition jlt = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").validate();
-            CurrentThreadLiteral ct = ctxt.getLiteralFactory().literalOfCurrentThread(jlt.getClassType().getReference());
             // thread local values are never visible outside of the current thread
-            return b.writeInstanceField(ct, threadLocalField, value, JavaAccessMode.PLAIN);
+            return b.writeInstanceField(currentThread(), threadLocalField, value, JavaAccessMode.PLAIN);
         } else {
             return super.writeStaticField(fieldElement, value, mode);
         }
@@ -69,11 +64,8 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 return super.readStaticField(fieldElement, mode);
             }
             BasicBlockBuilder b = getFirstBuilder();
-            // get the current thread
-            ValidatedTypeDefinition jlt = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").validate();
-            CurrentThreadLiteral ct = ctxt.getLiteralFactory().literalOfCurrentThread(jlt.getClassType().getReference());
             // thread local values are never visible outside of the current thread
-            return b.readInstanceField(ct, threadLocalField, JavaAccessMode.PLAIN);
+            return b.readInstanceField(currentThread(), threadLocalField, JavaAccessMode.PLAIN);
         }
         return super.readStaticField(fieldElement, mode);
     }

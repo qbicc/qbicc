@@ -125,6 +125,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().parameter(type, index);
     }
 
+    public Value currentThread() {
+        return getDelegate().currentThread();
+    }
+
     public PhiValue phi(final ValueType type, final BlockLabel owner) {
         return getDelegate().phi(type, owner);
     }

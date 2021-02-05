@@ -476,7 +476,7 @@ public class Driver implements Closeable {
                 } else {
                     List<Value> origParamValues = original.getParameterValues();
                     paramValues = new ArrayList<>(origParamValues.size() + 2);
-                    paramValues.add(compilationContext.getCurrentThreadValue());
+                    paramValues.add(compilationContext.getThreadParameter());
                     if (! element.isStatic()) {
                         thisValue = original.getThisValue();
                         paramValues.add(thisValue);

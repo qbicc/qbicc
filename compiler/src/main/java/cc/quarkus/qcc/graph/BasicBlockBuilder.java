@@ -126,6 +126,8 @@ public interface BasicBlockBuilder {
 
     Value parameter(ValueType type, int index);
 
+    Value currentThread();
+
     // phi
 
     PhiValue phi(ValueType type, BlockLabel owner);

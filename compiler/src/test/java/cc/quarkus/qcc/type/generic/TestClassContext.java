@@ -14,8 +14,9 @@ import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
+import cc.quarkus.qcc.graph.literal.CurrentThreadParameterLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.FunctionDeclaration;
@@ -110,7 +111,11 @@ public class TestClassContext implements ClassContext {
             return null;  // TODO: Customise this generated block
         }
 
-        public CurrentThreadLiteral getCurrentThreadValue() {
+        public CurrentThreadParameterLiteral getThreadParameter() {
+            return null;
+        }
+
+        public SymbolLiteral getCurrentThreadLocalSymbolLiteral() {
             return null;
         }
 

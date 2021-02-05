@@ -19,8 +19,9 @@ import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
+import cc.quarkus.qcc.graph.literal.CurrentThreadParameterLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.object.FunctionDeclaration;
 import cc.quarkus.qcc.object.ProgramModule;
@@ -61,6 +62,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final Path outputDir;
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
     private final AtomicReference<FieldElement> exceptionFieldHolder = new AtomicReference<>();
+    private final SymbolLiteral qccBoundThread;
 
     // mutable state
     private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
@@ -73,6 +75,7 @@ final class CompilationContextImpl implements CompilationContext {
         this.outputDir = outputDir;
         this.resolverFactories = resolverFactories;
         bootstrapClassContext = new ClassContextImpl(this, null);
+        qccBoundThread = getLiteralFactory().literalOfSymbol("_qcc_bound_thread", getTypeSystem().getVoidType().getPointer().getPointer());
     }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {
@@ -229,6 +232,8 @@ final class CompilationContextImpl implements CompilationContext {
         } else if (element instanceof MethodElement) {
             MethodElement methodElement = (MethodElement) element;
             return base.resolve("methods").resolve(methodElement.getName() + ".id" + element.getIndex());
+        } else if (element instanceof FunctionElement) {
+            return base.resolve("functions").resolve(((FunctionElement) element).getName());
         } else {
             throw new UnsupportedOperationException("getOutputDirectory for element " + element.getClass());
         }
@@ -289,11 +294,15 @@ final class CompilationContextImpl implements CompilationContext {
         });
     }
 
-    public CurrentThreadLiteral getCurrentThreadValue() {
+    public CurrentThreadParameterLiteral getThreadParameter() {
         // look up the thread ID literal - todo: lazy cache?
         ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
         // construct the literal - todo: cache
         return literalFactory.literalOfCurrentThread(threadType.getReference());
+    }
+
+    public SymbolLiteral getCurrentThreadLocalSymbolLiteral() {
+        return qccBoundThread;
     }
 
     public FieldElement getExceptionField() {
