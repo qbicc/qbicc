@@ -98,17 +98,17 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
 
     public Value new_(final ClassObjectType type) {
         invalidNode("new");
-        return super.new_(type);
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(type.getReference());
     }
 
     public Value newArray(final ArrayObjectType arrayType, final Value size) {
         invalidNode("new");
-        return super.newArray(arrayType, size);
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
     }
 
     public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
         invalidNode("new");
-        return super.multiNewArray(arrayType, dimensions);
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
     }
 
     private void invalidNode(String name) {
