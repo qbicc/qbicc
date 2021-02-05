@@ -58,6 +58,10 @@ public final class CompoundType extends ValueType {
         return members;
     }
 
+    public Tag getTag() {
+        return tag;
+    }
+
     public int getMemberCount() {
         return getMembers().size();
     }
