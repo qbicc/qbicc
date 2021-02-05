@@ -9,7 +9,10 @@ import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.schedule.Schedule;
+import cc.quarkus.qcc.object.Data;
+import cc.quarkus.qcc.object.Linkage;
 import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.object.ThreadLocalMode;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
@@ -108,7 +111,11 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                             // and define it
                             Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
                             ValueType fieldType = resolved.getType(List.of());
-                            section.addData(resolved, name, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType));
+                            Data data = section.addData(resolved, name, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType));
+                            if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
+                                data.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+                            }
+                            data.setLinkage(Linkage.COMMON);
                             // all done
                             return resolved;
                         }
