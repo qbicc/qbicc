@@ -103,7 +103,7 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
                 matcher = pattern.matcher(line.trim());
                 if (matcher.matches()) {
                     if (b.length() > 0) {
-                        handler.handleMessage(this, level, file, errLine, -1, b.toString());
+                        handler.handleMessage(this, level, source.toString(), errLine, -1, b.toString());
                         b.setLength(0);
                     }
                     String levelStr = matcher.group(5);
@@ -122,7 +122,7 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
                 }
             }
             if (b.length() > 0) {
-                handler.handleMessage(this, level, file, errLine, -1, b.toString());
+                handler.handleMessage(this, level, source.toString(), errLine, -1, b.toString());
             }
         }
     }
