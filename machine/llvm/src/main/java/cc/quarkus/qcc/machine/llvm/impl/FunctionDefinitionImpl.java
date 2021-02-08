@@ -177,7 +177,6 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         target.append(System.lineSeparator());
         lastBlock.appendAsBlockTo(target);
         target.append('}');
-        target.append(System.lineSeparator());
     }
 
     void assignName(final BasicBlockImpl basicBlock) {

@@ -24,35 +24,40 @@ import io.smallrye.common.constraint.Assert;
  *
  */
 final class ModuleImpl implements Module {
-    private final List<Emittable> items = new ArrayList<>();
+    private final List<Emittable> types = new ArrayList<>();
+    private final List<Emittable> globals = new ArrayList<>();
+    private final List<Emittable> functions = new ArrayList<>();
+    private final List<Emittable> namedMeta = new ArrayList<>();
+    private final List<Emittable> meta = new ArrayList<>();
+
     private int globalCounter;
     private int metadataNodeCounter;
 
     private MetadataTuple compileUnits;
 
-    private <E extends Emittable> E add(E item) {
-        items.add(item);
+    private <E extends Emittable> E add(List<Emittable> itemList, E item) {
+        itemList.add(item);
         return item;
     }
 
     public FunctionDefinition define(final String name) {
         Assert.checkNotNullParam("name", name);
-        return add(new FunctionDefinitionImpl(this, name));
+        return add(functions, new FunctionDefinitionImpl(this, name));
     }
 
     public Function declare(final String name) {
         Assert.checkNotNullParam("name", name);
-        return add(new FunctionDeclarationImpl(name));
+        return add(functions, new FunctionDeclarationImpl(name));
     }
 
     public Global global(final LLValue type) {
         Assert.checkNotNullParam("type", type);
-        return add(new GlobalImpl(this, false, (AbstractValue) type));
+        return add(globals, new GlobalImpl(this, false, (AbstractValue) type));
     }
 
     public Global constant(final LLValue type) {
         Assert.checkNotNullParam("type", type);
-        return add(new GlobalImpl(this, true, (AbstractValue) type));
+        return add(globals, new GlobalImpl(this, true, (AbstractValue) type));
     }
 
     public IdentifiedType identifiedType() {
@@ -61,16 +66,16 @@ final class ModuleImpl implements Module {
 
     public IdentifiedType identifiedType(String name) {
         Assert.checkNotNullParam("name", name);
-        return add(new IdentifiedTypeImpl(name));
+        return add(types, new IdentifiedTypeImpl(name));
     }
 
     public MetadataTuple metadataTuple() {
-        return add(new MetadataTupleImpl(nextMetadataNodeId()));
+        return add(meta, new MetadataTupleImpl(nextMetadataNodeId()));
     }
 
     public MetadataTuple metadataTuple(final String name) {
         Assert.checkNotNullParam("name", name);
-        return add(new MetadataTupleImpl(name));
+        return add(namedMeta, new MetadataTupleImpl(name));
     }
 
     public DICompileUnit diCompileUnit(final String language, final LLValue file, final DebugEmissionKind emissionKind) {
@@ -85,29 +90,29 @@ final class ModuleImpl implements Module {
         }
         compileUnits.elem(null, diCompileUnit.asRef());
 
-        return add(diCompileUnit);
+        return add(meta, diCompileUnit);
     }
 
     public DIFile diFile(final String filename, final String directory) {
         Assert.checkNotNullParam("filename", filename);
         Assert.checkNotNullParam("directory", directory);
-        return add(new DIFileImpl(nextMetadataNodeId(), filename, directory));
+        return add(meta, new DIFileImpl(nextMetadataNodeId(), filename, directory));
     }
 
     public DILocation diLocation(final int line, final int column, final LLValue scope, final LLValue inlinedAt) {
         Assert.checkNotNullParam("file", scope);
-        return add(new DILocationImpl(nextMetadataNodeId(), line, column, (AbstractValue)scope, (AbstractValue)inlinedAt));
+        return add(meta, new DILocationImpl(nextMetadataNodeId(), line, column, (AbstractValue)scope, (AbstractValue)inlinedAt));
     }
 
     public DISubprogram diSubprogram(final String name, final LLValue type, final LLValue unit) {
         Assert.checkNotNullParam("name", name);
         Assert.checkNotNullParam("unit", unit);
-        return add(new DISubprogramImpl(nextMetadataNodeId(), name, (AbstractValue)type, (AbstractValue)unit));
+        return add(meta, new DISubprogramImpl(nextMetadataNodeId(), name, (AbstractValue)type, (AbstractValue)unit));
     }
 
     public DISubroutineType diSubroutineType(final LLValue types) {
         Assert.checkNotNullParam("types", types);
-        return add(new DISubroutineTypeImpl(nextMetadataNodeId(), (AbstractValue)types));
+        return add(meta, new DISubroutineTypeImpl(nextMetadataNodeId(), (AbstractValue)types));
     }
 
     int nextGlobalId() {
@@ -118,10 +123,24 @@ final class ModuleImpl implements Module {
         return metadataNodeCounter++;
     }
 
-    public void writeTo(final BufferedWriter output) throws IOException {
+    private void writeItems(final List<Emittable> items, final BufferedWriter output, boolean lineBetweenItems) throws IOException {
         for (Emittable item : items) {
             item.appendTo(output);
             output.newLine();
+
+            if (lineBetweenItems)
+                output.newLine();
         }
+
+        if (!items.isEmpty() && !lineBetweenItems)
+            output.newLine();
+    }
+
+    public void writeTo(final BufferedWriter output) throws IOException {
+        writeItems(types, output, false);
+        writeItems(globals, output, false);
+        writeItems(functions, output, true);
+        writeItems(namedMeta, output, false);
+        writeItems(meta, output, false);
     }
 }
