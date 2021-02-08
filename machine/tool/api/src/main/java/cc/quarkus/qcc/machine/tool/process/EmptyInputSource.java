@@ -35,4 +35,8 @@ final class EmptyInputSource extends InputSource {
     void writeTo(final Path path) throws IOException {
         Files.copy(InputStream.nullInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
     }
+
+    public String toString() {
+        return "<empty>";
+    }
 }

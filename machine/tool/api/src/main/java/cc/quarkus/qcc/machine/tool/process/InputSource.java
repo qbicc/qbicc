@@ -224,4 +224,6 @@ public abstract class InputSource {
     static String nameOf(final Process p) {
         return p.info().command().orElse("<unknown process>");
     }
+
+    public abstract String toString();
 }

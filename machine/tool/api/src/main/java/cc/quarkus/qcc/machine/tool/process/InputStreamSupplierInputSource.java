@@ -31,6 +31,11 @@ final class InputStreamSupplierInputSource<T> extends InputSource {
         }
     }
 
+    @Override
+    public String toString() {
+        return "<stream>";
+    }
+
     ExceptionFunction<T, InputStream, IOException> getFunction() {
         return function;
     }

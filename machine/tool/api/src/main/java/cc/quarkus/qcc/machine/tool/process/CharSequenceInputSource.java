@@ -50,4 +50,8 @@ final class CharSequenceInputSource extends InputSource {
     void writeTo(final Path path) throws IOException {
         Files.writeString(path, charSequence, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
     }
+
+    public String toString() {
+        return "<string>";
+    }
 }
