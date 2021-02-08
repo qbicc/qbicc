@@ -82,7 +82,7 @@ final class ClangCCompilerInvokerImpl extends AbstractClangInvoker implements Cl
         Platform platform = getTool().getPlatform();
         cmd.add("-target");
         cmd.add(platform.getCpu().toString() + "-" + platform.getOs().toString() + "-" + platform.getAbi().toString());
-        Collections.addAll(cmd, "-std=gnu11", "-f" + "input-charset=UTF-8", "-pipe");
+        Collections.addAll(cmd, "-Wno-unused-command-line-argument", "-std=gnu11", "-f" + "input-charset=UTF-8", "-pipe");
         for (Path includePath : includePaths) {
             cmd.add("-I" + includePath.toString());
         }
