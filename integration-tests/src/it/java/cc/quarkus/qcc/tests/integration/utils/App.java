@@ -11,6 +11,8 @@ import static cc.quarkus.qcc.tests.integration.utils.Commands.getProperty;
 public final class App {
     public static final String BASE_DIR = Commands.getBaseDir();
 
+    public static final String MAVEN_COMPILER_RELEASE = getProperty(new String[]{"MAVEN_COMPILER_RELEASE", "maven.compiler.release"}, "11");
+
     public static final String QCC_RUNTIME_API_JAR = getProperty(
             new String[]{"QCC_RUNTIME_API_JAR", "qcc.runtime.api.jar"},
             Path.of(System.getProperty("user.home"),
