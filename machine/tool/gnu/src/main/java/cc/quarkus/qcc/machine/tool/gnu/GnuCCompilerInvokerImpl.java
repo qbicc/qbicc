@@ -79,7 +79,10 @@ final class GnuCCompilerInvokerImpl extends AbstractGccInvoker implements GnuCCo
         if (getTool().isM32()) {
             cmd.add("-m32");
         }
-        Collections.addAll(cmd, "-Wno-unused-command-line-argument", "-std=gnu11", "-f" + "input-charset=UTF-8", "-pipe");
+        if (sourceLanguage != SourceLanguage.ASM) {
+            cmd.add("-std=gnu11");
+        }
+        cmd.add("-pipe");
         for (Path includePath : includePaths) {
             cmd.add("-I" + includePath.toString());
         }
