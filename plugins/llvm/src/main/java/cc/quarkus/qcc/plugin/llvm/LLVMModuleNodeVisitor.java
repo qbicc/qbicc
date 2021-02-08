@@ -104,7 +104,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         } else if (type instanceof ArrayType) {
             ArrayType arrayType = (ArrayType) type;
             Type elementType = arrayType.getElementType();
-            long size = arrayType.getSize();
+            long size = arrayType.getElementCount();
             res = array((int) size, map(elementType));
         } else if (type instanceof CompoundType) {
             // Compound types are special in that they can be self-referential by containing pointers to themselves. To
