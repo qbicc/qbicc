@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.machine.tool.CCompilerInvoker;
 import cc.quarkus.qcc.machine.tool.CToolChain;
@@ -50,10 +51,14 @@ public class LLVMCompileStage implements Consumer<CompilationContext> {
                 Path outputPath = modulePath.resolveSibling(outputNameString);
                 llcInvoker.setSource(InputSource.from(modulePath));
                 llcInvoker.setDestination(OutputDestination.of(outputPath));
+                int errCnt = context.errors();
                 try {
                     llcInvoker.invoke();
                 } catch (IOException e) {
-                    context.error("`llc` invocation has failed for %s: %s", modulePath, e.toString());
+                    if (errCnt == context.errors()) {
+                        // whatever the problem was, it wasn't reported, so add an additional error here
+                        context.error(Location.builder().setSourceFilePath(modulePath.toString()).build(), "`llc` invocation has failed: %s", e.toString());
+                    }
                     continue;
                 }
                 // now compile it
