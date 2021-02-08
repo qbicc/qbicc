@@ -90,7 +90,7 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
 
     void collectError(final Reader reader) throws IOException {
         final String quotedExecPath = Pattern.quote(execPath.toString());
-        final Pattern pattern = Pattern.compile("(?:" + quotedExecPath + ": (" + LEVEL_PATTERN + "): )?" + quotedExecPath + ": ([^:]+):(\\d+):(?:(\\d+):)? (" + LEVEL_PATTERN + "): (.*)");
+        final Pattern pattern = Pattern.compile("(?:(?:" + quotedExecPath + ": )?(" + LEVEL_PATTERN + "): )?(?:" + quotedExecPath + ": )?([^:]+):(\\d+):(?:(\\d+): )?(" + LEVEL_PATTERN + "): (.*)");
         final ToolMessageHandler handler = getMessageHandler();
         try (BufferedReader br = new BufferedReader(reader)) {
             String line;
@@ -117,7 +117,7 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
                     errLine = Integer.parseInt(matcher.group(3));
                     file = matcher.group(2);
                     b.append(matcher.group(6));
-                } else {
+                } else if (level != null) {
                     b.append('\n').append(line);
                 }
             }
