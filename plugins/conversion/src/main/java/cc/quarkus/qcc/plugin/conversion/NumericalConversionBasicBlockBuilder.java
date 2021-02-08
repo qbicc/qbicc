@@ -46,6 +46,8 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 } else if (toType instanceof UnsignedIntegerType) {
                     // OK in general but needs to be converted first
                     return truncate(bitCast(from, ((SignedIntegerType) fromType).asUnsigned()), toType);
+                } else if (toType instanceof BooleanType) {
+                    return super.truncate(from, toType);
                 }
                 // otherwise not OK (fall out)
             } else if (fromType instanceof UnsignedIntegerType) {
@@ -60,6 +62,8 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 } else if (toType instanceof SignedIntegerType) {
                     // OK in general but needs to be converted first
                     return truncate(bitCast(from, ((UnsignedIntegerType) fromType).asSigned()), toType);
+                } else if (toType instanceof BooleanType) {
+                    return cmpNe(from, ctxt.getLiteralFactory().literalOf((UnsignedIntegerType) fromType, 0));
                 }
                 // otherwise not OK (fall out)
             } else if (fromType instanceof FloatType) {
