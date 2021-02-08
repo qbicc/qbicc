@@ -29,6 +29,7 @@ import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.BooleanType;
+import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -1183,8 +1184,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     // done
                     return;
                 }
-                case OP_IRETURN:
-                    // TODO: narrow the return type if it's narrower than i32
+                case OP_IRETURN: {
+                    FunctionType fnType = gf.getCurrentElement().getType(List.of());
+                    ValueType returnType = fnType.getReturnType();
+                    gf.return_(gf.truncate(pop1(), (WordType) returnType));
+                    // block complete
+                    return;
+                }
                 case OP_FRETURN:
                 case OP_ARETURN:
                     gf.return_(pop1());
