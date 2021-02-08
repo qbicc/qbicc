@@ -1,5 +1,10 @@
 package cc.quarkus.qcc.object;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.type.FunctionType;
@@ -8,22 +13,12 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.MemberElement;
 import io.smallrye.common.constraint.Assert;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * A section in a program.
  */
 public final class Section extends ProgramObject {
     final ProgramModule programModule;
-    final Set<String> definedObjects = ConcurrentHashMap.newKeySet();
-    final Map<String, FunctionDeclaration> declaredFunctions = new ConcurrentHashMap<>();
-    final Map<String, DataDeclaration> declaredData = new ConcurrentHashMap<>();
-    final List<ProgramObject> contents = Collections.synchronizedList(new ArrayList<>());
+    final Map<String, ProgramObject> definedObjects = Collections.synchronizedMap(new LinkedHashMap<>());
 
     Section(final String name, final SymbolLiteral literal, final ProgramModule programModule) {
         super(name, literal);
@@ -36,12 +31,24 @@ public final class Section extends ProgramObject {
             programModule.literalFactory.literalOfSymbol(name, Assert.checkNotNullParam("value", value).getType()),
             value
         );
-        if (definedObjects.add(name)) {
-            return add(obj);
-        } else {
-            twice(originalElement, name);
-            return obj;
+        Map<String, ProgramObject> definedObjects = this.definedObjects;
+        synchronized (definedObjects) {
+            ProgramObject existing = definedObjects.get(name);
+            if (existing == null) {
+                definedObjects.put(name, obj);
+            } else {
+                if (existing instanceof DataDeclaration) {
+                    if (! existing.getType().equals(obj.getType())) {
+                        clash(originalElement, name);
+                    } else {
+                        definedObjects.replace(name, existing, obj);
+                    }
+                } else {
+                    twice(originalElement, name);
+                }
+            }
         }
+        return obj;
     }
 
     private void twice(MemberElement originalElement, final String name) {
@@ -57,64 +64,99 @@ public final class Section extends ProgramObject {
             originalElement, Assert.checkNotNullParam("name", name),
             programModule.literalFactory.literalOfSymbol(name, type)
         );
-        if (definedObjects.add(name)) {
-            return add(obj);
-        } else {
-            twice(originalElement, name);
-            return obj;
+        Map<String, ProgramObject> definedObjects = this.definedObjects;
+        synchronized (definedObjects) {
+            ProgramObject existing = definedObjects.get(name);
+            if (existing == null) {
+                definedObjects.put(name, obj);
+            } else {
+                if (existing instanceof FunctionDeclaration) {
+                    if (! existing.getType().equals(obj.getType())) {
+                        clash(originalElement, name);
+                    } else {
+                        definedObjects.replace(name, existing, obj);
+                    }
+                } else if (existing instanceof Function) {
+                    twice(originalElement, name);
+                } else {
+                    clash(originalElement, name);
+                }
+            }
         }
+        return obj;
     }
 
     public FunctionDeclaration declareFunction(ExecutableElement originalElement, String name, FunctionType type) {
         Assert.checkNotNullParam("name", name);
-        FunctionDeclaration decl = declaredFunctions.get(name);
-        if (decl == null) {
-            decl = new FunctionDeclaration(
-                originalElement, name,
-                programModule.literalFactory.literalOfSymbol(name, type)
-            );
-            FunctionDeclaration appearing = declaredFunctions.putIfAbsent(name, decl);
-            if (appearing == null) {
-                return add(decl);
+        Map<String, ProgramObject> definedObjects = this.definedObjects;
+        synchronized (definedObjects) {
+            ProgramObject existing = definedObjects.get(name);
+            if (existing == null) {
+                FunctionDeclaration decl = new FunctionDeclaration(
+                    originalElement, name,
+                    programModule.literalFactory.literalOfSymbol(name, type)
+                );
+                definedObjects.put(name, decl);
+                return decl;
+            } else {
+                if (existing instanceof FunctionDeclaration) {
+                    if (! type.equals(((FunctionDeclaration) existing).getType())) {
+                        clash(originalElement, name);
+                    }
+                    return (FunctionDeclaration) existing;
+                } else if (existing instanceof Function) {
+                    if (! type.equals(((Function) existing).getType())) {
+                        clash(originalElement, name);
+                    }
+                    return ((Function) existing).getDeclaration();
+                } else {
+                    clash(originalElement, name);
+                    return new FunctionDeclaration(
+                        originalElement, name,
+                        programModule.literalFactory.literalOfSymbol(name, type)
+                    );
+                }
             }
-            decl = appearing;
         }
-        if (! type.equals(decl.getType())) {
-            clash(originalElement, name);
-        }
-        return decl;
     }
 
     public DataDeclaration declareData(MemberElement originalElement, String name, ValueType type) {
         Assert.checkNotNullParam("name", name);
-        DataDeclaration decl = declaredData.get(name);
-        if (decl == null) {
-            decl = new DataDeclaration(originalElement, name,
-                programModule.literalFactory.literalOfSymbol(name, type)
-            );
-            DataDeclaration appearing = declaredData.putIfAbsent(name, decl);
-            if (appearing == null) {
-                return add(decl);
+        Map<String, ProgramObject> definedObjects = this.definedObjects;
+        synchronized (definedObjects) {
+            ProgramObject existing = definedObjects.get(name);
+            if (existing == null) {
+                DataDeclaration decl = new DataDeclaration(originalElement, name,
+                    programModule.literalFactory.literalOfSymbol(name, type)
+                );
+                definedObjects.put(name, decl);
+                return decl;
+            } else {
+                if (existing instanceof DataDeclaration) {
+                    if (! type.equals(existing.getType())) {
+                        clash(originalElement, name);
+                    }
+                    return (DataDeclaration) existing;
+                } else if (existing instanceof Data) {
+                    if (! type.equals(existing.getType())) {
+                        clash(originalElement, name);
+                    }
+                    return ((Data) existing).getDeclaration();
+                } else {
+                    clash(originalElement, name);
+                    return new DataDeclaration(originalElement, name,
+                        programModule.literalFactory.literalOfSymbol(name, type)
+                    );
+                }
             }
-            decl = appearing;
         }
-        if (! type.equals(decl.getType())) {
-            clash(originalElement, name);
-        }
-        return decl;
     }
 
     private static void clash(final MemberElement originalElement, final String name) {
         originalElement.getEnclosingType().getContext().getCompilationContext().error(originalElement, "Object '%s' redeclared with different type", name);
     }
 
-
-    private <T extends ProgramObject> T add(T item) {
-        contents.add(item);
-        return item;
-    }
-
     public Iterable<ProgramObject> contents() {
-        return List.of(contents.toArray(ProgramObject[]::new));
+        return List.of(definedObjects.values().toArray(ProgramObject[]::new));
     }
 }
