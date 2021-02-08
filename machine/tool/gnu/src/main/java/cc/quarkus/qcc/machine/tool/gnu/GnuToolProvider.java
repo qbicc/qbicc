@@ -84,7 +84,7 @@ public class GnuToolProvider implements ToolProvider {
                 // ignore invalid compiler
                 return;
             }
-            if (res.match) {
+            if (res.match && res.version != null) {
                 final GccToolChainImpl gcc = new GccToolChainImpl(path, platform, res.version, res.m32);
                 list.add(type.cast(gcc));
             }
