@@ -42,4 +42,8 @@ final class WriterConsumerInputSource<T> extends InputSource {
     InputStream openStream() {
         throw Assert.unsupported();
     }
+
+    public String toString() {
+        return "<stream>";
+    }
 }

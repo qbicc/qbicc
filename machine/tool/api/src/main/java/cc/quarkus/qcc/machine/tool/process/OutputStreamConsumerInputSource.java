@@ -31,4 +31,9 @@ final class OutputStreamConsumerInputSource<T> extends InputSource {
     InputStream openStream() {
         throw Assert.unsupported();
     }
+
+    @Override
+    public String toString() {
+        return "<stream>";
+    }
 }

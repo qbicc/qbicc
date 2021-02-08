@@ -55,4 +55,9 @@ final class PathInputSource extends InputSource {
     Path getPath() {
         return path;
     }
+
+    @Override
+    public String toString() {
+        return path.toString();
+    }
 }
