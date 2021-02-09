@@ -1178,7 +1178,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             int j = 0;
             if ((modifiers & ClassFile.ACC_STATIC) == 0) {
                 // instance method or constructor
-                thisValue = gf.parameter(enclosing.validate().getType(), "this", 0);
+                thisValue = gf.parameter(enclosing.validate().getType().getReference(), "this", 0);
                 methodParser.setLocal(j++, thisValue);
             } else {
                 thisValue = null;
