@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import static cc.quarkus.qcc.tests.integration.utils.App.APP_BUILD_OUT_DIR;
+import static cc.quarkus.qcc.tests.integration.utils.App.MAVEN_COMPILER_RELEASE;
 import static cc.quarkus.qcc.tests.integration.utils.App.QCC_BOOT_MODULE_PATH;
 import static cc.quarkus.qcc.tests.integration.utils.App.QCC_MAIN_JAR;
 import static cc.quarkus.qcc.tests.integration.utils.App.QCC_RUNTIME_API_JAR;
@@ -52,6 +53,8 @@ public class SnippetsTest {
                 new BuildAndRunCmd(new String[][]{
                         new String[]{"javac", "-cp",
                                 QCC_RUNTIME_API_JAR,
+                                     "--release",
+                                     MAVEN_COMPILER_RELEASE,
                                 snippet.getFileName().toString()},
                         new String[]{"java", "-jar", QCC_MAIN_JAR,
                                 "--boot-module-path",
