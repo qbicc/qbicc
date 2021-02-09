@@ -49,6 +49,6 @@ public class TestSimpleCompile {
         ib.invoke();
         assertNotNull(objectFilePath);
         ObjectFile objectFile = of.get().openObjectFile(objectFilePath);
-        assertEquals(0x12345678, objectFile.getSymbolValueAsLong("foo"));
+        assertEquals(0x12345678, objectFile.getSymbolValueAsInt("foo"));
     }
 }
