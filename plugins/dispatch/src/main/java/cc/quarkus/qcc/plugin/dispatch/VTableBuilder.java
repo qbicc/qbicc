@@ -21,7 +21,7 @@ public class VTableBuilder implements Consumer<CompilationContext>  {
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         ValidatedTypeDefinition jlo = jloDef.validate();
         tables.buildFilteredVTable(jlo);
-        info.visitLiveSubclasses(jlo, cls -> tables.buildFilteredVTable(cls));
+        info.visitLiveSubclassesPreOrder(jlo, cls -> tables.buildFilteredVTable(cls));
     }
 
 

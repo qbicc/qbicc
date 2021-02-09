@@ -25,10 +25,10 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         ValidatedTypeDefinition jlo = jloDef.validate();
         tables.buildSupersDisplay(jlo);
-        info.visitLiveSubclasses(jlo, cls -> tables.buildSupersDisplay(cls));
+        info.visitLiveSubclassesPreOrder(jlo, cls -> tables.buildSupersDisplay(cls));
         // Assign typeIDs to classes
         tables.assignTypeID(jlo);
-        info.visitLiveSubclasses(jlo, cls -> tables.assignTypeID(cls));
+        info.visitLiveSubclassesPreOrder(jlo, cls -> tables.assignTypeID(cls));
 
         // back propagate bounds
         info.visitLiveSubclassesPostOrder(jlo, cls -> tables.assignBounds(cls));

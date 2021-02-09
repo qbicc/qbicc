@@ -55,12 +55,12 @@ public class RTAInfo {
         // TODO: Record implements hierarchy info
     }
 
-    public void visitLiveSubclasses(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {
+    public void visitLiveSubclassesPreOrder(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {
         Set<ValidatedTypeDefinition> subclasses = classHierarchy.get(type);
         if (subclasses == null) return;
         for (ValidatedTypeDefinition sc: subclasses) {
             function.accept(sc);
-            visitLiveSubclasses(sc, function);
+            visitLiveSubclassesPreOrder(sc, function);
         }
     }
 
