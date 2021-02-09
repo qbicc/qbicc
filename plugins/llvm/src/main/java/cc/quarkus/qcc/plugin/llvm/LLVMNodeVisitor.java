@@ -130,6 +130,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     public void execute() {
         FunctionType funcType = functionObj.getType();
         int cnt = methodBody.getParameterCount();
+        if (cnt != funcType.getParameterCount()) {
+            throw new IllegalStateException("Mismatch between method body and function type parameter counts");
+        }
         for (int i = 0; i < cnt; i ++) {
             ParameterValue value = functionObj.getBody().getParameterValue(i);
             mappedValues.put(value, func.param(map(value.getType())).name(value.getLabel() + value.getIndex()).asValue());
