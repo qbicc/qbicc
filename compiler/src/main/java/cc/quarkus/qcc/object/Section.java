@@ -152,8 +152,12 @@ public final class Section extends ProgramObject {
         }
     }
 
-    private static void clash(final MemberElement originalElement, final String name) {
-        originalElement.getEnclosingType().getContext().getCompilationContext().error(originalElement, "Object '%s' redeclared with different type", name);
+    private void clash(final MemberElement originalElement, final String name) {
+        if (originalElement != null) {
+            originalElement.getEnclosingType().getContext().getCompilationContext().error(originalElement, "Object '%s' redeclared with different type", name);
+        } else {
+            programModule.getTypeDefinition().getContext().getCompilationContext().error("Synthetic object '%s' redeclared with different type", name);
+        }
     }
 
     public Iterable<ProgramObject> contents() {

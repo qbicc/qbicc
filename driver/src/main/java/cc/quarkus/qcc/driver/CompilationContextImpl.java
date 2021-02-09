@@ -19,8 +19,8 @@ import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
 import cc.quarkus.qcc.object.FunctionDeclaration;
 import cc.quarkus.qcc.object.ProgramModule;
@@ -37,6 +37,7 @@ import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.FunctionElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MemberElement;
@@ -51,7 +52,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final ConcurrentMap<VmObject, ClassContext> classLoaderContexts = new ConcurrentHashMap<>();
     final Set<ExecutableElement> queued = ConcurrentHashMap.newKeySet();
     final Queue<ExecutableElement> queue = new ConcurrentLinkedDeque<>();
-    final Set<MethodElement> entryPoints = ConcurrentHashMap.newKeySet();
+    final Set<ExecutableElement> entryPoints = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext;
     private final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
@@ -60,6 +61,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final Path outputDir;
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
     private final AtomicReference<FieldElement> exceptionFieldHolder = new AtomicReference<>();
+    private final SymbolLiteral qccBoundThread;
 
     // mutable state
     private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
@@ -72,6 +74,7 @@ final class CompilationContextImpl implements CompilationContext {
         this.outputDir = outputDir;
         this.resolverFactories = resolverFactories;
         bootstrapClassContext = new ClassContextImpl(this, null);
+        qccBoundThread = getLiteralFactory().literalOfSymbol("_qcc_bound_thread", getTypeSystem().getVoidType().getPointer().getPointer());
     }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {
@@ -184,7 +187,7 @@ final class CompilationContextImpl implements CompilationContext {
         queued.clear();
     }
 
-    public void registerEntryPoint(final MethodElement method) {
+    public void registerEntryPoint(final ExecutableElement method) {
         entryPoints.add(method);
     }
 
@@ -228,6 +231,8 @@ final class CompilationContextImpl implements CompilationContext {
         } else if (element instanceof MethodElement) {
             MethodElement methodElement = (MethodElement) element;
             return base.resolve("methods").resolve(methodElement.getName() + ".id" + element.getIndex());
+        } else if (element instanceof FunctionElement) {
+            return base.resolve("functions").resolve(((FunctionElement) element).getName());
         } else {
             throw new UnsupportedOperationException("getOutputDirectory for element " + element.getClass());
         }
@@ -247,10 +252,13 @@ final class CompilationContextImpl implements CompilationContext {
         if (function != null) {
             return function;
         }
-        // look up the thread ID literal - todo: lazy cache?
-        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
-        Section implicit = getImplicitSection(element);
         return exactFunctions.computeIfAbsent(element, e -> {
+            Section implicit = getImplicitSection(element);
+            if (element instanceof FunctionElement) {
+                return implicit.addFunction(element, ((FunctionElement) element).getName(), element.getType(List.of()));
+            }
+            // look up the thread ID literal - todo: lazy cache?
+            ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
             FunctionType type = getFunctionTypeForElement(typeSystem, element, threadType);
             return implicit.addFunction(element, getExactNameForElement(element, type), type);
         });
@@ -285,11 +293,8 @@ final class CompilationContextImpl implements CompilationContext {
         });
     }
 
-    public CurrentThreadLiteral getCurrentThreadValue() {
-        // look up the thread ID literal - todo: lazy cache?
-        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
-        // construct the literal - todo: cache
-        return literalFactory.literalOfCurrentThread(threadType.getReference());
+    public SymbolLiteral getCurrentThreadLocalSymbolLiteral() {
+        return qccBoundThread;
     }
 
     public FieldElement getExceptionField() {
@@ -387,7 +392,7 @@ final class CompilationContextImpl implements CompilationContext {
         return ts.getFunctionType(methodType.getReturnType(), argTypes);
     }
 
-    public Iterable<MethodElement> getEntryPoints() {
+    public Iterable<ExecutableElement> getEntryPoints() {
         return entryPoints;
     }
 

@@ -11,6 +11,7 @@ public abstract class ProgramObject {
     final String name;
     final SymbolLiteral literal;
     volatile Linkage linkage = Linkage.EXTERNAL;
+    volatile ThreadLocalMode threadLocalMode;
 
     ProgramObject(final String name, final SymbolLiteral literal) {
         this.name = name;
@@ -35,5 +36,13 @@ public abstract class ProgramObject {
 
     public void setLinkage(final Linkage linkage) {
         this.linkage = Assert.checkNotNullParam("linkage", linkage);
+    }
+
+    public ThreadLocalMode getThreadLocalMode() {
+        return threadLocalMode;
+    }
+
+    public void setThreadLocalMode(ThreadLocalMode threadLocalMode) {
+        this.threadLocalMode = threadLocalMode;
     }
 }

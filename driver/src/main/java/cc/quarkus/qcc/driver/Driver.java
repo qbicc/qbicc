@@ -24,6 +24,7 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NodeVisitor;
+import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.schedule.Schedule;
@@ -44,8 +45,8 @@ import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ElementVisitor;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.FunctionElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
 import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
@@ -321,11 +322,15 @@ public class Driver implements Closeable {
         if (threadClass == null) {
             return false;
         }
+        ResolvedTypeDefinition vmClass = loadAndResolveBootstrapClass("cc/quarkus/qcc/runtime/main/VM");
+        if (vmClass == null) {
+            return false;
+        }
 
         // trace out the program graph, enqueueing each item one time and then processing every item in the queue;
         // in this stage we're just loading everything that *might* be reachable
 
-        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+        for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
 
@@ -393,7 +398,7 @@ public class Driver implements Closeable {
 
         // In this phase we start from the entry points again, and then copy (and filter) all of the nodes to a smaller reachable set
 
-        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+        for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
 
@@ -457,7 +462,7 @@ public class Driver implements Closeable {
 
         // start from entry points one more time, and copy the method bodies to their corresponding function body
 
-        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+        for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
 
@@ -468,19 +473,25 @@ public class Driver implements Closeable {
                 ClassContext classContext = element.getEnclosingType().getContext();
                 MethodBody original = element.getMethodBody();
                 BasicBlock entryBlock = original.getEntryBlock();
-                List<Value> origParamValues = original.getParameterValues();
-                List<Value> paramValues = new ArrayList<>(origParamValues.size() + 2);
-                paramValues.add(compilationContext.getCurrentThreadValue());
-                Value thisValue;
-                if (! element.isStatic()) {
-                    thisValue = original.getThisValue();
-                    paramValues.add(thisValue);
-                } else {
-                    thisValue = null;
-                }
-                paramValues.addAll(origParamValues);
-                Function function = compilationContext.getExactFunction(element);
+                List<ParameterValue> paramValues;
+                ParameterValue thisValue;
                 BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
+                if (element instanceof FunctionElement) {
+                    paramValues = original.getParameterValues();
+                    thisValue = null;
+                } else {
+                    List<ParameterValue> origParamValues = original.getParameterValues();
+                    paramValues = new ArrayList<>(origParamValues.size() + 2);
+                    paramValues.add(builder.parameter(threadClass.getClassType().getReference(), "thr", 0));
+                    if (! element.isStatic()) {
+                        thisValue = original.getThisValue();
+                        paramValues.add(thisValue);
+                    } else {
+                        thisValue = null;
+                    }
+                    paramValues.addAll(origParamValues);
+                }
+                Function function = compilationContext.getExactFunction(element);
                 BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, analyzeToLowerCopiers);
                 builder.finish();
                 function.replaceBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), thisValue, paramValues));
@@ -525,7 +536,7 @@ public class Driver implements Closeable {
 
         // Visit each reachable node to build the executable program
 
-        for (MethodElement entryPoint : compilationContext.getEntryPoints()) {
+        for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
             compilationContext.enqueue(entryPoint);
         }
 

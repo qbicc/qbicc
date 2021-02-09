@@ -4,7 +4,6 @@ import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.CompoundLiteral;
-import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.DefinedConstantLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
@@ -102,7 +101,7 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, CurrentThreadLiteral node) {
+    default R visit(T param, CurrentThreadRead node) {
         return visitUnknown(param, node);
     }
 
@@ -254,10 +253,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, ThisValue node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, Truncate node) {
         return visitUnknown(param, node);
     }
@@ -362,10 +357,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, Convert node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, CurrentThreadLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -510,10 +501,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, Sub node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, ThisValue node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

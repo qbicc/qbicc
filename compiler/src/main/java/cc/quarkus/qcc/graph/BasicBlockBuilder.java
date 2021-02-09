@@ -122,9 +122,9 @@ public interface BasicBlockBuilder {
 
     // values
 
-    Value receiver(ObjectType upperBound);
+    ParameterValue parameter(ValueType type, String label, int index);
 
-    Value parameter(ValueType type, int index);
+    Value currentThread();
 
     // phi
 

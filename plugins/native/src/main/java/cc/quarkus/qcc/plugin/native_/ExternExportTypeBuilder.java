@@ -1,20 +1,20 @@
 package cc.quarkus.qcc.plugin.native_;
 
-import static cc.quarkus.qcc.context.CompilationContext.*;
-
-import java.util.ArrayList;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
-import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.object.Data;
+import cc.quarkus.qcc.object.Linkage;
+import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.object.ThreadLocalMode;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.AnnotationValue;
@@ -22,10 +22,15 @@ import cc.quarkus.qcc.type.annotation.ArrayAnnotationValue;
 import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.FieldResolver;
 import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.MethodBodyFactory;
 import cc.quarkus.qcc.type.definition.MethodResolver;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.FunctionElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -33,7 +38,7 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import org.jboss.logging.Logger;
 
 /**
- * A delegating type builder which handles calls to and from {@code @extern} and {@code @export} methods.
+ * A delegating type builder which handles interactions with {@code @extern} and {@code @export} methods and fields.
  */
 public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
     private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.native_");
@@ -77,6 +82,68 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
         getDelegate().setVisibleAnnotations(annotations);
     }
 
+    public void addField(final FieldResolver resolver, final int index) {
+        delegate.addField(new FieldResolver() {
+            @Override
+            public FieldElement resolveField(int index, DefinedTypeDefinition enclosing) {
+                NativeInfo nativeInfo = NativeInfo.get(ctxt);
+                FieldElement resolved = resolver.resolveField(index, enclosing);
+                // look for annotations
+                for (Annotation annotation : resolved.getVisibleAnnotations()) {
+                    ClassTypeDescriptor desc = annotation.getDescriptor();
+                    if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
+                        if (desc.getClassName().equals(Native.ANN_EXTERN)) {
+                            AnnotationValue nameVal = annotation.getValue("withName");
+                            String name = nameVal == null ? resolved.getName() : ((StringAnnotationValue) nameVal).getString();
+                            if (! resolved.isStatic()) {
+                                ctxt.error(resolved, "External (imported) fields must be `static`");
+                            }
+                            // register as an external data object
+                            addExtern(nativeInfo, resolved, name);
+                            // all done
+                            return resolved;
+                        } else if (desc.getClassName().equals(Native.ANN_EXPORT)) {
+                            // immediately generate the call-in stub
+                            AnnotationValue nameVal = annotation.getValue("withName");
+                            String name = nameVal == null ? resolved.getName() : ((StringAnnotationValue) nameVal).getString();
+                            // register it
+                            addExport(nativeInfo, resolved, name);
+                            // and define it
+                            Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+                            ValueType fieldType = resolved.getType(List.of());
+                            Data data = section.addData(resolved, name, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType));
+                            if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
+                                data.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+                            }
+                            data.setLinkage(Linkage.COMMON);
+                            // all done
+                            return resolved;
+                        }
+                    }
+                }
+                return resolved;
+            }
+
+            private void addExtern(final NativeInfo nativeInfo, final FieldElement resolved, final String name) {
+                ValueType fieldType = resolved.getType(List.of());
+                nativeInfo.registerFieldInfo(
+                    resolved.getEnclosingType().getDescriptor(),
+                    resolved.getName(),
+                    new NativeDataInfo(resolved, false, fieldType, ctxt.getLiteralFactory().literalOfSymbol(name, fieldType.getPointer()))
+                );
+            }
+
+            private void addExport(final NativeInfo nativeInfo, final FieldElement resolved, final String name) {
+                ValueType fieldType = resolved.getType(List.of());
+                nativeInfo.registerFieldInfo(
+                    resolved.getEnclosingType().getDescriptor(),
+                    resolved.getName(),
+                    new NativeDataInfo(resolved, true, fieldType, ctxt.getLiteralFactory().literalOfSymbol(name, fieldType.getPointer()))
+                );
+            }
+        }, index);
+    }
+
     public void addMethod(final MethodResolver resolver, final int index) {
         delegate.addMethod(new MethodResolver() {
             public MethodElement resolveMethod(final int index, final DefinedTypeDefinition enclosing) {
@@ -97,7 +164,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                             // immediately generate the call-in stub
                             AnnotationValue nameVal = annotation.getValue("withName");
                             String name = nameVal == null ? origMethod.getName() : ((StringAnnotationValue) nameVal).getString();
-                            addExport(enclosing, origMethod, name);
+                            addExport(nativeInfo, origMethod, name);
                             // all done
                             return origMethod;
                         }
@@ -157,37 +224,50 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 );
             }
 
-            private void addExport(final DefinedTypeDefinition enclosing, final MethodElement origMethod, final String name) {
-                Function exactFunction = ctxt.getExactFunction(origMethod);
+            private void addExport(final NativeInfo nativeInfo, final MethodElement origMethod, final String name) {
+                FunctionElement.Builder builder = new FunctionElement.Builder();
+                builder.setName(name);
+                builder.setEnclosingType(origMethod.getEnclosingType());
+                builder.setDescriptor(origMethod.getDescriptor());
+                builder.setSignature(origMethod.getSignature());
                 FunctionType fnType = origMethod.getType(List.of(/*todo*/));
-                Function function = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(IMPLICIT_SECTION_NAME).addFunction(origMethod, name, fnType);
-                BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(origMethod);
-                BlockLabel entry = new BlockLabel();
-                gf.begin(entry);
-                LiteralFactory lf = ctxt.getLiteralFactory();
-                SymbolLiteral fn = lf.literalOfSymbol(exactFunction.getName(), exactFunction.getType());
-                int pcnt = origMethod.getParameters().size();
-                List<Value> args = new ArrayList<>(pcnt + 1);
-                List<Value> pv = new ArrayList<>(pcnt);
-                // for now, thread is null!
-                // todo: insert prolog here
-                args.add(lf.literalOfNull());
-                for (int j = 0; j < pcnt; j ++) {
-                    Value parameter = gf.parameter(fnType.getParameterType(j), j);
-                    pv.add(parameter);
-                    args.add(parameter);
-                }
-                Value result = gf.callFunction(fn, args);
-                if (fnType.getReturnType() instanceof VoidType) {
-                    gf.return_();
-                } else {
-                    gf.return_(result);
-                }
-                gf.finish();
-                BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
-                function.replaceBody(MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, pv));
-                // ensure the method is reachable
-                ctxt.registerEntryPoint(origMethod);
+                builder.setType(fnType);
+                builder.setSourceFileName(origMethod.getSourceFileName());
+                builder.setParameters(origMethod.getParameters());
+                builder.setMinimumLineNumber(origMethod.getMinimumLineNumber());
+                builder.setMaximumLineNumber(origMethod.getMaximumLineNumber());
+                builder.setMethodBodyFactory(new MethodBodyFactory() {
+                    @Override
+                    public MethodBody createMethodBody(int index, ExecutableElement element) {
+                        FunctionElement elem = (FunctionElement) element;
+                        BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(element);
+                        gf.setLineNumber(origMethod.getMinimumLineNumber());
+                        BlockLabel entry = new BlockLabel();
+                        gf.begin(entry);
+                        int pcnt = elem.getParameters().size();
+                        ParameterValue[] args = new ParameterValue[pcnt];
+                        for (int i = 0; i < pcnt; i ++) {
+                            args[i] = gf.parameter(fnType.getParameterType(i), "p", i);
+                        }
+                        List<Value> argsList = List.of(args);
+                        if (fnType.getReturnType() instanceof VoidType) {
+                            gf.invokeStatic(origMethod, argsList);
+                            gf.return_();
+                        } else {
+                            gf.return_(gf.invokeValueStatic(origMethod, argsList));
+                        }
+                        gf.finish();
+                        BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
+                        return MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, args);
+                    }
+                }, 0);
+                FunctionElement function = builder.build();
+                nativeInfo.registerFunctionInfo(
+                    origMethod.getEnclosingType().getDescriptor(),
+                    name,
+                    origMethod.getDescriptor(),
+                    new NativeFunctionInfo(function, ctxt.getLiteralFactory().literalOfSymbol(name, fnType)));
+                ctxt.registerEntryPoint(function);
             }
         }, index);
     }

@@ -13,9 +13,12 @@ import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
+import cc.quarkus.qcc.machine.llvm.Global;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.Module;
+import cc.quarkus.qcc.machine.llvm.ThreadLocalStorageModel;
+import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.object.Data;
 import cc.quarkus.qcc.object.DataDeclaration;
 import cc.quarkus.qcc.object.Function;
@@ -23,6 +26,7 @@ import cc.quarkus.qcc.object.FunctionDeclaration;
 import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.object.ProgramObject;
 import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.object.ThreadLocalMode;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
@@ -83,11 +87,28 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             decl.param(moduleVisitor.map(fnType.getParameterType(i)));
                         }
                     } else if (item instanceof DataDeclaration) {
-                        module.global(moduleVisitor.map(item.getType())).external().linkage(linkage).asGlobal(item.getName());
+                        Global obj = module.global(moduleVisitor.map(item.getType())).linkage(Linkage.EXTERNAL);
+                        ThreadLocalMode tlm = item.getThreadLocalMode();
+                        if (tlm != null) {
+                            obj.threadLocal(map(tlm));
+                        }
+                        obj.asGlobal(item.getName());
                     } else {
                         assert item instanceof Data;
                         Literal value = (Literal) ((Data) item).getValue();
-                        module.global(moduleVisitor.map(item.getType())).value(moduleVisitor.map(value)).linkage(linkage).asGlobal(item.getName());
+                        Global obj = module.global(moduleVisitor.map(item.getType()));
+                        if (value != null) {
+                            obj.value(moduleVisitor.map(value));
+                        } else {
+                            obj.value(Values.zeroinitializer);
+                        }
+                        obj.alignment(item.getType().getAlign());
+                        obj.linkage(linkage);
+                        ThreadLocalMode tlm = item.getThreadLocalMode();
+                        if (tlm != null) {
+                            obj.threadLocal(map(tlm));
+                        }
+                        obj.asGlobal(item.getName());
                     }
                 }
             }
@@ -117,6 +138,16 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
             case WEAK: return Linkage.EXTERN_WEAK;
             case EXTERNAL: return Linkage.EXTERNAL;
             default: throw Assert.impossibleSwitchCase(linkage);
+        }
+    }
+
+    ThreadLocalStorageModel map(ThreadLocalMode mode) {
+        switch (mode) {
+            case GENERAL_DYNAMIC: return ThreadLocalStorageModel.GENERAL_DYNAMIC;
+            case LOCAL_DYNAMIC: return ThreadLocalStorageModel.LOCAL_DYNAMIC;
+            case INITIAL_EXEC: return ThreadLocalStorageModel.INITIAL_EXEC;
+            case LOCAL_EXEC: return ThreadLocalStorageModel.LOCAL_EXEC;
+            default: throw Assert.impossibleSwitchCase(mode);
         }
     }
 }

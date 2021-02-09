@@ -82,10 +82,16 @@ public interface ClassFile extends FieldResolver,
      * </ul>
      */
     int I_ACC_NOT_REALLY_FINAL = 1 << 16;
+    /**
+     * For classes which must be pinned in memory (i.e. allocated in a non-moving generation or on the stack).
+     */
+    int I_ACC_PINNED = 1 << 16;
     int I_ACC_DEPRECATED = 1 << 17;
     int I_ACC_HIDDEN = 1 << 18;
-
-    int V9 = 0 << 16 | 53;
+    /**
+     * For static fields that are thread-local.
+     */
+    int I_ACC_THREAD_LOCAL = 1 << 19;
 
     int OP_NOP = 0x00;
     int OP_ACONST_NULL = 0x01;

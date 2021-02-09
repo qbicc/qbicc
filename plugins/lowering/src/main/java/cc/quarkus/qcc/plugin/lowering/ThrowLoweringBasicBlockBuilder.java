@@ -15,7 +15,7 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     public BasicBlock throw_(final Value value) {
-        Value unwindException = readInstanceField(ctxt.getCurrentThreadValue(), ThrowExceptionHelper.get(ctxt).getUnwindExceptionField(), JavaAccessMode.PLAIN);
+        Value unwindException = readInstanceField(currentThread(), ThrowExceptionHelper.get(ctxt).getUnwindExceptionField(), JavaAccessMode.PLAIN);
         MethodElement raiseException = ThrowExceptionHelper.get(ctxt).getRaiseExceptionMethod();
         ctxt.getImplicitSection(getCurrentElement())
             .declareFunction(raiseException, raiseException.getName(), raiseException.getType(List.of()));

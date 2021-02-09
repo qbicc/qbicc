@@ -3,7 +3,7 @@ package cc.quarkus.qcc.type.definition;
 import java.util.List;
 
 import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 
 /**
@@ -13,31 +13,31 @@ public interface MethodBody {
 
     int getParameterCount();
 
-    Value getParameterValue(int index) throws IndexOutOfBoundsException;
+    ParameterValue getParameterValue(int index) throws IndexOutOfBoundsException;
 
-    List<Value> getParameterValues();
+    List<ParameterValue> getParameterValues();
 
     BasicBlock getEntryBlock();
 
     Schedule getSchedule();
 
-    Value getThisValue();
+    ParameterValue getThisValue();
 
-    static MethodBody of(BasicBlock entryBlock, Schedule schedule, Value thisValue, Value... parameterValues) {
+    static MethodBody of(BasicBlock entryBlock, Schedule schedule, ParameterValue thisValue, ParameterValue... parameterValues) {
         return of(entryBlock, schedule, thisValue, List.of(parameterValues));
     }
 
-    static MethodBody of(BasicBlock entryBlock, Schedule schedule, Value thisValue, List<Value> paramValues) {
+    static MethodBody of(BasicBlock entryBlock, Schedule schedule, ParameterValue thisValue, List<ParameterValue> paramValues) {
         return new MethodBody() {
             public int getParameterCount() {
                 return paramValues.size();
             }
 
-            public Value getParameterValue(final int index) throws IndexOutOfBoundsException {
+            public ParameterValue getParameterValue(final int index) throws IndexOutOfBoundsException {
                 return paramValues.get(index);
             }
 
-            public List<Value> getParameterValues() {
+            public List<ParameterValue> getParameterValues() {
                 return paramValues;
             }
 
@@ -49,7 +49,7 @@ public interface MethodBody {
                 return schedule;
             }
 
-            public Value getThisValue() {
+            public ParameterValue getThisValue() {
                 return thisValue;
             }
         };

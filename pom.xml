@@ -291,6 +291,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qcc-plugin-thread-local</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qcc-plugin-try-catch</artifactId>
                 <version>${project.version}</version>
             </dependency>

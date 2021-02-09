@@ -14,7 +14,12 @@ import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
+import cc.quarkus.qcc.object.DataDeclaration;
+import cc.quarkus.qcc.object.Linkage;
+import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.object.ThreadLocalMode;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
@@ -25,6 +30,8 @@ import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
@@ -232,6 +239,44 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return writeArrayValue(input, arguments.get(0), arguments.get(1), JavaAccessMode.DETECT);
         }
         return super.invokeInstance(kind, input, owner, name, descriptor, arguments);
+    }
+
+    @Override
+    public Value readStaticField(TypeDescriptor owner, String name, TypeDescriptor descriptor, JavaAccessMode mode) {
+        NativeInfo nativeInfo = NativeInfo.get(ctxt);
+        NativeDataInfo fieldInfo = nativeInfo.getFieldInfo(owner, name);
+        if (fieldInfo != null) {
+            // todo: fix memory access modes
+            return super.pointerLoad(getAndDeclareSymbolLiteral(fieldInfo), MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
+        }
+        return super.readStaticField(owner, name, descriptor, mode);
+    }
+
+    @Override
+    public Node writeStaticField(TypeDescriptor owner, String name, TypeDescriptor descriptor, Value value, JavaAccessMode mode) {
+        NativeInfo nativeInfo = NativeInfo.get(ctxt);
+        NativeDataInfo fieldInfo = nativeInfo.getFieldInfo(owner, name);
+        if (fieldInfo != null) {
+            // todo: fix memory access modes
+            return super.pointerStore(getAndDeclareSymbolLiteral(fieldInfo), value, MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
+        }
+        return super.writeStaticField(owner, name, descriptor, value, mode);
+    }
+
+    private SymbolLiteral getAndDeclareSymbolLiteral(final NativeDataInfo fieldInfo) {
+        SymbolLiteral sym = fieldInfo.symbolLiteral;
+        // todo: fix this for inlining
+        DefinedTypeDefinition ourType = getCurrentElement().getEnclosingType();
+        if (!fieldInfo.defined || fieldInfo.fieldElement.getEnclosingType() != ourType) {
+            // declare it
+            Section section = ctxt.getOrAddProgramModule(ourType).getOrAddSection(IMPLICIT_SECTION_NAME);
+            DataDeclaration decl = section.declareData(fieldInfo.fieldElement, sym.getName(), fieldInfo.objectType);
+            decl.setLinkage(Linkage.EXTERNAL);
+            if (fieldInfo.fieldElement.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
+                decl.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+            }
+        }
+        return sym;
     }
 
     private Value doConvert(final Value input, final ValueType from, final IntegerType outputType) {

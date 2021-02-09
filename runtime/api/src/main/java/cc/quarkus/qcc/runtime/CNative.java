@@ -1111,7 +1111,8 @@ public final class CNative {
      * Define and export the annotated method or object as a linkable native symbol. The annotated object or method
      * parameters and return type must have a native type extending {@link object}.
      * <p>
-     * Fields annotated with {@link ThreadScoped @ThreadScoped} will be exported as thread locals.
+     * Fields annotated with {@link ThreadScoped @ThreadScoped} will be exported as thread locals, however in this
+     * case they must not be {@code final}.
      */
     @Target({ ElementType.METHOD, ElementType.FIELD })
     @Retention(RetentionPolicy.RUNTIME)

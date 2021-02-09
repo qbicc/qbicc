@@ -28,6 +28,7 @@ import cc.quarkus.qcc.graph.CmpNe;
 import cc.quarkus.qcc.graph.CommutativeBinaryValue;
 import cc.quarkus.qcc.graph.ConstructorInvocation;
 import cc.quarkus.qcc.graph.Convert;
+import cc.quarkus.qcc.graph.CurrentThreadRead;
 import cc.quarkus.qcc.graph.Div;
 import cc.quarkus.qcc.graph.DynamicInvocation;
 import cc.quarkus.qcc.graph.DynamicInvocationValue;
@@ -71,7 +72,6 @@ import cc.quarkus.qcc.graph.StaticInvocationValue;
 import cc.quarkus.qcc.graph.Sub;
 import cc.quarkus.qcc.graph.Switch;
 import cc.quarkus.qcc.graph.Terminator;
-import cc.quarkus.qcc.graph.ThisValue;
 import cc.quarkus.qcc.graph.Throw;
 import cc.quarkus.qcc.graph.Truncate;
 import cc.quarkus.qcc.graph.Try;
@@ -83,7 +83,6 @@ import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
-import cc.quarkus.qcc.graph.literal.CurrentThreadLiteral;
 import cc.quarkus.qcc.graph.literal.DefinedConstantLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
@@ -493,8 +492,15 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return node(param, "convert", node);
     }
 
-    public String visit(final Appendable param, final CurrentThreadLiteral node) {
-        return literal(param, "thread");
+    public String visit(final Appendable param, final CurrentThreadRead node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "rectangle");
+        attr(param, "label", "read thread");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getDependency());
+        return name;
     }
 
     public String visit(final Appendable param, final DefinedConstantLiteral node) {
@@ -664,7 +670,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final ParameterValue node) {
-        return literal(param, node.getType().toString() + " param[" + node.getIndex() + "]");
+        int index = node.getIndex();
+        StringBuilder b = new StringBuilder();
+        b.append(node.getType()).append(' ').append("param").append('[').append(node.getLabel());
+        if (index > 0) {
+            b.append(index);
+        }
+        b.append(']');
+        return literal(param, b.toString());
     }
 
     public String visit(final Appendable param, final PhiValue node) {
@@ -744,10 +757,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final Sub node) {
         return node(param, "-", node);
-    }
-
-    public String visit(final Appendable param, final ThisValue node) {
-        return literal(param, "this");
     }
 
     public String visit(final Appendable param, final Truncate node) {

@@ -14,10 +14,17 @@ import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.object.ThreadLocalMode;
 import cc.quarkus.qcc.plugin.dispatch.DispatchTables;
 import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.PointerType;
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.FunctionElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
@@ -25,17 +32,32 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
  */
 public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
+    private final ExecutableElement originalElement;
 
     public InvocationLoweringBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+        originalElement = delegate.getCurrentElement();
+    }
+
+    public Value currentThread() {
+        ReferenceType type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").validate().getClassType().getReference();
+        if (originalElement instanceof FunctionElement) {
+            SymbolLiteral sym = ctxt.getCurrentThreadLocalSymbolLiteral();
+            Section section = ctxt.getOrAddProgramModule(originalElement.getEnclosingType()).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+            section.declareData(null, sym.getName(), (ValueType) ((PointerType)sym.getType()).getPointeeType()).setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+            Value ptrVal = pointerLoad(sym, MemoryAccessMode.PLAIN, MemoryAtomicityMode.NONE);
+            return valueConvert(ptrVal, type);
+        } else {
+            return parameter(type, "thr", 0);
+        }
     }
 
     public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
         Function function = ctxt.getExactFunction(target);
         ctxt.declareForeignFunction(target, function, getCurrentElement());
         List<Value> args = new ArrayList<>(arguments.size() + 1);
-        args.add(ctxt.getCurrentThreadValue());
+        args.add(currentThread());
         args.addAll(arguments);
         ctxt.enqueue(target);
         return super.callFunction(functionLiteral(function), args);
@@ -54,7 +76,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             callTarget = functionLiteral(invokeTarget);
         }
         List<Value> args = new ArrayList<>(arguments.size() + 2);
-        args.add(ctxt.getCurrentThreadValue());
+        args.add(currentThread());
         args.add(instance);
         args.addAll(arguments);
         ctxt.enqueue(target);
@@ -65,7 +87,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         Function function = ctxt.getExactFunction(target);
         ctxt.declareForeignFunction(target, function, getCurrentElement());
         List<Value> args = new ArrayList<>(arguments.size() + 1);
-        args.add(ctxt.getCurrentThreadValue());
+        args.add(currentThread());
         args.addAll(arguments);
         ctxt.enqueue(target);
         return super.callFunction(functionLiteral(function), args);
@@ -84,7 +106,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             callTarget = functionLiteral(invokeTarget);
         }
         List<Value> args = new ArrayList<>(arguments.size() + 2);
-        args.add(ctxt.getCurrentThreadValue());
+        args.add(currentThread());
         args.add(instance);
         args.addAll(arguments);
         ctxt.enqueue(target);
@@ -95,7 +117,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         Function function = ctxt.getExactFunction(target);
         ctxt.declareForeignFunction(target, function, getCurrentElement());
         List<Value> args = new ArrayList<>(arguments.size() + 2);
-        args.add(ctxt.getCurrentThreadValue());
+        args.add(currentThread());
         args.add(instance);
         args.addAll(arguments);
         ctxt.enqueue(target);
@@ -105,6 +127,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     // TODO: Ensuring the vtable is added to its class's static data really belongs in the lowering of new to object allocation...
     //       Move this to NoGcBasicBlockBuilder when https://github.com/quarkuscc/qcc/pull/141/ is merged
+
     public Value new_(final ClassObjectType type) {
         DispatchTables dt = DispatchTables.get(ctxt);
         dt.getSymbolForVTablePtr(type.getDefinition().validate()); // has the side effect of putting vtable into static data of defining class's object file

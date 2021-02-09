@@ -18,7 +18,6 @@ import io.smallrye.common.constraint.Assert;
 final class GlobalImpl extends AbstractYieldingInstruction implements Global {
     final boolean constant;
     final AbstractValue type;
-    boolean external;
     Linkage linkage = Linkage.EXTERNAL;
     Visibility visibility = Visibility.DEFAULT;
     DllStorageClass dllStorageClass = DllStorageClass.NONE;
@@ -48,11 +47,6 @@ final class GlobalImpl extends AbstractYieldingInstruction implements Global {
 
     public Global comment(final String comment) {
         super.comment(comment);
-        return this;
-    }
-
-    public Global external() {
-        external = true;
         return this;
     }
 
@@ -134,10 +128,6 @@ final class GlobalImpl extends AbstractYieldingInstruction implements Global {
             target.append("addrspace(");
             target.append(Integer.toString(addressSpace));
             target.append(") ");
-        }
-        if (external) {
-            target.append("external");
-            target.append(' ');
         }
         if (constant) {
             target.append("constant");

@@ -16,6 +16,10 @@ public interface ElementVisitor<T, R> {
         return visitUnknown(param, element);
     }
 
+    default R visit(T param, FunctionElement element) {
+        return visitUnknown(param, element);
+    }
+
     default R visit(T param, InitializerElement element) {
         return visitUnknown(param, element);
     }
@@ -48,6 +52,18 @@ public interface ElementVisitor<T, R> {
             return getDelegateElementVisitor().visit(param, element);
         }
 
+        default R visit(final T param, final FieldElement element) {
+            return getDelegateElementVisitor().visit(param, element);
+        }
+
+        default R visit(final T param, final FunctionElement element) {
+            return getDelegateElementVisitor().visit(param, element);
+        }
+
+        default R visit(final T param, final InitializerElement element) {
+            return getDelegateElementVisitor().visit(param, element);
+        }
+
         default R visit(final T param, final LocalVariableElement element) {
             return getDelegateElementVisitor().visit(param, element);
         }
@@ -57,14 +73,6 @@ public interface ElementVisitor<T, R> {
         }
 
         default R visit(final T param, final NestedClassElement element) {
-            return getDelegateElementVisitor().visit(param, element);
-        }
-
-        default R visit(final T param, final InitializerElement element) {
-            return getDelegateElementVisitor().visit(param, element);
-        }
-
-        default R visit(final T param, final FieldElement element) {
             return getDelegateElementVisitor().visit(param, element);
         }
 
