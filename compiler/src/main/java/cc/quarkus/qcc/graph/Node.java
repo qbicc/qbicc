@@ -13,7 +13,6 @@ import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.CompoundLiteral;
-import cc.quarkus.qcc.graph.literal.CurrentThreadParameterLiteral;
 import cc.quarkus.qcc.graph.literal.DefinedConstantLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
@@ -470,10 +469,6 @@ public interface Node {
                 return param.getBlockBuilder().currentThread();
             }
 
-            public Value visit(final Copier param, final CurrentThreadParameterLiteral node) {
-                return node;
-            }
-
             public Value visit(final Copier param, final DefinedConstantLiteral node) {
                 return node;
             }
@@ -638,10 +633,6 @@ public interface Node {
 
             public Value visit(final Copier param, final Sub node) {
                 return param.getBlockBuilder().sub(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
-            public Value visit(final Copier param, final ThisValue node) {
-                return node;
             }
 
             public Value visit(final Copier param, final Truncate node) {

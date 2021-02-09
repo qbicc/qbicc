@@ -270,12 +270,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new StackAllocation(callSite, element, line, bci, type, count, align);
     }
 
-    public Value receiver(final ObjectType upperBound) {
-        return new ThisValue(callSite, element, Assert.checkNotNullParam("upperBound", upperBound).getReference());
-    }
-
-    public Value parameter(final ValueType type, final int index) {
-        return new ParameterValue(callSite, element, type, index);
+    public ParameterValue parameter(final ValueType type, String label, final int index) {
+        return new ParameterValue(callSite, element, type, label, index);
     }
 
     public Value currentThread() {

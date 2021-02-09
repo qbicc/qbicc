@@ -121,8 +121,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().getBlockEntry();
     }
 
-    public Value parameter(final ValueType type, final int index) {
-        return getDelegate().parameter(type, index);
+    public ParameterValue parameter(final ValueType type, String label, final int index) {
+        return getDelegate().parameter(type, label, index);
     }
 
     public Value currentThread() {
@@ -427,10 +427,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public BasicBlock ret(final Value address) {
         return getDelegate().ret(address);
-    }
-
-    public Value receiver(final ObjectType upperBound) {
-        return getDelegate().receiver(upperBound);
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {

@@ -24,6 +24,7 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NodeVisitor;
+import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.schedule.Schedule;
@@ -472,15 +473,16 @@ public class Driver implements Closeable {
                 ClassContext classContext = element.getEnclosingType().getContext();
                 MethodBody original = element.getMethodBody();
                 BasicBlock entryBlock = original.getEntryBlock();
-                List<Value> paramValues;
-                Value thisValue;
+                List<ParameterValue> paramValues;
+                ParameterValue thisValue;
+                BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
                 if (element instanceof FunctionElement) {
                     paramValues = original.getParameterValues();
                     thisValue = null;
                 } else {
-                    List<Value> origParamValues = original.getParameterValues();
+                    List<ParameterValue> origParamValues = original.getParameterValues();
                     paramValues = new ArrayList<>(origParamValues.size() + 2);
-                    paramValues.add(compilationContext.getThreadParameter());
+                    paramValues.add(builder.parameter(threadClass.getClassType().getReference(), "thr", 0));
                     if (! element.isStatic()) {
                         thisValue = original.getThisValue();
                         paramValues.add(thisValue);
@@ -490,7 +492,6 @@ public class Driver implements Closeable {
                     paramValues.addAll(origParamValues);
                 }
                 Function function = compilationContext.getExactFunction(element);
-                BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
                 BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, analyzeToLowerCopiers);
                 builder.finish();
                 function.replaceBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), thisValue, paramValues));

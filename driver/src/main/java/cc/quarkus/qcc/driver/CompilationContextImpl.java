@@ -19,7 +19,6 @@ import cc.quarkus.qcc.context.Diagnostic;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.literal.CurrentThreadParameterLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.interpreter.VmObject;
@@ -292,13 +291,6 @@ final class CompilationContextImpl implements CompilationContext {
             FunctionType type = getFunctionTypeForElement(typeSystem, element, threadType);
             return implicit.addFunction(element, getVirtualNameForElement(element, type), type);
         });
-    }
-
-    public CurrentThreadParameterLiteral getThreadParameter() {
-        // look up the thread ID literal - todo: lazy cache?
-        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
-        // construct the literal - todo: cache
-        return literalFactory.literalOfCurrentThread(threadType.getReference());
     }
 
     public SymbolLiteral getCurrentThreadLocalSymbolLiteral() {

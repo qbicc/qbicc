@@ -1,12 +1,12 @@
 package cc.quarkus.qcc.plugin.native_;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.object.Data;
@@ -242,15 +242,16 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                         BlockLabel entry = new BlockLabel();
                         gf.begin(entry);
                         int pcnt = elem.getParameters().size();
-                        List<Value> args = new ArrayList<>(pcnt);
+                        ParameterValue[] args = new ParameterValue[pcnt];
                         for (int i = 0; i < pcnt; i ++) {
-                            args.add(gf.parameter(fnType.getParameterType(i), i));
+                            args[i] = gf.parameter(fnType.getParameterType(i), "p", i);
                         }
+                        List<Value> argsList = List.of(args);
                         if (fnType.getReturnType() instanceof VoidType) {
-                            gf.invokeStatic(origMethod, args);
+                            gf.invokeStatic(origMethod, argsList);
                             gf.return_();
                         } else {
-                            gf.return_(gf.invokeValueStatic(origMethod, args));
+                            gf.return_(gf.invokeValueStatic(origMethod, argsList));
                         }
                         gf.finish();
                         BasicBlock entryBlock = BlockLabel.getTargetOf(entry);

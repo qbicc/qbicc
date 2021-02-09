@@ -10,7 +10,7 @@ import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.schedule.Schedule;
@@ -1169,30 +1169,30 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         codeAttr.limit(offs + classMethodInfo.getCodeLen());
         ByteBuffer byteCode = codeAttr.slice();
         MethodParser methodParser = new MethodParser(enclosing.getContext(), classMethodInfo, byteCode, gf);
-        Value thisValue;
-        Value[] parameters;
+        ParameterValue thisValue;
+        ParameterValue[] parameters;
         if (element instanceof InvokableElement) {
             List<ParameterElement> elementParameters = ((InvokableElement) element).getParameters();
             int paramCount = elementParameters.size();
-            parameters = new Value[paramCount];
+            parameters = new ParameterValue[paramCount];
             int j = 0;
             if ((modifiers & ClassFile.ACC_STATIC) == 0) {
                 // instance method or constructor
-                thisValue = gf.receiver(enclosing.validate().getType());
+                thisValue = gf.parameter(enclosing.validate().getType(), "this", 0);
                 methodParser.setLocal(j++, thisValue);
             } else {
                 thisValue = null;
             }
             for (int i = 0; i < paramCount; i ++) {
                 ValueType type = elementParameters.get(i).getType(List.of());
-                parameters[i] = gf.parameter(type, i);
+                parameters[i] = gf.parameter(type, "p", i);
                 boolean class2 = elementParameters.get(i).hasClass2Type();
                 methodParser.setLocal(j, class2 ? methodParser.fatten(parameters[i]) : methodParser.promote(parameters[i]));
                 j += class2 ? 2 : 1;
             }
         } else {
             thisValue = null;
-            parameters = Value.NO_VALUES;
+            parameters = ParameterValue.NO_PARAMETER_VALUES;
         }
         // process the main entry point
         BlockLabel entryBlockHandle = methodParser.getBlockForIndexIfExists(0);

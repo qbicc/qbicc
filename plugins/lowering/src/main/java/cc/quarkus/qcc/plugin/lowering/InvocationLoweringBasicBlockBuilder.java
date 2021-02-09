@@ -41,15 +41,15 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     public Value currentThread() {
+        ReferenceType type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").validate().getClassType().getReference();
         if (originalElement instanceof FunctionElement) {
-            ReferenceType type = ctxt.getThreadParameter().getType();
             SymbolLiteral sym = ctxt.getCurrentThreadLocalSymbolLiteral();
             Section section = ctxt.getOrAddProgramModule(originalElement.getEnclosingType()).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
             section.declareData(null, sym.getName(), (ValueType) ((PointerType)sym.getType()).getPointeeType()).setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
             Value ptrVal = pointerLoad(sym, MemoryAccessMode.PLAIN, MemoryAtomicityMode.NONE);
             return valueConvert(ptrVal, type);
         } else {
-            return ctxt.getThreadParameter();
+            return parameter(type, "thr", 0);
         }
     }
 

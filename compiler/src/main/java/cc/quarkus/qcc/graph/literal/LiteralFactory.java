@@ -53,8 +53,6 @@ public interface LiteralFactory {
 
     SymbolLiteral literalOfSymbol(String name, ValueType symbolType);
 
-    CurrentThreadParameterLiteral literalOfCurrentThread(ReferenceType threadType);
-
     UndefinedLiteral literalOfUndefined();
 
     DefinedConstantLiteral literalOfDefinedConstant(String name, Value constantValue);
@@ -161,10 +159,6 @@ public interface LiteralFactory {
                 Assert.checkNotEmptyParam("name", name);
                 Assert.checkNotNullParam("symbolType", symbolType);
                 return new SymbolLiteral(name, symbolType);
-            }
-
-            public CurrentThreadParameterLiteral literalOfCurrentThread(final ReferenceType threadType) {
-                return new CurrentThreadParameterLiteral(Assert.checkNotNullParam("threadType", threadType));
             }
 
             public TypeLiteral literalOfType(final ValueType type) {
