@@ -26,6 +26,8 @@ public interface FunctionDefinition extends Function {
 
     FunctionDefinition alignment(int alignment);
 
+    FunctionDefinition variadic();
+
     FunctionDefinition meta(String name, LLValue metadata);
 
     FunctionDefinition comment(String comment);
