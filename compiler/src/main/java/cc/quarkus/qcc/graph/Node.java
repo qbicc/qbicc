@@ -530,7 +530,6 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final MultiNewArray node) {
-                param.copyNode(node.getDependency());
                 return param.getBlockBuilder().multiNewArray(node.getArrayType(), param.copyValues(node.getDimensions()));
             }
 
@@ -551,7 +550,6 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final NewArray node) {
-                param.copyNode(node.getDependency());
                 return param.getBlockBuilder().newArray(node.getArrayType(), param.copyValue(node.getSize()));
             }
 

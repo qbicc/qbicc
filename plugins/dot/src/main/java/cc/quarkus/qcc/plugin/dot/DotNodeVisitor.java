@@ -619,7 +619,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         for (Value dimension : node.getDimensions()) {
             addEdge(param, node, dimension, "dim");
         }
-        addEdge(param, node, node.getDependency());
         return name;
     }
 
@@ -653,7 +652,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         addEdge(param, node, node.getSize(), "size");
-        addEdge(param, node, node.getDependency());
         return name;
     }
 
