@@ -5,15 +5,32 @@ import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DIEncoding;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DIFlags;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DITag;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
+import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataNode;
+import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataTuple;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.type.BooleanType;
+import cc.quarkus.qcc.type.CompoundType;
+import cc.quarkus.qcc.type.FloatType;
+import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.PointerType;
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.SignedIntegerType;
+import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.UnsignedIntegerType;
+import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,6 +40,7 @@ final class LLVMModuleDebugInfo {
 
     private final LLValue diCompileUnit;
     private final Map<ExecutableElement, MethodDebugInfo> methods = new HashMap<>();
+    private final Map<Type, LLValue> types = new HashMap<>();
 
     LLVMModuleDebugInfo(final Module module, final CompilationContext ctxt) {
         this.module = module;
@@ -83,8 +101,7 @@ final class LLVMModuleDebugInfo {
     }
 
     private MethodDebugInfo createDebugInfoForFunction(final ExecutableElement element) {
-        // TODO Generate correct subroutine types
-        LLValue type = module.diSubroutineType(module.metadataTuple().elem(null, null).asRef()).asRef();
+        LLValue type = getType(element.getType(null));
         int line = element.getMinimumLineNumber();
 
         LLValue diSubprogram = module.diSubprogram(getFriendlyName(element), type, diCompileUnit)
@@ -99,8 +116,7 @@ final class LLVMModuleDebugInfo {
     }
 
     public DISubprogram createThunkSubprogram(final Function function) {
-        // TODO Generate correct subroutine types
-        LLValue type = module.diSubroutineType(module.metadataTuple().elem(null, null).asRef()).asRef();
+        LLValue type = getType(function.getType());
         int line = function.getOriginalElement().getMinimumLineNumber();
 
         return module.diSubprogram(function.getName(), type, diCompileUnit)
@@ -113,6 +129,118 @@ final class LLVMModuleDebugInfo {
 
         if (debugInfo == null) {
             debugInfo = createDebugInfoForFunction(element);
+        }
+
+        return debugInfo;
+    }
+
+    private LLValue registerType(final Type type, final MetadataNode debugInfo) {
+        LLValue ref = debugInfo.asRef();
+
+        types.put(type, ref);
+        return ref;
+    }
+
+    private LLValue createBasicType(final ValueType type, final DIEncoding encoding) {
+        return registerType(
+            type,
+            module.diBasicType(encoding, type.getSize() * 8, type.getAlign() * 8).name(type.toFriendlyString())
+        );
+    }
+
+    private LLValue createPointerType(final ValueType type, final Type toType) {
+        return registerType(
+            type,
+            module.diDerivedType(DITag.PointerType, type.getSize() * 8, type.getAlign() * 8).baseType(getType(toType))
+        );
+    }
+
+    private LLValue createCompoundType(final CompoundType type) {
+        MetadataTuple elements = module.metadataTuple();
+        LLValue result = registerType(
+            type,
+            module.diCompositeType(DITag.StructureType, type.getSize() * 8, type.getAlign() * 8)
+                .name(type.toFriendlyString())
+                .elements(elements.asRef())
+        );
+
+        for (CompoundType.Member m : type.getMembers()) {
+            ValueType mt = m.getType();
+            elements.elem(null,
+                module.diDerivedType(DITag.Member, mt.getSize() * 8, type.getAlign() * 8)
+                    .name(m.getName())
+                    .baseType(getType(mt))
+                    .offset((long)m.getOffset() * 8)
+                    .asRef()
+            );
+        }
+
+        return result;
+    }
+
+    private LLValue createFunctionType(final FunctionType type) {
+        MetadataTuple types = module.metadataTuple();
+        LLValue result = registerType(
+            type,
+            module.diSubroutineType(types.asRef())
+        );
+
+        if (type.getReturnType() instanceof VoidType) {
+            types.elem(null, null);
+        } else {
+            types.elem(null, getType(type.getReturnType()));
+        }
+
+        for (int i = 0; i < type.getParameterCount(); i++) {
+            types.elem(null, getType(type.getParameterType(i)));
+        }
+
+        return result;
+    }
+
+    private LLValue createFallbackType(final Type type) {
+        long size = 0;
+        int align = 1;
+
+        if (type instanceof ValueType) {
+            size = ((ValueType) type).getSize();
+            align = ((ValueType) type).getAlign();
+        }
+
+        return registerType(
+            type,
+            module.diCompositeType(DITag.StructureType, size, align).name(type.toFriendlyString()).flags(EnumSet.of(DIFlags.FwdDecl))
+        );
+    }
+
+    private LLValue createType(final Type type) {
+        if (type instanceof BooleanType) {
+            return createBasicType((BooleanType) type, DIEncoding.Boolean);
+        } else if (type instanceof CompoundType) {
+            return createCompoundType((CompoundType) type);
+        } else if (type instanceof FloatType) {
+            return createBasicType((FloatType) type, DIEncoding.Float);
+        } else if (type instanceof FunctionType) {
+            return createFunctionType((FunctionType) type);
+        } else if (type instanceof PointerType) {
+            return createPointerType((PointerType) type, ((PointerType) type).getPointeeType());
+        } else if (type instanceof ReferenceType) {
+            return createPointerType((ReferenceType) type, ((ReferenceType) type).getUpperBound());
+        } else if (type instanceof SignedIntegerType) {
+            return createBasicType((SignedIntegerType) type, DIEncoding.Signed);
+        } else if (type instanceof UnsignedIntegerType) {
+            return createBasicType((UnsignedIntegerType) type, DIEncoding.Unsigned);
+        } else {
+            ctxt.warning("LLVM: Unhandled type %s for debug info generation", type.toFriendlyString());
+            return createFallbackType(type);
+        }
+    }
+
+    public LLValue getType(final Type type) {
+        LLValue debugInfo = types.get(type);
+
+        if (debugInfo == null) {
+            debugInfo = createType(type);
         }
 
         return debugInfo;
