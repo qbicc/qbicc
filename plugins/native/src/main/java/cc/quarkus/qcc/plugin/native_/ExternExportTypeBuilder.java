@@ -234,11 +234,14 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 builder.setType(fnType);
                 builder.setSourceFileName(origMethod.getSourceFileName());
                 builder.setParameters(origMethod.getParameters());
+                builder.setMinimumLineNumber(origMethod.getMinimumLineNumber());
+                builder.setMaximumLineNumber(origMethod.getMaximumLineNumber());
                 builder.setMethodBodyFactory(new MethodBodyFactory() {
                     @Override
                     public MethodBody createMethodBody(int index, ExecutableElement element) {
                         FunctionElement elem = (FunctionElement) element;
                         BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(element);
+                        gf.setLineNumber(origMethod.getMinimumLineNumber());
                         BlockLabel entry = new BlockLabel();
                         gf.begin(entry);
                         int pcnt = elem.getParameters().size();
