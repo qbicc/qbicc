@@ -1,128 +1,264 @@
 = QCC: Object Model Implementation
 
-== Base Assumptions
+== Background
+
+=== What is an Object Model?
+
+The Java language defines a number of operations that can be performed
+on any non-primitive value. These include:
+* Dynamic typechecking
+** `instanceof`
+** `checkcast`
+** must implement interface check in `invokeinterface`
+** dispatching to an exception handler
+* Dynamic method dispatch
+** `invokevirtual`
+** `invokeinterface`
+* Default hashcode
+* Object cloning
+* Synchronization
+** `monitorenter` and `monitorexit`
+** synchronized virtual methods
+* Getting the `java.lang.Class` instance for an object
+* Various additional reflective operations (field access, method dispatch)
+
+In addition, the memory management subsystem needs to be able to
+perform operations such as:
+* Identify the runtime type of a heap allocated object to:
+** Trace its pointer fields during a GC
+** Allow the GC to move an object
+* Support heap walking
+* ...
+
+All of these operations rely on being able to map from an object
+reference to information about the object.  In many systems, an
+object reference, ie a pointer whose target is a heap allocated
+object, is referred to as an OOP (object-oriented pointer).
+
+Almost universally, the heart of the object model implementation is a
+standardized object header which is stored at a fixed offset in the
+object instance. 
+
+=== Object Model Design Considerations
+
+Object header design is fundamentally a time-space tradeoff. Bigger
+headers allow more information to be "close at hand" to allow shorter
+instruction sequences for key operations.  Smaller headers reduce the
+memory footprint of the program which often improves performance by
+increasing locality and reducing GC overheads.
+
+Object headers are usually designed in "word sized" chunks. On a
+system with 32 bit pointers, a 4 byte word is the natural unit.  Even
+on a 64-bit system, it may still be advantageous to think of object
+headers in 4 byte chunks (especially if the header does not contain
+any potentially 64-bit pointers).  Since the bulk of non-array heap
+allocated objects are expected to contain object references and 32 or
+64 bit primitive values, having "empty" bytes between the end of the
+object header and the start of the first data field of the object is
+usually not useful. 
+
+If the target system has alignment constraints for certain operations
+(for example, atomic memory operations are more efficient on 8 byte
+aligned addresses), then the alignment and size of the object header
+need to reflect these constraints.
+
+Similar object model operations are often repeated on the same OOP
+within a region of code.  Therefore it is important to represent
+primitive object model operations in the compiler's intermediate
+representation in a form that enables the compiler to optimize away
+redundant operations.  In particular, it is critical that the compiler
+understand that most parts of an object header (and the downstream
+runtime artifacts derived from header loads such as vtables, itables,
+etc) are immutable.  Therefore is is safe to reuse previously loaded
+values across function calls and to aggressively schedule these
+operations "early".
+
+=== Prior Art
+
+Not surprisingly, there is a rich history of object model innovation.
+
+Here are some ideas from prior work that are perhaps less well known
+and most relevant to QCC.
+
+==== Type pointers vs type ids
+
+Object headers will contain encoding of the object's runtime type.
+There are two choices: a pointer to some type-specific structure
+(vtable, VMClass instance, etc.) or an index. The main tradeoff is
+that typeIds typically take many fewer bits, which pointers usually
+enable slightly faster access to variable sized information. Pointers
+are almost always combined with some form of bit-stealing where the
+low-order bits of the pointer are used to encode additional
+information. 
+
+==== Lock Nursery
+
+Although in principle any object could be locked, it has been observed
+that it is possible to make fairly accurate Class-based predictions on
+whether or not instances of the Class will be frequently locked. If
+instances of a Class are unlikely to be used in locking operations,
+the data fields used for "thin locks" can be elided from instances of
+the Class. When the predictions is wrong, a slow-path locking sequence
+using a "lock nursery" (side hash table of "fat locks") is
+utilized. Some of the typical heuristics are:
+* classes that has synchronized virtual methods need thin locks.
+* instances of `java.lang.Object` should have a non-inherited thin
+lock.
+
+In effect, a `.lock` instance field is introduced into a class (and
+inherited by its subclasses) when the class defines a synchronized
+virtual method. There is no additional cost for these methods
+(vs. having a thin lock at a fixed offset), since the offset of the
+`.lock` field is always known statically.  There is some runtime
+overhead when a `monitorenter` or `monitorexit` operation is performed
+on an object and static type information does not allow the offset of
+the `.lock` word to be known statically....we have to dynamically
+acquire the offset of the `.lock` field from the object's VMClass.
+
+Introduced in [Bacon, Fink, Grove ECOOP 2002]; adopted by J9 and others.
+
+==== Address-based hashing
+
+Using the "middle bits" of an object's address as its default hash
+code is a common technique.  In systems where the garbage collector
+may need to move live objects, a common technique is to use two bits
+in the object header to encode one of three possible states for an
+object "not-hashed", "hashed", "hashed-and-moved".  When an object in
+the hashed state is relocated by GC, it is switched to the
+"hashed-and-moved" state and its original default hashcode is stored
+elsewhere. This introduces complexity in the GC and (depending on
+whether the hashcode is stored "before" or "after" the moved object in
+memory or in some other side table can have significant implications
+for the scanability of the heap and the efficiency of the default
+hashcode operation on the subset of objects that have are
+"hashed-and-moved".
+
+==== Selector Coloring etc.
+
+TODO: Summarize the literature around various compressed table-based
+dispatching techniques that are not vtable/itable centric.  These
+techniques are likely very relevant to QCC because their main
+weakness, that they do not deal well with dynamic class loading, is
+not an issue in QCC.
+
+==== typeId assignment optimizations
+
+If we use a dense numbering scheme that encodes the `extends`
+relationship correctly (tree traversal order), then subclass tests can
+be simple range checks.
+
+A dense assignment of subclass ids also enables dense arrays of the
+primary derived type specific information (for example vtable style
+dispatching, itables, access to VMClass, access to java.lang.Class, etc).
+
+
+=== QCC Base Assumptions
 
 QCC operates under a strong closed world assumption.  All program
 classes are statically available when the program is compiled. This
 enables the compiler to apply whole program analysis and generate
 optimized data structures to implement method dispatch and dynamic
-type checking. 
+type checking.
 
-== Object Header
+We are biased towards space-efficient object models, even if it adds
+compile-time complexity.
 
-All Java objects have a common object header format. Arrays add
-additional header elements, but must start with the common object
-header to allow them to be treated as `java.lang.Object` instances.
+We want either a 32-bit or 64-bit object header.
 
-=== Common Header Elements
+== Potential Qcc Object Headers
 
-All object instances have a 64bit header.
+=== A 32 bit header for QCC
 
-This header is composed of two 32-bit fields.
+Almost certainly, a 32-bit header implies using a typeId as the
+primary runtime type identifier for an object.
 
-....
-LLLLLLLL LLLLLLLL LLLLLLLL LLLLLLLL  : lock word
-TTTTTTTT TTTTTTTT TTTTTTTT BBBBBBBB  : typeId + bits
-....
+A 32-bit header implies using the lock nursery technique to avoid any
+thin lock state in the default object header.
 
-The first 32-bit field is used for locking. Details TBD. Most likely
-we will use some variant of thin locks.  We reserve a full 32 bits for
-the thin lock because it will always be updated using 32 bit atomic
-memory operations.
+We will need to reserve a few (2?) bits in the object header for
+use by an eventual GC system.
 
-The second 32-bit field contains a 24 bit `typeId` in its upper three
-bytes. Its low order byte is used as a bit field. Two of these bits
-are used to support address-based hashing with a moving GC (encodes
-the three possible states: unhashed, hashed, hashed-and-moved). The
-remaining 6 are available for use by the memory management subsystem
-(or for other impl. needs).
+A 32-bit header may imply using 2 header bits to encode hashing
+state and dealing with hashed-and-moved in a moving GC.
 
-The typeId can be used in a variety of ways:
-* An object's typeId is an index into the global `vtable[]`
-* An object's typeId is an index into the global `java.lang.Class[]`
-* An object's typeId can be used for `extends` subclass testing by
-doing a simple range comparison (we assign typeIds by doing a tree
-traversal of the subclass relationships such that all subclasses of a
-class are assigned a dense range of typeIds). 
+If we use a 16 bit typeId, we could access it with a simple load
+instruction without any subsequent masking operations.  Any other size
+typeId would require a mask or shift operation after the load to
+extract the typeId bits for use in subsequent operations. 
 
-=== Additional Array Header Elements
+If we think 14 bits of default hashcode are acceptable, then a
+potentially optimal 32 bit header would contain:
+* 16 bit typeId
+* 14 bit default hash code
+* 2 bits for the GC
 
-An array header contains the following additional items
-* a 32 bit field which contains the array length
-* ????
+=== A 64 bit typeId-based header for QCC
 
-== Object Model Operations
+We use 20-24 bits of the header for a type id. This effectively
+removes any limitation on supported program size. 
+
+We will need to reserve a few (2? 3?) bits in the object header for
+use by an eventual GC system.
+
+We have quite a few bits available for other purposes.  Some
+possibilities include:
+* We use about 24 bits to store the default hashcode for the object
+  (middle bits of its initially allocated address). This avoids some
+  complexity when we get to moving GCs. 
+* We decide to not use a lock nursery and spend some bits on a thin
+lock. We can probably get away with 16ish bits for this, assuming we
+still use a side-structure for "fat locks" and store an index into
+that structure instead of a full fat lock pointer.
+* We still use a lock nursery, but use a few bits in the object header
+to encode the offset of the `.lock` word to optimize `monitorenter`
+and `monitorexit` bytecodes. 
+* We could use a few bits to try to optimize dynamic type checking
+operations on arrays (store dimensionality for example). 
+* Other stuff...
+
+=== A 64 bit pointer-based header for QCC
+
+The object header is a VMClass pointer with some bottom bits being
+stolen for use as a bit field. 
+
+We have to carefully tradeoff the number of stolen bits vs. the
+alignment constraints that imposes on the VMClass instances. Probably
+we can afford to steal between 4 and 6 bits. Assuming we want to
+support a moving GC eventually, we need two bits for the GC itself and
+two for addressed based hashing.
+
+We use a lock nursery.
+
+We use address based hashing and hash-and-moved scheme. 
+
+== Instruction Sequences for Critical Operations
+
+TO BE FILLED IN BASED ON ACTUAL HEADER DESIGN
 
 === invokevirtual
 
-----
-r1 = ld(obj, 4)   # load typeId from object
-r2 = r1 >> 8      # shift with zero extend to discard bitfield bytes
-r3 = vtables[r2]  # load this class's vtable from global vtable array
-r4 = r3[meth]     # load function pointer from vtable
-call *r4          # call function
-----
+Basically, load something from the object, maybe do a little more,
+index into something to get a function pointer.
 
 === invokeinterface
-
-TODO
-
-Some options:
 
 1. Use typeId to load an array of iTables for the class and do searched iTable dispatch.
 2. Implement selector coloring style dispatch tables.
 
 === instanceof/checkcast (of a class)
 
-----
-r1 = ld(obj, 4)   # load typeId from object
-r2 = r1 >> 8      # shift with zero extend to discard bitfield bytes
-if LOWER_BOUND < r2 && r2 < GREATER_BOUND
-----
-
 === instanceof/checkcast (of an array)
 
-TODO: likely no inline fast-path
+Can have some fast paths based on dimensionality and leaf-element type
+ids. 
 
 === instanceof/checkcast (of an interface)
 
-TODO
+May depend on how we implement invokeinterface....
 
 === getClass()
 
-r1 = ld(obj, 4)   # load typeId from object
-r2 = r1 >> 8      # shift with zero extend to discard bitfield bytes
-r3 = jlClass[r2]  # load this class's java.lang.Class from global Class[] array
-
 === hashCode
-
-if hashed&moved {
-  load hashcode from 4 bytes preceding object
-} else {
-  set hashed
-  return object's address
-}
 
 === monitorenter/monitorexit
 
-TBD:  fast path of uncontend lock/unlock
-operates on thin lock word using atomic memory ops. 
-
-== Alternative Designs
-
-The "classic" one word header object model in JVMs puts a pointer to
-some VM data structure (eg a VMClass object with a fixed-size struct
-followed by a variable length vtable) in the object header and steals
-approximately the low order byte of the pointer to use as a bit field.
-Bit stealing is enabled by ensuring that all VMClass instances are
-highly aligned (ie to steal 6 bits, VMClass instances must be
-allocated 64-byte aligned). 
-
-This design has some advantages, (a) it requires one fewer load in the
-`invokevirtual` sequence and (b) it is more amenable to dynamic class
-loading. However, it makes it much harder to acquire enough header
-bits to support inline (recursive) locking without spilling over into
-a second word. It also typically puts the `typeId` into the
-fixed-sized portion of the VMClass structure, so the simple subclass
-test against the `extends` relationship takes an additional load
-instruction.
