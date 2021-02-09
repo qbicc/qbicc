@@ -44,6 +44,7 @@ public final class Layout {
         builder.setEnclosingType(enclosing);
         return builder.build();
     };
+    private static final String INTERNAL_ARRAY = "internal_array";
 
     private final Map<ValidatedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
@@ -124,7 +125,7 @@ public final class Layout {
 
         // define an array base type so that the length is always in the same place
         DefinedTypeDefinition.Builder typeBuilder = DefinedTypeDefinition.Builder.basic();
-        ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "internal:array");
+        ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, INTERNAL_ARRAY);
         typeBuilder.setDescriptor(desc);
         ClassTypeSignature superClassSig = (ClassTypeSignature) TypeSignature.synthesize(classContext, jlo.getDescriptor());
         typeBuilder.setSignature(ClassSignature.synthesize(classContext, superClassSig, List.of()));
@@ -163,7 +164,7 @@ public final class Layout {
 
     private static DefinedTypeDefinition defineArrayType(ClassContext classContext, DefinedTypeDefinition jlo, ValueType realMemberType, String simpleName) {
         DefinedTypeDefinition.Builder typeBuilder = DefinedTypeDefinition.Builder.basic();
-        ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "internal:array");
+        ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, INTERNAL_ARRAY);
         typeBuilder.setDescriptor(desc);
         ClassTypeSignature superClassSig = (ClassTypeSignature) TypeSignature.synthesize(classContext, jlo.getDescriptor());
         typeBuilder.setSignature(ClassSignature.synthesize(classContext, superClassSig, List.of()));
@@ -171,7 +172,7 @@ public final class Layout {
         typeBuilder.setSimpleName(simpleName);
         typeBuilder.setContext(classContext);
         typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_HIDDEN);
-        typeBuilder.setName("internal:array");
+        typeBuilder.setName(INTERNAL_ARRAY);
         // add fields in this order, which is relied upon up above
         int idx = 0;
         if (realMemberType instanceof ReferenceType) {
