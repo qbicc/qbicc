@@ -29,6 +29,33 @@ public class SupersDisplayTables {
     private final CompilationContext ctxt;
     private final Map<ValidatedTypeDefinition, ValidatedTypeDefinition[]> supers = new ConcurrentHashMap<>();
 
+    private final Map<ValidatedTypeDefinition, IdAndBounds> typeids = new ConcurrentHashMap<>();
+
+    static class IdAndBounds {
+        private static int typeid_index = 1; // avoid using 0;
+
+        public static IdAndBounds nextID() {
+            return new IdAndBounds(typeid_index++);
+        }
+
+        int typeid;
+        int upperBound;
+        // lower bound is == typeid
+
+        IdAndBounds(int id) {
+            typeid = id;
+            upperBound = id;
+        }
+
+        public void setUpperBound(int id) {
+            upperBound = Math.max(upperBound, id);
+        }
+
+        public String toString() {
+            return "ID[" + typeid +"] Bound["+ typeid +", "+upperBound+"]";
+        }
+    }
+
     private int maxDisplaySizeElements;
 
     private SupersDisplayTables(final CompilationContext ctxt) {
@@ -108,7 +135,34 @@ public class SupersDisplayTables {
             return IntStream.of(waste);
         }).sum();
         supersLog.debug("Slots of waste: " + emptySlots);
-        
+
+        supersLog.debug("typeid and bounds");
+        typeids.entrySet().stream()
+            .sorted((a, b) -> a.getValue().typeid - b.getValue().typeid)
+            .forEach(es -> {
+                ValidatedTypeDefinition vtd = es.getKey();
+                IdAndBounds idBounds = es.getValue();
+                supersLog.debug(idBounds.toString() + " " + vtd.getInternalName());
+            }
+        );
+    }
+
+    void assignTypeID(ValidatedTypeDefinition cls) {
+        IdAndBounds myID = typeids.computeIfAbsent(cls, theCls -> IdAndBounds.nextID());
+        log.debug("["+ myID.typeid +"] Class: " + cls.getInternalName());
+    }
+
+    void assignBounds(ValidatedTypeDefinition cls) {
+        IdAndBounds myID = typeids.get(cls);
+        log.debug("Visiting: " + cls.getInternalName() + " " + myID.toString());
+        ValidatedTypeDefinition superclass = cls.getSuperClass();
+        if (superclass != null) {
+            IdAndBounds superBounds = typeids.getOrDefault(superclass, null);
+            if (superBounds != null) {
+                superBounds.setUpperBound(myID.upperBound);
+                log.debug("Setting Super's bound: " + superclass.getInternalName() + " " + superBounds.toString());
+            }
+        }
     }
 }
 

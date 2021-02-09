@@ -153,7 +153,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
 
             identifiedType.type(struct);
         } else {
-            throw new IllegalStateException();
+            throw new IllegalStateException("Can't map Type("+ type.toFriendlyString() + ")");
         }
         types.put(type, res);
         return res;

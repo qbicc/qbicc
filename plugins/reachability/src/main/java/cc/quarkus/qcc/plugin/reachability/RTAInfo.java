@@ -64,4 +64,13 @@ public class RTAInfo {
         }
     }
 
+    public void visitLiveSubclassesPostOrder(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {
+        Set<ValidatedTypeDefinition> subclasses = classHierarchy.get(type);
+        if (subclasses == null) return;
+        for (ValidatedTypeDefinition sc: subclasses) {
+            visitLiveSubclassesPostOrder(sc, function);
+            function.accept(sc);
+        }
+    }
+
 }
