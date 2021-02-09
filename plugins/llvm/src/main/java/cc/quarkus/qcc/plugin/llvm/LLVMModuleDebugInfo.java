@@ -152,9 +152,14 @@ final class LLVMModuleDebugInfo {
     }
 
     private LLValue createPointerType(final ValueType type, final Type toType) {
+        LLValue toTypeDbg = null;
+
+        if (!(toType instanceof VoidType))
+            toTypeDbg = getType(toType);
+
         return registerType(
             type,
-            module.diDerivedType(DITag.PointerType, type.getSize() * 8, type.getAlign() * 8).baseType(getType(toType))
+            module.diDerivedType(DITag.PointerType, type.getSize() * 8, type.getAlign() * 8).baseType(toTypeDbg)
         );
     }
 
