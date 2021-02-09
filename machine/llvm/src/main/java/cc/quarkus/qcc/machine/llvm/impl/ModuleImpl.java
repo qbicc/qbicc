@@ -11,11 +11,16 @@ import cc.quarkus.qcc.machine.llvm.Global;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.IdentifiedType;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DIBasicType;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DICompileUnit;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DICompositeType;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DIDerivedType;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DIEncoding;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIFile;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DILocation;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubroutineType;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DITag;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
 import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataTuple;
 import io.smallrye.common.constraint.Assert;
@@ -108,6 +113,21 @@ final class ModuleImpl implements Module {
         Assert.checkNotNullParam("name", name);
         Assert.checkNotNullParam("unit", unit);
         return add(meta, new DISubprogramImpl(nextMetadataNodeId(), name, (AbstractValue)type, (AbstractValue)unit));
+    }
+
+    public DIBasicType diBasicType(final DIEncoding encoding, final long size, final int align) {
+        Assert.checkNotNullParam("encoding", encoding);
+        return add(meta, new DIBasicTypeImpl(nextMetadataNodeId(), encoding, size, align));
+    }
+
+    public DIDerivedType diDerivedType(final DITag tag, final long size, final int align) {
+        Assert.checkNotNullParam("tag", tag);
+        return add(meta, new DIDerivedTypeImpl(nextMetadataNodeId(), tag, size, align));
+    }
+
+    public DICompositeType diCompositeType(final DITag tag, final long size, final int align) {
+        Assert.checkNotNullParam("tag", tag);
+        return add(meta, new DICompositeTypeImpl(nextMetadataNodeId(), tag, size, align));
     }
 
     public DISubroutineType diSubroutineType(final LLValue types) {
