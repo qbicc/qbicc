@@ -85,8 +85,10 @@ final class LLVMModuleDebugInfo {
     private MethodDebugInfo createDebugInfoForFunction(final ExecutableElement element) {
         // TODO Generate correct subroutine types
         LLValue type = module.diSubroutineType(module.metadataTuple().elem(null, null).asRef()).asRef();
+        int line = element.getMinimumLineNumber();
+
         LLValue diSubprogram = module.diSubprogram(getFriendlyName(element), type, diCompileUnit)
-                .location(createSourceFile(element), 0, 0)
+                .location(createSourceFile(element), line, line)
                 .linkageName(ctxt.getExactFunction(element).getName())
                 .asRef();
 
@@ -99,9 +101,10 @@ final class LLVMModuleDebugInfo {
     public DISubprogram createThunkSubprogram(final Function function) {
         // TODO Generate correct subroutine types
         LLValue type = module.diSubroutineType(module.metadataTuple().elem(null, null).asRef()).asRef();
+        int line = function.getOriginalElement().getMinimumLineNumber();
 
         return module.diSubprogram(function.getName(), type, diCompileUnit)
-                .location(createSourceFile(function.getOriginalElement()), 0, 0)
+                .location(createSourceFile(function.getOriginalElement()), line, line)
                 .linkageName(function.getName());
     }
 

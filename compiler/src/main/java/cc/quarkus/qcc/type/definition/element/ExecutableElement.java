@@ -29,6 +29,9 @@ public interface ExecutableElement extends MemberElement {
 
     MethodSignature getSignature();
 
+    int getMinimumLineNumber();
+    int getMaximumLineNumber();
+
     interface Builder extends Element.Builder {
 
         void setMethodBodyFactory(MethodBodyFactory factory, int index);

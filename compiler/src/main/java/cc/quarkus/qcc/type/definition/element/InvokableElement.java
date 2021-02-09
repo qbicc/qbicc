@@ -29,6 +29,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     final int methodBodyFactoryIndex;
     volatile MethodBody previousMethodBody;
     volatile MethodBody methodBody;
+    final int minimumLineNumber;
+    final int maximumLineNumber;
 
     InvokableElement() {
         super();
@@ -39,6 +41,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.returnInvisibleTypeAnnotations = null;
         this.methodBodyFactory = null;
         this.methodBodyFactoryIndex = 0;
+        this.minimumLineNumber = 1;
+        this.maximumLineNumber = 1;
     }
 
     InvokableElement(Builder builder) {
@@ -50,6 +54,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.returnInvisibleTypeAnnotations = builder.returnInvisibleTypeAnnotations;
         this.methodBodyFactory = builder.methodBodyFactory;
         this.methodBodyFactoryIndex = builder.methodBodyFactoryIndex;
+        this.minimumLineNumber = builder.minimumLineNumber;
+        this.maximumLineNumber = builder.maximumLineNumber;
     }
 
     public boolean hasMethodBody() {
@@ -113,6 +119,14 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         return type;
     }
 
+    public int getMinimumLineNumber() {
+        return minimumLineNumber;
+    }
+
+    public int getMaximumLineNumber() {
+        return maximumLineNumber;
+    }
+
     public List<ParameterElement> getParameters() {
         return parameters;
     }
@@ -151,6 +165,8 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         TypeAnnotationList returnInvisibleTypeAnnotations = TypeAnnotationList.empty();
         MethodBodyFactory methodBodyFactory;
         int methodBodyFactoryIndex;
+        int minimumLineNumber = 1;
+        int maximumLineNumber = 1;
 
         Builder() {}
 
@@ -177,6 +193,14 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         public void setMethodBodyFactory(final MethodBodyFactory factory, final int index) {
             this.methodBodyFactory = Assert.checkNotNullParam("factory", factory);
             this.methodBodyFactoryIndex = index;
+        }
+
+        public void setMinimumLineNumber(int minimumLineNumber) {
+            this.minimumLineNumber = minimumLineNumber;
+        }
+
+        public void setMaximumLineNumber(int maximumLineNumber) {
+            this.maximumLineNumber = maximumLineNumber;
         }
 
         public abstract InvokableElement build();

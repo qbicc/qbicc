@@ -29,9 +29,9 @@ final class ClassMethodInfo {
     private final int codeLen;
     private final short[] exTable; // format: start end handler type_idx
 
-    private final short[] entryPoints; // format: dest-bci (unsigned), sorted by dest-bci
+    private final LineNumberTable lineNumberTable;
 
-    private final short[] lineNumbers; // format: start_pc line_number (alternating), sorted uniquely by start_pc (ascending)
+    private final short[] entryPoints; // format: dest-bci (unsigned), sorted by dest-bci
     /**
      * Each entry is an array of non-overlapping intervals for the corresponding local var slot.
      *
@@ -241,8 +241,6 @@ final class ClassMethodInfo {
         }
         this.exTable = exTable;
         int attrCnt = codeAttr.getShort() & 0xffff;
-        short[] lineNumberTable = NO_SHORTS;
-        int lineNumberTableLen = 0;
         int stackMapTableOffs = -1;
         int stackMapTableLen = 0;
         int visibleTypeAnnotationsOffs = -1;
@@ -254,43 +252,13 @@ final class ClassMethodInfo {
         Arrays.fill(localVariables, NO_SHORTS);
         int localVariablesLen = 0;
         boolean lvt;
+        LineNumberTable.Builder lineNumberTable = new LineNumberTable.Builder();
         for (int i = 0; i < attrCnt; i ++) {
             int nameIdx = codeAttr.getShort() & 0xffff;
             int len = codeAttr.getInt();
             if (classFile.utf8ConstantEquals(nameIdx, "LineNumberTable")) {
-                int cnt = codeAttr.getShort() & 0xffff;
-                // sanity check the length
-                if (cnt << 2 != len - 2) {
-                    throw new InvalidAttributeLengthException();
-                }
-                // add some line numbers; this attribute can appear more than once
-                if ((lineNumberTable.length >>> 1) - lineNumberTableLen < cnt) {
-                    lineNumberTable = Arrays.copyOf(lineNumberTable, lineNumberTableLen + (cnt << 1));
-                }
-                for (int j = 0; j < cnt; j ++) {
-                    int startPc = codeAttr.getShort() & 0xffff;
-                    int lineNumber = codeAttr.getShort() & 0xffff;
-                    if (lineNumberTable.length == 0) {
-                        lineNumberTable = new short[cnt];
-                        lineNumberTable[0] = (short) startPc;
-                        lineNumberTable[1] = (short) lineNumber;
-                    } else {
-                        int idx = findLineNumber(lineNumberTable, lineNumberTableLen, startPc);
-                        if (idx >= 0) {
-                            // ignore
-                        } else {
-                            idx = -idx - 1;
-                            if (idx < lineNumberTableLen) {
-                                // make a hole
-                                System.arraycopy(lineNumberTable, idx << 1, lineNumberTable, 1 + (idx << 1), (lineNumberTableLen - idx) << 1);
-                            }
-                            // add list entry
-                            lineNumberTable[idx << 1] = (short) startPc;
-                            lineNumberTable[(idx << 1) + 1] = (short) lineNumber;
-                            lineNumberTableLen++;
-                        }
-                    }
-                }
+                lineNumberTable.appendTableFromAttribute(codeAttr.duplicate().limit(codeAttr.position() + len).slice());
+                codeAttr.position(codeAttr.position() + len);
             } else if ((lvt = classFile.utf8ConstantEquals(nameIdx, "LocalVariableTable")) || classFile.utf8ConstantEquals(nameIdx, "LocalVariableTypeTable")) {
                 int cnt = codeAttr.getShort() & 0xffff;
                 // sanity check the length
@@ -362,8 +330,6 @@ final class ClassMethodInfo {
                 codeAttr.position(codeAttr.position() + len);
             }
         }
-        // save a copy if we can
-        this.lineNumbers = (lineNumberTableLen << 1) == lineNumberTable.length ? lineNumberTable : Arrays.copyOf(lineNumberTable, lineNumberTableLen << 1);
         for (int i = 0; i < maxLocals; i ++) {
             if (localVariables[i].length > lvtLengths[i] * 5) {
                 localVariables[i] = Arrays.copyOf(localVariables[i], lvtLengths[i] * 5);
@@ -401,6 +367,7 @@ final class ClassMethodInfo {
             }
         }
         this.variableTypes = variableTypes1;
+        this.lineNumberTable = lineNumberTable.build();
     }
 
     private void skipInstruction(final ByteBuffer codeAttr, final int opcode) {
@@ -688,27 +655,6 @@ final class ClassMethodInfo {
         buf.position(p + amt);
     }
 
-    static int findLineNumber(short[] table, int size, int bci) {
-        if (table == null) {
-            return -1;
-        }
-        int low = 0;
-        int high = size - 1;
-
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            int midVal = table[mid << 1] & 0xffff;
-            if (midVal < bci) {
-                low = mid + 1;
-            } else if (midVal > bci) {
-                high = mid - 1;
-            } else {
-                return mid;
-            }
-        }
-        return -low - 1;
-    }
-
     static int findLocalVariableEntry(short[] array, int size, int startPc, int length) {
         if (array == null) {
             return -1;
@@ -780,27 +726,7 @@ final class ClassMethodInfo {
     }
 
     int getLineNumber(int bci) {
-        int low = 0;
-        int high = (lineNumbers.length >>> 1) - 1;
-
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            int midVal = lineNumbers[mid << 1] & 0xffff;
-            if (midVal < bci) {
-                low = mid + 1;
-            } else if (midVal > bci) {
-                high = mid - 1;
-            } else {
-                // exact match
-                return lineNumbers[(mid << 1) + 1];
-            }
-        }
-        // return previous entry
-        if (low == 0) {
-            return -1;
-        } else {
-            return lineNumbers[((low - 1) << 1) + 1];
-        }
+        return lineNumberTable.getLineNumber(bci);
     }
 
     int getLocalVarEntryCount(int varIdx) {
