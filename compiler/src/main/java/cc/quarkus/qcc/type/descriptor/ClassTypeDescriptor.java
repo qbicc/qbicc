@@ -26,6 +26,10 @@ public final class ClassTypeDescriptor extends TypeDescriptor {
         return className;
     }
 
+    public boolean packageAndClassNameEquals(final String packageName, final String className) {
+        return this.packageName.equals(packageName) && this.className.equals(className);
+    }
+
     public boolean equals(final TypeDescriptor other) {
         return other instanceof ClassTypeDescriptor && equals((ClassTypeDescriptor) other);
     }

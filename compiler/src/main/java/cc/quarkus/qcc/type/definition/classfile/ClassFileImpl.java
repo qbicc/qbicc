@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
 
+import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
@@ -626,9 +627,13 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
     }
 
     public void accept(final DefinedTypeDefinition.Builder builder) throws ClassFormatException {
-        builder.setName(getName());
+        String internalName = getName();
+        builder.setName(internalName);
         builder.setContext(ctxt);
         int access = getAccess();
+        if (internalName.equals("java/lang/Thread") || internalName.equals("java/lang/Class")) {
+            access |= I_ACC_PINNED;
+        }
         String superClassName = getSuperClassName();
         builder.setSuperClassName(getSuperClassName());
         int cnt = getInterfaceNameCount();
@@ -655,6 +660,14 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 Annotation[] annotations = new Annotation[ac];
                 for (int j = 0; j < ac; j++) {
                     annotations[j] = Annotation.parse(this, ctxt, data);
+                    if (annotations[j].getDescriptor().packageAndClassNameEquals("cc/quarkus/qcc/runtime", "Pinned")) {
+                        if ((access & ACC_INTERFACE) != 0) {
+                            ctxt.getCompilationContext().error(Location.builder().setClassInternalName(internalName).build(), "Interfaces cannot be pinned");
+                        } else if ((access & ACC_FINAL) == 0) {
+                            ctxt.getCompilationContext().error(Location.builder().setClassInternalName(internalName).build(), "@Pinned classes must be final");
+                        }
+                        access |= I_ACC_PINNED;
+                    }
                 }
                 builder.setInvisibleAnnotations(List.of(annotations));
             } else if (attributeNameEquals(i, "RuntimeVisibleTypeAnnotations")) {
@@ -692,7 +705,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                     int outerClassInfoIdx = data.getShort() & 0xffff; // CONSTANT_Class
                     int innerNameIdx = data.getShort() & 0xffff; // CONSTANT_Utf8
                     int innerFlags = data.getShort() & 0xffff; // value
-                    if (classConstantNameEquals(innerClassInfoIdx, getName())) {
+                    if (classConstantNameEquals(innerClassInfoIdx, internalName)) {
                         // this is *our* information!
                         if (innerNameIdx != 0) {
                             builder.setSimpleName(getUtf8Constant(innerNameIdx));
@@ -703,7 +716,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                         }
                     } else {
                         // it might be an inner class of ours...
-                        if (outerClassInfoIdx != 0 && classConstantNameEquals(outerClassInfoIdx, getName())) {
+                        if (outerClassInfoIdx != 0 && classConstantNameEquals(outerClassInfoIdx, internalName)) {
                             builder.addEnclosedClass(this, attributeOffsets[i] + 8 + j * 8);
                         }
                     }
