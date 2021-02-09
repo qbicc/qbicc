@@ -95,7 +95,7 @@ final class GlobalImpl extends AbstractYieldingInstruction implements Global {
         super.appendTo(target);
         final Linkage linkage = this.linkage;
         AbstractValue value = this.value;
-        if (value == null && linkage != Linkage.EXTERNAL) {
+        if (value == null || linkage != Linkage.EXTERNAL) {
             target.append(linkage.toString());
             target.append(' ');
         }

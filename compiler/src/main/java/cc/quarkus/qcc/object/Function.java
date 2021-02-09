@@ -10,6 +10,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
  */
 public final class Function extends SectionObject {
     private volatile MethodBody body;
+    private volatile FunctionDeclaration declaration;
 
     Function(final ExecutableElement originalElement, final String name, final SymbolLiteral literal) {
         super(originalElement, name, literal);
@@ -29,5 +30,18 @@ public final class Function extends SectionObject {
 
     public void replaceBody(final MethodBody body) {
         this.body = body;
+    }
+
+    public FunctionDeclaration getDeclaration() {
+        FunctionDeclaration declaration = this.declaration;
+        if (declaration == null) {
+            synchronized (this) {
+                declaration = this.declaration;
+                if (declaration == null) {
+                    declaration = this.declaration = new FunctionDeclaration(originalElement, name, literal);
+                }
+            }
+        }
+        return declaration;
     }
 }
