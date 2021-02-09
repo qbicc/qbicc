@@ -636,6 +636,13 @@ public class Driver implements Closeable {
             return this;
         }
 
+        public Builder addBootClassPathElements(List<Path> paths) {
+            if (paths != null) {
+                bootClassPathElements.addAll(paths);
+            }
+            return this;
+        }
+
         public String getMainClass() {
             return mainClass;
         }

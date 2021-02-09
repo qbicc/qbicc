@@ -3,15 +3,20 @@ package cc.quarkus.qcc.main;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Diagnostic;
+import cc.quarkus.qcc.context.DiagnosticContext;
 import cc.quarkus.qcc.driver.BaseDiagnosticContext;
 import cc.quarkus.qcc.driver.BuilderStage;
 import cc.quarkus.qcc.driver.Driver;
@@ -29,13 +34,13 @@ import cc.quarkus.qcc.plugin.correctness.RuntimeChecksBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.VTableBuilder;
 import cc.quarkus.qcc.plugin.dot.DotGenerator;
-import cc.quarkus.qcc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
-import cc.quarkus.qcc.plugin.intrinsics.core.CoreIntrinsics;
-import cc.quarkus.qcc.plugin.layout.ObjectAccessLoweringBuilder;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.RegisterHelperBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.SupersDisplayBuilder;
+import cc.quarkus.qcc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.intrinsics.core.CoreIntrinsics;
 import cc.quarkus.qcc.plugin.layout.Layout;
+import cc.quarkus.qcc.plugin.layout.ObjectAccessLoweringBuilder;
 import cc.quarkus.qcc.plugin.linker.LinkStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMCompileStage;
 import cc.quarkus.qcc.plugin.llvm.LLVMGenerator;
@@ -69,75 +74,47 @@ import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.MemberResolvingBasicBlockBuilder;
 import cc.quarkus.qcc.tool.llvm.LlvmToolChain;
 import cc.quarkus.qcc.type.TypeSystem;
+import io.smallrye.common.constraint.Assert;
 import org.jboss.logmanager.Level;
 import org.jboss.logmanager.LogManager;
 import org.jboss.logmanager.Logger;
 
 /**
- * The main entry point.
+ * The main entry point, which can be constructed using a builder or directly invoked.
  */
-public class Main {
-    public static void main(String[] args) {
-        System.setProperty("java.util.logging.manager", LogManager.class.getName());
+public class Main implements Callable<DiagnosticContext> {
+    private final List<Path> bootModulePath;
+    private final Path outputPath;
+    private final Consumer<Iterable<Diagnostic>> diagnosticsHandler;
+    private final String mainClass;
+
+    Main(Builder builder) {
+        bootModulePath = List.copyOf(builder.bootModulePath);
+        outputPath = builder.outputPath;
+        diagnosticsHandler = builder.diagnosticsHandler;
+        // todo: this becomes optional
+        mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
+    }
+
+    public DiagnosticContext call() {
         final BaseDiagnosticContext initialContext = new BaseDiagnosticContext();
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);
-        final Iterator<String> argIter = List.of(args).iterator();
-        String mainClass = null;
-        Path outputPath = null;
-        while (argIter.hasNext()) {
-            final String arg = argIter.next();
-            if (arg.startsWith("-")) {
-                if (arg.equals("--boot-module-path")) {
-                    String[] path = argIter.next().split(Pattern.quote(File.pathSeparator));
-                    for (String pathStr : path) {
-                        if (! pathStr.isEmpty()) {
-                            builder.addBootClassPathElement(Path.of(pathStr));
-                        }
-                    }
-                } else if (arg.equals("--output-path") || arg.equals("-o")) {
-                    outputPath = Path.of(argIter.next());
-                } else if (arg.equals("--debug")) {
-                    Logger.getLogger("").setLevel(Level.DEBUG);
-                } else if (arg.equals("--debug-vtables")) {
-                    Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables").setLevel(Level.DEBUG);
-                } else if (arg.equals("--debug-rta")) {
-                    Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
-                } else if (arg.equals("--debug-supers")) {
-                    Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
-                } else {
-                    initialContext.error("Unrecognized argument \"%s\"", arg);
-                    break;
-                }
-            } else if (mainClass == null) {
-                mainClass = arg;
-            } else {
-                initialContext.error("Extra argument \"%s\"", arg);
-                break;
-            }
-        }
-        if (mainClass == null) {
-            initialContext.error("No main class specified");
-        }
-        if (outputPath == null) {
-            initialContext.error("No output path specified");
-        }
         int errors = initialContext.errors();
         if (errors == 0) {
             builder.setOutputDirectory(outputPath);
+            builder.addBootClassPathElements(bootModulePath);
             // first, probe the target platform
             Platform target = Platform.HOST_PLATFORM;
             builder.setTargetPlatform(target);
             Optional<ObjectFileProvider> optionalProvider = ObjectFileProvider.findProvider(target.getObjectType(), Main.class.getClassLoader());
             if (optionalProvider.isEmpty()) {
                 initialContext.error("No object file provider found for %s", target.getObjectType());
-                errors = initialContext.errors();
             } else {
                 ObjectFileProvider objectFileProvider = optionalProvider.get();
                 Iterator<CToolChain> toolChains = CToolChain.findAllCToolChains(target, t -> true, Main.class.getClassLoader()).iterator();
                 if (! toolChains.hasNext()) {
                     initialContext.error("No working C compiler found");
-                    errors = initialContext.errors();
                 } else {
                     CToolChain toolChain = toolChains.next();
                     builder.setToolChain(toolChain);
@@ -176,7 +153,6 @@ public class Main {
                         CProbe.Result probeResult = probe.run(toolChain, objectFileProvider, initialContext);
                         if (probeResult == null) {
                             initialContext.error("Type system probe compiler execution failed");
-                            errors = initialContext.errors();
                         } else {
                             long charSize = probeResult.getTypeInfo(char_t).getSize();
                             if (charSize != 1) {
@@ -300,25 +276,83 @@ public class Main {
                                     MainMethod.get(ctxt).setMainClass(mainClass);
                                     driver.execute();
                                 }
-                                errors = ctxt.errors();
                             }
                         }
                     } catch (IOException e) {
                         initialContext.error(e, "Failed to probe system types from tool chain");
-                        errors = initialContext.errors();
                     }
                 }
             }
         }
-        for (Diagnostic diagnostic : initialContext.getDiagnostics()) {
-            try {
-                diagnostic.appendTo(System.err);
-            } catch (IOException e) {
-                // just give up
+        diagnosticsHandler.accept(initialContext.getDiagnostics());
+        return initialContext;
+    }
+
+    public static void main(String[] args) {
+        System.setProperty("java.util.logging.manager", LogManager.class.getName());
+        Builder mainBuilder = builder();
+        mainBuilder.setDiagnosticsHandler(diagnostics -> {
+            for (Diagnostic diagnostic : diagnostics) {
+                try {
+                    diagnostic.appendTo(System.err);
+                } catch (IOException e) {
+                    // just give up
+                    break;
+                }
+            }
+        });
+        final Iterator<String> argIter = List.of(args).iterator();
+        String mainClass = null;
+        Path outputPath = null;
+        while (argIter.hasNext()) {
+            final String arg = argIter.next();
+            if (arg.startsWith("-")) {
+                if (arg.equals("--boot-module-path")) {
+                    String[] path = argIter.next().split(Pattern.quote(File.pathSeparator));
+                    for (String pathStr : path) {
+                        if (! pathStr.isEmpty()) {
+                            mainBuilder.addBootModulePath(Path.of(pathStr));
+                        }
+                    }
+                } else if (arg.equals("--output-path") || arg.equals("-o")) {
+                    outputPath = Path.of(argIter.next());
+                } else if (arg.equals("--debug")) {
+                    Logger.getLogger("").setLevel(Level.DEBUG);
+                } else if (arg.equals("--debug-vtables")) {
+                    Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables").setLevel(Level.DEBUG);
+                } else if (arg.equals("--debug-rta")) {
+                    Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
+                } else if (arg.equals("--debug-supers")) {
+                    Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
+                } else {
+                    System.err.printf("Unrecognized argument \"%s\"", arg);
+                    System.exit(1);
+                    return;
+                }
+            } else if (mainClass == null) {
+                mainClass = arg;
+            } else {
+                System.err.printf("Extra argument \"%s\"", arg);
+                System.exit(1);
                 break;
             }
         }
-        int warnings = initialContext.warnings();
+        if (mainClass == null) {
+            System.err.println("No main class specified");
+            System.exit(1);
+            return;
+        }
+        if (outputPath == null) {
+            System.err.println("No output path specified");
+            System.exit(1);
+            return;
+        }
+        mainBuilder.setMainClass(mainClass);
+        mainBuilder.setOutputPath(outputPath);
+        Main main = mainBuilder.build();
+        DiagnosticContext context = main.call();
+        int errors = context.errors();
+        int warnings = context.warnings();
         if (errors > 0) {
             if (warnings > 0) {
                 System.err.printf("Compilation failed with %d error(s) and %d warning(s)%n", Integer.valueOf(errors), Integer.valueOf(warnings));
@@ -329,5 +363,51 @@ public class Main {
             System.err.printf("Compilation completed with %d warning(s)%n", Integer.valueOf(warnings));
         }
         System.exit(errors == 0 ? 0 : 1);
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static final class Builder {
+        private final List<Path> bootModulePath = new ArrayList<>();
+        private Path outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qcc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));
+        private Consumer<Iterable<Diagnostic>> diagnosticsHandler = diagnostics -> {};
+        private String mainClass;
+
+        Builder() {}
+
+        public Builder addBootModulePath(Path path) {
+            Assert.checkNotNullParam("path", path);
+            bootModulePath.add(path);
+            return this;
+        }
+
+        public Builder addBootModulePaths(List<Path> paths) {
+            Assert.checkNotNullParam("paths", paths);
+            bootModulePath.addAll(paths);
+            return this;
+        }
+
+        public Builder setOutputPath(Path outputPath) {
+            Assert.checkNotNullParam("outputPath", outputPath);
+            this.outputPath = outputPath;
+            return this;
+        }
+
+        public Builder setDiagnosticsHandler(Consumer<Iterable<Diagnostic>> handler) {
+            Assert.checkNotNullParam("handler", handler);
+            diagnosticsHandler = handler;
+            return this;
+        }
+
+        public Builder setMainClass(String mainClass) {
+            this.mainClass = mainClass;
+            return this;
+        }
+
+        public Main build() {
+            return new Main(this);
+        }
     }
 }
