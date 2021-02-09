@@ -321,6 +321,10 @@ public class Driver implements Closeable {
         if (threadClass == null) {
             return false;
         }
+        ResolvedTypeDefinition vmClass = loadAndResolveBootstrapClass("cc/quarkus/qcc/runtime/main/VM");
+        if (vmClass == null) {
+            return false;
+        }
 
         // trace out the program graph, enqueueing each item one time and then processing every item in the queue;
         // in this stage we're just loading everything that *might* be reachable
