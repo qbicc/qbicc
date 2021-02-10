@@ -5,6 +5,7 @@ import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DICompositeType;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIEncoding;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIFlags;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
@@ -13,6 +14,7 @@ import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
 import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataNode;
 import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataTuple;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
@@ -206,6 +208,15 @@ final class LLVMModuleDebugInfo {
         return result;
     }
 
+    private LLValue createArrayType(final ArrayType type) {
+        DICompositeType derivedType = module.diCompositeType(DITag.ArrayType, type.getSize() * 8, type.getAlign() * 8);
+        LLValue result = registerType(type, derivedType);
+
+        derivedType.baseType(getType(type.getElementType()))
+            .elements(module.metadataTuple().elem(null, module.diSubrange(type.getElementCount()).asRef()).asRef());
+        return result;
+    }
+
     private LLValue createFallbackType(final Type type) {
         long size = 0;
         int align = 1;
@@ -222,7 +233,9 @@ final class LLVMModuleDebugInfo {
     }
 
     private LLValue createType(final Type type) {
-        if (type instanceof BooleanType) {
+        if (type instanceof ArrayType) {
+            return createArrayType((ArrayType) type);
+        } else if (type instanceof BooleanType) {
             return createBasicType((BooleanType) type, DIEncoding.Boolean);
         } else if (type instanceof CompoundType) {
             return createCompoundType((CompoundType) type);
