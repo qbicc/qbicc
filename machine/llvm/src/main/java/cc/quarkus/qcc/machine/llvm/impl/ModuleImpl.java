@@ -19,6 +19,7 @@ import cc.quarkus.qcc.machine.llvm.debuginfo.DIEncoding;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIFile;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DILocation;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DISubrange;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubroutineType;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DITag;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
@@ -113,6 +114,10 @@ final class ModuleImpl implements Module {
         Assert.checkNotNullParam("name", name);
         Assert.checkNotNullParam("unit", unit);
         return add(meta, new DISubprogramImpl(nextMetadataNodeId(), name, (AbstractValue)type, (AbstractValue)unit));
+    }
+
+    public DISubrange diSubrange(final long count) {
+        return add(meta, new DISubrangeImpl(nextMetadataNodeId(), count));
     }
 
     public DIBasicType diBasicType(final DIEncoding encoding, final long size, final int align) {

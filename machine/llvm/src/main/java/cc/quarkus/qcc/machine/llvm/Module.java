@@ -11,6 +11,7 @@ import cc.quarkus.qcc.machine.llvm.debuginfo.DIEncoding;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIFile;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DILocation;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DISubrange;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubroutineType;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DITag;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
@@ -41,6 +42,7 @@ public interface Module {
     DIFile diFile(String filename, String directory);
     DILocation diLocation(int line, int column, LLValue scope, LLValue inlinedAt);
     DISubprogram diSubprogram(String name, LLValue type, LLValue unit);
+    DISubrange diSubrange(long count);
     DIBasicType diBasicType(DIEncoding encoding, long size, int align);
     DIDerivedType diDerivedType(DITag tag, long size, int align);
     DICompositeType diCompositeType(DITag tag, long size, int align);
