@@ -125,15 +125,6 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return instance;
     }
 
-    // TODO: Ensuring the vtable is added to its class's static data really belongs in the lowering of new to object allocation...
-    //       Move this to NoGcBasicBlockBuilder when https://github.com/quarkuscc/qcc/pull/141/ is merged
-
-    public Value new_(final ClassObjectType type) {
-        DispatchTables dt = DispatchTables.get(ctxt);
-        dt.getSymbolForVTablePtr(type.getDefinition().validate()); // has the side effect of putting vtable into static data of defining class's object file
-        return super.new_(type);
-    }
-
     private SymbolLiteral functionLiteral(final Function function) {
         return ctxt.getLiteralFactory().literalOfSymbol(function.getName(), function.getType());
     }
