@@ -2,18 +2,26 @@ package cc.quarkus.qcc.plugin.dispatch;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.ArrayLiteral;
+import cc.quarkus.qcc.graph.literal.CompoundLiteral;
+import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.Linkage;
 import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.type.ArrayType;
+import cc.quarkus.qcc.type.CompoundType;
+import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import org.jboss.logging.Logger;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,8 +33,7 @@ public class DispatchTables {
     private static final AttachmentKey<DispatchTables> KEY = new AttachmentKey<>();
 
     private final CompilationContext ctxt;
-    private final Map<ValidatedTypeDefinition, MethodElement[]> vtables = new ConcurrentHashMap<>();
-    private final Map<ValidatedTypeDefinition, SymbolLiteral> vtableSymbols = new ConcurrentHashMap<>();
+    private final Map<ValidatedTypeDefinition, VTableInfo> vtables = new ConcurrentHashMap<>();
 
     private DispatchTables(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -44,14 +51,14 @@ public class DispatchTables {
         return dt;
     }
 
-    public MethodElement[] getVTable(ValidatedTypeDefinition cls) {
-        return vtables.getOrDefault(cls, MethodElement.NO_METHODS);
+    public VTableInfo getVTableInfo(ValidatedTypeDefinition cls) {
+        return vtables.get(cls);
     }
 
     void buildFilteredVTable(ValidatedTypeDefinition cls) {
         log.debugf("Building VTable for %s", cls.getDescriptor());
 
-        MethodElement[] inherited = cls.hasSuperClass() ? getVTable(cls.getSuperClass()) : MethodElement.NO_METHODS;
+        MethodElement[] inherited = cls.hasSuperClass() ? getVTableInfo(cls.getSuperClass()).getVtable() : MethodElement.NO_METHODS;
         ArrayList<MethodElement> vtableVector = new ArrayList<>(List.of(inherited));
         vtLog.debugf("\t inheriting %d methods", inherited.length);
         outer: for (int i=0; i<cls.getMethodCount(); i++) {
@@ -70,52 +77,66 @@ public class DispatchTables {
                 vtableVector.add(m);
             }
         }
+        MethodElement[] vtable = vtableVector.toArray(MethodElement.NO_METHODS);
 
-        vtables.put(cls, vtableVector.toArray(MethodElement.NO_METHODS));
+        String vtableName = "vtable-" + cls.getInternalName().replace('/', '.');
+        TypeSystem ts = ctxt.getTypeSystem();
+        CompoundType.Member[] functions = new CompoundType.Member[vtable.length];
+        for (int i=0; i<vtable.length; i++) {
+            FunctionType funType = ctxt.getExactFunction(vtable[i]).getType();
+            functions[i] = ts.getCompoundTypeMember("m"+i, funType.getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
+        }
+        CompoundType vtableType = ts.getCompoundType(CompoundType.Tag.STRUCT, vtableName, vtable.length * ts.getPointerSize(),
+            ts.getPointerAlignment(), () -> List.of(functions));
+        SymbolLiteral vtableSymbol = ctxt.getLiteralFactory().literalOfSymbol(vtableName, vtableType);
+
+        vtables.put(cls,new VTableInfo(vtable, vtableType, vtableSymbol));
     }
 
-
-    public SymbolLiteral getSymbolForVTablePtr(ValidatedTypeDefinition type) {
-        SymbolLiteral symbol = vtableSymbols.get(type);
-        if (symbol != null) {
-            return symbol;
-        }
-
-        // A vtable is an array literal of function pointers.
-        TypeSystem ts = type.getClassType().getTypeSystem();
-        CompilationContext ctxt = type.getContext().getCompilationContext();
-        MethodElement[] vtable = getVTable(type);
-        ArrayType vtableType = ts.getArrayType(ts.getVoidType().getPointer(), vtable.length);
-        String itemName = "vtable-" + type.getInternalName().replace('/', '.');
-        symbol = ctxt.getLiteralFactory().literalOfSymbol(itemName, vtableType);
-        SymbolLiteral appearing = vtableSymbols.putIfAbsent(type, symbol);
-        if (appearing != null) {
-            return appearing;
-        }
-        Section section = ctxt.getOrAddProgramModule(type).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
-        SymbolLiteral[] functions = new SymbolLiteral[vtable.length];
+    public void emitVTable(ValidatedTypeDefinition cls) {
+        VTableInfo info = getVTableInfo(cls);
+        MethodElement[] vtable = info.getVtable();
+        Section section = ctxt.getOrAddProgramModule(cls).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+        HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
         for (int i=0; i<vtable.length; i++) {
             Function impl = ctxt.getExactFunction(vtable[i]);
-            functions[i] = impl.getLiteral();
-            if (!vtable[i].getEnclosingType().validate().equals(type)) {
+            if (!vtable[i].getEnclosingType().validate().equals(cls)) {
                 section.declareFunction(vtable[i], impl.getName(), impl.getType());
             }
+            valueMap.put(info.getType().getMember(i), impl.getLiteral());
         }
-        ArrayLiteral vtableLiteral = ctxt.getLiteralFactory().literalOf(vtableType, List.of(functions));
-        section.addData(null, itemName, vtableLiteral).setLinkage(Linkage.EXTERNAL);
-        return symbol;
+        CompoundLiteral vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
+        section.addData(null, info.getSymbol().getName(), vtableLiteral).setLinkage(Linkage.EXTERNAL);
     }
 
     public int getVTableIndex(MethodElement target) {
         ValidatedTypeDefinition definingType = target.getEnclosingType().validate();
-        MethodElement[] vtable = getVTable(definingType);
-        for (int i=0; i<vtable.length; i++) {
-            if (target.getName().equals(vtable[i].getName()) && target.getDescriptor().equals(vtable[i].getDescriptor())) {
-                return i;
+        VTableInfo info = getVTableInfo(definingType);
+        if (info != null) {
+            MethodElement[] vtable = info.getVtable();
+            for (int i = 0; i < vtable.length; i++) {
+                if (target.getName().equals(vtable[i].getName()) && target.getDescriptor().equals(vtable[i].getDescriptor())) {
+                    return i;
+                }
             }
         }
         ctxt.error("No vtable entry found for "+target);
         return 0;
     }
 
+    public static final class VTableInfo {
+        private final MethodElement[] vtable;
+        private final CompoundType type;
+        private final SymbolLiteral symbol;
+
+        VTableInfo(MethodElement[] vtable, CompoundType type, SymbolLiteral symbol) {
+            this.vtable = vtable;
+            this.type = type;
+            this.symbol = symbol;
+        }
+
+        public MethodElement[] getVtable() { return vtable; }
+        public SymbolLiteral getSymbol() { return symbol; }
+        public CompoundType getType() { return  type; }
+    }
 }

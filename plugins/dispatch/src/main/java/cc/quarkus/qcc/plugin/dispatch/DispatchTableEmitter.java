@@ -9,18 +9,17 @@ import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 
 import java.util.function.Consumer;
 
-public class VTableBuilder implements Consumer<CompilationContext>  {
+public class DispatchTableEmitter implements Consumer<CompilationContext>  {
     @Override
     public void accept(CompilationContext ctxt) {
         RTAInfo info = RTAInfo.get(ctxt);
         DispatchTables tables = DispatchTables.get(ctxt);
 
-        // Starting from java.lang.Object walk down the live class hierarchy and
-        //  compute vtable layouts that contain just the methods where ctxt.wasEnqueued is true.
+        // Walk down the live class hierarchy and emit vtables
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         ValidatedTypeDefinition jlo = jloDef.validate();
-        tables.buildFilteredVTable(jlo);
-        info.visitLiveSubclassesPreOrder(jlo, cls -> tables.buildFilteredVTable(cls));
+        tables.emitVTable(jlo);
+        info.visitLiveSubclasses(jlo, cls -> tables.emitVTable(cls));
     }
 }

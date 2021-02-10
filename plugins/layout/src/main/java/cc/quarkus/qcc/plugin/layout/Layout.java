@@ -93,14 +93,14 @@ public final class Layout {
         jlo.injectField(field);
         objectClassField = field;
 
-        // inject a field of type void*** to hold the vtable
+        // for now, inject a field of type void* to hold the vtable
         builder = FieldElement.builder();
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
         builder.setName("vtable");
         builder.setEnclosingType(jloDef);
         builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
-        builder.setType(classContext.getTypeSystem().getVoidType().getPointer().getPointer().getPointer());
+        builder.setType(classContext.getTypeSystem().getVoidType().getPointer());
         builder.setIndex(1);
         field = builder.build();
         jlo.injectField(field);

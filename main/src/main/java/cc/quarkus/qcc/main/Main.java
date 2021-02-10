@@ -32,6 +32,7 @@ import cc.quarkus.qcc.plugin.conversion.LLVMCompatibleBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.correctness.RuntimeChecksBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.dispatch.DispatchTableEmitter;
 import cc.quarkus.qcc.plugin.dispatch.VTableBuilder;
 import cc.quarkus.qcc.plugin.dot.DotGenerator;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
@@ -262,6 +263,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
 
+                                builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new LLVMGenerator());
 
                                 builder.addGenerateVisitor(DotGenerator.genPhase());

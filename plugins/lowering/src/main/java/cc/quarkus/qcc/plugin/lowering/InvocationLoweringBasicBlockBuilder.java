@@ -125,24 +125,16 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return instance;
     }
 
-    // TODO: Ensuring the vtable is added to its class's static data really belongs in the lowering of new to object allocation...
-    //       Move this to NoGcBasicBlockBuilder when https://github.com/quarkuscc/qcc/pull/141/ is merged
-
-    public Value new_(final ClassObjectType type) {
-        DispatchTables dt = DispatchTables.get(ctxt);
-        dt.getSymbolForVTablePtr(type.getDefinition().validate()); // has the side effect of putting vtable into static data of defining class's object file
-        return super.new_(type);
-    }
-
     private SymbolLiteral functionLiteral(final Function function) {
         return ctxt.getLiteralFactory().literalOfSymbol(function.getName(), function.getType());
     }
 
     private Value expandVirtualDispatch(Value instance, MethodElement target, Function invokeTarget) {
         DispatchTables dt = DispatchTables.get(ctxt);
-        Value index = ctxt.getLiteralFactory().literalOf(dt.getVTableIndex(target));
+        DispatchTables.VTableInfo info = dt.getVTableInfo(target.getEnclosingType().validate());
+        int index = dt.getVTableIndex(target);
         Value vtable = readInstanceField(instance, Layout.get(ctxt).getObjectVTableField(), JavaAccessMode.PLAIN);
-        Value fptr = pointerLoad(add(vtable, index), MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
-        return bitCast(fptr, invokeTarget.getType().getPointer());
+        return pointerLoad(memberPointer(bitCast(vtable, info.getType().getPointer()), info.getType().getMember(index)),
+            MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
     }
 }
