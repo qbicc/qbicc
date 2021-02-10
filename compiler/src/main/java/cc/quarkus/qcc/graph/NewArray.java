@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.graph;
 
-import java.util.Objects;
-
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
@@ -10,14 +8,12 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * A {@code new} allocation operation for array objects.
  */
-public final class NewArray extends AbstractValue implements OrderedNode {
-    private final Node dependency;
+public final class NewArray extends AbstractValue {
     private final ArrayObjectType type;
     private final Value size;
 
-    NewArray(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ArrayObjectType type, final Value size) {
+    NewArray(final Node callSite, final ExecutableElement element, final int line, final int bci, final ArrayObjectType type, final Value size) {
         super(callSite, element, line, bci);
-        this.dependency = dependency;
         this.type = type;
         this.size = size;
     }
@@ -38,11 +34,6 @@ public final class NewArray extends AbstractValue implements OrderedNode {
         return type;
     }
 
-    @Override
-    public Node getDependency() {
-        return dependency;
-    }
-
     public int getValueDependencyCount() {
         return 1;
     }
@@ -56,17 +47,10 @@ public final class NewArray extends AbstractValue implements OrderedNode {
     }
 
     int calcHashCode() {
-        return Objects.hash(dependency, type, size);
+        return System.identityHashCode(this);
     }
 
     public boolean equals(final Object other) {
-        return other instanceof NewArray && equals((NewArray) other);
-    }
-
-    public boolean equals(final NewArray other) {
-        return this == other || other != null
-            && dependency.equals(other.dependency)
-            && type.equals(other.type)
-            && size.equals(other.size);
+        return this == other;
     }
 }

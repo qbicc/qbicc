@@ -12,6 +12,7 @@ import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -62,8 +63,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 return super.new_((ClassObjectType) upperBound);
             }
         }
-        ctxt.error(getLocation(), "Invalid type resolved for `new`: %s", type);
-        return ctxt.getLiteralFactory().literalOfNull();
+        return super.new_(desc);
     }
 
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
@@ -74,9 +74,11 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             if (upperBound instanceof ArrayObjectType) {
                 return super.newArray((ArrayObjectType) upperBound, size);
             }
+        } else if (type instanceof ArrayType) {
+            // it's a native array
+            return stackAllocate(((ArrayType) type).getElementType(), size, ctxt.getLiteralFactory().literalOf(1));
         }
-        ctxt.error(getLocation(), "Invalid type resolved for `newArray`: %s", type);
-        return ctxt.getLiteralFactory().literalOfNull();
+        return super.newArray(desc, size);
     }
 
     public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
@@ -88,8 +90,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 return super.multiNewArray((ArrayObjectType) upperBound, dimensions);
             }
         }
-        ctxt.error(getLocation(), "Invalid type resolved for `multiNewArray`: %s", type);
-        return ctxt.getLiteralFactory().literalOfNull();
+        return super.multiNewArray(desc, dimensions);
     }
 
     public Value readInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
