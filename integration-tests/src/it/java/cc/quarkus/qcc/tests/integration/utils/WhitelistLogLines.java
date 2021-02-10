@@ -11,7 +11,6 @@ public enum WhitelistLogLines {
 
     // This is appended to all undermentioned listings
     ALL(new Pattern[]{ //empty for now
-        Pattern.compile("warning: LLVM: Unhandled type ref_array\\.ref\\.class\\.java-lang-String for debug info generation"),
         Pattern.compile("Compilation completed with [0-9]+ warning\\(s\\)")
     }),
 
