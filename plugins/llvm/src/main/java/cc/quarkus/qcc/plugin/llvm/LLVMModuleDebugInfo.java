@@ -14,11 +14,15 @@ import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
 import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataNode;
 import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataTuple;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.plugin.layout.Layout;
+import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.BooleanType;
+import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
@@ -166,19 +170,14 @@ final class LLVMModuleDebugInfo {
         );
     }
 
-    private LLValue createCompoundType(final CompoundType type) {
+    private MetadataTuple populateCompoundType(final CompoundType type, final DICompositeType diType) {
         MetadataTuple elements = module.metadataTuple();
-        LLValue result = registerType(
-            type,
-            module.diCompositeType(DITag.StructureType, type.getSize() * 8, type.getAlign() * 8)
-                .name(type.toFriendlyString())
-                .elements(elements.asRef())
-        );
+        diType.elements(elements.asRef());
 
         for (CompoundType.Member m : type.getMembers()) {
             ValueType mt = m.getType();
             elements.elem(null,
-                module.diDerivedType(DITag.Member, mt.getSize() * 8, type.getAlign() * 8)
+                module.diDerivedType(DITag.Member, mt.getSize() * 8, mt.getAlign() * 8)
                     .name(m.getName())
                     .baseType(getType(mt))
                     .offset((long)m.getOffset() * 8)
@@ -186,6 +185,15 @@ final class LLVMModuleDebugInfo {
             );
         }
 
+        return elements;
+    }
+
+    private LLValue createCompoundType(final CompoundType type) {
+        DICompositeType diType = module.diCompositeType(DITag.StructureType, type.getSize() * 8, type.getAlign() * 8)
+            .name(type.toFriendlyString());
+        LLValue result = registerType(type, diType);
+
+        populateCompoundType(type, diType);
         return result;
     }
 
@@ -207,6 +215,39 @@ final class LLVMModuleDebugInfo {
         }
 
         return result;
+    }
+
+    private LLValue createPhysicalObjectType(final PhysicalObjectType type, final CompoundType compoundType) {
+        DICompositeType diType = module.diCompositeType(DITag.StructureType, compoundType.getSize() * 8, compoundType.getAlign() * 8)
+            .name(type.toFriendlyString());
+        LLValue result = registerType(type, diType);
+
+        MetadataTuple elements = populateCompoundType(compoundType, diType);
+
+        if (type.hasSuperClass()) {
+            ClassObjectType superType = type.getSuperClassType();
+            CompoundType superCompoundType = Layout.get(ctxt).getInstanceLayoutInfo(superType.getDefinition()).getCompoundType();
+            LLValue superDiType = getType(superType);
+
+            elements.elem(null,
+                module.diDerivedType(DITag.Inheritance, superCompoundType.getSize() * 8, superCompoundType.getAlign() * 8)
+                    .baseType(superDiType)
+                    .offset(0)
+                    .asRef()
+            );
+        }
+
+        return result;
+    }
+
+    private LLValue createClassObjectType(final ClassObjectType type) {
+        CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(type.getDefinition()).getCompoundType();
+        return createPhysicalObjectType(type, compoundType);
+    }
+
+    private LLValue createArrayObjectType(final ArrayObjectType type) {
+        CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(Layout.get(ctxt).getArrayContentField(type).getEnclosingType()).getCompoundType();
+        return createPhysicalObjectType(type, compoundType);
     }
 
     private LLValue createArrayType(final ArrayType type) {
@@ -236,8 +277,12 @@ final class LLVMModuleDebugInfo {
     private LLValue createType(final Type type) {
         if (type instanceof ArrayType) {
             return createArrayType((ArrayType) type);
+        } else if (type instanceof ArrayObjectType) {
+            return createArrayObjectType((ArrayObjectType) type);
         } else if (type instanceof BooleanType) {
             return createBasicType((BooleanType) type, DIEncoding.Boolean);
+        } else if (type instanceof ClassObjectType) {
+            return createClassObjectType((ClassObjectType) type);
         } else if (type instanceof CompoundType) {
             return createCompoundType((CompoundType) type);
         } else if (type instanceof FloatType) {
