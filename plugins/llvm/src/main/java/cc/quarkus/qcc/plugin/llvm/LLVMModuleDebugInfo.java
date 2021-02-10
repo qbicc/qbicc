@@ -23,6 +23,7 @@ import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
@@ -249,6 +250,8 @@ final class LLVMModuleDebugInfo {
             return createPointerType((ReferenceType) type, ((ReferenceType) type).getUpperBound());
         } else if (type instanceof SignedIntegerType) {
             return createBasicType((SignedIntegerType) type, DIEncoding.Signed);
+        } else if (type instanceof TypeType) {
+            return createBasicType((TypeType) type, DIEncoding.Unsigned);
         } else if (type instanceof UnsignedIntegerType) {
             return createBasicType((UnsignedIntegerType) type, DIEncoding.Unsigned);
         } else {
