@@ -5,6 +5,7 @@ import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
+import cc.quarkus.qcc.machine.llvm.debuginfo.DICompositeType;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIEncoding;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIFlags;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
@@ -13,14 +14,20 @@ import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
 import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataNode;
 import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataTuple;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.plugin.layout.Layout;
+import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.BooleanType;
+import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
@@ -163,19 +170,14 @@ final class LLVMModuleDebugInfo {
         );
     }
 
-    private LLValue createCompoundType(final CompoundType type) {
+    private MetadataTuple populateCompoundType(final CompoundType type, final DICompositeType diType) {
         MetadataTuple elements = module.metadataTuple();
-        LLValue result = registerType(
-            type,
-            module.diCompositeType(DITag.StructureType, type.getSize() * 8, type.getAlign() * 8)
-                .name(type.toFriendlyString())
-                .elements(elements.asRef())
-        );
+        diType.elements(elements.asRef());
 
         for (CompoundType.Member m : type.getMembers()) {
             ValueType mt = m.getType();
             elements.elem(null,
-                module.diDerivedType(DITag.Member, mt.getSize() * 8, type.getAlign() * 8)
+                module.diDerivedType(DITag.Member, mt.getSize() * 8, mt.getAlign() * 8)
                     .name(m.getName())
                     .baseType(getType(mt))
                     .offset((long)m.getOffset() * 8)
@@ -183,6 +185,15 @@ final class LLVMModuleDebugInfo {
             );
         }
 
+        return elements;
+    }
+
+    private LLValue createCompoundType(final CompoundType type) {
+        DICompositeType diType = module.diCompositeType(DITag.StructureType, type.getSize() * 8, type.getAlign() * 8)
+            .name(type.toFriendlyString());
+        LLValue result = registerType(type, diType);
+
+        populateCompoundType(type, diType);
         return result;
     }
 
@@ -206,6 +217,48 @@ final class LLVMModuleDebugInfo {
         return result;
     }
 
+    private LLValue createPhysicalObjectType(final PhysicalObjectType type, final CompoundType compoundType) {
+        DICompositeType diType = module.diCompositeType(DITag.StructureType, compoundType.getSize() * 8, compoundType.getAlign() * 8)
+            .name(type.toFriendlyString());
+        LLValue result = registerType(type, diType);
+
+        MetadataTuple elements = populateCompoundType(compoundType, diType);
+
+        if (type.hasSuperClass()) {
+            ClassObjectType superType = type.getSuperClassType();
+            CompoundType superCompoundType = Layout.get(ctxt).getInstanceLayoutInfo(superType.getDefinition()).getCompoundType();
+            LLValue superDiType = getType(superType);
+
+            elements.elem(null,
+                module.diDerivedType(DITag.Inheritance, superCompoundType.getSize() * 8, superCompoundType.getAlign() * 8)
+                    .baseType(superDiType)
+                    .offset(0)
+                    .asRef()
+            );
+        }
+
+        return result;
+    }
+
+    private LLValue createClassObjectType(final ClassObjectType type) {
+        CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(type.getDefinition()).getCompoundType();
+        return createPhysicalObjectType(type, compoundType);
+    }
+
+    private LLValue createArrayObjectType(final ArrayObjectType type) {
+        CompoundType compoundType = Layout.get(ctxt).getInstanceLayoutInfo(Layout.get(ctxt).getArrayContentField(type).getEnclosingType()).getCompoundType();
+        return createPhysicalObjectType(type, compoundType);
+    }
+
+    private LLValue createArrayType(final ArrayType type) {
+        DICompositeType derivedType = module.diCompositeType(DITag.ArrayType, type.getSize() * 8, type.getAlign() * 8);
+        LLValue result = registerType(type, derivedType);
+
+        derivedType.baseType(getType(type.getElementType()))
+            .elements(module.metadataTuple().elem(null, module.diSubrange(type.getElementCount()).asRef()).asRef());
+        return result;
+    }
+
     private LLValue createFallbackType(final Type type) {
         long size = 0;
         int align = 1;
@@ -222,8 +275,14 @@ final class LLVMModuleDebugInfo {
     }
 
     private LLValue createType(final Type type) {
-        if (type instanceof BooleanType) {
+        if (type instanceof ArrayType) {
+            return createArrayType((ArrayType) type);
+        } else if (type instanceof ArrayObjectType) {
+            return createArrayObjectType((ArrayObjectType) type);
+        } else if (type instanceof BooleanType) {
             return createBasicType((BooleanType) type, DIEncoding.Boolean);
+        } else if (type instanceof ClassObjectType) {
+            return createClassObjectType((ClassObjectType) type);
         } else if (type instanceof CompoundType) {
             return createCompoundType((CompoundType) type);
         } else if (type instanceof FloatType) {
@@ -236,6 +295,8 @@ final class LLVMModuleDebugInfo {
             return createPointerType((ReferenceType) type, ((ReferenceType) type).getUpperBound());
         } else if (type instanceof SignedIntegerType) {
             return createBasicType((SignedIntegerType) type, DIEncoding.Signed);
+        } else if (type instanceof TypeType) {
+            return createBasicType((TypeType) type, DIEncoding.Unsigned);
         } else if (type instanceof UnsignedIntegerType) {
             return createBasicType((UnsignedIntegerType) type, DIEncoding.Unsigned);
         } else {

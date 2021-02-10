@@ -15,6 +15,7 @@ public class DICompositeTypeImpl extends AbstractMetadataNode implements DICompo
     private final int align;
 
     private AbstractValue elements;
+    private AbstractValue baseType;
     private String name;
     private EnumSet<DIFlags> flags = EnumSet.noneOf(DIFlags.class);
     private AbstractValue file;
@@ -44,6 +45,11 @@ public class DICompositeTypeImpl extends AbstractMetadataNode implements DICompo
             target.append("null");
         }
 
+        if (baseType != null) {
+            target.append(", baseType: ");
+            baseType.appendTo(target);
+        }
+
         if (name != null) {
             target.append(", name: ");
             appendEscapedString(target, name);
@@ -65,8 +71,13 @@ public class DICompositeTypeImpl extends AbstractMetadataNode implements DICompo
         return appendTrailer(target);
     }
 
-    public DICompositeType elements(final LLValue baseType) {
-        this.elements = (AbstractValue) baseType;
+    public DICompositeType elements(final LLValue elements) {
+        this.elements = (AbstractValue) elements;
+        return this;
+    }
+
+    public DICompositeType baseType(final LLValue baseType) {
+        this.baseType = (AbstractValue) baseType;
         return this;
     }
 
