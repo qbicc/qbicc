@@ -89,7 +89,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         // ensure that all overriding implementations of this method are marked invokable.
         ValidatedTypeDefinition definingClass = target.getEnclosingType().validate();
         RTAInfo info = RTAInfo.get(ctxt);
-        info.visitLiveSubclasses(target.getEnclosingType().validate(), (sc) -> {
+        info.visitLiveSubclassesPreOrder(target.getEnclosingType().validate(), (sc) -> {
             MethodElement cand = sc.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
             if (!ctxt.wasEnqueued(cand)) {
                 rtaLog.debugf("Adding method (subclass override): %s", cand);

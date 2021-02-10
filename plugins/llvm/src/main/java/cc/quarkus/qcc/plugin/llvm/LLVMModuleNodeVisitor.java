@@ -166,7 +166,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                 throw new IllegalStateException("Unsupported size for type IDs: " + size);
             }
         } else {
-            throw new IllegalStateException();
+            throw new IllegalStateException("Can't map Type("+ type.toFriendlyString() + ")");
         }
         types.put(type, res);
         return res;

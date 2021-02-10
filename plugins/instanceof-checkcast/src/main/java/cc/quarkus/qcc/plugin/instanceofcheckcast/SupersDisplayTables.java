@@ -29,6 +29,47 @@ public class SupersDisplayTables {
     private final CompilationContext ctxt;
     private final Map<ValidatedTypeDefinition, ValidatedTypeDefinition[]> supers = new ConcurrentHashMap<>();
 
+    private final Map<ValidatedTypeDefinition, IdAndRange> typeids = new ConcurrentHashMap<>();
+
+    /** 
+     * This class embodies the typeid for a class and the
+     * maximumSubclassID so that instanceof checks can be
+     * done efficiently for primary classes by validating
+     * the following relation holds:
+     * `target.typeid < o.typeid < target.maximumSubtypeId`
+     * 
+     * TypeIDs are assigned to classes using a pre-order
+     * traversal of the set reachable classes and their
+     * subclasses starting from Object.
+     * 
+     * TODO: Assign interface classes and array classes their
+     * typeids in a meaningful way.
+     */
+    static class IdAndRange {
+        private static int typeid_index = 1; // avoid using 0;
+
+        public static IdAndRange nextID() {
+            return new IdAndRange(typeid_index++);
+        }
+
+        int typeid;
+        int maximumSubtypeId;
+        // range is [typeid, maximumSubtypeID]
+
+        IdAndRange(int id) {
+            typeid = id;
+            maximumSubtypeId = id;
+        }
+
+        public void setMaximumSubtypeId(int id) {
+            maximumSubtypeId = Math.max(maximumSubtypeId, id);
+        }
+
+        public String toString() {
+            return "ID[" + typeid +"] Range["+ typeid +", " + maximumSubtypeId + "]";
+        }
+    }
+
     private int maxDisplaySizeElements;
 
     private SupersDisplayTables(final CompilationContext ctxt) {
@@ -108,7 +149,34 @@ public class SupersDisplayTables {
             return IntStream.of(waste);
         }).sum();
         supersLog.debug("Slots of waste: " + emptySlots);
-        
+
+        supersLog.debug("typeid and range");
+        typeids.entrySet().stream()
+            .sorted((a, b) -> a.getValue().typeid - b.getValue().typeid)
+            .forEach(es -> {
+                ValidatedTypeDefinition vtd = es.getKey();
+                IdAndRange idRange = es.getValue();
+                supersLog.debug(idRange.toString() + " " + vtd.getInternalName());
+            }
+        );
+    }
+
+    void assignTypeID(ValidatedTypeDefinition cls) {
+        IdAndRange myID = typeids.computeIfAbsent(cls, theCls -> IdAndRange.nextID());
+        log.debug("["+ myID.typeid +"] Class: " + cls.getInternalName());
+    }
+
+    void assignMaximumSubtypeId(ValidatedTypeDefinition cls) {
+        IdAndRange myID = typeids.get(cls);
+        log.debug("Visiting: " + cls.getInternalName() + " " + myID.toString());
+        ValidatedTypeDefinition superclass = cls.getSuperClass();
+        if (superclass != null) {
+            IdAndRange superID = typeids.getOrDefault(superclass, null);
+            if (superID != null) {
+                superID.setMaximumSubtypeId(myID.maximumSubtypeId);
+                log.debug("Setting Super's max subtype id: " + superclass.getInternalName() + " " + superID.toString());
+            }
+        }
     }
 }
 
