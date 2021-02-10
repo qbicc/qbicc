@@ -247,6 +247,14 @@ index into something to get a function pointer.
 
 === instanceof/checkcast (of a class)
 
+We have assigned typeIds via a postorder traversal of the class hierarchy. Therefore an object `o` is a subclass of `C` exactly when `C.minTypeId <= o.typeId <= C.maxTypeId`.
+
+We can implement this test with a single branch by using unsigned comparisons by doing the test:
+`o.typeId - C.minTypeId <= (C.maxTypeId - C.minTypeId)`
+As `C.minTypeId` and `C.maxTypeId` are compile time constants, we can get a tight 4 instruction sequence: load, add immediate, unsigned compare, branch.
+
+If C is a leaf class (no live subclasses), we can do a simple load, cmp eq, branch.
+
 === instanceof/checkcast (of an array)
 
 Can have some fast paths based on dimensionality and leaf-element type
