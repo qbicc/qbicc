@@ -131,9 +131,10 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     private Value expandVirtualDispatch(Value instance, MethodElement target, Function invokeTarget) {
         DispatchTables dt = DispatchTables.get(ctxt);
-        Value index = ctxt.getLiteralFactory().literalOf(dt.getVTableIndex(target));
+        DispatchTables.VTableInfo info = dt.getVTableInfo(target.getEnclosingType().validate());
+        int index = dt.getVTableIndex(target);
         Value vtable = readInstanceField(instance, Layout.get(ctxt).getObjectVTableField(), JavaAccessMode.PLAIN);
-        Value fptr = pointerLoad(add(vtable, index), MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
-        return bitCast(fptr, invokeTarget.getType().getPointer());
+        return pointerLoad(memberPointer(bitCast(vtable, info.getType().getPointer()), info.getType().getMember(index)),
+            MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
     }
 }
