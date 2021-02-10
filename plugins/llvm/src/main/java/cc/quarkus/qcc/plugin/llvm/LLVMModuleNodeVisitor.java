@@ -38,6 +38,7 @@ import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.WordType;
@@ -152,6 +153,18 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             }
 
             identifiedType.type(struct);
+        } else if (type instanceof TypeType) {
+            TypeType typeType = (TypeType) type;
+            int size = ctxt.getTypeSystem().getTypeIdSize();
+            if (size == 1) {
+                res = i8;
+            } else if (size == 2) {
+                res = i16;
+            } else if (size == 4) {
+                res = i32;
+            } else {
+                throw new IllegalStateException("Unsupported size for type IDs: " + size);
+            }
         } else {
             throw new IllegalStateException();
         }
