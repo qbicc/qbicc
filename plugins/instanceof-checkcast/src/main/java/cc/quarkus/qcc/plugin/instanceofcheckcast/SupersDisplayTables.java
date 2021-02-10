@@ -54,7 +54,7 @@ public class SupersDisplayTables {
 
         int typeid;
         int maximumSubtypeId;
-        // lower bound is == typeid
+        // range is [typeid, maximumSubtypeID]
 
         IdAndRange(int id) {
             typeid = id;
@@ -66,7 +66,7 @@ public class SupersDisplayTables {
         }
 
         public String toString() {
-            return "ID[" + typeid +"] Bound["+ typeid +", " + maximumSubtypeId + "]";
+            return "ID[" + typeid +"] Range["+ typeid +", " + maximumSubtypeId + "]";
         }
     }
 
@@ -150,13 +150,13 @@ public class SupersDisplayTables {
         }).sum();
         supersLog.debug("Slots of waste: " + emptySlots);
 
-        supersLog.debug("typeid and bounds");
+        supersLog.debug("typeid and range");
         typeids.entrySet().stream()
             .sorted((a, b) -> a.getValue().typeid - b.getValue().typeid)
             .forEach(es -> {
                 ValidatedTypeDefinition vtd = es.getKey();
-                IdAndRange idBounds = es.getValue();
-                supersLog.debug(idBounds.toString() + " " + vtd.getInternalName());
+                IdAndRange idRange = es.getValue();
+                supersLog.debug(idRange.toString() + " " + vtd.getInternalName());
             }
         );
     }
@@ -166,15 +166,15 @@ public class SupersDisplayTables {
         log.debug("["+ myID.typeid +"] Class: " + cls.getInternalName());
     }
 
-    void assignBounds(ValidatedTypeDefinition cls) {
+    void assignMaximumSubtypeId(ValidatedTypeDefinition cls) {
         IdAndRange myID = typeids.get(cls);
         log.debug("Visiting: " + cls.getInternalName() + " " + myID.toString());
         ValidatedTypeDefinition superclass = cls.getSuperClass();
         if (superclass != null) {
-            IdAndRange superBounds = typeids.getOrDefault(superclass, null);
-            if (superBounds != null) {
-                superBounds.setMaximumSubtypeId(myID.maximumSubtypeId);
-                log.debug("Setting Super's bound: " + superclass.getInternalName() + " " + superBounds.toString());
+            IdAndRange superID = typeids.getOrDefault(superclass, null);
+            if (superID != null) {
+                superID.setMaximumSubtypeId(myID.maximumSubtypeId);
+                log.debug("Setting Super's max subtype id: " + superclass.getInternalName() + " " + superID.toString());
             }
         }
     }

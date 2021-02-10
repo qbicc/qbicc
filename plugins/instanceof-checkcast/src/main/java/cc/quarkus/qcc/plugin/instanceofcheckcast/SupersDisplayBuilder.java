@@ -31,7 +31,7 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         info.visitLiveSubclassesPreOrder(jlo, cls -> tables.assignTypeID(cls));
 
         // back propagate bounds
-        info.visitLiveSubclassesPostOrder(jlo, cls -> tables.assignBounds(cls));
+        info.visitLiveSubclassesPostOrder(jlo, cls -> tables.assignMaximumSubtypeId(cls));
         tables.statistics();
     }
 }
