@@ -60,24 +60,25 @@ public class SupersDisplayTables {
      */
     static class IdAndRange {
         private static int typeid_index = 1; // avoid using 0;
-
-        private static int interface_index_bit = 0; // represents the next bit for an interface
+        
+        // interface ids must be contigious and after the class ids
+        private static int first_interface_typeid = 0;
+        static final int interfaces_per_byte = 8;
 
         public static IdAndRange nextID() {
             return new IdAndRange(typeid_index++);
         }
 
         public static IdAndRange nextInterfaceID() {
-            IdAndRange id = new IdAndRange(typeid_index++);
-            id.setNextInterfaceIndexBit();
-            return id;
+            if (first_interface_typeid == 0) {
+                first_interface_typeid = typeid_index;
+            }
+            return new IdAndRange(typeid_index++);
         }
 
         int typeid;
         int maximumSubtypeId;
         // range is [typeid, maximumSubtypeID]
-
-        int interfaceIndexBit = -1;
 
         IdAndRange(int id) {
             typeid = id;
@@ -88,19 +89,13 @@ public class SupersDisplayTables {
             maximumSubtypeId = Math.max(maximumSubtypeId, id);
         }
 
-        public void setNextInterfaceIndexBit() {
-            interfaceIndexBit = interface_index_bit;
-            if (interface_index_bit == 0) {
-                interface_index_bit = 1;
-            } else {
-                interface_index_bit <<= 1;
-            }
-        }
-
         public String toString() {
             String s = "ID[" + typeid +"] Range["+ typeid +", " + maximumSubtypeId + "]";
-            if (interfaceIndexBit != -1) {
-                s += " indexBit[" + Integer.toHexString(interfaceIndexBit) + "]";
+            if (typeid >= first_interface_typeid) {
+                int bit = (typeid - first_interface_typeid);
+                s += " indexBit[" + bit + "]";
+                s += " byte[" + (bit / interfaces_per_byte) + "]";
+                s += " mask[" + Integer.toBinaryString((int)(Math.pow(2, bit % interfaces_per_byte))) + "]";
             }
             return s;
         }
@@ -196,8 +191,8 @@ public class SupersDisplayTables {
             }
         );
 
-        int maxInterfaceBit = IdAndRange.interface_index_bit;
-        int bytesPerClass = (int)Math.ceil(Math.log10(maxInterfaceBit));
+        int numInterfaces = typeids.size() - supers.size();
+        int bytesPerClass = (numInterfaces + IdAndRange.interfaces_per_byte - 1) / IdAndRange.interfaces_per_byte;
         supersLog.debug("===============");
         supersLog.debug("Implemented interface bits require " + bytesPerClass + " bytes per class");
         supersLog.debug("classes + interfaces = " + typeids.size());
