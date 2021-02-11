@@ -233,5 +233,15 @@ public class SupersDisplayTables {
             }
         }
     }
+
+    void writeTypeIdToClasses() {
+        typeids.entrySet().stream()
+            .forEach(es -> {
+                ValidatedTypeDefinition vtd = es.getKey();
+                IdAndRange idRange = es.getValue();
+                vtd.assignTypeId(idRange.typeid);
+            }
+        );
+    }
 }
 
