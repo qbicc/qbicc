@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.graph.literal.ArrayLiteral;
+import cc.quarkus.qcc.graph.literal.BitCastLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.CompoundLiteral;
@@ -46,6 +47,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, BitCast node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, BitCastLiteral node) {
         return visitUnknown(param, node);
     }
 

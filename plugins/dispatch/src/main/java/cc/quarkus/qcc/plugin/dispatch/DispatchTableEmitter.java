@@ -10,16 +10,20 @@ import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import java.util.function.Consumer;
 
 public class DispatchTableEmitter implements Consumer<CompilationContext>  {
+
     @Override
     public void accept(CompilationContext ctxt) {
         RTAInfo info = RTAInfo.get(ctxt);
         DispatchTables tables = DispatchTables.get(ctxt);
 
-        // Walk down the live class hierarchy and emit vtables
+        // Walk down the live class hierarchy and emit vtables for each class
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         ValidatedTypeDefinition jlo = jloDef.validate();
         tables.emitVTable(jlo);
         info.visitLiveSubclassesPreOrder(jlo, cls -> tables.emitVTable(cls));
+
+        // Emit the master table of all program vtables in the object file for java.lang.Object
+        tables.emitVTableTable(jlo);
     }
 }

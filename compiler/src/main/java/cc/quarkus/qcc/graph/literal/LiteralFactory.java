@@ -16,6 +16,7 @@ import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.WordType;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -64,6 +65,8 @@ public interface LiteralFactory {
     ArrayLiteral literalOf(ArrayType type, List<Literal> values);
 
     CompoundLiteral literalOf(CompoundType type, Map<CompoundType.Member, Literal> values);
+
+    BitCastLiteral bitcastLiteral(Literal value, WordType toType);
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
@@ -184,6 +187,12 @@ public interface LiteralFactory {
                 Assert.checkNotNullParam("type", type);
                 Assert.checkNotNullParam("values", values);
                 return new CompoundLiteral(type, values);
+            }
+
+            public BitCastLiteral bitcastLiteral(final Literal value, final WordType toType) {
+                Assert.checkNotNullParam("value", value);
+                Assert.checkNotNullParam("toType", toType);
+                return new BitCastLiteral(value, toType);
             }
         };
     }

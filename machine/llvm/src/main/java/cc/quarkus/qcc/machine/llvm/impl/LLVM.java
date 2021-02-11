@@ -79,6 +79,8 @@ public final class LLVM {
         return new DoubleConstant(val);
     }
 
+    public static LLValue bitcastConstant(LLValue val, LLValue fromType, LLValue toType) { return new BitcastConstant(val, fromType, toType); }
+
     public static Array array(LLValue elementType) {
         return new ArrayImpl(elementType);
     }
