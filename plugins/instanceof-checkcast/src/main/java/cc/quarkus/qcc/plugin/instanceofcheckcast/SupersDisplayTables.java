@@ -13,6 +13,7 @@ import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import io.smallrye.common.constraint.Assert;
 
 /**
  * Build Cohen's display of accessible super types.
@@ -55,8 +56,6 @@ public class SupersDisplayTables {
      * stay reasonably small.
      * 
      * TODO: Assign array classes their typeids in a meaningful way.
-     * TODO: Need to fix up Object's `maximumSubtypeId` to include 
-     * the interface typeids.
      */
     static class IdAndRange {
         private static int typeid_index = 1; // avoid using 0;
@@ -227,6 +226,14 @@ public class SupersDisplayTables {
                 assignInterfaceID(interface_i);
             }
         }
+    }
+
+    void updateJLORange(ValidatedTypeDefinition jlo) {
+        Assert.assertTrue(jlo.getSuperClass() == null);
+        IdAndRange r = typeids.get(jlo);
+        // typeid_index is incremented after use so we need
+        // subtract 1 here to get the max typeid
+        r.maximumSubtypeId = IdAndRange.typeid_index - 1;
     }
 
     void writeTypeIdToClasses() {

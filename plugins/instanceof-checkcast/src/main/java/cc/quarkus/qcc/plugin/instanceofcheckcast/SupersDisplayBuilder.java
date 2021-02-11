@@ -36,8 +36,11 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         // visit all interfaces implemented by classes in RTAInfo and assign typeids
         info.visitLiveSubclassesPreOrder(jlo, cls -> tables.assignInterfaceID(cls));
 
+        tables.updateJLORange(jlo);
+
         tables.statistics();
 
+        tables.writeTypeIdToClasses();
 
     }
 }
