@@ -42,19 +42,42 @@ public class SupersDisplayTables {
      * traversal of the set reachable classes and their
      * subclasses starting from Object.
      * 
-     * TODO: Assign interface classes and array classes their
-     * typeids in a meaningful way.
+     * Interface typeid's are assigned after class's get their
+     * typeids assigned - see code in SuperDisplayBuilder.java
+     * 
+     * Interfaces also get assigned a bit as their index into
+     * the implemented interfaces bit array.  If a class
+     * implements interface I, it will have a `1` in the 
+     * interface_bits[] at I.interfaceIndexBit.
+     * 
+     * We have perfect knowledge of the implemented interfaces
+     * so we can assign these bits up front and the array should
+     * stay reasonably small.
+     * 
+     * TODO: Assign array classes their typeids in a meaningful way.
+     * TODO: Need to fix up Object's `maximumSubtypeId` to include 
+     * the interface typeids.
      */
     static class IdAndRange {
         private static int typeid_index = 1; // avoid using 0;
+
+        private static int interface_index_bit = 0; // represents the next bit for an interface
 
         public static IdAndRange nextID() {
             return new IdAndRange(typeid_index++);
         }
 
+        public static IdAndRange nextInterfaceID() {
+            IdAndRange id = new IdAndRange(typeid_index++);
+            id.setNextInterfaceIndexBit();
+            return id;
+        }
+
         int typeid;
         int maximumSubtypeId;
         // range is [typeid, maximumSubtypeID]
+
+        int interfaceIndexBit = -1;
 
         IdAndRange(int id) {
             typeid = id;
@@ -65,8 +88,21 @@ public class SupersDisplayTables {
             maximumSubtypeId = Math.max(maximumSubtypeId, id);
         }
 
+        public void setNextInterfaceIndexBit() {
+            interfaceIndexBit = interface_index_bit;
+            if (interface_index_bit == 0) {
+                interface_index_bit = 1;
+            } else {
+                interface_index_bit <<= 1;
+            }
+        }
+
         public String toString() {
-            return "ID[" + typeid +"] Range["+ typeid +", " + maximumSubtypeId + "]";
+            String s = "ID[" + typeid +"] Range["+ typeid +", " + maximumSubtypeId + "]";
+            if (interfaceIndexBit != -1) {
+                s += " indexBit[" + Integer.toHexString(interfaceIndexBit) + "]";
+            }
+            return s;
         }
     }
 
@@ -159,6 +195,13 @@ public class SupersDisplayTables {
                 supersLog.debug(idRange.toString() + " " + vtd.getInternalName());
             }
         );
+
+        int maxInterfaceBit = IdAndRange.interface_index_bit;
+        int bytesPerClass = (int)Math.ceil(Math.log10(maxInterfaceBit));
+        supersLog.debug("===============");
+        supersLog.debug("Implemented interface bits require " + bytesPerClass + " bytes per class");
+        supersLog.debug("classes + interfaces = " + typeids.size());
+        supersLog.debug("Interface bits[] space (in bytes): " + (typeids.size() * bytesPerClass));
     }
 
     void assignTypeID(ValidatedTypeDefinition cls) {
@@ -175,6 +218,18 @@ public class SupersDisplayTables {
             if (superID != null) {
                 superID.setMaximumSubtypeId(myID.maximumSubtypeId);
                 log.debug("Setting Super's max subtype id: " + superclass.getInternalName() + " " + superID.toString());
+            }
+        }
+    }
+
+    void assignInterfaceID(ValidatedTypeDefinition cls) {
+        int numInterfaces = cls.getInterfaceCount();
+        for (int i = 0; i < numInterfaces; i++) {
+            ValidatedTypeDefinition interface_i = cls.getInterface(i);
+            if (typeids.get(interface_i) == null) {
+                typeids.computeIfAbsent(interface_i, theInterface -> IdAndRange.nextInterfaceID());
+                // assign IDs to interfaces implemented by this interface
+                assignInterfaceID(interface_i);
             }
         }
     }

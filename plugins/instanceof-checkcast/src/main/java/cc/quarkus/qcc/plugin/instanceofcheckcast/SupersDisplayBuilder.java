@@ -30,8 +30,14 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         tables.assignTypeID(jlo);
         info.visitLiveSubclassesPreOrder(jlo, cls -> tables.assignTypeID(cls));
 
-        // back propagate bounds
+        // back propagate max subclass typeid
         info.visitLiveSubclassesPostOrder(jlo, cls -> tables.assignMaximumSubtypeId(cls));
+        
+        // visit all interfaces implemented by classes in RTAInfo and assign typeids
+        info.visitLiveSubclassesPreOrder(jlo, cls -> tables.assignInterfaceID(cls));
+
         tables.statistics();
+
+
     }
 }
