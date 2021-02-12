@@ -30,6 +30,7 @@
 
     <modules>
         <module>compiler</module>
+        <module>docs</module>
         <module>driver</module>
         <module>interpreter</module>
         <module>main</module>

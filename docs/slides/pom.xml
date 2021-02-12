@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cc.quarkus</groupId>
+        <artifactId>qcc-docs-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>qcc-docs-slides</artifactId>
+
+    <packaging>pom</packaging>
+
+    <properties>
+<!--        <version.reveal.js>3.9.2</version.reveal.js>-->
+        <version.reveal.js>3.8.0</version.reveal.js>
+        <version.asciidoctorj>2.2.0</version.asciidoctorj>
+        <version.asciidoctor.reveal.js>4.0.1</version.asciidoctor.reveal.js>
+        <version.asciidoctor.plugin>2.0.0-RC.1</version.asciidoctor.plugin>
+        <version.jruby>9.2.14.0</version.jruby>
+    </properties>
+
+    <modules>
+        <!-- All slides -->
+        <module>overview</module>
+    </modules>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- configure asciidoctor and reveal.js -->
+                <plugin>
+                    <groupId>org.asciidoctor</groupId>
+                    <artifactId>asciidoctor-maven-plugin</artifactId>
+                    <version>${version.asciidoctor.plugin}</version>
+                    <configuration>
+                        <backend>revealjs</backend>
+                        <requires>
+                            <require>asciidoctor-revealjs</require>
+                        </requires>
+                        <attributes>
+                            <revealjsdir>${project.build.directory}/reveal.js/META-INF/resources/webjars/reveal.js/${version.reveal.js}</revealjsdir>
+                        </attributes>
+                    </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.asciidoctor</groupId>
+                            <artifactId>asciidoctorj</artifactId>
+                            <version>${version.asciidoctorj}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.asciidoctor</groupId>
+                            <artifactId>asciidoctorj-revealjs</artifactId>
+                            <version>${version.asciidoctor.reveal.js}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.jruby</groupId>
+                            <artifactId>jruby-core</artifactId>
+                            <version>${version.jruby}</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+                <!-- don't deploy anything -->
+                <plugin>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <configuration>
+                        <skip>true</skip>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>build-slides</id>
+            <activation>
+                <property>
+                    <name>slides</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <!-- Download reveal.js -->
+                    <plugin>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <executions>
+                            <execution>
+                                <id>get-reveal.js</id>
+                                <goals>
+                                    <goal>unpack</goal>
+                                </goals>
+                                <phase>generate-resources</phase>
+                                <configuration>
+                                    <artifact>org.webjars.npm:reveal.js:${version.reveal.js}</artifact>
+                                    <outputDirectory>${project.build.directory}/reveal.js</outputDirectory>
+                                    <includes>META-INF/resources/webjars/reveal.js/${version.reveal.js}/**</includes>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Run the asciidoctor plugin -->
+                    <plugin>
+                        <groupId>org.asciidoctor</groupId>
+                        <artifactId>asciidoctor-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>build-slides</id>
+                                <phase>generate-resources</phase>
+                                <goals>
+                                    <goal>process-asciidoc</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
