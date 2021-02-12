@@ -102,6 +102,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             throwUnsatisfiedLinkError();
             return nop();
         }
+        if (target.isVirtual()) {
+            throwIncompatibleClassChangeError();
+            return nop();
+        }
         return super.invokeStatic(target, arguments);
     }
 
@@ -111,6 +115,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             throwUnsatisfiedLinkError();
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
         }
+        if (target.isVirtual()) {
+            throwIncompatibleClassChangeError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+        }
         return super.invokeValueStatic(target, arguments);
     }
 
@@ -118,6 +126,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     public Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
         if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
             throwUnsatisfiedLinkError();
+            return nop();
+        }
+        if (target.isStatic()) {
+            throwIncompatibleClassChangeError();
             return nop();
         }
         nullCheck(instance);
@@ -136,6 +148,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             throwUnsatisfiedLinkError();
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
         }
+        if (target.isStatic()) {
+            throwIncompatibleClassChangeError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+        }
         nullCheck(instance);
         return super.invokeValueInstance(kind, instance, target, arguments);
     }
@@ -149,6 +165,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     @Override
     public Value invokeConstructor(Value instance, ConstructorElement target, List<Value> arguments) {
         nullCheck(instance);
+        if (target.isStatic()) {
+            throwIncompatibleClassChangeError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+        }
         return super.invokeConstructor(instance, target, arguments);
     }
 
@@ -210,6 +230,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     private void throwUnsatisfiedLinkError() {
         throwException("java/lang/UnsatisfiedLinkError");
+    }
+
+    private void throwIncompatibleClassChangeError() {
+        throwException("java/lang/IncompatibleClassChangeError");
     }
 
     private void throwException(String exceptionName) {
