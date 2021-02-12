@@ -14,6 +14,7 @@ import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.graph.literal.ArrayLiteral;
+import cc.quarkus.qcc.graph.literal.BitCastLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.CompoundLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
@@ -195,6 +196,13 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             array.item(map(values.get(i)));
         }
         return array;
+    }
+
+    public LLValue visit(final Void param, final BitCastLiteral node) {
+        LLValue input = map(node.getValue());
+        LLValue fromType = map(node.getValue().getType());
+        LLValue toType = map(node.getType());
+        return Values.bitcastConstant(input, fromType, toType);
     }
 
     public LLValue visit(final Void param, final CompoundLiteral node) {

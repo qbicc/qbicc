@@ -18,6 +18,8 @@ public final class Values {
 
     public static final LLValue zeroinitializer = LLVM.zeroinitializer;
 
+    public static LLValue bitcastConstant(LLValue value, LLValue fromType, LLValue toType) { return LLVM.bitcastConstant(value, fromType, toType); }
+
     public static LLValue intConstant(int val) {
         return LLVM.intConstant(val);
     }

@@ -10,11 +10,13 @@ import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.Linkage;
 import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import org.jboss.logging.Logger;
@@ -31,6 +33,8 @@ public class DispatchTables {
     private static final Logger vtLog = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables");
 
     private static final AttachmentKey<DispatchTables> KEY = new AttachmentKey<>();
+
+    static final String MASTER_VTABLE_NAME = "qcc_vtables_array";
 
     private final CompilationContext ctxt;
     private final Map<ValidatedTypeDefinition, VTableInfo> vtables = new ConcurrentHashMap<>();
@@ -88,12 +92,12 @@ public class DispatchTables {
         }
         CompoundType vtableType = ts.getCompoundType(CompoundType.Tag.STRUCT, vtableName, vtable.length * ts.getPointerSize(),
             ts.getPointerAlignment(), () -> List.of(functions));
-        SymbolLiteral vtableSymbol = ctxt.getLiteralFactory().literalOfSymbol(vtableName, vtableType);
+        SymbolLiteral vtableSymbol = ctxt.getLiteralFactory().literalOfSymbol(vtableName, vtableType.getPointer());
 
         vtables.put(cls,new VTableInfo(vtable, vtableType, vtableSymbol));
     }
 
-    public void emitVTable(ValidatedTypeDefinition cls) {
+    void emitVTable(ValidatedTypeDefinition cls) {
         VTableInfo info = getVTableInfo(cls);
         MethodElement[] vtable = info.getVtable();
         Section section = ctxt.getOrAddProgramModule(cls).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
@@ -107,6 +111,23 @@ public class DispatchTables {
         }
         CompoundLiteral vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
         section.addData(null, info.getSymbol().getName(), vtableLiteral).setLinkage(Linkage.EXTERNAL);
+    }
+
+    void emitVTableTable(ValidatedTypeDefinition jlo) {
+        WordType vstar = ctxt.getTypeSystem().getVoidType().getPointer();
+        Section section = ctxt.getOrAddProgramModule(jlo).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+        Literal[] vtableLiterals = new Literal[vtables.size()];
+        Arrays.fill(vtableLiterals, ctxt.getLiteralFactory().literalOfUndefined());
+        int i = 0; // TEMP KLUDGE: DO NOT MERGE!
+        for (Map.Entry<ValidatedTypeDefinition, VTableInfo> e: vtables.entrySet()) {
+            if (!e.getKey().equals(jlo)) {
+                section.declareData(null, e.getValue().getSymbol().getName(), e.getValue().getType());
+            }
+            vtableLiterals[i++] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), vstar);   // FIXME: use e.getKey().getTypeId() as the index instead.
+        }
+        ArrayType masterType = ctxt.getTypeSystem().getArrayType(vstar, vtableLiterals.length);
+        ArrayLiteral masterValue = ctxt.getLiteralFactory().literalOf(masterType, List.of(vtableLiterals));
+        section.addData(null, MASTER_VTABLE_NAME, masterValue);
     }
 
     public int getVTableIndex(MethodElement target) {
