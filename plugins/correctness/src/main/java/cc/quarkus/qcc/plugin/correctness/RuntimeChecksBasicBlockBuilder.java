@@ -209,8 +209,12 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     private void throwUnsatisfiedLinkError() {
+        throwException("java/lang/UnsatisfiedLinkError");
+    }
+
+    private void throwException(String exceptionName) {
         ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
-        ValidatedTypeDefinition ule = classContext.findDefinedType("java/lang/UnsatisfiedLinkError").validate();
+        ValidatedTypeDefinition ule = classContext.findDefinedType(exceptionName).validate();
         BasicBlockBuilder builder = getFirstBuilder();
         Value ex = builder.new_(ule.getClassType());
         ex = builder.invokeConstructor(ex, ule.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
