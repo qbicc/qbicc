@@ -4,7 +4,7 @@ import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.JavaAccessMode;
+import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.plugin.intrinsics.InstanceValueIntrinsic;
 import cc.quarkus.qcc.plugin.intrinsics.Intrinsics;
@@ -32,7 +32,7 @@ public final class CoreIntrinsics {
     }
 
     private static StaticIntrinsic setVolatile(FieldElement field) {
-        return (builder, owner, name, descriptor, arguments) -> builder.writeStaticField(field, arguments.get(0), JavaAccessMode.VOLATILE);
+        return (builder, owner, name, descriptor, arguments) -> builder.store(builder.staticField(field), arguments.get(0), MemoryAtomicityMode.VOLATILE);
     }
 
     public static void registerJavaLangSystemIntrinsics(CompilationContext ctxt) {
@@ -161,7 +161,7 @@ public final class CoreIntrinsics {
                 ClassTypeDescriptor.synthesize(classContext, "java/lang/Class"), List.of());
         final FieldElement classFieldElement = layout.getObjectClassField();
         InstanceValueIntrinsic getClassIntrinsic = (builder, kind, instance, owner, name, descriptor, arguments) ->
-            builder.readInstanceField(instance, classFieldElement, JavaAccessMode.PLAIN);
+            builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), classFieldElement), MemoryAtomicityMode.UNORDERED);
         intrinsics.registerIntrinsic(classDesc, "getClass", getClassDesc, getClassIntrinsic);
     }
 }

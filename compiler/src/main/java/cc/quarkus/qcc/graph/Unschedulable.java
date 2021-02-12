@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.graph;
 
 /**
- * Represents a Value that cannot be scheduled.
+ * Represents a node that cannot be scheduled.
  */
-public interface Unschedulable extends Value {
+public interface Unschedulable extends Node {
 }

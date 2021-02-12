@@ -26,6 +26,7 @@ import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NodeVisitor;
 import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.interpreter.Vm;
@@ -71,12 +72,12 @@ public class Driver implements Closeable {
     final List<Consumer<? super CompilationContext>> postAddHooks;
     // at this point, the phase is switched to ANALYZE
     final List<Consumer<? super CompilationContext>> preAnalyzeHooks;
-    final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> addToAnalyzeCopiers;
+    final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> addToAnalyzeCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> analyzeBuilderFactory;
     final List<Consumer<? super CompilationContext>> postAnalyzeHooks;
     // at this point, the phase is switched to LOWER
     final List<Consumer<? super CompilationContext>> preLowerHooks;
-    final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> analyzeToLowerCopiers;
+    final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> analyzeToLowerCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> lowerBuilderFactory;
     final List<Consumer<? super CompilationContext>> postLowerHooks;
     // at this point, the phase is switched to GENERATE
@@ -192,15 +193,15 @@ public class Driver implements Closeable {
         compilationContext.setBlockFactory(addBuilderFactory);
     }
 
-    private static BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> constructCopiers(final Builder builder, final Phase phase) {
-        List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>> list = builder.copyFactories.getOrDefault(phase, List.of());
+    private static BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> constructCopiers(final Builder builder, final Phase phase) {
+        List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>>> list = builder.copyFactories.getOrDefault(phase, List.of());
         if (list.isEmpty()) {
             return (c, v) -> v;
         }
         if (list.size() == 1) {
             return list.get(0);
         }
-        ArrayList<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>> copy = new ArrayList<>(list);
+        ArrayList<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>>> copy = new ArrayList<>(list);
         Collections.reverse(copy);
         return (c, v) -> {
             for (int i = 0; i < copy.size(); i ++) {
@@ -604,7 +605,7 @@ public class Driver implements Closeable {
     public static final class Builder {
         final List<Path> bootClassPathElements = new ArrayList<>();
         final Map<Phase, Map<BuilderStage, List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>>>> builderFactories = new EnumMap<>(Phase.class);
-        final Map<Phase, List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>>>> copyFactories = new EnumMap<>(Phase.class);
+        final Map<Phase, List<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>>>> copyFactories = new EnumMap<>(Phase.class);
         final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories = new ArrayList<>();
         final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>();
         final Map<Phase, List<Consumer<? super CompilationContext>>> preHooks = new EnumMap<>(Phase.class);
@@ -673,7 +674,7 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Builder addCopyFactory(Phase phase, BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock>, NodeVisitor<Node.Copier, Value, Node, BasicBlock>> factory) {
+        public Builder addCopyFactory(Phase phase, BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> factory) {
             Assert.checkNotNullParam("phase", phase);
             Assert.checkNotNullParam("factory", factory);
             copyFactories.computeIfAbsent(phase, Builder::newArrayList).add(factory);

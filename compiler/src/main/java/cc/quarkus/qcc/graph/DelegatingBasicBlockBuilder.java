@@ -13,6 +13,8 @@ import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
+import cc.quarkus.qcc.type.definition.element.LocalVariableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -97,8 +99,48 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().narrow(value, desc);
     }
 
-    public Value memberPointer(final Value structPointer, final CompoundType.Member member) {
-        return getDelegate().memberPointer(structPointer, member);
+    public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {
+        return getDelegate().memberOf(structHandle, member);
+    }
+
+    public ValueHandle elementOf(final ValueHandle array, final Value index) {
+        return getDelegate().elementOf(array, index);
+    }
+
+    public ValueHandle pointerHandle(Value pointer) {
+        return getDelegate().pointerHandle(pointer);
+    }
+
+    public ValueHandle referenceHandle(Value reference) {
+        return getDelegate().referenceHandle(reference);
+    }
+
+    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+        return getDelegate().instanceFieldOf(instance, field);
+    }
+
+    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return getDelegate().instanceFieldOf(instance, owner, name, type);
+    }
+
+    public ValueHandle staticField(FieldElement field) {
+        return getDelegate().staticField(field);
+    }
+
+    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+        return getDelegate().staticField(owner, name, type);
+    }
+
+    public ValueHandle globalVariable(GlobalVariableElement variable) {
+        return getDelegate().globalVariable(variable);
+    }
+
+    public ValueHandle localVariable(LocalVariableElement variable) {
+        return getDelegate().localVariable(variable);
+    }
+
+    public Value addressOf(final ValueHandle handle) {
+        return getDelegate().addressOf(handle);
     }
 
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {
@@ -137,8 +179,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().select(condition, trueValue, falseValue);
     }
 
-    public Value arrayLength(final Value array) {
-        return getDelegate().arrayLength(array);
+    public Value arrayLength(final ValueHandle arrayHandle) {
+        return getDelegate().arrayLength(arrayHandle);
     }
 
     public Value new_(final ClassObjectType type) {
@@ -169,52 +211,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().clone(object);
     }
 
-    public Value pointerLoad(final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-        return getDelegate().pointerLoad(pointer, accessMode, atomicityMode);
+    public Value load(final ValueHandle handle, final MemoryAtomicityMode mode) {
+        return getDelegate().load(handle, mode);
     }
 
-    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
-        return getDelegate().readInstanceField(instance, fieldElement, mode);
-    }
-
-    public Value readInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
-        return getDelegate().readInstanceField(instance, owner, name, descriptor, mode);
-    }
-
-    public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
-        return getDelegate().readStaticField(fieldElement, mode);
-    }
-
-    public Value readStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
-        return getDelegate().readStaticField(owner, name, descriptor, mode);
-    }
-
-    public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
-        return getDelegate().readArrayValue(array, index, mode);
-    }
-
-    public Node pointerStore(final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-        return getDelegate().pointerStore(pointer, value, accessMode, atomicityMode);
-    }
-
-    public Node writeInstanceField(final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeInstanceField(instance, fieldElement, value, mode);
-    }
-
-    public Node writeInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeInstanceField(instance, owner, name, descriptor, value, mode);
-    }
-
-    public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeStaticField(fieldElement, value, mode);
-    }
-
-    public Node writeStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeStaticField(owner, name, descriptor, value, mode);
-    }
-
-    public Node writeArrayValue(final Value array, final Value index, final Value value, final JavaAccessMode mode) {
-        return getDelegate().writeArrayValue(array, index, value, mode);
+    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+        return getDelegate().store(handle, value, mode);
     }
 
     public Node fence(final MemoryAtomicityMode fenceType) {
@@ -445,8 +447,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().nop();
     }
 
-    public Value typeIdOf(final Value value) {
-        return getDelegate().typeIdOf(value);
+    public Value typeIdOf(final ValueHandle valueHandle) {
+        return getDelegate().typeIdOf(valueHandle);
     }
 
     public Value classOf(final Value typeId) {

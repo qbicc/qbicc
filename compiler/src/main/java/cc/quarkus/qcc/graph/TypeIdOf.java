@@ -9,14 +9,14 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * The type ID of a given value.
  */
-public final class TypeIdOf extends AbstractValue implements InstanceOperation {
-    private final Value instance;
+public final class TypeIdOf extends AbstractValue {
+    private final ValueHandle instance;
     private final TypeType type;
 
-    TypeIdOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value instance) {
+    TypeIdOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueHandle instance) {
         super(callSite, element, line, bci);
         this.instance = instance;
-        ReferenceType referenceType = (ReferenceType) instance.getType();
+        ReferenceType referenceType = (ReferenceType) instance.getValueType();
         type = referenceType.getUpperBound().getTypeType();
     }
 
@@ -24,7 +24,13 @@ public final class TypeIdOf extends AbstractValue implements InstanceOperation {
         return type;
     }
 
-    public Value getInstance() {
+    @Override
+    public boolean hasValueHandleDependency() {
+        return true;
+    }
+
+    @Override
+    public ValueHandle getValueHandle() {
         return instance;
     }
 

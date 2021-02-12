@@ -5,10 +5,6 @@ package cc.quarkus.qcc.graph;
  */
 public enum MemoryAtomicityMode {
     /**
-     * Detect access mode from the type declaration of the pointer (cannot be given for fence operations).
-     */
-    DETECT,
-    /**
      * Non-atomic access (cannot be given for fence or read-modify-write operations).
      */
     NONE,
@@ -37,5 +33,9 @@ public enum MemoryAtomicityMode {
      * Like {@link #ACQUIRE_RELEASE} but applying a global total order.
      */
     SEQUENTIALLY_CONSISTENT,
+    /**
+     * Java {@code VOLATILE} access.
+     */
+    VOLATILE
     ;
 }

@@ -7,8 +7,6 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.JavaAccessMode;
-import cc.quarkus.qcc.graph.MemoryAccessMode;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
@@ -18,10 +16,8 @@ import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.object.ThreadLocalMode;
 import cc.quarkus.qcc.plugin.dispatch.DispatchTables;
 import cc.quarkus.qcc.plugin.layout.Layout;
-import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FunctionElement;
@@ -45,8 +41,9 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         if (originalElement instanceof FunctionElement) {
             SymbolLiteral sym = ctxt.getCurrentThreadLocalSymbolLiteral();
             Section section = ctxt.getOrAddProgramModule(originalElement.getEnclosingType()).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
-            section.declareData(null, sym.getName(), (ValueType) ((PointerType)sym.getType()).getPointeeType()).setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
-            Value ptrVal = pointerLoad(sym, MemoryAccessMode.PLAIN, MemoryAtomicityMode.NONE);
+            section.declareData(null, sym.getName(), ((PointerType)sym.getType()).getPointeeType()).setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
+            // todo: replace symbol literal with global variable - or static field perhaps
+            Value ptrVal = load(pointerHandle(sym), MemoryAtomicityMode.NONE);
             return valueConvert(ptrVal, type);
         } else {
             return parameter(type, "thr", 0);
@@ -71,7 +68,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             // but continue with bogus call target just to see what would happen
             callTarget = functionLiteral(invokeTarget);
         } else if (kind == DispatchInvocation.Kind.VIRTUAL) {
-            callTarget = expandVirtualDispatch(instance, target, invokeTarget);
+            callTarget = expandVirtualDispatch(instance, target);
         } else {
             callTarget = functionLiteral(invokeTarget);
         }
@@ -101,7 +98,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             // but continue with bogus call target just to see what would happen
             callTarget = functionLiteral(invokeTarget);
         } else if (kind == DispatchInvocation.Kind.VIRTUAL) {
-            callTarget = expandVirtualDispatch(instance, target, invokeTarget);
+            callTarget = expandVirtualDispatch(instance, target);
         } else {
             callTarget = functionLiteral(invokeTarget);
         }
@@ -129,12 +126,11 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return ctxt.getLiteralFactory().literalOfSymbol(function.getName(), function.getType());
     }
 
-    private Value expandVirtualDispatch(Value instance, MethodElement target, Function invokeTarget) {
+    private Value expandVirtualDispatch(Value instance, MethodElement target) {
         DispatchTables dt = DispatchTables.get(ctxt);
         DispatchTables.VTableInfo info = dt.getVTableInfo(target.getEnclosingType().validate());
         int index = dt.getVTableIndex(target);
-        Value vtable = readInstanceField(instance, Layout.get(ctxt).getObjectVTableField(), JavaAccessMode.PLAIN);
-        return pointerLoad(memberPointer(bitCast(vtable, info.getType().getPointer()), info.getType().getMember(index)),
-            MemoryAccessMode.PLAIN, MemoryAtomicityMode.UNORDERED);
+        Value vtable = load(instanceFieldOf(referenceHandle(instance), Layout.get(ctxt).getObjectVTableField()), MemoryAtomicityMode.UNORDERED);
+        return load(memberOf(pointerHandle(bitCast(vtable, info.getType().getPointer())), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
     }
 }

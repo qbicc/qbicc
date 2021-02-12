@@ -8,9 +8,9 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ReferenceArrayObjectType;
@@ -70,58 +70,31 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
         return super.newArray(remapType(arrayType), size);
     }
 
-    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
+    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement fieldElement) {
         ClassObjectType accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             FieldElement mapped = patchFields.get(fieldElement);
             if (mapped != null) {
-                return readInstanceField(instance, mapped, mode);
+                return instanceFieldOf(instance, mapped);
             } else {
-                return super.readInstanceField(instance, fieldElement, mode);
+                return super.instanceFieldOf(instance, fieldElement);
             }
         }
     }
 
-    public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
+    @Override
+    public ValueHandle staticField(FieldElement fieldElement) {
         ClassObjectType accessor = accessors.get(fieldElement);
         if (accessor != null) {
             throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
         } else {
             FieldElement mapped = patchFields.get(fieldElement);
             if (mapped != null) {
-                return readStaticField(mapped, mode);
+                return staticField(mapped);
             } else {
-                return super.readStaticField(fieldElement, mode);
-            }
-        }
-    }
-
-    public Node writeInstanceField(final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        ClassObjectType accessor = accessors.get(fieldElement);
-        if (accessor != null) {
-            throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
-        } else {
-            FieldElement mapped = patchFields.get(fieldElement);
-            if (mapped != null) {
-                return writeInstanceField(instance, mapped, value, mode);
-            } else {
-                return super.writeInstanceField(instance, fieldElement, value, mode);
-            }
-        }
-    }
-
-    public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        ClassObjectType accessor = accessors.get(fieldElement);
-        if (accessor != null) {
-            throw new UnsupportedOperationException("TODO: Look up or create accessor singleton with constant fold API");
-        } else {
-            FieldElement mapped = patchFields.get(fieldElement);
-            if (mapped != null) {
-                return writeStaticField(fieldElement, value, mode);
-            } else {
-                return super.writeStaticField(fieldElement, value, mode);
+                return super.staticField(fieldElement);
             }
         }
     }

@@ -370,7 +370,7 @@ public final class TypeSystem {
         return new InterfaceObjectType(this, false, definedType, interfaces);
     }
 
-    PointerType createPointer(Type type) {
+    PointerType createPointer(ValueType type) {
         return new PointerType(this, type, false, false);
     }
 

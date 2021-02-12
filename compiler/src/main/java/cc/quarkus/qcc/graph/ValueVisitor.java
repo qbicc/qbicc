@@ -29,11 +29,11 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, And node) {
+    default R visit(T param, AddressOf node) {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, ArrayElementRead node) {
+    default R visit(T param, And node) {
         return visitUnknown(param, node);
     }
 
@@ -121,15 +121,23 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, ExtractElement node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, ExtractInstanceField node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, ExtractMember node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, FloatLiteral node) {
         return visitUnknown(param, node);
     }
 
     default R visit(T param, FunctionCall node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, InstanceFieldRead node) {
         return visitUnknown(param, node);
     }
 
@@ -145,7 +153,7 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, MemberPointer node) {
+    default R visit(T param, Load node) {
         return visitUnknown(param, node);
     }
 
@@ -205,10 +213,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, PointerLoad node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, Rol node) {
         return visitUnknown(param, node);
     }
@@ -230,10 +234,6 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, StackAllocation node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, StaticFieldRead node) {
         return visitUnknown(param, node);
     }
 
@@ -288,11 +288,11 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
-        default R visit(T param, And node) {
+        default R visit(T param, AddressOf node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
-        default R visit(T param, ArrayElementRead node) {
+        default R visit(T param, And node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -372,15 +372,23 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
+        default R visit(T param, ExtractElement node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ExtractInstanceField node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ExtractMember node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
         default R visit(T param, FloatLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
         default R visit(T param, FunctionCall node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, InstanceFieldRead node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -396,7 +404,7 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
-        default R visit(T param, MemberPointer node) {
+        default R visit(T param, Load node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -456,10 +464,6 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
-        default R visit(T param, PointerLoad node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
         default R visit(T param, Rol node) {
             return getDelegateValueVisitor().visit(param, node);
         }
@@ -481,10 +485,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, StackAllocation node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, StaticFieldRead node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

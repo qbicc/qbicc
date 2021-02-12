@@ -4,13 +4,14 @@ import java.util.List;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
@@ -40,6 +41,14 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public MemberResolvingBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+    }
+
+    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return instanceFieldOf(instance, resolveField(owner, name, type));
+    }
+
+    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+        return staticField(resolveField(owner, name, type));
     }
 
     public Value narrow(final Value value, final TypeDescriptor desc) {
@@ -93,85 +102,24 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return super.multiNewArray(desc, dimensions);
     }
 
-    public Value readInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
-        FieldElement target = resolveField(owner, name, descriptor);
-        if (target != null) {
-            return super.readInstanceField(instance, target, mode);
-        } else {
-            return ctxt.getLiteralFactory().literalOfNull();
-        }
-    }
-
-    public Value readStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
-        FieldElement target = resolveField(owner, name, descriptor);
-        if (target != null) {
-            return super.readStaticField(target, mode);
-        } else {
-            return ctxt.getLiteralFactory().literalOfNull();
-        }
-    }
-
-    public Node writeInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
-        FieldElement target = resolveField(owner, name, descriptor);
-        if (target != null) {
-            return super.writeInstanceField(instance, target, value, mode);
-        } else {
-            return nop();
-        }
-    }
-
-    public Node writeStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
-        FieldElement target = resolveField(owner, name, descriptor);
-        if (target != null) {
-            return super.writeStaticField(target, value, mode);
-        } else {
-            return nop();
-        }
-    }
-
     public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        MethodElement target = resolveMethod(DispatchInvocation.Kind.EXACT, owner, name, descriptor);
-        if (target != null) {
-            return super.invokeStatic(target, arguments);
-        } else {
-            return nop();
-        }
+        return invokeStatic(resolveMethod(DispatchInvocation.Kind.EXACT, owner, name, descriptor), arguments);
     }
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        MethodElement target = resolveMethod(kind, owner, name, descriptor);
-        if (target != null) {
-            return super.invokeInstance(kind, instance, target, arguments);
-        } else {
-            return nop();
-        }
+        return invokeInstance(kind, instance, resolveMethod(kind, owner, name, descriptor), arguments);
     }
 
     public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        MethodElement target = resolveMethod(DispatchInvocation.Kind.EXACT, owner, name, descriptor);
-        if (target != null) {
-            return super.invokeValueStatic(target, arguments);
-        } else {
-            return ctxt.getLiteralFactory().literalOfNull();
-        }
+        return invokeValueStatic(resolveMethod(DispatchInvocation.Kind.EXACT, owner, name, descriptor), arguments);
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        MethodElement target = resolveMethod(kind, owner, name, descriptor);
-        if (target != null) {
-            return super.invokeValueInstance(kind, instance, target, arguments);
-        } else {
-            return ctxt.getLiteralFactory().literalOfNull();
-        }
+        return invokeValueInstance(kind, instance, resolveMethod(kind, owner, name, descriptor), arguments);
     }
 
     public Value invokeConstructor(final Value instance, final TypeDescriptor owner, final MethodDescriptor descriptor, final List<Value> arguments) {
-        ConstructorElement target = resolveConstructor(owner, descriptor);
-        if (target != null) {
-            return super.invokeConstructor(instance, target, arguments);
-        } else {
-            return instance;
-        }
+        return invokeConstructor(instance, resolveConstructor(owner, descriptor), arguments);
     }
 
     private MethodElement resolveMethod(final DispatchInvocation.Kind kind, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor) {
@@ -188,15 +136,13 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 element = definedType.validate().resolveMethodElementInterface(name, descriptor);
             }
             if (element == null) {
-                nsme();
-                return null;
+                throw new BlockEarlyTermination(nsme());
             } else {
                 return element;
             }
         } else {
             ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
-            nsme();
-            return null;
+            throw new BlockEarlyTermination(nsme());
         }
     }
 
@@ -206,15 +152,13 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
             ConstructorElement element = definedType.validate().resolveConstructorElement(descriptor);
             if (element == null) {
-                nsme();
-                return null;
+                throw new BlockEarlyTermination(nsme());
             } else {
                 return element;
             }
         } else {
             ctxt.error(getLocation(), "Resolve constructor on a non-class type `%s` (did you forget a plugin?)", owner);
-            nsme();
-            return null;
+            throw new BlockEarlyTermination(nsme());
         }
     }
 
@@ -224,16 +168,14 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
             FieldElement element = definedType.validate().resolveField(desc, name);
             if (element == null) {
-                nsfe();
-                return null;
+                throw new BlockEarlyTermination(nsfe());
             } else {
                 // todo: compare descriptor
                 return element;
             }
         } else {
             ctxt.error(getLocation(), "Resolve field on a non-class type `%s` (did you forget a plugin?)", owner);
-            nsfe();
-            return null;
+            throw new BlockEarlyTermination(nsfe());
         }
     }
 
@@ -247,22 +189,18 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return getClassContext().findDefinedType(typeName);
     }
 
-    private void nsfe() {
+    private BasicBlock nsfe() {
         Info info = Info.get(ctxt);
         // todo: add class name to exception string
-        Value nsme = invokeConstructor(new_(info.nsfeClass), info.nsfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
-        throw_(nsme);
-        // this is an unreachable block
-        begin(new BlockLabel());
+        Value nsfe = invokeConstructor(new_(info.nsfeClass), info.nsfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
+        return throw_(nsfe);
     }
 
-    private void nsme() {
+    private BasicBlock nsme() {
         Info info = Info.get(ctxt);
         // todo: add class name to exception string
         Value nsme = invokeConstructor(new_(info.nsmeClass), info.nsmeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
-        throw_(nsme);
-        // this is an unreachable block
-        begin(new BlockLabel());
+        return throw_(nsme);
     }
 
     private ClassContext getClassContext() {

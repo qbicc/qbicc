@@ -13,6 +13,7 @@ import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.PinnedNode;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -93,6 +94,13 @@ public interface Schedule {
 
     private static BlockInfo scheduleDependenciesEarly(BlockInfo root, Map<BasicBlock, BlockInfo> blockInfos, Map<Node, BlockInfo> scheduledNodes, Node node) {
         BlockInfo selected = root;
+        if (node.hasValueHandleDependency()) {
+            ValueHandle valueHandle = node.getValueHandle();
+            BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, valueHandle);
+            if (candidate.domDepth > selected.domDepth) {
+                selected = candidate;
+            }
+        }
         int cnt = node.getValueDependencyCount();
         for (int i = 0; i < cnt; i ++) {
             Value valueDependency = node.getValueDependency(i);
@@ -121,7 +129,8 @@ public interface Schedule {
             // pinned to a block; always select that block.
             return scheduleToPinnedBlock(root, blockInfos, scheduledNodes, node, ((PinnedNode) node).getPinnedBlock());
         } else if (node instanceof Unschedulable) {
-            // always considered available; do not schedule
+            // always considered available; do not schedule (but do schedule dependencies)
+            scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
             return root;
         } else {
             selected = scheduledNodes.get(node);

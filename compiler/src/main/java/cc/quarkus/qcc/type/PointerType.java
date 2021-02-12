@@ -4,11 +4,11 @@ package cc.quarkus.qcc.type;
  * A pointer to another type.  The size and behavior of a pointer type may depend on the target platform.
  */
 public final class PointerType extends WordType {
-    private final Type pointeeType;
+    private final ValueType pointeeType;
     private final boolean restrict;
     private final PointerType asRestrict;
 
-    PointerType(final TypeSystem typeSystem, final Type pointeeType, final boolean restrict, final boolean const_) {
+    PointerType(final TypeSystem typeSystem, final ValueType pointeeType, final boolean restrict, final boolean const_) {
         super(typeSystem, pointeeType.hashCode() * 19 + Boolean.hashCode(restrict), const_);
         this.pointeeType = pointeeType;
         this.restrict = restrict;
@@ -20,7 +20,7 @@ public final class PointerType extends WordType {
      *
      * @return the pointee type
      */
-    public Type getPointeeType() {
+    public ValueType getPointeeType() {
         return pointeeType;
     }
 
