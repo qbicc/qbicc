@@ -54,6 +54,7 @@ import cc.quarkus.qcc.plugin.native_.NativeTypeBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeResolver;
 import cc.quarkus.qcc.plugin.native_.PointerTypeResolver;
 import cc.quarkus.qcc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.opt.BitCastOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.GotoRemovingVisitor;
 import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
@@ -263,6 +264,7 @@ public class Main {
 
                                 builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
                                 builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
+                                builder.addCopyFactory(Phase.ANALYZE, BitCastOptimizerVisitor::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
