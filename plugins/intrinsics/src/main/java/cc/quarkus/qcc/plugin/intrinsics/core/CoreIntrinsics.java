@@ -28,6 +28,7 @@ public final class CoreIntrinsics {
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangObjectIntrinsics(ctxt);
         registerJavaLangIntegerLongMathIntrinsics(ctxt);
+        registerJavaLangFloatDoubleMathIntrinsics(ctxt);
     }
 
     private static StaticIntrinsic setVolatile(FieldElement field) {
@@ -108,6 +109,39 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(integerDesc, "rotateLeft", binaryIntDesc, rol);
         intrinsics.registerIntrinsic(longDesc, "rotateLeft", longIntDesc, rol);
+    }
+
+    private static void registerJavaLangFloatDoubleMathIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        final var ts = ctxt.getTypeSystem();
+
+        // Mathematical intrinsics
+
+        ClassTypeDescriptor floatDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Float");
+        ClassTypeDescriptor doubleDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Double");
+
+        MethodDescriptor floatToIntMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.F));
+        MethodDescriptor doubleToLongMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.D));
+
+        StaticValueIntrinsic floatToRawIntBits = (builder, owner, name, descriptor, arguments) ->
+            builder.bitCast(arguments.get(0), ts.getSignedInteger32Type());
+        StaticValueIntrinsic doubleToRawLongBits = (builder, owner, name, descriptor, arguments) ->
+            builder.bitCast(arguments.get(0), ts.getSignedInteger64Type());
+
+        intrinsics.registerIntrinsic(floatDesc, "floatToRawIntBits", floatToIntMethodDesc, floatToRawIntBits);
+        intrinsics.registerIntrinsic(doubleDesc, "doubleToRawLongBits", doubleToLongMethodDesc, doubleToRawLongBits);
+
+        MethodDescriptor intToFloatMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.F, List.of(BaseTypeDescriptor.I));
+        MethodDescriptor longToDoubleMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.D, List.of(BaseTypeDescriptor.J));
+
+        StaticValueIntrinsic intBitsToFloat = (builder, owner, name, descriptor, arguments) ->
+            builder.bitCast(arguments.get(0), ts.getFloat32Type());
+        StaticValueIntrinsic longBitsToDouble = (builder, owner, name, descriptor, arguments) ->
+            builder.bitCast(arguments.get(0), ts.getFloat64Type());
+
+        intrinsics.registerIntrinsic(floatDesc, "intBitsToFloat", intToFloatMethodDesc, intBitsToFloat);
+        intrinsics.registerIntrinsic(doubleDesc, "longBitsToDouble", longToDoubleMethodDesc, longBitsToDouble);
     }
 
     static Value asUnsigned(BasicBlockBuilder builder, Value value) {
