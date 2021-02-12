@@ -47,6 +47,24 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
+    public Value readStaticField(FieldElement fieldElement, JavaAccessMode mode) {
+        if (fieldElement.isStatic()) {
+            throwIncompatibleClassChangeError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldElement.getType(List.of()));
+        }
+        return super.readStaticField(fieldElement, mode);
+    }
+
+    @Override
+    public Node writeStaticField(FieldElement fieldElement, Value value, JavaAccessMode mode) {
+        if (fieldElement.isStatic()) {
+            throwIncompatibleClassChangeError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldElement.getType(List.of()));
+        }
+        return super.writeStaticField(fieldElement, value, mode);
+    }
+
+    @Override
     public Value typeIdOf(final Value value) {
         nullCheck(value);
         return super.typeIdOf(value);
@@ -75,6 +93,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     @Override
     public Value readInstanceField(Value instance, FieldElement fieldElement, JavaAccessMode mode) {
         nullCheck(instance);
+        if (fieldElement.isStatic()) {
+            throwIncompatibleClassChangeError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldElement.getType(List.of()));
+        }
         return super.readInstanceField(instance, fieldElement, mode);
     }
 
@@ -87,6 +109,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     @Override
     public Node writeInstanceField(Value instance, FieldElement fieldElement, Value value, JavaAccessMode mode) {
         nullCheck(instance);
+        if (fieldElement.isStatic()) {
+            throwIncompatibleClassChangeError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldElement.getType(List.of()));
+        }
         return super.writeInstanceField(instance, fieldElement, value, mode);
     }
 
@@ -102,6 +128,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             throwUnsatisfiedLinkError();
             return nop();
         }
+        if (target.isVirtual()) {
+            throwIncompatibleClassChangeError();
+            return nop();
+        }
         return super.invokeStatic(target, arguments);
     }
 
@@ -111,6 +141,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             throwUnsatisfiedLinkError();
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
         }
+        if (target.isVirtual()) {
+            throwIncompatibleClassChangeError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+        }
         return super.invokeValueStatic(target, arguments);
     }
 
@@ -118,6 +152,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     public Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
         if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
             throwUnsatisfiedLinkError();
+            return nop();
+        }
+        if (target.isStatic()) {
+            throwIncompatibleClassChangeError();
             return nop();
         }
         nullCheck(instance);
@@ -136,6 +174,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             throwUnsatisfiedLinkError();
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
         }
+        if (target.isStatic()) {
+            throwIncompatibleClassChangeError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+        }
         nullCheck(instance);
         return super.invokeValueInstance(kind, instance, target, arguments);
     }
@@ -149,6 +191,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     @Override
     public Value invokeConstructor(Value instance, ConstructorElement target, List<Value> arguments) {
         nullCheck(instance);
+        if (target.isStatic()) {
+            throwIncompatibleClassChangeError();
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+        }
         return super.invokeConstructor(instance, target, arguments);
     }
 
@@ -209,8 +255,16 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     private void throwUnsatisfiedLinkError() {
+        throwException("java/lang/UnsatisfiedLinkError");
+    }
+
+    private void throwIncompatibleClassChangeError() {
+        throwException("java/lang/IncompatibleClassChangeError");
+    }
+
+    private void throwException(String exceptionName) {
         ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
-        ValidatedTypeDefinition ule = classContext.findDefinedType("java/lang/UnsatisfiedLinkError").validate();
+        ValidatedTypeDefinition ule = classContext.findDefinedType(exceptionName).validate();
         BasicBlockBuilder builder = getFirstBuilder();
         Value ex = builder.new_(ule.getClassType());
         ex = builder.invokeConstructor(ex, ule.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
