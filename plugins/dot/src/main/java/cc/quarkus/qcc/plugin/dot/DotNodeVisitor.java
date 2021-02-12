@@ -31,14 +31,19 @@ import cc.quarkus.qcc.graph.CurrentThreadRead;
 import cc.quarkus.qcc.graph.Div;
 import cc.quarkus.qcc.graph.DynamicInvocation;
 import cc.quarkus.qcc.graph.DynamicInvocationValue;
+import cc.quarkus.qcc.graph.ElementOf;
 import cc.quarkus.qcc.graph.Extend;
 import cc.quarkus.qcc.graph.FunctionCall;
+import cc.quarkus.qcc.graph.GlobalVariable;
 import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.If;
+import cc.quarkus.qcc.graph.InstanceFieldOf;
 import cc.quarkus.qcc.graph.InstanceInvocation;
 import cc.quarkus.qcc.graph.InstanceInvocationValue;
 import cc.quarkus.qcc.graph.InstanceOf;
 import cc.quarkus.qcc.graph.Jsr;
+import cc.quarkus.qcc.graph.Load;
+import cc.quarkus.qcc.graph.MemberOf;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.MonitorEnter;
 import cc.quarkus.qcc.graph.MonitorExit;
@@ -55,6 +60,8 @@ import cc.quarkus.qcc.graph.NonCommutativeBinaryValue;
 import cc.quarkus.qcc.graph.Or;
 import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.PhiValue;
+import cc.quarkus.qcc.graph.PointerHandle;
+import cc.quarkus.qcc.graph.ReferenceHandle;
 import cc.quarkus.qcc.graph.Ret;
 import cc.quarkus.qcc.graph.Return;
 import cc.quarkus.qcc.graph.Rol;
@@ -62,8 +69,10 @@ import cc.quarkus.qcc.graph.Ror;
 import cc.quarkus.qcc.graph.Select;
 import cc.quarkus.qcc.graph.Shl;
 import cc.quarkus.qcc.graph.Shr;
+import cc.quarkus.qcc.graph.StaticField;
 import cc.quarkus.qcc.graph.StaticInvocation;
 import cc.quarkus.qcc.graph.StaticInvocationValue;
+import cc.quarkus.qcc.graph.Store;
 import cc.quarkus.qcc.graph.Sub;
 import cc.quarkus.qcc.graph.Switch;
 import cc.quarkus.qcc.graph.Terminator;
@@ -74,6 +83,7 @@ import cc.quarkus.qcc.graph.TypeIdOf;
 import cc.quarkus.qcc.graph.UnaryValue;
 import cc.quarkus.qcc.graph.Unreachable;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
@@ -125,6 +135,32 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return name;
     }
 
+    public String visit(final Appendable param, final ElementOf node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "elementOf");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getValueHandle());
+        addEdge(param, node, node.getIndex());
+        return name;
+    }
+
+    public String visit(final Appendable param, final GlobalVariable node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "global\n\n"+node.getVariableElement().getName());
+        return name;
+    }
+
+    public String visit(final Appendable param, final InstanceFieldOf node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "field access\\n"+node.getVariableElement().getName());
+        addEdge(param, node, node.getValueHandle());
+        return name;
+    }
+
     public String visit(final Appendable param, final InstanceInvocation node) {
         String name = register(node);
         appendTo(param, name);
@@ -136,6 +172,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg);
         }
+        return name;
+    }
+
+    public String visit(final Appendable param, final MemberOf node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "memberOf");
+        addEdge(param, node, node.getValueHandle());
         return name;
     }
 
@@ -160,6 +204,29 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         addEdge(param, node, node.getInstance());
         addEdge(param, node, node.getDependency());
+        return name;
+    }
+
+    public String visit(final Appendable param, final PointerHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "ptr");
+        addEdge(param, node, node.getPointerValue());
+        return name;
+    }
+
+    public String visit(final Appendable param, final ReferenceHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "ref");
+        addEdge(param, node, node.getReferenceValue());
+        return name;
+    }
+
+    public String visit(final Appendable param, final StaticField node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "static field\\n" + node.getVariableElement().toString());
         return name;
     }
 
@@ -539,6 +606,15 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return literal(param, String.valueOf(node.longValue()));
     }
 
+    public String visit(final Appendable param, final Load node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "load");
+        nl(param);
+        addEdge(param, node, node.getValueHandle());
+        return name;
+    }
+
     public String visit(final Appendable param, final MethodDescriptorLiteral node) {
         return literal(param, node.toString());
     }
@@ -673,6 +749,15 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg);
         }
+        return name;
+    }
+
+    public String visit(final Appendable param, final Store node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "store");
+        nl(param);
+        addEdge(param, node, node.getValueHandle());
         return name;
     }
 
@@ -828,6 +913,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     private void addEdge(Appendable param, Node from, Node to) {
         if (to instanceof Value) {
             addEdge(param, from, (Value) to, true);
+        } else if (to instanceof ValueHandle) {
+            addEdge(param, from, (ValueHandle)to);
         } else {
             assert to instanceof Action;
             addEdge(param, from, (Action) to);
@@ -848,7 +935,23 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         addEdge(param, from, to, false);
     }
 
+    private void addEdge(Appendable param, Node from, ValueHandle to) {
+        addEdge(param, from, to, false);
+    }
+
     private void addEdge(Appendable param, Node from, Value to, boolean dotted) {
+        String fromName = getNodeName(param, from);
+        String toName = getNodeName(param, to);
+        appendTo(param, fromName);
+        appendTo(param, " -> ");
+        appendTo(param, toName);
+        if (dotted) {
+            attr(param, "style", "dotted");
+        }
+        nl(param);
+    }
+
+    private void addEdge(Appendable param, Node from, ValueHandle to, boolean dotted) {
         String fromName = getNodeName(param, from);
         String toName = getNodeName(param, to);
         appendTo(param, fromName);
@@ -882,6 +985,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     private String getNodeName(Appendable param, Node node) {
         if (node instanceof Value) {
             return getNodeName(param, (Value) node);
+        } else if (node instanceof ValueHandle) {
+            return getNodeName(param, (ValueHandle)node);
         } else if (node instanceof Action) {
             return getNodeName(param, (Action) node);
         } else {
@@ -899,6 +1004,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     private String getNodeName(Appendable param, Value node) {
+        String name = visited.get(node);
+        if (name == null) {
+            name = node.accept(this, param);
+        }
+        return name;
+    }
+
+    private String getNodeName(Appendable param, ValueHandle node) {
         String name = visited.get(node);
         if (name == null) {
             name = node.accept(this, param);
