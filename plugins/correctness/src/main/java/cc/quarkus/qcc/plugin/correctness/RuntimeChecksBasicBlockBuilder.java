@@ -1,17 +1,27 @@
 package cc.quarkus.qcc.plugin.correctness;
 
+import java.util.List;
+
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.JavaAccessMode;
+import cc.quarkus.qcc.graph.ElementOf;
+import cc.quarkus.qcc.graph.InstanceFieldOf;
+import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.ReferenceHandle;
+import cc.quarkus.qcc.graph.StaticField;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
+import cc.quarkus.qcc.graph.ValueHandleVisitor;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
+import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -22,12 +32,9 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-
-import java.util.List;
 
 /**
  * This builder injects runtime checks and transformations to:
@@ -47,79 +54,33 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Value readStaticField(FieldElement fieldElement, JavaAccessMode mode) {
-        if (fieldElement.isStatic()) {
-            throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldElement.getType(List.of()));
-        }
-        return super.readStaticField(fieldElement, mode);
+    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
+        check(handle);
+        return super.load(handle, mode);
     }
 
     @Override
-    public Node writeStaticField(FieldElement fieldElement, Value value, JavaAccessMode mode) {
-        if (fieldElement.isStatic()) {
-            throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldElement.getType(List.of()));
-        }
-        return super.writeStaticField(fieldElement, value, mode);
+    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+        check(handle);
+        return super.store(handle, value, mode);
     }
 
     @Override
-    public Value typeIdOf(final Value value) {
-        nullCheck(value);
-        return super.typeIdOf(value);
+    public Value typeIdOf(ValueHandle handle) {
+        check(handle);
+        return super.typeIdOf(handle);
     }
 
     @Override
-    public Value readArrayValue(Value array, Value index, JavaAccessMode mode) {
-        nullCheck(array);
-        indexOutOfBoundsCheck(array, index);
-        return super.readArrayValue(array, index, mode);
+    public Value addressOf(ValueHandle handle) {
+        check(handle);
+        return super.addressOf(handle);
     }
 
     @Override
-    public Node writeArrayValue(Value array, Value index, Value value, JavaAccessMode mode) {
-        nullCheck(array);
-        indexOutOfBoundsCheck(array, index);
-        return super.writeArrayValue(array, index, value, mode);
-    }
-
-    @Override
-    public Value arrayLength(Value array) {
-        nullCheck(array);
-        return super.arrayLength(array);
-    }
-
-    @Override
-    public Value readInstanceField(Value instance, FieldElement fieldElement, JavaAccessMode mode) {
-        nullCheck(instance);
-        if (fieldElement.isStatic()) {
-            throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldElement.getType(List.of()));
-        }
-        return super.readInstanceField(instance, fieldElement, mode);
-    }
-
-    @Override
-    public Value readInstanceField(Value instance, TypeDescriptor owner, String name, TypeDescriptor descriptor, JavaAccessMode mode) {
-        nullCheck(instance);
-        return super.readInstanceField(instance, owner, name, descriptor, mode);
-    }
-
-    @Override
-    public Node writeInstanceField(Value instance, FieldElement fieldElement, Value value, JavaAccessMode mode) {
-        nullCheck(instance);
-        if (fieldElement.isStatic()) {
-            throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldElement.getType(List.of()));
-        }
-        return super.writeInstanceField(instance, fieldElement, value, mode);
-    }
-
-    @Override
-    public Node writeInstanceField(Value instance, TypeDescriptor owner, String name, TypeDescriptor descriptor, Value value, JavaAccessMode mode) {
-        nullCheck(instance);
-        return super.writeInstanceField(instance, owner, name, descriptor, value, mode);
+    public Value arrayLength(ValueHandle handle) {
+        check(handle);
+        return super.arrayLength(handle);
     }
 
     @Override
@@ -268,8 +229,46 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         BasicBlockBuilder builder = getFirstBuilder();
         Value ex = builder.new_(ule.getClassType());
         ex = builder.invokeConstructor(ex, ule.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-        builder.throw_(ex); // Throw java.lang.UnsatisfiedLinkError
-        begin(new BlockLabel());
+        throw new BlockEarlyTermination(throw_(ex)); // Throw java.lang.UnsatisfiedLinkError
+    }
+
+    private void check(ValueHandle handle) {
+        handle.accept(new ValueHandleVisitor<Void, Void>() {
+            @Override
+            public Void visit(Void param, ElementOf node) {
+                ValueHandle arrayHandle = node.getValueHandle();
+                arrayHandle.accept(this, param);
+                ValueType arrayType = arrayHandle.getValueType();
+                if (arrayType instanceof ArrayObjectType) {
+                    indexOutOfBoundsCheck(arrayHandle, node.getIndex());
+                }
+                return null;
+            }
+
+            @Override
+            public Void visit(Void param, InstanceFieldOf node) {
+                if (node.getVariableElement().isStatic()) {
+                    throwIncompatibleClassChangeError();
+                } else {
+                    node.getValueHandle().accept(this, param);
+                }
+                return null;
+            }
+
+            @Override
+            public Void visit(Void param, StaticField node) {
+                if (! node.getVariableElement().isStatic()) {
+                    throwIncompatibleClassChangeError();
+                }
+                return null;
+            }
+
+            @Override
+            public Void visit(Void param, ReferenceHandle node) {
+                nullCheck(node.getReferenceValue());
+                return null;
+            }
+        }, null);
     }
 
     private void nullCheck(Value value) {
@@ -292,11 +291,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         begin(goAhead);
     }
 
-    private void indexOutOfBoundsCheck(Value array, Value index) {
-        if (array.getType() instanceof ArrayType) {
-            return;
-        }
-
+    private void indexOutOfBoundsCheck(ValueHandle array, Value index) {
         final BlockLabel notNegative = new BlockLabel();
         final BlockLabel throwIt = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();

@@ -3,13 +3,14 @@ package cc.quarkus.qcc.plugin.layout;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.JavaAccessMode;
-import cc.quarkus.qcc.graph.MemoryAccessMode;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.PointerHandle;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.graph.ValueHandle;
+import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.CompoundType;
+import cc.quarkus.qcc.type.PhysicalObjectType;
+import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -25,113 +26,58 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
         this.ctxt = ctxt;
     }
 
-    public Value typeIdOf(final Value value) {
-        return readInstanceField(value, Layout.get(ctxt).getObjectClassField(), JavaAccessMode.PLAIN);
+    public Value typeIdOf(final ValueHandle valueHandle) {
+        Layout layout = Layout.get(ctxt);
+        return load(instanceFieldOf(valueHandle, layout.getObjectClassField()), MemoryAtomicityMode.UNORDERED);
     }
 
-    public Value arrayLength(final Value array) {
-        if (array.getType() instanceof ReferenceType) {
-            return readInstanceField(array, Layout.get(ctxt).getArrayLengthField(), JavaAccessMode.PLAIN);
+    public Value arrayLength(final ValueHandle arrayHandle) {
+        ValueType arrayType = arrayHandle.getValueType();
+        if (arrayType instanceof ArrayObjectType) {
+            Layout layout = Layout.get(ctxt);
+            return load(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), MemoryAtomicityMode.UNORDERED);
         }
-        return super.arrayLength(array);
+        // something non-reference-ish
+        return super.arrayLength(arrayHandle);
     }
 
-    public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
-        ValueType arrayType = array.getType();
-        if (arrayType instanceof ReferenceType) {
-            Value arrayMemberPointer = getArrayMemberPointer(array, index, (ReferenceType) arrayType);
-            if (arrayMemberPointer != null) {
-                return pointerLoad(arrayMemberPointer, MemoryAccessMode.PLAIN, getReadMode(mode, false));
-            }
-        }
-        return super.readArrayValue(array, index, mode);
-    }
-
-    public Node writeArrayValue(final Value array, final Value index, final Value value, final JavaAccessMode mode) {
-        ValueType arrayType = array.getType();
-        if (arrayType instanceof ReferenceType) {
-            Value arrayMemberPointer = getArrayMemberPointer(array, index, (ReferenceType) arrayType);
-            if (arrayMemberPointer != null) {
-                return pointerStore(arrayMemberPointer, value, MemoryAccessMode.PLAIN, getWriteMode(mode, false));
-            }
-        }
-        return super.writeArrayValue(array, index, value, mode);
-    }
-
-    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
-        ValueType instanceType = instance.getType();
-        if (instanceType instanceof ReferenceType) {
-            MemoryAtomicityMode atomicityMode = getReadMode(mode, fieldElement.isVolatile());
-            if (atomicityMode == MemoryAtomicityMode.ACQUIRE) {
-                Value load = pointerLoad(getFieldPointer(instance, fieldElement), MemoryAccessMode.PLAIN, atomicityMode);
-                fence(MemoryAtomicityMode.ACQUIRE);
-                return load;
+    @Override
+    public ValueHandle referenceHandle(Value reference) {
+        ValueType type = reference.getType();
+        if (type instanceof ReferenceType) {
+            Layout layout = Layout.get(ctxt);
+            PhysicalObjectType upperBound = ((ReferenceType) type).getUpperBound();
+            if (upperBound instanceof ArrayObjectType) {
+                // get the appropriate content field array handle
+                FieldElement contentField = layout.getArrayContentField(upperBound);
+                Value pointer = getPointerFromReference(reference, layout, contentField.getEnclosingType().validate().getClassType());
+                return instanceFieldOf(pointerHandle(pointer), contentField);
             } else {
-                return pointerLoad(getFieldPointer(instance, fieldElement), MemoryAccessMode.PLAIN, atomicityMode);
+                Value pointer = getPointerFromReference(reference, layout, upperBound);
+                return pointerHandle(pointer);
             }
-        } else if (instanceType instanceof ClassObjectType) {
-            // todo: value
-            ctxt.error(getLocation(), "Value types not yet supported");
-            return ctxt.getLiteralFactory().literalOfNull();
-        } else {
-            ctxt.error(getLocation(), "Read instance field on a non-object");
-            return ctxt.getLiteralFactory().literalOfNull();
         }
+        // something non-reference-ish
+        return super.referenceHandle(reference);
     }
 
-    public Node writeInstanceField(final Value instance, final FieldElement fieldElement, final Value value, JavaAccessMode mode) {
-        ValueType instanceType = instance.getType();
-        if (instanceType instanceof ReferenceType) {
-            MemoryAtomicityMode atomicityMode = getWriteMode(mode, fieldElement.isVolatile());
-            if (atomicityMode == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
-                fence(MemoryAtomicityMode.RELEASE);
+    @Override
+    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+        Layout layout = Layout.get(ctxt);
+        Layout.LayoutInfo info = layout.getInstanceLayoutInfo(field.getEnclosingType());
+        CompoundType.Member member = info.getMember(field);
+        if (instance instanceof PointerHandle) {
+            // we need to recast the pointer to our type because a pointer can be covariant
+            Value pointerValue = ((PointerHandle) instance).getPointerValue();
+            PointerType expectedType = info.getCompoundType().getPointer();
+            if (! expectedType.equals(pointerValue.getType())) {
+                return memberOf(pointerHandle(bitCast(pointerValue, expectedType)), member);
             }
-            return pointerStore(getFieldPointer(instance, fieldElement), value, MemoryAccessMode.PLAIN, atomicityMode);
-        } else if (instanceType instanceof ClassObjectType) {
-            // todo: value
-            ctxt.error(getLocation(), "Value types not yet supported");
-            return nop();
-        } else {
-            ctxt.error(getLocation(), "Write instance field on a non-object");
-            return nop();
         }
+        return memberOf(instance, member);
     }
 
-    private Value getFieldPointer(final Value instance, final FieldElement fieldElement) {
-        Layout layout = Layout.get(ctxt);
-        Layout.LayoutInfo info = layout.getInstanceLayoutInfo(fieldElement.getEnclosingType());
-        CompoundType.Member member = info.getMember(fieldElement);
-        return memberPointer(valueConvert(instance, info.getCompoundType().getPointer()), member);
-    }
-
-    private Value getArrayMemberPointer(final Value array, final Value index, final ReferenceType arrayRefType) {
-        Value arrayMemberPointer;
-        Layout layout = Layout.get(ctxt);
-        FieldElement contentField = layout.getArrayContentField(arrayRefType.getUpperBound());
-        if (contentField == null) {
-            // punt
-            arrayMemberPointer = null;
-        } else {
-            Layout.LayoutInfo layoutInfo = layout.getInstanceLayoutInfo(contentField.getEnclosingType());
-            CompoundType.Member member = layoutInfo.getMember(contentField);
-            arrayMemberPointer = add(memberPointer(valueConvert(array, layoutInfo.getCompoundType().getPointer()), member), index);
-        }
-        return arrayMemberPointer;
-    }
-
-    MemoryAtomicityMode getReadMode(JavaAccessMode mode, boolean volatile_) {
-        if (mode == JavaAccessMode.DETECT && volatile_ || mode == JavaAccessMode.VOLATILE) {
-            return MemoryAtomicityMode.ACQUIRE;
-        } else {
-            return MemoryAtomicityMode.UNORDERED;
-        }
-    }
-
-    MemoryAtomicityMode getWriteMode(JavaAccessMode mode, boolean volatile_) {
-        if (mode == JavaAccessMode.DETECT && volatile_ || mode == JavaAccessMode.VOLATILE) {
-            return MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT;
-        } else {
-            return MemoryAtomicityMode.UNORDERED;
-        }
+    private Value getPointerFromReference(final Value reference, final Layout layout, final PhysicalObjectType upperBound) {
+        return valueConvert(reference, layout.getInstanceLayoutInfo(upperBound.getDefinition()).getCompoundType().getPointer());
     }
 }

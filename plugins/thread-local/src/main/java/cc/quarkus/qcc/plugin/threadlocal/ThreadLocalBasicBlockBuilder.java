@@ -1,13 +1,9 @@
 package cc.quarkus.qcc.plugin.threadlocal;
 
-import java.util.List;
-
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.JavaAccessMode;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
@@ -24,12 +20,12 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     @Override
-    public Node writeStaticField(FieldElement fieldElement, Value value, JavaAccessMode mode) {
+    public ValueHandle staticField(FieldElement fieldElement) {
         boolean isTL = fieldElement.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL);
         if (getCurrentElement() instanceof InitializerElement) {
             if (isTL) {
                 ctxt.warning(fieldElement, "Initialization of thread locals is not yet supported");
-                return nop();
+                return super.staticField(fieldElement);
             }
         }
         if (isTL) {
@@ -37,36 +33,13 @@ public class ThreadLocalBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             FieldElement threadLocalField = threadLocals.getThreadLocalField(fieldElement);
             if (threadLocalField == null) {
                 ctxt.error(fieldElement, "Internal: Thread local field was not registered");
-                return super.writeStaticField(fieldElement, value, mode);
+                return super.staticField(fieldElement);
             }
             BasicBlockBuilder b = getFirstBuilder();
             // thread local values are never visible outside of the current thread
-            return b.writeInstanceField(currentThread(), threadLocalField, value, JavaAccessMode.PLAIN);
+            return instanceFieldOf(referenceHandle(currentThread()), threadLocalField);
         } else {
-            return super.writeStaticField(fieldElement, value, mode);
+            return super.staticField(fieldElement);
         }
-    }
-
-    @Override
-    public Value readStaticField(FieldElement fieldElement, JavaAccessMode mode) {
-        boolean isTL = fieldElement.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL);
-        if (getCurrentElement() instanceof InitializerElement) {
-            if (isTL) {
-                ctxt.warning(fieldElement, "Initialization of thread locals is not yet supported");
-                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldElement.getType(List.of()));
-            }
-        }
-        if (isTL) {
-            ThreadLocals threadLocals = ThreadLocals.get(ctxt);
-            FieldElement threadLocalField = threadLocals.getThreadLocalField(fieldElement);
-            if (threadLocalField == null) {
-                ctxt.error(fieldElement, "Internal: Thread local field was not registered");
-                return super.readStaticField(fieldElement, mode);
-            }
-            BasicBlockBuilder b = getFirstBuilder();
-            // thread local values are never visible outside of the current thread
-            return b.readInstanceField(currentThread(), threadLocalField, JavaAccessMode.PLAIN);
-        }
-        return super.readStaticField(fieldElement, mode);
     }
 }

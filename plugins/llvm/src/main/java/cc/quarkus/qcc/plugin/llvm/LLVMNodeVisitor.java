@@ -13,8 +13,8 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.Action;
 import cc.quarkus.qcc.graph.Add;
+import cc.quarkus.qcc.graph.AddressOf;
 import cc.quarkus.qcc.graph.And;
-import cc.quarkus.qcc.graph.ArrayElementRead;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockEntry;
@@ -26,12 +26,15 @@ import cc.quarkus.qcc.graph.CmpLt;
 import cc.quarkus.qcc.graph.CmpNe;
 import cc.quarkus.qcc.graph.Convert;
 import cc.quarkus.qcc.graph.Div;
+import cc.quarkus.qcc.graph.ElementOf;
 import cc.quarkus.qcc.graph.Extend;
 import cc.quarkus.qcc.graph.Fence;
 import cc.quarkus.qcc.graph.FunctionCall;
+import cc.quarkus.qcc.graph.GlobalVariable;
 import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.If;
-import cc.quarkus.qcc.graph.MemberPointer;
+import cc.quarkus.qcc.graph.Load;
+import cc.quarkus.qcc.graph.MemberOf;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.Multiply;
@@ -42,13 +45,13 @@ import cc.quarkus.qcc.graph.NodeVisitor;
 import cc.quarkus.qcc.graph.Or;
 import cc.quarkus.qcc.graph.ParameterValue;
 import cc.quarkus.qcc.graph.PhiValue;
-import cc.quarkus.qcc.graph.PointerLoad;
-import cc.quarkus.qcc.graph.PointerStore;
+import cc.quarkus.qcc.graph.PointerHandle;
 import cc.quarkus.qcc.graph.Return;
 import cc.quarkus.qcc.graph.Select;
 import cc.quarkus.qcc.graph.Shl;
 import cc.quarkus.qcc.graph.Shr;
 import cc.quarkus.qcc.graph.StackAllocation;
+import cc.quarkus.qcc.graph.Store;
 import cc.quarkus.qcc.graph.Sub;
 import cc.quarkus.qcc.graph.Switch;
 import cc.quarkus.qcc.graph.Terminator;
@@ -59,6 +62,7 @@ import cc.quarkus.qcc.graph.Try;
 import cc.quarkus.qcc.graph.Unreachable;
 import cc.quarkus.qcc.graph.Unschedulable;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.schedule.Schedule;
@@ -76,7 +80,6 @@ import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
@@ -87,8 +90,9 @@ import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 
-final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
+final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, GetElementPtr> {
     final CompilationContext ctxt;
     final Module module;
     final LLVMModuleDebugInfo debugInfo;
@@ -141,19 +145,21 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         return null;
     }
 
-    public Void visit(final Void param, final PointerStore node) {
+    public Void visit(final Void param, final Store node) {
         map(node.getDependency());
-        LLValue ptrType = map(node.getPointer().getType());
-        LLValue value = map(node.getValue());
-        LLValue type = map(((PointerType)node.getPointer().getType()).getPointeeType());
-        LLValue ptr = map(node.getPointer());
-        if (node.getAtomicityMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
-            int alignment = ((ValueType)((PointerType)node.getPointer().getType()).getPointeeType()).getAlign();
-            builder.store(ptrType, value, type, ptr).atomic(OrderingConstraint.seq_cst).align(alignment);
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue ptr;
+        if (valueHandle instanceof PointerHandle) {
+            // plain pointer; no GEP needed
+            ptr = map(((PointerHandle) valueHandle).getPointerValue());
         } else {
-            builder.store(ptrType, value, type, ptr);
+            ptr = valueHandle.accept(this, null).asLocal();
         }
-
+        cc.quarkus.qcc.machine.llvm.op.Store storeInsn = builder.store(map(valueHandle.getValueType().getPointer()), map(node.getValue()), map(valueHandle.getValueType()), ptr);
+        storeInsn.align(valueHandle.getValueType().getAlign());
+        if (node.getMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
+            storeInsn.atomic(OrderingConstraint.seq_cst);
+        }
         return null;
     }
 
@@ -241,16 +247,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     public LLValue visit(final Void param, final Add node) {
         ValueType type = node.getType();
-        if (type instanceof PointerType) {
-            // actually a GEP calculation
-            return processGetElementPtr(node).asLocal();
-        }
         LLValue inputType = map(type);
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
         return isFloating(type) ?
                builder.fadd(inputType, llvmLeft, llvmRight).asLocal() :
                builder.add(inputType, llvmLeft, llvmRight).asLocal();
+    }
+
+    public LLValue visit(final Void param, final AddressOf node) {
+        return node.getValueHandle().accept(this, null).asLocal();
     }
 
     public LLValue visit(final Void param, final And node) {
@@ -373,21 +379,22 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
         return result;
     }
 
-    public LLValue visit(final Void param, final MemberPointer node) {
-        return processGetElementPtr(node).asLocal();
-    }
-
-    public LLValue visit(final Void param, final PointerLoad node) {
+    public LLValue visit(final Void param, final Load node) {
         map(node.getDependency());
-        LLValue ptr = map(node.getPointer());
-        LLValue ptrType = map(node.getPointer().getType());
-        LLValue type = map(node.getType());
-        if (node.getAtomicityMode() == MemoryAtomicityMode.ACQUIRE) {
-            int alignment = node.getType().getAlign();
-            return builder.load(ptrType, type, ptr).atomic(OrderingConstraint.acquire).align(alignment).asLocal();
-        }  else {
-            return builder.load(ptrType, type, ptr).asLocal();
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue ptr;
+        if (valueHandle instanceof PointerHandle) {
+            // plain pointer; no GEP needed
+            ptr = map(((PointerHandle) valueHandle).getPointerValue());
+        } else {
+            ptr = valueHandle.accept(this, null).asLocal();
         }
+        cc.quarkus.qcc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getValueType().getPointer()), map(valueHandle.getValueType()), ptr);
+        loadInsn.align(node.getType().getAlign());
+        if (node.getMode() == MemoryAtomicityMode.ACQUIRE) {
+            loadInsn.atomic(OrderingConstraint.acquire);
+        }
+        return loadInsn.asLocal();
     }
 
     public LLValue visit(final Void param, final Neg node) {
@@ -575,33 +582,39 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
 
     // GEP
 
-    private GetElementPtr processGetElementPtr(final Value current) {
-        if (current instanceof MemberPointer) {
-            // a nested pointer within a structure
-            MemberPointer memberPointer = (MemberPointer) current;
-            return processGetElementPtr(memberPointer.getStructPointer()).arg(false, i32, map(memberPointer.getStructType(), memberPointer.getMember()));
-        } else if (current instanceof ArrayElementRead) {
-            ArrayElementRead read = (ArrayElementRead) current;
-            Value array = read.getInstance();
-            if (array.getType() instanceof ArrayType) {
-                // real array
-                return processGetElementPtr(array).arg(false, map(read.getIndex().getType()), map(read.getIndex()));
-            }
-            // else it's some other array access (reference array?)
-        } else if (current instanceof Add) {
-            // a pointer add; we want the nth one (and terminate)
-            Add add = (Add) current;
-            Value leftInput = add.getLeftInput();
-            if (leftInput.getType() instanceof PointerType) {
-                Value index = add.getRightInput();
-                return builder.getelementptr(map(((PointerType) leftInput.getType()).getPointeeType()), map(leftInput.getType()), map(leftInput)).arg(false, map(index.getType()), map(index));
-            } else {
-                ctxt.error(Location.builder().setNode(current).build(), "LLVM: Invalid pointer or array expression type (left input of Add must be the pointer or array)");
-            }
+    @Override
+    public GetElementPtr visit(Void param, ElementOf node) {
+        ValueHandle nextHandle = node.getValueHandle();
+        LLValue index = map(node.getIndex());
+        LLValue indexType = map(node.getIndex().getType());
+        if (nextHandle instanceof PointerHandle) {
+            PointerHandle ptrHandle = (PointerHandle) nextHandle;
+            // special case: element-of-pointer
+            return gep(map(ptrHandle.getPointerValue()), ptrHandle.getPointerType(), ptrHandle).arg(false, indexType, index);
         }
-        // some other kind of pointer; we want the zeroth one (and terminate)
-        PointerType pointerType = (PointerType) current.getType();
-        return builder.getelementptr(map(pointerType.getPointeeType()), map(pointerType), map(current)).arg(false, i32, ZERO);
+        return nextHandle.accept(this, param).arg(false, indexType, index);
+    }
+
+    @Override
+    public GetElementPtr visit(Void param, MemberOf node) {
+        LLValue index = map(node.getStructType(), node.getMember());
+        return node.getValueHandle().accept(this, param).arg(false, i32, index);
+    }
+
+    @Override
+    public GetElementPtr visit(Void param, GlobalVariable node) {
+        GlobalVariableElement gv = node.getVariableElement();
+        return gep(Values.global(gv.getName()), node.getValueType().getPointer(), node);
+    }
+
+    @Override
+    public GetElementPtr visit(Void param, PointerHandle node) {
+        return gep(map(node.getPointerValue()), node.getPointerType(), node).arg(false, i32, ZERO);
+    }
+
+    GetElementPtr gep(LLValue ptr, ValueType pointerType, ValueHandle handle) {
+        ValueType valueType = handle.getValueType();
+        return builder.getelementptr(map(valueType), map(pointerType), ptr);
     }
 
     // unknown node catch-all methods
@@ -618,6 +631,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void> {
     public Void visitUnknown(final Void param, final Terminator node) {
         ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unrecognized terminator %s", node.getClass());
         return null;
+    }
+
+    public GetElementPtr visitUnknown(Void param, ValueHandle node) {
+        throw new IllegalStateException("Unexpected handle " + node);
     }
 
     // mapping

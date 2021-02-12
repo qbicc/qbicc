@@ -4,13 +4,14 @@ import java.util.List;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.JavaAccessMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
@@ -32,6 +33,22 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         this.ctxt = ctxt;
     }
 
+    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+        if (loadClass(owner)) {
+            return super.instanceFieldOf(instance, owner, name, type);
+        }
+        // no need to continue
+        throw new BlockEarlyTermination(noClassDefFound());
+    }
+
+    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+        if (loadClass(owner)) {
+            return super.staticField(owner, name, type);
+        }
+        // no need to continue
+        throw new BlockEarlyTermination(noClassDefFound());
+    }
+
     public Value narrow(final Value value, TypeDescriptor desc) {
         TypeDescriptor orig = desc;
         while (desc instanceof ArrayTypeDescriptor) {
@@ -39,8 +56,8 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
         if (desc instanceof ClassTypeDescriptor) {
             if (! loadClass((ClassTypeDescriptor) desc)) {
-                noClassDefFound();
-                return ctxt.getLiteralFactory().literalOfNull();
+                // no need to continue
+                throw new BlockEarlyTermination(noClassDefFound());
             }
         }
         return super.narrow(value, orig);
@@ -52,8 +69,8 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
         if (desc instanceof ClassTypeDescriptor) {
             if (! loadClass((ClassTypeDescriptor) desc)) {
-                noClassDefFound();
-                return ctxt.getLiteralFactory().literalOf(false);
+                // no need to continue
+                throw new BlockEarlyTermination(noClassDefFound());
             }
         }
         return super.instanceOf(input, desc);
@@ -63,8 +80,8 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (loadClass(desc)) {
             return super.new_(desc);
         } else {
-            noClassDefFound();
-            return ctxt.getLiteralFactory().literalOfNull();
+            // no need to continue
+            throw new BlockEarlyTermination(noClassDefFound());
         }
     }
 
@@ -76,8 +93,8 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (! (elemDesc instanceof ClassTypeDescriptor) || loadClass((ClassTypeDescriptor) elemDesc)) {
             return super.newArray(desc, size);
         } else {
-            noClassDefFound();
-            return ctxt.getLiteralFactory().literalOfNull();
+            // no need to continue
+            throw new BlockEarlyTermination(noClassDefFound());
         }
     }
 
@@ -89,53 +106,17 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (! (elemDesc instanceof ClassTypeDescriptor) || loadClass((ClassTypeDescriptor) elemDesc)) {
             return super.multiNewArray(desc, dimensions);
         } else {
-            noClassDefFound();
-            return ctxt.getLiteralFactory().literalOfNull();
+            // no need to continue
+            throw new BlockEarlyTermination(noClassDefFound());
         }
-    }
-
-    public Value readInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
-        if (loadClass(owner)) {
-            return super.readInstanceField(instance, owner, name, descriptor, mode);
-        } else {
-            noClassDefFound();
-            return ctxt.getLiteralFactory().literalOfNull();
-        }
-    }
-
-    public Value readStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
-        if (loadClass(owner)) {
-            return super.readStaticField(owner, name, descriptor, mode);
-        } else {
-            noClassDefFound();
-            return ctxt.getLiteralFactory().literalOfNull();
-        }
-    }
-
-    public Node writeInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
-        if (loadClass(owner)) {
-            return super.writeInstanceField(instance, owner, name, descriptor, value, mode);
-        } else {
-            noClassDefFound();
-            return nop();
-        }
-    }
-
-    public Node writeStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
-        if (loadClass(owner)) {
-            return super.writeStaticField(owner, name, descriptor, value, mode);
-        } else {
-            noClassDefFound();
-        }
-        return nop();
     }
 
     public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         if (loadClass(owner)) {
             return super.invokeStatic(owner, name, descriptor, arguments);
         } else {
-            noClassDefFound();
-            return nop();
+            // no need to continue
+            throw new BlockEarlyTermination(noClassDefFound());
         }
     }
 
@@ -143,8 +124,8 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (loadClass(owner)) {
             return super.invokeInstance(kind, instance, owner, name, descriptor, arguments);
         } else {
-            noClassDefFound();
-            return nop();
+            // no need to continue
+            throw new BlockEarlyTermination(noClassDefFound());
         }
     }
 
@@ -152,8 +133,8 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (loadClass(owner)) {
             return super.invokeValueStatic(owner, name, descriptor, arguments);
         } else {
-            noClassDefFound();
-            return ctxt.getLiteralFactory().literalOfNull();
+            // no need to continue
+            throw new BlockEarlyTermination(noClassDefFound());
         }
     }
 
@@ -161,19 +142,17 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (loadClass(owner)) {
             return super.invokeValueInstance(kind, instance, owner, name, descriptor, arguments);
         } else {
-            noClassDefFound();
-            return ctxt.getLiteralFactory().literalOfNull();
+            // no need to continue
+            throw new BlockEarlyTermination(noClassDefFound());
         }
     }
 
-    private void noClassDefFound() {
+    private BasicBlock noClassDefFound() {
         Info info = Info.get(ctxt);
         ClassTypeDescriptor ncdfeClass = info.ncdfeClass;
         // todo: add class name to exception string
         Value ncdfe = invokeConstructor(new_(ncdfeClass), ncdfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
-        throw_(ncdfe);
-        // this is an unreachable block
-        begin(new BlockLabel());
+        return throw_(ncdfe);
     }
 
     private boolean loadClass(TypeDescriptor desc) {

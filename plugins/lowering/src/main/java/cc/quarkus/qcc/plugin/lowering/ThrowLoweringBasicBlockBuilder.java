@@ -1,10 +1,12 @@
 package cc.quarkus.qcc.plugin.lowering;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.*;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-
 import java.util.List;
+
+import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.BasicBlock;
+import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
+import cc.quarkus.qcc.graph.Value;
 
 public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
@@ -15,11 +17,9 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     public BasicBlock throw_(final Value value) {
-        Value unwindException = readInstanceField(currentThread(), ThrowExceptionHelper.get(ctxt).getUnwindExceptionField(), JavaAccessMode.PLAIN);
-        MethodElement raiseException = ThrowExceptionHelper.get(ctxt).getRaiseExceptionMethod();
-        ctxt.getImplicitSection(getCurrentElement())
-            .declareFunction(raiseException, raiseException.getName(), raiseException.getType(List.of()));
-        super.callFunction(ctxt.getLiteralFactory().literalOfSymbol(raiseException.getName(), raiseException.getType(List.of())), List.of(unwindException));
+        ThrowExceptionHelper teh = ThrowExceptionHelper.get(ctxt);
+        Value ptr = addressOf(instanceFieldOf(referenceHandle(currentThread()), teh.getUnwindExceptionField()));
+        invokeStatic(teh.getRaiseExceptionMethod(), List.of(ptr));
         return unreachable();
     }
 }

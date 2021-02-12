@@ -8,19 +8,11 @@ public interface ActionVisitor<T, R> {
         return null;
     }
 
-    default R visit(T param, ArrayElementWrite node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, BlockEntry node) {
         return visitUnknown(param, node);
     }
 
     default R visit(T param, DynamicInvocation node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, InstanceFieldWrite node) {
         return visitUnknown(param, node);
     }
 
@@ -36,15 +28,11 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, PointerStore node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, StaticFieldWrite node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, StaticInvocation node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, Store node) {
         return visitUnknown(param, node);
     }
 
@@ -59,19 +47,11 @@ public interface ActionVisitor<T, R> {
             return node.accept(getDelegateActionVisitor(), param);
         }
 
-        default R visit(T param, ArrayElementWrite node) {
-            return getDelegateActionVisitor().visit(param, node);
-        }
-
         default R visit(T param, BlockEntry node) {
             return getDelegateActionVisitor().visit(param, node);
         }
 
         default R visit(T param, DynamicInvocation node) {
-            return getDelegateActionVisitor().visit(param, node);
-        }
-
-        default R visit(T param, InstanceFieldWrite node) {
             return getDelegateActionVisitor().visit(param, node);
         }
 
@@ -84,14 +64,6 @@ public interface ActionVisitor<T, R> {
         }
 
         default R visit(T param, MonitorExit node) {
-            return getDelegateActionVisitor().visit(param, node);
-        }
-
-        default R visit(T param, PointerStore node) {
-            return getDelegateActionVisitor().visit(param, node);
-        }
-
-        default R visit(T param, StaticFieldWrite node) {
             return getDelegateActionVisitor().visit(param, node);
         }
 

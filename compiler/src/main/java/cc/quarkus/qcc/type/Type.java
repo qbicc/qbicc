@@ -40,7 +40,8 @@ public abstract class Type {
         if (pointerType != null) {
             return pointerType;
         }
-        PointerType newPointerType = typeSystem.createPointer(this);
+        // todo: all Types are ValueTypes so merge them
+        PointerType newPointerType = typeSystem.createPointer((ValueType) this);
         while (! pointerTypeHandle.compareAndSet(this, null, newPointerType)) {
             pointerType = this.pointerType;
             if (pointerType != null) {

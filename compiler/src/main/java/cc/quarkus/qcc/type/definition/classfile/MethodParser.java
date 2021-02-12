@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.type.definition.classfile;
 
 import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
-import static cc.quarkus.qcc.type.definition.classfile.ClassMethodInfo.*;
+import static cc.quarkus.qcc.type.definition.classfile.ClassMethodInfo.align;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -16,14 +16,16 @@ import java.util.Set;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.JavaAccessMode;
+import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Ret;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.TerminatorVisitor;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
@@ -483,981 +485,991 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         int src;
         boolean wide;
         ClassMethodInfo info = this.info;
-        while (buffer.hasRemaining()) {
-            currentbci = src = buffer.position();
-            gf.setBytecodeIndex(src);
-            gf.setLineNumber(info.getLineNumber(src));
-            opcode = buffer.get() & 0xff;
-            wide = opcode == OP_WIDE;
-            if (wide) {
+        try {
+            while (buffer.hasRemaining()) {
+                currentbci = src = buffer.position();
+                gf.setBytecodeIndex(src);
+                gf.setLineNumber(info.getLineNumber(src));
                 opcode = buffer.get() & 0xff;
-            }
-            switch (opcode) {
-                case OP_NOP:
-                    break;
-                case OP_ACONST_NULL:
-                    push(lf.literalOfNull());
-                    break;
-                case OP_ICONST_M1:
-                case OP_ICONST_0:
-                case OP_ICONST_1:
-                case OP_ICONST_2:
-                case OP_ICONST_3:
-                case OP_ICONST_4:
-                case OP_ICONST_5:
-                    push(lf.literalOf(opcode - OP_ICONST_0));
-                    break;
-                case OP_LCONST_0:
-                case OP_LCONST_1:
-                    push(fatten(lf.literalOf((long) opcode - OP_LCONST_0)));
-                    break;
-                case OP_FCONST_0:
-                case OP_FCONST_1:
-                case OP_FCONST_2:
-                    push(lf.literalOf((float) opcode - OP_FCONST_0));
-                    break;
-                case OP_DCONST_0:
-                case OP_DCONST_1:
-                    push(fatten(lf.literalOf((double) opcode - OP_DCONST_0)));
-                    break;
-                case OP_BIPUSH:
-                    push(lf.literalOf((int) buffer.get()));
-                    break;
-                case OP_SIPUSH:
-                    push(lf.literalOf((int) buffer.getShort()));
-                    break;
-                case OP_LDC:
-                    push(unfatten(getConstantValue(buffer.get() & 0xff)));
-                    break;
-                case OP_LDC_W:
-                    push(unfatten(getConstantValue(buffer.getShort() & 0xffff)));
-                    break;
-                case OP_LDC2_W:
-                    push(fatten(getConstantValue(buffer.getShort() & 0xffff)));
-                    break;
-                case OP_ILOAD:
-                    push(getLocal(getWidenableValue(buffer, wide)));
-                    break;
-                case OP_LLOAD:
-                    // already fat
-                    push(getLocal(getWidenableValue(buffer, wide)));
-                    break;
-                case OP_FLOAD:
-                    push(getLocal(getWidenableValue(buffer, wide)));
-                    break;
-                case OP_DLOAD:
-                    // already fat
-                    push(getLocal(getWidenableValue(buffer, wide)));
-                    break;
-                case OP_ALOAD:
-                    push(getLocal(getWidenableValue(buffer, wide)));
-                    break;
-                case OP_ILOAD_0:
-                case OP_ILOAD_1:
-                case OP_ILOAD_2:
-                case OP_ILOAD_3:
-                    push(getLocal(opcode - OP_ILOAD_0));
-                    break;
-                case OP_LLOAD_0:
-                case OP_LLOAD_1:
-                case OP_LLOAD_2:
-                case OP_LLOAD_3:
-                    // already fat
-                    push(getLocal(opcode - OP_LLOAD_0));
-                    break;
-                case OP_FLOAD_0:
-                case OP_FLOAD_1:
-                case OP_FLOAD_2:
-                case OP_FLOAD_3:
-                    push(getLocal(opcode - OP_FLOAD_0));
-                    break;
-                case OP_DLOAD_0:
-                case OP_DLOAD_1:
-                case OP_DLOAD_2:
-                case OP_DLOAD_3:
-                    // already fat
-                    push(getLocal(opcode - OP_DLOAD_0));
-                    break;
-                case OP_ALOAD_0:
-                case OP_ALOAD_1:
-                case OP_ALOAD_2:
-                case OP_ALOAD_3:
-                    push(getLocal(opcode - OP_ALOAD_0));
-                    break;
-                case OP_DALOAD:
-                case OP_LALOAD: {
-                    v2 = pop1();
-                    v1 = pop1();
-                    v1 = gf.readArrayValue(v1, v2, JavaAccessMode.PLAIN);
-                    push(fatten(v1));
-                    break;
+                wide = opcode == OP_WIDE;
+                if (wide) {
+                    opcode = buffer.get() & 0xff;
                 }
-                case OP_IALOAD:
-                case OP_AALOAD:
-                case OP_FALOAD:
-                case OP_BALOAD:
-                case OP_SALOAD:
-                case OP_CALOAD: {
-                    v2 = pop1();
-                    v1 = pop1();
-                    v1 = promote(gf.readArrayValue(v1, v2, JavaAccessMode.PLAIN));
-                    push(unfatten(v1));
-                    break;
-                }
-                case OP_ISTORE:
-                case OP_FSTORE:
-                case OP_ASTORE:
-                    setLocal(getWidenableValue(buffer, wide), pop1());
-                    break;
-                case OP_LSTORE:
-                case OP_DSTORE:
-                    // already fat
-                    setLocal(getWidenableValue(buffer, wide), pop2());
-                    break;
-                case OP_ISTORE_0:
-                case OP_ISTORE_1:
-                case OP_ISTORE_2:
-                case OP_ISTORE_3:
-                    setLocal(opcode - OP_ISTORE_0, pop1());
-                    break;
-                case OP_LSTORE_0:
-                case OP_LSTORE_1:
-                case OP_LSTORE_2:
-                case OP_LSTORE_3:
-                    // already fat
-                    setLocal(opcode - OP_LSTORE_0, pop2());
-                    break;
-                case OP_FSTORE_0:
-                case OP_FSTORE_1:
-                case OP_FSTORE_2:
-                case OP_FSTORE_3:
-                    setLocal(opcode - OP_FSTORE_0, pop1());
-                    break;
-                case OP_DSTORE_0:
-                case OP_DSTORE_1:
-                case OP_DSTORE_2:
-                case OP_DSTORE_3:
-                    // already fat
-                    setLocal(opcode - OP_DSTORE_0, pop2());
-                    break;
-                case OP_ASTORE_0:
-                case OP_ASTORE_1:
-                case OP_ASTORE_2:
-                case OP_ASTORE_3:
-                    setLocal(opcode - OP_ASTORE_0, pop1());
-                    break;
-                case OP_IASTORE:
-                case OP_FASTORE:
-                case OP_AASTORE:
-                case OP_BASTORE:
-                case OP_SASTORE:
-                case OP_CASTORE:
-                    v3 = pop1();
-                    v2 = pop1();
-                    v1 = pop1();
-                    gf.writeArrayValue(v1, v2, v3, JavaAccessMode.PLAIN);
-                    break;
-                case OP_LASTORE:
-                case OP_DASTORE:
-                    v3 = pop2();
-                    v2 = pop1();
-                    v1 = pop1();
-                    gf.writeArrayValue(v1, v2, v3, JavaAccessMode.PLAIN);
-                    break;
-                case OP_POP:
-                    pop1();
-                    break;
-                case OP_POP2:
-                    pop2();
-                    break;
-                case OP_DUP:
-                    dup();
-                    break;
-                case OP_DUP_X1:
-                    v1 = pop1();
-                    v2 = pop1();
-                    push(v1);
-                    push(v2);
-                    push(v1);
-                    break;
-                case OP_DUP_X2:
-                    v1 = pop();
-                    v2 = pop();
-                    v3 = pop();
-                    push(v1);
-                    push(v3);
-                    push(v2);
-                    push(v1);
-                    break;
-                case OP_DUP2:
-                    dup2();
-                    break;
-                case OP_DUP2_X1:
-                    if (! isFat(peek())) {
-                        // form 1
+                switch (opcode) {
+                    case OP_NOP:
+                        break;
+                    case OP_ACONST_NULL:
+                        push(lf.literalOfNull());
+                        break;
+                    case OP_ICONST_M1:
+                    case OP_ICONST_0:
+                    case OP_ICONST_1:
+                    case OP_ICONST_2:
+                    case OP_ICONST_3:
+                    case OP_ICONST_4:
+                    case OP_ICONST_5:
+                        push(lf.literalOf(opcode - OP_ICONST_0));
+                        break;
+                    case OP_LCONST_0:
+                    case OP_LCONST_1:
+                        push(fatten(lf.literalOf((long) opcode - OP_LCONST_0)));
+                        break;
+                    case OP_FCONST_0:
+                    case OP_FCONST_1:
+                    case OP_FCONST_2:
+                        push(lf.literalOf((float) opcode - OP_FCONST_0));
+                        break;
+                    case OP_DCONST_0:
+                    case OP_DCONST_1:
+                        push(fatten(lf.literalOf((double) opcode - OP_DCONST_0)));
+                        break;
+                    case OP_BIPUSH:
+                        push(lf.literalOf((int) buffer.get()));
+                        break;
+                    case OP_SIPUSH:
+                        push(lf.literalOf((int) buffer.getShort()));
+                        break;
+                    case OP_LDC:
+                        push(unfatten(getConstantValue(buffer.get() & 0xff)));
+                        break;
+                    case OP_LDC_W:
+                        push(unfatten(getConstantValue(buffer.getShort() & 0xffff)));
+                        break;
+                    case OP_LDC2_W:
+                        push(fatten(getConstantValue(buffer.getShort() & 0xffff)));
+                        break;
+                    case OP_ILOAD:
+                        push(getLocal(getWidenableValue(buffer, wide)));
+                        break;
+                    case OP_LLOAD:
+                        // already fat
+                        push(getLocal(getWidenableValue(buffer, wide)));
+                        break;
+                    case OP_FLOAD:
+                        push(getLocal(getWidenableValue(buffer, wide)));
+                        break;
+                    case OP_DLOAD:
+                        // already fat
+                        push(getLocal(getWidenableValue(buffer, wide)));
+                        break;
+                    case OP_ALOAD:
+                        push(getLocal(getWidenableValue(buffer, wide)));
+                        break;
+                    case OP_ILOAD_0:
+                    case OP_ILOAD_1:
+                    case OP_ILOAD_2:
+                    case OP_ILOAD_3:
+                        push(getLocal(opcode - OP_ILOAD_0));
+                        break;
+                    case OP_LLOAD_0:
+                    case OP_LLOAD_1:
+                    case OP_LLOAD_2:
+                    case OP_LLOAD_3:
+                        // already fat
+                        push(getLocal(opcode - OP_LLOAD_0));
+                        break;
+                    case OP_FLOAD_0:
+                    case OP_FLOAD_1:
+                    case OP_FLOAD_2:
+                    case OP_FLOAD_3:
+                        push(getLocal(opcode - OP_FLOAD_0));
+                        break;
+                    case OP_DLOAD_0:
+                    case OP_DLOAD_1:
+                    case OP_DLOAD_2:
+                    case OP_DLOAD_3:
+                        // already fat
+                        push(getLocal(opcode - OP_DLOAD_0));
+                        break;
+                    case OP_ALOAD_0:
+                    case OP_ALOAD_1:
+                    case OP_ALOAD_2:
+                    case OP_ALOAD_3:
+                        push(getLocal(opcode - OP_ALOAD_0));
+                        break;
+                    case OP_DALOAD:
+                    case OP_LALOAD: {
+                        v2 = pop1();
+                        v1 = pop1();
+                        v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
+                        push(fatten(v1));
+                        break;
+                    }
+                    case OP_IALOAD:
+                    case OP_AALOAD:
+                    case OP_FALOAD:
+                    case OP_BALOAD:
+                    case OP_SALOAD:
+                    case OP_CALOAD: {
+                        v2 = pop1();
+                        v1 = pop1();
+                        v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
+                        push(unfatten(v1));
+                        break;
+                    }
+                    case OP_ISTORE:
+                    case OP_FSTORE:
+                    case OP_ASTORE:
+                        setLocal(getWidenableValue(buffer, wide), pop1());
+                        break;
+                    case OP_LSTORE:
+                    case OP_DSTORE:
+                        // already fat
+                        setLocal(getWidenableValue(buffer, wide), pop2());
+                        break;
+                    case OP_ISTORE_0:
+                    case OP_ISTORE_1:
+                    case OP_ISTORE_2:
+                    case OP_ISTORE_3:
+                        setLocal(opcode - OP_ISTORE_0, pop1());
+                        break;
+                    case OP_LSTORE_0:
+                    case OP_LSTORE_1:
+                    case OP_LSTORE_2:
+                    case OP_LSTORE_3:
+                        // already fat
+                        setLocal(opcode - OP_LSTORE_0, pop2());
+                        break;
+                    case OP_FSTORE_0:
+                    case OP_FSTORE_1:
+                    case OP_FSTORE_2:
+                    case OP_FSTORE_3:
+                        setLocal(opcode - OP_FSTORE_0, pop1());
+                        break;
+                    case OP_DSTORE_0:
+                    case OP_DSTORE_1:
+                    case OP_DSTORE_2:
+                    case OP_DSTORE_3:
+                        // already fat
+                        setLocal(opcode - OP_DSTORE_0, pop2());
+                        break;
+                    case OP_ASTORE_0:
+                    case OP_ASTORE_1:
+                    case OP_ASTORE_2:
+                    case OP_ASTORE_3:
+                        setLocal(opcode - OP_ASTORE_0, pop1());
+                        break;
+                    case OP_IASTORE:
+                    case OP_FASTORE:
+                    case OP_AASTORE:
+                    case OP_BASTORE:
+                    case OP_SASTORE:
+                    case OP_CASTORE:
+                        v3 = pop1();
+                        v2 = pop1();
+                        v1 = pop1();
+                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                        break;
+                    case OP_LASTORE:
+                    case OP_DASTORE:
+                        v3 = pop2();
+                        v2 = pop1();
+                        v1 = pop1();
+                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                        break;
+                    case OP_POP:
+                        pop1();
+                        break;
+                    case OP_POP2:
+                        pop2();
+                        break;
+                    case OP_DUP:
+                        dup();
+                        break;
+                    case OP_DUP_X1:
+                        v1 = pop1();
+                        v2 = pop1();
+                        push(v1);
+                        push(v2);
+                        push(v1);
+                        break;
+                    case OP_DUP_X2:
                         v1 = pop();
                         v2 = pop();
                         v3 = pop();
-                        push(v2);
                         push(v1);
                         push(v3);
-                    } else {
-                        // form 2
-                        v1 = pop2();
-                        v2 = pop2();
+                        push(v2);
                         push(v1);
-                    }
-                    push(v2);
-                    push(v1);
-                    break;
-                case OP_DUP2_X2:
-                    if (! isFat(peek())) {
-                        v1 = pop1();
-                        v2 = pop1();
+                        break;
+                    case OP_DUP2:
+                        dup2();
+                        break;
+                    case OP_DUP2_X1:
                         if (! isFat(peek())) {
                             // form 1
-                            v3 = pop1();
-                            v4 = pop1();
+                            v1 = pop();
+                            v2 = pop();
+                            v3 = pop();
                             push(v2);
                             push(v1);
-                            push(v4);
-                        } else {
-                            // form 3
-                            v3 = pop2();
-                            push(v2);
-                            push(v1);
-                        }
-                        // form 1 or 3
-                        push(v3);
-                        push(v2);
-                    } else {
-                        v1 = pop2();
-                        if (! isFat(peek())) {
-                            // form 2
-                            v2 = pop1();
-                            v3 = pop1();
-                            push(v1);
-                            push(v2);
                             push(v3);
                         } else {
-                            // form 4
+                            // form 2
+                            v1 = pop2();
                             v2 = pop2();
                             push(v1);
+                        }
+                        push(v2);
+                        push(v1);
+                        break;
+                    case OP_DUP2_X2:
+                        if (! isFat(peek())) {
+                            v1 = pop1();
+                            v2 = pop1();
+                            if (! isFat(peek())) {
+                                // form 1
+                                v3 = pop1();
+                                v4 = pop1();
+                                push(v2);
+                                push(v1);
+                                push(v4);
+                            } else {
+                                // form 3
+                                v3 = pop2();
+                                push(v2);
+                                push(v1);
+                            }
+                            // form 1 or 3
+                            push(v3);
                             push(v2);
-                        }
-                        // form 2 or 4
-                    }
-                    push(v1);
-                    break;
-                case OP_SWAP:
-                    swap();
-                    break;
-                case OP_IADD:
-                case OP_FADD:
-                    v2 = pop1();
-                    v1 = pop1();
-                    push(gf.add(v1, v2));
-                    break;
-                case OP_LADD:
-                case OP_DADD:
-                    v2 = pop2();
-                    v1 = pop2();
-                    push(fatten(gf.add(v1, v2)));
-                    break;
-                case OP_ISUB:
-                case OP_FSUB:
-                    v2 = pop1();
-                    v1 = pop1();
-                    push(gf.sub(v1, v2));
-                    break;
-                case OP_LSUB:
-                case OP_DSUB:
-                    v2 = pop2();
-                    v1 = pop2();
-                    push(fatten(gf.sub(v1, v2)));
-                    break;
-                case OP_IMUL:
-                case OP_FMUL:
-                    v2 = pop1();
-                    v1 = pop1();
-                    push(gf.multiply(v1, v2));
-                    break;
-                case OP_LMUL:
-                case OP_DMUL:
-                    v2 = pop2();
-                    v1 = pop2();
-                    push(fatten(gf.multiply(v1, v2)));
-                    break;
-                case OP_IDIV:
-                case OP_FDIV:
-                    v2 = pop1();
-                    v1 = pop1();
-                    push(gf.divide(v1, v2));
-                    break;
-                case OP_LDIV:
-                case OP_DDIV:
-                    v2 = pop2();
-                    v1 = pop2();
-                    push(fatten(gf.divide(v1, v2)));
-                    break;
-                case OP_IREM:
-                case OP_FREM:
-                    v2 = pop1();
-                    v1 = pop1();
-                    push(gf.remainder(v1, v2));
-                    break;
-                case OP_LREM:
-                case OP_DREM:
-                    v2 = pop2();
-                    v1 = pop2();
-                    push(fatten(gf.remainder(v1, v2)));
-                    break;
-                case OP_INEG:
-                case OP_FNEG:
-                    push(gf.negate(pop1()));
-                    break;
-                case OP_LNEG:
-                case OP_DNEG:
-                    push(fatten(gf.negate(pop2())));
-                    break;
-                case OP_ISHL:
-                    v2 = pop1();
-                    v1 = pop1();
-                    push(gf.shl(v1, v2));
-                    break;
-                case OP_LSHL:
-                    v2 = pop1();
-                    v1 = pop2();
-                    push(fatten(gf.shl(v1, v2)));
-                    break;
-                case OP_ISHR: {
-                    v2 = pop1();
-                    v1 = pop1();
-                    IntegerType it = (IntegerType) v1.getType();
-                    if (it instanceof SignedIntegerType) {
-                        push(gf.shr(v1, v2));
-                    } else {
-                        push(gf.bitCast(gf.shr(gf.bitCast(v1, it.asSigned()), v2), it));
-                    }
-                    break;
-                }
-                case OP_LSHR: {
-                    v2 = pop1();
-                    v1 = pop2();
-                    IntegerType it = (IntegerType) v1.getType();
-                    if (it instanceof SignedIntegerType) {
-                        push(fatten(gf.shr(v1, v2)));
-                    } else {
-                        push(fatten(gf.bitCast(gf.shr(gf.bitCast(v1, it.asSigned()), v2), it)));
-                    }
-                    break;
-                }
-                case OP_IUSHR: {
-                    v2 = pop1();
-                    v1 = pop1();
-                    IntegerType it = (IntegerType) v1.getType();
-                    if (it instanceof UnsignedIntegerType) {
-                        push(gf.shr(v1, v2));
-                    } else {
-                        push(gf.bitCast(gf.shr(gf.bitCast(v1, it.asUnsigned()), v2), it));
-                    }
-                    break;
-                }
-                case OP_LUSHR: {
-                    v2 = pop1();
-                    v1 = pop2();
-                    IntegerType it = (IntegerType) v1.getType();
-                    if (it instanceof UnsignedIntegerType) {
-                        push(fatten(gf.shr(v1, v2)));
-                    } else {
-                        push(fatten(gf.bitCast(gf.shr(gf.bitCast(v1, it.asUnsigned()), v2), it)));
-                    }
-                    break;
-                }
-                case OP_IAND:
-                    v2 = pop1();
-                    v1 = pop1();
-                    push(gf.and(v1, v2));
-                    break;
-                case OP_LAND:
-                    v2 = pop2();
-                    v1 = pop2();
-                    push(fatten(gf.and(v1, v2)));
-                    break;
-                case OP_IOR:
-                    v2 = pop1();
-                    v1 = pop1();
-                    push(gf.or(v1, v2));
-                    break;
-                case OP_LOR:
-                    v2 = pop2();
-                    v1 = pop2();
-                    push(fatten(gf.or(v1, v2)));
-                    break;
-                case OP_IXOR:
-                    v2 = pop1();
-                    v1 = pop1();
-                    push(gf.xor(v1, v2));
-                    break;
-                case OP_LXOR:
-                    v2 = pop2();
-                    v1 = pop2();
-                    push(fatten(gf.xor(v1, v2)));
-                    break;
-                case OP_IINC:
-                    int idx = getWidenableValue(buffer, wide);
-                    setLocal(idx, gf.add(getLocal(idx), lf.literalOf(getWidenableValueSigned(buffer, wide))));
-                    break;
-                case OP_I2L:
-                    push(fatten(gf.extend(pop1(), ts.getSignedInteger64Type())));
-                    break;
-                case OP_I2F:
-                    push(gf.valueConvert(pop1(), ts.getFloat32Type()));
-                    break;
-                case OP_I2D:
-                    push(fatten(gf.valueConvert(pop1(), ts.getFloat64Type())));
-                    break;
-                case OP_L2I:
-                    push(gf.truncate(pop2(), ts.getSignedInteger32Type()));
-                    break;
-                case OP_L2F:
-                    push(gf.valueConvert(pop2(), ts.getFloat32Type()));
-                    break;
-                case OP_L2D:
-                    push(fatten(gf.valueConvert(pop2(), ts.getFloat64Type())));
-                    break;
-                case OP_F2I:
-                    push(gf.valueConvert(pop1(), ts.getSignedInteger32Type()));
-                    break;
-                case OP_F2L:
-                    push(fatten(gf.valueConvert(pop1(), ts.getSignedInteger64Type())));
-                    break;
-                case OP_F2D:
-                    push(fatten(gf.extend(pop1(), ts.getFloat64Type())));
-                    break;
-                case OP_D2I:
-                    push(gf.valueConvert(pop2(), ts.getSignedInteger32Type()));
-                    break;
-                case OP_D2L:
-                    push(fatten(gf.valueConvert(pop2(), ts.getSignedInteger64Type())));
-                    break;
-                case OP_D2F:
-                    push(gf.truncate(pop2(), ts.getFloat32Type()));
-                    break;
-                case OP_I2B:
-                    push(gf.extend(gf.truncate(pop1(), ts.getSignedInteger8Type()), ts.getSignedInteger32Type()));
-                    break;
-                case OP_I2C:
-                    push(gf.extend(gf.truncate(pop1(), ts.getUnsignedInteger16Type()), ts.getSignedInteger32Type()));
-                    break;
-                case OP_I2S:
-                    push(gf.extend(gf.truncate(pop1(), ts.getSignedInteger16Type()), ts.getSignedInteger32Type()));
-                    break;
-                case OP_LCMP:
-                case OP_DCMPL:
-                case OP_FCMPL:
-                    v2 = pop();
-                    v1 = pop();
-                    v3 = gf.cmpLt(v1, v2);
-                    v4 = gf.cmpGt(v1, v2);
-                    push(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
-                    break;
-                case OP_DCMPG:
-                case OP_FCMPG:
-                    v2 = pop();
-                    v1 = pop();
-                    v3 = gf.cmpLt(v1, v2);
-                    v4 = gf.cmpGt(v1, v2);
-                    push(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
-                    break;
-                case OP_IFEQ:
-                    processIf(buffer, gf.cmpEq(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IFNE:
-                    processIf(buffer, gf.cmpNe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IFLT:
-                    processIf(buffer, gf.cmpLt(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IFGE:
-                    processIf(buffer, gf.cmpGe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IFGT:
-                    processIf(buffer, gf.cmpGt(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IFLE:
-                    processIf(buffer, gf.cmpLe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IF_ICMPEQ:
-                case OP_IF_ACMPEQ:
-                    v2 = pop1();
-                    v1 = pop1();
-                    processIf(buffer, gf.cmpEq(v1, v2), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IF_ICMPNE:
-                case OP_IF_ACMPNE:
-                    v2 = pop1();
-                    v1 = pop1();
-                    processIf(buffer, gf.cmpNe(v1, v2), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IF_ICMPLT:
-                    v2 = pop1();
-                    v1 = pop1();
-                    processIf(buffer, gf.cmpLt(v1, v2), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IF_ICMPGE:
-                    v2 = pop1();
-                    v1 = pop1();
-                    processIf(buffer, gf.cmpGe(v1, v2), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IF_ICMPGT:
-                    v2 = pop1();
-                    v1 = pop1();
-                    processIf(buffer, gf.cmpGt(v1, v2), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_IF_ICMPLE:
-                    v2 = pop1();
-                    v1 = pop1();
-                    processIf(buffer, gf.cmpLe(v1, v2), buffer.getShort() + src, buffer.position());
-                    return;
-                case OP_GOTO:
-                case OP_GOTO_W: {
-                    int target = src + (opcode == OP_GOTO ? buffer.getShort() : buffer.getInt());
-                    BlockLabel block = getBlockForIndexIfExists(target);
-                    BasicBlock from;
-                    if (block == null) {
-                        // only one entry point
-                        block = new BlockLabel();
-                        gf.goto_(block);
-                        // set the position after, so that the bci for the instruction is correct
-                        buffer.position(target);
-                        gf.begin(block);
-                        processNewBlock();
-                    } else {
-                        from = gf.goto_(block);
-                        // set the position after, so that the bci for the instruction is correct
-                        buffer.position(target);
-                        processBlock(from);
-                    }
-                    return;
-                }
-                case OP_JSR:
-                case OP_JSR_W: {
-                    int target = src + (opcode == OP_JSR ? buffer.getShort() : buffer.getInt());
-                    int ret = buffer.position();
-                    // jsr destination
-                    BlockLabel dest = getBlockForIndexIfExists(target);
-                    // ret point is always registered as a multiple return point
-                    BlockLabel retBlock = getBlockForIndex(ret);
-                    push(lf.literalOf(retBlock));
-                    if (dest == null) {
-                        // only called from one site
-                        dest = new BlockLabel();
-                        gf.jsr(dest, lf.literalOf(retBlock));
-                        buffer.position(target);
-                        gf.begin(dest);
-                        processNewBlock();
-                    } else {
-                        // the jsr call
-                        BasicBlock termBlock = gf.jsr(dest, lf.literalOf(retBlock));
-                        // process the jsr call target block with our current stack
-                        buffer.position(target);
-                        processBlock(termBlock);
-                    }
-                    // now process the return block once for each returning path (as if the ret is a goto);
-                    // the ret visitor will continue parsing if the jsr returns (as opposed to throwing)
-                    new RetVisitor(buffer, ret).handleBlock(BlockLabel.getTargetOf(dest));
-                    return;
-                }
-                case OP_RET:
-                    // each ret records the output stack and locals at the point of the ret, and then exits.
-                    setJsrExitState(gf.ret(pop()), saveStack(), saveLocals());
-                    // exit one level of recursion
-                    return;
-                case OP_TABLESWITCH: {
-                    align(buffer, 4);
-                    int db = buffer.getInt();
-                    int low = buffer.getInt();
-                    int high = buffer.getInt();
-                    int cnt = high - low;
-                    int[] dests = new int[cnt];
-                    int[] vals = new int[cnt];
-                    boolean[] singles = new boolean[cnt];
-                    BlockLabel[] handles = new BlockLabel[cnt];
-                    for (int i = 0; i < cnt; i++) {
-                        vals[i] = low + i;
-                        BlockLabel block = getBlockForIndexIfExists(dests[i] = buffer.getInt() + src);
-                        if (block == null) {
-                            handles[i] = new BlockLabel();
-                            singles[i] = true;
                         } else {
-                            handles[i] = block;
-                        }
-                    }
-                    Set<BlockLabel> seen = new HashSet<>();
-                    boolean defaultSingle;
-                    BlockLabel defaultBlock = getBlockForIndexIfExists(db + src);
-                    if (defaultBlock == null) {
-                        defaultSingle = true;
-                        defaultBlock = new BlockLabel();
-                    } else {
-                        defaultSingle = false;
-                    }
-                    seen.add(defaultBlock);
-                    BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock);
-                    Value[] stackSnap = saveStack();
-                    Value[] varSnap = saveLocals();
-                    buffer.position(db + src);
-                    if (defaultSingle) {
-                        gf.begin(defaultBlock);
-                        processNewBlock();
-                    } else {
-                        processBlock(exited);
-                    }
-                    for (int i = 0; i < handles.length; i++) {
-                        if (seen.add(handles[i])) {
-                            restoreStack(stackSnap);
-                            restoreLocals(varSnap);
-                            buffer.position(dests[i]);
-                            if (singles[i]) {
-                                gf.begin(handles[i]);
-                                processNewBlock();
+                            v1 = pop2();
+                            if (! isFat(peek())) {
+                                // form 2
+                                v2 = pop1();
+                                v3 = pop1();
+                                push(v1);
+                                push(v2);
+                                push(v3);
                             } else {
-                                processBlock(exited);
+                                // form 4
+                                v2 = pop2();
+                                push(v1);
+                                push(v2);
                             }
+                            // form 2 or 4
                         }
-                    }
-                    // done
-                    return;
-                }
-                case OP_LOOKUPSWITCH: {
-                    align(buffer, 4);
-                    int db = buffer.getInt();
-                    int cnt = buffer.getInt();
-                    int[] dests = new int[cnt];
-                    int[] vals = new int[cnt];
-                    boolean[] singles = new boolean[cnt];
-                    BlockLabel[] handles = new BlockLabel[cnt];
-                    for (int i = 0; i < cnt; i++) {
-                        vals[i] = buffer.getInt();
-                        BlockLabel block = getBlockForIndexIfExists(dests[i] = buffer.getInt() + src);
-                        if (block == null) {
-                            handles[i] = new BlockLabel();
-                            singles[i] = true;
+                        push(v1);
+                        break;
+                    case OP_SWAP:
+                        swap();
+                        break;
+                    case OP_IADD:
+                    case OP_FADD:
+                        v2 = pop1();
+                        v1 = pop1();
+                        push(gf.add(v1, v2));
+                        break;
+                    case OP_LADD:
+                    case OP_DADD:
+                        v2 = pop2();
+                        v1 = pop2();
+                        push(fatten(gf.add(v1, v2)));
+                        break;
+                    case OP_ISUB:
+                    case OP_FSUB:
+                        v2 = pop1();
+                        v1 = pop1();
+                        push(gf.sub(v1, v2));
+                        break;
+                    case OP_LSUB:
+                    case OP_DSUB:
+                        v2 = pop2();
+                        v1 = pop2();
+                        push(fatten(gf.sub(v1, v2)));
+                        break;
+                    case OP_IMUL:
+                    case OP_FMUL:
+                        v2 = pop1();
+                        v1 = pop1();
+                        push(gf.multiply(v1, v2));
+                        break;
+                    case OP_LMUL:
+                    case OP_DMUL:
+                        v2 = pop2();
+                        v1 = pop2();
+                        push(fatten(gf.multiply(v1, v2)));
+                        break;
+                    case OP_IDIV:
+                    case OP_FDIV:
+                        v2 = pop1();
+                        v1 = pop1();
+                        push(gf.divide(v1, v2));
+                        break;
+                    case OP_LDIV:
+                    case OP_DDIV:
+                        v2 = pop2();
+                        v1 = pop2();
+                        push(fatten(gf.divide(v1, v2)));
+                        break;
+                    case OP_IREM:
+                    case OP_FREM:
+                        v2 = pop1();
+                        v1 = pop1();
+                        push(gf.remainder(v1, v2));
+                        break;
+                    case OP_LREM:
+                    case OP_DREM:
+                        v2 = pop2();
+                        v1 = pop2();
+                        push(fatten(gf.remainder(v1, v2)));
+                        break;
+                    case OP_INEG:
+                    case OP_FNEG:
+                        push(gf.negate(pop1()));
+                        break;
+                    case OP_LNEG:
+                    case OP_DNEG:
+                        push(fatten(gf.negate(pop2())));
+                        break;
+                    case OP_ISHL:
+                        v2 = pop1();
+                        v1 = pop1();
+                        push(gf.shl(v1, v2));
+                        break;
+                    case OP_LSHL:
+                        v2 = pop1();
+                        v1 = pop2();
+                        push(fatten(gf.shl(v1, v2)));
+                        break;
+                    case OP_ISHR: {
+                        v2 = pop1();
+                        v1 = pop1();
+                        IntegerType it = (IntegerType) v1.getType();
+                        if (it instanceof SignedIntegerType) {
+                            push(gf.shr(v1, v2));
                         } else {
-                            handles[i] = block;
+                            push(gf.bitCast(gf.shr(gf.bitCast(v1, it.asSigned()), v2), it));
                         }
+                        break;
                     }
-                    Set<BlockLabel> seen = new HashSet<>();
-                    boolean defaultSingle;
-                    BlockLabel defaultBlock = getBlockForIndexIfExists(db + src);
-                    if (defaultBlock == null) {
-                        defaultSingle = true;
-                        defaultBlock = new BlockLabel();
-                    } else {
-                        defaultSingle = false;
-                    }
-                    seen.add(defaultBlock);
-                    BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock);
-                    Value[] stackSnap = saveStack();
-                    Value[] varSnap = saveLocals();
-                    buffer.position(db + src);
-                    if (defaultSingle) {
-                        gf.begin(defaultBlock);
-                        processNewBlock();
-                    } else {
-                        processBlock(exited);
-                    }
-                    for (int i = 0; i < handles.length; i++) {
-                        if (seen.add(handles[i])) {
-                            restoreStack(stackSnap);
-                            restoreLocals(varSnap);
-                            buffer.position(dests[i]);
-                            if (singles[i]) {
-                                gf.begin(handles[i]);
-                                processNewBlock();
-                            } else {
-                                processBlock(exited);
-                            }
+                    case OP_LSHR: {
+                        v2 = pop1();
+                        v1 = pop2();
+                        IntegerType it = (IntegerType) v1.getType();
+                        if (it instanceof SignedIntegerType) {
+                            push(fatten(gf.shr(v1, v2)));
+                        } else {
+                            push(fatten(gf.bitCast(gf.shr(gf.bitCast(v1, it.asSigned()), v2), it)));
                         }
+                        break;
                     }
-                    // done
-                    return;
-                }
-                case OP_IRETURN: {
-                    FunctionType fnType = gf.getCurrentElement().getType(List.of());
-                    ValueType returnType = fnType.getReturnType();
-                    gf.return_(gf.truncate(pop1(), (WordType) returnType));
-                    // block complete
-                    return;
-                }
-                case OP_FRETURN:
-                case OP_ARETURN:
-                    gf.return_(pop1());
-                    // block complete
-                    return;
-                case OP_LRETURN:
-                case OP_DRETURN:
-                    gf.return_(pop2());
-                    // block complete
-                    return;
-                case OP_RETURN:
-                    gf.return_();
-                    // block complete
-                    return;
-                case OP_GETSTATIC: {
-                    // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
-                    int fieldRef = buffer.getShort() & 0xffff;
-                    TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
-                    TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
-                    String name = getNameOfFieldRef(fieldRef);
-                    // todo: signature context
-                    Value value = promote(gf.readStaticField(owner, name, desc, JavaAccessMode.DETECT));
-                    push(desc.isClass2() ? fatten(value) : value);
-                    break;
-                }
-                case OP_PUTSTATIC: {
-                    // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
-                    int fieldRef = buffer.getShort() & 0xffff;
-                    TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
-                    TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
-                    String name = getNameOfFieldRef(fieldRef);
-                    gf.writeStaticField(owner, name, desc, desc.isClass2() ? pop2() : pop(), JavaAccessMode.DETECT);
-                    break;
-                }
-                case OP_GETFIELD: {
-                    // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
-                    int fieldRef = buffer.getShort() & 0xffff;
-                    TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
-                    TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
-                    String name = getNameOfFieldRef(fieldRef);
-                    // todo: signature context
-                    Value value = promote(gf.readInstanceField(pop(), owner, name, desc, JavaAccessMode.DETECT));
-                    push(desc.isClass2() ? fatten(value) : value);
-                    break;
-                }
-                case OP_PUTFIELD: {
-                    // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
-                    int fieldRef = buffer.getShort() & 0xffff;
-                    TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
-                    TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
-                    String name = getNameOfFieldRef(fieldRef);
-                    v2 = desc.isClass2() ? pop2() : pop();
-                    v1 = pop();
-                    gf.writeInstanceField(v1, owner, name, desc, v2, JavaAccessMode.DETECT);
-                    break;
-                }
-                case OP_INVOKEVIRTUAL:
-                case OP_INVOKESPECIAL:
-                case OP_INVOKESTATIC:
-                case OP_INVOKEINTERFACE: {
-                    int methodRef = buffer.getShort() & 0xffff;
-                    TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getMethodrefConstantClassIndex(methodRef));
-                    int nameAndType = getNameAndTypeOfMethodRef(methodRef);
-                    if (opcode == OP_INVOKEINTERFACE) {
-                        buffer.get(); // discard `count`
-                        buffer.get(); // discard 0
+                    case OP_IUSHR: {
+                        v2 = pop1();
+                        v1 = pop1();
+                        IntegerType it = (IntegerType) v1.getType();
+                        if (it instanceof UnsignedIntegerType) {
+                            push(gf.shr(v1, v2));
+                        } else {
+                            push(gf.bitCast(gf.shr(gf.bitCast(v1, it.asUnsigned()), v2), it));
+                        }
+                        break;
                     }
-                    if (owner == null) {
-                        gf.classNotFoundError(getClassFile().getMethodrefConstantClassName(methodRef));
+                    case OP_LUSHR: {
+                        v2 = pop1();
+                        v1 = pop2();
+                        IntegerType it = (IntegerType) v1.getType();
+                        if (it instanceof UnsignedIntegerType) {
+                            push(fatten(gf.shr(v1, v2)));
+                        } else {
+                            push(fatten(gf.bitCast(gf.shr(gf.bitCast(v1, it.asUnsigned()), v2), it)));
+                        }
+                        break;
+                    }
+                    case OP_IAND:
+                        v2 = pop1();
+                        v1 = pop1();
+                        push(gf.and(v1, v2));
+                        break;
+                    case OP_LAND:
+                        v2 = pop2();
+                        v1 = pop2();
+                        push(fatten(gf.and(v1, v2)));
+                        break;
+                    case OP_IOR:
+                        v2 = pop1();
+                        v1 = pop1();
+                        push(gf.or(v1, v2));
+                        break;
+                    case OP_LOR:
+                        v2 = pop2();
+                        v1 = pop2();
+                        push(fatten(gf.or(v1, v2)));
+                        break;
+                    case OP_IXOR:
+                        v2 = pop1();
+                        v1 = pop1();
+                        push(gf.xor(v1, v2));
+                        break;
+                    case OP_LXOR:
+                        v2 = pop2();
+                        v1 = pop2();
+                        push(fatten(gf.xor(v1, v2)));
+                        break;
+                    case OP_IINC:
+                        int idx = getWidenableValue(buffer, wide);
+                        setLocal(idx, gf.add(getLocal(idx), lf.literalOf(getWidenableValueSigned(buffer, wide))));
+                        break;
+                    case OP_I2L:
+                        push(fatten(gf.extend(pop1(), ts.getSignedInteger64Type())));
+                        break;
+                    case OP_I2F:
+                        push(gf.valueConvert(pop1(), ts.getFloat32Type()));
+                        break;
+                    case OP_I2D:
+                        push(fatten(gf.valueConvert(pop1(), ts.getFloat64Type())));
+                        break;
+                    case OP_L2I:
+                        push(gf.truncate(pop2(), ts.getSignedInteger32Type()));
+                        break;
+                    case OP_L2F:
+                        push(gf.valueConvert(pop2(), ts.getFloat32Type()));
+                        break;
+                    case OP_L2D:
+                        push(fatten(gf.valueConvert(pop2(), ts.getFloat64Type())));
+                        break;
+                    case OP_F2I:
+                        push(gf.valueConvert(pop1(), ts.getSignedInteger32Type()));
+                        break;
+                    case OP_F2L:
+                        push(fatten(gf.valueConvert(pop1(), ts.getSignedInteger64Type())));
+                        break;
+                    case OP_F2D:
+                        push(fatten(gf.extend(pop1(), ts.getFloat64Type())));
+                        break;
+                    case OP_D2I:
+                        push(gf.valueConvert(pop2(), ts.getSignedInteger32Type()));
+                        break;
+                    case OP_D2L:
+                        push(fatten(gf.valueConvert(pop2(), ts.getSignedInteger64Type())));
+                        break;
+                    case OP_D2F:
+                        push(gf.truncate(pop2(), ts.getFloat32Type()));
+                        break;
+                    case OP_I2B:
+                        push(gf.extend(gf.truncate(pop1(), ts.getSignedInteger8Type()), ts.getSignedInteger32Type()));
+                        break;
+                    case OP_I2C:
+                        push(gf.extend(gf.truncate(pop1(), ts.getUnsignedInteger16Type()), ts.getSignedInteger32Type()));
+                        break;
+                    case OP_I2S:
+                        push(gf.extend(gf.truncate(pop1(), ts.getSignedInteger16Type()), ts.getSignedInteger32Type()));
+                        break;
+                    case OP_LCMP:
+                    case OP_DCMPL:
+                    case OP_FCMPL:
+                        v2 = pop();
+                        v1 = pop();
+                        v3 = gf.cmpLt(v1, v2);
+                        v4 = gf.cmpGt(v1, v2);
+                        push(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
+                        break;
+                    case OP_DCMPG:
+                    case OP_FCMPG:
+                        v2 = pop();
+                        v1 = pop();
+                        v3 = gf.cmpLt(v1, v2);
+                        v4 = gf.cmpGt(v1, v2);
+                        push(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
+                        break;
+                    case OP_IFEQ:
+                        processIf(buffer, gf.cmpEq(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IFNE:
+                        processIf(buffer, gf.cmpNe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IFLT:
+                        processIf(buffer, gf.cmpLt(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IFGE:
+                        processIf(buffer, gf.cmpGe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IFGT:
+                        processIf(buffer, gf.cmpGt(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IFLE:
+                        processIf(buffer, gf.cmpLe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IF_ICMPEQ:
+                    case OP_IF_ACMPEQ:
+                        v2 = pop1();
+                        v1 = pop1();
+                        processIf(buffer, gf.cmpEq(v1, v2), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IF_ICMPNE:
+                    case OP_IF_ACMPNE:
+                        v2 = pop1();
+                        v1 = pop1();
+                        processIf(buffer, gf.cmpNe(v1, v2), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IF_ICMPLT:
+                        v2 = pop1();
+                        v1 = pop1();
+                        processIf(buffer, gf.cmpLt(v1, v2), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IF_ICMPGE:
+                        v2 = pop1();
+                        v1 = pop1();
+                        processIf(buffer, gf.cmpGe(v1, v2), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IF_ICMPGT:
+                        v2 = pop1();
+                        v1 = pop1();
+                        processIf(buffer, gf.cmpGt(v1, v2), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IF_ICMPLE:
+                        v2 = pop1();
+                        v1 = pop1();
+                        processIf(buffer, gf.cmpLe(v1, v2), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_GOTO:
+                    case OP_GOTO_W: {
+                        int target = src + (opcode == OP_GOTO ? buffer.getShort() : buffer.getInt());
+                        BlockLabel block = getBlockForIndexIfExists(target);
+                        BasicBlock from;
+                        if (block == null) {
+                            // only one entry point
+                            block = new BlockLabel();
+                            gf.goto_(block);
+                            // set the position after, so that the bci for the instruction is correct
+                            buffer.position(target);
+                            gf.begin(block);
+                            processNewBlock();
+                        } else {
+                            from = gf.goto_(block);
+                            // set the position after, so that the bci for the instruction is correct
+                            buffer.position(target);
+                            processBlock(from);
+                        }
                         return;
                     }
-                    String name = getNameOfMethodRef(methodRef);
-                    if (name == null) {
-                        throw new InvalidConstantException("Method name is null");
-                    }
-                    MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(nameAndType));
-                    if (desc == null) {
-                        throw new InvalidConstantException("Method descriptor is null");
-                    }
-                    int cnt = desc.getParameterTypes().size();
-                    Value[] args = new Value[cnt];
-                    for (int i = cnt - 1; i >= 0; i --) {
-                        if (desc.getParameterTypes().get(i).isClass2()) {
-                            args[i] = pop2();
+                    case OP_JSR:
+                    case OP_JSR_W: {
+                        int target = src + (opcode == OP_JSR ? buffer.getShort() : buffer.getInt());
+                        int ret = buffer.position();
+                        // jsr destination
+                        BlockLabel dest = getBlockForIndexIfExists(target);
+                        // ret point is always registered as a multiple return point
+                        BlockLabel retBlock = getBlockForIndex(ret);
+                        push(lf.literalOf(retBlock));
+                        if (dest == null) {
+                            // only called from one site
+                            dest = new BlockLabel();
+                            gf.jsr(dest, lf.literalOf(retBlock));
+                            buffer.position(target);
+                            gf.begin(dest);
+                            processNewBlock();
                         } else {
-                            args[i] = pop1();
+                            // the jsr call
+                            BasicBlock termBlock = gf.jsr(dest, lf.literalOf(retBlock));
+                            // process the jsr call target block with our current stack
+                            buffer.position(target);
+                            processBlock(termBlock);
                         }
+                        // now process the return block once for each returning path (as if the ret is a goto);
+                        // the ret visitor will continue parsing if the jsr returns (as opposed to throwing)
+                        new RetVisitor(buffer, ret).handleBlock(BlockLabel.getTargetOf(dest));
+                        return;
                     }
-                    if (opcode != OP_INVOKESTATIC) {
-                        // pop the receiver
-                        v1 = pop1();
-                    } else {
-                        // definite initialization
-                        v1 = null;
-                    }
-                    if (name.equals("<init>")) {
-                        if (opcode != OP_INVOKESPECIAL) {
-                            throw new InvalidByteCodeException();
-                        }
-                        v2 = gf.invokeConstructor(v1, owner, desc, List.of(args));
-                        replaceAll(v1, v2);
-                    } else {
-                        TypeDescriptor returnType = desc.getReturnType();
-                        if (returnType == BaseTypeDescriptor.V) {
-                            if (opcode == OP_INVOKESTATIC) {
-                                // return type is implicitly void
-                                gf.invokeStatic(owner, name, desc, List.of(args));
+                    case OP_RET:
+                        // each ret records the output stack and locals at the point of the ret, and then exits.
+                        setJsrExitState(gf.ret(pop()), saveStack(), saveLocals());
+                        // exit one level of recursion
+                        return;
+                    case OP_TABLESWITCH: {
+                        align(buffer, 4);
+                        int db = buffer.getInt();
+                        int low = buffer.getInt();
+                        int high = buffer.getInt();
+                        int cnt = high - low;
+                        int[] dests = new int[cnt];
+                        int[] vals = new int[cnt];
+                        boolean[] singles = new boolean[cnt];
+                        BlockLabel[] handles = new BlockLabel[cnt];
+                        for (int i = 0; i < cnt; i++) {
+                            vals[i] = low + i;
+                            BlockLabel block = getBlockForIndexIfExists(dests[i] = buffer.getInt() + src);
+                            if (block == null) {
+                                handles[i] = new BlockLabel();
+                                singles[i] = true;
                             } else {
-                                // return type is implicitly void
-                                gf.invokeInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, owner, name, desc, List.of(args));
+                                handles[i] = block;
                             }
+                        }
+                        Set<BlockLabel> seen = new HashSet<>();
+                        boolean defaultSingle;
+                        BlockLabel defaultBlock = getBlockForIndexIfExists(db + src);
+                        if (defaultBlock == null) {
+                            defaultSingle = true;
+                            defaultBlock = new BlockLabel();
                         } else {
-                            Value result;
-                            if (opcode == OP_INVOKESTATIC) {
-                                result = gf.invokeValueStatic(owner, name, desc, List.of(args));
-                            } else {
-                                result = gf.invokeValueInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, owner, name, desc, List.of(args));
+                            defaultSingle = false;
+                        }
+                        seen.add(defaultBlock);
+                        BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock);
+                        Value[] stackSnap = saveStack();
+                        Value[] varSnap = saveLocals();
+                        buffer.position(db + src);
+                        if (defaultSingle) {
+                            gf.begin(defaultBlock);
+                            processNewBlock();
+                        } else {
+                            processBlock(exited);
+                        }
+                        for (int i = 0; i < handles.length; i++) {
+                            if (seen.add(handles[i])) {
+                                restoreStack(stackSnap);
+                                restoreLocals(varSnap);
+                                buffer.position(dests[i]);
+                                if (singles[i]) {
+                                    gf.begin(handles[i]);
+                                    processNewBlock();
+                                } else {
+                                    processBlock(exited);
+                                }
                             }
+                        }
+                        // done
+                        return;
+                    }
+                    case OP_LOOKUPSWITCH: {
+                        align(buffer, 4);
+                        int db = buffer.getInt();
+                        int cnt = buffer.getInt();
+                        int[] dests = new int[cnt];
+                        int[] vals = new int[cnt];
+                        boolean[] singles = new boolean[cnt];
+                        BlockLabel[] handles = new BlockLabel[cnt];
+                        for (int i = 0; i < cnt; i++) {
+                            vals[i] = buffer.getInt();
+                            BlockLabel block = getBlockForIndexIfExists(dests[i] = buffer.getInt() + src);
+                            if (block == null) {
+                                handles[i] = new BlockLabel();
+                                singles[i] = true;
+                            } else {
+                                handles[i] = block;
+                            }
+                        }
+                        Set<BlockLabel> seen = new HashSet<>();
+                        boolean defaultSingle;
+                        BlockLabel defaultBlock = getBlockForIndexIfExists(db + src);
+                        if (defaultBlock == null) {
+                            defaultSingle = true;
+                            defaultBlock = new BlockLabel();
+                        } else {
+                            defaultSingle = false;
+                        }
+                        seen.add(defaultBlock);
+                        BasicBlock exited = gf.switch_(pop1(), vals, handles, defaultBlock);
+                        Value[] stackSnap = saveStack();
+                        Value[] varSnap = saveLocals();
+                        buffer.position(db + src);
+                        if (defaultSingle) {
+                            gf.begin(defaultBlock);
+                            processNewBlock();
+                        } else {
+                            processBlock(exited);
+                        }
+                        for (int i = 0; i < handles.length; i++) {
+                            if (seen.add(handles[i])) {
+                                restoreStack(stackSnap);
+                                restoreLocals(varSnap);
+                                buffer.position(dests[i]);
+                                if (singles[i]) {
+                                    gf.begin(handles[i]);
+                                    processNewBlock();
+                                } else {
+                                    processBlock(exited);
+                                }
+                            }
+                        }
+                        // done
+                        return;
+                    }
+                    case OP_IRETURN: {
+                        FunctionType fnType = gf.getCurrentElement().getType(List.of());
+                        ValueType returnType = fnType.getReturnType();
+                        gf.return_(gf.truncate(pop1(), (WordType) returnType));
+                        // block complete
+                        return;
+                    }
+                    case OP_FRETURN:
+                    case OP_ARETURN:
+                        gf.return_(pop1());
+                        // block complete
+                        return;
+                    case OP_LRETURN:
+                    case OP_DRETURN:
+                        gf.return_(pop2());
+                        // block complete
+                        return;
+                    case OP_RETURN:
+                        gf.return_();
+                        // block complete
+                        return;
+                    case OP_GETSTATIC: {
+                        // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
+                        int fieldRef = buffer.getShort() & 0xffff;
+                        TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
+                        TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
+                        String name = getNameOfFieldRef(fieldRef);
+                        // todo: signature context
+                        ValueHandle handle = gf.staticField(owner, name, desc);
+                        Value value = promote(gf.load(handle, handle.getDetectedMode()));
+                        push(desc.isClass2() ? fatten(value) : value);
+                        break;
+                    }
+                    case OP_PUTSTATIC: {
+                        // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
+                        int fieldRef = buffer.getShort() & 0xffff;
+                        TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
+                        TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
+                        String name = getNameOfFieldRef(fieldRef);
+                        ValueHandle handle = gf.staticField(owner, name, desc);
+                        gf.store(handle, desc.isClass2() ? pop2() : pop(), handle.getDetectedMode());
+                        break;
+                    }
+                    case OP_GETFIELD: {
+                        // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
+                        int fieldRef = buffer.getShort() & 0xffff;
+                        TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
+                        TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
+                        String name = getNameOfFieldRef(fieldRef);
+                        // todo: signature context
+                        ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(pop()), owner, name, desc);
+                        Value value = promote(gf.load(handle, handle.getDetectedMode()));
+                        push(desc.isClass2() ? fatten(value) : value);
+                        break;
+                    }
+                    case OP_PUTFIELD: {
+                        // todo: try/catch this, and substitute NoClassDefFoundError/LinkageError/etc. on resolution error
+                        int fieldRef = buffer.getShort() & 0xffff;
+                        TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
+                        TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
+                        String name = getNameOfFieldRef(fieldRef);
+                        v2 = desc.isClass2() ? pop2() : pop();
+                        v1 = pop();
+                        ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
+                        gf.store(handle, v2, handle.getDetectedMode());
+                        break;
+                    }
+                    case OP_INVOKEVIRTUAL:
+                    case OP_INVOKESPECIAL:
+                    case OP_INVOKESTATIC:
+                    case OP_INVOKEINTERFACE: {
+                        int methodRef = buffer.getShort() & 0xffff;
+                        TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getMethodrefConstantClassIndex(methodRef));
+                        int nameAndType = getNameAndTypeOfMethodRef(methodRef);
+                        if (opcode == OP_INVOKEINTERFACE) {
+                            buffer.get(); // discard `count`
+                            buffer.get(); // discard 0
+                        }
+                        if (owner == null) {
+                            gf.classNotFoundError(getClassFile().getMethodrefConstantClassName(methodRef));
+                            return;
+                        }
+                        String name = getNameOfMethodRef(methodRef);
+                        if (name == null) {
+                            throw new InvalidConstantException("Method name is null");
+                        }
+                        MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(nameAndType));
+                        if (desc == null) {
+                            throw new InvalidConstantException("Method descriptor is null");
+                        }
+                        int cnt = desc.getParameterTypes().size();
+                        Value[] args = new Value[cnt];
+                        for (int i = cnt - 1; i >= 0; i --) {
+                            if (desc.getParameterTypes().get(i).isClass2()) {
+                                args[i] = pop2();
+                            } else {
+                                args[i] = pop1();
+                            }
+                        }
+                        if (opcode != OP_INVOKESTATIC) {
+                            // pop the receiver
+                            v1 = pop1();
+                        } else {
+                            // definite initialization
+                            v1 = null;
+                        }
+                        if (name.equals("<init>")) {
+                            if (opcode != OP_INVOKESPECIAL) {
+                                throw new InvalidByteCodeException();
+                            }
+                            v2 = gf.invokeConstructor(v1, owner, desc, List.of(args));
+                            replaceAll(v1, v2);
+                        } else {
+                            TypeDescriptor returnType = desc.getReturnType();
+                            if (returnType == BaseTypeDescriptor.V) {
+                                if (opcode == OP_INVOKESTATIC) {
+                                    // return type is implicitly void
+                                    gf.invokeStatic(owner, name, desc, List.of(args));
+                                } else {
+                                    // return type is implicitly void
+                                    gf.invokeInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, owner, name, desc, List.of(args));
+                                }
+                            } else {
+                                Value result;
+                                if (opcode == OP_INVOKESTATIC) {
+                                    result = gf.invokeValueStatic(owner, name, desc, List.of(args));
+                                } else {
+                                    result = gf.invokeValueInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, owner, name, desc, List.of(args));
+                                }
+                                if (desc.getReturnType().isClass2()) {
+                                    fatten(result);
+                                }
+                                push(promote(result));
+                            }
+                        }
+                        break;
+                    }
+                    case OP_INVOKEDYNAMIC: {
+                        int indyIdx = buffer.getShort() & 0xffff;
+                        buffer.getShort(); // discard 0s
+                        int bootstrapMethodIdx = getClassFile().getInvokeDynamicBootstrapMethodIndex(indyIdx);
+                        // get the bootstrap handle descriptor
+                        MethodHandleDescriptor bootstrapHandle = getClassFile().getMethodHandleDescriptor(getClassFile().getBootstrapMethodRef(bootstrapMethodIdx));
+                        if (bootstrapHandle == null) {
+                            ctxt.getCompilationContext().error(gf.getLocation(), "Missing bootstrap method handle");
+                            gf.unreachable();
+                            return;
+                        }
+                        DefinedTypeDefinition enclosingType = gf.getCurrentElement().getEnclosingType();
+                        ClassTypeDescriptor callSiteDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/CallSite");
+                        FieldElement.Builder callSiteBuilder = FieldElement.builder();
+                        callSiteBuilder.setDescriptor(callSiteDesc);
+                        callSiteBuilder.setName("callSite_" + gf.getCurrentElement().getIndex() + "_" + src);
+                        callSiteBuilder.setModifiers(ACC_STATIC | ACC_FINAL | I_ACC_HIDDEN);
+                        callSiteBuilder.setSignature(TypeSignature.synthesize(ctxt, callSiteDesc));
+                        callSiteBuilder.setEnclosingType(enclosingType);
+                        FieldElement callSiteHolder = callSiteBuilder.build();
+                        // inject a new field for the call site
+                        enclosingType.validate().injectField(callSiteHolder);
+                        // TODO: inject code into the initializer to initialize the call site object by calling the bootstrap
+                        // ...
+                        // Get the call site
+                        ValueHandle holderHandle = gf.staticField(callSiteHolder);
+                        Value callSite = gf.load(holderHandle, holderHandle.getDetectedMode());
+                        // Get the method handle instance from the call site
+                        ClassTypeDescriptor descOfMethodHandle = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/MethodHandle");
+                        Value methodHandle = gf.invokeValueInstance(DispatchInvocation.Kind.VIRTUAL, callSite,
+                            callSiteDesc, "getTarget",
+                            MethodDescriptor.synthesize(ctxt, descOfMethodHandle, List.of()),
+                            List.of());
+                        // Invoke on the method handle
+                        int nameAndTypeRef = getClassFile().getInvokeDynamicNameAndTypeIndex(indyIdx);
+                        MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(nameAndTypeRef));
+                        if (desc == null) {
+                            ctxt.getCompilationContext().error(gf.getLocation(), "Invoke dynamic has no target method descriptor");
+                            gf.unreachable();
+                            return;
+                        }
+                        List<TypeDescriptor> parameterTypes = desc.getParameterTypes();
+                        int cnt = parameterTypes.size();
+                        Value[] args = new Value[cnt];
+                        for (int i = cnt - 1; i >= 0; i--) {
+                            args[i] = pop(parameterTypes.get(i).isClass2());
+                        }
+                        Value result = gf.invokeValueInstance(DispatchInvocation.Kind.EXACT, methodHandle, descOfMethodHandle, "invokeExact",
+                            desc, List.of(args));
+                        if (! desc.getReturnType().isVoid()) {
                             if (desc.getReturnType().isClass2()) {
                                 fatten(result);
                             }
                             push(promote(result));
                         }
+                        break;
                     }
-                    break;
-                }
-                case OP_INVOKEDYNAMIC: {
-                    int indyIdx = buffer.getShort() & 0xffff;
-                    buffer.getShort(); // discard 0s
-                    int bootstrapMethodIdx = getClassFile().getInvokeDynamicBootstrapMethodIndex(indyIdx);
-                    // get the bootstrap handle descriptor
-                    MethodHandleDescriptor bootstrapHandle = getClassFile().getMethodHandleDescriptor(getClassFile().getBootstrapMethodRef(bootstrapMethodIdx));
-                    if (bootstrapHandle == null) {
-                        ctxt.getCompilationContext().error(gf.getLocation(), "Missing bootstrap method handle");
-                        gf.unreachable();
-                        return;
-                    }
-                    DefinedTypeDefinition enclosingType = gf.getCurrentElement().getEnclosingType();
-                    ClassTypeDescriptor callSiteDesc = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/CallSite");
-                    FieldElement.Builder callSiteBuilder = FieldElement.builder();
-                    callSiteBuilder.setDescriptor(callSiteDesc);
-                    callSiteBuilder.setName("callSite_" + gf.getCurrentElement().getIndex() + "_" + src);
-                    callSiteBuilder.setModifiers(ACC_STATIC | ACC_FINAL | I_ACC_HIDDEN);
-                    callSiteBuilder.setSignature(TypeSignature.synthesize(ctxt, callSiteDesc));
-                    callSiteBuilder.setEnclosingType(enclosingType);
-                    FieldElement callSiteHolder = callSiteBuilder.build();
-                    // inject a new field for the call site
-                    enclosingType.validate().injectField(callSiteHolder);
-                    // TODO: inject code into the initializer to initialize the call site object by calling the bootstrap
-                    // ...
-                    // Get the call site
-                    Value callSite = gf.readStaticField(callSiteHolder, JavaAccessMode.DETECT);
-                    // Get the method handle instance from the call site
-                    ClassTypeDescriptor descOfMethodHandle = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/MethodHandle");
-                    Value methodHandle = gf.invokeValueInstance(DispatchInvocation.Kind.VIRTUAL, callSite,
-                        callSiteDesc, "getTarget",
-                        MethodDescriptor.synthesize(ctxt, descOfMethodHandle, List.of()),
-                        List.of());
-                    // Invoke on the method handle
-                    int nameAndTypeRef = getClassFile().getInvokeDynamicNameAndTypeIndex(indyIdx);
-                    MethodDescriptor desc = (MethodDescriptor) getClassFile().getDescriptorConstant(getClassFile().getNameAndTypeConstantDescriptorIdx(nameAndTypeRef));
-                    if (desc == null) {
-                        ctxt.getCompilationContext().error(gf.getLocation(), "Invoke dynamic has no target method descriptor");
-                        gf.unreachable();
-                        return;
-                    }
-                    List<TypeDescriptor> parameterTypes = desc.getParameterTypes();
-                    int cnt = parameterTypes.size();
-                    Value[] args = new Value[cnt];
-                    for (int i = cnt - 1; i >= 0; i--) {
-                        args[i] = pop(parameterTypes.get(i).isClass2());
-                    }
-                    Value result = gf.invokeValueInstance(DispatchInvocation.Kind.EXACT, methodHandle, descOfMethodHandle, "invokeExact",
-                        desc, List.of(args));
-                    if (! desc.getReturnType().isVoid()) {
-                        if (desc.getReturnType().isClass2()) {
-                            fatten(result);
-                        }
-                        push(promote(result));
-                    }
-                    break;
-                }
 
-                case OP_NEW: {
-                    TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
-                    if (desc instanceof ClassTypeDescriptor) {
-                        push(gf.new_((ClassTypeDescriptor) desc));
-                    } else {
-                        ctxt.getCompilationContext().error(gf.getLocation(), "Wrong kind of descriptor for `new`: %s", desc);
-                        push(lf.literalOfNull());
+                    case OP_NEW: {
+                        TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
+                        if (desc instanceof ClassTypeDescriptor) {
+                            push(gf.new_((ClassTypeDescriptor) desc));
+                        } else {
+                            ctxt.getCompilationContext().error(gf.getLocation(), "Wrong kind of descriptor for `new`: %s", desc);
+                            push(lf.literalOfNull());
+                        }
+                        break;
                     }
-                    break;
-                }
-                case OP_NEWARRAY:
-                    ArrayObjectType arrayType;
-                    switch (buffer.get() & 0xff) {
-                        case T_BOOLEAN: arrayType = ts.getBooleanType().getPrimitiveArrayObjectType(); break;
-                        case T_CHAR: arrayType = ts.getUnsignedInteger16Type().getPrimitiveArrayObjectType(); break;
-                        case T_FLOAT: arrayType = ts.getFloat32Type().getPrimitiveArrayObjectType(); break;
-                        case T_DOUBLE: arrayType = ts.getFloat64Type().getPrimitiveArrayObjectType(); break;
-                        case T_BYTE: arrayType = ts.getSignedInteger8Type().getPrimitiveArrayObjectType(); break;
-                        case T_SHORT: arrayType = ts.getSignedInteger16Type().getPrimitiveArrayObjectType(); break;
-                        case T_INT: arrayType = ts.getSignedInteger32Type().getPrimitiveArrayObjectType(); break;
-                        case T_LONG: arrayType = ts.getSignedInteger64Type().getPrimitiveArrayObjectType(); break;
-                        default: throw new InvalidByteCodeException();
+                    case OP_NEWARRAY:
+                        ArrayObjectType arrayType;
+                        switch (buffer.get() & 0xff) {
+                            case T_BOOLEAN: arrayType = ts.getBooleanType().getPrimitiveArrayObjectType(); break;
+                            case T_CHAR: arrayType = ts.getUnsignedInteger16Type().getPrimitiveArrayObjectType(); break;
+                            case T_FLOAT: arrayType = ts.getFloat32Type().getPrimitiveArrayObjectType(); break;
+                            case T_DOUBLE: arrayType = ts.getFloat64Type().getPrimitiveArrayObjectType(); break;
+                            case T_BYTE: arrayType = ts.getSignedInteger8Type().getPrimitiveArrayObjectType(); break;
+                            case T_SHORT: arrayType = ts.getSignedInteger16Type().getPrimitiveArrayObjectType(); break;
+                            case T_INT: arrayType = ts.getSignedInteger32Type().getPrimitiveArrayObjectType(); break;
+                            case T_LONG: arrayType = ts.getSignedInteger64Type().getPrimitiveArrayObjectType(); break;
+                            default: throw new InvalidByteCodeException();
+                        }
+                        // todo: check for negative array size
+                        push(gf.newArray(arrayType, pop1()));
+                        break;
+                    case OP_ANEWARRAY: {
+                        TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
+                        // todo: check for negative array size
+                        push(gf.newArray(ArrayTypeDescriptor.of(ctxt, desc), pop1()));
+                        break;
                     }
-                    // todo: check for negative array size
-                    push(gf.newArray(arrayType, pop1()));
-                    break;
-                case OP_ANEWARRAY: {
-                    TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
-                    // todo: check for negative array size
-                    push(gf.newArray(ArrayTypeDescriptor.of(ctxt, desc), pop1()));
-                    break;
-                }
-                case OP_ARRAYLENGTH:
-                    push(gf.arrayLength(pop1()));
-                    break;
-                case OP_ATHROW:
-                    gf.throw_(pop1());
-                    // terminate
-                    return;
-                case OP_CHECKCAST: {
-                    v1 = pop();
-                    Value narrowed = gf.narrow(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff));
-                    replaceAll(v1, narrowed);
-                    push(narrowed);
-                    break;
-                }
-                case OP_INSTANCEOF: {
-                    v1 = pop();
-                    push(gf.instanceOf(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff)));
-                    break;
-                }
-                case OP_MONITORENTER:
-                    gf.monitorEnter(pop());
-                    break;
-                case OP_MONITOREXIT:
-                    gf.monitorExit(pop());
-                    break;
-                case OP_MULTIANEWARRAY:
-                    TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
-                    Value[] dims = new Value[buffer.get() & 0xff];
-                    if (dims.length == 0) {
+                    case OP_ARRAYLENGTH:
+                        push(gf.arrayLength(gf.referenceHandle(pop1())));
+                        break;
+                    case OP_ATHROW:
+                        gf.throw_(pop1());
+                        // terminate
+                        return;
+                    case OP_CHECKCAST: {
+                        v1 = pop();
+                        Value narrowed = gf.narrow(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff));
+                        replaceAll(v1, narrowed);
+                        push(narrowed);
+                        break;
+                    }
+                    case OP_INSTANCEOF: {
+                        v1 = pop();
+                        push(gf.instanceOf(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff)));
+                        break;
+                    }
+                    case OP_MONITORENTER:
+                        gf.monitorEnter(pop());
+                        break;
+                    case OP_MONITOREXIT:
+                        gf.monitorExit(pop());
+                        break;
+                    case OP_MULTIANEWARRAY:
+                        TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
+                        Value[] dims = new Value[buffer.get() & 0xff];
+                        if (dims.length == 0) {
+                            throw new InvalidByteCodeException();
+                        }
+                        for (int i = dims.length - 1; i >= 0; i --) {
+                            dims[i] = pop1();
+                        }
+                        push(gf.multiNewArray(ArrayTypeDescriptor.of(ctxt, desc), List.of(dims)));
+                        break;
+                    case OP_IFNULL:
+                        processIf(buffer, gf.cmpEq(pop(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
+                        return;
+                    case OP_IFNONNULL:
+                        processIf(buffer, gf.cmpNe(pop(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
+                        return;
+                    default:
                         throw new InvalidByteCodeException();
-                    }
-                    for (int i = dims.length - 1; i >= 0; i --) {
-                        dims[i] = pop1();
-                    }
-                    push(gf.multiNewArray(ArrayTypeDescriptor.of(ctxt, desc), List.of(dims)));
-                    break;
-                case OP_IFNULL:
-                    processIf(buffer, gf.cmpEq(pop(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
+                }
+                // now check to see if the new position is an entry point
+                int epIdx = info.getEntryPointIndex(buffer.position());
+                if (epIdx >= 0) {
+                    // two or more blocks enter here; start a new block via goto
+                    processBlock(gf.goto_(blockHandles[epIdx]));
                     return;
-                case OP_IFNONNULL:
-                    processIf(buffer, gf.cmpNe(pop(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
-                    return;
-                default:
-                    throw new InvalidByteCodeException();
+                }
             }
-            // now check to see if the new position is an entry point
-            int epIdx = info.getEntryPointIndex(buffer.position());
-            if (epIdx >= 0) {
-                // two or more blocks enter here; start a new block via goto
-                processBlock(gf.goto_(blockHandles[epIdx]));
-                return;
-            }
+        } catch (BlockEarlyTermination ignored) {
+            // don't process any more
+            return;
         }
     }
 

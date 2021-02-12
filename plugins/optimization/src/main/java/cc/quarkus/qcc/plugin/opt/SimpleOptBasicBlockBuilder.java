@@ -8,7 +8,9 @@ import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.NewArray;
+import cc.quarkus.qcc.graph.ReferenceHandle;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
@@ -136,12 +138,14 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return ! (type instanceof ReferenceType) || ! ((ReferenceType) type).isNullable();
     }
 
-    public Value arrayLength(final Value array) {
-        if (array instanceof NewArray) {
-            return ((NewArray) array).getSize();
-        } else {
-            return getDelegate().arrayLength(array);
+    public Value arrayLength(final ValueHandle arrayHandle) {
+        if (arrayHandle instanceof ReferenceHandle) {
+            Value array = ((ReferenceHandle) arrayHandle).getReferenceValue();
+            if (array instanceof NewArray) {
+                return ((NewArray) array).getSize();
+            }
         }
+        return getDelegate().arrayLength(arrayHandle);
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {

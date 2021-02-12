@@ -20,6 +20,10 @@ public interface ElementVisitor<T, R> {
         return visitUnknown(param, element);
     }
 
+    default R visit(T param, GlobalVariableElement element) {
+        return visitUnknown(param, element);
+    }
+
     default R visit(T param, InitializerElement element) {
         return visitUnknown(param, element);
     }
@@ -57,6 +61,10 @@ public interface ElementVisitor<T, R> {
         }
 
         default R visit(final T param, final FunctionElement element) {
+            return getDelegateElementVisitor().visit(param, element);
+        }
+
+        default R visit(final T param, final GlobalVariableElement element) {
             return getDelegateElementVisitor().visit(param, element);
         }
 

@@ -8,17 +8,17 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * The length of a Java array instance.
  */
-public final class ArrayLength extends AbstractValue implements InstanceOperation {
-    private final Value instance;
+public final class ArrayLength extends AbstractValue {
+    private final ValueHandle instance;
     private final SignedIntegerType type;
 
-    ArrayLength(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value instance, final SignedIntegerType type) {
+    ArrayLength(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueHandle instance, final SignedIntegerType type) {
         super(callSite, element, line, bci);
         this.instance = instance;
         this.type = type;
     }
 
-    public Value getInstance() {
+    public ValueHandle getInstance() {
         return instance;
     }
 
@@ -28,6 +28,16 @@ public final class ArrayLength extends AbstractValue implements InstanceOperatio
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    @Override
+    public boolean hasValueHandleDependency() {
+        return true;
+    }
+
+    @Override
+    public ValueHandle getValueHandle() {
+        return instance;
     }
 
     int calcHashCode() {

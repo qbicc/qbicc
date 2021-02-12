@@ -16,6 +16,8 @@ import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
+import cc.quarkus.qcc.type.definition.element.LocalVariableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -186,17 +188,17 @@ public interface BasicBlockBuilder {
 
     Value populationCount(Value v);
 
-    Value arrayLength(Value array);
+    Value arrayLength(ValueHandle arrayHandle);
 
     // typed
 
     /**
      * Get the type ID of the given reference value.
      *
-     * @param value the value, whose type must be a {@link ReferenceType}
+     * @param valueHandle the value, whose type must be a {@link ReferenceType}
      * @return the type ID, whose type must be a {@link TypeType}
      */
-    Value typeIdOf(Value value);
+    Value typeIdOf(ValueHandle valueHandle);
 
     /**
      * Get the {@link Class} object for the given type ID value, whose type must be a {@link TypeType} with
@@ -230,9 +232,31 @@ public interface BasicBlockBuilder {
 
     Value narrow(Value value, TypeDescriptor desc);
 
-    Value memberPointer(Value structPointer, CompoundType.Member member);
+    // memory handles
+
+    ValueHandle memberOf(ValueHandle structHandle, CompoundType.Member member);
+
+    ValueHandle elementOf(ValueHandle array, Value index);
+
+    ValueHandle pointerHandle(Value pointer);
+
+    ValueHandle referenceHandle(Value reference);
+
+    ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field);
+
+    ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type);
+
+    ValueHandle staticField(FieldElement field);
+
+    ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type);
+
+    ValueHandle globalVariable(GlobalVariableElement variable);
+
+    ValueHandle localVariable(LocalVariableElement variable);
 
     // memory
+
+    Value addressOf(ValueHandle handle);
 
     Value stackAllocate(ValueType type, Value count, Value align);
 
@@ -250,29 +274,9 @@ public interface BasicBlockBuilder {
 
     Value clone(Value object);
 
-    Value pointerLoad(Value pointer, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
+    Value load(ValueHandle handle, MemoryAtomicityMode mode);
 
-    Value readInstanceField(Value instance, FieldElement fieldElement, JavaAccessMode mode);
-
-    Value readInstanceField(Value instance, TypeDescriptor owner, String name, TypeDescriptor descriptor, JavaAccessMode mode);
-
-    Value readStaticField(FieldElement fieldElement, JavaAccessMode mode);
-
-    Value readStaticField(TypeDescriptor owner, String name, TypeDescriptor descriptor, JavaAccessMode mode);
-
-    Value readArrayValue(Value array, Value index, JavaAccessMode mode);
-
-    Node pointerStore(Value pointer, Value value, MemoryAccessMode accessMode, MemoryAtomicityMode atomicityMode);
-
-    Node writeInstanceField(Value instance, FieldElement fieldElement, Value value, JavaAccessMode mode);
-
-    Node writeInstanceField(Value instance, TypeDescriptor owner, String name, TypeDescriptor descriptor, Value value, JavaAccessMode mode);
-
-    Node writeStaticField(FieldElement fieldElement, Value value, JavaAccessMode mode);
-
-    Node writeStaticField(TypeDescriptor owner, String name, TypeDescriptor descriptor, Value value, JavaAccessMode mode);
-
-    Node writeArrayValue(Value array, Value index, Value value, JavaAccessMode mode);
+    Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode);
 
     Node fence(MemoryAtomicityMode fenceType);
 

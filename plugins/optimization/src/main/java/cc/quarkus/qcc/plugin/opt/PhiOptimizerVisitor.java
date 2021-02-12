@@ -9,20 +9,21 @@ import cc.quarkus.qcc.graph.NodeVisitor;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Terminator;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 
 /**
  * A copying visitor which removes redundant {@link PhiValue} nodes.
  */
-public class PhiOptimizerVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock> {
+public class PhiOptimizerVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
     private final CompilationContext context;
-    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate;
+    private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate;
 
-    public PhiOptimizerVisitor(final CompilationContext context, final NodeVisitor<Node.Copier, Value, Node, BasicBlock> delegate) {
+    public PhiOptimizerVisitor(final CompilationContext context, final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate) {
         this.context = context;
         this.delegate = delegate;
     }
 
-    public NodeVisitor<Node.Copier, Value, Node, BasicBlock> getDelegateNodeVisitor() {
+    public NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> getDelegateNodeVisitor() {
         return delegate;
     }
 

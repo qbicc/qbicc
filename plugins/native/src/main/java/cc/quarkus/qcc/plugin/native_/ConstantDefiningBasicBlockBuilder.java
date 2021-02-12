@@ -8,11 +8,13 @@ import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.JavaAccessMode;
+import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Narrow;
 import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.StaticField;
 import cc.quarkus.qcc.graph.StaticInvocationValue;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.machine.probe.CProbe;
 import cc.quarkus.qcc.plugin.constants.Constants;
@@ -22,7 +24,6 @@ import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
@@ -45,20 +46,25 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         this.ctxt = ctxt;
     }
 
-    public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
-        if (fieldElement.hasAllModifiersOf(ClassFile.ACC_STATIC | ClassFile.ACC_FINAL)) {
-            // initialize the constant if any
-            InitializerElement initializerElement = fieldElement.getEnclosingType().validate().getInitializer();
-            if (NativeInfo.get(ctxt).registerInitializer(initializerElement)) {
-                if (initializerElement.hasMethodBody()) {
-                    initializerElement.getOrCreateMethodBody();
+    @Override
+    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
+        if (handle instanceof StaticField) {
+            FieldElement fieldElement = ((StaticField) handle).getVariableElement();
+            if (fieldElement.isReallyFinal()) {
+                // initialize the constant if any
+                InitializerElement initializerElement = fieldElement.getEnclosingType().validate().getInitializer();
+                if (NativeInfo.get(ctxt).registerInitializer(initializerElement)) {
+                    if (initializerElement.hasMethodBody()) {
+                        initializerElement.getOrCreateMethodBody();
+                    }
                 }
             }
         }
-        return super.readStaticField(fieldElement, mode);
+        return super.load(handle, mode);
     }
 
-    public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
+    @Override
+    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
         Value test = value;
         while (test instanceof Narrow) {
             test = ((Narrow) test).getInput();
@@ -69,17 +75,20 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             if (invocationTarget.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.C_NATIVE)) {
                 if (invocationTarget.getName().equals("constant")) {
                     // it's a constant
-                    if (! fieldElement.hasAllModifiersOf(ClassFile.ACC_STATIC | ClassFile.ACC_FINAL)) {
-                        ctxt.error(getLocation(), "Compilation constants must be static and final");
-                        return nop();
+                    if (handle instanceof StaticField) {
+                        FieldElement fieldElement = ((StaticField) handle).getVariableElement();
+                        if (fieldElement.isReallyFinal()) {
+                            processConstant(fieldElement);
+                            // don't actually write the field at all
+                            return nop();
+                        }
                     }
-                    processConstant(fieldElement);
-                    // don't actually write the field at all
+                    ctxt.error(getLocation(), "Compilation constants must be static final fields");
                     return nop();
                 }
             }
         }
-        return getDelegate().writeStaticField(fieldElement, value, mode);
+        return super.store(handle, value, mode);
     }
 
     private void processConstant(final FieldElement fieldElement) {

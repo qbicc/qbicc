@@ -7,9 +7,8 @@ import java.util.Map;
 
 import cc.quarkus.qcc.graph.Action;
 import cc.quarkus.qcc.graph.Add;
+import cc.quarkus.qcc.graph.AddressOf;
 import cc.quarkus.qcc.graph.And;
-import cc.quarkus.qcc.graph.ArrayElementRead;
-import cc.quarkus.qcc.graph.ArrayElementWrite;
 import cc.quarkus.qcc.graph.ArrayLength;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BitCast;
@@ -36,8 +35,6 @@ import cc.quarkus.qcc.graph.Extend;
 import cc.quarkus.qcc.graph.FunctionCall;
 import cc.quarkus.qcc.graph.Goto;
 import cc.quarkus.qcc.graph.If;
-import cc.quarkus.qcc.graph.InstanceFieldRead;
-import cc.quarkus.qcc.graph.InstanceFieldWrite;
 import cc.quarkus.qcc.graph.InstanceInvocation;
 import cc.quarkus.qcc.graph.InstanceInvocationValue;
 import cc.quarkus.qcc.graph.InstanceOf;
@@ -65,8 +62,6 @@ import cc.quarkus.qcc.graph.Ror;
 import cc.quarkus.qcc.graph.Select;
 import cc.quarkus.qcc.graph.Shl;
 import cc.quarkus.qcc.graph.Shr;
-import cc.quarkus.qcc.graph.StaticFieldRead;
-import cc.quarkus.qcc.graph.StaticFieldWrite;
 import cc.quarkus.qcc.graph.StaticInvocation;
 import cc.quarkus.qcc.graph.StaticInvocationValue;
 import cc.quarkus.qcc.graph.Sub;
@@ -98,25 +93,11 @@ import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
 /**
  * A node visitor which generates a GraphViz graph for a method or function body.
  */
-public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, String> {
+public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, String, String> {
     final Map<Node, String> visited = new HashMap<>();
     int counter;
     boolean attr;
     boolean commaNeeded;
-
-    public String visit(final Appendable param, final ArrayElementWrite node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "array write");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        addEdge(param, node, node.getInstance());
-        addEdge(param, node, node.getIndex(), "idx");
-        addEdge(param, node, node.getWriteValue(), "val");
-        addEdge(param, node, node.getDependency());
-        return name;
-    }
 
     public String visit(final Appendable param, final BlockEntry node) {
         String name = register(node);
@@ -141,19 +122,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         for (Value arg : node.getStaticArguments()) {
             addEdge(param, node, arg);
         }
-        return name;
-    }
-
-    public String visit(final Appendable param, final InstanceFieldWrite node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "write " + node.getFieldElement().getEnclosingType().getInternalName() + "#" + node.getFieldElement().getName());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        addEdge(param, node, node.getInstance());
-        addEdge(param, node, node.getWriteValue(), "val");
-        addEdge(param, node, node.getDependency());
         return name;
     }
 
@@ -191,18 +159,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         addEdge(param, node, node.getInstance());
-        addEdge(param, node, node.getDependency());
-        return name;
-    }
-
-    public String visit(final Appendable param, final StaticFieldWrite node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "write " + node.getFieldElement().getEnclosingType().getInternalName() + "#" + node.getFieldElement().getName());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        addEdge(param, node, node.getWriteValue(), "val");
         addEdge(param, node, node.getDependency());
         return name;
     }
@@ -395,21 +351,19 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return node(param, "+", node);
     }
 
-    public String visit(final Appendable param, final And node) {
-        return node(param, "&", node);
-    }
-
-    public String visit(final Appendable param, final ArrayElementRead node) {
+    public String visit(final Appendable param, final AddressOf node) {
         String name = register(node);
         appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "array read");
+        attr(param, "shape", "circle");
+        attr(param, "label", "addr of");
         attr(param, "fixedsize", "shape");
         nl(param);
-        addEdge(param, node, node.getInstance());
-        addEdge(param, node, node.getIndex(), "idx");
-        addEdge(param, node, node.getDependency());
+        addEdge(param, node, node.getValueHandle());
         return name;
+    }
+
+    public String visit(final Appendable param, final And node) {
+        return node(param, "&", node);
     }
 
     public String visit(final Appendable param, final ArrayLength node) {
@@ -553,18 +507,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg);
         }
-        return name;
-    }
-
-    public String visit(final Appendable param, final InstanceFieldRead node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "read " + node.getFieldElement().getEnclosingType().getInternalName() + "#" + node.getFieldElement().getName());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        addEdge(param, node, node.getInstance());
-        addEdge(param, node, node.getDependency());
         return name;
     }
 
@@ -721,17 +663,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return node(param, ">>", node);
     }
 
-    public String visit(final Appendable param, final StaticFieldRead node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "read " + node.getFieldElement().getEnclosingType().getInternalName() + "#" + node.getFieldElement().getName());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        addEdge(param, node, node.getDependency());
-        return name;
-    }
-
     public String visit(final Appendable param, final StaticInvocationValue node) {
         String name = register(node);
         appendTo(param, name);
@@ -768,7 +699,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "type of");
         attr(param, "fixedsize", "shape");
         nl(param);
-        addEdge(param, node, node.getInstance());
+        addEdge(param, node, node.getValueHandle());
         return name;
     }
 

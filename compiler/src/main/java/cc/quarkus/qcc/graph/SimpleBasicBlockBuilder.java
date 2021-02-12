@@ -6,12 +6,9 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
-import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
@@ -19,6 +16,8 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
+import cc.quarkus.qcc.type.definition.element.LocalVariableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -226,8 +225,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw Assert.unsupported();
     }
 
-    public Value arrayLength(final Value array) {
-        return new ArrayLength(callSite, element, line, bci, array, typeSystem.getSignedInteger32Type());
+    public Value arrayLength(final ValueHandle arrayHandle) {
+        return new ArrayLength(callSite, element, line, bci, arrayHandle, typeSystem.getSignedInteger32Type());
     }
 
     public Value truncate(final Value value, final WordType toType) {
@@ -262,8 +261,48 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("Narrow of unresolved type");
     }
 
-    public Value memberPointer(final Value structPointer, final CompoundType.Member member) {
-        return new MemberPointer(callSite, element, line, bci, structPointer, member);
+    public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {
+        return new MemberOf(callSite, element, line, bci, structHandle, member);
+    }
+
+    public ValueHandle elementOf(ValueHandle array, Value index) {
+        return new ElementOf(callSite, element, line, bci, array, index);
+    }
+
+    public ValueHandle pointerHandle(Value pointer) {
+        return new PointerHandle(callSite, element, line, bci, pointer);
+    }
+
+    public ValueHandle referenceHandle(Value reference) {
+        return new ReferenceHandle(callSite, element, line, bci, reference);
+    }
+
+    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
+        return new InstanceFieldOf(element, line, bci, field, field.getType(List.of()), instance);
+    }
+
+    public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
+        throw new IllegalStateException("Instance field of unresolved type");
+    }
+
+    public ValueHandle staticField(FieldElement field) {
+        return new StaticField(element, line, bci, field, field.getType(List.of()));
+    }
+
+    public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
+        throw new IllegalStateException("Static field of unresolved type");
+    }
+
+    public ValueHandle globalVariable(GlobalVariableElement variable) {
+        return new GlobalVariable(element, line, bci, variable, variable.getType(List.of()));
+    }
+
+    public ValueHandle localVariable(LocalVariableElement variable) {
+        return new LocalVariable(element, line, bci, variable, variable.getType(List.of()));
+    }
+
+    public Value addressOf(ValueHandle handle) {
+        return new AddressOf(callSite, element, line, bci, handle);
     }
 
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {
@@ -287,8 +326,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Select(callSite, element, line, bci, condition, trueValue, falseValue);
     }
 
-    public Value typeIdOf(final Value value) {
-        return new TypeIdOf(callSite, element, line, bci, value);
+    public Value typeIdOf(final ValueHandle valueHandle) {
+        return new TypeIdOf(callSite, element, line, bci, valueHandle);
     }
 
     public Value classOf(final Value typeId) {
@@ -324,66 +363,12 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new Clone(callSite, element, line, bci, requireDependency(), object));
     }
 
-    public Value pointerLoad(final Value pointer, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-        return asDependency(new PointerLoad(callSite, element, line, bci, requireDependency(), pointer, accessMode, atomicityMode));
+    public Value load(final ValueHandle handle, final MemoryAtomicityMode mode) {
+        return asDependency(new Load(callSite, element, line, bci, requireDependency(), handle, mode));
     }
 
-    public Value readInstanceField(final Value instance, final FieldElement fieldElement, final JavaAccessMode mode) {
-        return asDependency(new InstanceFieldRead(callSite, element, line, bci, requireDependency(), instance, fieldElement, fieldElement.getType(List.of()), mode));
-    }
-
-    public Value readInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
-        throw new IllegalStateException("Access of unresolved field");
-    }
-
-    public Value readStaticField(final FieldElement fieldElement, final JavaAccessMode mode) {
-        return asDependency(new StaticFieldRead(callSite, element, line, bci, requireDependency(), fieldElement, fieldElement.getType(List.of()), mode));
-    }
-
-    public Value readStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final JavaAccessMode mode) {
-        throw new IllegalStateException("Access of unresolved field");
-    }
-
-    public Value readArrayValue(final Value array, final Value index, final JavaAccessMode mode) {
-        ValueType arrayType = array.getType();
-        ValueType type;
-        if (arrayType instanceof ReferenceType) {
-            ArrayObjectType arrayTypeBound = (ArrayObjectType) ((ReferenceType) arrayType).getUpperBound();
-            type = arrayTypeBound.getElementType();
-            return asDependency(new ArrayElementRead(callSite, element, line, bci, requireDependency(), type, array, index, mode));
-        } else if (arrayType instanceof ArrayType) {
-            type = ((ArrayType) arrayType).getElementType();
-            return asDependency(new ArrayElementRead(callSite, element, line, bci, requireDependency(), type, array, index, mode));
-        } else if (arrayType instanceof NullType) {
-            // Undefined behavior (should never be in reachable code)
-            return asDependency(new ArrayElementRead(callSite, element, line, bci, requireDependency(), arrayType, array, index, mode));
-        } else {
-            throw new IllegalStateException("Invalid array type " + arrayType);
-        }
-    }
-
-    public Node pointerStore(final Value pointer, final Value value, final MemoryAccessMode accessMode, final MemoryAtomicityMode atomicityMode) {
-        return asDependency(new PointerStore(callSite, element, line, bci, requireDependency(), pointer, value, accessMode, atomicityMode));
-    }
-
-    public Node writeInstanceField(final Value instance, final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        return asDependency(new InstanceFieldWrite(callSite, element, line, bci, requireDependency(), instance, fieldElement, value, mode));
-    }
-
-    public Node writeInstanceField(final Value instance, final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
-        throw new IllegalStateException("Access of unresolved field");
-    }
-
-    public Node writeStaticField(final FieldElement fieldElement, final Value value, final JavaAccessMode mode) {
-        return asDependency(new StaticFieldWrite(callSite, element, line, bci, requireDependency(), fieldElement, value, mode));
-    }
-
-    public Node writeStaticField(final TypeDescriptor owner, final String name, final TypeDescriptor descriptor, final Value value, final JavaAccessMode mode) {
-        throw new IllegalStateException("Access of unresolved field");
-    }
-
-    public Node writeArrayValue(final Value array, final Value index, final Value value, final JavaAccessMode mode) {
-        return asDependency(new ArrayElementWrite(callSite, element, line, bci, requireDependency(), array, index, value, mode));
+    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+        return asDependency(new Store(callSite, element, line, bci, requireDependency(), handle, value, mode));
     }
 
     public Node fence(final MemoryAtomicityMode fenceType) {
@@ -412,8 +397,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             CompilationContext ctxt = classContext.getCompilationContext();
             Value thr = getFirstBuilder().currentThread();
             FieldElement exceptionField = ctxt.getExceptionField();
-            Value exceptionValue = readInstanceField(thr, exceptionField, JavaAccessMode.PLAIN);
-            writeInstanceField(thr, exceptionField, ctxt.getLiteralFactory().literalOfNull(), JavaAccessMode.PLAIN);
+            ValueHandle handle = instanceFieldOf(referenceHandle(thr), exceptionField);
+            Value exceptionValue = load(handle, MemoryAtomicityMode.NONE);
+            store(handle, ctxt.getLiteralFactory().literalOfNull(), MemoryAtomicityMode.NONE);
             BasicBlock sourceBlock = goto_(handler);
             exceptionHandler.enterHandler(sourceBlock, exceptionValue);
             begin(resume);
