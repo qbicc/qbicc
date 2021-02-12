@@ -79,8 +79,8 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
             bw.write("edge [ splines = true ];");
             bw.newLine();
             bw.newLine();
-            DotNodeVisitor visitor = new DotNodeVisitor();
-            visitor.process(bw, entryBlock);
+            DotNodeVisitor visitor = new DotNodeVisitor(entryBlock);
+            visitor.process(bw);
             bw.write("}");
         } catch (IOException e) {
             failedToWrite(ctxt, path, e);

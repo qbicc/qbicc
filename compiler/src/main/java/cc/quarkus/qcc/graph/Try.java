@@ -33,6 +33,8 @@ public final class Try extends AbstractNode implements Resume {
         return exceptionHandler;
     }
 
+    public BasicBlock getExceptionHandlerBranch() { return BlockLabel.getTargetOf(exceptionHandler); }
+
     public BasicBlock getExceptionHandler() {
         return BlockLabel.getTargetOf(exceptionHandler);
     }
@@ -45,6 +47,8 @@ public final class Try extends AbstractNode implements Resume {
     public Node getDependency() {
         return delegateOperation;
     }
+
+    public BasicBlock getResumeBranch() { return BlockLabel.getTargetOf(resumeTargetLabel); }
 
     public int getSuccessorCount() {
         return 2;
