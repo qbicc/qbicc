@@ -93,8 +93,8 @@ public class SupersDisplayTables {
             if (typeid >= first_interface_typeid) {
                 int bit = (typeid - first_interface_typeid);
                 s += " indexBit[" + bit + "]";
-                s += " byte[" + (bit / interfaces_per_byte) + "]";
-                s += " mask[" + Integer.toBinaryString((int)(Math.pow(2, bit % interfaces_per_byte))) + "]";
+                s += " byte[" + (bit >> 3) + "]";
+                s += " mask[" + Integer.toBinaryString(1 << (bit & 7)) + "]";
             }
             return s;
         }
