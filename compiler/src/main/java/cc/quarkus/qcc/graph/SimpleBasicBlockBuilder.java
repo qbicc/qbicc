@@ -116,7 +116,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             Terminator terminator = block.getTerminator();
             int cnt = terminator.getSuccessorCount();
             for (int i = 0; i < cnt; i ++) {
-                mark(terminator.getSuccessor(i), from);
+                mark(terminator.getSuccessor(i), block);
             }
         }
     }
