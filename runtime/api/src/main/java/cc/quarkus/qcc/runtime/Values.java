@@ -66,15 +66,4 @@ public final class Values {
     public static native long getRelaxed(long expr);
 
     public static native void exitConstructorBarrier(Object instance);
-
-    public static native long fieldOffset(Object expr);
-    public static native long fieldOffset(byte expr);
-    public static native long fieldOffset(short expr);
-    public static native long fieldOffset(int expr);
-    public static native long fieldOffset(long expr);
-    public static native long fieldOffset(float expr);
-    public static native long fieldOffset(double expr);
-    public static native long fieldOffset(boolean expr);
-
-    public static native long elementOffset(Object array, int index);
 }
