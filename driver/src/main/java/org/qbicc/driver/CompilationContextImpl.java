@@ -28,7 +28,8 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
-import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
@@ -62,13 +63,12 @@ final class CompilationContextImpl implements CompilationContext {
     private final TypeSystem typeSystem;
     private final LiteralFactory literalFactory;
     private final BaseDiagnosticContext baseDiagnosticContext;
-    private final ConcurrentMap<VmObject, ClassContext> classLoaderContexts = new ConcurrentHashMap<>();
+    private final ConcurrentMap<VmClassLoader, ClassContext> classLoaderContexts = new ConcurrentHashMap<>();
     volatile Set<ExecutableElement> allowedSet = null;
     final Set<ExecutableElement> queued = ConcurrentHashMap.newKeySet();
     final Queue<ExecutableElement> queue = new ArrayDeque<>();
     final Set<ExecutableElement> entryPoints = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext;
-    private final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
     private final ConcurrentMap<ExecutableElement, org.qbicc.object.Function> exactFunctions = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodElement, org.qbicc.object.Function> virtualFunctions = new ConcurrentHashMap<>();
@@ -77,21 +77,25 @@ final class CompilationContextImpl implements CompilationContext {
     private final AtomicReference<FieldElement> exceptionFieldHolder = new AtomicReference<>();
     private final SymbolLiteral qbiccBoundThread;
     private volatile DefinedTypeDefinition defaultTypeDefinition;
+    private final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
 
     // mutable state
     private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
     private volatile BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> copier;
+    private final Vm vm;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, BiFunction<ClassContext, String, DefinedTypeDefinition> bootstrapFinder, Function<CompilationContext, Vm> vmFactory, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.platform = platform;
         this.typeSystem = typeSystem;
         this.literalFactory = literalFactory;
-        this.finder = finder;
         this.outputDir = outputDir;
         this.resolverFactories = resolverFactories;
-        bootstrapClassContext = new ClassContextImpl(this, null);
+        bootstrapClassContext = new ClassContextImpl(this, null, bootstrapFinder);
+        this.typeBuilderFactories = typeBuilderFactories;
         qbiccBoundThread = getLiteralFactory().literalOfSymbol("_qbicc_bound_thread", getTypeSystem().getVoidType().getPointer().asCollected().getPointer());
+        // last!
+        this.vm = vmFactory.apply(this);
     }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {
@@ -186,19 +190,21 @@ final class CompilationContextImpl implements CompilationContext {
         return baseDiagnosticContext.deduplicate(original);
     }
 
-    public ClassContext constructClassContext(final VmObject classLoaderObject) {
-        return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> new ClassContextImpl(this, classLoader));
+    public ClassContext constructClassContext(final VmClassLoader classLoaderObject) {
+        return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> new ClassContextImpl(this, classLoader, vm::loadClass));
     }
 
     public MethodElement getVMHelperMethod(String name) {
         DefinedTypeDefinition dtd = bootstrapClassContext.findDefinedType("org/qbicc/runtime/main/VMHelpers");
         if (dtd == null) {
             error("Can't find runtime library class: " + "org/qbicc/runtime/main/VMHelpers");
+            return null;
         }
         LoadedTypeDefinition helpers = dtd.load();
         int idx = helpers.findMethodIndex(e -> name.equals(e.getName()));
         if (idx == -1) {
             error("Can't find the runtime helper method %s", name);
+            return null;
         }
         return helpers.getMethod(idx);
     }
@@ -429,6 +435,11 @@ final class CompilationContextImpl implements CompilationContext {
         return fieldElement;
     }
 
+    @Override
+    public Vm getVm() {
+        return vm;
+    }
+
     private String getExactNameForElement(final ExecutableElement element, final FunctionType type) {
         // todo: encode class loader ID
         // todo: cache :-(
@@ -508,10 +519,6 @@ final class CompilationContextImpl implements CompilationContext {
 
     public Iterable<ExecutableElement> getEntryPoints() {
         return entryPoints;
-    }
-
-    BiFunction<VmObject, String, DefinedTypeDefinition> getFinder() {
-        return finder;
     }
 
     BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> getBlockFactory() {
@@ -756,5 +763,9 @@ final class CompilationContextImpl implements CompilationContext {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> getTypeBuilderFactories() {
+        return typeBuilderFactories;
     }
 }

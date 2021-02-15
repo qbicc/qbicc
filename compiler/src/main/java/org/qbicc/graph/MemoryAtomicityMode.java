@@ -38,4 +38,12 @@ public enum MemoryAtomicityMode {
      */
     VOLATILE
     ;
+
+    public static MemoryAtomicityMode max(MemoryAtomicityMode a, MemoryAtomicityMode b) {
+        return a.ordinal() > b.ordinal() ? a : b;
+    }
+
+    public static MemoryAtomicityMode min(MemoryAtomicityMode a, MemoryAtomicityMode b) {
+        return a.ordinal() < b.ordinal() ? a : b;
+    }
 }

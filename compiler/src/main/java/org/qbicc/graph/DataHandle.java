@@ -36,4 +36,9 @@ public final class DataHandle extends AbstractProgramObjectHandle {
     public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
+
+    @Override
+    public <T> long accept(ValueHandleVisitorLong<T> visitor, T param) {
+        return visitor.visit(param, this);
+    }
 }

@@ -1,6 +1,10 @@
 package org.qbicc.type.definition.element;
 
 import org.qbicc.type.ObjectType;
+import java.lang.invoke.ConstantBootstraps;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
@@ -15,6 +19,8 @@ import io.smallrye.common.constraint.Assert;
  * An element representing a variable of some kind.
  */
 public abstract class VariableElement extends AnnotatedElement implements NamedElement {
+    private static final VarHandle interpOffsetHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "interpOffset", VarHandle.class, VariableElement.class, int.class);
+
     private final String name;
     private final TypeDescriptor typeDescriptor;
     private final TypeSignature typeSignature;
@@ -22,6 +28,10 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
     private final TypeAnnotationList invisibleTypeAnnotations;
     private final TypeParameterContext typeParameterContext;
     private volatile ValueType type;
+
+    // Interpreter caches
+
+    private volatile int interpOffset;
 
     VariableElement(Builder builder) {
         super(builder);
@@ -91,6 +101,18 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
 
     public boolean hasClass2Type() {
         return getTypeDescriptor().isClass2();
+    }
+
+    public int getInterpreterOffset() {
+        return interpOffset;
+    }
+
+    public void setInterpreterOffset(int value) {
+        interpOffset = value;
+    }
+
+    public boolean compareAndSetInterpreterOffset(int expect, int update) {
+        return interpOffsetHandle.compareAndSet(this, expect, update);
     }
 
     public static abstract class Builder extends AnnotatedElement.Builder implements NamedElement.Builder {

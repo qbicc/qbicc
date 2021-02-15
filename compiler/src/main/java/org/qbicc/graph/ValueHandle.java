@@ -49,4 +49,6 @@ public interface ValueHandle extends Unschedulable {
     MemoryAtomicityMode getDetectedMode();
 
     <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param);
+
+    <T> long accept(ValueHandleVisitorLong<T> visitor, T param);
 }

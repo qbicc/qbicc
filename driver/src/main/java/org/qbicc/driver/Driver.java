@@ -33,7 +33,6 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.Vm;
-import org.qbicc.interpreter.VmObject;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.tool.CToolChain;
@@ -180,16 +179,8 @@ public class Driver implements Closeable {
         List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>(builder.resolverFactories);
         Collections.reverse(resolverFactories);
 
-        final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
-        Vm vm = builder.vm;
-        if (vm != null) {
-            finder = vm::loadClass;
-        } else {
-            // use a simple finder instead
-            finder = this::defaultFinder;
-        }
-
-        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, finder, outputDir, resolverFactories);
+        java.util.function.Function<CompilationContext, Vm> vmFactory = Assert.checkNotNullParam("builder.vmFactory", builder.vmFactory);
+        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, this::defaultFinder, vmFactory, outputDir, resolverFactories, typeBuilderFactories);
         // start with ADD
         compilationContext.setBlockFactory(addBuilderFactory);
 
@@ -248,13 +239,9 @@ public class Driver implements Closeable {
         };
     }
 
-    private DefinedTypeDefinition defaultFinder(VmObject classLoader, String name) {
-        if (classLoader != null) {
-            return null;
-        }
+    private DefinedTypeDefinition defaultFinder(ClassContext classContext, String name) {
         String fileName = name + ".class";
         ByteBuffer buffer;
-        ClassContext ctxt = compilationContext.getBootstrapClassContext();
         for (ClassPathElement element : bootClassPath) {
             try (ClassPathElement.Resource resource = element.getResource(fileName)) {
                 buffer = resource.getBuffer();
@@ -262,18 +249,15 @@ public class Driver implements Closeable {
                     // non existent
                     continue;
                 }
-                ClassFile classFile = ClassFile.of(ctxt, buffer);
-                DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
-                for (BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder> factory : typeBuilderFactories) {
-                    builder = factory.apply(ctxt, builder);
-                }
+                ClassFile classFile = ClassFile.of(classContext, buffer);
+                DefinedTypeDefinition.Builder builder = classContext.newTypeBuilder();
                 classFile.accept(builder);
                 DefinedTypeDefinition def = builder.build();
-                ctxt.defineClass(name, def);
+                classContext.defineClass(name, def);
                 return def;
             } catch (Exception e) {
                 log.warnf(e, "An exception was thrown while loading class \"%s\" from the bootstrap loader", name);
-                ctxt.getCompilationContext().warning("Failed to load class \"%s\" from the bootstrap loader due to an exception: %s", name, e);
+                classContext.getCompilationContext().warning("Failed to load class \"%s\" from the bootstrap loader due to an exception: %s", name, e);
                 return null;
             }
         }
@@ -593,7 +577,7 @@ public class Driver implements Closeable {
         BaseDiagnosticContext initialContext;
         Platform targetPlatform;
         TypeSystem typeSystem;
-        Vm vm;
+        java.util.function.Function<CompilationContext, Vm> vmFactory;
         CToolChain toolChain;
         LlvmToolChain llvmToolChain;
         ObjectFileProvider objectFileProvider;
@@ -716,12 +700,12 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Vm getVm() {
-            return vm;
+        public java.util.function.Function<CompilationContext, Vm> getVmFactory() {
+            return vmFactory;
         }
 
-        public Builder setVm(final Vm vm) {
-            this.vm = vm;
+        public Builder setVmFactory(final java.util.function.Function<CompilationContext, Vm> vmFactory) {
+            this.vmFactory = vmFactory;
             return this;
         }
 

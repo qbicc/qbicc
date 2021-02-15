@@ -14,7 +14,7 @@ import java.util.zip.ZipFile;
 
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FunctionType;
@@ -47,9 +47,11 @@ public interface ClassContext extends DescriptorTypeResolver {
      *
      * @return the class loader object for this context
      */
-    VmObject getClassLoader();
+    VmClassLoader getClassLoader();
 
     DefinedTypeDefinition findDefinedType(String typeName);
+
+    DefinedTypeDefinition.Builder newTypeBuilder();
 
     String deduplicate(ByteBuffer buffer, int offset, int length);
 
@@ -114,7 +116,7 @@ public interface ClassContext extends DescriptorTypeResolver {
                 return null;
             }
 
-            public VmObject getClassLoader() {
+            public VmClassLoader getClassLoader() {
                 return null;
             }
 
@@ -192,6 +194,11 @@ public interface ClassContext extends DescriptorTypeResolver {
 
             public FunctionType resolveMethodFunctionType(final MethodDescriptor descriptor, TypeParameterContext paramCtxt, final MethodSignature signature, final TypeAnnotationList returnTypeVisible, final List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisibleAnnotations) {
                 throw Assert.unsupported();
+            }
+
+            @Override
+            public DefinedTypeDefinition.Builder newTypeBuilder() {
+                return null;
             }
 
             public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {

@@ -3,6 +3,7 @@ package org.qbicc.type.definition;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import org.qbicc.interpreter.VmClass;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;

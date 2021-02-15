@@ -12,7 +12,8 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
-import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
@@ -43,7 +44,11 @@ public interface CompilationContext extends DiagnosticContext {
 
     ClassContext getBootstrapClassContext();
 
-    ClassContext constructClassContext(VmObject classLoaderObject);
+    default ClassContext getClassContextForLoader(VmClassLoader classLoaderObject) {
+        return classLoaderObject == null ? getBootstrapClassContext() : classLoaderObject.getClassContext();
+    }
+
+    ClassContext constructClassContext(VmClassLoader classLoaderObject);
 
     MethodElement getVMHelperMethod(String helperName);
 
@@ -97,6 +102,8 @@ public interface CompilationContext extends DiagnosticContext {
     SymbolLiteral getCurrentThreadLocalSymbolLiteral();
 
     FieldElement getExceptionField();
+
+    Vm getVm();
 
     /**
      * Run a task on every compiler thread.  When the task has returned on all threads, this method will return.  This

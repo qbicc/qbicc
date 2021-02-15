@@ -1,7 +1,9 @@
 package org.qbicc.interpreter;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
@@ -68,7 +70,7 @@ public interface Vm {
     }
 
     static Vm current() {
-        return currentThread().getVM();
+        return requireCurrentThread().getVM();
     }
 
     static Vm requireCurrent() {
@@ -83,22 +85,12 @@ public interface Vm {
      * Load a class. If the class is already loaded, it is returned without entering the VM.  Otherwise the
      * current thread must be bound to a VM thread.
      *
-     * @param classLoader the class loader instance ({@code null} indicates the bootstrap class loader)
+     * @param classContext the class context instance (must not be {@code null})
      * @param name the internal name of the class to load (must not be {@code null})
      * @return the class (not {@code null})
      * @throws Thrown if the internal JVM has thrown an exception while loading the class
      */
-    DefinedTypeDefinition loadClass(VmObject classLoader, String name) throws Thrown;
-
-    /**
-     * Find a loaded class, returning {@code null} if the class loader did not previously load the class.  The VM
-     * is not entered.
-     *
-     * @param classLoader the class loader instance ({@code null} indicates the bootstrap class loader)
-     * @param name the internal name of the class to load (must not be {@code null})
-     * @return the class, or {@code null} if the class was not already loaded
-     */
-    DefinedTypeDefinition findLoadedClass(VmObject classLoader, String name);
+    DefinedTypeDefinition loadClass(ClassContext classContext, String name) throws Thrown;
 
     /**
      * Allocate an object without initializing it (all fields/elements will be {@code null}, {@code false}, or zero).
@@ -109,8 +101,6 @@ public interface Vm {
      */
     VmObject allocateObject(ClassObjectType type);
 
-    VmArray allocateArray(ArrayObjectType type, int length);
-
     /**
      * Invoke a constructor reflectively.  Primitive arguments should be boxed.
      *
@@ -118,7 +108,7 @@ public interface Vm {
      * @param instance the instance to invoke upon
      * @param args the arguments, whose times must match the constructor's expectations
      */
-    void invokeExact(ConstructorElement method, VmObject instance, Object... args);
+    void invokeExact(ConstructorElement method, VmObject instance, List<Object> args);
 
     /**
      * Invoke a method reflectively.  Primitive arguments should be boxed.
@@ -128,7 +118,7 @@ public interface Vm {
      * @param args the arguments, whose times must match the method's expectations
      * @return the result
      */
-    Object invokeExact(MethodElement method, VmObject instance, Object... args);
+    Object invokeExact(MethodElement method, VmObject instance, List<Object> args);
 
     void initialize(VmClass vmClass);
 
@@ -140,7 +130,7 @@ public interface Vm {
      * @param args the arguments, whose times must match the method's expectations
      * @return the result
      */
-    Object invokeVirtual(MethodElement method, VmObject instance, Object... args);
+    Object invokeVirtual(MethodElement method, VmObject instance, List<Object> args);
 
     /**
      * Deliver a "signal" to the target environment.
@@ -148,14 +138,6 @@ public interface Vm {
      * @param signal the signal to deliver
      */
     void deliverSignal(Signal signal);
-
-    /**
-     * Get a shared string instance.  The same string object will be reused for a given input string.
-     *
-     * @param string the input string (must not be {@code null})
-     * @return the instance
-     */
-    VmObject getSharedString(String string);
 
     /**
      * Allocate a direct byte buffer object with the given backing buffer.  The backing content will be determined
@@ -175,7 +157,7 @@ public interface Vm {
      * @param classLoader the class loader for the new class, or {@code null} for the bootstrap class loader
      * @return the builder
      */
-    DefinedTypeDefinition.Builder newTypeDefinitionBuilder(VmObject classLoader);
+    DefinedTypeDefinition.Builder newTypeDefinitionBuilder(VmClassLoader classLoader);
 
     /**
      * Get the main (root) thread group for the VM.
@@ -183,4 +165,20 @@ public interface Vm {
      * @return the thread group (not {@code null})
      */
     VmObject getMainThreadGroup();
+
+    /**
+     * Allocate memory of the given size.  If the memory size is 0, a shared instance may be returned.
+     *
+     * @param size the memory size (must be 0 or greater)
+     * @return the memory (not {@code null})
+     */
+    Memory allocate(int size);
+
+    /**
+     * Convenience method to get the actual (non-{@code null}) class loader for the given class context.
+     *
+     * @param classContext the class context (must not be {@code null})
+     * @return the class loader (not {@code null}, may be the bootstrap class loader)
+     */
+    VmClassLoader getClassLoaderForContext(ClassContext classContext);
 }
