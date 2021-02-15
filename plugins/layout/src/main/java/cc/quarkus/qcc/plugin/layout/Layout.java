@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.GlobalVariable;
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
@@ -26,6 +27,7 @@ import cc.quarkus.qcc.type.definition.InitializerResolver;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -48,8 +50,7 @@ public final class Layout {
 
     private final Map<ValidatedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
-    private final FieldElement objectClassField;
-    private final FieldElement objectVTableField;
+    private final FieldElement objectTypeIdField;
     private final FieldElement classTypeIdField;
 
     private final FieldElement arrayLengthField;
@@ -78,33 +79,18 @@ public final class Layout {
         ValidatedTypeDefinition jlo = jloDef.validate();
         ValidatedTypeDefinition jlc = jlcDef.validate();
 
-        // inject a field of ClassObjectType to hold the object class
+        // inject a 16bit unsigned int field to hold the object typeId
         FieldElement.Builder builder = FieldElement.builder();
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
-        builder.setName("klass");
+        builder.setName("typeId");
         builder.setEnclosingType(jloDef);
-        // void for now, but this is cheating terribly
-        builder.setDescriptor(BaseTypeDescriptor.V);
-        builder.setSignature(BaseTypeSignature.V);
-        // the type is really the self-type, but we don't have one of those so use j.l.Object
-        // builder.setType(jlo.getClassType().getTypeType().asConst());
-        builder.setType(classContext.getTypeSystem().getVoidType().getPointer()); // HACK: Avoid IllegalStateException from LLVMModuleNodeVisitor.map
+        // typeId is a 16 bit unsigned int value, Char is the closest descriptor
+        builder.setDescriptor(BaseTypeDescriptor.C);
+        builder.setSignature(BaseTypeSignature.C);
+        builder.setType(classContext.getTypeSystem().getUnsignedInteger16Type());
         FieldElement field = builder.build();
         jlo.injectField(field);
-        objectClassField = field;
-
-        // for now, inject a field of type void* to hold the vtable
-        builder = FieldElement.builder();
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
-        builder.setName("vtable");
-        builder.setEnclosingType(jloDef);
-        builder.setDescriptor(BaseTypeDescriptor.V);
-        builder.setSignature(BaseTypeSignature.V);
-        builder.setType(classContext.getTypeSystem().getVoidType().getPointer());
-        builder.setIndex(1);
-        field = builder.build();
-        jlo.injectField(field);
-        objectVTableField = field;
+        objectTypeIdField = field;
 
         // now inject a field of ClassObjectType into Class to hold the corresponding run time type
         builder = FieldElement.builder();
@@ -302,17 +288,8 @@ public final class Layout {
      *
      * @return the type identifier field
      */
-    public FieldElement getObjectClassField() {
-        return objectClassField;
-    }
-
-    /**
-     * Get the object field which holds the vtable pointer.
-     *
-     * @return the vtable field
-     */
-    public FieldElement getObjectVTableField() {
-        return objectVTableField;
+    public FieldElement getObjectTypeIdField() {
+        return objectTypeIdField;
     }
 
     /**

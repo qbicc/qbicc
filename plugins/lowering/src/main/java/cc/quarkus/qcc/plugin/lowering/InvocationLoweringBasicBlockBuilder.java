@@ -7,6 +7,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
+import cc.quarkus.qcc.graph.GlobalVariable;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
@@ -21,6 +22,7 @@ import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FunctionElement;
+import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
@@ -129,8 +131,14 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     private Value expandVirtualDispatch(Value instance, MethodElement target) {
         DispatchTables dt = DispatchTables.get(ctxt);
         DispatchTables.VTableInfo info = dt.getVTableInfo(target.getEnclosingType().validate());
+        GlobalVariableElement vtables = dt.getVTablesGlobal();
+        if (!vtables.getEnclosingType().equals(originalElement.getEnclosingType())) {
+            Section section = ctxt.getOrAddProgramModule(originalElement.getEnclosingType()).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+            section.declareData(null, vtables.getName(), vtables.getType(List.of()));
+        }
         int index = dt.getVTableIndex(target);
-        Value vtable = load(instanceFieldOf(referenceHandle(instance), Layout.get(ctxt).getObjectVTableField()), MemoryAtomicityMode.UNORDERED);
+        Value typeId = load(instanceFieldOf(referenceHandle(instance), Layout.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
+        Value vtable = load(elementOf(globalVariable(dt.getVTablesGlobal()), typeId), MemoryAtomicityMode.UNORDERED);
         return load(memberOf(pointerHandle(bitCast(vtable, info.getType().getPointer())), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
     }
 }

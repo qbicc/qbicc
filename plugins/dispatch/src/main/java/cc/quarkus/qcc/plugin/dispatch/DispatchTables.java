@@ -1,26 +1,5 @@
 package cc.quarkus.qcc.plugin.dispatch;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.ArrayLiteral;
-import cc.quarkus.qcc.graph.literal.CompoundLiteral;
-import cc.quarkus.qcc.graph.literal.Literal;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.object.Linkage;
-import cc.quarkus.qcc.object.Section;
-import cc.quarkus.qcc.plugin.reachability.RTAInfo;
-import cc.quarkus.qcc.type.ArrayType;
-import cc.quarkus.qcc.type.CompoundType;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.WordType;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import org.jboss.logging.Logger;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,16 +7,37 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import cc.quarkus.qcc.context.AttachmentKey;
+import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.literal.ArrayLiteral;
+import cc.quarkus.qcc.graph.literal.CompoundLiteral;
+import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.object.Linkage;
+import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.type.ArrayType;
+import cc.quarkus.qcc.type.CompoundType;
+import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.WordType;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
+import cc.quarkus.qcc.type.generic.BaseTypeSignature;
+import org.jboss.logging.Logger;
+
 public class DispatchTables {
     private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch");
     private static final Logger vtLog = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables");
 
     private static final AttachmentKey<DispatchTables> KEY = new AttachmentKey<>();
 
-    static final String MASTER_VTABLE_NAME = "qcc_vtables_array";
-
     private final CompilationContext ctxt;
     private final Map<ValidatedTypeDefinition, VTableInfo> vtables = new ConcurrentHashMap<>();
+    private GlobalVariableElement vtablesGlobal;
 
     private DispatchTables(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -97,6 +97,17 @@ public class DispatchTables {
         vtables.put(cls,new VTableInfo(vtable, vtableType, vtableSymbol));
     }
 
+    void buildVTablesGlobal(DefinedTypeDefinition containingType) {
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
+        builder.setName("qcc_vtables_array");
+        builder.setType(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getVoidType().getPointer().getPointer(), vtables.size()));
+        builder.setEnclosingType(containingType);
+        // void for now, but this is cheating terribly
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        vtablesGlobal = builder.build();
+    }
+
     void emitVTable(ValidatedTypeDefinition cls) {
         VTableInfo info = getVTableInfo(cls);
         MethodElement[] vtable = info.getVtable();
@@ -114,21 +125,22 @@ public class DispatchTables {
     }
 
     void emitVTableTable(ValidatedTypeDefinition jlo) {
-        WordType vstar = ctxt.getTypeSystem().getVoidType().getPointer();
+        ArrayType vtablesGlobalType = ((ArrayType)vtablesGlobal.getType(List.of()));
         Section section = ctxt.getOrAddProgramModule(jlo).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
-        Literal[] vtableLiterals = new Literal[vtables.size()];
+        Literal[] vtableLiterals = new Literal[(int)vtablesGlobalType.getElementCount()];
         Arrays.fill(vtableLiterals, ctxt.getLiteralFactory().literalOfUndefined());
-        int i = 0; // TEMP KLUDGE: DO NOT MERGE!
+        int i = 0;
         for (Map.Entry<ValidatedTypeDefinition, VTableInfo> e: vtables.entrySet()) {
             if (!e.getKey().equals(jlo)) {
                 section.declareData(null, e.getValue().getSymbol().getName(), e.getValue().getType());
             }
-            vtableLiterals[i++] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), vstar);   // FIXME: use e.getKey().getTypeId() as the index instead.
-        }
-        ArrayType masterType = ctxt.getTypeSystem().getArrayType(vstar, vtableLiterals.length);
-        ArrayLiteral masterValue = ctxt.getLiteralFactory().literalOf(masterType, List.of(vtableLiterals));
-        section.addData(null, MASTER_VTABLE_NAME, masterValue);
+            // FIXME: use e.getKey().getTypeId() instead of i++ once QCC-285 is merged.
+            vtableLiterals[i++] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), (WordType)vtablesGlobalType.getElementType());        }
+        ArrayLiteral masterValue = ctxt.getLiteralFactory().literalOf(vtablesGlobalType, List.of(vtableLiterals));
+        section.addData(null, vtablesGlobal.getName(), masterValue);
     }
+
+    public GlobalVariableElement getVTablesGlobal() { return this.vtablesGlobal; }
 
     public int getVTableIndex(MethodElement target) {
         ValidatedTypeDefinition definingType = target.getEnclosingType().validate();
