@@ -19,7 +19,7 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     public BasicBlock throw_(final Value value) {
         ThrowExceptionHelper teh = ThrowExceptionHelper.get(ctxt);
         Value ptr = addressOf(instanceFieldOf(referenceHandle(currentThread()), teh.getUnwindExceptionField()));
-        invokeStatic(teh.getRaiseExceptionMethod(), List.of(ptr));
+        callFunction(ctxt.getLiteralFactory().literalOfSymbol("_Unwind_RaiseException", teh.getRaiseExceptionMethod().getType(List.of(/**/))), List.of(ptr));
         return unreachable();
     }
 }
