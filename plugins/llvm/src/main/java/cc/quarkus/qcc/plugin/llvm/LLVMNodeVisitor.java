@@ -607,7 +607,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     @Override
     public GetElementPtr visit(Void param, GlobalVariable node) {
         GlobalVariableElement gv = node.getVariableElement();
-        return gep(Values.global(gv.getName()), node.getValueType().getPointer(), node);
+        return gep(Values.global(gv.getName()), node.getValueType().getPointer(), node).arg(false, i32, ZERO);
     }
 
     @Override
