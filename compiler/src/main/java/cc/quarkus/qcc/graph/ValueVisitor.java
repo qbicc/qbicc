@@ -70,6 +70,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, CmpAndSwap node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, CmpEq node) {
         return visitUnknown(param, node);
     }
@@ -143,6 +147,42 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, FunctionCall node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, GetAndAdd node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, GetAndBitwiseAnd node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, GetAndBitwiseNand node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, GetAndBitwiseOr node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, GetAndBitwiseXor node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, GetAndSet node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, GetAndSetMax node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, GetAndSetMin node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, GetAndSub node) {
         return visitUnknown(param, node);
     }
 
@@ -394,6 +434,42 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, FunctionCall node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, GetAndAdd node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, GetAndBitwiseAnd node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, GetAndBitwiseNand node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, GetAndBitwiseOr node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, GetAndBitwiseXor node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, GetAndSet node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, GetAndSetMax node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, GetAndSetMin node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, GetAndSub node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
