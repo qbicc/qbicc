@@ -2,9 +2,12 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeType;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import io.smallrye.common.constraint.Assert;
 
 /**
  * The type ID of a given value.
@@ -16,8 +19,18 @@ public final class TypeIdOf extends AbstractValue {
     TypeIdOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueHandle instance) {
         super(callSite, element, line, bci);
         this.instance = instance;
-        ReferenceType referenceType = (ReferenceType) instance.getValueType();
-        type = referenceType.getUpperBound().getTypeType();
+        ValueType vt = instance.getValueType();
+        if (vt instanceof ClassObjectType) {
+            type = ((ClassObjectType)vt).getTypeType();
+        } else if (vt instanceof ReferenceType) {
+            ReferenceType referenceType = (ReferenceType) instance.getValueType();
+            type = referenceType.getUpperBound().getTypeType();
+        } else {
+            /* Shouldn't be called without something that can
+             * define the TypeType
+             */
+            throw Assert.unreachableCode();
+        }
     }
 
     public TypeType getType() {
