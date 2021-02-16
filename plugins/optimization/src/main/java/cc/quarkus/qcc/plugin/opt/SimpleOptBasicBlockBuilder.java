@@ -5,6 +5,7 @@ import static cc.quarkus.qcc.type.NullType.isAlwaysNull;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.NewArray;
@@ -19,6 +20,7 @@ import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.WordType;
 
 /**
  * A graph factory which performs simple optimizations opportunistically.
@@ -128,6 +130,20 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
         return super.cmpGe(v1, v2);
+    }
+
+    public Value bitCast(Value input, WordType toType) {
+        if (input instanceof BitCast) {
+            final BitCast inputNode = (BitCast) input;
+            if (inputNode.getInput().getType().equals(toType)) {
+                // BitCast(BitCast(a, x), type-of a) -> a
+                return inputNode.getInput();
+            }
+
+            // BitCast(BitCast(a, x), y) -> BitCast(a, y)
+            return bitCast(inputNode.getInput(), toType);
+        }
+        return super.bitCast(input, toType);
     }
 
     private boolean isNeverNull(final Value v1) {
