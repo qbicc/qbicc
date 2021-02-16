@@ -177,6 +177,14 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Mod(callSite, element, line, bci, v1, v2);
     }
 
+    public Value min(final Value v1, final Value v2) {
+        return new Min(callSite, element, line, bci, v1, v2);
+    }
+
+    public Value max(final Value v1, final Value v2) {
+        return new Max(callSite, element, line, bci, v1, v2);
+    }
+
     public Value cmpLt(final Value v1, final Value v2) {
         return new CmpLt(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
     }

@@ -162,6 +162,10 @@ public interface BasicBlockBuilder {
 
     Value remainder(Value v1, Value v2);
 
+    Value min(Value v1, Value v2);
+
+    Value max(Value v1, Value v2);
+
     Value cmpLt(Value v1, Value v2);
 
     Value cmpGt(Value v1, Value v2);
