@@ -30,4 +30,16 @@ final class ResolvedTypeDefinitionImpl extends DelegatingValidatedTypeDefinition
     public ResolvedTypeDefinition resolve() {
         return this;
     }
+
+    public int getTypeId() {
+        return delegate.getTypeId();
+    }
+
+    public boolean isTypeIdValid() {
+        return delegate.isTypeIdValid();
+    }
+
+    public void assignTypeId(int myTypeId) {
+        delegate.assignTypeId(myTypeId);
+    }
 }

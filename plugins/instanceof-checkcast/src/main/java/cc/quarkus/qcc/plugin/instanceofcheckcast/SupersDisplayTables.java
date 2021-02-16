@@ -13,6 +13,7 @@ import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import io.smallrye.common.constraint.Assert;
 
 /**
  * Build Cohen's display of accessible super types.
@@ -42,13 +43,35 @@ public class SupersDisplayTables {
      * traversal of the set reachable classes and their
      * subclasses starting from Object.
      * 
-     * TODO: Assign interface classes and array classes their
-     * typeids in a meaningful way.
+     * Interface typeid's are assigned after class's get their
+     * typeids assigned - see code in SuperDisplayBuilder.java
+     * 
+     * Interfaces also get assigned a bit as their index into
+     * the implemented interfaces bit array.  If a class
+     * implements interface I, it will have a `1` in the 
+     * interface_bits[] at I.interfaceIndexBit.
+     * 
+     * We have perfect knowledge of the implemented interfaces
+     * so we can assign these bits up front and the array should
+     * stay reasonably small.
+     * 
+     * TODO: Assign array classes their typeids in a meaningful way.
      */
     static class IdAndRange {
         private static int typeid_index = 1; // avoid using 0;
+        
+        // interface ids must be contigious and after the class ids
+        private static int first_interface_typeid = 0;
+        static final int interfaces_per_byte = 8;
 
         public static IdAndRange nextID() {
+            return new IdAndRange(typeid_index++);
+        }
+
+        public static IdAndRange nextInterfaceID() {
+            if (first_interface_typeid == 0) {
+                first_interface_typeid = typeid_index;
+            }
             return new IdAndRange(typeid_index++);
         }
 
@@ -66,7 +89,14 @@ public class SupersDisplayTables {
         }
 
         public String toString() {
-            return "ID[" + typeid +"] Range["+ typeid +", " + maximumSubtypeId + "]";
+            String s = "ID[" + typeid +"] Range["+ typeid +", " + maximumSubtypeId + "]";
+            if (typeid >= first_interface_typeid) {
+                int bit = (typeid - first_interface_typeid);
+                s += " indexBit[" + bit + "]";
+                s += " byte[" + (bit >> 3) + "]";
+                s += " mask[" + Integer.toBinaryString(1 << (bit & 7)) + "]";
+            }
+            return s;
         }
     }
 
@@ -159,6 +189,13 @@ public class SupersDisplayTables {
                 supersLog.debug(idRange.toString() + " " + vtd.getInternalName());
             }
         );
+
+        int numInterfaces = typeids.size() - supers.size();
+        int bytesPerClass = (numInterfaces + IdAndRange.interfaces_per_byte - 1) / IdAndRange.interfaces_per_byte;
+        supersLog.debug("===============");
+        supersLog.debug("Implemented interface bits require " + bytesPerClass + " bytes per class");
+        supersLog.debug("classes + interfaces = " + typeids.size());
+        supersLog.debug("Interface bits[] space (in bytes): " + (typeids.size() * bytesPerClass));
     }
 
     void assignTypeID(ValidatedTypeDefinition cls) {
@@ -177,6 +214,36 @@ public class SupersDisplayTables {
                 log.debug("Setting Super's max subtype id: " + superclass.getInternalName() + " " + superID.toString());
             }
         }
+    }
+
+    void assignInterfaceID(ValidatedTypeDefinition cls) {
+        int numInterfaces = cls.getInterfaceCount();
+        for (int i = 0; i < numInterfaces; i++) {
+            ValidatedTypeDefinition interface_i = cls.getInterface(i);
+            if (typeids.get(interface_i) == null) {
+                typeids.computeIfAbsent(interface_i, theInterface -> IdAndRange.nextInterfaceID());
+                // assign IDs to interfaces implemented by this interface
+                assignInterfaceID(interface_i);
+            }
+        }
+    }
+
+    void updateJLORange(ValidatedTypeDefinition jlo) {
+        Assert.assertTrue(jlo.getSuperClass() == null);
+        IdAndRange r = typeids.get(jlo);
+        // typeid_index is incremented after use so we need
+        // subtract 1 here to get the max typeid
+        r.maximumSubtypeId = IdAndRange.typeid_index - 1;
+    }
+
+    void writeTypeIdToClasses() {
+        typeids.entrySet().stream()
+            .forEach(es -> {
+                ValidatedTypeDefinition vtd = es.getKey();
+                IdAndRange idRange = es.getValue();
+                vtd.assignTypeId(idRange.typeid);
+            }
+        );
     }
 }
 

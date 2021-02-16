@@ -30,6 +30,7 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     private final NestedClassElement enclosingClass;
     private final NestedClassElement[] enclosedClasses;
     private volatile ResolvedTypeDefinition resolved;
+    private int typeId = -1;
 
     ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
         this.delegate = delegate;
@@ -160,6 +161,20 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
             this.resolved = resolved;
         }
         return resolved;
+    }
+
+    public int getTypeId() {
+        return typeId;
+    }
+
+    public boolean isTypeIdValid() {
+        return typeId != -1;
+    }
+
+    public void assignTypeId(int myTypeId) {
+        // typeId shouldn't hae already been assigned
+        Assert.assertTrue(typeId == -1);
+        typeId = myTypeId;
     }
 }
 

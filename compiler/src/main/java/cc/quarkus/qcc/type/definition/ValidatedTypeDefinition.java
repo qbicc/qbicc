@@ -367,4 +367,30 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
 
 
     ResolvedTypeDefinition resolve() throws ResolutionFailedException;
+
+    /**
+     * Get this ValidatedTypeDefinitions typeId.
+     * 
+     * Prior to TypeIds being assigned in the 
+     * Post ANALAZE phase, this method will retun an
+     * invalid typeId, likely -1.
+     */
+    int getTypeId();
+
+    /**
+     * Type IDs are assigned late in the process and may
+     * not be valid yet.  This method allows checking if
+     * the typeid has been assigned before attempting to
+     * use it.
+     * 
+     * By default, "-1" is used as an invalid typeId.
+     */
+    boolean isTypeIdValid();
+
+    /**
+     * Assign the typeId to this Class or Interface.
+     * This can only be done once.
+     */
+    void assignTypeId(int myTypeId);
+
 }
