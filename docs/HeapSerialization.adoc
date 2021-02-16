@@ -1,0 +1,267 @@
+= QCC: Heap Serialization
+
+== Motivation
+
+In order to provide optimum startup performance, a basic tenet of native image generation revolves around the ability
+to initialize classes at the time the image is built, rather than at the time of first run.
+The effect of class initialization includes (but is not limited to) the ability to initialize static fields on the class.
+The object graph which is rooted in these fields therefore must be preserved within the image so that these fields may
+be read at run time.
+
+== Requirements
+
+* All run time visible static field values must be serialized into the native image, as well as all referenced object constants (including but not limited to string literals, dynamic (`ConstantDynamic`) constants, and method handles).
+* The object model must be stored in a way that it can be deserialized when the native image starts up.
+* Deserialization of the object graph should be performant (i.e. optimized for speed where possible).
+* Deserialization must take place before any run time initialization steps.
+* Since deserialization only occurs one time at application startup, and memory footprint is important, any data temporary structures used in deserialization should be freed afterwards, and any loaded native image sections holding serialized data or deserialization code should be released (e.g. by `posix_madvise` or `munmap`).
+
+== Design option: Memory mapping a heap image
+
+One possible design option would be to avoid allocations by writing the initial heap in to a program segment in the exact format and layout that will be used by the native image heap.
+A potentially attractive feature of this design option is the possibility for lazy paging in of heap.
+
+This would require the following:
+
+* The GC implementation would have to cooperate heavily with the heap serializer to ensure that the resultant memory image may be used at run time.
+    * This would require some kind of SPI to ensure that it functions uniformly.
+    * The serialized heap could possibly span multiple GC generations.
+* Some type of relocation may have to occur to map all serialized reference values to their actual values.
+    * This is particularly true of reference values that are pointer-derived in any way; on the other hand, a pointer-difference reference value implementation (where the reference value is scaled and added to a run heap time base pointer) may not need relocation but may add a cost to memory access.
+
+The following potential problems need to be handled:
+
+* The executable needs a way to re-map portions of itself into memory, which historically has been a challenge.
+* Relocating reference values will likely invalidate any lazy loading of heap pages.
+
+=== Variation: Copying the image
+
+Instead of memory-mapping the image, since most of the image would need to be visited anyway, a possible variation would be to
+copy the image from a read-only data section or sections to the target heap generation(s).
+The read-only image could then be released back to the operating system.
+
+== Design option: Serialization stream
+
+To avoid some the complexities of mapping the heap, another potential solution would be to keep a more compact heap representation as a section of the native executable.
+The program's initialization code would read this representation and allocate the corresponding objects, initializing the fields of the objects in a standard serialization fashion.
+A key advantage to this approach is that it does not require any special cooperation from the garbage collector, though the garbage collector heap implementation might have tools available to make this more efficient.
+
+This approach would require the following:
+
+* The heap data should be stored in a segment of the native image that can be unloaded or released after the deserialization is complete.
+* The deserialization function(s) should also be stored in a separate segment that can be unloaded or released.
+* Some objects may be better allocated directly into a tenured or permanent generation, or may be required to be allocated in a non-moving generation; the allocator would have to have support for this.
+
+Potential problems with this approach are:
+
+* Allocating every serialized object individually might be substantially more expensive than mass-mapping a single image.
+    * This could be mitigated by having some type of aggregate or group allocation method in the GC.
+    * Since the application is not yet running, it could possibly be assumed that there is no concurrent heap access yet at this stage, which may afford other optimizations.
+* It might be more expensive (in processing time) to deserialize a compact stream than to relocate a less compact image in place.
+This may be due in part to CPU-dependent costs around accessing unaligned data.
+On the other hand, it is possible that the superior cache locality of packed data offers a processing time advantage.
+
+=== Serialization scheme
+
+The serialization scheme must be able to represent the initial object graph including the full contents of each object.
+The serializable class members may include primitive values, references to other objects (including array objects), pointers, arrays,
+and structures.
+The object graph may be cyclic.
+
+==== Stream format
+
+The program initialization process would include reading the value of each static field and constant from the stream in a predetermined order.
+Only objects would be stored in the stream; values of primitive or native type would be stored in the image in a data section, and thus immediately available at run time.
+
+[source,bnf]
+----
+    stream ::= object*
+----
+
+Each object in the stream may be a back reference to a previously defined object, a string literal, a class literal, a new regular object, a new array object, or the value `null`.
+
+[source,bnf]
+----
+    object ::= back-reference
+        | string-literal
+        | class-literal
+        | new-object
+        | array-object
+        | NULL
+
+    NULL ::= 0x00
+----
+
+The object graph is directed and cyclic.
+Since the objects do not form a strict tree, it is possible for more than one serialized field to refer to the same object.
+Therefore, it is necessary for the serialization format to be able to represent a backreference to a previously serialized object.
+This also implies that the deserialization process must keep a temporary array to hold the references to the deserialized objects in the order that they are deserialized in order to resolve backreferences.
+
+Previous research has shown that with recursive serialization strategies, it is common for backreferences to objects contained within a serialized object to be near to the containing object in the stream, and there is benefit to optimizing for this case.
+Therefore, we define four different ways of defining a stream backreference:
+
+* _Tiny_, where the referenced object was serialized from 1 to 16 entries previously, which can be indicated by a single byte;
+* _Near_, where the referenced object was serialized up to 256 entries previously, which can be indicated by two bytes;
+* _Mid_, where the referenced object was serialized up to 65536 entries previously, which can be indicated by three bytes;
+* _Far_, where the referenced object was serialized up to 4294967296 entries previously, which can be indicated by five bytes.
+
+The backreference number can be sign-extended to a negative number which can be directly added to the index of the object currently being serialized, yielding the index of the referenced object.
+
+[source,bnf]
+----
+
+    back-reference ::= TINY_BACKREF_n
+        | near-back-reference
+        | mid-back-reference
+        | far-back-reference
+
+    near-back-reference ::= NEAR_REF n  ; n = a one-byte negative number in the range [-256, -1]
+
+    mid-back-reference ::= MID_REF n    ; n = a two-byte negative number in the range [-65536, -1] in target-endian order
+
+    far-back-reference ::= FAR_REF n    ; n = a four-byte negative number in the range [-4294967296, -1] in target-endian order
+
+    NEAR_REF ::= 0xE0
+    MID_REF ::= 0xE1
+    FAR_REF ::= 0xE2
+
+    TINY_BACKREF_n ::= 0xFn   ; n = a negative number in the range [-16, -1]
+----
+
+Strings in OpenJDK are encoded in one of two ways: in `Latin-1` (`ISO/IEC-8859-1`) character encoding (in the case where all code points have a value between `0x00` and `0xFF`) or `UTF-16BE` character encoding (in all other cases).
+By using these same encodings in the stream, the stream data can be loaded directly into a `byte[]` and the corresponding `String` can be constructed with that array and the corresponding coder identifier.
+
+Most string constants are expected to be fairly short in terms of character count.
+By prepending the length to the string (in the so-called "Pascal" string style), the corresponding arrays can be preconstructed to exact length.
+Because it is possible for a string to be unusually long (in fact, strings up to the maximum possible array length are possible), it is best to optimize for short strings but have constructs to support long strings.
+
+Having excess length bytes causes a much higher percentage of waste for shorter strings than longer strings, therefore we only provide two variations: short and long.
+Each of these variations in turn requires a variation for `Latin-1` or `UTF-16` encoding.
+
+[source,bnf]
+----
+    string-literal ::= string-small-latin1
+        | string-small-utf16
+        | string-large-latin1
+        | string large-utf16
+
+    string-small-latin1 ::= STR_SMALL_L1 n8 byte*  ; n = a one byte positive number in the range [0, 255]; byte* = that many bytes
+
+    string-small-utf16 ::= STR_SMALL_U16 n8 short* ; n = a one byte positive number in the range [0, 255]; short* = that many 16-bit words in big-endian order
+
+    string-large-latin1 ::= STR_SMALL_L1 n32 byte*  ; n = a four byte positive number (in host-endian order) in the range [0, 2147483648]; byte* = that many bytes
+
+    string-large-utf16 ::= STR_SMALL_U16 n32 short* ; n = a four byte positive number (in host-endian order) in the range [0, 2147483648]; short* = that many 16-bit words in big-endian order
+----
+
+Class literals can be represented simply using the class type ID.
+
+[source,bnf]
+----
+    class-literal ::= CLASS_LITERAL type-id
+----
+
+Objects which have not previously occurred in the stream are defined by the allocation strategy, object type, and field values.
+
+The allocation strategy chosen would be based on the expected lifetime of the object.  The object type is the type ID value of the object's class.
+
+The field values of the supertype precede the field values of the subtype.
+To avoid having to encode the class layout into the serialization stream, it is necessary to define deserialization functions for each type (this tradeoff may be revisited based on the size and speed of the deserialization functions, but the intention for this proposal is to favor speed over size).
+The deserialization function for each type will call the deserialization function for the supertype (if any).
+
+No deserialization function is necessary for types with no fields; if such a type extends only classes with no fields, then no function needs to be called at all.
+Otherwise, the deserialization function for any empty type is equal to the deserialization function of the most specific non-empty superclass of that type.
+
+The deserialization function must read each packed value from the array and store it into the correct field of its corresponding object.
+
+Field values whose type are objects follow the `object` grammar.
+Field values of primitive types are encoded as the bytes representing those types in host-endian order.
+Field values of composite types (structures and non-object arrays) are stored by member.
+Field values of pointer types are stored as indexes (of a size determined at serialization time) into a pointer table, which in turn contains constant pointer values as symbolic references to be resolved by the linker.
+
+Pointers to non-constant, non-global memory are not supported.
+
+[source,bnf]
+----
+    new-object ::= obj-gen type-id supertype-field-values? field-value*
+
+    obj-gen ::= NEW_GEN   ; likely to be freed early in the program
+        | TENURED_GEN     ; likely to exist for a long time (and unmoving?)
+        | PERM_GEN        ; must be permanent and unmoving
+
+    supertype-field-values ::= supertype-field-values? field-value*
+
+    field-value ::= n8*   ; the type-specific value of each field
+
+    NEW_GEN ::= 0x01
+    TENURED_GEN ::= 0x02
+    PERM_GEN ::= 0x03
+----
+
+The entire grammar would assemble like this:
+
+.The entire grammar
+[source,bnf]
+----
+    stream ::= object*
+
+    object ::= back-reference
+        | string-literal
+        | class-literal
+        | new-object
+        | array-object
+        | NULL
+
+    back-reference ::= TINY_BACKREF_n
+        | near-back-reference
+        | mid-back-reference
+        | far-back-reference
+
+    near-back-reference ::= NEAR_REF n  ; n = a one-byte negative number in the range [-256, -1]
+
+    mid-back-reference ::= MID_REF n    ; n = a two-byte negative number in the range [-65536, -1] in target-endian order
+
+    far-back-reference ::= FAR_REF n    ; n = a four-byte negative number in the range [-4294967296, -1] in target-endian order
+
+    string-literal ::= string-small-latin1
+        | string-small-utf16
+        | string-large-latin1
+        | string large-utf16
+
+    string-small-latin1 ::= STR_SMALL_L1 n8 byte*  ; n = a one byte positive number in the range [0, 255]; byte* = that many bytes
+
+    string-small-utf16 ::= STR_SMALL_U16 n8 short* ; n = a one byte positive number in the range [0, 255]; short* = that many 16-bit words in big-endian order
+
+    string-large-latin1 ::= STR_SMALL_L1 n32 byte*  ; n = a four byte positive number (in host-endian order) in the range [0, 2147483648]; byte* = that many bytes
+
+    string-large-utf16 ::= STR_SMALL_U16 n32 short* ; n = a four byte positive number (in host-endian order) in the range [0, 2147483648]; short* = that many 16-bit words in big-endian order
+
+    class-literal ::= CLASS_LITERAL type-id
+
+    new-object ::= obj-gen type-id supertype-field-values? field-value*
+
+    obj-gen ::= NEW_GEN   ; likely to be freed early in the program
+        | TENURED_GEN     ; likely to exist for a long time (and unmoving?)
+        | PERM_GEN        ; must be permanent and unmoving
+
+    supertype-field-values ::= supertype-field-values? field-value*
+
+    field-value ::= n8*   ; the type-specific value of each field
+
+    NULL ::= 0x00
+
+    NEW_GEN ::= 0x01
+    TENURED_GEN ::= 0x02
+    PERM_GEN ::= 0x03
+
+    NEAR_REF ::= 0xE0
+    MID_REF ::= 0xE1
+    FAR_REF ::= 0xE2
+
+    TINY_BACKREF_n ::= 0xFn   ; n = a negative number in the range [-16, -1]
+----
+
+==== Deserialization functions
+
+Each type that is serialized which contains field values must have a deserialization function.  The functions are kept in a constant array keyed by type ID.
+Entries with a `0` value do not have serializers and are constructed using default empty (zero or `null`) values for all fields.
