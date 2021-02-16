@@ -28,7 +28,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
 
     public Value typeIdOf(final ValueHandle valueHandle) {
         Layout layout = Layout.get(ctxt);
-        return load(instanceFieldOf(valueHandle, layout.getObjectClassField()), MemoryAtomicityMode.UNORDERED);
+        return load(instanceFieldOf(valueHandle, layout.getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
     }
 
     public Value arrayLength(final ValueHandle arrayHandle) {

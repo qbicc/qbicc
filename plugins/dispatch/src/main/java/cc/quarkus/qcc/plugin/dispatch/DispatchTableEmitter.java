@@ -1,13 +1,12 @@
 package cc.quarkus.qcc.plugin.dispatch;
 
+import java.util.function.Consumer;
+
 import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-
-import java.util.function.Consumer;
 
 public class DispatchTableEmitter implements Consumer<CompilationContext>  {
 

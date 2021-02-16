@@ -166,7 +166,7 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
 
-        // Object#getClass()Ljava/lang/Class; --> field read of the "klass" field
+        // Object#getClass()Ljava/lang/Class; --> field read of the "typeId" field
         MethodDescriptor getClassDesc =
             MethodDescriptor.synthesize(classContext,
                 ClassTypeDescriptor.synthesize(classContext, "java/lang/Class"), List.of());

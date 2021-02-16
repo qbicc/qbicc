@@ -22,5 +22,8 @@ public class VTableBuilder implements Consumer<CompilationContext>  {
         ValidatedTypeDefinition jlo = jloDef.validate();
         tables.buildFilteredVTable(jlo);
         info.visitLiveSubclassesPreOrder(jlo, cls -> tables.buildFilteredVTable(cls));
+
+        // Synthesize GlobalVariable for vtables[]
+        tables.buildVTablesGlobal(jlo);
     }
 }
