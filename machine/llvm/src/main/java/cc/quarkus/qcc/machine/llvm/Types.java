@@ -47,8 +47,8 @@ public final class Types {
         return LLVM.vector(vscale, dimension, elementType);
     }
 
-    public static LLValue function(final LLValue returnType, final List<LLValue> argTypes) {
-        return LLVM.function(returnType, argTypes);
+    public static LLValue function(final LLValue returnType, final List<LLValue> argTypes, boolean variadic) {
+        return LLVM.function(returnType, argTypes, variadic);
     }
 
     public static StructType structType() {

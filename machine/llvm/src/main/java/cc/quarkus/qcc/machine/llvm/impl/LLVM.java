@@ -89,8 +89,8 @@ public final class LLVM {
         return new NamedGlobalValueOf(name);
     }
 
-    public static LLValue function(final LLValue returnType, final List<LLValue> argTypes) {
-        return new FunctionType(returnType, argTypes);
+    public static LLValue function(final LLValue returnType, final List<LLValue> argTypes, boolean variadic) {
+        return new FunctionType(returnType, argTypes, variadic);
     }
 
     public static StructType structType() {

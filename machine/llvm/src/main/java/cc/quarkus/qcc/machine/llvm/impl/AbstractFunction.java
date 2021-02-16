@@ -22,6 +22,7 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
     int addressSpace = 0;
     // todo: return type attribute
     int alignment = 0;
+    boolean variadic;
     // todo: prefix data https://llvm.org/docs/LangRef.html#prefixdata
     // todo: prologue data https://llvm.org/docs/LangRef.html#prologuedata
     ParameterImpl lastParam;
@@ -84,6 +85,11 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         if (Integer.bitCount(alignment) != 1) {
             throw new IllegalArgumentException("Alignment must be a power of two");
         }
+        return this;
+    }
+
+    public Function variadic() {
+        variadic = true;
         return this;
     }
 
@@ -191,6 +197,14 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         final ParameterImpl lastParam = this.lastParam;
         if (lastParam != null) {
             lastParam.appendTo(target);
+            if (variadic) {
+                target.append(',').append(' ');
+                target.append("...");
+            }
+        } else {
+            if (variadic) {
+                target.append("...");
+            }
         }
         target.append(')');
         appendAfterParams(target);

@@ -2,6 +2,7 @@ package cc.quarkus.qcc.plugin.native_;
 
 import static cc.quarkus.qcc.context.CompilationContext.IMPLICIT_SECTION_NAME;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
@@ -10,9 +11,11 @@ import cc.quarkus.qcc.graph.ClassOf;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
+import cc.quarkus.qcc.graph.NewArray;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
@@ -34,6 +37,7 @@ import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.VariadicType;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
@@ -56,11 +60,52 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return super.invokeValueStatic(binding, arguments);
         }
         NativeFunctionInfo functionInfo = nativeInfo.getFunctionInfo(owner, name, descriptor);
+        LiteralFactory lf = ctxt.getLiteralFactory();
         if (functionInfo != null) {
+            SymbolLiteral sym = functionInfo.symbolLiteral;
+            FunctionType functionType = (FunctionType) sym.getType();
             ctxt.getImplicitSection(getCurrentElement())
-                .declareFunction(functionInfo.origMethod, functionInfo.symbolLiteral.getName(), (FunctionType) functionInfo.symbolLiteral.getType());
+                .declareFunction(functionInfo.origMethod, sym.getName(), functionType);
             // todo: prologue, epilogue (store current thread, GC state, etc.)
-            return callFunction(functionInfo.symbolLiteral, arguments);
+            int pc = functionType.getParameterCount();
+            if (pc > 0 && functionType.getParameterType(pc - 1) instanceof VariadicType) {
+                // build up an argument list from the varargs array
+                int size = arguments.size();
+                if (size < 1) {
+                    throw new IllegalStateException("Unexpected argument list size");
+                }
+                if (size != pc) {
+                    throw new IllegalStateException("Argument list size does not match function prototype size");
+                }
+                Value varArgArray = arguments.get(size - 1);
+                if (varArgArray instanceof NewArray) {
+                    ValueHandle arrayHandle = referenceHandle(varArgArray);
+                    Value sizeVal = ((NewArray) varArgArray).getSize();
+                    if (sizeVal instanceof IntegerLiteral) {
+                        int varCnt = ((IntegerLiteral) sizeVal).intValue();
+                        // original param count, minus the variadic type, plus the number of given arguments
+                        List<Value> realArgs = new ArrayList<>(pc - 1 + varCnt);
+                        for (int i = 0; i < size - 1; i ++) {
+                            realArgs.add(arguments.get(i));
+                        }
+                        // array creation is expected to be optimized away
+                        for (int i = 0; i < varCnt; i ++) {
+                            realArgs.add(load(elementOf(arrayHandle, lf.literalOf(i)), MemoryAtomicityMode.NONE));
+                        }
+                        return callFunction(sym, realArgs);
+                    } else {
+                        // usage error
+                        ctxt.error(getLocation(), "Variadic call only allowed with array of constant size");
+                        return callFunction(sym, arguments);
+                    }
+                } else {
+                    // usage error
+                    ctxt.error(getLocation(), "Variadic call only allowed with immediate array argument");
+                    return callFunction(sym, arguments);
+                }
+            }
+            // not variadic; just plain call
+            return callFunction(sym, arguments);
         }
         if (owner.equals(nativeInfo.cNativeDesc)) {
             switch (name) {
@@ -79,7 +124,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                     } else {
                         size = argType.getSize();
                     }
-                    return ctxt.getLiteralFactory().literalOf(size);
+                    return lf.literalOf(size);
                 }
                 case "alignof": {
                     ValueType argType = arguments.get(0).getType();
@@ -89,26 +134,26 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                     } else {
                         align = argType.getAlign();
                     }
-                    return ctxt.getLiteralFactory().literalOf(align);
+                    return lf.literalOf(align);
                 }
                 case "defined": {
-                    return ctxt.getLiteralFactory().literalOf(! (arguments.get(0) instanceof UndefinedLiteral));
+                    return lf.literalOf(! (arguments.get(0) instanceof UndefinedLiteral));
                 }
                 case "isComplete": {
-                    return ctxt.getLiteralFactory().literalOf(arguments.get(0).getType().isComplete());
+                    return lf.literalOf(arguments.get(0).getType().isComplete());
                 }
                 case "isSigned": {
-                    return ctxt.getLiteralFactory().literalOf(arguments.get(0).getType() instanceof SignedIntegerType);
+                    return lf.literalOf(arguments.get(0).getType() instanceof SignedIntegerType);
                 }
                 case "isUnsigned": {
-                    return ctxt.getLiteralFactory().literalOf(arguments.get(0).getType() instanceof UnsignedIntegerType);
+                    return lf.literalOf(arguments.get(0).getType() instanceof UnsignedIntegerType);
                 }
                 case "typesAreEquivalent": {
-                    return ctxt.getLiteralFactory().literalOf(arguments.get(0).getType().equals(arguments.get(1).getType()));
+                    return lf.literalOf(arguments.get(0).getType().equals(arguments.get(1).getType()));
                 }
                 // no args
                 case "zero": {
-                    return ctxt.getLiteralFactory().literalOf(0);
+                    return lf.literalOf(0);
                 }
             }
         }

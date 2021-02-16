@@ -24,6 +24,8 @@ public interface Function extends Metable {
 
     Function alignment(int alignment);
 
+    Function variadic();
+
     Function meta(String name, LLValue metadata);
 
     Function comment(String comment);

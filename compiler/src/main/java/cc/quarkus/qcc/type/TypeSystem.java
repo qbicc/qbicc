@@ -23,6 +23,7 @@ public final class TypeSystem {
     private final int referenceAlign;
     private final int typeIdSize;
     private final int typeIdAlign;
+    private final VariadicType variadicType = new VariadicType(this);
     private final PoisonType poisonType = new PoisonType(this);
     private final VoidType voidType = new VoidType(this, false);
     private final NullType nullType = new NullType(this);
@@ -91,6 +92,10 @@ public final class TypeSystem {
 
     private static IllegalArgumentException typeTooSmall(String name) {
         return new IllegalArgumentException("Type " + name + " does not contain enough bits");
+    }
+
+    public VariadicType getVariadicType() {
+        return variadicType;
     }
 
     public VoidType getVoidType() {
@@ -187,7 +192,11 @@ public final class TypeSystem {
         for (int i = 0; i < argTypes.length; i++) {
             Assert.checkNotNullArrayParam("argTypes", i, argTypes);
             final ValueType argType = argTypes[i];
-            if (! argType.isComplete()) {
+            if (argType instanceof VariadicType) {
+                if (i < argTypes.length - 1) {
+                    throw new IllegalArgumentException("Only last argument may be variadic");
+                }
+            } else if (! argType.isComplete()) {
                 throw new IllegalArgumentException("Function argument types must be complete");
             }
             current = current.computeIfAbsent(argType, TypeCache::new);

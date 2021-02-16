@@ -28,6 +28,8 @@ import cc.quarkus.qcc.object.ProgramObject;
 import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.object.ThreadLocalMode;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.VariadicType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
@@ -84,7 +86,15 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                         decl.returns(moduleVisitor.map(fnType.getReturnType()));
                         int cnt = fnType.getParameterCount();
                         for (int i = 0; i < cnt; i++) {
-                            decl.param(moduleVisitor.map(fnType.getParameterType(i)));
+                            ValueType type = fnType.getParameterType(i);
+                            if (type instanceof VariadicType) {
+                                if (i < cnt - 1) {
+                                    throw new IllegalStateException("Variadic type as non-final parameter type");
+                                }
+                                decl.variadic();
+                            } else {
+                                decl.param(moduleVisitor.map(type));
+                            }
                         }
                     } else if (item instanceof DataDeclaration) {
                         Global obj = module.global(moduleVisitor.map(item.getType())).linkage(Linkage.EXTERNAL);
