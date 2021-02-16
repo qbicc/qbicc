@@ -212,6 +212,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         String name = register(node);
         appendTo(param, name);
         attr(param, "label", "global\n\n"+node.getVariableElement().getName());
+        nl(param);
         return name;
     }
 
@@ -219,6 +220,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         String name = register(node);
         appendTo(param, name);
         attr(param, "label", "field access\\n"+node.getVariableElement().getName());
+        nl(param);
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
@@ -242,6 +244,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         String name = register(node);
         appendTo(param, name);
         attr(param, "label", "memberOf");
+        nl(param);
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
@@ -276,6 +279,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         String name = register(node);
         appendTo(param, name);
         attr(param, "label", "ptr");
+        nl(param);
         addEdge(param, node, node.getPointerValue(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
@@ -284,6 +288,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         String name = register(node);
         appendTo(param, name);
         attr(param, "label", "ref");
+        nl(param);
         addEdge(param, node, node.getReferenceValue(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
@@ -291,6 +296,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     public String visit(final Appendable param, final StaticField node) {
         String name = register(node);
         appendTo(param, name);
+        nl(param);
         attr(param, "label", "static field\\n" + node.getVariableElement().toString());
         return name;
     }
@@ -725,6 +731,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, name);
         attr(param, "label", "load");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
@@ -869,7 +877,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, name);
         attr(param, "label", "store");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getValue(), EdgeType.VALUE_DEPENDENCY, "value");
         return name;
     }
 
