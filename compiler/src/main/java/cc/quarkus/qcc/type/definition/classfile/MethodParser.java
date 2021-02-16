@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.type.definition.classfile;
 
 import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
-import static cc.quarkus.qcc.type.definition.classfile.ClassMethodInfo.align;
+import static cc.quarkus.qcc.type.definition.classfile.ClassMethodInfo.*;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -34,9 +34,9 @@ import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.PoisonType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
-import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
@@ -55,12 +55,12 @@ import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.generic.TypeSignature;
+import io.smallrye.common.constraint.Assert;
 
 final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     final ClassMethodInfo info;
     final Value[] stack;
     final Value[] locals;
-    final HashSet<Value> fatValues;
     final BlockLabel[] blockHandles;
     final ByteBuffer buffer;
     private Map<BasicBlock, Value[]> retStacks;
@@ -76,6 +76,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
      */
     private final List<Map<BasicBlockBuilder.ExceptionHandler, ExceptionHandlerImpl>> exceptionHandlers;
     int sp;
+    private ValueType[][] varTypesByEntryPoint;
+    private ValueType[][] stackTypesByEntryPoint;
 
     MethodParser(final ClassContext ctxt, final ClassMethodInfo info, final ByteBuffer buffer, final BasicBlockBuilder graphFactory) {
         this.ctxt = ctxt;
@@ -95,7 +97,6 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         this.blockHandles = blockHandles;
         // it's not an entry point
         gf = graphFactory;
-        fatValues = new HashSet<>();
         // catch mapper is sensitive to buffer index
         gf.setExceptionHandlerPolicy(this);
         int exCnt = info.getExTableLen();
@@ -128,6 +129,11 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         return delegate;
     }
 
+    void setTypeInformation(final ValueType[][] varTypesByEntryPoint, final ValueType[][] stackTypesByEntryPoint) {
+        this.varTypesByEntryPoint = varTypesByEntryPoint;
+        this.stackTypesByEntryPoint = stackTypesByEntryPoint;
+    }
+
     class ExceptionHandlerImpl implements BasicBlockBuilder.ExceptionHandler {
         private final int index;
         private final BasicBlockBuilder.ExceptionHandler delegate;
@@ -136,7 +142,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         ExceptionHandlerImpl(final int index, final BasicBlockBuilder.ExceptionHandler delegate) {
             this.index = index;
             this.delegate = delegate;
-            this.phi = gf.phi(throwable.validate().getType().getReference(), new BlockLabel());
+            this.phi = gf.phi(throwable.validate().getType().getReference().asNullable(), new BlockLabel());
         }
 
         public BlockLabel getHandler() {
@@ -170,7 +176,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 Value[] locals = saveLocals();
                 Value[] stack = saveStack();
                 clearStack();
-                push(phi);
+                push1(phi);
                 int pos = buffer.position();
                 buffer.position(pc);
                 if (single) {
@@ -187,125 +193,91 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         }
     }
 
-    // fat values
-
-    boolean isFat(Value value) {
-        return fatValues.contains(value);
-    }
-
-    Value fatten(Value value) {
-        fatValues.add(value);
-        return value;
-    }
-
-    Value unfatten(Value value) {
-        fatValues.remove(value);
-        return value;
-    }
-
     // stack manipulation
-
-    Type topOfStackType() {
-        return peek().getType();
-    }
 
     void clearStack() {
         Arrays.fill(stack, 0, sp, null);
         sp = 0;
     }
 
-    Value pop() {
-        return pop(isFat(peek()));
-    }
-
-    Value pop(boolean fat) {
-        int tos = sp - 1;
-        Value value = stack[tos];
-        if (isFat(value) != fat) {
-            throw new IllegalStateException("Bad pop");
-        }
-        stack[tos] = null;
-        sp = tos;
-        return value;
-    }
-
     Value pop2() {
         int tos = sp - 1;
+        if (tos < 1) {
+            throw new IllegalStateException("Stack underflow");
+        }
         Value value = stack[tos];
-        if (isFat(value)) {
-            stack[tos] = null;
-            sp = tos;
-        } else {
-            stack[tos] = null;
-            stack[tos - 1] = null;
-            sp = tos - 1;
+        stack[tos] = null;
+        // skip the second value as well
+        stack[tos - 1] = null;
+        sp = tos - 1;
+        if (value == null) {
+            throw new IllegalStateException("Invalid stack state");
         }
         return value;
+    }
+
+    boolean tosIsClass2() {
+        return sp > 1 && stack[sp - 2] == null;
     }
 
     Value pop1() {
         int tos = sp - 1;
-        Value value = stack[tos];
-        if (isFat(value)) {
+        if (tos < 0) {
+            throw new IllegalStateException("Stack underflow");
+        }
+        if (tos > 1 && stack[tos - 1] == null) {
+            // class 2 value
             throw new IllegalStateException("Bad pop");
+        }
+        Value value = stack[tos];
+        if (value == null) {
+            throw new IllegalStateException("Invalid stack state");
         }
         stack[tos] = null;
         sp = tos;
         return value;
     }
 
-    void dup() {
-        Value value = peek();
-        if (isFat(value)) {
-            throw new IllegalStateException("Bad dup");
-        }
-        push(value);
+    Value pop(boolean class2) {
+        return class2 ? pop2() : pop1();
     }
 
-    void dup2() {
-        Value peek = peek();
-        if (isFat(peek)) {
-            push(peek);
-        } else {
-            Value v2 = pop1();
-            Value v1 = pop1();
-            push(v1);
-            push(v2);
-            push(v1);
-            push(v2);
-        }
-    }
-
-    void swap() {
-        if (isFat(peek())) {
-            throw new IllegalStateException("Bad swap");
-        }
-        Value v2 = pop1();
-        Value v1 = pop1();
-        push(v2);
-        push(v1);
-    }
-
-    <V extends Value> V push(V value) {
+    void push1(Value value) {
+        Assert.checkNotNullParam("value", value);
         stack[sp++] = value;
-        return value;
     }
 
-    Value peek() {
-        return stack[sp - 1];
+    void push2(Value value) {
+        Assert.checkNotNullParam("value", value);
+        stack[sp++] = null;
+        stack[sp++] = value;
+    }
+
+    void push(Value value, boolean class2) {
+        if (class2) {
+            push2(value);
+        } else {
+            push1(value);
+        }
     }
 
     // Locals manipulation
 
-    void clearLocals() {
-        Arrays.fill(locals, null);
+    void setLocal2(int index, Value value) {
+        locals[index] = value;
+        locals[index + 1] = null;
     }
 
-    void setLocal(int index, Value value) {
-        if (isFat(value)) {
-            locals[index + 1] = null;
-        }
+    void setLocal1(int index, Value value) {
         locals[index] = value;
+    }
+
+    void setLocal(int index, Value value, boolean class2) {
+        if (class2) {
+            setLocal2(index, value);
+        } else {
+            setLocal1(index, value);
+        }
     }
 
     Value getLocal(int index) {
@@ -314,23 +286,6 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             throw new IllegalStateException("Invalid get local (no value)");
         }
         return value;
-    }
-
-    Value getLocal(int index, Type expectedType) {
-        Value value = getLocal(index);
-        if (value.getType() != expectedType) {
-            throw new TypeMismatchException();
-        }
-        return value;
-    }
-
-    <L extends Literal> L getConstantValue(int cpIndex, Class<L> expectedType) {
-        return expectedType.cast(getConstantValue(cpIndex));
-    }
-
-    Value getFattenedConstantValue(int cpIndex) {
-        Value value = getConstantValue(cpIndex);
-        return value.getType() instanceof WordType && ((WordType) value.getType()).getMinBits() == 64 ? fatten(value) : value;
     }
 
     Value getConstantValue(int cpIndex) {
@@ -423,9 +378,6 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         // some local slots will be empty
                         if (phiValue != null) {
                             phiValue.setValueForBlock(cmpCtxt, element, from, val);
-                            if (isFat(val)) {
-                                fatten(phiValue);
-                            }
                         }
                     }
                 }
@@ -433,9 +385,6 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     Value val = stack[i];
                     if (val != null) {
                         entryStack[i].setValueForBlock(cmpCtxt, element, from, val);
-                        if (isFat(val)) {
-                            fatten(entryStack[i]);
-                        }
                     }
                 }
             }
@@ -448,26 +397,26 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             gf.begin(block);
             entryLocalsArray = new PhiValue[locals.length];
             entryStack = new PhiValue[sp];
-            for (int i = 0; i < locals.length; i ++) {
+            int epIdx = info.getEntryPointIndex(bci);
+            if (epIdx < 0) {
+                throw new IllegalStateException("No entry point for block at bci " + bci);
+            }
+            ValueType[] varTypes = varTypesByEntryPoint[epIdx];
+            for (int i = 0; i < locals.length && i < varTypes.length; i ++) {
                 Value val = locals[i];
-                if (val != null) {
-                    PhiValue phiValue = gf.phi(val.getType(), block);
+                if (varTypes[i] != null && ! (varTypes[i] instanceof PoisonType)) {
+                    PhiValue phiValue = gf.phi(varTypes[i], block);
                     entryLocalsArray[i] = phiValue;
                     phiValue.setValueForBlock(cmpCtxt, element, from, val);
-                    if (isFat(val)) {
-                        fatten(phiValue);
-                    }
                 }
             }
+            ValueType[] stackTypes = stackTypesByEntryPoint[epIdx];
             for (int i = 0; i < sp; i ++) {
                 Value val = stack[i];
-                if (val != null) {
-                    PhiValue phiValue = gf.phi(val.getType(), block);
+                if (stackTypes[i] != null && ! (stackTypes[i] instanceof PoisonType)) {
+                    PhiValue phiValue = gf.phi(stackTypes[i], block);
                     entryStack[i] = phiValue;
                     phiValue.setValueForBlock(cmpCtxt, element, from, val);
-                    if (isFat(val)) {
-                        fatten(phiValue);
-                    }
                 }
             }
             entryLocalsArrays.put(block, entryLocalsArray);
@@ -499,7 +448,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_NOP:
                         break;
                     case OP_ACONST_NULL:
-                        push(lf.literalOfNull());
+                        push1(lf.literalOfNull());
                         break;
                     case OP_ICONST_M1:
                     case OP_ICONST_0:
@@ -508,91 +457,81 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_ICONST_3:
                     case OP_ICONST_4:
                     case OP_ICONST_5:
-                        push(lf.literalOf(opcode - OP_ICONST_0));
+                        push1(lf.literalOf(opcode - OP_ICONST_0));
                         break;
                     case OP_LCONST_0:
                     case OP_LCONST_1:
-                        push(fatten(lf.literalOf((long) opcode - OP_LCONST_0)));
+                        push2(lf.literalOf((long) opcode - OP_LCONST_0));
                         break;
                     case OP_FCONST_0:
                     case OP_FCONST_1:
                     case OP_FCONST_2:
-                        push(lf.literalOf((float) opcode - OP_FCONST_0));
+                        push1(lf.literalOf((float) opcode - OP_FCONST_0));
                         break;
                     case OP_DCONST_0:
                     case OP_DCONST_1:
-                        push(fatten(lf.literalOf((double) opcode - OP_DCONST_0)));
+                        push1(lf.literalOf((double) opcode - OP_DCONST_0));
                         break;
                     case OP_BIPUSH:
-                        push(lf.literalOf((int) buffer.get()));
+                        push1(lf.literalOf((int) buffer.get()));
                         break;
                     case OP_SIPUSH:
-                        push(lf.literalOf((int) buffer.getShort()));
+                        push1(lf.literalOf((int) buffer.getShort()));
                         break;
                     case OP_LDC:
-                        push(unfatten(getConstantValue(buffer.get() & 0xff)));
+                        push1(getConstantValue(buffer.get() & 0xff));
                         break;
                     case OP_LDC_W:
-                        push(unfatten(getConstantValue(buffer.getShort() & 0xffff)));
+                        push1(getConstantValue(buffer.getShort() & 0xffff));
                         break;
                     case OP_LDC2_W:
-                        push(fatten(getConstantValue(buffer.getShort() & 0xffff)));
+                        push2(getConstantValue(buffer.getShort() & 0xffff));
                         break;
                     case OP_ILOAD:
-                        push(getLocal(getWidenableValue(buffer, wide)));
+                    case OP_FLOAD:
+                    case OP_ALOAD:
+                        push1(getLocal(getWidenableValue(buffer, wide)));
                         break;
                     case OP_LLOAD:
-                        // already fat
-                        push(getLocal(getWidenableValue(buffer, wide)));
-                        break;
-                    case OP_FLOAD:
-                        push(getLocal(getWidenableValue(buffer, wide)));
-                        break;
                     case OP_DLOAD:
-                        // already fat
-                        push(getLocal(getWidenableValue(buffer, wide)));
-                        break;
-                    case OP_ALOAD:
-                        push(getLocal(getWidenableValue(buffer, wide)));
+                        push2(getLocal(getWidenableValue(buffer, wide)));
                         break;
                     case OP_ILOAD_0:
                     case OP_ILOAD_1:
                     case OP_ILOAD_2:
                     case OP_ILOAD_3:
-                        push(getLocal(opcode - OP_ILOAD_0));
+                        push1(getLocal(opcode - OP_ILOAD_0));
                         break;
                     case OP_LLOAD_0:
                     case OP_LLOAD_1:
                     case OP_LLOAD_2:
                     case OP_LLOAD_3:
-                        // already fat
-                        push(getLocal(opcode - OP_LLOAD_0));
+                        push2(getLocal(opcode - OP_LLOAD_0));
                         break;
                     case OP_FLOAD_0:
                     case OP_FLOAD_1:
                     case OP_FLOAD_2:
                     case OP_FLOAD_3:
-                        push(getLocal(opcode - OP_FLOAD_0));
+                        push1(getLocal(opcode - OP_FLOAD_0));
                         break;
                     case OP_DLOAD_0:
                     case OP_DLOAD_1:
                     case OP_DLOAD_2:
                     case OP_DLOAD_3:
-                        // already fat
-                        push(getLocal(opcode - OP_DLOAD_0));
+                        push2(getLocal(opcode - OP_DLOAD_0));
                         break;
                     case OP_ALOAD_0:
                     case OP_ALOAD_1:
                     case OP_ALOAD_2:
                     case OP_ALOAD_3:
-                        push(getLocal(opcode - OP_ALOAD_0));
+                        push1(getLocal(opcode - OP_ALOAD_0));
                         break;
                     case OP_DALOAD:
                     case OP_LALOAD: {
                         v2 = pop1();
                         v1 = pop1();
                         v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
-                        push(fatten(v1));
+                        push2(v1);
                         break;
                     }
                     case OP_IALOAD:
@@ -603,51 +542,48 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_CALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
-                        push(unfatten(v1));
+                        v1 = promote(gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED));
+                        push1(v1);
                         break;
                     }
                     case OP_ISTORE:
                     case OP_FSTORE:
                     case OP_ASTORE:
-                        setLocal(getWidenableValue(buffer, wide), pop1());
+                        setLocal1(getWidenableValue(buffer, wide), pop1());
                         break;
                     case OP_LSTORE:
                     case OP_DSTORE:
-                        // already fat
-                        setLocal(getWidenableValue(buffer, wide), pop2());
+                        setLocal2(getWidenableValue(buffer, wide), pop2());
                         break;
                     case OP_ISTORE_0:
                     case OP_ISTORE_1:
                     case OP_ISTORE_2:
                     case OP_ISTORE_3:
-                        setLocal(opcode - OP_ISTORE_0, pop1());
+                        setLocal1(opcode - OP_ISTORE_0, pop1());
                         break;
                     case OP_LSTORE_0:
                     case OP_LSTORE_1:
                     case OP_LSTORE_2:
                     case OP_LSTORE_3:
-                        // already fat
-                        setLocal(opcode - OP_LSTORE_0, pop2());
+                        setLocal2(opcode - OP_LSTORE_0, pop2());
                         break;
                     case OP_FSTORE_0:
                     case OP_FSTORE_1:
                     case OP_FSTORE_2:
                     case OP_FSTORE_3:
-                        setLocal(opcode - OP_FSTORE_0, pop1());
+                        setLocal1(opcode - OP_FSTORE_0, pop1());
                         break;
                     case OP_DSTORE_0:
                     case OP_DSTORE_1:
                     case OP_DSTORE_2:
                     case OP_DSTORE_3:
-                        // already fat
-                        setLocal(opcode - OP_DSTORE_0, pop2());
+                        setLocal2(opcode - OP_DSTORE_0, pop2());
                         break;
                     case OP_ASTORE_0:
                     case OP_ASTORE_1:
                     case OP_ASTORE_2:
                     case OP_ASTORE_3:
-                        setLocal(opcode - OP_ASTORE_0, pop1());
+                        setLocal1(opcode - OP_ASTORE_0, pop1());
                         break;
                     case OP_IASTORE:
                     case OP_FASTORE:
@@ -674,173 +610,192 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         pop2();
                         break;
                     case OP_DUP:
-                        dup();
+                        v1 = pop1();
+                        push1(v1);
+                        push1(v1);
                         break;
                     case OP_DUP_X1:
                         v1 = pop1();
                         v2 = pop1();
-                        push(v1);
-                        push(v2);
-                        push(v1);
+                        push1(v1);
+                        push1(v2);
+                        push1(v1);
                         break;
                     case OP_DUP_X2:
-                        v1 = pop();
-                        v2 = pop();
-                        v3 = pop();
-                        push(v1);
-                        push(v3);
-                        push(v2);
-                        push(v1);
+                        v1 = pop1();
+                        v2 = pop1();
+                        v3 = pop1();
+                        push1(v1);
+                        push1(v3);
+                        push1(v2);
+                        push1(v1);
                         break;
                     case OP_DUP2:
-                        dup2();
+                        if (tosIsClass2()) {
+                            v1 = pop2();
+                            push2(v1);
+                            push2(v1);
+                        } else {
+                            v2 = pop1();
+                            v1 = pop1();
+                            push1(v1);
+                            push1(v2);
+                            push1(v1);
+                            push1(v2);
+                        }
                         break;
                     case OP_DUP2_X1:
-                        if (! isFat(peek())) {
+                        if (! tosIsClass2()) {
                             // form 1
-                            v1 = pop();
-                            v2 = pop();
-                            v3 = pop();
-                            push(v2);
-                            push(v1);
-                            push(v3);
+                            v1 = pop1();
+                            v2 = pop1();
+                            v3 = pop1();
+                            push1(v2);
+                            push1(v1);
+                            push1(v3);
+                            push1(v2);
+                            push1(v1);
                         } else {
                             // form 2
                             v1 = pop2();
                             v2 = pop2();
-                            push(v1);
+                            push2(v1);
+                            push2(v2);
+                            push2(v1);
                         }
-                        push(v2);
-                        push(v1);
                         break;
                     case OP_DUP2_X2:
-                        if (! isFat(peek())) {
+                        if (! tosIsClass2()) {
                             v1 = pop1();
                             v2 = pop1();
-                            if (! isFat(peek())) {
+                            if (! tosIsClass2()) {
                                 // form 1
                                 v3 = pop1();
                                 v4 = pop1();
-                                push(v2);
-                                push(v1);
-                                push(v4);
+                                push1(v2);
+                                push1(v1);
+                                push1(v4);
+                                push1(v3);
                             } else {
                                 // form 3
                                 v3 = pop2();
-                                push(v2);
-                                push(v1);
+                                push1(v2);
+                                push1(v1);
+                                push2(v3);
                             }
-                            // form 1 or 3
-                            push(v3);
-                            push(v2);
+                            push1(v2);
+                            push1(v1);
                         } else {
                             v1 = pop2();
-                            if (! isFat(peek())) {
+                            if (! tosIsClass2()) {
                                 // form 2
                                 v2 = pop1();
                                 v3 = pop1();
-                                push(v1);
-                                push(v2);
-                                push(v3);
+                                push2(v1);
+                                push1(v2);
+                                push1(v3);
                             } else {
                                 // form 4
                                 v2 = pop2();
-                                push(v1);
-                                push(v2);
+                                push2(v1);
+                                push2(v2);
                             }
                             // form 2 or 4
+                            push2(v1);
                         }
-                        push(v1);
                         break;
                     case OP_SWAP:
-                        swap();
+                        v2 = pop1();
+                        v1 = pop1();
+                        push1(v2);
+                        push1(v1);
                         break;
                     case OP_IADD:
                     case OP_FADD:
                         v2 = pop1();
                         v1 = pop1();
-                        push(gf.add(v1, v2));
+                        push1(gf.add(v1, v2));
                         break;
                     case OP_LADD:
                     case OP_DADD:
                         v2 = pop2();
                         v1 = pop2();
-                        push(fatten(gf.add(v1, v2)));
+                        push2(gf.add(v1, v2));
                         break;
                     case OP_ISUB:
                     case OP_FSUB:
                         v2 = pop1();
                         v1 = pop1();
-                        push(gf.sub(v1, v2));
+                        push1(gf.sub(v1, v2));
                         break;
                     case OP_LSUB:
                     case OP_DSUB:
                         v2 = pop2();
                         v1 = pop2();
-                        push(fatten(gf.sub(v1, v2)));
+                        push2(gf.sub(v1, v2));
                         break;
                     case OP_IMUL:
                     case OP_FMUL:
                         v2 = pop1();
                         v1 = pop1();
-                        push(gf.multiply(v1, v2));
+                        push1(gf.multiply(v1, v2));
                         break;
                     case OP_LMUL:
                     case OP_DMUL:
                         v2 = pop2();
                         v1 = pop2();
-                        push(fatten(gf.multiply(v1, v2)));
+                        push2(gf.multiply(v1, v2));
                         break;
                     case OP_IDIV:
                     case OP_FDIV:
                         v2 = pop1();
                         v1 = pop1();
-                        push(gf.divide(v1, v2));
+                        push1(gf.divide(v1, v2));
                         break;
                     case OP_LDIV:
                     case OP_DDIV:
                         v2 = pop2();
                         v1 = pop2();
-                        push(fatten(gf.divide(v1, v2)));
+                        push2(gf.divide(v1, v2));
                         break;
                     case OP_IREM:
                     case OP_FREM:
                         v2 = pop1();
                         v1 = pop1();
-                        push(gf.remainder(v1, v2));
+                        push1(gf.remainder(v1, v2));
                         break;
                     case OP_LREM:
                     case OP_DREM:
                         v2 = pop2();
                         v1 = pop2();
-                        push(fatten(gf.remainder(v1, v2)));
+                        push2(gf.remainder(v1, v2));
                         break;
                     case OP_INEG:
                     case OP_FNEG:
-                        push(gf.negate(pop1()));
+                        push1(gf.negate(pop1()));
                         break;
                     case OP_LNEG:
                     case OP_DNEG:
-                        push(fatten(gf.negate(pop2())));
+                        push2(gf.negate(pop2()));
                         break;
                     case OP_ISHL:
                         v2 = pop1();
                         v1 = pop1();
-                        push(gf.shl(v1, v2));
+                        push1(gf.shl(v1, v2));
                         break;
                     case OP_LSHL:
                         v2 = pop1();
                         v1 = pop2();
-                        push(fatten(gf.shl(v1, v2)));
+                        push2(gf.shl(v1, v2));
                         break;
                     case OP_ISHR: {
                         v2 = pop1();
                         v1 = pop1();
                         IntegerType it = (IntegerType) v1.getType();
                         if (it instanceof SignedIntegerType) {
-                            push(gf.shr(v1, v2));
+                            push1(gf.shr(v1, v2));
                         } else {
-                            push(gf.bitCast(gf.shr(gf.bitCast(v1, it.asSigned()), v2), it));
+                            push1(gf.bitCast(gf.shr(gf.bitCast(v1, it.asSigned()), v2), it));
                         }
                         break;
                     }
@@ -849,9 +804,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v1 = pop2();
                         IntegerType it = (IntegerType) v1.getType();
                         if (it instanceof SignedIntegerType) {
-                            push(fatten(gf.shr(v1, v2)));
+                            push2(gf.shr(v1, v2));
                         } else {
-                            push(fatten(gf.bitCast(gf.shr(gf.bitCast(v1, it.asSigned()), v2), it)));
+                            push2(gf.bitCast(gf.shr(gf.bitCast(v1, it.asSigned()), v2), it));
                         }
                         break;
                     }
@@ -860,9 +815,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v1 = pop1();
                         IntegerType it = (IntegerType) v1.getType();
                         if (it instanceof UnsignedIntegerType) {
-                            push(gf.shr(v1, v2));
+                            push1(gf.shr(v1, v2));
                         } else {
-                            push(gf.bitCast(gf.shr(gf.bitCast(v1, it.asUnsigned()), v2), it));
+                            push1(gf.bitCast(gf.shr(gf.bitCast(v1, it.asUnsigned()), v2), it));
                         }
                         break;
                     }
@@ -871,108 +826,123 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v1 = pop2();
                         IntegerType it = (IntegerType) v1.getType();
                         if (it instanceof UnsignedIntegerType) {
-                            push(fatten(gf.shr(v1, v2)));
+                            push2(gf.shr(v1, v2));
                         } else {
-                            push(fatten(gf.bitCast(gf.shr(gf.bitCast(v1, it.asUnsigned()), v2), it)));
+                            push2(gf.bitCast(gf.shr(gf.bitCast(v1, it.asUnsigned()), v2), it));
                         }
                         break;
                     }
                     case OP_IAND:
                         v2 = pop1();
                         v1 = pop1();
-                        push(gf.and(v1, v2));
+                        push1(gf.and(v1, v2));
                         break;
                     case OP_LAND:
                         v2 = pop2();
                         v1 = pop2();
-                        push(fatten(gf.and(v1, v2)));
+                        push2(gf.and(v1, v2));
                         break;
                     case OP_IOR:
                         v2 = pop1();
                         v1 = pop1();
-                        push(gf.or(v1, v2));
+                        push1(gf.or(v1, v2));
                         break;
                     case OP_LOR:
                         v2 = pop2();
                         v1 = pop2();
-                        push(fatten(gf.or(v1, v2)));
+                        push2(gf.or(v1, v2));
                         break;
                     case OP_IXOR:
                         v2 = pop1();
                         v1 = pop1();
-                        push(gf.xor(v1, v2));
+                        push1(gf.xor(v1, v2));
                         break;
                     case OP_LXOR:
                         v2 = pop2();
                         v1 = pop2();
-                        push(fatten(gf.xor(v1, v2)));
+                        push2(gf.xor(v1, v2));
                         break;
                     case OP_IINC:
                         int idx = getWidenableValue(buffer, wide);
-                        setLocal(idx, gf.add(getLocal(idx), lf.literalOf(getWidenableValueSigned(buffer, wide))));
+                        setLocal1(idx, gf.add(getLocal(idx), lf.literalOf(getWidenableValueSigned(buffer, wide))));
                         break;
                     case OP_I2L:
-                        push(fatten(gf.extend(pop1(), ts.getSignedInteger64Type())));
+                        push2(gf.extend(pop1(), ts.getSignedInteger64Type()));
                         break;
                     case OP_I2F:
-                        push(gf.valueConvert(pop1(), ts.getFloat32Type()));
+                        push1(gf.valueConvert(pop1(), ts.getFloat32Type()));
                         break;
                     case OP_I2D:
-                        push(fatten(gf.valueConvert(pop1(), ts.getFloat64Type())));
+                        push2(gf.valueConvert(pop1(), ts.getFloat64Type()));
                         break;
                     case OP_L2I:
-                        push(gf.truncate(pop2(), ts.getSignedInteger32Type()));
+                        push1(gf.truncate(pop2(), ts.getSignedInteger32Type()));
                         break;
                     case OP_L2F:
-                        push(gf.valueConvert(pop2(), ts.getFloat32Type()));
+                        push1(gf.valueConvert(pop2(), ts.getFloat32Type()));
                         break;
                     case OP_L2D:
-                        push(fatten(gf.valueConvert(pop2(), ts.getFloat64Type())));
+                        push2(gf.valueConvert(pop2(), ts.getFloat64Type()));
                         break;
                     case OP_F2I:
-                        push(gf.valueConvert(pop1(), ts.getSignedInteger32Type()));
+                        push1(gf.valueConvert(pop1(), ts.getSignedInteger32Type()));
                         break;
                     case OP_F2L:
-                        push(fatten(gf.valueConvert(pop1(), ts.getSignedInteger64Type())));
+                        push2(gf.valueConvert(pop1(), ts.getSignedInteger64Type()));
                         break;
                     case OP_F2D:
-                        push(fatten(gf.extend(pop1(), ts.getFloat64Type())));
+                        push2(gf.extend(pop1(), ts.getFloat64Type()));
                         break;
                     case OP_D2I:
-                        push(gf.valueConvert(pop2(), ts.getSignedInteger32Type()));
+                        push1(gf.valueConvert(pop2(), ts.getSignedInteger32Type()));
                         break;
                     case OP_D2L:
-                        push(fatten(gf.valueConvert(pop2(), ts.getSignedInteger64Type())));
+                        push2(gf.valueConvert(pop2(), ts.getSignedInteger64Type()));
                         break;
                     case OP_D2F:
-                        push(gf.truncate(pop2(), ts.getFloat32Type()));
+                        push1(gf.truncate(pop2(), ts.getFloat32Type()));
                         break;
                     case OP_I2B:
-                        push(gf.extend(gf.truncate(pop1(), ts.getSignedInteger8Type()), ts.getSignedInteger32Type()));
+                        push1(gf.extend(gf.truncate(pop1(), ts.getSignedInteger8Type()), ts.getSignedInteger32Type()));
                         break;
                     case OP_I2C:
-                        push(gf.extend(gf.truncate(pop1(), ts.getUnsignedInteger16Type()), ts.getSignedInteger32Type()));
+                        push1(gf.extend(gf.truncate(pop1(), ts.getUnsignedInteger16Type()), ts.getSignedInteger32Type()));
                         break;
                     case OP_I2S:
-                        push(gf.extend(gf.truncate(pop1(), ts.getSignedInteger16Type()), ts.getSignedInteger32Type()));
+                        push1(gf.extend(gf.truncate(pop1(), ts.getSignedInteger16Type()), ts.getSignedInteger32Type()));
                         break;
                     case OP_LCMP:
-                    case OP_DCMPL:
-                    case OP_FCMPL:
-                        v2 = pop();
-                        v1 = pop();
+                    case OP_DCMPL: {
+                        v2 = pop2();
+                        v1 = pop2();
                         v3 = gf.cmpLt(v1, v2);
                         v4 = gf.cmpGt(v1, v2);
-                        push(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
+                        push1(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
                         break;
-                    case OP_DCMPG:
-                    case OP_FCMPG:
-                        v2 = pop();
-                        v1 = pop();
+                    }
+                    case OP_FCMPL: {
+                        v2 = pop1();
+                        v1 = pop1();
                         v3 = gf.cmpLt(v1, v2);
                         v4 = gf.cmpGt(v1, v2);
-                        push(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
+                        push1(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
                         break;
+                    }
+                    case OP_DCMPG: {
+                        v2 = pop2();
+                        v1 = pop2();
+                        v3 = gf.cmpLt(v1, v2);
+                        v4 = gf.cmpGt(v1, v2);
+                        push1(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
+                    }
+                    case OP_FCMPG: {
+                        v2 = pop1();
+                        v1 = pop1();
+                        v3 = gf.cmpLt(v1, v2);
+                        v4 = gf.cmpGt(v1, v2);
+                        push1(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
+                        break;
+                    }
                     case OP_IFEQ:
                         processIf(buffer, gf.cmpEq(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
                         return;
@@ -1052,7 +1022,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         BlockLabel dest = getBlockForIndexIfExists(target);
                         // ret point is always registered as a multiple return point
                         BlockLabel retBlock = getBlockForIndex(ret);
-                        push(lf.literalOf(retBlock));
+                        push1(lf.literalOf(retBlock));
                         if (dest == null) {
                             // only called from one site
                             dest = new BlockLabel();
@@ -1074,7 +1044,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     }
                     case OP_RET:
                         // each ret records the output stack and locals at the point of the ret, and then exits.
-                        setJsrExitState(gf.ret(pop()), saveStack(), saveLocals());
+                        setJsrExitState(gf.ret(pop1()), saveStack(), saveLocals());
                         // exit one level of recursion
                         return;
                     case OP_TABLESWITCH: {
@@ -1217,7 +1187,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         // todo: signature context
                         ValueHandle handle = gf.staticField(owner, name, desc);
                         Value value = promote(gf.load(handle, handle.getDetectedMode()));
-                        push(desc.isClass2() ? fatten(value) : value);
+                        push(value, desc.isClass2());
                         break;
                     }
                     case OP_PUTSTATIC: {
@@ -1227,7 +1197,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                         String name = getNameOfFieldRef(fieldRef);
                         ValueHandle handle = gf.staticField(owner, name, desc);
-                        gf.store(handle, desc.isClass2() ? pop2() : pop(), handle.getDetectedMode());
+                        gf.store(handle, pop(desc.isClass2()), handle.getDetectedMode());
                         break;
                     }
                     case OP_GETFIELD: {
@@ -1237,9 +1207,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                         String name = getNameOfFieldRef(fieldRef);
                         // todo: signature context
-                        ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(pop()), owner, name, desc);
+                        ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(pop1()), owner, name, desc);
                         Value value = promote(gf.load(handle, handle.getDetectedMode()));
-                        push(desc.isClass2() ? fatten(value) : value);
+                        push(value, desc.isClass2());
                         break;
                     }
                     case OP_PUTFIELD: {
@@ -1248,8 +1218,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         TypeDescriptor owner = getClassFile().getClassConstantAsDescriptor(getClassFile().getFieldrefConstantClassIndex(fieldRef));
                         TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                         String name = getNameOfFieldRef(fieldRef);
-                        v2 = desc.isClass2() ? pop2() : pop();
-                        v1 = pop();
+                        v2 = pop(desc.isClass2());
+                        v1 = pop1();
                         ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
                         gf.store(handle, v2, handle.getDetectedMode());
                         break;
@@ -1316,10 +1286,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                                 } else {
                                     result = gf.invokeValueInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, owner, name, desc, List.of(args));
                                 }
-                                if (desc.getReturnType().isClass2()) {
-                                    fatten(result);
-                                }
-                                push(promote(result));
+                                push(promote(result), desc.getReturnType().isClass2());
                             }
                         }
                         break;
@@ -1374,10 +1341,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         Value result = gf.invokeValueInstance(DispatchInvocation.Kind.EXACT, methodHandle, descOfMethodHandle, "invokeExact",
                             desc, List.of(args));
                         if (! desc.getReturnType().isVoid()) {
-                            if (desc.getReturnType().isClass2()) {
-                                fatten(result);
-                            }
-                            push(promote(result));
+                            push(promote(result), desc.getReturnType().isClass2());
                         }
                         break;
                     }
@@ -1385,10 +1349,10 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_NEW: {
                         TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
                         if (desc instanceof ClassTypeDescriptor) {
-                            push(gf.new_((ClassTypeDescriptor) desc));
+                            push1(gf.new_((ClassTypeDescriptor) desc));
                         } else {
                             ctxt.getCompilationContext().error(gf.getLocation(), "Wrong kind of descriptor for `new`: %s", desc);
-                            push(lf.literalOfNull());
+                            push1(lf.literalOfNull());
                         }
                         break;
                     }
@@ -1406,38 +1370,38 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             default: throw new InvalidByteCodeException();
                         }
                         // todo: check for negative array size
-                        push(gf.newArray(arrayType, pop1()));
+                        push1(gf.newArray(arrayType, pop1()));
                         break;
                     case OP_ANEWARRAY: {
                         TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
                         // todo: check for negative array size
-                        push(gf.newArray(ArrayTypeDescriptor.of(ctxt, desc), pop1()));
+                        push1(gf.newArray(ArrayTypeDescriptor.of(ctxt, desc), pop1()));
                         break;
                     }
                     case OP_ARRAYLENGTH:
-                        push(gf.arrayLength(gf.referenceHandle(pop1())));
+                        push1(gf.arrayLength(gf.referenceHandle(pop1())));
                         break;
                     case OP_ATHROW:
                         gf.throw_(pop1());
                         // terminate
                         return;
                     case OP_CHECKCAST: {
-                        v1 = pop();
+                        v1 = pop1();
                         Value narrowed = gf.narrow(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff));
                         replaceAll(v1, narrowed);
-                        push(narrowed);
+                        push1(narrowed);
                         break;
                     }
                     case OP_INSTANCEOF: {
-                        v1 = pop();
-                        push(gf.instanceOf(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff)));
+                        v1 = pop1();
+                        push1(gf.instanceOf(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff)));
                         break;
                     }
                     case OP_MONITORENTER:
-                        gf.monitorEnter(pop());
+                        gf.monitorEnter(pop1());
                         break;
                     case OP_MONITOREXIT:
-                        gf.monitorExit(pop());
+                        gf.monitorExit(pop1());
                         break;
                     case OP_MULTIANEWARRAY:
                         TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
@@ -1448,13 +1412,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         for (int i = dims.length - 1; i >= 0; i --) {
                             dims[i] = pop1();
                         }
-                        push(gf.multiNewArray(ArrayTypeDescriptor.of(ctxt, desc), List.of(dims)));
+                        push1(gf.multiNewArray(ArrayTypeDescriptor.of(ctxt, desc), List.of(dims)));
                         break;
                     case OP_IFNULL:
-                        processIf(buffer, gf.cmpEq(pop(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.cmpEq(pop1(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFNONNULL:
-                        processIf(buffer, gf.cmpNe(pop(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.cmpNe(pop1(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
                         return;
                     default:
                         throw new InvalidByteCodeException();
