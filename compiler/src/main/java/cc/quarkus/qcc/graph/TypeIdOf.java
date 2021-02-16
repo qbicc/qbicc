@@ -2,7 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
@@ -16,8 +16,8 @@ public final class TypeIdOf extends AbstractValue {
     TypeIdOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueHandle instance) {
         super(callSite, element, line, bci);
         this.instance = instance;
-        ReferenceType referenceType = (ReferenceType) instance.getValueType();
-        type = referenceType.getUpperBound().getTypeType();
+        PhysicalObjectType pot = (PhysicalObjectType)instance.getValueType();
+        type = pot.getTypeType();
     }
 
     public TypeType getType() {
