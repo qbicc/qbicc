@@ -159,9 +159,8 @@ public final class CoreIntrinsics {
         MethodDescriptor getClassDesc =
             MethodDescriptor.synthesize(classContext,
                 ClassTypeDescriptor.synthesize(classContext, "java/lang/Class"), List.of());
-        final FieldElement classFieldElement = layout.getObjectClassField();
         InstanceValueIntrinsic getClassIntrinsic = (builder, kind, instance, owner, name, descriptor, arguments) ->
-            builder.load(builder.instanceFieldOf(builder.referenceHandle(instance), classFieldElement), MemoryAtomicityMode.UNORDERED);
+            builder.classOf(builder.typeIdOf(builder.referenceHandle(instance)));
         intrinsics.registerIntrinsic(classDesc, "getClass", getClassDesc, getClassIntrinsic);
     }
 }
