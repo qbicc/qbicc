@@ -13,6 +13,7 @@ import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.CompoundLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.Linkage;
 import cc.quarkus.qcc.object.Section;
@@ -27,6 +28,7 @@ import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.generic.BaseTypeSignature;
+import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
 public class DispatchTables {
@@ -100,7 +102,8 @@ public class DispatchTables {
     void buildVTablesGlobal(DefinedTypeDefinition containingType) {
         GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
         builder.setName("qcc_vtables_array");
-        builder.setType(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getVoidType().getPointer().getPointer(), vtables.size()));
+        // Invariant: typeIds are assigned from 1...N, where N is the number of reachable classes as computed by RTA.
+        builder.setType(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getVoidType().getPointer().getPointer(), vtables.size()+1));
         builder.setEnclosingType(containingType);
         // void for now, but this is cheating terribly
         builder.setDescriptor(BaseTypeDescriptor.V);
@@ -128,14 +131,17 @@ public class DispatchTables {
         ArrayType vtablesGlobalType = ((ArrayType)vtablesGlobal.getType(List.of()));
         Section section = ctxt.getOrAddProgramModule(jlo).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
         Literal[] vtableLiterals = new Literal[(int)vtablesGlobalType.getElementCount()];
-        Arrays.fill(vtableLiterals, ctxt.getLiteralFactory().literalOfUndefined());
-        int i = 0;
+        UndefinedLiteral undef =  ctxt.getLiteralFactory().literalOfUndefined();
+        Arrays.fill(vtableLiterals,undef);
+        vtableLiterals[0] = ctxt.getLiteralFactory().literalOfNull(); // typeId 0 is not assigned.
         for (Map.Entry<ValidatedTypeDefinition, VTableInfo> e: vtables.entrySet()) {
             if (!e.getKey().equals(jlo)) {
                 section.declareData(null, e.getValue().getSymbol().getName(), e.getValue().getType());
             }
-            // FIXME: use e.getKey().getTypeId() instead of i++ once QCC-285 is merged.
-            vtableLiterals[i++] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), (WordType)vtablesGlobalType.getElementType());        }
+            int typeId = e.getKey().getTypeId();
+            Assert.assertTrue(vtableLiterals[typeId].equals(undef));
+            vtableLiterals[e.getKey().getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), (WordType)vtablesGlobalType.getElementType());
+        }
         ArrayLiteral masterValue = ctxt.getLiteralFactory().literalOf(vtablesGlobalType, List.of(vtableLiterals));
         section.addData(null, vtablesGlobal.getName(), masterValue);
     }
