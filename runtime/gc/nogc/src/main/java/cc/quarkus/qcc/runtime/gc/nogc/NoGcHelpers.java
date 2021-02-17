@@ -20,13 +20,13 @@ public final class NoGcHelpers {
             c_int res = posix_memalign(addr_of(ptr), word(align), word(size));
             if (res.intValue() != 0) {
                 // todo: read errno
-                throw new OutOfMemoryError("Allocation failed");
+                throw new OutOfMemoryError(/*"Allocation failed"*/);
             }
             return ptr;
         } else {
             ptr<c_char> ptr = malloc(word(size + align));
             if (ptr.isNull()) {
-                throw new OutOfMemoryError("Allocation failed");
+                throw new OutOfMemoryError(/*"Allocation failed"*/);
             }
             long mask = align - 1;
             long misAlign = ptr.longValue() & mask;
