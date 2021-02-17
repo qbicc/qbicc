@@ -3,12 +3,14 @@ package cc.quarkus.qcc.plugin.opt;
 import static cc.quarkus.qcc.type.NullType.isAlwaysNull;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.AddressOf;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.NewArray;
+import cc.quarkus.qcc.graph.PointerHandle;
 import cc.quarkus.qcc.graph.ReferenceHandle;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
@@ -16,6 +18,7 @@ import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
@@ -184,5 +187,45 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         } else {
             return getDelegate().if_(condition, trueTarget, falseTarget);
         }
+    }
+
+    // special pointer behavior
+
+    @Override
+    public Value add(Value v1, Value v2) {
+        // todo: maybe opt is not the right place for this
+        if (v1.getType() instanceof PointerType) {
+            return addressOf(elementOf(pointerHandle(v1), v2));
+        } else if (v2.getType() instanceof PointerType) {
+            return addressOf(elementOf(pointerHandle(v2), v1));
+        }
+        return super.add(v1, v2);
+    }
+
+    @Override
+    public Value sub(Value v1, Value v2) {
+        // todo: maybe opt is not the right place for this
+        if (v1.getType() instanceof PointerType) {
+            return addressOf(elementOf(pointerHandle(v1), negate(v2)));
+        }
+        return super.sub(v1, v2);
+    }
+
+    // handles
+
+    @Override
+    public Value addressOf(ValueHandle handle) {
+        if (handle instanceof PointerHandle) {
+            return ((PointerHandle) handle).getPointerValue();
+        }
+        return super.addressOf(handle);
+    }
+
+    @Override
+    public ValueHandle pointerHandle(Value pointer) {
+        if (pointer instanceof AddressOf) {
+            return pointer.getValueHandle();
+        }
+        return super.pointerHandle(pointer);
     }
 }
