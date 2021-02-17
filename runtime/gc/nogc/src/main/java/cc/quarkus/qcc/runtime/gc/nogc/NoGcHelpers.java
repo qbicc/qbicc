@@ -16,8 +16,8 @@ public final class NoGcHelpers {
 
     public static ptr<?> allocate(long size, int align) {
         if (Build.Target.isPosix()) {
-            ptr<?> ptr = auto();
-            c_int res = posix_memalign(addr_of(ptr), word(align), word(size));
+            ptr<ptr<?>> ptr = alloca(sizeof(ptr.class));
+            c_int res = posix_memalign(ptr, word(align), word(size));
             if (res.intValue() != 0) {
                 // todo: read errno
                 throw new OutOfMemoryError(/*"Allocation failed"*/);

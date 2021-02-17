@@ -109,6 +109,9 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
         if (owner.equals(nativeInfo.cNativeDesc)) {
             switch (name) {
+                case "alloca": {
+                    return stackAllocate(ctxt.getTypeSystem().getUnsignedInteger8Type(), arguments.get(0), lf.literalOf(1));
+                }
                 case "word": {
                     return arguments.get(0);
                 }
