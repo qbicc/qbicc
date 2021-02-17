@@ -56,6 +56,8 @@ final class AllocaImpl extends AbstractYieldingInstruction implements Alloca {
         if (align != null) {
             target.append(',');
             target.append(' ');
+            target.append("align");
+            target.append(' ');
             align.appendTo(target);
         }
         return target;
