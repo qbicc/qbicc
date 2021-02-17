@@ -84,7 +84,7 @@ public class FunctionTypeResolver implements DescriptorTypeResolver.Delegating {
                                 }
                                 if (name.equals("java/lang/Object")) {
                                     // special case: it's really an "any" pointer with extra front-end guards on it
-                                    return ts.getVoidType().asConst().getPointer();
+                                    return ts.getVoidType().getPointer();
                                 }
                                 DefinedTypeDefinition definedType = classCtxt.findDefinedType(name);
                                 if (definedType == null) {

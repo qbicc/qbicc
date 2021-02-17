@@ -6,13 +6,9 @@ package cc.quarkus.qcc.type;
 public final class ReferenceArrayObjectType extends ArrayObjectType {
     private final ReferenceType elementType;
 
-    ReferenceArrayObjectType(final TypeSystem typeSystem, final boolean const_, final ClassObjectType objectClass, final ReferenceType elementType) {
-        super(typeSystem, elementType.hashCode(), const_, objectClass);
+    ReferenceArrayObjectType(final TypeSystem typeSystem, final ClassObjectType objectClass, final ReferenceType elementType) {
+        super(typeSystem, elementType.hashCode(), objectClass);
         this.elementType = elementType;
-    }
-
-    ReferenceArrayObjectType constructConst() {
-        return new ReferenceArrayObjectType(typeSystem, true, getSuperClassType(), elementType);
     }
 
     public long getSize() throws IllegalStateException {

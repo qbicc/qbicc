@@ -7,16 +7,8 @@ import io.smallrye.common.constraint.Assert;
  *
  */
 public final class SignedIntegerType extends IntegerType {
-    SignedIntegerType(final TypeSystem typeSystem, final int size, final int align, final int minBits, final boolean const_) {
-        super(typeSystem, SignedIntegerType.class.hashCode(), const_, size, align, minBits);
-    }
-
-    ValueType constructConst() {
-        return new SignedIntegerType(typeSystem, size, align, minBits, true);
-    }
-
-    public SignedIntegerType asConst() {
-        return (SignedIntegerType) super.asConst();
+    SignedIntegerType(final TypeSystem typeSystem, final int size, final int align, final int minBits) {
+        super(typeSystem, SignedIntegerType.class.hashCode(), size, align, minBits);
     }
 
     public boolean equals(final IntegerType other) {
@@ -72,12 +64,7 @@ public final class SignedIntegerType extends IntegerType {
     }
 
     public SignedIntegerType join(final SignedIntegerType other) {
-        boolean const_ = isConst() || other.isConst();
-        if (minBits < other.minBits) {
-            return const_ ? other.asConst() : other;
-        } else {
-            return const_ ? asConst() : this;
-        }
+        return minBits < other.minBits ? other : this;
     }
 
     public StringBuilder toString(final StringBuilder b) {

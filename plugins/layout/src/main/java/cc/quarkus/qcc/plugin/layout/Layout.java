@@ -100,7 +100,7 @@ public final class Layout {
         // void for now, but this is cheating terribly
         builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
-        builder.setType(jlo.getClassType().getTypeType().asConst());
+        builder.setType(jlo.getClassType().getTypeType());
         field = builder.build();
         jlc.injectField(field);
         classTypeIdField = field;

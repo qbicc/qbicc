@@ -6,8 +6,8 @@ import java.util.Set;
  * An object type that can be allocated on the heap.
  */
 public abstract class PhysicalObjectType extends ObjectType {
-    PhysicalObjectType(final TypeSystem typeSystem, final int hashCode, final boolean const_) {
-        super(typeSystem, hashCode, const_);
+    PhysicalObjectType(final TypeSystem typeSystem, final int hashCode) {
+        super(typeSystem, hashCode);
     }
 
     ReferenceType createReferenceType() {
@@ -17,12 +17,6 @@ public abstract class PhysicalObjectType extends ObjectType {
     public boolean isComplete() {
         return true;
     }
-
-    public PhysicalObjectType asConst() {
-        return (PhysicalObjectType) super.asConst();
-    }
-
-    abstract PhysicalObjectType constructConst();
 
     /**
      * Get the physical size of this object.  The size does not include object headers or

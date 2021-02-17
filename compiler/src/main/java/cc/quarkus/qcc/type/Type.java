@@ -68,15 +68,6 @@ public abstract class Type {
         return false;
     }
 
-    /**
-     * Determine whether this type is {@code const}-qualified.
-     *
-     * @return {@code true} if this type is {@code const}-qualified, {@code false} otherwise
-     */
-    public boolean isConst() {
-        return false;
-    }
-
     public Type getConstraintType() {
         return typeSystem.getVoidType();
     }

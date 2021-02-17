@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.type;
 
-import io.smallrye.common.constraint.Assert;
-
 /**
  * A fixed-size value array type.
  */
@@ -11,7 +9,7 @@ public final class ArrayType extends ValueType {
     private final long elementSize;
 
     ArrayType(final TypeSystem typeSystem, final ValueType elementType, final long elementCount) {
-        super(typeSystem, (int) (elementType.hashCode() * 19 + elementCount), false);
+        super(typeSystem, (int) (elementType.hashCode() * 19 + elementCount));
         this.elementType = elementType;
         this.elementCount = elementCount;
         this.elementSize = TypeUtil.alignUp(elementType.getSize(), elementType.getAlign());
@@ -19,14 +17,6 @@ public final class ArrayType extends ValueType {
 
     public long getSize() {
         return Math.multiplyExact(elementCount, elementSize);
-    }
-
-    ValueType constructConst() {
-        throw Assert.unsupported();
-    }
-
-    public ArrayType asConst() {
-        throw Assert.unsupported();
     }
 
     public ValueType getElementType() {

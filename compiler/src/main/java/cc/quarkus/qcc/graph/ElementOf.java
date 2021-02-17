@@ -52,7 +52,7 @@ public final class ElementOf extends AbstractValueHandle {
 
     @Override
     public boolean isWritable() {
-        return ! valueType.isConst();
+        return true; // todo
     }
 
     @Override

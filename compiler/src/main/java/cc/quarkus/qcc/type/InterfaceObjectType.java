@@ -13,8 +13,8 @@ public final class InterfaceObjectType extends ObjectType {
     private final DefinedTypeDefinition definition;
     private final List<InterfaceObjectType> interfaces;
 
-    InterfaceObjectType(final TypeSystem typeSystem, final boolean const_, final DefinedTypeDefinition definition, final List<InterfaceObjectType> interfaces) {
-        super(typeSystem, Objects.hash(definition), const_);
+    InterfaceObjectType(final TypeSystem typeSystem, final DefinedTypeDefinition definition, final List<InterfaceObjectType> interfaces) {
+        super(typeSystem, Objects.hash(definition));
         this.definition = definition;
         this.interfaces = interfaces;
     }
@@ -27,10 +27,6 @@ public final class InterfaceObjectType extends ObjectType {
         return 0;
     }
 
-    public InterfaceObjectType asConst() {
-        return (InterfaceObjectType) super.asConst();
-    }
-
     public DefinedTypeDefinition getDefinition() {
         return definition;
     }
@@ -41,10 +37,6 @@ public final class InterfaceObjectType extends ObjectType {
 
     public boolean hasSuperClass() {
         return false;
-    }
-
-    InterfaceObjectType constructConst() {
-        return new InterfaceObjectType(typeSystem, true, definition, interfaces);
     }
 
     public boolean isSubtypeOf(final ObjectType other) {

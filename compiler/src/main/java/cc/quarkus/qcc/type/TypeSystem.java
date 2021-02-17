@@ -25,10 +25,10 @@ public final class TypeSystem {
     private final int typeIdAlign;
     private final VariadicType variadicType = new VariadicType(this);
     private final PoisonType poisonType = new PoisonType(this);
-    private final VoidType voidType = new VoidType(this, false);
+    private final VoidType voidType = new VoidType(this);
     private final NullType nullType = new NullType(this);
     private final BlockType blockType = new BlockType(this);
-    private final UnresolvedType unresolvedType = new UnresolvedType(this, false);
+    private final UnresolvedType unresolvedType = new UnresolvedType(this);
     private final MethodHandleType methodHandleType = new MethodHandleType(this);
     private final MethodDescriptorType methodDescriptorType = new MethodDescriptorType(this);
     private final BooleanType booleanType;
@@ -54,40 +54,40 @@ public final class TypeSystem {
         funcAlign = builder.getPointerAlignment();
         referenceSize = builder.getReferenceSize();
         referenceAlign = builder.getReferenceAlignment();
-        booleanType = new BooleanType(this, builder.getBoolSize(), builder.getBoolAlignment(), false);
+        booleanType = new BooleanType(this, builder.getBoolSize(), builder.getBoolAlignment());
         typeIdSize = builder.getTypeIdSize();
         typeIdAlign = builder.getTypeIdAlignment();
         int float32Size = builder.getFloat32Size();
         if (float32Size * byteBits < 32) {
             throw typeTooSmall("float32");
         }
-        float32Type = new FloatType(this, float32Size, 32, builder.getFloat32Alignment(), false);
+        float32Type = new FloatType(this, float32Size, 32, builder.getFloat32Alignment());
         int float64Size = builder.getFloat64Size();
         if (float64Size * byteBits < 64) {
             throw typeTooSmall("float64");
         }
-        float64Type = new FloatType(this, float64Size, 64, builder.getFloat64Alignment(), false);
+        float64Type = new FloatType(this, float64Size, 64, builder.getFloat64Alignment());
         // always OK
-        signedInteger8Type = new SignedIntegerType(this, builder.getInt8Size(), builder.getInt8Alignment(), 8, false);
-        unsignedInteger8Type = new UnsignedIntegerType(this, builder.getInt8Size(), builder.getInt8Alignment(), 8, false);
+        signedInteger8Type = new SignedIntegerType(this, builder.getInt8Size(), builder.getInt8Alignment(), 8);
+        unsignedInteger8Type = new UnsignedIntegerType(this, builder.getInt8Size(), builder.getInt8Alignment(), 8);
         int int16Size = builder.getInt16Size();
         if (int16Size * byteBits < 16) {
             throw typeTooSmall("int16");
         }
-        signedInteger16Type = new SignedIntegerType(this, builder.getInt16Size(), builder.getInt16Alignment(), 16, false);
-        unsignedInteger16Type = new UnsignedIntegerType(this, builder.getInt16Size(), builder.getInt16Alignment(), 16, false);
+        signedInteger16Type = new SignedIntegerType(this, builder.getInt16Size(), builder.getInt16Alignment(), 16);
+        unsignedInteger16Type = new UnsignedIntegerType(this, builder.getInt16Size(), builder.getInt16Alignment(), 16);
         int int32Size = builder.getInt32Size();
         if (int32Size * byteBits < 32) {
             throw typeTooSmall("int32");
         }
-        signedInteger32Type = new SignedIntegerType(this, builder.getInt32Size(), builder.getInt32Alignment(), 32, false);
-        unsignedInteger32Type = new UnsignedIntegerType(this, builder.getInt32Size(), builder.getInt32Alignment(), 32, false);
+        signedInteger32Type = new SignedIntegerType(this, builder.getInt32Size(), builder.getInt32Alignment(), 32);
+        unsignedInteger32Type = new UnsignedIntegerType(this, builder.getInt32Size(), builder.getInt32Alignment(), 32);
         int int64Size = builder.getInt64Size();
         if (int64Size * byteBits < 64) {
             throw typeTooSmall("int64");
         }
-        signedInteger64Type = new SignedIntegerType(this, builder.getInt64Size(), builder.getInt64Alignment(), 64, false);
-        unsignedInteger64Type = new UnsignedIntegerType(this, builder.getInt64Size(), builder.getInt64Alignment(), 64, false);
+        signedInteger64Type = new SignedIntegerType(this, builder.getInt64Size(), builder.getInt64Alignment(), 64);
+        unsignedInteger64Type = new UnsignedIntegerType(this, builder.getInt64Size(), builder.getInt64Alignment(), 64);
     }
 
     private static IllegalArgumentException typeTooSmall(String name) {
@@ -219,13 +219,13 @@ public final class TypeSystem {
         Assert.checkNotNullParam("name", name);
         Assert.checkMinimumParameter("size", 0, size);
         TypeUtil.checkAlignmentParameter("align", align);
-        return new CompoundType(this, tag, name, memberResolver, size, align, false);
+        return new CompoundType(this, tag, name, memberResolver, size, align);
     }
 
     public CompoundType getIncompleteCompoundType(final CompoundType.Tag tag, final String name) {
         Assert.checkNotNullParam("tag", tag);
         Assert.checkNotNullParam("name", name);
-        return new CompoundType(this, tag, name, false);
+        return new CompoundType(this, tag, name);
     }
 
     public ArrayType getArrayType(ValueType memberType, long elements) {
@@ -360,9 +360,9 @@ public final class TypeSystem {
         }
         if (definedType.internalNameEquals("java/lang/Object")) {
             // special case: store this one
-            return this.objectClass = new ClassObjectType(this, false, definedType, null, List.of());
+            return this.objectClass = new ClassObjectType(this, definedType, null, List.of());
         }
-        return new ClassObjectType(this, false, definedType, superClass, interfaces);
+        return new ClassObjectType(this, definedType, superClass, interfaces);
     }
 
     /**
@@ -376,27 +376,27 @@ public final class TypeSystem {
         if (! definedType.isInterface()) {
             throw new IllegalArgumentException("Not an interface");
         }
-        return new InterfaceObjectType(this, false, definedType, interfaces);
+        return new InterfaceObjectType(this, definedType, interfaces);
     }
 
     PointerType createPointer(ValueType type) {
-        return new PointerType(this, type, false, false);
+        return new PointerType(this, type, false);
     }
 
     ReferenceType createReference(PhysicalObjectType objectType, Set<InterfaceObjectType> interfaceBounds) {
-        return new ReferenceType(this, objectType, interfaceBounds, false, referenceSize, referenceAlign, false);
+        return new ReferenceType(this, objectType, interfaceBounds, false, referenceSize, referenceAlign);
     }
 
     ReferenceArrayObjectType createReferenceArrayObject(final ReferenceType elementType) {
-        return new ReferenceArrayObjectType(this, false, objectClass, elementType);
+        return new ReferenceArrayObjectType(this, objectClass, elementType);
     }
 
     PrimitiveArrayObjectType createPrimitiveArrayObject(final WordType elementType) {
-        return new PrimitiveArrayObjectType(this, false, objectClass, elementType);
+        return new PrimitiveArrayObjectType(this, objectClass, elementType);
     }
 
     TypeType createTypeType(final ValueType upperBound) {
-        return new TypeType(this, upperBound, false);
+        return new TypeType(this, upperBound);
     }
 
     public static Builder builder() {

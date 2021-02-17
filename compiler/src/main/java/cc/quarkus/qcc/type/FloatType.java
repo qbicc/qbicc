@@ -8,15 +8,11 @@ public final class FloatType extends NumericType {
     private final int bits;
     private final int align;
 
-    FloatType(final TypeSystem typeSystem, final int size, final int bits, final int align, final boolean const_) {
-        super(typeSystem, (FloatType.class.hashCode() * 19 + size) * 19 + bits, const_);
+    FloatType(final TypeSystem typeSystem, final int size, final int bits, final int align) {
+        super(typeSystem, (FloatType.class.hashCode() * 19 + size) * 19 + bits);
         this.size = size;
         this.bits = bits;
         this.align = align;
-    }
-
-    ValueType constructConst() {
-        return new FloatType(typeSystem, size, bits, align, true);
     }
 
     public long getSize() {
@@ -29,10 +25,6 @@ public final class FloatType extends NumericType {
 
     public int getMinBits() {
         return bits;
-    }
-
-    public FloatType asConst() {
-        return (FloatType) super.asConst();
     }
 
     public FloatType getConstraintType() {
@@ -48,12 +40,7 @@ public final class FloatType extends NumericType {
     }
 
     private FloatType join(FloatType other) {
-        boolean const_ = isConst() || other.isConst();
-        if (bits < other.bits) {
-            return const_ ? other.asConst() : other;
-        } else {
-            return const_ ? asConst() : this;
-        }
+        return bits < other.bits ? other : this;
     }
 
     public StringBuilder toString(final StringBuilder b) {

@@ -13,15 +13,11 @@ public final class ClassObjectType extends PhysicalObjectType {
     private final ClassObjectType superClassType;
     private final List<InterfaceObjectType> interfaces;
 
-    ClassObjectType(final TypeSystem typeSystem, final boolean const_, final DefinedTypeDefinition definition, final ClassObjectType superClassType, final List<InterfaceObjectType> interfaces) {
-        super(typeSystem, Objects.hash(definition), const_);
+    ClassObjectType(final TypeSystem typeSystem, final DefinedTypeDefinition definition, final ClassObjectType superClassType, final List<InterfaceObjectType> interfaces) {
+        super(typeSystem, Objects.hash(definition));
         this.definition = definition;
         this.superClassType = superClassType;
         this.interfaces = interfaces;
-    }
-
-    public ClassObjectType asConst() {
-        return (ClassObjectType) super.asConst();
     }
 
     public DefinedTypeDefinition getDefinition() {
@@ -30,10 +26,6 @@ public final class ClassObjectType extends PhysicalObjectType {
 
     public boolean hasSuperClass() {
         return superClassType != null;
-    }
-
-    ClassObjectType constructConst() {
-        return new ClassObjectType(typeSystem, true, definition, superClassType, interfaces);
     }
 
     public ClassObjectType getSuperClassType() {

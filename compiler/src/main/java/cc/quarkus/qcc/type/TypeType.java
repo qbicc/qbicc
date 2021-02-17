@@ -9,8 +9,8 @@ import java.util.Objects;
 public final class TypeType extends ValueType {
     private final ValueType upperBound;
 
-    TypeType(final TypeSystem typeSystem, final ValueType upperBound, final boolean const_) {
-        super(typeSystem, Objects.hash(TypeType.class, upperBound), const_);
+    TypeType(final TypeSystem typeSystem, final ValueType upperBound) {
+        super(typeSystem, Objects.hash(TypeType.class, upperBound));
         this.upperBound = upperBound;
     }
 
@@ -28,14 +28,6 @@ public final class TypeType extends ValueType {
 
     public ValueType getUpperBound() {
         return upperBound;
-    }
-
-    public TypeType asConst() {
-        return (TypeType) super.asConst();
-    }
-
-    ValueType constructConst() {
-        return new TypeType(typeSystem, upperBound, true);
     }
 
     public boolean equals(final ValueType other) {

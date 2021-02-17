@@ -9,20 +9,14 @@ public abstract class ArrayObjectType extends PhysicalObjectType {
 
     private final ClassObjectType objectClass;
 
-    ArrayObjectType(final TypeSystem typeSystem, final int hashCode, final boolean const_, final ClassObjectType objectClass) {
-        super(typeSystem, hashCode, const_);
+    ArrayObjectType(final TypeSystem typeSystem, final int hashCode, final ClassObjectType objectClass) {
+        super(typeSystem, hashCode);
         this.objectClass = objectClass;
     }
 
     public boolean hasSuperClass() {
         return true;
     }
-
-    public ArrayObjectType asConst() {
-        return (ArrayObjectType) super.asConst();
-    }
-
-    abstract ArrayObjectType constructConst();
 
     public ClassObjectType getSuperClassType() {
         return objectClass;
