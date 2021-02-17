@@ -17,12 +17,12 @@ public final class NoGcHelpers {
     public static ptr<?> allocate(long size, int align) {
         if (Build.Target.isPosix()) {
             ptr<ptr<?>> ptr = alloca(sizeof(ptr.class));
-            c_int res = posix_memalign(ptr, word(align), word(size));
+            c_int res = posix_memalign(ptr, word((long)align), word(size));
             if (res.intValue() != 0) {
                 // todo: read errno
                 throw new OutOfMemoryError(/*"Allocation failed"*/);
             }
-            return ptr;
+            return ptr.deref();
         } else {
             ptr<c_char> ptr = malloc(word(size + align));
             if (ptr.isNull()) {
