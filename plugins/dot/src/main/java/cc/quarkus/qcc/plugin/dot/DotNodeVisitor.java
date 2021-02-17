@@ -105,6 +105,7 @@ import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 
 /**
  * A node visitor which generates a GraphViz graph for a method or function body.
@@ -797,6 +798,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final NullLiteral node) {
         return literal(param, "null");
+    }
+
+    public String visit(final Appendable param, final ZeroInitializerLiteral node) {
+        return literal(param, "zero");
     }
 
     public String visit(final Appendable param, final ObjectLiteral node) {
