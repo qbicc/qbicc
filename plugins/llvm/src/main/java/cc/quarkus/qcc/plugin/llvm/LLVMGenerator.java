@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.plugin.llvm;
 
+import static cc.quarkus.qcc.machine.llvm.Types.*;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,12 +42,17 @@ import io.smallrye.common.constraint.Assert;
  */
 public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor<CompilationContext, LLValue> {
 
+    private static final String STACK_MAP = "llvm.experimental.stackmap";
+
     public void accept(final CompilationContext ctxt) {
         for (ProgramModule programModule : ctxt.getAllProgramModules()) {
             DefinedTypeDefinition def = programModule.getTypeDefinition();
             Path outputFile = ctxt.getOutputFile(def, "ll");
             final Module module = Module.newModule();
-            final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(module, ctxt);
+            cc.quarkus.qcc.machine.llvm.Function stackMapDecl = module.declare(STACK_MAP).returns(void_).variadic();
+            stackMapDecl.param(i64).param(i32);
+            LLValue stackMapFn = stackMapDecl.asGlobal();
+            final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(module, ctxt, stackMapFn);
             final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(module, ctxt);
 
             for (Section section : programModule.sections()) {

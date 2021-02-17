@@ -12,6 +12,7 @@ import java.util.Map;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
+import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.graph.literal.ArrayLiteral;
@@ -50,14 +51,19 @@ import io.smallrye.common.constraint.Assert;
 final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     final Module module;
     final CompilationContext ctxt;
+    final LLValue stackMapFn;
+    final LLValue stackMapFnType;
 
     final Map<Type, LLValue> types = new HashMap<>();
     final Map<CompoundType.Member, LLValue> structureOffsets = new HashMap<>();
     final Map<Value, LLValue> globalValues = new HashMap<>();
+    final List<Node> callSites = new ArrayList<>();
 
-    LLVMModuleNodeVisitor(final Module module, final CompilationContext ctxt) {
+    LLVMModuleNodeVisitor(final Module module, final CompilationContext ctxt, LLValue stackMapFn) {
         this.module = module;
         this.ctxt = ctxt;
+        this.stackMapFn = stackMapFn;
+        stackMapFnType = Types.function(void_, List.of(i64, i32), true);
     }
 
     LLValue map(Type type) {

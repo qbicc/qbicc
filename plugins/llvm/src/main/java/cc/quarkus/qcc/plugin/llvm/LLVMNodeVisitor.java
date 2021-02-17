@@ -548,6 +548,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             map(type);
             map(arguments.get(i));
         }
+        int id = moduleVisitor.callSites.size();
+        moduleVisitor.callSites.add(node);
+        builder.call(moduleVisitor.stackMapFnType, moduleVisitor.stackMapFn).arg(i64, intConstant(id)).arg(i32, zeroinitializer);
         Call call = builder.call(llType, llTarget);
         for (int i = 0; i < arguments.size(); i++) {
             ValueType type = arguments.get(i).getType();
@@ -576,6 +579,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             map(functionType.getParameterType(i));
             map(arguments.get(i));
         }
+        int id = moduleVisitor.callSites.size();
+        moduleVisitor.callSites.add(node);
+        builder.call(moduleVisitor.stackMapFnType, moduleVisitor.stackMapFn).arg(i64, intConstant(id)).arg(i32, zeroinitializer);
         Call call = builder.invoke(llType, llTarget, map(try_.getResumeTarget()), mapCatch(try_.getExceptionHandler()));
         for (int i = 0; i < arguments.size(); i++) {
             call.arg(map(functionType.getParameterType(i)), map(arguments.get(i)));
