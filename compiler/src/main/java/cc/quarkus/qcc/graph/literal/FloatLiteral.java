@@ -10,7 +10,7 @@ public final class FloatLiteral extends Literal {
     private final int hashCode;
 
     FloatLiteral(final FloatType type, final double value) {
-        this.type = type.asConst();
+        this.type = type;
         this.value = value;
         long bits = Double.doubleToRawLongBits(value);
         this.hashCode = (int)(bits ^ bits >>> 32) * 19 + type.hashCode();

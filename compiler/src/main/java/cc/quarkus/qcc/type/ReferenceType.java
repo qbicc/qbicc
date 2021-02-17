@@ -23,14 +23,14 @@ public final class ReferenceType extends WordType {
     @SuppressWarnings("unused")
     private volatile ReferenceArrayObjectType refArrayType;
 
-    ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, Set<InterfaceObjectType> interfaceBounds, final boolean nullable, final int size, final int align, final boolean const_) {
-        super(typeSystem, ((Objects.hash(upperBound, interfaceBounds) * 19 + size) * 19 + ReferenceType.class.hashCode()) * 19 + Boolean.hashCode(nullable), const_);
+    ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, Set<InterfaceObjectType> interfaceBounds, final boolean nullable, final int size, final int align) {
+        super(typeSystem, ((Objects.hash(upperBound, interfaceBounds) * 19 + size) * 19 + ReferenceType.class.hashCode()) * 19 + Boolean.hashCode(nullable));
         this.upperBound = upperBound;
         this.interfaceBounds = interfaceBounds;
         this.size = size;
         this.align = align;
         this.nullable = nullable;
-        this.asNullable = nullable ? this : new ReferenceType(typeSystem, this.upperBound, interfaceBounds, true, size, align, const_);
+        this.asNullable = nullable ? this : new ReferenceType(typeSystem, this.upperBound, interfaceBounds, true, size, align);
     }
 
     public ReferenceType getConstraintType() {
@@ -65,14 +65,6 @@ public final class ReferenceType extends WordType {
 
     public ReferenceType asNullable() {
         return asNullable;
-    }
-
-    ValueType constructConst() {
-        return new ReferenceType(typeSystem, upperBound, interfaceBounds, nullable, size, align, true);
-    }
-
-    public ReferenceType asConst() {
-        return (ReferenceType) super.asConst();
     }
 
     public int getMinBits() {
@@ -122,10 +114,8 @@ public final class ReferenceType extends WordType {
     }
 
     public ReferenceType join(final ReferenceType other) {
-        boolean const_ = isConst() || other.isConst();
         boolean nullable = isNullable() || other.isNullable();
         ReferenceType result = getUpperBound().getCommonSupertype(other.getUpperBound()).getReference();
-        if (const_) result = result.asConst();
         if (nullable) result = result.asNullable();
         return result;
     }
@@ -159,7 +149,7 @@ public final class ReferenceType extends WordType {
         if (otherType.isSupertypeOf(upperBound)) {
             return this;
         } else if (otherType.isSubtypeOf(upperBound)) {
-            return new ReferenceType(typeSystem, otherType, filtered(interfaceBounds, otherType), nullable, size, align, isConst());
+            return new ReferenceType(typeSystem, otherType, filtered(interfaceBounds, otherType), nullable, size, align);
         } else {
             // no valid narrowing
             return null;
@@ -179,7 +169,7 @@ public final class ReferenceType extends WordType {
             // already implicitly narrowed to this type
             return this;
         } else {
-            return new ReferenceType(typeSystem, upperBound, filteredWith(interfaceBounds, otherType), nullable, size, align, isConst());
+            return new ReferenceType(typeSystem, upperBound, filteredWith(interfaceBounds, otherType), nullable, size, align);
         }
     }
 
@@ -291,7 +281,7 @@ public final class ReferenceType extends WordType {
             // they were equal
             return this;
         }
-        return new ReferenceType(typeSystem, upperBound, union, nullable, size, align, isConst());
+        return new ReferenceType(typeSystem, upperBound, union, nullable, size, align);
     }
 
     private Set<InterfaceObjectType> union(Set<InterfaceObjectType> ours, Set<InterfaceObjectType> others, PhysicalObjectType upperBound) {

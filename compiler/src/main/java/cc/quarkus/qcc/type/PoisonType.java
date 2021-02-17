@@ -1,13 +1,11 @@
 package cc.quarkus.qcc.type;
 
-import io.smallrye.common.constraint.Assert;
-
 /**
  * A type representing an invalid join or a value which cannot be used.
  */
 public final class PoisonType extends ValueType {
     PoisonType(final TypeSystem typeSystem) {
-        super(typeSystem, PoisonType.class.hashCode(), true);
+        super(typeSystem, PoisonType.class.hashCode());
     }
 
     public boolean isComplete() {
@@ -16,14 +14,6 @@ public final class PoisonType extends ValueType {
 
     public long getSize() {
         return 1;
-    }
-
-    ValueType constructConst() {
-        throw Assert.unsupported();
-    }
-
-    public PoisonType asConst() {
-        return this;
     }
 
     public int getAlign() {

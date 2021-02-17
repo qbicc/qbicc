@@ -1,13 +1,11 @@
 package cc.quarkus.qcc.type;
 
-import io.smallrye.common.constraint.Assert;
-
 /**
  * The type representing method descriptor literals, which are always {@code const}, have no size and are incomplete.
  */
 public final class MethodDescriptorType extends ValueType {
   MethodDescriptorType(final TypeSystem typeSystem) {
-        super(typeSystem, MethodDescriptorType.class.hashCode(), true);
+        super(typeSystem, MethodDescriptorType.class.hashCode());
     }
 
     public boolean isComplete() {
@@ -16,14 +14,6 @@ public final class MethodDescriptorType extends ValueType {
 
     public long getSize() {
         return 0;
-    }
-
-    ValueType constructConst() {
-        throw Assert.unreachableCode();
-    }
-
-    public MethodDescriptorType asConst() {
-        return this;
     }
 
     public int getAlign() {

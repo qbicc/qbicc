@@ -5,7 +5,7 @@ package cc.quarkus.qcc.type;
  */
 public final class VariadicType extends ValueType {
     VariadicType(TypeSystem typeSystem) {
-        super(typeSystem, VariadicType.class.hashCode(), true);
+        super(typeSystem, VariadicType.class.hashCode());
     }
 
     @Override
@@ -26,11 +26,6 @@ public final class VariadicType extends ValueType {
     @Override
     public long getSize() {
         return 0;
-    }
-
-    @Override
-    ValueType constructConst() {
-        throw new UnsupportedOperationException();
     }
 
     @Override

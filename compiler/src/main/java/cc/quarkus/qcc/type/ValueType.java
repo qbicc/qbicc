@@ -8,18 +8,13 @@ import java.lang.invoke.VarHandle;
  * An "object" in memory, which consists of word types and structured types.
  */
 public abstract class ValueType extends Type {
-    private static final VarHandle constTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "constType", VarHandle.class, ValueType.class, ValueType.class);
     private static final VarHandle typeTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "typeType", VarHandle.class, ValueType.class, TypeType.class);
 
-    private volatile ValueType constType;
     @SuppressWarnings("unused") // VarHandle
     private volatile TypeType typeType;
 
-    ValueType(final TypeSystem typeSystem, final int hashCode, final boolean const_) {
-        super(typeSystem, hashCode * 19 + Boolean.hashCode(const_));
-        if (const_) {
-            constType = this;
-        }
+    ValueType(final TypeSystem typeSystem, final int hashCode) {
+        super(typeSystem, hashCode);
     }
 
     /**
@@ -31,27 +26,6 @@ public abstract class ValueType extends Type {
 
     public boolean isComplete() {
         return true;
-    }
-
-    abstract ValueType constructConst();
-
-    public ValueType asConst() {
-        ValueType constType = this.constType;
-        if (constType != null) {
-            return constType;
-        }
-        ValueType newConstType = constructConst();
-        while (! constTypeHandle.compareAndSet(this, null, newConstType)) {
-            constType = this.constType;
-            if (constType != null) {
-                return constType;
-            }
-        }
-        return newConstType;
-    }
-
-    public boolean isConst() {
-        return this == constType;
     }
 
     /**
@@ -79,7 +53,7 @@ public abstract class ValueType extends Type {
     }
 
     public boolean equals(final ValueType other) {
-        return this == other || super.equals(other) && isConst() == other.isConst();
+        return super.equals(other);
     }
 
     /**
@@ -91,14 +65,11 @@ public abstract class ValueType extends Type {
      * @return the meet type (not {@code null})
      */
     public ValueType join(final ValueType other) {
-        boolean const_ = isConst() || other.isConst();
-        boolean ok = const_ ? asConst().equals(other.asConst()) : equals(other);
-        return ok ? const_ ? asConst() : this : getTypeSystem().getPoisonType();
+        return equals(other) ? this : getTypeSystem().getPoisonType();
     }
 
     public StringBuilder toString(final StringBuilder b) {
         if (! isComplete()) b.append("incomplete ");
-        if (isConst()) b.append("const ");
         return b;
     }
 

@@ -70,8 +70,8 @@ public interface LiteralFactory {
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
-            private final BooleanLiteral TRUE = new BooleanLiteral(typeSystem.getBooleanType().asConst(), true);
-            private final BooleanLiteral FALSE = new BooleanLiteral(typeSystem.getBooleanType().asConst(), false);
+            private final BooleanLiteral TRUE = new BooleanLiteral(typeSystem.getBooleanType(), true);
+            private final BooleanLiteral FALSE = new BooleanLiteral(typeSystem.getBooleanType(), false);
             private final NullLiteral NULL = new NullLiteral(typeSystem.getNullType());
             private final UndefinedLiteral undef = new UndefinedLiteral(typeSystem.getPoisonType());
             private final ConcurrentMap<String, StringLiteral> stringLiterals = new ConcurrentHashMap<>();

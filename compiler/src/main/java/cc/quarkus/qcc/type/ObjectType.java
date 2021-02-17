@@ -15,8 +15,8 @@ public abstract class ObjectType extends ValueType {
     @SuppressWarnings("unused")
     private volatile ReferenceType referenceType;
 
-    ObjectType(final TypeSystem typeSystem, final int hashCode, final boolean const_) {
-        super(typeSystem, hashCode, const_);
+    ObjectType(final TypeSystem typeSystem, final int hashCode) {
+        super(typeSystem, hashCode);
     }
 
     public DefinedTypeDefinition getDefinition() {
@@ -54,12 +54,6 @@ public abstract class ObjectType extends ValueType {
     public boolean isComplete() {
         return false;
     }
-
-    public ObjectType asConst() {
-        return (ObjectType) super.asConst();
-    }
-
-    abstract ObjectType constructConst();
 
     public abstract boolean isSubtypeOf(ObjectType other);
 

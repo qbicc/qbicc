@@ -51,11 +51,6 @@ public final class ElementOf extends AbstractValueHandle {
     }
 
     @Override
-    public boolean isWritable() {
-        return ! valueType.isConst();
-    }
-
-    @Override
     public MemoryAtomicityMode getDetectedMode() {
         return inputHandle.getDetectedMode();
     }

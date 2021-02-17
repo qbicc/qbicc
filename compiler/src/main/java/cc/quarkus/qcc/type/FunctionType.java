@@ -11,7 +11,7 @@ public final class FunctionType extends ValueType {
     private final ValueType[] paramTypes;
 
     FunctionType(final TypeSystem typeSystem, final ValueType returnType, final ValueType[] paramTypes) {
-        super(typeSystem, Objects.hash((Object[]) paramTypes) * 19 + returnType.hashCode(), false);
+        super(typeSystem, Objects.hash((Object[]) paramTypes) * 19 + returnType.hashCode());
         this.returnType = returnType;
         this.paramTypes = paramTypes;
     }
@@ -24,20 +24,12 @@ public final class FunctionType extends ValueType {
         return other == this || super.equals(other) && returnType.equals(other.returnType) && Arrays.equals(paramTypes, other.paramTypes);
     }
 
-    public ValueType asConst() {
-        throw new UnsupportedOperationException("Functions cannot be const");
-    }
-
     public boolean isComplete() {
         return false;
     }
 
     public long getSize() {
         throw new UnsupportedOperationException("Incomplete type");
-    }
-
-    ValueType constructConst() {
-        throw new UnsupportedOperationException();
     }
 
     public int getAlign() {

@@ -8,13 +8,9 @@ import java.util.Objects;
 public final class PrimitiveArrayObjectType extends ArrayObjectType {
     private final WordType elementType;
 
-    PrimitiveArrayObjectType(final TypeSystem typeSystem, final boolean const_, final ClassObjectType objectClass, final WordType elementType) {
-        super(typeSystem, Objects.hash(elementType), const_, objectClass);
+    PrimitiveArrayObjectType(final TypeSystem typeSystem, final ClassObjectType objectClass, final WordType elementType) {
+        super(typeSystem, Objects.hash(elementType), objectClass);
         this.elementType = elementType;
-    }
-
-    PrimitiveArrayObjectType constructConst() {
-        return new PrimitiveArrayObjectType(typeSystem, true, getSuperClassType(), elementType);
     }
 
     public long getSize() throws IllegalStateException {

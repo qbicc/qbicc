@@ -1,14 +1,12 @@
 package cc.quarkus.qcc.type;
 
-import io.smallrye.common.constraint.Assert;
-
 /**
  * A special type representing a return address for bytecode {@code jsr}/{@code ret} processing.
  */
 public final class BlockType extends ValueType {
 
     BlockType(TypeSystem typeSystem) {
-        super(typeSystem, BlockType.class.hashCode(), true);
+        super(typeSystem, BlockType.class.hashCode());
     }
 
     public long getSize() {
@@ -21,14 +19,6 @@ public final class BlockType extends ValueType {
 
     public boolean isComplete() {
         return false;
-    }
-
-    public ValueType asConst() {
-        return this;
-    }
-
-    ValueType constructConst() {
-        throw Assert.unreachableCode();
     }
 
     public boolean equals(final ValueType other) {

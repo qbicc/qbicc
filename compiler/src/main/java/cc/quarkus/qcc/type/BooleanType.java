@@ -7,8 +7,8 @@ public final class BooleanType extends WordType {
     private final int size;
     private final int align;
 
-    BooleanType(final TypeSystem typeSystem, final int size, final int align, final boolean const_) {
-        super(typeSystem, BooleanType.class.hashCode() * 19 + size, const_);
+    BooleanType(final TypeSystem typeSystem, final int size, final int align) {
+        super(typeSystem, BooleanType.class.hashCode() * 19 + size);
         this.size = size;
         this.align = align;
     }
@@ -17,16 +17,8 @@ public final class BooleanType extends WordType {
         return size;
     }
 
-    ValueType constructConst() {
-        return new BooleanType(typeSystem, size, align, true);
-    }
-
     public int getAlign() {
         return align;
-    }
-
-    public BooleanType asConst() {
-        return (BooleanType) super.asConst();
     }
 
     public int getMinBits() {
@@ -42,11 +34,10 @@ public final class BooleanType extends WordType {
     }
 
     public ValueType join(final ValueType other) {
-        boolean const_ = isConst() || other.isConst();
         if (other instanceof BooleanType) {
-            return const_ ? asConst() : this;
+            return this;
         } else if (other instanceof IntegerType) {
-            return const_ ? other.asConst() : other;
+            return other;
         } else {
             return super.join(other);
         }

@@ -4,8 +4,8 @@ package cc.quarkus.qcc.type;
  *
  */
 public final class VoidType extends ValueType {
-    VoidType(final TypeSystem typeSystem, final boolean const_) {
-        super(typeSystem, VoidType.class.hashCode(), const_);
+    VoidType(final TypeSystem typeSystem) {
+        super(typeSystem, VoidType.class.hashCode());
     }
 
     public boolean isComplete() {
@@ -14,14 +14,6 @@ public final class VoidType extends ValueType {
 
     public long getSize() {
         return 1;
-    }
-
-    ValueType constructConst() {
-        return new VoidType(typeSystem, true);
-    }
-
-    public VoidType asConst() {
-        return (VoidType) super.asConst();
     }
 
     public int getAlign() {
@@ -34,9 +26,6 @@ public final class VoidType extends ValueType {
 
     public StringBuilder toString(final StringBuilder b) {
         // don't print "incomplete" string
-        if (isConst()) {
-            b.append("const ");
-        }
         return b.append("void");
     }
 

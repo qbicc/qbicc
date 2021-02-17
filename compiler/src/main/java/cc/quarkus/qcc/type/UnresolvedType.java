@@ -4,8 +4,8 @@ package cc.quarkus.qcc.type;
  * The type of any unresolved reference.
  */
 public final class UnresolvedType extends ValueType {
-    UnresolvedType(final TypeSystem typeSystem, final boolean const_) {
-        super(typeSystem, UnresolvedType.class.hashCode(), const_);
+    UnresolvedType(final TypeSystem typeSystem) {
+        super(typeSystem, UnresolvedType.class.hashCode());
     }
 
     public boolean isComplete() {
@@ -14,10 +14,6 @@ public final class UnresolvedType extends ValueType {
 
     public long getSize() {
         return 0;
-    }
-
-    ValueType constructConst() {
-        return new UnresolvedType(typeSystem, true);
     }
 
     public int getAlign() {

@@ -10,15 +10,11 @@ public abstract class IntegerType extends NumericType {
     final int align;
     final int minBits;
 
-    IntegerType(final TypeSystem typeSystem, final int hashCode, final boolean const_, final int size, final int align, final int minBits) {
-        super(typeSystem, (hashCode * 19 + size) * 19 + minBits, const_);
+    IntegerType(final TypeSystem typeSystem, final int hashCode, final int size, final int align, final int minBits) {
+        super(typeSystem, (hashCode * 19 + size) * 19 + minBits);
         this.size = size;
         this.align = align;
         this.minBits = minBits;
-    }
-
-    public IntegerType asConst() {
-        return (IntegerType) super.asConst();
     }
 
     public final boolean equals(final ValueType other) {

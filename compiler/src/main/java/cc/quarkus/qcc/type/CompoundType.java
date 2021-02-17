@@ -17,8 +17,8 @@ public final class CompoundType extends ValueType {
     private volatile Supplier<List<Member>> membersResolver;
     private volatile List<Member> members;
 
-    CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver, final long size, final int overallAlign, boolean const_) {
-        super(typeSystem, (int) size * 19 + Integer.numberOfTrailingZeros(overallAlign), const_);
+    CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, final Supplier<List<Member>> membersResolver, final long size, final int overallAlign) {
+        super(typeSystem, (int) size * 19 + Integer.numberOfTrailingZeros(overallAlign));
         // name/tag do not contribute to hash or equality
         this.tag = tag;
         this.name = name == null ? "<anon>" : name;
@@ -30,8 +30,8 @@ public final class CompoundType extends ValueType {
         this.complete = true;
     }
 
-    CompoundType(final TypeSystem typeSystem, final Tag tag, final String name, boolean const_) {
-        super(typeSystem, 0, const_);
+    CompoundType(final TypeSystem typeSystem, final Tag tag, final String name) {
+        super(typeSystem, 0);
         this.tag = tag;
         this.name = name;
         this.size = 0;
@@ -80,14 +80,6 @@ public final class CompoundType extends ValueType {
 
     public int getAlign() {
         return align;
-    }
-
-    ValueType constructConst() {
-        return complete ? new CompoundType(typeSystem, tag, name, this::getMembers, size, align, true) : new CompoundType(typeSystem, tag, name, true);
-    }
-
-    public CompoundType asConst() {
-        return (CompoundType) super.asConst();
     }
 
     public boolean equals(final ValueType other) {

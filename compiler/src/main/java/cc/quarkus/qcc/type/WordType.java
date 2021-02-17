@@ -14,12 +14,8 @@ public abstract class WordType extends ScalarType {
     @SuppressWarnings("unused")
     private volatile PrimitiveArrayObjectType primitiveArrayObjectType;
 
-    WordType(final TypeSystem typeSystem, final int hashCode, final boolean const_) {
-        super(typeSystem, hashCode, const_);
-    }
-
-    public WordType asConst() {
-        return (WordType) super.asConst();
+    WordType(final TypeSystem typeSystem, final int hashCode) {
+        super(typeSystem, hashCode);
     }
 
     public PrimitiveArrayObjectType getPrimitiveArrayObjectType() {

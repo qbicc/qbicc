@@ -7,7 +7,7 @@ import io.smallrye.common.constraint.Assert;
  */
 public final class MethodHandleType extends ValueType {
   MethodHandleType(final TypeSystem typeSystem) {
-        super(typeSystem, MethodHandleType.class.hashCode(), true);
+        super(typeSystem, MethodHandleType.class.hashCode());
     }
 
     public boolean isComplete() {
@@ -16,14 +16,6 @@ public final class MethodHandleType extends ValueType {
 
     public long getSize() {
         return 0;
-    }
-
-    ValueType constructConst() {
-        throw Assert.unreachableCode();
-    }
-
-    public MethodHandleType asConst() {
-        return this;
     }
 
     public int getAlign() {

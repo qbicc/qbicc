@@ -32,7 +32,7 @@ public final class PointerHandle extends AbstractValueHandle {
     @Override
     public boolean isWritable() {
         ValueType pointeeType = pointerType.getPointeeType();
-        return pointeeType.isComplete() && !pointeeType.isConst();
+        return pointeeType.isComplete() && ! pointerType.isConstPointee();
     }
 
     @Override

@@ -8,7 +8,7 @@ import io.smallrye.common.constraint.Assert;
  */
 public final class NullType extends ValueType {
     NullType(final TypeSystem typeSystem) {
-        super(typeSystem, NullType.class.hashCode(), true);
+        super(typeSystem, NullType.class.hashCode());
     }
 
     public boolean isComplete() {
@@ -17,14 +17,6 @@ public final class NullType extends ValueType {
 
     public long getSize() {
         return 0;
-    }
-
-    ValueType constructConst() {
-        throw Assert.unreachableCode();
-    }
-
-    public NullType asConst() {
-        return this;
     }
 
     public int getAlign() {
