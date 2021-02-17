@@ -130,8 +130,7 @@ public interface Schedule {
             return scheduleToPinnedBlock(root, blockInfos, scheduledNodes, node, ((PinnedNode) node).getPinnedBlock());
         } else if (node instanceof Unschedulable) {
             // always considered available; do not schedule (but do schedule dependencies)
-            scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
-            return root;
+            return scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
         } else {
             selected = scheduledNodes.get(node);
             BlockInfo candidate = scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
