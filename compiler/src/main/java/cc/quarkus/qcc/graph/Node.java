@@ -667,7 +667,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final StackAllocation node) {
-                return param.getBlockBuilder().stackAllocate(node.getType(), param.copyValue(node.getCount()), param.copyValue(node.getAlign()));
+                return param.getBlockBuilder().stackAllocate(node.getType().getPointeeType(), param.copyValue(node.getCount()), param.copyValue(node.getAlign()));
             }
 
             public Value visit(final Copier param, final StaticInvocationValue node) {

@@ -8,8 +8,11 @@ import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import org.jboss.logging.Logger;
 
@@ -58,6 +61,14 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         processInstantiatedClass(target.getEnclosingType().validate());
         ctxt.enqueue(target);
         return super.invokeConstructor(instance, target, arguments);
+    }
+
+    @Override
+    public ValueHandle staticField(FieldElement field) {
+        DefinedTypeDefinition enclosingType = field.getEnclosingType();
+        // initialize referenced field
+        ctxt.enqueue(enclosingType.validate().getInitializer());
+        return super.staticField(field);
     }
 
     private void processInstantiatedClass(final ValidatedTypeDefinition type) {

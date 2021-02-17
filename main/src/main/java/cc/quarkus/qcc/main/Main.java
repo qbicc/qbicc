@@ -35,6 +35,10 @@ import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.DispatchTableEmitter;
 import cc.quarkus.qcc.plugin.dispatch.VTableBuilder;
 import cc.quarkus.qcc.plugin.dot.DotGenerator;
+import cc.quarkus.qcc.plugin.gc.nogc.NoGcBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.gc.nogc.NoGcMultiNewArrayBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.gc.nogc.NoGcSetupHook;
+import cc.quarkus.qcc.plugin.gc.nogc.NoGcTypeSystemConfigurator;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.RegisterHelperBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.SupersDisplayBuilder;
@@ -88,6 +92,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final Path outputPath;
     private final Consumer<Iterable<Diagnostic>> diagnosticsHandler;
     private final String mainClass;
+    private final String gc;
 
     Main(Builder builder) {
         bootModulePath = List.copyOf(builder.bootModulePath);
@@ -95,12 +100,14 @@ public class Main implements Callable<DiagnosticContext> {
         diagnosticsHandler = builder.diagnosticsHandler;
         // todo: this becomes optional
         mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
+        gc = builder.gc;
     }
 
     public DiagnosticContext call() {
         final BaseDiagnosticContext initialContext = new BaseDiagnosticContext();
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);
+        boolean nogc = gc.equals("none");
         int errors = initialContext.errors();
         if (errors == 0) {
             builder.setOutputDirectory(outputPath);
@@ -184,6 +191,9 @@ public class Main implements Callable<DiagnosticContext> {
                             // for now, type IDs == int32
                             tsBuilder.setTypeIdSize((int) probeResult.getTypeInfo(int32_t).getSize());
                             tsBuilder.setTypeIdAlignment((int) probeResult.getTypeInfo(int32_t).getAlign());
+                            if (nogc) {
+                                new NoGcTypeSystemConfigurator().accept(tsBuilder);
+                            }
                             builder.setTypeSystem(tsBuilder.build());
                             builder.setObjectFileProvider(objectFileProvider);
                             ServiceLoader<DriverPlugin> loader = ServiceLoader.load(DriverPlugin.class);
@@ -225,7 +235,13 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, Layout::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
+                                if (nogc) {
+                                    builder.addPreHook(Phase.ADD, new NoGcSetupHook());
+                                }
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::new);
+                                if (nogc) {
+                                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NoGcMultiNewArrayBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CloneConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalThrowHandlingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
@@ -254,6 +270,9 @@ public class Main implements Callable<DiagnosticContext> {
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
+                                if (nogc) {
+                                    builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, NoGcBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
@@ -306,6 +325,7 @@ public class Main implements Callable<DiagnosticContext> {
         final Iterator<String> argIter = List.of(args).iterator();
         String mainClass = null;
         Path outputPath = null;
+        String gc = "none";
         while (argIter.hasNext()) {
             final String arg = argIter.next();
             if (arg.startsWith("-")) {
@@ -326,6 +346,10 @@ public class Main implements Callable<DiagnosticContext> {
                     Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
                 } else if (arg.equals("--debug-supers")) {
                     Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
+                } else if (arg.startsWith("--gc=")) {
+                    gc = arg.substring(5);
+                } else if (arg.equals("--gc")) {
+                    gc = argIter.next();
                 } else {
                     System.err.printf("Unrecognized argument \"%s\"", arg);
                     System.exit(1);
@@ -348,6 +372,10 @@ public class Main implements Callable<DiagnosticContext> {
             System.err.println("No output path specified");
             System.exit(1);
             return;
+        }
+        if (!gc.equals("none")) {
+            System.err.printf("Unknown GC strategy \"%s\"%n", gc);
+            System.exit(1);
         }
         mainBuilder.setMainClass(mainClass);
         mainBuilder.setOutputPath(outputPath);
@@ -376,6 +404,7 @@ public class Main implements Callable<DiagnosticContext> {
         private Path outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qcc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));
         private Consumer<Iterable<Diagnostic>> diagnosticsHandler = diagnostics -> {};
         private String mainClass;
+        private String gc = "none";
 
         Builder() {}
 
@@ -405,6 +434,11 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setMainClass(String mainClass) {
             this.mainClass = mainClass;
+            return this;
+        }
+
+        public Builder setGc(String gc) {
+            this.gc = Assert.checkNotNullParam("gc", gc);
             return this;
         }
 

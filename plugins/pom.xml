@@ -22,6 +22,7 @@
         <module>dot</module>
         <module>instanceof-checkcast</module>
         <module>intrinsics</module>
+        <module>gc</module>
         <module>layout</module>
         <module>linker</module>
         <module>llvm</module>

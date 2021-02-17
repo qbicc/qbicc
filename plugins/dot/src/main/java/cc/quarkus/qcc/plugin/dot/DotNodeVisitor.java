@@ -75,6 +75,7 @@ import cc.quarkus.qcc.graph.Ror;
 import cc.quarkus.qcc.graph.Select;
 import cc.quarkus.qcc.graph.Shl;
 import cc.quarkus.qcc.graph.Shr;
+import cc.quarkus.qcc.graph.StackAllocation;
 import cc.quarkus.qcc.graph.StaticField;
 import cc.quarkus.qcc.graph.StaticInvocation;
 import cc.quarkus.qcc.graph.StaticInvocationValue;
@@ -861,6 +862,17 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final Shr node) {
         return node(param, ">>", node);
+    }
+
+    public String visit(final Appendable param, final StackAllocation node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "rectangle");
+        attr(param, "label", "alloca " + node.getType());
+        attr(param, "fixedsize", "shape");
+        addEdge(param, node, node.getCount(), EdgeType.VALUE_DEPENDENCY, "count");
+        nl(param);
+        return name;
     }
 
     public String visit(final Appendable param, final StaticInvocationValue node) {
