@@ -470,7 +470,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     case OP_DCONST_0:
                     case OP_DCONST_1:
-                        push1(lf.literalOf((double) opcode - OP_DCONST_0));
+                        push2(lf.literalOf((double) opcode - OP_DCONST_0));
                         break;
                     case OP_BIPUSH:
                         push1(lf.literalOf((int) buffer.get()));
