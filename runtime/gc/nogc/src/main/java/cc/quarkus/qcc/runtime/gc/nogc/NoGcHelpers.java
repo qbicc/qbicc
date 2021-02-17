@@ -15,7 +15,7 @@ public final class NoGcHelpers {
     private NoGcHelpers() {}
 
     public static ptr<?> allocate(long size, int align) {
-        if (Build.Target.isPosix()) {
+        if (false && Build.Target.isPosix()) {
             ptr<ptr<?>> ptr = alloca(sizeof(ptr.class));
             c_int res = posix_memalign(ptr, word((long)align), word(size));
             if (res.intValue() != 0) {
