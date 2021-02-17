@@ -89,6 +89,7 @@ import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 
@@ -617,7 +618,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
 
     GetElementPtr gep(LLValue ptr, ValueType pointerType, ValueHandle handle) {
         ValueType valueType = handle.getValueType();
-        return builder.getelementptr(map(valueType), map(pointerType), ptr);
+        if (valueType instanceof VoidType) {
+            return builder.getelementptr(i8, map(pointerType), ptr);
+        } else {
+            return builder.getelementptr(map(valueType), map(pointerType), ptr);
+        }
     }
 
     // unknown node catch-all methods
