@@ -934,6 +934,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v3 = gf.cmpLt(v1, v2);
                         v4 = gf.cmpGt(v1, v2);
                         push1(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
+                        break;
                     }
                     case OP_FCMPG: {
                         v2 = pop1();
