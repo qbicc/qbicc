@@ -176,7 +176,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 Value[] locals = saveLocals();
                 Value[] stack = saveStack();
                 clearStack();
-                push1(phi);
+                push1(gf.narrow(phi, exType));
                 int pos = buffer.position();
                 buffer.position(pc);
                 if (single) {
