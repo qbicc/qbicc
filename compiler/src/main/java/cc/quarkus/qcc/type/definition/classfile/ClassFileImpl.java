@@ -1368,8 +1368,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         } else {
             // we have to jump into it because there is a loop that includes index 0
             byteCode.position(0);
-            gf.begin(new BlockLabel());
+            BlockLabel newLabel = new BlockLabel();
+            gf.begin(newLabel);
             methodParser.processBlock(gf.goto_(entryBlockHandle));
+            entryBlockHandle = newLabel;
         }
         gf.finish();
         BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
