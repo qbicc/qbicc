@@ -35,6 +35,7 @@ import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -61,6 +62,7 @@ public final class CoreIntrinsics {
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerCcQuarkusQccRuntimeCNativeIntrinsics(ctxt);
         registerCcQuarkusQccObjectModelIntrinsics(ctxt);
+        registerCcQuarkusQccRuntimeMainIntrinsics(ctxt);
         registerCcQuarkusQccRuntimeValuesIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
     }
@@ -394,6 +396,9 @@ public final class CoreIntrinsics {
         ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
         ClassTypeDescriptor nObjDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$object");
         ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$ptr");
+        ClassTypeDescriptor tgDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadGroup");
+        ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
+        ClassTypeDescriptor strDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
 
         ClassTypeDescriptor boolPtrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$_Bool_ptr");
 
@@ -409,6 +414,8 @@ public final class CoreIntrinsics {
 
         MethodDescriptor objTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objDesc));
         MethodDescriptor objArrayTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objArrayDesc));
+
+        PointerType voidPtr = ctxt.getTypeSystem().getVoidType().getPointer();
 
         StaticValueIntrinsic typeOf = (builder, owner, name, descriptor, arguments) ->
             builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
@@ -445,6 +452,33 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, int16ptrDesc, List.of(BaseTypeDescriptor.S)), addrOf);
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, boolPtrDesc, List.of(BaseTypeDescriptor.Z)), addrOf);
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(nObjDesc)), addrOf);
+
+        StaticIntrinsic attachNewThread = (builder, owner, name, descriptor, arguments) -> {
+            //java.lang.Thread.nextThreadID
+            Value thread = builder.new_(thrDesc);
+            // immediately set the thread to be the current thread
+            builder.store(builder.pointerHandle(ctxt.getCurrentThreadLocalSymbolLiteral()), builder.valueConvert(thread, voidPtr), MemoryAtomicityMode.NONE);
+            // now start initializing
+            DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
+            ValidatedTypeDefinition jltVal = jlt.validate();
+            // find all the fields
+            FieldElement nameFld = jltVal.findField("name");
+            FieldElement tidFld = jltVal.findField("tid");
+            FieldElement groupFld = jltVal.findField("group");
+            FieldElement threadStatusFld = jltVal.findField("threadStatus");
+            ValueHandle threadRef = builder.referenceHandle(thread);
+            builder.store(builder.instanceFieldOf(threadRef, nameFld), arguments.get(0), MemoryAtomicityMode.NONE);
+            builder.store(builder.instanceFieldOf(threadRef, groupFld), arguments.get(1), MemoryAtomicityMode.NONE);
+            Value tid = builder.invokeValueStatic(thrDesc, "nextThreadID", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of()), List.of());
+            builder.store(builder.instanceFieldOf(threadRef, tidFld), tid, MemoryAtomicityMode.NONE);
+            // set thread to be running with JVMTI status for RUNNABLE and ALIVE
+            builder.store(builder.instanceFieldOf(threadRef, threadStatusFld), ctxt.getLiteralFactory().literalOf(0x05), MemoryAtomicityMode.NONE);
+            return builder.nop();
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "attachNewThread", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(
+            strDesc, tgDesc
+        )), attachNewThread);
     }
 
     static void registerCcQuarkusQccObjectModelIntrinsics(final CompilationContext ctxt) {
@@ -715,6 +749,24 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(valsDesc, "getRelaxed", objObjDescriptor, getRelaxed);
         intrinsics.registerIntrinsic(valsDesc, "getRelaxed", intIntDescriptor, getRelaxed);
         intrinsics.registerIntrinsic(valsDesc, "getRelaxed", objObjDescriptor, getRelaxed);
+    }
+
+    static void registerCcQuarkusQccRuntimeMainIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        ClassTypeDescriptor mainDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/Main");
+
+        ClassTypeDescriptor tgDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadGroup");
+        MethodDescriptor voidVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+
+        // Construct system thread group
+        StaticValueIntrinsic sysThrGrp = (builder, owner, name, descriptor, arguments) ->
+            builder.invokeConstructor(builder.new_(tgDesc), tgDesc, voidVoidDesc, List.of());
+
+        MethodDescriptor returnTgDesc = MethodDescriptor.synthesize(classContext, tgDesc, List.of());
+
+        intrinsics.registerIntrinsic(mainDesc, "createSystemThreadGroup", returnTgDesc, sysThrGrp);
+
     }
 
     static ValueHandle getTarget(CompilationContext ctxt, BasicBlockBuilder builder, Value input) {
