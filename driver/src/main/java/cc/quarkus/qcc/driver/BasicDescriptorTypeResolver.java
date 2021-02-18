@@ -31,7 +31,7 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
     }
 
     public ValueType resolveTypeFromClassName(final String packageName, final String internalName) {
-        DefinedTypeDefinition definedType = classContext.findDefinedType(packageName + '/' + internalName);
+        DefinedTypeDefinition definedType = classContext.findDefinedType(packageName == "" ? internalName : packageName + '/' + internalName);
         if (definedType == null) {
             return null;
         } else {
