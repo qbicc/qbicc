@@ -409,7 +409,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public Value currentThread() {
         ClassObjectType type = element.getEnclosingType().getContext().findDefinedType("java/lang/Thread").validate().getClassType();
-        return new CurrentThreadRead(callSite, element, line, bci, requireDependency(), type.getReference());
+        return asDependency(new CurrentThreadRead(callSite, element, line, bci, requireDependency(), type.getReference()));
     }
 
     public PhiValue phi(final ValueType type, final BlockLabel owner) {
