@@ -54,7 +54,11 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value narrow(final Value value, final TypeDescriptor desc) {
         ClassContext cc = getClassContext();
         // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-        return narrow(value, cc.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty()));
+        ValueType narrowType = cc.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        if (value.getType() instanceof ReferenceType && ((ReferenceType) value.getType()).isNullable()) {
+            narrowType = ((ReferenceType) narrowType).asNullable();
+        }
+        return narrow(value, narrowType);
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
