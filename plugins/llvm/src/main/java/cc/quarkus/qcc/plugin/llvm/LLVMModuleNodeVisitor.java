@@ -5,10 +5,12 @@ import static cc.quarkus.qcc.machine.llvm.Types.*;
 import static cc.quarkus.qcc.machine.llvm.Values.*;
 import static java.lang.Math.max;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
@@ -17,43 +19,59 @@ import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.BitCastLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
+import cc.quarkus.qcc.graph.literal.ByteArrayLiteral;
 import cc.quarkus.qcc.graph.literal.CompoundLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
+import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.graph.literal.TypeLiteral;
+import cc.quarkus.qcc.graph.literal.ValueConvertLiteral;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.machine.llvm.Array;
 import cc.quarkus.qcc.machine.llvm.IdentifiedType;
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Struct;
 import cc.quarkus.qcc.machine.llvm.StructType;
 import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
+import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.PointerType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VariadicType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.WordType;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
 final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
+    final AtomicInteger anonCnt = new AtomicInteger();
+    final AtomicInteger slCnt = new AtomicInteger();
     final Module module;
     final CompilationContext ctxt;
 
     final Map<Type, LLValue> types = new HashMap<>();
     final Map<CompoundType.Member, LLValue> structureOffsets = new HashMap<>();
     final Map<Value, LLValue> globalValues = new HashMap<>();
+
+    final Map<String, LLValue> TEMPORARY_stringLiterals = new HashMap<>();
 
     LLVMModuleNodeVisitor(final Module module, final CompilationContext ctxt) {
         this.module = module;
@@ -126,7 +144,9 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             //   - Add the mapping to types early to avoid infinite recursion when mapping self-referential member types
             CompoundType compoundType = (CompoundType) type;
             String name;
-            if (compoundType.getTag() == CompoundType.Tag.NONE) {
+            if (compoundType.getName().equals("<anon>")) {
+                name = "T.anon" + anonCnt.getAndIncrement();
+            } else if (compoundType.getTag() == CompoundType.Tag.NONE) {
                 name = "T." + compoundType.getName();
             } else {
                 name = "T." + compoundType.getTag() + "." + compoundType.getName();
@@ -166,7 +186,6 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
 
             identifiedType.type(struct);
         } else if (type instanceof TypeType) {
-            TypeType typeType = (TypeType) type;
             int size = ctxt.getTypeSystem().getTypeIdSize();
             if (size == 1) {
                 res = i8;
@@ -214,6 +233,25 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         LLValue fromType = map(node.getValue().getType());
         LLValue toType = map(node.getType());
         return Values.bitcastConstant(input, fromType, toType);
+    }
+
+    public LLValue visit(final Void param, final ValueConvertLiteral node) {
+        LLValue input = map(node.getValue());
+        ValueType inputType = node.getValue().getType();
+        LLValue fromType = map(inputType);
+        WordType outputType = node.getType();
+        LLValue toType = map(outputType);
+        if ((inputType instanceof IntegerType || inputType instanceof ReferenceType) && outputType instanceof PointerType) {
+            return Values.inttoptrConstant(input, fromType, toType);
+        } else if (inputType instanceof PointerType && (outputType instanceof IntegerType || outputType instanceof ReferenceType)) {
+            return Values.ptrtointConstant(input, fromType, toType);
+        }
+        // todo: add signed/unsigned int <-> fp
+        return visitUnknown(param, node);
+    }
+
+    public LLValue visit(final Void param, final ByteArrayLiteral node) {
+        return Values.byteArray(node.getValues());
     }
 
     public LLValue visit(final Void param, final CompoundLiteral node) {
@@ -278,8 +316,64 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         return node.booleanValue() ? TRUE : FALSE;
     }
 
+    public LLValue visit(Void param, TypeLiteral node) {
+        return Values.intConstant(((PhysicalObjectType)node.getValue()).getDefinition().validate().getTypeId());
+    }
+
     public LLValue visitUnknown(final Void param, final Value node) {
         ctxt.error(Location.builder().setNode(node).build(), "llvm: Unrecognized value %s", node.getClass());
         return LLVM.FALSE;
+    }
+
+    // === TEMPORARY until heap serialization is functional ===
+
+    public LLValue visit(Void param, StringLiteral node) {
+        String value = node.getValue();
+        LLValue v = TEMPORARY_stringLiterals.get(value);
+        if (v == null) {
+            int id = slCnt.getAndIncrement();
+            Layout layout = Layout.get(ctxt);
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            TypeSystem ts = ctxt.getTypeSystem();
+
+            DefinedTypeDefinition jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object");
+            Layout.LayoutInfo jloLayout = layout.getInstanceLayoutInfo(jlo);
+            CompoundType.Member typeIdMem = jloLayout.getMember(layout.getObjectTypeIdField());
+
+            DefinedTypeDefinition a = layout.getArrayLengthField().getEnclosingType();
+            Layout.LayoutInfo aLayout = layout.getInstanceLayoutInfo(a);
+            CompoundType.Member lengthMem = aLayout.getMember(layout.getArrayLengthField());
+
+            DefinedTypeDefinition ba = layout.getByteArrayContentField().getEnclosingType();
+            Layout.LayoutInfo baLayout = layout.getInstanceLayoutInfo(ba);
+            CompoundType.Member contentMem = baLayout.getMember(layout.getByteArrayContentField());
+
+            byte[] bytes = node.getValue().getBytes(node.isLatin1() ? StandardCharsets.ISO_8859_1 : StandardCharsets.UTF_16BE);
+            ArrayType s8ArrayType = ts.getArrayType(ts.getSignedInteger8Type(), bytes.length);
+            CompoundType.Member realContentMem = ts.getCompoundTypeMember(contentMem.getName(), s8ArrayType, contentMem.getOffset(), contentMem.getAlign());
+
+            CompoundType baType = ts.getCompoundType(CompoundType.Tag.NONE, "ba" + id, 0, 1, () -> List.of(typeIdMem, lengthMem, realContentMem));
+
+            CompoundLiteral baLit = lf.literalOf(baType, Map.of(
+                typeIdMem, lf.literalOfType(ba.validate().getType()),
+                lengthMem, lf.literalOf(bytes.length),
+                realContentMem, lf.literalOf(s8ArrayType, bytes)
+            ));
+            module.global(map(baType)).value(map(baLit)).linkage(Linkage.PRIVATE).asGlobal("ba" + id);
+
+            DefinedTypeDefinition jls = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String");
+            Layout.LayoutInfo jlsLayout = layout.getInstanceLayoutInfo(jls);
+            CompoundType.Member coderMem = jlsLayout.getMember(jls.validate().findField("coder"));
+            CompoundType.Member valueMem = jlsLayout.getMember(jls.validate().findField("value"));
+            CompoundType stringType = ts.getCompoundType(CompoundType.Tag.NONE, "str" + id, 0, 1, () -> List.of(typeIdMem, coderMem, valueMem));
+            CompoundLiteral lit = lf.literalOf(stringType, Map.of(
+                typeIdMem, lf.literalOfType(jls.validate().getType()),
+                coderMem, lf.literalOf(node.isLatin1() ? 0 : 1),
+                valueMem, lf.valueConvertLiteral(lf.literalOfSymbol("ba" + id, baType.getPointer()), jls.validate().getType().getReference())
+            ));
+            module.constant(map(stringType)).value(visit(param, lit)).linkage(Linkage.PRIVATE).asGlobal("str" + id);
+            TEMPORARY_stringLiterals.put(value, v = map(lf.valueConvertLiteral(lf.literalOfSymbol("str" + id, lit.getType().getPointer()), jls.validate().getClassType().getReference())));
+        }
+        return v;
     }
 }

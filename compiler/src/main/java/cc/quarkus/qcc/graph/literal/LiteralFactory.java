@@ -64,9 +64,13 @@ public interface LiteralFactory {
 
     ArrayLiteral literalOf(ArrayType type, List<Literal> values);
 
+    ByteArrayLiteral literalOf(ArrayType type, byte[] values);
+
     CompoundLiteral literalOf(CompoundType type, Map<CompoundType.Member, Literal> values);
 
     BitCastLiteral bitcastLiteral(Literal value, WordType toType);
+
+    ValueConvertLiteral valueConvertLiteral(Literal value, WordType toType);
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
@@ -183,6 +187,15 @@ public interface LiteralFactory {
                 return new ArrayLiteral(type, values);
             }
 
+            public ByteArrayLiteral literalOf(ArrayType type, byte[] values) {
+                Assert.checkNotNullParam("type", type);
+                Assert.checkNotNullParam("values", values);
+                if (type.getElementCount() != values.length) {
+                    throw new IllegalArgumentException("Cannot construct array literal with different element count than the size of the list of values");
+                }
+                return new ByteArrayLiteral(type, values);
+            }
+
             public CompoundLiteral literalOf(final CompoundType type, final Map<CompoundType.Member, Literal> values) {
                 Assert.checkNotNullParam("type", type);
                 Assert.checkNotNullParam("values", values);
@@ -193,6 +206,12 @@ public interface LiteralFactory {
                 Assert.checkNotNullParam("value", value);
                 Assert.checkNotNullParam("toType", toType);
                 return new BitCastLiteral(value, toType);
+            }
+
+            public ValueConvertLiteral valueConvertLiteral(final Literal value, final WordType toType) {
+                Assert.checkNotNullParam("value", value);
+                Assert.checkNotNullParam("toType", toType);
+                return new ValueConvertLiteral(value, toType);
             }
         };
     }

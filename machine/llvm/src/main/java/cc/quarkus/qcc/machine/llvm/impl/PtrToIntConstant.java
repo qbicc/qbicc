@@ -1,22 +1,22 @@
 package cc.quarkus.qcc.machine.llvm.impl;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-
 import java.io.IOException;
 
-final class BitcastConstant extends AbstractValue {
+import cc.quarkus.qcc.machine.llvm.LLValue;
+
+final class PtrToIntConstant extends AbstractValue {
     final LLValue value;
     final LLValue fromType;
     final LLValue toType;
 
-    BitcastConstant(LLValue value, LLValue fromType, LLValue toType) {
+    PtrToIntConstant(LLValue value, LLValue fromType, LLValue toType) {
         this.value = value;
         this.fromType = fromType;
         this.toType = toType;
     }
 
     public Appendable appendTo(Appendable target) throws IOException {
-        target.append("bitcast (");
+        target.append("ptrtoint (");
         ((AbstractValue)fromType).appendTo(target);
         target.append(" ");
         ((AbstractValue)value).appendTo(target);

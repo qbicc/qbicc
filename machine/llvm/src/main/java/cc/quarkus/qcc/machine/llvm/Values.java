@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.machine.llvm;
 
-import java.util.List;
-
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 
 /**
@@ -18,7 +16,17 @@ public final class Values {
 
     public static final LLValue zeroinitializer = LLVM.zeroinitializer;
 
-    public static LLValue bitcastConstant(LLValue value, LLValue fromType, LLValue toType) { return LLVM.bitcastConstant(value, fromType, toType); }
+    public static LLValue bitcastConstant(LLValue value, LLValue fromType, LLValue toType) {
+        return LLVM.bitcastConstant(value, fromType, toType);
+    }
+
+    public static LLValue inttoptrConstant(LLValue value, LLValue fromType, LLValue toType) {
+        return LLVM.inttoptrConstant(value, fromType, toType);
+    }
+
+    public static LLValue ptrtointConstant(LLValue value, LLValue fromType, LLValue toType) {
+        return LLVM.ptrtointConstant(value, fromType, toType);
+    }
 
     public static LLValue intConstant(int val) {
         return LLVM.intConstant(val);
@@ -42,6 +50,10 @@ public final class Values {
 
     public static Array array(LLValue elementType) {
         return LLVM.array(elementType);
+    }
+
+    public static LLValue byteArray(byte[] contents) {
+        return LLVM.byteArray(contents);
     }
 
     public static Struct struct() {

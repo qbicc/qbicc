@@ -4,6 +4,7 @@ import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.BitCastLiteral;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
+import cc.quarkus.qcc.graph.literal.ByteArrayLiteral;
 import cc.quarkus.qcc.graph.literal.CompoundLiteral;
 import cc.quarkus.qcc.graph.literal.DefinedConstantLiteral;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
@@ -16,6 +17,7 @@ import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
+import cc.quarkus.qcc.graph.literal.ValueConvertLiteral;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 
 /**
@@ -59,6 +61,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, BooleanLiteral node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, ByteArrayLiteral node) {
         return visitUnknown(param, node);
     }
 
@@ -322,6 +328,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, ValueConvertLiteral node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, Xor node) {
         return visitUnknown(param, node);
     }
@@ -366,6 +376,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, BooleanLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ByteArrayLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -614,6 +628,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, UndefinedLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ValueConvertLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
