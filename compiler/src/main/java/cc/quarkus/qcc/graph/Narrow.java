@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
@@ -15,7 +16,12 @@ public final class Narrow extends AbstractValue implements CastValue {
     Narrow(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, final ValueType type) {
         super(callSite, element, line, bci);
         this.input = input;
-        this.type = type;
+        ValueType inputType = input.getType();
+        if (type instanceof ReferenceType && inputType instanceof ReferenceType) {
+            this.type = ((ReferenceType) type).meet((ReferenceType) inputType);
+        } else {
+            this.type = type;
+        }
     }
 
     public Value getInput() {

@@ -44,9 +44,8 @@ public class GotoRemovingVisitor implements NodeVisitor.Delegating<Node.Copier, 
 
     public Value visit(final Node.Copier param, final PhiValue node) {
         if (deleted.contains(node.getPinnedBlock())) {
-            // the deleted block only has one incoming block, so the phi must also have only one incoming value
-            assert node.getIncomingValues().size() == 1;
-            return param.copyValue(node.getIncomingValues().iterator().next().getValue());
+            // the deleted block only has one incoming block, so the phi must also have only one valid incoming value
+            return param.copyValue(node.getValueForInput(node.getPinnedBlock().getIncoming().iterator().next().getTerminator()));
         } else {
             return getDelegateValueVisitor().visit(param, node);
         }
