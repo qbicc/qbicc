@@ -84,7 +84,7 @@ public final class InterfaceObjectType extends ObjectType {
     }
 
     public StringBuilder toString(final StringBuilder b) {
-        return super.toString(b).append("interface").append('(').append(definition.getInternalName()).append(')');
+        return b.append("interface").append('(').append(definition.getInternalName()).append(')');
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
