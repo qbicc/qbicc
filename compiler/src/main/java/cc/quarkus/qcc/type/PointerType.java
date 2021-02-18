@@ -40,10 +40,6 @@ public final class PointerType extends WordType {
         return withConstPointee;
     }
 
-    public boolean isImplicitlyConvertibleFrom(final Type other) {
-        return super.isImplicitlyConvertibleFrom(other) || other instanceof ArrayType && ((ArrayType) other).getElementType().equals(pointeeType);
-    }
-
     public long getSize() {
         return typeSystem.getPointerSize();
     }

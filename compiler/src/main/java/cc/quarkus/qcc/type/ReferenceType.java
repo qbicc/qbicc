@@ -103,6 +103,14 @@ public final class ReferenceType extends WordType {
         return this == other || super.equals(other) && size == other.size && align == other.align && upperBound.equals(other.upperBound) && interfaceBounds.equals(other.interfaceBounds);
     }
 
+    public boolean isImplicitlyConvertibleFrom(Type other) {
+        return other instanceof ReferenceType && isImplicitlyConvertibleFrom((ReferenceType) other) || other instanceof NullType && isNullable();
+    }
+
+    public boolean isImplicitlyConvertibleFrom(ReferenceType other) {
+        return other.instanceOf(this);
+    }
+
     public ValueType join(final ValueType other) {
         if (other instanceof ReferenceType) {
             return join(((ReferenceType) other));
