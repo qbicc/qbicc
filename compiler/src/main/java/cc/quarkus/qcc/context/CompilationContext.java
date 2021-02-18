@@ -63,6 +63,8 @@ public interface CompilationContext extends DiagnosticContext {
 
     Section getImplicitSection(ExecutableElement element);
 
+    Section getImplicitSection(DefinedTypeDefinition typeDefinition);
+
     Function getExactFunction(ExecutableElement element);
 
     FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current);
