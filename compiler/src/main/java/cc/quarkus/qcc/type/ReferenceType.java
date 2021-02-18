@@ -418,7 +418,11 @@ public final class ReferenceType extends WordType {
             b.append("nullable").append(' ');
         }
         b.append("reference");
-        return upperBound.toString(b.append('(')).append(')');
+        upperBound.toString(b.append('('));
+        for (InterfaceObjectType interfaceBound : interfaceBounds) {
+            b.append('&').append(interfaceBound);
+        }
+        return b.append(')');
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
