@@ -31,6 +31,10 @@ public abstract class DelegatingValidatedTypeDefinition extends DelegatingDefine
         return getDelegate().getInterface(index);
     }
 
+    public ValidatedTypeDefinition[] getInterfaces() {
+        return getDelegate().getInterfaces();
+    }
+
     public FieldSet getInstanceFieldSet() {
         return getDelegate().getInstanceFieldSet();
     }

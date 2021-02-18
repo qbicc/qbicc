@@ -31,6 +31,7 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     private final NestedClassElement[] enclosedClasses;
     private volatile ResolvedTypeDefinition resolved;
     private int typeId = -1;
+    private int maximumSubtypeId = -1;
 
     ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
         this.delegate = delegate;
@@ -78,6 +79,10 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
 
     public ValidatedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
         return interfaces[index];
+    }
+
+    public ValidatedTypeDefinition[] getInterfaces() {
+        return interfaces.clone();
     }
 
     public FieldSet getStaticFieldSet() {
@@ -167,6 +172,10 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
         return typeId;
     }
 
+    public int getMaximumSubtypeId() {
+        return maximumSubtypeId;
+    }
+
     public boolean isTypeIdValid() {
         return typeId != -1;
     }
@@ -175,6 +184,12 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
         // typeId shouldn't hae already been assigned
         Assert.assertTrue(typeId == -1);
         typeId = myTypeId;
+    }
+
+    public void assignMaximumSubtypeId(int subTypeId) {
+        // maximumSubtypeId shouldn't hae already been assigned
+        Assert.assertTrue(maximumSubtypeId == -1);
+        maximumSubtypeId = subTypeId;
     }
 }
 
