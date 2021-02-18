@@ -330,7 +330,7 @@ public final class ReferenceType extends WordType {
             InterfaceObjectType ourItem = ourArray[i];
             for (int j = 0; j < otherSize; j ++) {
                 InterfaceObjectType theirItem = otherArray[j];
-                if (theirItem.isSubtypeOf(ourItem)) {
+                if (theirItem != null && theirItem.isSubtypeOf(ourItem)) {
                     // theirs is better than ours; drop ours
                     ourArray[i] = null;
                     continue nextOurs;
