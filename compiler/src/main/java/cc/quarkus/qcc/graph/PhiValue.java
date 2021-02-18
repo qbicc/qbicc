@@ -29,7 +29,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         Assert.checkNotNullParam("value", value);
         ValueType expected = getType();
         ValueType actual = value.getType();
-        if (! actual.join(expected).equals(expected)) {
+        if (! expected.isImplicitlyConvertibleFrom(actual)) {
             ctxt.error(element, this, "Invalid input value for phi: expected %s, got %s (join is %s)", expected, actual, actual.join(expected));
         }
         if (incomingValues.containsKey(input)) {

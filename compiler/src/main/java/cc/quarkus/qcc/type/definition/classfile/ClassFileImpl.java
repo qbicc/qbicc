@@ -1201,7 +1201,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             int j = 0;
             if (nonStatic) {
                 // instance method or constructor
-                thisValue = gf.parameter(enclosing.validate().getType().getReference(), "this", 0);
+                thisValue = gf.parameter(enclosing.validate().getType().getReference().asNullable(), "this", 0);
                 currentVarTypes[j] = thisValue.getType();
                 methodParser.setLocal1(j++, thisValue);
             } else {
@@ -1368,8 +1368,10 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         } else {
             // we have to jump into it because there is a loop that includes index 0
             byteCode.position(0);
-            gf.begin(new BlockLabel());
+            BlockLabel newLabel = new BlockLabel();
+            gf.begin(newLabel);
             methodParser.processBlock(gf.goto_(entryBlockHandle));
+            entryBlockHandle = newLabel;
         }
         gf.finish();
         BasicBlock entryBlock = BlockLabel.getTargetOf(entryBlockHandle);
@@ -1396,7 +1398,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         } else if (viTag == 5) { // null
             return ts.getNullType();
         } else if (viTag == 6) { // uninitialized this
-            return element.getEnclosingType().validate().getType().getReference();
+            return element.getEnclosingType().validate().getType().getReference().asNullable();
         } else if (viTag == 7) { // object
             int cpIdx = sm.getShort() & 0xffff;
             return nullable(getTypeConstant(cpIdx));

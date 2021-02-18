@@ -103,6 +103,14 @@ public final class ReferenceType extends WordType {
         return this == other || super.equals(other) && size == other.size && align == other.align && upperBound.equals(other.upperBound) && interfaceBounds.equals(other.interfaceBounds);
     }
 
+    public boolean isImplicitlyConvertibleFrom(Type other) {
+        return other instanceof ReferenceType && isImplicitlyConvertibleFrom((ReferenceType) other) || other instanceof NullType && isNullable();
+    }
+
+    public boolean isImplicitlyConvertibleFrom(ReferenceType other) {
+        return other.instanceOf(this);
+    }
+
     public ValueType join(final ValueType other) {
         if (other instanceof ReferenceType) {
             return join(((ReferenceType) other));
@@ -322,7 +330,7 @@ public final class ReferenceType extends WordType {
             InterfaceObjectType ourItem = ourArray[i];
             for (int j = 0; j < otherSize; j ++) {
                 InterfaceObjectType theirItem = otherArray[j];
-                if (theirItem.isSubtypeOf(ourItem)) {
+                if (theirItem != null && theirItem.isSubtypeOf(ourItem)) {
                     // theirs is better than ours; drop ours
                     ourArray[i] = null;
                     continue nextOurs;
@@ -418,7 +426,11 @@ public final class ReferenceType extends WordType {
             b.append("nullable").append(' ');
         }
         b.append("reference");
-        return upperBound.toString(b.append('(')).append(')');
+        upperBound.toString(b.append('('));
+        for (InterfaceObjectType interfaceBound : interfaceBounds) {
+            b.append('&').append(interfaceBound);
+        }
+        return b.append(')');
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {

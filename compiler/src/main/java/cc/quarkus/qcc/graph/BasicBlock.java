@@ -54,7 +54,9 @@ public final class BasicBlock {
             if (incoming.isEmpty()) {
                 incoming = Set.of(from);
             } else if (incoming.size() == 1) {
-                incoming = Set.of(from, incoming.iterator().next());
+                if (! incoming.contains(from)) {
+                    incoming = Set.of(from, incoming.iterator().next());
+                }
             } else if (incoming.size() == 2) {
                 Set<BasicBlock> old = this.incoming;
                 incoming = new HashSet<>();

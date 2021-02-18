@@ -635,14 +635,6 @@ public interface Node {
 
             public Value visit(final Copier param, final PhiValue node) {
                 param.enqueue(node);
-                for (Map.Entry<Terminator, Value> entry : node.getIncomingValues()) {
-                    // ensure all reachable incoming blocks are enqueued
-                    Terminator terminator = entry.getKey();
-                    BasicBlock block = terminator.getTerminatedBlock();
-                    if (block.isReachable()) {
-                        param.copyBlock(block);
-                    }
-                }
                 return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()));
             }
 
