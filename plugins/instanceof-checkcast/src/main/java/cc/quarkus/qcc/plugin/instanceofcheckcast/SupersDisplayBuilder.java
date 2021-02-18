@@ -3,6 +3,7 @@ package cc.quarkus.qcc.plugin.instanceofcheckcast;
 import java.util.function.Consumer;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -27,7 +28,43 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         tables.buildSupersDisplay(jlo);
         info.visitLiveSubclassesPreOrder(jlo, cls -> tables.buildSupersDisplay(cls));
         // Assign typeIDs to classes
+        // [0] Poisioned entry for easier debugging
+        // primitives
+        // [1] boolean.class
+        // [2] byte.class
+        // [3] short.class
+        // [4] char.class
+        // [5] int.class
+        // [6] float.class
+        // [7] long.class
+        // [8] double.class
+        // [9] void.class
+        tables.reserveTypeIds(10);
+
+        // object
         tables.assignTypeID(jlo);
+        // arrays, including reference array
+        Layout layout = Layout.get(ctxt);
+        // [Object + 1] boolean[].class
+        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[Z"));
+        // [Object + 2] byte[].class
+        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[B"));
+        // [Object + 3] short[].class
+        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[S"));
+        // [Object + 4] char[].class
+        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[C"));
+        // [Object + 5] int[].class
+        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[I"));
+        // [Object + 6] float[].class
+        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[F"));
+        // [Object + 7] long[].class
+        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[J"));
+        // [Object + 8] double[].class
+        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[D"));
+        // [Object + 9] Reference[]
+        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[ref"));
+
+        // subclasses of object
         info.visitLiveSubclassesPreOrder(jlo, cls -> tables.assignTypeID(cls));
 
         // back propagate max subclass typeid
@@ -42,5 +79,7 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
 
         tables.writeTypeIdToClasses();
 
+        // emit the typeid[] into Object's file
+        tables.emitTypeIdTable(jlo);
     }
 }
