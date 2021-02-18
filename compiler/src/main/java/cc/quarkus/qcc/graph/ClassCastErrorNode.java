@@ -7,7 +7,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public final class ClassCastErrorNode extends AbstractNode implements Error {
+public final class ClassCastErrorNode extends AbstractTerminator implements Error {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
     private final Value fromType;

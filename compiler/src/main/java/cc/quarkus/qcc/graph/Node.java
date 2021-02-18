@@ -122,8 +122,8 @@ public interface Node {
             while ((orig = phiQueue.poll()) != null) {
                 PhiValue copy = (PhiValue) copiedNodes.get(orig);
                 // process and map all incoming values - might enqueue more blocks or phis
-                for (final Terminator incomingTerminator : orig.incomingTerminators()) {
-                    BasicBlock incomingBlock = incomingTerminator.getTerminatedBlock();
+                for (BasicBlock incomingBlock : orig.getPinnedBlock().getIncoming()) {
+                    Terminator incomingTerminator = incomingBlock.getTerminator();
                     if (incomingBlock.isReachable()) {
                         Value val = orig.getValueForInput(incomingTerminator);
                         if (val != null) {

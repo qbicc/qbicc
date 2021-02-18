@@ -29,16 +29,16 @@ public class PhiOptimizerVisitor implements NodeVisitor.Delegating<Node.Copier, 
 
     public Value visit(final Node.Copier param, final PhiValue node) {
         // see if there is more than one input
-        Iterator<Terminator> iterator = node.incomingTerminators().iterator();
+        Iterator<BasicBlock> iterator = node.getPinnedBlock().getIncoming().iterator();
         while (iterator.hasNext()) {
-            Terminator t1 = iterator.next();
-            BasicBlock b1 = t1.getTerminatedBlock();
+            BasicBlock b1 = iterator.next();
+            Terminator t1 = b1.getTerminator();
             if (b1.isReachable()) {
                 Value v1 = node.getValueForInput(t1);
                 if (v1 != null && ! v1.equals(node)) {
                     while (iterator.hasNext()) {
-                        Terminator t2 = iterator.next();
-                        BasicBlock b2 = t2.getTerminatedBlock();
+                        BasicBlock b2 = iterator.next();
+                        Terminator t2 = b2.getTerminator();
                         if (b2.isReachable()) {
                             Value v2 = node.getValueForInput(t2);
                             if (v2 != null && ! v2.equals(v1) && ! v2.equals(node)) {

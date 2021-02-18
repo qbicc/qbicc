@@ -7,7 +7,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public final class Ret extends AbstractNode implements Terminator {
+public final class Ret extends AbstractTerminator implements Terminator {
     private final Node dependency;
     private final Value returnAddressValue;
     private final BasicBlock terminatedBlock;

@@ -1,9 +1,5 @@
 package cc.quarkus.qcc.graph;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.Element;
@@ -13,7 +9,6 @@ import io.smallrye.common.constraint.Assert;
 public final class PhiValue extends AbstractValue implements PinnedNode {
     private ValueType type;
     private final BlockLabel blockLabel;
-    private final HashMap<Terminator, Value> incomingValues = new HashMap<>();
 
     PhiValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueType type, final BlockLabel blockLabel) {
         super(callSite, element, line, bci);
@@ -22,7 +17,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
     }
 
     public Value getValueForInput(final Terminator input) {
-        return incomingValues.get(Assert.checkNotNullParam("input", input));
+        return ((AbstractTerminator) Assert.checkNotNullParam("input", input)).getOutboundValue(this);
     }
 
     public void setValueForTerminator(final CompilationContext ctxt, final Element element, final Terminator input, final Value value) {
@@ -32,11 +27,10 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         if (! expected.isImplicitlyConvertibleFrom(actual)) {
             ctxt.error(element, this, "Invalid input value for phi: expected %s, got %s (join is %s)", expected, actual, actual.join(expected));
         }
-        if (incomingValues.containsKey(input)) {
+        if (! ((AbstractTerminator) input).registerValue(this, value)) {
             ctxt.error(element, this, "Phi already has a value for block %s", input.getTerminatedBlock());
             return;
         }
-        incomingValues.put(input, value);
     }
 
     public void setValueForBlock(final CompilationContext ctxt, final Element element, final BasicBlock input, final Value value) {
@@ -45,14 +39,6 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
 
     public void setValueForBlock(final CompilationContext ctxt, final Element element, final BlockLabel input, final Value value) {
         setValueForBlock(ctxt, element, BlockLabel.getTargetOf(input), value);
-    }
-
-    public Set<Terminator> incomingTerminators() {
-        return incomingValues.keySet();
-    }
-
-    public Set<Map.Entry<Terminator, Value>> getIncomingValues() {
-        return incomingValues.entrySet();
     }
 
     public ValueType getType() {

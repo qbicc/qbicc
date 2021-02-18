@@ -8,7 +8,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public final class Jsr extends AbstractNode implements Resume, Terminator {
+public final class Jsr extends AbstractTerminator implements Resume, Terminator {
     private final Node dependency;
     private final BlockLabel jsrTargetLabel;
     private final BlockLiteral returnAddress;

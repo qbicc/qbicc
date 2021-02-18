@@ -7,7 +7,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * An operation which may throw an exception.
  */
-public final class Try extends AbstractNode implements Resume {
+public final class Try extends AbstractTerminator implements Resume {
     private final Triable delegateOperation;
     private final BlockLabel resumeTargetLabel;
     private final BlockLabel exceptionHandler;

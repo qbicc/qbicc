@@ -7,7 +7,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public final class ClassNotFoundErrorNode extends AbstractNode implements Error {
+public final class ClassNotFoundErrorNode extends AbstractTerminator implements Error {
     private final Node dependency;
     private final String name;
     private final BasicBlock terminatedBlock;

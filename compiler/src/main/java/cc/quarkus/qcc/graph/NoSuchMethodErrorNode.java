@@ -9,7 +9,7 @@ import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 /**
  *
  */
-public final class NoSuchMethodErrorNode extends AbstractNode implements Error {
+public final class NoSuchMethodErrorNode extends AbstractTerminator implements Error {
     private final Node dependency;
     private final ObjectType owner;
     private final MethodDescriptor desc;

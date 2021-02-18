@@ -151,9 +151,10 @@ public interface Schedule {
         if (node instanceof PhiValue) {
             // make sure phi entries were scheduled
             PhiValue phiValue = (PhiValue) node;
-            for (Terminator terminator : phiValue.incomingTerminators()) {
+            for (BasicBlock terminatedBlock : phiValue.getPinnedBlock().getIncoming()) {
                 // skip unreachable inputs
-                if (blockInfos.containsKey(terminator.getTerminatedBlock())) {
+                Terminator terminator = terminatedBlock.getTerminator();
+                if (blockInfos.containsKey(terminatedBlock)) {
                     Value value = phiValue.getValueForInput(terminator);
                     if (value instanceof PinnedNode && ! blockInfos.containsKey(((PinnedNode) value).getPinnedBlock())) {
                         // the node is reachable even though its block is not!
