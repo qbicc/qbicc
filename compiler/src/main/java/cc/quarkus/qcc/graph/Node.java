@@ -248,6 +248,12 @@ public interface Node {
         public BasicBlock copyTerminator(Terminator original) {
             BasicBlock basicBlock = copiedTerminators.get(original);
             if (basicBlock == null) {
+                // first copy all outbound values from the original block
+                Map<PhiValue, Value> outboundValues = ((AbstractTerminator) original).getOutboundValues();
+                for (Value value : outboundValues.values()) {
+                    copyValue(value);
+                }
+                // now copy the terminator and its dependencies
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
