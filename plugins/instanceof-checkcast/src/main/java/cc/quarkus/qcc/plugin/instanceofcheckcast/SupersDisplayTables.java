@@ -76,30 +76,38 @@ public class SupersDisplayTables {
      * [interfaces]
      */
     static class IdAndRange {
-        private static int typeid_index = 0; // avoid using 0;
-        
-        // interface ids must be contigious and after the class ids
-        private static int first_interface_typeid = 0;
-        static final int interfaces_per_byte = 8;
 
-        public static IdAndRange nextID() {
-            return new IdAndRange(typeid_index++);
-        }
+        static class Factory {
+            static final int interfaces_per_byte = 8;
 
-        public static IdAndRange nextInterfaceID() {
-            if (first_interface_typeid == 0) {
-                first_interface_typeid = typeid_index;
+            private int typeid_index = 0; // avoid using 0;
+
+            // interface ids must be contigious and after the class ids
+            private int first_interface_typeid = 0;
+
+
+            public IdAndRange nextID() {
+                return new IdAndRange(typeid_index++, this);
             }
-            return new IdAndRange(typeid_index++);
+
+            public IdAndRange nextInterfaceID() {
+                if (first_interface_typeid == 0) {
+                    first_interface_typeid = typeid_index;
+                }
+                return new IdAndRange(typeid_index++, this);
+            }
         }
+
+        private final Factory constants;
 
         int typeid;
         int maximumSubtypeId;
         // range is [typeid, maximumSubtypeID]
 
-        IdAndRange(int id) {
+        IdAndRange(int id, Factory factory) {
             typeid = id;
             maximumSubtypeId = id;
+            constants = factory;
         }
 
         public void setMaximumSubtypeId(int id) {
@@ -108,8 +116,8 @@ public class SupersDisplayTables {
 
         public String toString() {
             String s = "ID[" + typeid +"] Range["+ typeid +", " + maximumSubtypeId + "]";
-            if (typeid >= first_interface_typeid) {
-                int bit = (typeid - first_interface_typeid);
+            if (typeid >= constants.first_interface_typeid) {
+                int bit = (typeid - constants.first_interface_typeid);
                 s += " indexBit[" + bit + "]";
                 s += " byte[" + implementedInterfaceByteIndex() + "]";
                 s += " mask[" + Integer.toBinaryString(1 << (bit & 7)) + "]";
@@ -122,8 +130,8 @@ public class SupersDisplayTables {
          * to get the right byte to test for this interface.
          */
         int implementedInterfaceByteIndex() {
-            if (typeid >= first_interface_typeid) {
-                int bit = (typeid - first_interface_typeid);
+            if (typeid >= constants.first_interface_typeid) {
+                int bit = (typeid - constants.first_interface_typeid);
                 return bit >> 3; /* Equiv to: / interfaces_per_byte */
             }
             return -1;
@@ -137,14 +145,16 @@ public class SupersDisplayTables {
          * means the interface is implemented
          */
         int implementedInterfaceBitMask() {
-            if (typeid >= first_interface_typeid) {
-                int bit = (typeid - first_interface_typeid);
+            if (typeid >= constants.first_interface_typeid) {
+                int bit = (typeid - constants.first_interface_typeid);
                 return 1 << (bit & 7);
             }
             return 0;
         }
 
     }
+
+    private final IdAndRange.Factory idAndRange = new IdAndRange.Factory();
 
     private int maxDisplaySizeElements;
 
@@ -237,7 +247,7 @@ public class SupersDisplayTables {
         );
 
         int numInterfaces = typeids.size() - supers.size() - 18 /* primitives, void, primitive arrays, ref array */;
-        int bytesPerClass = (numInterfaces + IdAndRange.interfaces_per_byte - 1) / IdAndRange.interfaces_per_byte;
+        int bytesPerClass = (numInterfaces + idAndRange.interfaces_per_byte - 1) / idAndRange.interfaces_per_byte;
         supersLog.debug("===============");
         supersLog.debug("Implemented interface bits require " + bytesPerClass + " bytes per class");
         supersLog.debug("classes + interfaces = " + typeids.size());
@@ -245,7 +255,7 @@ public class SupersDisplayTables {
     }
 
     void assignTypeID(ValidatedTypeDefinition cls) {
-        IdAndRange myID = typeids.computeIfAbsent(cls, theCls -> IdAndRange.nextID());
+        IdAndRange myID = typeids.computeIfAbsent(cls, theCls -> idAndRange.nextID());
         log.debug("["+ myID.typeid +"] Class: " + cls.getInternalName());
     }
 
@@ -267,7 +277,7 @@ public class SupersDisplayTables {
         for (int i = 0; i < numInterfaces; i++) {
             ValidatedTypeDefinition interface_i = cls.getInterface(i);
             if (typeids.get(interface_i) == null) {
-                typeids.computeIfAbsent(interface_i, theInterface -> IdAndRange.nextInterfaceID());
+                typeids.computeIfAbsent(interface_i, theInterface -> idAndRange.nextInterfaceID());
                 // assign IDs to interfaces implemented by this interface
                 assignInterfaceID(interface_i);
             }
@@ -279,12 +289,12 @@ public class SupersDisplayTables {
         IdAndRange r = typeids.get(jlo);
         // typeid_index is incremented after use so we need
         // subtract 1 here to get the max typeid
-        r.maximumSubtypeId = IdAndRange.typeid_index - 1;
+        r.maximumSubtypeId = idAndRange.typeid_index - 1;
     }
 
     void reserveTypeIds(int numToReserve) {
         Assert.assertTrue(numToReserve >= 0);
-        IdAndRange.typeid_index += numToReserve;
+        idAndRange.typeid_index += numToReserve;
     }
 
     void writeTypeIdToClasses() {
@@ -300,12 +310,12 @@ public class SupersDisplayTables {
 
     int getNumberOfInterfacesInTypeIds() {
         // + 10 to handle poisioned 0 entry and the 8 prims and void
-        return typeids.size() - IdAndRange.first_interface_typeid + 10;  
+        return typeids.size() - idAndRange.first_interface_typeid + 10;
     }
 
     int getNumberOfBytesInInterfaceBitsArray() {
         int numInterfaces = getNumberOfInterfacesInTypeIds();
-        return (numInterfaces + IdAndRange.interfaces_per_byte - 1) / IdAndRange.interfaces_per_byte;
+        return (numInterfaces + idAndRange.interfaces_per_byte - 1) / idAndRange.interfaces_per_byte;
     }
 
     byte[] getImplementedInterfaceBits(ValidatedTypeDefinition cls) {
