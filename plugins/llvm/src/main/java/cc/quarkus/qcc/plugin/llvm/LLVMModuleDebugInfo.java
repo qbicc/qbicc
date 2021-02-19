@@ -3,6 +3,7 @@ package cc.quarkus.qcc.plugin.llvm;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
+import cc.quarkus.qcc.machine.llvm.ModuleFlagBehavior;
 import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DICompositeType;
@@ -54,18 +55,8 @@ final class LLVMModuleDebugInfo {
         this.module = module;
         this.ctxt = ctxt;
 
-        final LLValue diVersionTuple = module.metadataTuple()
-                .elem(Types.i32, Values.intConstant(2))
-                .elem(null, Values.metadataString("Debug Info Version"))
-                .elem(Types.i32, Values.intConstant(3))
-                .asRef();
-        final LLValue dwarfVersionTuple = module.metadataTuple()
-                .elem(Types.i32, Values.intConstant(2))
-                .elem(null, Values.metadataString("Dwarf Version"))
-                .elem(Types.i32, Values.intConstant(4))
-                .asRef();
-
-        module.metadataTuple("llvm.module.flags").elem(null, diVersionTuple).elem(null, dwarfVersionTuple);
+        module.addFlag(ModuleFlagBehavior.Warning, "Debug Info Version", Types.i32, Values.intConstant(3));
+        module.addFlag(ModuleFlagBehavior.Warning, "Dwarf Version", Types.i32, Values.intConstant(4));
 
         // TODO Generate correct filenames
         diCompileUnit = module.diCompileUnit("DW_LANG_Java", module.diFile("<stdin>", "").asRef(), DebugEmissionKind.FullDebug).asRef();
