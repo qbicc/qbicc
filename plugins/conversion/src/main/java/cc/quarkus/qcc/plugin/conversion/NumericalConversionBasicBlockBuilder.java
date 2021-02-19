@@ -13,6 +13,7 @@ import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.PointerType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
@@ -214,6 +215,12 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 if (fromTypeRaw.getSize() > toTypeRaw.getSize()) {
                     ctxt.error(getLocation(), "Invalid pointer conversion to narrower type %s", fromTypeRaw);
                 }
+                return super.valueConvert(from, toTypeRaw);
+            } else if (toTypeRaw instanceof ReferenceType) {
+                return super.valueConvert(from, toTypeRaw);
+            }
+        } else if (fromTypeRaw instanceof ReferenceType) {
+            if (toTypeRaw instanceof PointerType) {
                 return super.valueConvert(from, toTypeRaw);
             }
         }
