@@ -4,12 +4,12 @@ on:
     paths:
       - '**.md'
       - '**.adoc'
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
     paths:
       - '**.md'
       - '**.adoc'
-    branches: [ master ]
+    branches: [ main ]
     types: [ opened, synchronize, reopened ]
 jobs:
   build-linux:
