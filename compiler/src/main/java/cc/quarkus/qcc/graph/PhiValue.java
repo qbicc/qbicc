@@ -25,7 +25,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         ValueType expected = getType();
         ValueType actual = value.getType();
         if (! expected.isImplicitlyConvertibleFrom(actual)) {
-            ctxt.error(element, this, "Invalid input value for phi: expected %s, got %s (join is %s)", expected, actual, actual.join(expected));
+            ctxt.warning(element, this, "Invalid input value for phi: expected %s, got %s", expected, actual);
         }
         if (! ((AbstractTerminator) input).registerValue(this, value)) {
             ctxt.error(element, this, "Phi already has a value for block %s", input.getTerminatedBlock());
