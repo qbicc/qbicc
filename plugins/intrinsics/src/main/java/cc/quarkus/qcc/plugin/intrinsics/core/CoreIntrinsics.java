@@ -9,6 +9,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockEarlyTermination;
+import cc.quarkus.qcc.graph.Extend;
 import cc.quarkus.qcc.graph.Load;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
@@ -371,6 +372,8 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$type_id");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
+        ClassTypeDescriptor nObjDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$object");
+        ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$ptr");
 
         MethodDescriptor objTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objDesc));
         MethodDescriptor objArrayTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objArrayDesc));
@@ -386,6 +389,30 @@ public final class CoreIntrinsics {
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), elementTypeField), MemoryAtomicityMode.UNORDERED);
 
         intrinsics.registerIntrinsic(cNativeDesc, "element_type_id_of", objArrayTypeIdDesc, elementTypeOf);
+
+        StaticValueIntrinsic addrOf = (builder, owner, name, descriptor, arguments) -> {
+            Value value = arguments.get(0);
+            if (value instanceof Extend) {
+                value = ((Extend) value).getInput();
+            }
+            if (value instanceof Load) {
+                Load load = (Load) value;
+                return builder.addressOf(load.getValueHandle());
+            } else {
+                ctxt.error(builder.getLocation(), "Cannot take address of value");
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(value.getType().getPointer());
+            }
+        };
+
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.B)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.C)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.D)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.F)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.I)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.J)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.S)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.Z)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(nObjDesc)), addrOf);
     }
 
     static void registerCcQuarkusQccRuntimeValuesIntrinsics(final CompilationContext ctxt) {
