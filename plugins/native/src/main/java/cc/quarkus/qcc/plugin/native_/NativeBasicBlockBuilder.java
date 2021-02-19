@@ -259,7 +259,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
                 case "isNull":
                 case "isZero": {
-                    return cmpEq(input, lf.zeroInitializerLiteralOfType(input.getType()));
+                    return isEq(input, lf.zeroInitializerLiteralOfType(input.getType()));
                 }
                 case "deref": {
                     return load(pointerHandle(input), MemoryAtomicityMode.UNORDERED);

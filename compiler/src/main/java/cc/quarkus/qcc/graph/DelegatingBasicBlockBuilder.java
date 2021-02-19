@@ -363,12 +363,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().xor(v1, v2);
     }
 
-    public Value cmpEq(final Value v1, final Value v2) {
-        return getDelegate().cmpEq(v1, v2);
+    public Value isEq(final Value v1, final Value v2) {
+        return getDelegate().isEq(v1, v2);
     }
 
-    public Value cmpNe(final Value v1, final Value v2) {
-        return getDelegate().cmpNe(v1, v2);
+    public Value isNe(final Value v1, final Value v2) {
+        return getDelegate().isNe(v1, v2);
     }
 
     public Value shr(final Value v1, final Value v2) {
@@ -399,20 +399,20 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().max(v1, v2);
     }
 
-    public Value cmpLt(final Value v1, final Value v2) {
-        return getDelegate().cmpLt(v1, v2);
+    public Value isLt(final Value v1, final Value v2) {
+        return getDelegate().isLt(v1, v2);
     }
 
-    public Value cmpGt(final Value v1, final Value v2) {
-        return getDelegate().cmpGt(v1, v2);
+    public Value isGt(final Value v1, final Value v2) {
+        return getDelegate().isGt(v1, v2);
     }
 
-    public Value cmpLe(final Value v1, final Value v2) {
-        return getDelegate().cmpLe(v1, v2);
+    public Value isLe(final Value v1, final Value v2) {
+        return getDelegate().isLe(v1, v2);
     }
 
-    public Value cmpGe(final Value v1, final Value v2) {
-        return getDelegate().cmpGe(v1, v2);
+    public Value isGe(final Value v1, final Value v2) {
+        return getDelegate().isGe(v1, v2);
     }
 
     public Value rol(final Value v1, final Value v2) {

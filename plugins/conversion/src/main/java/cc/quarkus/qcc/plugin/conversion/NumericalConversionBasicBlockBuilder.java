@@ -63,7 +63,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     // OK in general but needs to be converted first
                     return truncate(bitCast(from, ((UnsignedIntegerType) fromType).asSigned()), toType);
                 } else if (toType instanceof BooleanType) {
-                    return cmpNe(from, ctxt.getLiteralFactory().literalOf((UnsignedIntegerType) fromType, 0));
+                    return isNe(from, ctxt.getLiteralFactory().literalOf((UnsignedIntegerType) fromType, 0));
                 }
                 // otherwise not OK (fall out)
             } else if (fromType instanceof FloatType) {
@@ -183,11 +183,11 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 final BlockLabel notOverMax = new BlockLabel();
                 final BlockLabel underMin = new BlockLabel();
                 final BlockLabel resume = new BlockLabel();
-                if_(cmpGe(from, upperLitCmp), overMax, notOverMax);
+                if_(isGe(from, upperLitCmp), overMax, notOverMax);
                 begin(overMax);
                 goto_(resume);
                 begin(notOverMax);
-                if_(cmpLt(from, lowerLit), underMin, resume);
+                if_(isLt(from, lowerLit), underMin, resume);
                 begin(underMin);
                 goto_(resume);
                 begin(resume);

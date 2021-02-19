@@ -57,7 +57,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             if (actualType instanceof ReferenceType) {
                 if (((ReferenceType) actualType).instanceOf(refExpectedType)) {
                     // the reference type matches statically
-                    return super.cmpNe(input, lf.literalOfNull());
+                    return super.isNe(input, lf.literalOfNull());
                 }
             }
         }

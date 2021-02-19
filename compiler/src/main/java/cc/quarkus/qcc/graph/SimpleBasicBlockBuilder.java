@@ -149,12 +149,12 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Xor(callSite, element, line, bci, v1, v2);
     }
 
-    public Value cmpEq(final Value v1, final Value v2) {
-        return new CmpEq(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+    public Value isEq(final Value v1, final Value v2) {
+        return new IsEq(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
     }
 
-    public Value cmpNe(final Value v1, final Value v2) {
-        return new CmpNe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+    public Value isNe(final Value v1, final Value v2) {
+        return new IsNe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
     }
 
     public Value shr(final Value v1, final Value v2) {
@@ -185,20 +185,20 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Max(callSite, element, line, bci, v1, v2);
     }
 
-    public Value cmpLt(final Value v1, final Value v2) {
-        return new CmpLt(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+    public Value isLt(final Value v1, final Value v2) {
+        return new IsLt(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
     }
 
-    public Value cmpGt(final Value v1, final Value v2) {
-        return new CmpGt(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+    public Value isGt(final Value v1, final Value v2) {
+        return new IsGt(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
     }
 
-    public Value cmpLe(final Value v1, final Value v2) {
-        return new CmpLe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+    public Value isLe(final Value v1, final Value v2) {
+        return new IsLe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
     }
 
-    public Value cmpGe(final Value v1, final Value v2) {
-        return new CmpGe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
+    public Value isGe(final Value v1, final Value v2) {
+        return new IsGe(callSite, element, line, bci, v1, v2, typeSystem.getBooleanType());
     }
 
     public Value rol(final Value v1, final Value v2) {

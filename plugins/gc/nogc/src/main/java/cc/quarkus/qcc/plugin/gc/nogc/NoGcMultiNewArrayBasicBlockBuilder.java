@@ -46,7 +46,7 @@ public class NoGcMultiNewArrayBasicBlockBuilder extends DelegatingBasicBlockBuil
         BlockLabel exit = new BlockLabel();
         BlockLabel resume = new BlockLabel();
         LiteralFactory lf = ctxt.getLiteralFactory();
-        if_(cmpEq(phi, dimension), exit, resume);
+        if_(isEq(phi, dimension), exit, resume);
         begin(resume);
         phi.setValueForBlock(ctxt, getCurrentElement(), initial, lf.literalOf(0));
         ValueType elementType = arrayType.getElementType();

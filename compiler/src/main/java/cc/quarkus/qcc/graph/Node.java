@@ -451,30 +451,6 @@ public interface Node {
                     param.copyValue(node.getUpdateValue()), node.getSuccessAtomicityMode(), node.getFailureAtomicityMode());
             }
 
-            public Value visit(final Copier param, final CmpEq node) {
-                return param.getBlockBuilder().cmpEq(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
-            public Value visit(final Copier param, final CmpGe node) {
-                return param.getBlockBuilder().cmpGe(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
-            public Value visit(final Copier param, final CmpGt node) {
-                return param.getBlockBuilder().cmpGt(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
-            public Value visit(final Copier param, final CmpLe node) {
-                return param.getBlockBuilder().cmpLe(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
-            public Value visit(final Copier param, final CmpLt node) {
-                return param.getBlockBuilder().cmpLt(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
-            public Value visit(final Copier param, final CmpNe node) {
-                return param.getBlockBuilder().cmpNe(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
             public Value visit(final Copier param, final CompoundLiteral node) {
                 return node;
             }
@@ -575,6 +551,30 @@ public interface Node {
 
             public Value visit(final Copier param, final IntegerLiteral node) {
                 return node;
+            }
+
+            public Value visit(final Copier param, final IsEq node) {
+                return param.getBlockBuilder().isEq(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(final Copier param, final IsGe node) {
+                return param.getBlockBuilder().isGe(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(final Copier param, final IsGt node) {
+                return param.getBlockBuilder().isGt(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(final Copier param, final IsLe node) {
+                return param.getBlockBuilder().isLe(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(final Copier param, final IsLt node) {
+                return param.getBlockBuilder().isLt(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(final Copier param, final IsNe node) {
+                return param.getBlockBuilder().isNe(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
             public Node visit(final Copier param, final Store node) {

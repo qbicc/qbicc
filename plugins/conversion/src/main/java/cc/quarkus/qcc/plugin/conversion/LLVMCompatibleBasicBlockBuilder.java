@@ -61,7 +61,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
                 }
             }
             // Fallback for LLVM<v12 or integer lengths other than 32 and 64 bits
-            return fb.select(isMax ? fb.cmpGt(v1, v2) : fb.cmpLt(v1, v2), v1, v2);
+            return fb.select(isMax ? fb.isGt(v1, v2) : fb.isLt(v1, v2), v1, v2);
         }
     }
 
