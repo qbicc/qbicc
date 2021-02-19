@@ -3,10 +3,13 @@ package cc.quarkus.qcc.plugin.dispatch;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.*;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import org.jboss.logging.Logger;
 
 import java.util.List;
 
 public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+    private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.devirt");
+
     private final CompilationContext ctxt;
 
     public DevirtualizingBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
@@ -69,8 +72,8 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
      */
     private MethodElement staticallyBind(final Value instance, final MethodElement target) {
         // Handle a very trivial case as a proof of concept that the phase actually does something..
-        if (target.isFinal()) {
-            ctxt.info("Devirtualizing call to " + target.getEnclosingType().getDescriptor().getClassName()+"::"+target.getName());
+        if (target.isFinal() || target.getEnclosingType().isFinal() || target.isPrivate()) {
+            log.debugf("Devirtualizing call to %s::%s", target.getEnclosingType().getDescriptor().getClassName(), target.getName());
             return target;
         }
 

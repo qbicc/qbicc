@@ -348,6 +348,8 @@ public class Main implements Callable<DiagnosticContext> {
                     outputPath = Path.of(argIter.next());
                 } else if (arg.equals("--debug")) {
                     Logger.getLogger("").setLevel(Level.DEBUG);
+                } else if (arg.equals("--debug-devirt")) {
+                    Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.devirt").setLevel(Level.DEBUG);
                 } else if (arg.equals("--debug-vtables")) {
                     Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables").setLevel(Level.DEBUG);
                 } else if (arg.equals("--debug-rta")) {

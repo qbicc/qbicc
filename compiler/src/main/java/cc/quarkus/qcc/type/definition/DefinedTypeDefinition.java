@@ -76,6 +76,10 @@ public interface DefinedTypeDefinition extends FieldResolver,
         return hasAllModifiersOf(ClassFile.ACC_INTERFACE);
     }
 
+    default boolean isFinal() {
+        return hasAllModifiersOf(ClassFile.ACC_FINAL);
+    }
+
     // ==================
     // Superclass
     // ==================
