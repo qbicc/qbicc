@@ -307,6 +307,15 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.invokeValueInstance(kind, input, owner, name, descriptor, arguments);
     }
 
+    @Override
+    public ValueHandle referenceHandle(Value reference) {
+        if (reference.getType() instanceof PointerType) {
+            return pointerHandle(reference);
+        } else {
+            return super.referenceHandle(reference);
+        }
+    }
+
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value input, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         MethodElement binding = nativeInfo.getNativeBinding(owner, name, descriptor);
