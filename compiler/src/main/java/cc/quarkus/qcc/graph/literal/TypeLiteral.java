@@ -19,6 +19,10 @@ public final class TypeLiteral extends Literal {
         return value.getTypeType();
     }
 
+    public ValueType getValue() {
+        return value;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof TypeLiteral && equals((TypeLiteral) other);
     }

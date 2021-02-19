@@ -5,10 +5,10 @@ import java.util.List;
 import cc.quarkus.qcc.machine.llvm.Array;
 import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
 import cc.quarkus.qcc.machine.llvm.LLBuilder;
+import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.Struct;
 import cc.quarkus.qcc.machine.llvm.StructType;
-import cc.quarkus.qcc.machine.llvm.Module;
-import cc.quarkus.qcc.machine.llvm.LLValue;
 
 /**
  *
@@ -79,7 +79,17 @@ public final class LLVM {
         return new DoubleConstant(val);
     }
 
-    public static LLValue bitcastConstant(LLValue val, LLValue fromType, LLValue toType) { return new BitcastConstant(val, fromType, toType); }
+    public static LLValue bitcastConstant(LLValue val, LLValue fromType, LLValue toType) {
+        return new BitcastConstant(val, fromType, toType);
+    }
+
+    public static LLValue inttoptrConstant(LLValue val, LLValue fromType, LLValue toType) {
+        return new IntToPtrConstant(val, fromType, toType);
+    }
+
+    public static LLValue ptrtointConstant(LLValue val, LLValue fromType, LLValue toType) {
+        return new PtrToIntConstant(val, fromType, toType);
+    }
 
     public static Array array(LLValue elementType) {
         return new ArrayImpl(elementType);
@@ -107,5 +117,9 @@ public final class LLVM {
 
     public static LLBuilder newBuilder(final LLBasicBlock block) {
         return new BuilderImpl((BasicBlockImpl) block);
+    }
+
+    public static LLValue byteArray(final byte[] contents) {
+        return new ByteArrayImpl(contents);
     }
 }
