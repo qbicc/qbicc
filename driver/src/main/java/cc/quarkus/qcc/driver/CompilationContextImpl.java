@@ -50,6 +50,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final LiteralFactory literalFactory;
     private final BaseDiagnosticContext baseDiagnosticContext;
     private final ConcurrentMap<VmObject, ClassContext> classLoaderContexts = new ConcurrentHashMap<>();
+    volatile Set<ExecutableElement> allowedSet = null;
     final Set<ExecutableElement> queued = ConcurrentHashMap.newKeySet();
     final Queue<ExecutableElement> queue = new ConcurrentLinkedDeque<>();
     final Set<ExecutableElement> entryPoints = ConcurrentHashMap.newKeySet();
@@ -170,6 +171,10 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public void enqueue(final ExecutableElement element) {
+        Set<ExecutableElement> allowedSet = this.allowedSet;
+        if (allowedSet != null && ! allowedSet.contains(element)) {
+            throw new IllegalStateException("Cannot reach previously unreachable element: " + element);
+        }
         if (queued.add(element)) {
             queue.add(element);
         }
@@ -183,7 +188,8 @@ final class CompilationContextImpl implements CompilationContext {
         return queue.poll();
     }
 
-    void clearEnqueuedSet() {
+    void lockEnqueuedSet() {
+        allowedSet = Set.copyOf(queued);
         queued.clear();
     }
 

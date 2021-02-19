@@ -378,7 +378,7 @@ public class Driver implements Closeable {
             return false;
         }
 
-        compilationContext.clearEnqueuedSet();
+        compilationContext.lockEnqueuedSet();
 
         // ANALYZE phase
 
@@ -442,7 +442,7 @@ public class Driver implements Closeable {
             }
         }
 
-        compilationContext.clearEnqueuedSet();
+        compilationContext.lockEnqueuedSet();
 
         // LOWER phase
 
@@ -518,7 +518,7 @@ public class Driver implements Closeable {
             }
         }
 
-        compilationContext.clearEnqueuedSet();
+        compilationContext.lockEnqueuedSet();
 
         // GENERATE phase
 

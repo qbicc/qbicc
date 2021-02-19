@@ -8,7 +8,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
  * An instruction which throws an exception <em>to the caller</em>.  To throw an exception to a catch block,
  * use {@link Goto}.
  */
-public final class Throw extends AbstractNode implements Terminator {
+public final class Throw extends AbstractTerminator implements Terminator {
     private final Node dependency;
     private final Value thrownValue;
     private final BasicBlock terminatedBlock;

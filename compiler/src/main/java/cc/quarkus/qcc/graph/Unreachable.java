@@ -4,7 +4,7 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
-public class Unreachable extends AbstractNode implements Terminator {
+public class Unreachable extends AbstractTerminator implements Terminator {
     private final Node dependency;
     private final BasicBlock terminatedBlock;
 

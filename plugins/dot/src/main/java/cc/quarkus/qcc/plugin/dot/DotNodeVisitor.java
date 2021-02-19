@@ -1199,12 +1199,12 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     void processPhiQueue(Appendable param) {
         for (PhiValue phi : phiQueue) {
-            for (Map.Entry<Terminator, Value> entry : phi.getIncomingValues()) {
-                BasicBlock block = entry.getKey().getTerminatedBlock();
+            for (BasicBlock block : phi.getPinnedBlock().getIncoming()) {
+                Value value = phi.getValueForInput(block.getTerminator());
                 if (block.isReachable()) {
-                    addEdge(param, phi, entry.getValue(), EdgeType.PHI_INCOMING);
+                    addEdge(param, phi, value, EdgeType.PHI_INCOMING);
                 } else {
-                    addEdge(param, phi, entry.getValue(), EdgeType.PHI_INCOMING_UNREACHABLE);
+                    addEdge(param, phi, value, EdgeType.PHI_INCOMING_UNREACHABLE);
                 }
             }
             addEdge(param, phi, phi.getPinnedBlock().getBlockEntry(), EdgeType.PHI_PINNED_NODE);

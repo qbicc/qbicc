@@ -7,7 +7,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * A terminator which designates a subsequent block for normal execution.
  */
-public final class Goto extends AbstractNode implements Resume {
+public final class Goto extends AbstractTerminator implements Resume {
     private final Node dependency;
     private final BlockLabel targetLabel;
     private final BasicBlock terminatedBlock;

@@ -7,7 +7,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * A return which returns a non-{@code void} value.
  */
-public final class ValueReturn extends AbstractNode implements Terminator {
+public final class ValueReturn extends AbstractTerminator implements Terminator {
     private final Node dependency;
     private final Value returnValue;
 

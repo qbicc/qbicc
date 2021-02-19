@@ -8,7 +8,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public final class Switch extends AbstractNode implements Terminator {
+public final class Switch extends AbstractTerminator implements Terminator {
     private static final int[] NO_VALUES = new int[0];
     private static final BlockLabel[] NO_TARGETS = new BlockLabel[0];
 
