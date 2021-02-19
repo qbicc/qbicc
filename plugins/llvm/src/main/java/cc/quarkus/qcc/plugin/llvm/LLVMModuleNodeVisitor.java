@@ -48,6 +48,7 @@ import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -117,6 +118,8 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         } else if (type instanceof PointerType) {
             Type pointeeType = ((PointerType) type).getPointeeType();
             res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType));
+        } else if (type instanceof NullType) {
+            res = ptrTo(i8);
         } else if (type instanceof WordType) {
             // all other words are integers
             // LLVM doesn't really care about signedness
