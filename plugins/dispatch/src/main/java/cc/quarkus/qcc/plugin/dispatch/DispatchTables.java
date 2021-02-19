@@ -115,7 +115,7 @@ public class DispatchTables {
     void emitVTable(ValidatedTypeDefinition cls) {
         VTableInfo info = getVTableInfo(cls);
         MethodElement[] vtable = info.getVtable();
-        Section section = ctxt.getOrAddProgramModule(cls).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+        Section section = ctxt.getImplicitSection(cls);
         HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
         for (int i=0; i<vtable.length; i++) {
             Function impl = ctxt.getExactFunction(vtable[i]);
@@ -130,7 +130,7 @@ public class DispatchTables {
 
     void emitVTableTable(ValidatedTypeDefinition jlo) {
         ArrayType vtablesGlobalType = ((ArrayType)vtablesGlobal.getType(List.of()));
-        Section section = ctxt.getOrAddProgramModule(jlo).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+        Section section = ctxt.getImplicitSection(jlo);
         Literal[] vtableLiterals = new Literal[(int)vtablesGlobalType.getElementCount()];
         NullLiteral nullLiteral = ctxt.getLiteralFactory().literalOfNull();
         Arrays.fill(vtableLiterals, nullLiteral);
