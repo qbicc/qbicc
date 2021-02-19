@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 
-import static cc.quarkus.qcc.tests.integration.utils.App.BASE_DIR;
+import static cc.quarkus.qcc.tests.integration.utils.TestConstants.BASE_DIR;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**

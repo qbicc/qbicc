@@ -1,28 +1,19 @@
 package cc.quarkus.qcc.tests.integration;
 
-import cc.quarkus.qcc.tests.integration.utils.App;
-import cc.quarkus.qcc.tests.integration.utils.Commands;
-import cc.quarkus.qcc.tests.integration.utils.Logs;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.nio.file.Path;
+
+import cc.quarkus.qcc.context.DiagnosticContext;
+import cc.quarkus.qcc.tests.integration.utils.TestConstants;
+import cc.quarkus.qcc.tests.integration.utils.Javac;
+import cc.quarkus.qcc.tests.integration.utils.NativeExecutable;
+import cc.quarkus.qcc.tests.integration.utils.Qcc;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-
-import static cc.quarkus.qcc.tests.integration.utils.App.APP_BUILD_OUT_DIR;
-import static cc.quarkus.qcc.tests.integration.utils.Commands.builderRoutine;
-import static cc.quarkus.qcc.tests.integration.utils.Commands.deleteAppFiles;
-import static cc.quarkus.qcc.tests.integration.utils.Commands.wrapUp;
-import static cc.quarkus.qcc.tests.integration.utils.Logs.getLogsDir;
-import static cc.quarkus.qcc.tests.integration.utils.Logs.matchLineByLine;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Examples and Simple test apps to be built and tested for output.
@@ -33,77 +24,61 @@ public class SimpleAppTest {
     private static final Logger LOGGER = Logger.getLogger(SimpleAppTest.class.getName());
 
     @Test
-    public void helloWorld(TestInfo testInfo) throws IOException, InterruptedException {
-        final App app = App.HELLO_WORLD;
-        LOGGER.info("Testing app: " + app.dir);
-        Process process = null;
-        Path processLog = null;
-        final StringBuilder report = new StringBuilder();
-        final Path appDir = Path.of(app.dir);
-        final String cn = testInfo.getTestClass().get().getCanonicalName();
-        final String mn = testInfo.getTestMethod().get().getName();
-        try {
-            // Cleanup
-            deleteAppFiles(app);
-            Files.createDirectories(Path.of(app.dir, "logs"));
+    public void helloWorld() throws IOException {
+        String appName = "helloworld";
+        Path appPath = Path.of(TestConstants.BASE_DIR).resolve("examples").resolve(appName);
+        Path targetPath = Path.of(".").resolve("target");
+        Path baseOutputPath = targetPath.resolve(appName);
+        Path outputPath = baseOutputPath.resolve("classes");
+        Path nativeOutputPath = baseOutputPath.resolve("native");
+        Path source = appPath.resolve("hello/world/Main.java");
+        String mainClass = "hello.world.Main";
+        Path outputExecutable = nativeOutputPath.resolve("a.out");
 
-            // Build
-            processLog = Path.of(app.dir, "logs", "build-and-run.log");
-            builderRoutine(app, report, cn, mn, appDir, processLog);
+        // Build via javac
+        boolean compilationResult = Javac.compile(outputPath, source, LOGGER);
 
-            // Run
-            final List<String> cmd = List.of(app.buildAndRunCmd.cmds[app.buildAndRunCmd.cmds.length - 1]);
-            process = Commands.runCommand(cmd, appDir.toFile(), processLog.toFile());
-            process.waitFor(5, TimeUnit.SECONDS);
-            Logs.appendln(report, app.dir);
-            Logs.appendlnSection(report, String.join(" ", cmd));
+        assertTrue(compilationResult, "Compilation should succeed.");
 
-            // Test
-            final Pattern p = Pattern.compile("hello world(.*)");
-            assertTrue(matchLineByLine(p, processLog), "The output should have matched " + p.pattern());
+        DiagnosticContext diagnosticContext = Qcc.build(outputPath, nativeOutputPath, mainClass, LOGGER);
 
-            Commands.processStopper(process, false);
-            Logs.checkLog(cn, mn, app, processLog.toFile());
-        } finally {
-            wrapUp(process, cn, mn, report, app, processLog, Path.of(app.dir, APP_BUILD_OUT_DIR));
-        }
+        assertEquals(0, diagnosticContext.errors(), "Native image creation should generate no errors.");
+
+        StringBuilder stdOut = new StringBuilder();
+        StringBuilder stdErr = new StringBuilder();
+        NativeExecutable.run(outputExecutable, stdOut, stdErr, LOGGER);
+
+        assertTrue(stdErr.toString().isBlank(), "Native image execution should produce no error. " + stdErr);
+        assertEquals("hello world", stdOut.toString().trim());
     }
-
 
     @Test
-    public void branches(TestInfo testInfo) throws IOException, InterruptedException {
-        final App app = App.BRANCHES;
-        LOGGER.info("Testing app: " + app.dir);
-        Process process = null;
-        Path processLog = null;
-        final StringBuilder report = new StringBuilder();
-        final Path appDir = Path.of(app.dir);
-        final String cn = testInfo.getTestClass().get().getCanonicalName();
-        final String mn = testInfo.getTestMethod().get().getName();
-        try {
-            // Cleanup
-            deleteAppFiles(app);
-            Files.createDirectories(Path.of(app.dir, "logs"));
+    public void branches() throws IOException {
+        String appName = "branches";
+        Path appPath = Path.of(".").resolve("apps").resolve(appName);
+        Path targetPath = Path.of(".").resolve("target");
+        Path baseOutputPath = targetPath.resolve(appName);
+        Path outputPath = baseOutputPath.resolve("classes");
+        Path nativeOutputPath = baseOutputPath.resolve("native");
+        Path source = appPath.resolve("mypackage/Main.java");
+        String mainClass = "mypackage.Main";
+        Path outputExecutable = nativeOutputPath.resolve("a.out");
 
-            // Build
-            processLog = Path.of(app.dir, "logs", "build-and-run.log");
-            builderRoutine(app, report, cn, mn, appDir, processLog);
+        // Build via javac
+        boolean compilationResult = Javac.compile(outputPath, source, LOGGER);
 
-            // Run
-            final List<String> cmd = List.of(app.buildAndRunCmd.cmds[app.buildAndRunCmd.cmds.length - 1]);
-            process = Commands.runCommand(cmd, appDir.toFile(), processLog.toFile());
-            process.waitFor(5, TimeUnit.SECONDS);
-            Logs.appendln(report, app.dir);
-            Logs.appendlnSection(report, String.join(" ", cmd));
+        assertTrue(compilationResult, "Compilation should succeed.");
 
-            // Test
-            final Pattern p = Pattern.compile(".*1 1.*");
-            assertTrue(matchLineByLine(p, processLog),
-                    "File " + getLogsDir(cn, mn) + File.separator + processLog.getFileName() + " should have matched " + p.pattern());
-            Commands.processStopper(process, false);
-            Logs.checkLog(cn, mn, app, processLog.toFile());
-        } finally {
-            wrapUp(process, cn, mn, report, app, processLog, Path.of(app.dir, APP_BUILD_OUT_DIR));
-        }
+        DiagnosticContext diagnosticContext = Qcc.build(outputPath, nativeOutputPath, mainClass, LOGGER);
+
+        assertEquals(0, diagnosticContext.errors(), "Native image creation should generate no errors.");
+
+        StringBuilder stdOut = new StringBuilder();
+        StringBuilder stdErr = new StringBuilder();
+        NativeExecutable.run(outputExecutable, stdOut, stdErr, LOGGER);
+
+        assertTrue(stdErr.toString().isBlank(), "Native image execution should produce no error. " + stdErr);
+        assertEquals("1 1", stdOut.toString().trim());
     }
+
 }
