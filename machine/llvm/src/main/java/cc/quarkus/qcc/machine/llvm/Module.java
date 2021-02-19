@@ -48,6 +48,8 @@ public interface Module {
     DICompositeType diCompositeType(DITag tag, long size, int align);
     DISubroutineType diSubroutineType(LLValue types);
 
+    void addFlag(ModuleFlagBehavior behavior, String name, LLValue type, LLValue value);
+
     void writeTo(BufferedWriter output) throws IOException;
 
     static Module newModule() {

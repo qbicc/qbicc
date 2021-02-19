@@ -13,4 +13,8 @@ public interface LlcInvoker extends LlvmInvoker {
     void setOutputFormat(OutputFormat outputFormat);
 
     OutputFormat getOutputFormat();
+
+    void setRelocationModel(RelocationModel relocationModel);
+
+    RelocationModel getRelocationModel();
 }

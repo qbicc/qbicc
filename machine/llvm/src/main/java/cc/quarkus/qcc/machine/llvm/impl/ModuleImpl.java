@@ -11,6 +11,9 @@ import cc.quarkus.qcc.machine.llvm.Global;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Module;
 import cc.quarkus.qcc.machine.llvm.IdentifiedType;
+import cc.quarkus.qcc.machine.llvm.ModuleFlagBehavior;
+import cc.quarkus.qcc.machine.llvm.Types;
+import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DIBasicType;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DICompileUnit;
 import cc.quarkus.qcc.machine.llvm.debuginfo.DICompositeType;
@@ -39,6 +42,7 @@ final class ModuleImpl implements Module {
     private int globalCounter;
     private int metadataNodeCounter;
 
+    private MetadataTuple flags;
     private MetadataTuple compileUnits;
 
     private <E extends Emittable> E add(List<Emittable> itemList, E item) {
@@ -146,6 +150,24 @@ final class ModuleImpl implements Module {
 
     int nextMetadataNodeId() {
         return metadataNodeCounter++;
+    }
+
+    public void addFlag(ModuleFlagBehavior behavior, String name, LLValue type, LLValue value) {
+        Assert.checkNotNullParam("behavior", behavior);
+        Assert.checkNotNullParam("name", name);
+        Assert.checkNotNullParam("value", value);
+
+        if (flags == null) {
+            flags = metadataTuple("llvm.module.flags");
+        }
+
+        LLValue flag = metadataTuple()
+            .elem(Types.i32, Values.intConstant(behavior.value))
+            .elem(null, Values.metadataString(name))
+            .elem(type, value)
+            .asRef();
+
+        flags.elem(null, flag);
     }
 
     private void writeItems(final List<Emittable> items, final BufferedWriter output, boolean lineBetweenItems) throws IOException {
