@@ -16,8 +16,14 @@ import cc.quarkus.qcc.plugin.linker.Linker;
 import cc.quarkus.qcc.tool.llvm.LlcInvoker;
 import cc.quarkus.qcc.tool.llvm.LlvmToolChain;
 import cc.quarkus.qcc.tool.llvm.OutputFormat;
+import cc.quarkus.qcc.tool.llvm.RelocationModel;
 
 public class LLVMCompileStage implements Consumer<CompilationContext> {
+    private final boolean isPie;
+
+    public LLVMCompileStage(final boolean isPie) {
+        this.isPie = isPie;
+    }
 
     public void accept(final CompilationContext context) {
         LLVMState llvmState = context.getAttachment(LLVMState.KEY);
@@ -38,6 +44,7 @@ public class LLVMCompileStage implements Consumer<CompilationContext> {
         LlcInvoker llcInvoker = llvmToolChain.newLlcInvoker();
         llcInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
         llcInvoker.setOutputFormat(OutputFormat.ASM);
+        llcInvoker.setRelocationModel(isPie ? RelocationModel.Pic : RelocationModel.Static);
         CCompilerInvoker ccInvoker = cToolChain.newCompilerInvoker();
         ccInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
         ccInvoker.setSourceLanguage(CCompilerInvoker.SourceLanguage.ASM);

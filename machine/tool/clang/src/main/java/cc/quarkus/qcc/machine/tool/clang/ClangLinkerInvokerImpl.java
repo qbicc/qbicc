@@ -14,6 +14,7 @@ final class ClangLinkerInvokerImpl extends AbstractClangInvoker implements Clang
     private final List<String> libraries = new ArrayList<>(4);
     private final List<Path> objectFiles = new ArrayList<>(4);
     private Path outputPath = TMP.resolve("qcc-output-image");
+    private boolean isPie = false;
 
     ClangLinkerInvokerImpl(final ClangToolChainImpl tool) {
         super(tool);
@@ -63,7 +64,21 @@ final class ClangLinkerInvokerImpl extends AbstractClangInvoker implements Clang
         return outputPath;
     }
 
+    public void setIsPie(boolean isPie) {
+        this.isPie = isPie;
+    }
+
+    public boolean getIsPie() {
+        return isPie;
+    }
+
     void addArguments(final List<String> cmd) {
+        if (isPie) {
+            cmd.add("-pie");
+        } else {
+            cmd.add("-no-pie");
+        }
+
         for (Path libraryPath : libraryPaths) {
             cmd.add("-L" + libraryPath.toString());
         }

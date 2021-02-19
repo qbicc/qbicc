@@ -13,6 +13,12 @@ import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
  *
  */
 public class LinkStage implements Consumer<CompilationContext> {
+    private final boolean isPie;
+
+    public LinkStage(final boolean isPie) {
+        this.isPie = isPie;
+    }
+
     public void accept(final CompilationContext context) {
         CToolChain cToolChain = context.getAttachment(Driver.C_TOOL_CHAIN_KEY);
         if (cToolChain == null) {
@@ -25,6 +31,7 @@ public class LinkStage implements Consumer<CompilationContext> {
         linkerInvoker.addLibraries(linker.getLibraries());
         linkerInvoker.setOutputPath(context.getOutputDirectory().resolve("a.out"));
         linkerInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
+        linkerInvoker.setIsPie(isPie);
         try {
             linkerInvoker.invoke();
         } catch (IOException e) {

@@ -45,4 +45,8 @@ public interface LinkerInvoker extends MessagingToolInvoker {
     void setOutputPath(Path path);
 
     Path getOutputPath();
+
+    void setIsPie(boolean isPie);
+
+    boolean getIsPie();
 }

@@ -17,7 +17,9 @@ import cc.quarkus.qcc.machine.llvm.Global;
 import cc.quarkus.qcc.machine.llvm.LLValue;
 import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.Module;
+import cc.quarkus.qcc.machine.llvm.ModuleFlagBehavior;
 import cc.quarkus.qcc.machine.llvm.ThreadLocalStorageModel;
+import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.object.Data;
 import cc.quarkus.qcc.object.DataDeclaration;
@@ -39,6 +41,13 @@ import io.smallrye.common.constraint.Assert;
  *
  */
 public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor<CompilationContext, LLValue> {
+    private final int picLevel;
+    private final int pieLevel;
+
+    public LLVMGenerator(final int picLevel, final int pieLevel) {
+        this.picLevel = picLevel;
+        this.pieLevel = pieLevel;
+    }
 
     public void accept(final CompilationContext ctxt) {
         for (ProgramModule programModule : ctxt.getAllProgramModules()) {
@@ -47,6 +56,14 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
             final Module module = Module.newModule();
             final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(module, ctxt);
             final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(module, ctxt);
+
+            if (picLevel != 0) {
+                module.addFlag(ModuleFlagBehavior.Max, "PIC Level", Types.i32, Values.intConstant(picLevel));
+            }
+
+            if (pieLevel != 0) {
+                module.addFlag(ModuleFlagBehavior.Max, "PIE Level", Types.i32, Values.intConstant(pieLevel));
+            }
 
             for (Section section : programModule.sections()) {
                 String sectionName = section.getName();

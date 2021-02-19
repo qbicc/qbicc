@@ -93,6 +93,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final Consumer<Iterable<Diagnostic>> diagnosticsHandler;
     private final String mainClass;
     private final String gc;
+    private final boolean isPie;
 
     Main(Builder builder) {
         bootModulePath = List.copyOf(builder.bootModulePath);
@@ -101,6 +102,7 @@ public class Main implements Callable<DiagnosticContext> {
         // todo: this becomes optional
         mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
         gc = builder.gc;
+        isPie = builder.isPie;
     }
 
     public DiagnosticContext call() {
@@ -283,12 +285,12 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
 
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
-                                builder.addPreHook(Phase.GENERATE, new LLVMGenerator());
+                                builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0));
 
                                 builder.addGenerateVisitor(DotGenerator.genPhase());
 
-                                builder.addPostHook(Phase.GENERATE, new LLVMCompileStage());
-                                builder.addPostHook(Phase.GENERATE, new LinkStage());
+                                builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie));
+                                builder.addPostHook(Phase.GENERATE, new LinkStage(isPie));
 
 
                                 CompilationContext ctxt;
@@ -326,6 +328,10 @@ public class Main implements Callable<DiagnosticContext> {
         String mainClass = null;
         Path outputPath = null;
         String gc = "none";
+
+        // TODO Detect whether the system uses PIEs by default and match that if possible
+        boolean isPie = false;
+
         while (argIter.hasNext()) {
             final String arg = argIter.next();
             if (arg.startsWith("-")) {
@@ -350,6 +356,10 @@ public class Main implements Callable<DiagnosticContext> {
                     gc = arg.substring(5);
                 } else if (arg.equals("--gc")) {
                     gc = argIter.next();
+                } else if (arg.equals("--pie")) {
+                    isPie = true;
+                } else if (arg.equals("--no-pie")) {
+                    isPie = false;
                 } else {
                     System.err.printf("Unrecognized argument \"%s\"", arg);
                     System.exit(1);
@@ -379,6 +389,7 @@ public class Main implements Callable<DiagnosticContext> {
         }
         mainBuilder.setMainClass(mainClass);
         mainBuilder.setOutputPath(outputPath);
+        mainBuilder.setIsPie(isPie);
         Main main = mainBuilder.build();
         DiagnosticContext context = main.call();
         int errors = context.errors();
@@ -405,6 +416,7 @@ public class Main implements Callable<DiagnosticContext> {
         private Consumer<Iterable<Diagnostic>> diagnosticsHandler = diagnostics -> {};
         private String mainClass;
         private String gc = "none";
+        private boolean isPie = false;
 
         Builder() {}
 
@@ -439,6 +451,11 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setGc(String gc) {
             this.gc = Assert.checkNotNullParam("gc", gc);
+            return this;
+        }
+
+        public Builder setIsPie(boolean isPie) {
+            this.isPie = isPie;
             return this;
         }
 
