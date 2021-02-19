@@ -3,14 +3,17 @@ package cc.quarkus.qcc.plugin.layout;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
+import cc.quarkus.qcc.graph.ElementOf;
+import cc.quarkus.qcc.graph.InstanceFieldOf;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.PointerHandle;
+import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.ReferenceHandle;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
+import cc.quarkus.qcc.graph.ValueHandleVisitor;
 import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.CompoundType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.PhysicalObjectType;
-import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -38,46 +41,120 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
             return load(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), MemoryAtomicityMode.UNORDERED);
         }
         // something non-reference-ish
-        return super.arrayLength(arrayHandle);
+        return super.arrayLength(transform(arrayHandle));
     }
 
     @Override
-    public ValueHandle referenceHandle(Value reference) {
-        ValueType type = reference.getType();
-        if (type instanceof ReferenceType) {
-            Layout layout = Layout.get(ctxt);
-            PhysicalObjectType upperBound = ((ReferenceType) type).getUpperBound();
-            if (upperBound instanceof ArrayObjectType) {
-                // get the appropriate content field array handle
-                FieldElement contentField = layout.getArrayContentField(upperBound);
-                Value pointer = getPointerFromReference(reference, layout, contentField.getEnclosingType().validate().getClassType());
-                return instanceFieldOf(pointerHandle(pointer), contentField);
-            } else {
-                Value pointer = getPointerFromReference(reference, layout, upperBound);
-                return pointerHandle(pointer);
-            }
-        }
-        // something non-reference-ish
-        return super.referenceHandle(reference);
+    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
+        return super.load(transform(handle), mode);
     }
 
     @Override
-    public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
-        Layout layout = Layout.get(ctxt);
-        Layout.LayoutInfo info = layout.getInstanceLayoutInfo(field.getEnclosingType());
-        CompoundType.Member member = info.getMember(field);
-        if (instance instanceof PointerHandle) {
-            // we need to recast the pointer to our type because a pointer can be covariant
-            Value pointerValue = ((PointerHandle) instance).getPointerValue();
-            PointerType expectedType = info.getCompoundType().getPointer();
-            if (! expectedType.equals(pointerValue.getType())) {
-                return memberOf(pointerHandle(bitCast(pointerValue, expectedType)), member);
-            }
-        }
-        return memberOf(instance, member);
+    public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+        return super.store(transform(handle), value, mode);
     }
 
-    private Value getPointerFromReference(final Value reference, final Layout layout, final PhysicalObjectType upperBound) {
-        return valueConvert(reference, layout.getInstanceLayoutInfo(upperBound.getDefinition()).getCompoundType().getPointer());
+    @Override
+    public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return super.getAndAdd(transform(target), update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return super.getAndBitwiseAnd(transform(target), update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return super.getAndBitwiseNand(transform(target), update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return super.getAndBitwiseOr(transform(target), update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return super.getAndBitwiseXor(transform(target), update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return super.getAndSet(transform(target), update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return super.getAndSetMax(transform(target), update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return super.getAndSetMin(transform(target), update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        return super.getAndSub(transform(target), update, atomicityMode);
+    }
+
+    @Override
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode) {
+        return super.cmpAndSwap(transform(target), expect, update, successMode, failureMode);
+    }
+
+    @Override
+    public Value addressOf(ValueHandle handle) {
+        return super.addressOf(transform(handle));
+    }
+
+    private ValueHandle transform(ValueHandle input) {
+        return input.accept(new ValueHandleVisitor<>() {
+            @Override
+            public ValueHandle visit(ObjectAccessLoweringBuilder b, ElementOf node) {
+                ValueType valueType = node.getValueType();
+                if (valueType instanceof ReferenceType) {
+                    // Transform array object element handles
+                    ValueHandle reference = node.getValueHandle();
+                    Layout layout = Layout.get(ctxt);
+                    PhysicalObjectType upperBound = ((ReferenceType) valueType).getUpperBound();
+                    if (upperBound instanceof ArrayObjectType) {
+                        FieldElement contentField = layout.getArrayContentField(upperBound);
+                        return b.elementOf(b.transform(b.instanceFieldOf(reference, contentField)), node.getIndex());
+                    }
+                }
+                // normal array, probably
+                return b.elementOf(b.transform(node.getValueHandle()), node.getIndex());
+            }
+
+            @Override
+            public ValueHandle visit(ObjectAccessLoweringBuilder b, ReferenceHandle node) {
+                // convert reference to pointer
+                Layout layout = Layout.get(ctxt);
+                ObjectType upperBound;
+                upperBound = node.getValueType();
+                Layout.LayoutInfo info;
+                if (upperBound instanceof ArrayObjectType) {
+                    info = layout.getInstanceLayoutInfo(layout.getArrayContentField(upperBound).getEnclosingType());
+                } else {
+                    info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
+                }
+                return b.pointerHandle(b.valueConvert(node.getReferenceValue(), info.getCompoundType().getPointer()));
+            }
+
+            @Override
+            public ValueHandle visit(ObjectAccessLoweringBuilder b, InstanceFieldOf node) {
+                Layout layout = Layout.get(ctxt);
+                FieldElement element = node.getVariableElement();
+                return b.memberOf(b.transform(node.getValueHandle()), layout.getInstanceLayoutInfo(element.getEnclosingType()).getMember(element));
+            }
+
+            @Override
+            public ValueHandle visitUnknown(ObjectAccessLoweringBuilder b, ValueHandle node) {
+                // all other handles are fine as-is
+                return node;
+            }
+        }, this);
     }
 }
