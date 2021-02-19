@@ -74,6 +74,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     private void processInstantiatedClass(final ValidatedTypeDefinition type) {
         RTAInfo info = RTAInfo.get(ctxt);
         if (!info.isLiveClass(type)) {
+            rtaLog.debugf("Adding reachable class: %s", type.getDescriptor().getClassName());
             if (type.hasSuperClass()) {
                 processInstantiatedClass(type.getSuperClass());
                 info.addLiveClass(type);
@@ -95,17 +96,38 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private void processNewTarget(final MethodElement target) {
-        rtaLog.debugf("Adding method (invoke target): %s", target);
-        // Traverse the instantiated subclasses of target's defining class and
-        // ensure that all overriding implementations of this method are marked invokable.
-        ValidatedTypeDefinition definingClass = target.getEnclosingType().validate();
         RTAInfo info = RTAInfo.get(ctxt);
-        info.visitLiveSubclassesPreOrder(target.getEnclosingType().validate(), (sc) -> {
-            MethodElement cand = sc.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
-            if (!ctxt.wasEnqueued(cand)) {
-                rtaLog.debugf("Adding method (subclass override): %s", cand);
-                ctxt.enqueue(cand);
-            }
-        });
+        ValidatedTypeDefinition definingClass = target.getEnclosingType().validate();
+
+        if (definingClass.isInterface()) {
+            // Traverse the instantiated implementors and handle as-if we just saw
+            // an invokevirtual of their implementing method.
+            rtaLog.debugf("Adding method (invokeinterface target): %s", target);
+            info.visitLiveImplementors(definingClass, (c) -> {
+                MethodElement cand = c.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
+                if (!ctxt.wasEnqueued(cand)) {
+                    rtaLog.debugf("Adding method (implements): %s", cand);
+                    ctxt.enqueue(cand);
+                    info.visitLiveSubclassesPreOrder(cand.getEnclosingType().validate(), (sc) -> {
+                        MethodElement cand2 = sc.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
+                        if (!ctxt.wasEnqueued(cand2)) {
+                            rtaLog.debugf("Adding method (implements - subclass override): %s", cand2);
+                            ctxt.enqueue(cand2);
+                        }
+                    });
+                }
+            });
+        } else {
+            rtaLog.debugf("Adding method (invokevirtual target): %s", target);
+            // Traverse the instantiated subclasses of target's defining class and
+            // ensure that all overriding implementations of this method are marked invokable.
+            info.visitLiveSubclassesPreOrder(definingClass, (sc) -> {
+                MethodElement cand = sc.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
+                if (!ctxt.wasEnqueued(cand)) {
+                    rtaLog.debugf("Adding method (subclass override): %s", cand);
+                    ctxt.enqueue(cand);
+                }
+            });
+        }
     }
 }
