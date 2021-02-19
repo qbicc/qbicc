@@ -1,8 +1,10 @@
 package cc.quarkus.qcc.plugin.instanceofcheckcast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
@@ -11,7 +13,16 @@ import org.jboss.logging.Logger;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.literal.ArrayLiteral;
+import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
+import cc.quarkus.qcc.type.ArrayType;
+import cc.quarkus.qcc.type.CompoundType;
+import cc.quarkus.qcc.type.TypeSystem;
+import cc.quarkus.qcc.type.UnsignedIntegerType;
+import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
@@ -31,6 +42,8 @@ public class SupersDisplayTables {
     private final Map<ValidatedTypeDefinition, ValidatedTypeDefinition[]> supers = new ConcurrentHashMap<>();
 
     private final Map<ValidatedTypeDefinition, IdAndRange> typeids = new ConcurrentHashMap<>();
+
+    static final String GLOBAL_TYPEID_ARRAY = "qcc_typeid_array";
 
     /** 
      * This class embodies the typeid for a class and the
@@ -55,10 +68,16 @@ public class SupersDisplayTables {
      * so we can assign these bits up front and the array should
      * stay reasonably small.
      * 
-     * TODO: Assign array classes their typeids in a meaningful way.
+     * [poison]
+     * [primitive classes]
+     * [Object]
+     * [primitive arrays]
+     * [Object reference array]
+     * [Object subclasses]
+     * [interfaces]
      */
     static class IdAndRange {
-        private static int typeid_index = 1; // avoid using 0;
+        private static int typeid_index = 0; // avoid using 0;
         
         // interface ids must be contigious and after the class ids
         private static int first_interface_typeid = 0;
@@ -93,11 +112,39 @@ public class SupersDisplayTables {
             if (typeid >= first_interface_typeid) {
                 int bit = (typeid - first_interface_typeid);
                 s += " indexBit[" + bit + "]";
-                s += " byte[" + (bit >> 3) + "]";
+                s += " byte[" + implementedInterfaceByteIndex() + "]";
                 s += " mask[" + Integer.toBinaryString(1 << (bit & 7)) + "]";
             }
             return s;
         }
+
+        /**
+         * Return the index into the implementedInterfaces[]
+         * to get the right byte to test for this interface.
+         */
+        int implementedInterfaceByteIndex() {
+            if (typeid >= first_interface_typeid) {
+                int bit = (typeid - first_interface_typeid);
+                return bit >> 3; /* Equiv to: / interfaces_per_byte */
+            }
+            return -1;
+        }
+
+        /**
+         * Return the mask used to test/set this interface
+         * in the byte this interface would be in.
+         * 
+         * ie: interfaceBits[index] & implementedInterfaceBitMask() == implementedInterfaceBitMask()
+         * means the interface is implemented
+         */
+        int implementedInterfaceBitMask() {
+            if (typeid >= first_interface_typeid) {
+                int bit = (typeid - first_interface_typeid);
+                return 1 << (bit & 7);
+            }
+            return 0;
+        }
+
     }
 
     private int maxDisplaySizeElements;
@@ -190,7 +237,7 @@ public class SupersDisplayTables {
             }
         );
 
-        int numInterfaces = typeids.size() - supers.size();
+        int numInterfaces = typeids.size() - supers.size() - 18 /* primitives, void, primitive arrays, ref array */;
         int bytesPerClass = (numInterfaces + IdAndRange.interfaces_per_byte - 1) / IdAndRange.interfaces_per_byte;
         supersLog.debug("===============");
         supersLog.debug("Implemented interface bits require " + bytesPerClass + " bytes per class");
@@ -236,14 +283,122 @@ public class SupersDisplayTables {
         r.maximumSubtypeId = IdAndRange.typeid_index - 1;
     }
 
+    void reserveTypeIds(int numToReserve) {
+        Assert.assertTrue(numToReserve >= 0);
+        IdAndRange.typeid_index += numToReserve;
+    }
+
     void writeTypeIdToClasses() {
         typeids.entrySet().stream()
             .forEach(es -> {
                 ValidatedTypeDefinition vtd = es.getKey();
                 IdAndRange idRange = es.getValue();
                 vtd.assignTypeId(idRange.typeid);
+                vtd.assignMaximumSubtypeId(idRange.maximumSubtypeId);
             }
         );
+    }
+
+    int getNumberOfInterfacesInTypeIds() {
+        // + 10 to handle poisioned 0 entry and the 8 prims and void
+        return typeids.size() - IdAndRange.first_interface_typeid + 10;  
+    }
+
+    int getNumberOfBytesInInterfaceBitsArray() {
+        int numInterfaces = getNumberOfInterfacesInTypeIds();
+        return (numInterfaces + IdAndRange.interfaces_per_byte - 1) / IdAndRange.interfaces_per_byte;
+    }
+
+    byte[] getImplementedInterfaceBits(ValidatedTypeDefinition cls) {
+        byte[] setBits = new byte[getNumberOfBytesInInterfaceBitsArray()];
+        // supersLog.debug("Setting interface bits for: " + cls.getInternalName() + " byteArray size=" + setBits.length);
+        for (ValidatedTypeDefinition i : cls.getInterfaces()) {
+            IdAndRange idRange = typeids.get(i);
+            if (idRange != null) {
+                int index = idRange.implementedInterfaceByteIndex();
+                // int originalValue = setBits[index];
+                setBits[index] |= idRange.implementedInterfaceBitMask();
+                // supersLog.debug("Applying interface: " + i.getInternalName() + " setBits["+index+"] mask:" + Integer.toUnsignedString(idRange.implementedInterfaceBitMask(), 2));
+                // supersLog.debug("was: " + Integer.toUnsignedString(originalValue, 2));
+                // supersLog.debug("now: " + Integer.toUnsignedString(setBits[index], 2));
+            }
+        }
+
+        return setBits;
+    }
+
+    List<Literal> convertByteArrayToValuesList(LiteralFactory literalFactory, byte[] array) {
+        Literal[] literals = new Literal[array.length];
+        for (int i = 0; i < array.length; i++) {
+            literals[i] = literalFactory.literalOf(array[i]);
+        }
+        return List.of(literals);
+    }
+
+    void emitTypeIdTable(ValidatedTypeDefinition jlo) {
+        TypeSystem ts = ctxt.getTypeSystem();
+        int typeIdSize = ts.getTypeIdSize();
+        UnsignedIntegerType u8 = ts.getUnsignedInteger8Type();
+        UnsignedIntegerType u16 = ts.getUnsignedInteger16Type();
+        // TODO: better validation of typeId size
+        Assert.assertTrue(typeIdSize <= u16.getSize());
+        int numInterfaces = getNumberOfInterfacesInTypeIds();
+        supersLog.debug("NumInterfaces=" + numInterfaces + " numBytes=" + getNumberOfBytesInInterfaceBitsArray());
+        ArrayType interfaceBitsType = ts.getArrayType(u8, getNumberOfBytesInInterfaceBitsArray());
+        // ts.getCompoundType(tag, name, size, align, memberResolver);
+        // typedef struct typeids {
+        //   uint16_t tid;
+        //   uint16_t maxsubid;
+        //   uint8_t interfaces[x];
+        // } typeids;
+        CompoundType.Member[] members = new CompoundType.Member[] {
+            ts.getCompoundTypeMember("typeId", u16, 0, u16.getAlign()),
+            ts.getCompoundTypeMember("maxSubTypeId", u16, (int)u16.getSize(), u16.getAlign()),
+            ts.getCompoundTypeMember("interfaceBits", interfaceBitsType, (int)u16.getSize() * 2, interfaceBitsType.getAlign())
+        };
+        int memberSize = (int)(u16.getSize() * 2 + interfaceBitsType.getSize());
+        CompoundType typeIdStruct = ts.getCompoundType(
+            CompoundType.Tag.STRUCT, 
+            "typeIds", 
+            memberSize /* size */,
+            ts.getPointerAlignment(), 
+            () -> List.of(members));
+
+        Section section = ctxt.getImplicitSection(jlo);
+        Literal[] typeIdTable = new Literal[typeids.size() + 10]; // invalid zero + 8 prims + void
+        LiteralFactory literalFactory = ctxt.getLiteralFactory();
+        
+        /* Set up the implementedInterface[] for primitives */
+        List<Literal> primitivesInterfaceBits = new ArrayList<>();
+        Literal zero = literalFactory.literalOf(0);
+        for (int i = 0; i < interfaceBitsType.getElementCount(); i++) {
+            primitivesInterfaceBits.add(zero);
+        }
+
+        /* Primitives don't support instanceOf but they are only implemented by themselves */
+        for (int i = 0; i < 10; i++) {
+            typeIdTable[i] = literalFactory.literalOf(typeIdStruct, 
+                Map.of(
+                    members[0], literalFactory.literalOf(u16, i),
+                    members[1], literalFactory.literalOf(u16, i),
+                    members[2], literalFactory.literalOf(interfaceBitsType, primitivesInterfaceBits)
+                )
+            );
+        }
+        for (Map.Entry<ValidatedTypeDefinition, IdAndRange> e : typeids.entrySet()) {
+            ValidatedTypeDefinition vtd = e.getKey();
+            IdAndRange idRange = e.getValue();
+            typeIdTable[vtd.getTypeId()] = literalFactory.literalOf(typeIdStruct, 
+                Map.of(
+                    members[0], literalFactory.literalOf(u16, idRange.typeid),
+                    members[1], literalFactory.literalOf(u16, idRange.maximumSubtypeId),
+                    members[2], literalFactory.literalOf(interfaceBitsType, convertByteArrayToValuesList(literalFactory, getImplementedInterfaceBits(vtd)))
+                )
+            );
+        }
+        ArrayType typeIdsArrayType = ctxt.getTypeSystem().getArrayType(typeIdStruct, typeIdTable.length);
+        ArrayLiteral typeIdsValue = ctxt.getLiteralFactory().literalOf(typeIdsArrayType, List.of(typeIdTable));
+        section.addData(null, GLOBAL_TYPEID_ARRAY, typeIdsValue);
     }
 }
 

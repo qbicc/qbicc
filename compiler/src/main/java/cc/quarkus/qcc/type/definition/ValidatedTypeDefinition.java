@@ -38,6 +38,8 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
 
     ValidatedTypeDefinition getInterface(int index) throws IndexOutOfBoundsException;
 
+    ValidatedTypeDefinition[] getInterfaces();
+
     default boolean isSubtypeOf(ValidatedTypeDefinition other) {
         return getType().isSubtypeOf(other.getType());
     }
@@ -369,18 +371,49 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
     ResolvedTypeDefinition resolve() throws ResolutionFailedException;
 
     /**
-     * Get this ValidatedTypeDefinitions typeId.
+     * Get this ValidatedTypeDefinition's typeId.
      * 
      * Prior to TypeIds being assigned in the 
-     * Post ANALAZE phase, this method will retun an
+     * Post ANALAZE phase, this method will return an
      * invalid typeId, likely -1.
      */
     int getTypeId();
 
     /**
-     * Type IDs are assigned late in the process and may
+     * Get the highest numeric valued typeId that represents
+     * a valid subclass of this ValidatedTypeDefinition.
+     * 
+     * For a leaf class, this will be equal to #getTypeId().
+     * For a class with subclasses, this will be equal to the
+     * highest valued typeid of a subclass.
+     * 
+     * Ex:
+     * ```
+     * class I {}
+     * class J extends I {}
+     * class K extends J {}
+     * class L extends I {}
+     * ```
+     * We will visit each subclass and assign them typeIds. One
+     * such assignment is:
+     * ```
+     * I : 1
+     * J : 2
+     * K : 3
+     * L : 4
+     * ```
+     * where I will have typeId 1 and maximumSubtypeId 4 allowing
+     * subtype checks by validating if their typeId, x, satisifies
+     * the relationship 1 <= x <= 4
+     * 
+     * If it is not yet assigned, it will return `-1`.
+     */
+    int getMaximumSubtypeId();
+
+    /**
+     * TypeIds are assigned late in the process and may
      * not be valid yet.  This method allows checking if
-     * the typeid has been assigned before attempting to
+     * the typeId has been assigned before attempting to
      * use it.
      * 
      * By default, "-1" is used as an invalid typeId.
@@ -392,5 +425,11 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
      * This can only be done once.
      */
     void assignTypeId(int myTypeId);
+
+    /**
+     * Assign the maximumSubtypeId to this Class or Interface.
+     * This can only be done once.
+     */
+    void assignMaximumSubtypeId(int subTypeId);
 
 }

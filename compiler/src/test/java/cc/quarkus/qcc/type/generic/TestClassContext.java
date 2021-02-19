@@ -101,6 +101,10 @@ public class TestClassContext implements ClassContext {
         public Section getImplicitSection(ExecutableElement element) {
             return null;  // TODO: Customise this generated block
         }
+        
+        public Section getImplicitSection(DefinedTypeDefinition typeDefinition) {
+            return null;  // TODO: Customise this generated block
+        }
 
         public Function getExactFunction(final ExecutableElement element) {
             return null;

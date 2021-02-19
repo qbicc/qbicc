@@ -265,7 +265,11 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public Section getImplicitSection(ExecutableElement element) {
-        ProgramModule programModule = getOrAddProgramModule(element.getEnclosingType());
+        return getImplicitSection(element.getEnclosingType());
+    }
+
+    public Section getImplicitSection(DefinedTypeDefinition typeDefinition) {
+        ProgramModule programModule = getOrAddProgramModule(typeDefinition);
         return programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
     }
 

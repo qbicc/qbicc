@@ -35,6 +35,7 @@ import cc.quarkus.qcc.type.generic.BaseTypeSignature;
 import cc.quarkus.qcc.type.generic.ClassSignature;
 import cc.quarkus.qcc.type.generic.ClassTypeSignature;
 import cc.quarkus.qcc.type.generic.TypeSignature;
+import io.smallrye.common.constraint.Assert;
 
 /**
  *
@@ -280,6 +281,31 @@ public final class Layout {
             return getRefArrayContentField();
         } else {
             return null;
+        }
+    }
+
+    public ValidatedTypeDefinition getArrayValidatedTypeDefinition(String arrayType) {
+        switch(arrayType) {
+        case "[Z":
+            return booleanArrayContentField.getEnclosingType().validate();
+        case "[B":
+            return byteArrayContentField.getEnclosingType().validate();
+        case "[S":
+            return shortArrayContentField.getEnclosingType().validate();
+        case "[C":
+            return charArrayContentField.getEnclosingType().validate();
+        case "[I":
+            return intArrayContentField.getEnclosingType().validate();
+        case "[F":
+            return floatArrayContentField.getEnclosingType().validate();
+        case "[J":
+            return longArrayContentField.getEnclosingType().validate();
+        case "[D":
+            return doubleArrayContentField.getEnclosingType().validate();
+        case "[ref":
+            return refArrayContentField.getEnclosingType().validate();
+        default:
+            throw Assert.impossibleSwitchCase("arrayType");
         }
     }
 
