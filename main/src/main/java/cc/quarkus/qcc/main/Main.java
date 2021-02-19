@@ -29,6 +29,7 @@ import cc.quarkus.qcc.machine.tool.CToolChain;
 import cc.quarkus.qcc.plugin.constants.ConstantBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.CloneConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.LLVMCompatibleBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.conversion.MethodCallFixupBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.correctness.RuntimeChecksBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
@@ -253,6 +254,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThrowValueBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MethodCallFixupBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
