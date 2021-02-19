@@ -72,7 +72,7 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
      */
     private MethodElement staticallyBind(final Value instance, final MethodElement target) {
         // Handle a very trivial case as a proof of concept that the phase actually does something..
-        if (target.isFinal()) {
+        if (target.isFinal() || target.getEnclosingType().isFinal()) {
             log.debugf("Devirtualizing call to %s::%s", target.getEnclosingType().getDescriptor().getClassName(), target.getName());
             return target;
         }
