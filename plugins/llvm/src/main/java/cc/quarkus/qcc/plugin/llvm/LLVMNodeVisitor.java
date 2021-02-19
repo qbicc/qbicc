@@ -18,12 +18,12 @@ import cc.quarkus.qcc.graph.And;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockEntry;
-import cc.quarkus.qcc.graph.CmpEq;
-import cc.quarkus.qcc.graph.CmpGe;
-import cc.quarkus.qcc.graph.CmpGt;
-import cc.quarkus.qcc.graph.CmpLe;
-import cc.quarkus.qcc.graph.CmpLt;
-import cc.quarkus.qcc.graph.CmpNe;
+import cc.quarkus.qcc.graph.IsEq;
+import cc.quarkus.qcc.graph.IsGe;
+import cc.quarkus.qcc.graph.IsGt;
+import cc.quarkus.qcc.graph.IsLe;
+import cc.quarkus.qcc.graph.IsLt;
+import cc.quarkus.qcc.graph.IsNe;
 import cc.quarkus.qcc.graph.Convert;
 import cc.quarkus.qcc.graph.Div;
 import cc.quarkus.qcc.graph.ElementOf;
@@ -269,6 +269,78 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         return builder.and(map(node.getType()), llvmLeft, llvmRight).asLocal();
     }
 
+    public LLValue visit(final Void param, final IsEq node) {
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+        return isFloating(node.getLeftInput().getType()) ?
+            builder.fcmp(FloatCondition.oeq, inputType, llvmLeft, llvmRight).asLocal() :
+            builder.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal();
+    }
+
+    public LLValue visit(final Void param, final IsNe node) {
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+        return isFloating(node.getLeftInput().getType()) ?
+            builder.fcmp(FloatCondition.one, inputType, llvmLeft, llvmRight).asLocal() :
+            builder.icmp(IntCondition.ne, inputType, llvmLeft, llvmRight).asLocal();
+    }
+
+    public LLValue visit(final Void param, final IsLt node) {
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+        ValueType valueType = node.getLeftInput().getType();
+        return isFloating(valueType) ?
+            builder.fcmp(FloatCondition.ult, inputType, llvmLeft, llvmRight).asLocal() :
+            isSigned(valueType) ?
+                builder.icmp(IntCondition.slt, inputType, llvmLeft, llvmRight).asLocal() :
+                builder.icmp(IntCondition.ult, inputType, llvmLeft, llvmRight).asLocal();
+    }
+
+    public LLValue visit(final Void param, final IsLe node) {
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+        ValueType valueType = node.getLeftInput().getType();
+        return isFloating(valueType) ?
+            builder.fcmp(FloatCondition.ole, inputType, llvmLeft, llvmRight).asLocal() :
+            isSigned(valueType) ?
+                builder.icmp(IntCondition.sle, inputType, llvmLeft, llvmRight).asLocal() :
+                builder.icmp(IntCondition.ule, inputType, llvmLeft, llvmRight).asLocal();
+    }
+
+    public LLValue visit(final Void param, final IsGt node) {
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+        ValueType valueType = node.getLeftInput().getType();
+        return isFloating(valueType) ?
+            builder.fcmp(FloatCondition.ugt, inputType, llvmLeft, llvmRight).asLocal() :
+            isSigned(valueType) ?
+                builder.icmp(IntCondition.sgt, inputType, llvmLeft, llvmRight).asLocal() :
+                builder.icmp(IntCondition.ugt, inputType, llvmLeft, llvmRight).asLocal();
+    }
+
+    public LLValue visit(final Void param, final IsGe node) {
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+        ValueType valueType = node.getLeftInput().getType();
+        return isFloating(valueType) ?
+            builder.fcmp(FloatCondition.oge, inputType, llvmLeft, llvmRight).asLocal() :
+            isSigned(valueType) ?
+                builder.icmp(IntCondition.sge, inputType, llvmLeft, llvmRight).asLocal() :
+                builder.icmp(IntCondition.uge, inputType, llvmLeft, llvmRight).asLocal();
+    }
+
     public LLValue visit(final Void param, final Or node) {
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
@@ -288,78 +360,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         return isFloating(node.getType()) ?
                builder.fmul(inputType, llvmLeft, llvmRight).asLocal() :
                builder.mul(inputType, llvmLeft, llvmRight).asLocal();
-    }
-
-    public LLValue visit(final Void param, final CmpEq node) {
-        Value left = node.getLeftInput();
-        LLValue inputType = map(left.getType());
-        LLValue llvmLeft = map(left);
-        LLValue llvmRight = map(node.getRightInput());
-        return isFloating(node.getLeftInput().getType()) ?
-               builder.fcmp(FloatCondition.oeq, inputType, llvmLeft, llvmRight).asLocal() :
-               builder.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal();
-    }
-
-    public LLValue visit(final Void param, final CmpNe node) {
-        Value left = node.getLeftInput();
-        LLValue inputType = map(left.getType());
-        LLValue llvmLeft = map(left);
-        LLValue llvmRight = map(node.getRightInput());
-        return isFloating(node.getLeftInput().getType()) ?
-               builder.fcmp(FloatCondition.one, inputType, llvmLeft, llvmRight).asLocal() :
-               builder.icmp(IntCondition.ne, inputType, llvmLeft, llvmRight).asLocal();
-    }
-
-    public LLValue visit(final Void param, final CmpLt node) {
-        Value left = node.getLeftInput();
-        LLValue inputType = map(left.getType());
-        LLValue llvmLeft = map(left);
-        LLValue llvmRight = map(node.getRightInput());
-        ValueType valueType = node.getLeftInput().getType();
-        return isFloating(valueType) ?
-               builder.fcmp(FloatCondition.ult, inputType, llvmLeft, llvmRight).asLocal() :
-                    isSigned(valueType) ?
-                      builder.icmp(IntCondition.slt, inputType, llvmLeft, llvmRight).asLocal() :
-                      builder.icmp(IntCondition.ult, inputType, llvmLeft, llvmRight).asLocal();
-    }
-
-    public LLValue visit(final Void param, final CmpLe node) {
-        Value left = node.getLeftInput();
-        LLValue inputType = map(left.getType());
-        LLValue llvmLeft = map(left);
-        LLValue llvmRight = map(node.getRightInput());
-        ValueType valueType = node.getLeftInput().getType();
-        return isFloating(valueType) ?
-               builder.fcmp(FloatCondition.ole, inputType, llvmLeft, llvmRight).asLocal() :
-                    isSigned(valueType) ?
-                      builder.icmp(IntCondition.sle, inputType, llvmLeft, llvmRight).asLocal() :
-                      builder.icmp(IntCondition.ule, inputType, llvmLeft, llvmRight).asLocal();
-    }
-
-    public LLValue visit(final Void param, final CmpGt node) {
-        Value left = node.getLeftInput();
-        LLValue inputType = map(left.getType());
-        LLValue llvmLeft = map(left);
-        LLValue llvmRight = map(node.getRightInput());
-        ValueType valueType = node.getLeftInput().getType();
-        return isFloating(valueType) ?
-               builder.fcmp(FloatCondition.ugt, inputType, llvmLeft, llvmRight).asLocal() :
-                    isSigned(valueType) ?
-                      builder.icmp(IntCondition.sgt, inputType, llvmLeft, llvmRight).asLocal() :
-                      builder.icmp(IntCondition.ugt, inputType, llvmLeft, llvmRight).asLocal();
-    }
-
-    public LLValue visit(final Void param, final CmpGe node) {
-        Value left = node.getLeftInput();
-        LLValue inputType = map(left.getType());
-        LLValue llvmLeft = map(left);
-        LLValue llvmRight = map(node.getRightInput());
-        ValueType valueType = node.getLeftInput().getType();
-        return isFloating(valueType) ?
-               builder.fcmp(FloatCondition.oge, inputType, llvmLeft, llvmRight).asLocal() :
-                    isSigned(valueType) ?
-                      builder.icmp(IntCondition.sge, inputType, llvmLeft, llvmRight).asLocal() :
-                      builder.icmp(IntCondition.uge, inputType, llvmLeft, llvmRight).asLocal();
     }
 
     public LLValue visit(final Void param, final Select node) {

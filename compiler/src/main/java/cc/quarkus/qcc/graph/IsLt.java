@@ -6,8 +6,8 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public final class CmpNe extends AbstractCmp implements CommutativeBinaryValue {
-    CmpNe(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value v1, final Value v2, final BooleanType booleanType) {
+public final class IsLt extends AbstractBooleanCompare implements NonCommutativeBinaryValue {
+    IsLt(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value v1, final Value v2, final BooleanType booleanType) {
         super(callSite, element, line, bci, v1, v2, booleanType);
     }
 

@@ -36,7 +36,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         this.ctxt = ctxt;
     }
 
-    public Value cmpEq(final Value v1, final Value v2) {
+    public Value isEq(final Value v1, final Value v2) {
         if (isAlwaysNull(v1) && isAlwaysNull(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
         } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2)) {
@@ -45,21 +45,21 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             // todo: replace with constant detection
             return ctxt.getLiteralFactory().literalOf(v1.equals(v2));
         } else {
-            return super.cmpEq(v1, v2);
+            return super.isEq(v1, v2);
         }
     }
 
-    public Value cmpNe(final Value v1, final Value v2) {
+    public Value isNe(final Value v1, final Value v2) {
         if (isAlwaysNull(v1) && isAlwaysNull(v2)) {
             return ctxt.getLiteralFactory().literalOf(false);
         } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
         } else {
-            return super.cmpNe(v1, v2);
+            return super.isNe(v1, v2);
         }
     }
 
-    public Value cmpLt(Value v1, Value v2) {
+    public Value isLt(Value v1, Value v2) {
         // todo: replace with constant detection
         LiteralFactory lf = ctxt.getLiteralFactory();
         if (v1 instanceof IntegerLiteral && v2 instanceof IntegerLiteral) {
@@ -75,10 +75,10 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
-        return super.cmpLt(v1, v2);
+        return super.isLt(v1, v2);
     }
 
-    public Value cmpGt(Value v1, Value v2) {
+    public Value isGt(Value v1, Value v2) {
         // todo: replace with constant detection
         LiteralFactory lf = ctxt.getLiteralFactory();
         if (v1 instanceof IntegerLiteral && v2 instanceof IntegerLiteral) {
@@ -94,10 +94,10 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
-        return super.cmpGt(v1, v2);
+        return super.isGt(v1, v2);
     }
 
-    public Value cmpLe(Value v1, Value v2) {
+    public Value isLe(Value v1, Value v2) {
         // todo: replace with constant detection
         LiteralFactory lf = ctxt.getLiteralFactory();
         if (v1 instanceof IntegerLiteral && v2 instanceof IntegerLiteral) {
@@ -113,10 +113,10 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
-        return super.cmpLe(v1, v2);
+        return super.isLe(v1, v2);
     }
 
-    public Value cmpGe(Value v1, Value v2) {
+    public Value isGe(Value v1, Value v2) {
         // todo: replace with constant detection
         LiteralFactory lf = ctxt.getLiteralFactory();
         if (v1 instanceof IntegerLiteral && v2 instanceof IntegerLiteral) {
@@ -132,7 +132,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
-        return super.cmpGe(v1, v2);
+        return super.isGe(v1, v2);
     }
 
     public Value bitCast(Value input, WordType toType) {

@@ -203,7 +203,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             final BlockLabel throwIt = new BlockLabel();
             final BlockLabel goAhead = new BlockLabel();
 
-            if_(cmpEq(v2, zero), throwIt, goAhead);
+            if_(isEq(v2, zero), throwIt, goAhead);
             begin(throwIt);
             ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
             ValidatedTypeDefinition ae = classContext.findDefinedType("java/lang/ArithmeticException").validate();
@@ -281,7 +281,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         final LiteralFactory lf = ctxt.getLiteralFactory();
         final NullLiteral nullLiteral = lf.literalOfNull();
 
-        if_(cmpEq(value, nullLiteral), throwIt, goAhead);
+        if_(isEq(value, nullLiteral), throwIt, goAhead);
         begin(throwIt);
         ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
         ValidatedTypeDefinition npe = classContext.findDefinedType("java/lang/NullPointerException").validate();
@@ -298,10 +298,10 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         LiteralFactory lf = ctxt.getLiteralFactory();
         final IntegerLiteral zero = lf.literalOf(0);
 
-        if_(cmpLt(index, zero), throwIt, notNegative);
+        if_(isLt(index, zero), throwIt, notNegative);
         begin(notNegative);
         final Value length = arrayLength(array);
-        if_(cmpGe(index, length), throwIt, goAhead);
+        if_(isGe(index, length), throwIt, goAhead);
         begin(throwIt);
         ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
         ValidatedTypeDefinition aiobe = classContext.findDefinedType("java/lang/ArrayIndexOutOfBoundsException").validate();

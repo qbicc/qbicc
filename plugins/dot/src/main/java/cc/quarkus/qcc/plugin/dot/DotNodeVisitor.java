@@ -24,12 +24,12 @@ import cc.quarkus.qcc.graph.ClassCastErrorNode;
 import cc.quarkus.qcc.graph.ClassNotFoundErrorNode;
 import cc.quarkus.qcc.graph.ClassOf;
 import cc.quarkus.qcc.graph.Clone;
-import cc.quarkus.qcc.graph.CmpEq;
-import cc.quarkus.qcc.graph.CmpGe;
-import cc.quarkus.qcc.graph.CmpGt;
-import cc.quarkus.qcc.graph.CmpLe;
-import cc.quarkus.qcc.graph.CmpLt;
-import cc.quarkus.qcc.graph.CmpNe;
+import cc.quarkus.qcc.graph.IsEq;
+import cc.quarkus.qcc.graph.IsGe;
+import cc.quarkus.qcc.graph.IsGt;
+import cc.quarkus.qcc.graph.IsLe;
+import cc.quarkus.qcc.graph.IsLt;
+import cc.quarkus.qcc.graph.IsNe;
 import cc.quarkus.qcc.graph.CommutativeBinaryValue;
 import cc.quarkus.qcc.graph.ConstructorInvocation;
 import cc.quarkus.qcc.graph.Convert;
@@ -588,30 +588,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return node(param, "clone", node);
     }
 
-    public String visit(final Appendable param, final CmpEq node) {
-        return node(param, "eq", node);
-    }
-
-    public String visit(final Appendable param, final CmpGe node) {
-        return node(param, "≥", node);
-    }
-
-    public String visit(final Appendable param, final CmpGt node) {
-        return node(param, ">", node);
-    }
-
-    public String visit(final Appendable param, final CmpLe node) {
-        return node(param, "≤", node);
-    }
-
-    public String visit(final Appendable param, final CmpLt node) {
-        return node(param, "<", node);
-    }
-
-    public String visit(final Appendable param, final CmpNe node) {
-        return node(param, "neq", node);
-    }
-
     public String visit(final Appendable param, final ConstructorInvocation node) {
         String name = register(node);
         appendTo(param, name);
@@ -726,6 +702,30 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final IntegerLiteral node) {
         return literal(param, String.valueOf(node.longValue()));
+    }
+
+    public String visit(final Appendable param, final IsEq node) {
+        return node(param, "eq", node);
+    }
+
+    public String visit(final Appendable param, final IsGe node) {
+        return node(param, "≥", node);
+    }
+
+    public String visit(final Appendable param, final IsGt node) {
+        return node(param, ">", node);
+    }
+
+    public String visit(final Appendable param, final IsLe node) {
+        return node(param, "≤", node);
+    }
+
+    public String visit(final Appendable param, final IsLt node) {
+        return node(param, "<", node);
+    }
+
+    public String visit(final Appendable param, final IsNe node) {
+        return node(param, "neq", node);
     }
 
     public String visit(final Appendable param, final Load node) {

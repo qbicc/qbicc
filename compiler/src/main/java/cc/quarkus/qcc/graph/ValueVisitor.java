@@ -74,27 +74,27 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, CmpEq node) {
+    default R visit(T param, IsEq node) {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, CmpGe node) {
+    default R visit(T param, IsGe node) {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, CmpGt node) {
+    default R visit(T param, IsGt node) {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, CmpLe node) {
+    default R visit(T param, IsLe node) {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, CmpLt node) {
+    default R visit(T param, IsLt node) {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, CmpNe node) {
+    default R visit(T param, IsNe node) {
         return visitUnknown(param, node);
     }
 
@@ -377,30 +377,6 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
-        default R visit(T param, CmpEq node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, CmpGe node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, CmpGt node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, CmpLe node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, CmpLt node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, CmpNe node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
         default R visit(T param, CompoundLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
@@ -490,6 +466,30 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, IntegerLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, IsEq node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, IsGe node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, IsGt node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, IsLe node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, IsLt node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, IsNe node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

@@ -148,9 +148,9 @@ public interface BasicBlockBuilder {
 
     Value xor(Value v1, Value v2); // also used for ones-complement
 
-    Value cmpEq(Value v1, Value v2);
+    Value isEq(Value v1, Value v2);
 
-    Value cmpNe(Value v1, Value v2);
+    Value isNe(Value v1, Value v2);
 
     Value shr(Value v1, Value v2);
 
@@ -166,13 +166,13 @@ public interface BasicBlockBuilder {
 
     Value max(Value v1, Value v2);
 
-    Value cmpLt(Value v1, Value v2);
+    Value isLt(Value v1, Value v2);
 
-    Value cmpGt(Value v1, Value v2);
+    Value isGt(Value v1, Value v2);
 
-    Value cmpLe(Value v1, Value v2);
+    Value isLe(Value v1, Value v2);
 
-    Value cmpGe(Value v1, Value v2);
+    Value isGe(Value v1, Value v2);
 
     Value rol(Value v1, Value v2);
 

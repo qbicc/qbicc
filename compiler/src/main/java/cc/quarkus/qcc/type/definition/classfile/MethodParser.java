@@ -915,84 +915,84 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_DCMPL: {
                         v2 = pop2();
                         v1 = pop2();
-                        v3 = gf.cmpLt(v1, v2);
-                        v4 = gf.cmpGt(v1, v2);
+                        v3 = gf.isLt(v1, v2);
+                        v4 = gf.isGt(v1, v2);
                         push1(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
                         break;
                     }
                     case OP_FCMPL: {
                         v2 = pop1();
                         v1 = pop1();
-                        v3 = gf.cmpLt(v1, v2);
-                        v4 = gf.cmpGt(v1, v2);
+                        v3 = gf.isLt(v1, v2);
+                        v4 = gf.isGt(v1, v2);
                         push1(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
                         break;
                     }
                     case OP_DCMPG: {
                         v2 = pop2();
                         v1 = pop2();
-                        v3 = gf.cmpLt(v1, v2);
-                        v4 = gf.cmpGt(v1, v2);
+                        v3 = gf.isLt(v1, v2);
+                        v4 = gf.isGt(v1, v2);
                         push1(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
                         break;
                     }
                     case OP_FCMPG: {
                         v2 = pop1();
                         v1 = pop1();
-                        v3 = gf.cmpLt(v1, v2);
-                        v4 = gf.cmpGt(v1, v2);
+                        v3 = gf.isLt(v1, v2);
+                        v4 = gf.isGt(v1, v2);
                         push1(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
                         break;
                     }
                     case OP_IFEQ:
-                        processIf(buffer, gf.cmpEq(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isEq(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFNE:
-                        processIf(buffer, gf.cmpNe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isNe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFLT:
-                        processIf(buffer, gf.cmpLt(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isLt(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFGE:
-                        processIf(buffer, gf.cmpGe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isGe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFGT:
-                        processIf(buffer, gf.cmpGt(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isGt(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFLE:
-                        processIf(buffer, gf.cmpLe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isLe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IF_ICMPEQ:
                     case OP_IF_ACMPEQ:
                         v2 = pop1();
                         v1 = pop1();
-                        processIf(buffer, gf.cmpEq(v1, v2), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isEq(v1, v2), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IF_ICMPNE:
                     case OP_IF_ACMPNE:
                         v2 = pop1();
                         v1 = pop1();
-                        processIf(buffer, gf.cmpNe(v1, v2), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isNe(v1, v2), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IF_ICMPLT:
                         v2 = pop1();
                         v1 = pop1();
-                        processIf(buffer, gf.cmpLt(v1, v2), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isLt(v1, v2), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IF_ICMPGE:
                         v2 = pop1();
                         v1 = pop1();
-                        processIf(buffer, gf.cmpGe(v1, v2), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isGe(v1, v2), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IF_ICMPGT:
                         v2 = pop1();
                         v1 = pop1();
-                        processIf(buffer, gf.cmpGt(v1, v2), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isGt(v1, v2), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IF_ICMPLE:
                         v2 = pop1();
                         v1 = pop1();
-                        processIf(buffer, gf.cmpLe(v1, v2), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isLe(v1, v2), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_GOTO:
                     case OP_GOTO_W: {
@@ -1416,10 +1416,10 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         push1(gf.multiNewArray(ArrayTypeDescriptor.of(ctxt, desc), List.of(dims)));
                         break;
                     case OP_IFNULL:
-                        processIf(buffer, gf.cmpEq(pop1(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isEq(pop1(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFNONNULL:
-                        processIf(buffer, gf.cmpNe(pop1(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
+                        processIf(buffer, gf.isNe(pop1(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
                         return;
                     default:
                         throw new InvalidByteCodeException();
