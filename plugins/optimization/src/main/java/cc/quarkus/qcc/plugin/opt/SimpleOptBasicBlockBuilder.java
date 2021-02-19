@@ -8,6 +8,7 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.Convert;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.NewArray;
 import cc.quarkus.qcc.graph.PointerHandle;
@@ -147,6 +148,28 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return bitCast(inputNode.getInput(), toType);
         }
         return super.bitCast(input, toType);
+    }
+
+    @Override
+    public Value valueConvert(Value input, WordType toType) {
+        if (input instanceof Convert) {
+            Convert inputNode = (Convert) input;
+            Value inputInput = inputNode.getInput();
+            ValueType inputInputType = inputInput.getType();
+            if (inputInputType.equals(toType)) {
+                // Convert(Convert(a, x), type-of a) -> a
+                return inputInput;
+            }
+            if (inputInputType instanceof PointerType && toType instanceof PointerType) {
+                // Convert(Convert(a, x), y) -> BitCast(a, y) when a and y are pointer types
+                return bitCast(inputInput, toType);
+            }
+            if (inputInputType instanceof ReferenceType && toType instanceof ReferenceType) {
+                // Convert(Convert(a, x), y) -> BitCast(a, y) when a and y are reference types
+                return bitCast(inputInput, toType);
+            }
+        }
+        return super.valueConvert(input, toType);
     }
 
     private boolean isNeverNull(final Value v1) {

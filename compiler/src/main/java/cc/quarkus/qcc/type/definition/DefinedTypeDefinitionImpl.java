@@ -50,6 +50,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final String enclosingClassName;
     private final EnclosedClassResolver[] enclosedClassResolvers;
     private final int[] enclosedClassResolverIndexes;
+    private final DefinedTypeDefinition superClass;
 
     private volatile DefinedTypeDefinition validated;
 
@@ -64,6 +65,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         this.context = builder.context;
         this.internalName = Assert.checkNotNullParam("builder.internalName", builder.internalName);
         this.superClassName = builder.superClassName;
+        this.superClass = builder.superClass;
         String simpleName = builder.simpleName;
         if (simpleName == null) {
             int idx = internalName.lastIndexOf('/');
@@ -167,7 +169,9 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             return validated.validate();
         }
         ValidatedTypeDefinition superType;
-        if (superClassName != null) {
+        if (superClass != null) {
+            superType = superClass.validate();
+        } else if (superClassName != null) {
             DefinedTypeDefinition definedSuperType = context.findDefinedType(superClassName);
             if (definedSuperType == null) {
                 throw new VerifyFailedException("Failed to load super class " + superClassName);
@@ -306,6 +310,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         int enclosedClassCount;
         EnclosedClassResolver[] enclosedClassResolvers = NO_ENCLOSED;
         int[] enclosedClassResolverIndexes = NO_INTS;
+        DefinedTypeDefinition superClass;
 
         public void setContext(final ClassContext context) {
             this.context = context;
@@ -496,6 +501,10 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
         public void setBootstrapMethods(final List<BootstrapMethod> bootstrapMethods) {
             this.bootstrapMethods = Assert.checkNotNullParam("bootstrapMethods", bootstrapMethods);
+        }
+
+        public void setSuperClass(final DefinedTypeDefinition superClass) {
+            this.superClass = superClass;
         }
 
         public void setName(final String internalName) {

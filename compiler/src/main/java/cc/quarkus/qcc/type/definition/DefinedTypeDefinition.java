@@ -229,6 +229,8 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
         void setBootstrapMethods(List<BootstrapMethod> bootstrapMethods);
 
+        void setSuperClass(DefinedTypeDefinition superClass);
+
         DefinedTypeDefinition build();
 
         static Builder basic() {
@@ -328,6 +330,10 @@ public interface DefinedTypeDefinition extends FieldResolver,
 
             default void setBootstrapMethods(List<BootstrapMethod> bootstrapMethods) {
                 getDelegate().setBootstrapMethods(bootstrapMethods);
+            }
+
+            default void setSuperClass(DefinedTypeDefinition superClass) {
+                getDelegate().setSuperClass(superClass);
             }
 
             default DefinedTypeDefinition build() {

@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.GlobalVariable;
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
@@ -27,7 +26,6 @@ import cc.quarkus.qcc.type.definition.InitializerResolver;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -129,33 +127,34 @@ public final class Layout {
 
         // primitives first
         // booleans are special
-        booleanArrayContentField = defineArrayType(classContext, jlo, ts.getUnsignedInteger8Type(), "[Z").validate().getField(0);
+        booleanArrayContentField = defineArrayType(classContext, baseType, ts.getUnsignedInteger8Type(), "[Z").validate().getField(0);
 
-        byteArrayContentField = defineArrayType(classContext, jlo, ts.getSignedInteger8Type(), "[B").validate().getField(0);
-        shortArrayContentField = defineArrayType(classContext, jlo, ts.getSignedInteger16Type(), "[S").validate().getField(0);
-        intArrayContentField = defineArrayType(classContext, jlo, ts.getSignedInteger32Type(), "[I").validate().getField(0);
-        longArrayContentField = defineArrayType(classContext, jlo, ts.getSignedInteger64Type(), "[J").validate().getField(0);
+        byteArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger8Type(), "[B").validate().getField(0);
+        shortArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger16Type(), "[S").validate().getField(0);
+        intArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger32Type(), "[I").validate().getField(0);
+        longArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger64Type(), "[J").validate().getField(0);
 
-        charArrayContentField = defineArrayType(classContext, jlo, ts.getUnsignedInteger16Type(), "[C").validate().getField(0);
+        charArrayContentField = defineArrayType(classContext, baseType, ts.getUnsignedInteger16Type(), "[C").validate().getField(0);
 
-        floatArrayContentField = defineArrayType(classContext, jlo, ts.getFloat32Type(), "[F").validate().getField(0);
-        doubleArrayContentField = defineArrayType(classContext, jlo, ts.getFloat64Type(), "[D").validate().getField(0);
+        floatArrayContentField = defineArrayType(classContext, baseType, ts.getFloat32Type(), "[F").validate().getField(0);
+        doubleArrayContentField = defineArrayType(classContext, baseType, ts.getFloat64Type(), "[D").validate().getField(0);
 
         // now the reference array class
 
-        ValidatedTypeDefinition refArrayType = defineArrayType(classContext, jlo, jlo.getClassType().getReference().asNullable(), "[ref").validate();
+        ValidatedTypeDefinition refArrayType = defineArrayType(classContext, baseType, jlo.getClassType().getReference().asNullable(), "[L").validate();
         refArrayDimensionsField = refArrayType.getField(0);
         refArrayElementTypeIdField = refArrayType.getField(1);
         refArrayContentField = refArrayType.getField(2);
     }
 
-    private static DefinedTypeDefinition defineArrayType(ClassContext classContext, DefinedTypeDefinition jlo, ValueType realMemberType, String simpleName) {
+    private static DefinedTypeDefinition defineArrayType(ClassContext classContext, DefinedTypeDefinition superClass, ValueType realMemberType, String simpleName) {
         DefinedTypeDefinition.Builder typeBuilder = DefinedTypeDefinition.Builder.basic();
         ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, INTERNAL_ARRAY);
         typeBuilder.setDescriptor(desc);
-        ClassTypeSignature superClassSig = (ClassTypeSignature) TypeSignature.synthesize(classContext, jlo.getDescriptor());
+        ClassTypeSignature superClassSig = (ClassTypeSignature) TypeSignature.synthesize(classContext, superClass.getDescriptor());
         typeBuilder.setSignature(ClassSignature.synthesize(classContext, superClassSig, List.of()));
-        typeBuilder.setSuperClassName("java/lang/Object");
+        typeBuilder.setSuperClass(superClass);
+        typeBuilder.setSuperClassName(superClass.getInternalName());
         typeBuilder.setSimpleName(simpleName);
         typeBuilder.setContext(classContext);
         typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_HIDDEN);
@@ -166,7 +165,7 @@ public final class Layout {
             // also need a dimensions field
             typeBuilder.addField(Layout::makeDimensionsField, idx++);
             // also need a type ID field
-            typeBuilder.addField((index, encl) -> makeTypeIdField(index, jlo, encl), idx++);
+            typeBuilder.addField((index, encl) -> makeTypeIdField(index, superClass, encl), idx++);
         }
         typeBuilder.addField((index, enclosing) -> makeContentField(index, enclosing, realMemberType), idx);
         typeBuilder.setInitializer(EMPTY_INIT, 0);
@@ -396,19 +395,17 @@ public final class Layout {
             allocated.or(superLayout.allocated);
         }
         int cnt = validated.getFieldCount();
-        int ic = 0;
-        CompoundType.Member[] instanceMembers = new CompoundType.Member[cnt];
-        Map<FieldElement, CompoundType.Member> fieldToMember = new HashMap<>(instanceMembers.length);
+        Map<FieldElement, CompoundType.Member> fieldToMember = superLayout == null ? new HashMap<>(cnt) : new HashMap<>(superLayout.fieldToMember);
         for (int i = 0; i < cnt; i ++) {
             // todo: skip unused fields?
             FieldElement field = validated.getField(i);
             if (field.isStatic()) {
                 continue;
             }
-            fieldToMember.put(field, instanceMembers[ic++] = computeMember(allocated, field));
+            fieldToMember.put(field, computeMember(allocated, field));
         }
         int size = allocated.length();
-        CompoundType.Member[] membersArray = Arrays.copyOf(instanceMembers, ic);
+        CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
         Arrays.sort(membersArray);
         List<CompoundType.Member> membersList = List.of(membersArray);
         CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, 1, () -> membersList);
