@@ -5,6 +5,7 @@ import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
@@ -130,6 +131,10 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     private Value expandVirtualDispatch(Value instance, MethodElement target) {
         DispatchTables dt = DispatchTables.get(ctxt);
         DispatchTables.VTableInfo info = dt.getVTableInfo(target.getEnclosingType().validate());
+        if (info == null) {
+            // No realized invocation targets are possible for this method!
+            throw new BlockEarlyTermination(unreachable());
+        }
         GlobalVariableElement vtables = dt.getVTablesGlobal();
         if (!vtables.getEnclosingType().equals(originalElement.getEnclosingType())) {
             Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
