@@ -158,7 +158,7 @@ public final class TypeSystem {
     }
 
     /**
-     * Get the size of type ID values for this type system.
+     * Get the size of type ID values (in bytes) for this type system.
      *
      * @return the size of type ID values for this type system
      */
