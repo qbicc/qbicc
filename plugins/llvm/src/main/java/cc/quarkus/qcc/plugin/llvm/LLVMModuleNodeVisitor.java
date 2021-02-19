@@ -69,7 +69,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     final CompilationContext ctxt;
 
     final Map<Type, LLValue> types = new HashMap<>();
-    final Map<CompoundType.Member, LLValue> structureOffsets = new HashMap<>();
+    final Map<CompoundType, Map<CompoundType.Member, LLValue>> structureOffsets = new HashMap<>();
     final Map<Value, LLValue> globalValues = new HashMap<>();
 
     final Map<String, LLValue> TEMPORARY_stringLiterals = new HashMap<>();
@@ -146,6 +146,8 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             //   - Use an identified type in the module to avoid infinite recursion when printing the type
             //   - Add the mapping to types early to avoid infinite recursion when mapping self-referential member types
             CompoundType compoundType = (CompoundType) type;
+            HashMap<CompoundType.Member, LLValue> offsets = new HashMap<>();
+            structureOffsets.putIfAbsent(compoundType, offsets);
             String name;
             if (compoundType.getName().equals("<anon>")) {
                 name = "T.anon" + anonCnt.getAndIncrement();
@@ -176,7 +178,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                 ValueType memberType = member.getType();
                 struct.member(map(memberType));
                 // todo: cache these ints
-                structureOffsets.put(member, Values.intConstant(index));
+                offsets.put(member, Values.intConstant(index));
                 index ++;
                 // the target will already pad out for normal alignment
                 offs += max(memberType.getAlign(), memberType.getSize());
@@ -209,7 +211,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     LLValue map(final CompoundType compoundType, final CompoundType.Member member) {
         // populate map
         map(compoundType);
-        return structureOffsets.get(member);
+        return structureOffsets.get(compoundType).get(member);
     }
 
     LLValue map(final Literal value) {
