@@ -336,26 +336,43 @@ public class SupersDisplayTables {
 
     void emitTypeIdTable(ValidatedTypeDefinition jlo) {
         TypeSystem ts = ctxt.getTypeSystem();
-        int typeIdSize = ts.getTypeIdSize();
         UnsignedIntegerType u8 = ts.getUnsignedInteger8Type();
-        UnsignedIntegerType u16 = ts.getUnsignedInteger16Type();
+        int typeIdSize = ts.getTypeIdSize();
+        UnsignedIntegerType uTypeId;
+        switch(typeIdSize) {
+        case 1:
+            uTypeId = ts.getUnsignedInteger8Type();
+            break;
+        case 2:
+            uTypeId = ts.getUnsignedInteger16Type();
+            break;
+        case 4:
+            uTypeId = ts.getUnsignedInteger32Type();
+            break;
+        case 8:
+            uTypeId = ts.getUnsignedInteger64Type();
+            break;
+        default:
+            throw Assert.impossibleSwitchCase("#getTypeIdSize() must be one of {1,2,4,8} - was: " + typeIdSize);
+        }
+        supersLog.debug("typeIdSize set to: " + uTypeId.toFriendlyString(new StringBuilder()).toString());
         // TODO: better validation of typeId size
-        Assert.assertTrue(typeIdSize <= u16.getSize());
+        Assert.assertTrue(typeIdSize <= uTypeId.getMinBits());
         int numInterfaces = getNumberOfInterfacesInTypeIds();
         supersLog.debug("NumInterfaces=" + numInterfaces + " numBytes=" + getNumberOfBytesInInterfaceBitsArray());
         ArrayType interfaceBitsType = ts.getArrayType(u8, getNumberOfBytesInInterfaceBitsArray());
         // ts.getCompoundType(tag, name, size, align, memberResolver);
         // typedef struct typeids {
-        //   uint16_t tid;
-        //   uint16_t maxsubid;
+        //   uintXX_t tid;
+        //   uintXX_t maxsubid;
         //   uint8_t interfaces[x];
         // } typeids;
         CompoundType.Member[] members = new CompoundType.Member[] {
-            ts.getCompoundTypeMember("typeId", u16, 0, u16.getAlign()),
-            ts.getCompoundTypeMember("maxSubTypeId", u16, (int)u16.getSize(), u16.getAlign()),
-            ts.getCompoundTypeMember("interfaceBits", interfaceBitsType, (int)u16.getSize() * 2, interfaceBitsType.getAlign())
+            ts.getCompoundTypeMember("typeId", uTypeId, 0, uTypeId.getAlign()),
+            ts.getCompoundTypeMember("maxSubTypeId", uTypeId, (int)uTypeId.getSize(), uTypeId.getAlign()),
+            ts.getCompoundTypeMember("interfaceBits", interfaceBitsType, (int)uTypeId.getSize() * 2, interfaceBitsType.getAlign())
         };
-        int memberSize = (int)(u16.getSize() * 2 + interfaceBitsType.getSize());
+        int memberSize = (int)(uTypeId.getSize() * 2 + interfaceBitsType.getSize());
         CompoundType typeIdStruct = ts.getCompoundType(
             CompoundType.Tag.STRUCT, 
             "typeIds", 
@@ -378,8 +395,8 @@ public class SupersDisplayTables {
         for (int i = 0; i < 10; i++) {
             typeIdTable[i] = literalFactory.literalOf(typeIdStruct, 
                 Map.of(
-                    members[0], literalFactory.literalOf(u16, i),
-                    members[1], literalFactory.literalOf(u16, i),
+                    members[0], literalFactory.literalOf(uTypeId, i),
+                    members[1], literalFactory.literalOf(uTypeId, i),
                     members[2], literalFactory.literalOf(interfaceBitsType, primitivesInterfaceBits)
                 )
             );
@@ -389,8 +406,8 @@ public class SupersDisplayTables {
             IdAndRange idRange = e.getValue();
             typeIdTable[vtd.getTypeId()] = literalFactory.literalOf(typeIdStruct, 
                 Map.of(
-                    members[0], literalFactory.literalOf(u16, idRange.typeid),
-                    members[1], literalFactory.literalOf(u16, idRange.maximumSubtypeId),
+                    members[0], literalFactory.literalOf(uTypeId, idRange.typeid),
+                    members[1], literalFactory.literalOf(uTypeId, idRange.maximumSubtypeId),
                     members[2], literalFactory.literalOf(interfaceBitsType, convertByteArrayToValuesList(literalFactory, getImplementedInterfaceBits(vtd)))
                 )
             );
