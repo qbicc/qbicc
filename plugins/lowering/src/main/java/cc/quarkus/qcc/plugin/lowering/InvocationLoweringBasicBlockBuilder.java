@@ -7,7 +7,6 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.GlobalVariable;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
@@ -42,7 +41,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         ReferenceType type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").validate().getClassType().getReference();
         if (originalElement instanceof FunctionElement) {
             SymbolLiteral sym = ctxt.getCurrentThreadLocalSymbolLiteral();
-            Section section = ctxt.getOrAddProgramModule(originalElement.getEnclosingType()).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
             section.declareData(null, sym.getName(), ((PointerType)sym.getType()).getPointeeType()).setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
             // todo: replace symbol literal with global variable - or static field perhaps
             Value ptrVal = load(pointerHandle(sym), MemoryAtomicityMode.NONE);
@@ -133,7 +132,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         DispatchTables.VTableInfo info = dt.getVTableInfo(target.getEnclosingType().validate());
         GlobalVariableElement vtables = dt.getVTablesGlobal();
         if (!vtables.getEnclosingType().equals(originalElement.getEnclosingType())) {
-            Section section = ctxt.getOrAddProgramModule(originalElement.getEnclosingType()).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
             section.declareData(null, vtables.getName(), vtables.getType(List.of()));
         }
         int index = dt.getVTableIndex(target);

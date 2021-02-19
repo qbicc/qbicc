@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.plugin.native_;
 
-import static cc.quarkus.qcc.context.CompilationContext.IMPLICIT_SECTION_NAME;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -335,7 +333,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         DefinedTypeDefinition ourType = getCurrentElement().getEnclosingType();
         if (!fieldInfo.defined || fieldInfo.fieldElement.getEnclosingType() != ourType) {
             // declare it
-            Section section = ctxt.getOrAddProgramModule(ourType).getOrAddSection(IMPLICIT_SECTION_NAME);
+            Section section = ctxt.getImplicitSection(ourType);
             DataDeclaration decl = section.declareData(fieldInfo.fieldElement, sym.getName(), fieldInfo.objectType);
             decl.setLinkage(Linkage.EXTERNAL);
             if (fieldInfo.fieldElement.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {

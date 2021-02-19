@@ -22,7 +22,6 @@ import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
-import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 

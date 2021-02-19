@@ -32,7 +32,7 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
         if (! fieldHolder.equals(ourHolder)) {
             // we have to declare it in our translation unit
             ValueType fieldType = fieldElement.getType(List.of());
-            Section section = ctxt.getOrAddProgramModule(ourHolder).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
+            Section section = ctxt.getImplicitSection(ourHolder);
             section.declareData(fieldElement, symbol.getName(), fieldType);
         }
         // todo: replace with global variable
