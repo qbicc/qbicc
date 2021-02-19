@@ -202,11 +202,19 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, Max node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, MethodDescriptorLiteral node) {
         return visitUnknown(param, node);
     }
 
     default R visit(T param, MethodHandleLiteral node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, Min node) {
         return visitUnknown(param, node);
     }
 
@@ -489,11 +497,19 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
+        default R visit(T param, Max node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
         default R visit(T param, MethodDescriptorLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
         default R visit(T param, MethodHandleLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Min node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

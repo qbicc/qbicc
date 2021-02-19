@@ -742,6 +742,16 @@ public interface Node {
             public ValueHandle visit(Copier param, ReferenceHandle node) {
                 return param.getBlockBuilder().referenceHandle(param.copyValue(node.getReferenceValue()));
             }
+
+            @Override
+            public Value visit(final Copier param, final Min node) {
+                return param.getBlockBuilder().min(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            @Override
+            public Value visit(final Copier param, final Max node) {
+                return param.getBlockBuilder().max(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
         }
     }
 }

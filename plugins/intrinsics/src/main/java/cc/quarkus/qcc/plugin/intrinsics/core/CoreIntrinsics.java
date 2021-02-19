@@ -40,6 +40,7 @@ public final class CoreIntrinsics {
         registerJavaLangIntegerLongMathIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerCcQuarkusQccRuntimeValuesIntrinsics(ctxt);
+        registerJavaLangMathIntrinsics(ctxt);
     }
 
     private static StaticIntrinsic setVolatile(FieldElement field) {
@@ -349,5 +350,44 @@ public final class CoreIntrinsics {
             ctxt.error(builder.getLocation(), "Cannot determine target of operation");
             return null;
         }
+    }
+
+    public static void registerJavaLangMathIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor mathDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Math");
+        ClassTypeDescriptor strictDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/StrictMath");
+
+        MethodDescriptor intIntIntDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, Collections.nCopies(2, BaseTypeDescriptor.I));
+        MethodDescriptor longLongLongDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, Collections.nCopies(2, BaseTypeDescriptor.J));
+        MethodDescriptor floatFloatFloatDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.F, Collections.nCopies(2, BaseTypeDescriptor.F));
+        MethodDescriptor doubleDoubleDoubleDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.D, Collections.nCopies(2, BaseTypeDescriptor.D));
+
+        StaticValueIntrinsic min = (builder, owner, name, descriptor, arguments) ->
+            builder.min(arguments.get(0), arguments.get(1));
+
+        StaticValueIntrinsic max = (builder, owner, name, descriptor, arguments) ->
+            builder.max(arguments.get(0), arguments.get(1));
+
+        intrinsics.registerIntrinsic(mathDesc, "min", intIntIntDescriptor, min);
+        intrinsics.registerIntrinsic(mathDesc, "min", longLongLongDescriptor, min);
+        intrinsics.registerIntrinsic(mathDesc, "min", floatFloatFloatDescriptor, min);
+        intrinsics.registerIntrinsic(mathDesc, "min", doubleDoubleDoubleDescriptor, min);
+
+        intrinsics.registerIntrinsic(mathDesc, "max", intIntIntDescriptor, max);
+        intrinsics.registerIntrinsic(mathDesc, "max", longLongLongDescriptor, max);
+        intrinsics.registerIntrinsic(mathDesc, "max", floatFloatFloatDescriptor, max);
+        intrinsics.registerIntrinsic(mathDesc, "max", doubleDoubleDoubleDescriptor, max);
+
+        intrinsics.registerIntrinsic(strictDesc, "min", intIntIntDescriptor, min);
+        intrinsics.registerIntrinsic(strictDesc, "min", longLongLongDescriptor, min);
+        intrinsics.registerIntrinsic(strictDesc, "min", floatFloatFloatDescriptor, min);
+        intrinsics.registerIntrinsic(strictDesc, "min", doubleDoubleDoubleDescriptor, min);
+
+        intrinsics.registerIntrinsic(strictDesc, "max", intIntIntDescriptor, max);
+        intrinsics.registerIntrinsic(strictDesc, "max", longLongLongDescriptor, max);
+        intrinsics.registerIntrinsic(strictDesc, "max", floatFloatFloatDescriptor, max);
+        intrinsics.registerIntrinsic(strictDesc, "max", doubleDoubleDoubleDescriptor, max);
     }
 }

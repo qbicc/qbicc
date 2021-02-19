@@ -391,6 +391,14 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().remainder(v1, v2);
     }
 
+    public Value min(final Value v1, final Value v2) {
+        return getDelegate().min(v1, v2);
+    }
+
+    public Value max(final Value v1, final Value v2) {
+        return getDelegate().max(v1, v2);
+    }
+
     public Value cmpLt(final Value v1, final Value v2) {
         return getDelegate().cmpLt(v1, v2);
     }

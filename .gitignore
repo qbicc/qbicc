@@ -4,6 +4,7 @@
 *.iml
 target
 .idea
+.vscode
 *.ipr
 *~
 out
