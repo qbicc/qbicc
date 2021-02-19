@@ -14,6 +14,7 @@ import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
+import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
@@ -74,7 +75,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return oop;
     }
 
-    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+    public Value newArray(final ArrayObjectType arrayType, Value size) {
         NoGc noGc = NoGc.get(ctxt);
         Layout layout = Layout.get(ctxt);
         FieldElement arrayContentField = layout.getArrayContentField(arrayType);
@@ -83,6 +84,10 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         LiteralFactory lf = ctxt.getLiteralFactory();
         IntegerLiteral align = lf.literalOf(compoundType.getAlign());
         IntegerLiteral baseSize = lf.literalOf(compoundType.getSize());
+        IntegerType sizeType = (IntegerType) size.getType();
+        if (sizeType.getMinBits() < 64) {
+            size = extend(size, ctxt.getTypeSystem().getSignedInteger64Type());
+        }
         Value realSize = add(baseSize, multiply(lf.literalOf(arrayType.getElementType().getSize()), size));
         Value ptrVal = invokeValueStatic(noGc.getAllocateMethod(), List.of(realSize, align));
         // todo: zero-fill...
