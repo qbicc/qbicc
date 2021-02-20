@@ -159,7 +159,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         } else {
             ptr = valueHandle.accept(this, null).asLocal();
         }
-        cc.quarkus.qcc.machine.llvm.op.Store storeInsn = builder.store(map(valueHandle.getValueType().getPointer()), map(node.getValue()), map(valueHandle.getValueType()), ptr);
+        cc.quarkus.qcc.machine.llvm.op.Store storeInsn = builder.store(map(node.getValue().getType().getPointer()), map(node.getValue()), map(node.getValue().getType()), ptr);
         storeInsn.align(valueHandle.getValueType().getAlign());
         if (node.getMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
             storeInsn.atomic(OrderingConstraint.seq_cst);
