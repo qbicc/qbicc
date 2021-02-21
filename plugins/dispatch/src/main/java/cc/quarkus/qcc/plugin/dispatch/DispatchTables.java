@@ -113,19 +113,21 @@ public class DispatchTables {
     }
 
     void emitVTable(ValidatedTypeDefinition cls) {
-        VTableInfo info = getVTableInfo(cls);
-        MethodElement[] vtable = info.getVtable();
-        Section section = ctxt.getImplicitSection(cls);
-        HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
-        for (int i=0; i<vtable.length; i++) {
-            Function impl = ctxt.getExactFunction(vtable[i]);
-            if (!vtable[i].getEnclosingType().validate().equals(cls)) {
-                section.declareFunction(vtable[i], impl.getName(), impl.getType());
+        if (!cls.isAbstract()) {
+            VTableInfo info = getVTableInfo(cls);
+            MethodElement[] vtable = info.getVtable();
+            Section section = ctxt.getImplicitSection(cls);
+            HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
+            for (int i = 0; i < vtable.length; i++) {
+                Function impl = ctxt.getExactFunction(vtable[i]);
+                if (!vtable[i].getEnclosingType().validate().equals(cls)) {
+                    section.declareFunction(vtable[i], impl.getName(), impl.getType());
+                }
+                valueMap.put(info.getType().getMember(i), impl.getLiteral());
             }
-            valueMap.put(info.getType().getMember(i), impl.getLiteral());
+            CompoundLiteral vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
+            section.addData(null, info.getSymbol().getName(), vtableLiteral).setLinkage(Linkage.EXTERNAL);
         }
-        CompoundLiteral vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
-        section.addData(null, info.getSymbol().getName(), vtableLiteral).setLinkage(Linkage.EXTERNAL);
     }
 
     void emitVTableTable(ValidatedTypeDefinition jlo) {
@@ -136,12 +138,15 @@ public class DispatchTables {
         Arrays.fill(vtableLiterals, nullLiteral);
         vtableLiterals[0] = ctxt.getLiteralFactory().literalOfNull(); // typeId 0 is not assigned.
         for (Map.Entry<ValidatedTypeDefinition, VTableInfo> e: vtables.entrySet()) {
-            if (!e.getKey().equals(jlo)) {
-                section.declareData(null, e.getValue().getSymbol().getName(), e.getValue().getType());
+            ValidatedTypeDefinition cls = e.getKey();
+            if (!cls.isAbstract()) {
+                if (!cls.equals(jlo)) {
+                    section.declareData(null, e.getValue().getSymbol().getName(), e.getValue().getType());
+                }
+                int typeId = cls.getTypeId();
+                Assert.assertTrue(vtableLiterals[typeId].equals(nullLiteral));
+                vtableLiterals[typeId] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), (WordType) vtablesGlobalType.getElementType());
             }
-            int typeId = e.getKey().getTypeId();
-            Assert.assertTrue(vtableLiterals[typeId].equals(nullLiteral));
-            vtableLiterals[e.getKey().getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), (WordType)vtablesGlobalType.getElementType());
         }
         ArrayLiteral vtablesGlobalValue = ctxt.getLiteralFactory().literalOf(vtablesGlobalType, List.of(vtableLiterals));
         section.addData(null, vtablesGlobal.getName(), vtablesGlobalValue);

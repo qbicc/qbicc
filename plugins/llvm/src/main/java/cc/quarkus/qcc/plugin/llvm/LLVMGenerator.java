@@ -75,7 +75,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                         MethodBody body = ((Function) item).getBody();
                         boolean isExact = item == ctxt.getExactFunction(element);
                         if (body == null) {
-                            ctxt.error("Function `%s` has no body", name);
+                            ctxt.warning("Function `%s` has no body", name);
                             continue;
                         }
 
