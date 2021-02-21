@@ -64,14 +64,12 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         Value callTarget;
-        Function invokeTarget = ctxt.getExactFunction(target);
         if (kind == DispatchInvocation.Kind.INTERFACE) {
-            ctxt.warning(getLocation(), "interface invocation not supported yet");
-            // but continue with bogus call target just to see what would happen
-            callTarget = functionLiteral(invokeTarget);
+            callTarget = expandInterfaceDispatch(instance, target);
         } else if (kind == DispatchInvocation.Kind.VIRTUAL) {
             callTarget = expandVirtualDispatch(instance, target);
         } else {
+            Function invokeTarget = ctxt.getExactFunction(target);
             ctxt.declareForeignFunction(target, invokeTarget, getCurrentElement());
             callTarget = functionLiteral(invokeTarget);
         }
@@ -95,14 +93,12 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         Value callTarget;
-        Function invokeTarget = ctxt.getExactFunction(target);
         if (kind == DispatchInvocation.Kind.INTERFACE) {
-            ctxt.warning(getLocation(), "interface invocation not supported yet");
-            // but continue with bogus call target just to see what would happen
-            callTarget = functionLiteral(invokeTarget);
+            callTarget = expandInterfaceDispatch(instance, target);
         } else if (kind == DispatchInvocation.Kind.VIRTUAL) {
             callTarget = expandVirtualDispatch(instance, target);
         } else {
+            Function invokeTarget = ctxt.getExactFunction(target);
             ctxt.declareForeignFunction(target, invokeTarget, getCurrentElement());
             callTarget = functionLiteral(invokeTarget);
         }
@@ -146,5 +142,13 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         Value typeId = load(instanceFieldOf(referenceHandle(instance), Layout.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
         Value vtable = load(elementOf(globalVariable(dt.getVTablesGlobal()), typeId), MemoryAtomicityMode.UNORDERED);
         return load(memberOf(pointerHandle(bitCast(vtable, info.getType().getPointer())), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
+    }
+
+    private Value expandInterfaceDispatch(Value instance, MethodElement target) {
+        ctxt.warning(getLocation(), "interface invocation not supported yet");
+        // Construct a doomed-to-fail indirect call target by casting null to the right function type
+        // This will at least compile, have the right calling convention, and not cause a linkage problem.
+        Function absMethod = ctxt.getExactFunction(target);
+        return bitCast(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(absMethod.getType().getPointer()), absMethod.getType().getPointer());
     }
 }
