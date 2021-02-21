@@ -72,6 +72,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         } else if (kind == DispatchInvocation.Kind.VIRTUAL) {
             callTarget = expandVirtualDispatch(instance, target);
         } else {
+            ctxt.declareForeignFunction(target, invokeTarget, getCurrentElement());
             callTarget = functionLiteral(invokeTarget);
         }
         List<Value> args = new ArrayList<>(arguments.size() + 2);
@@ -102,6 +103,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         } else if (kind == DispatchInvocation.Kind.VIRTUAL) {
             callTarget = expandVirtualDispatch(instance, target);
         } else {
+            ctxt.declareForeignFunction(target, invokeTarget, getCurrentElement());
             callTarget = functionLiteral(invokeTarget);
         }
         List<Value> args = new ArrayList<>(arguments.size() + 2);
