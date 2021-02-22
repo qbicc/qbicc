@@ -64,7 +64,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         curClass.eachField(f -> {
             if (!f.isStatic()) {
                 if (f.equals(typeId)) {
-                    store(instanceFieldOf(oopHandle, typeId), lf.literalOf(type.getDefinition().validate().getTypeId()), MemoryAtomicityMode.UNORDERED);
+                    store(instanceFieldOf(oopHandle, typeId), lf.literalOfType(type.getDefinition().validate().getType()), MemoryAtomicityMode.UNORDERED);
                 } else {
                     // Currently there aren't any fields besides typeId, but protect ourselves from hard to find bugs later...
                     store(instanceFieldOf(oopHandle, typeId), lf.zeroInitializerLiteralOfType(f.getType(List.of())), MemoryAtomicityMode.UNORDERED);

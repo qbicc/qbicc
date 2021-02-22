@@ -113,19 +113,18 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
         return input.accept(new ValueHandleVisitor<>() {
             @Override
             public ValueHandle visit(ObjectAccessLoweringBuilder b, ElementOf node) {
-                ValueType valueType = node.getValueType();
-                if (valueType instanceof ReferenceType) {
+                ValueHandle inputHandle = node.getValueHandle();
+                if (inputHandle instanceof ReferenceHandle) {
                     // Transform array object element handles
-                    ValueHandle reference = node.getValueHandle();
                     Layout layout = Layout.get(ctxt);
-                    PhysicalObjectType upperBound = ((ReferenceType) valueType).getUpperBound();
+                    ObjectType upperBound = (ObjectType) inputHandle.getValueType();
                     if (upperBound instanceof ArrayObjectType) {
                         FieldElement contentField = layout.getArrayContentField(upperBound);
-                        return b.elementOf(b.transform(b.instanceFieldOf(reference, contentField)), node.getIndex());
+                        return b.elementOf(b.transform(b.instanceFieldOf(inputHandle, contentField)), node.getIndex());
                     }
                 }
                 // normal array, probably
-                return b.elementOf(b.transform(node.getValueHandle()), node.getIndex());
+                return b.elementOf(b.transform(inputHandle), node.getIndex());
             }
 
             @Override

@@ -88,6 +88,8 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
         getSource().transferTo(invokerAsDestination());
     }
 
+    private static final String FATAL_ERROR_STR = "Instruction does not dominate all uses!";
+
     void collectError(final Reader reader) throws IOException {
         final String quotedExecPath = Pattern.quote(execPath.toString());
         final Pattern pattern = Pattern.compile("(?:(?:" + quotedExecPath + ": )?(" + LEVEL_PATTERN + "): )?(?:" + quotedExecPath + ": )?(?:([^:]+):(?:(\\d+):(?:(\\d+): )?)?)?(" + LEVEL_PATTERN + "): (.*)");
@@ -98,10 +100,17 @@ abstract class AbstractLlvmInvoker implements LlvmInvoker {
             StringBuilder b = new StringBuilder();
             ToolMessageHandler.Level level = null;
             int errLine = -1;
-            String file = "";
             while ((line = br.readLine()) != null) {
-                matcher = pattern.matcher(line.trim());
-                if (matcher.matches()) {
+                line = line.trim();
+                if (line.equals(FATAL_ERROR_STR)) {
+                    if (b.length() > 0) {
+                        handler.handleMessage(this, level, source.toString(), errLine, -1, b.toString());
+                        b.setLength(0);
+                    }
+                    level = ToolMessageHandler.Level.ERROR;
+                    errLine = -1;
+                    b.append(line);
+                } else if ((matcher = pattern.matcher(line)).matches()) {
                     if (b.length() > 0) {
                         handler.handleMessage(this, level, source.toString(), errLine, -1, b.toString());
                         b.setLength(0);

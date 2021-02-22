@@ -86,7 +86,7 @@ public final class Layout {
         // typeId is a 16 bit unsigned int value, Char is the closest descriptor
         builder.setDescriptor(BaseTypeDescriptor.C);
         builder.setSignature(BaseTypeSignature.C);
-        builder.setType(classContext.getTypeSystem().getUnsignedInteger16Type());
+        builder.setType(jlo.getClassType().getTypeType());
         FieldElement field = builder.build();
         jlo.injectField(field);
         objectTypeIdField = field;
