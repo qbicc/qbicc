@@ -34,6 +34,7 @@ import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VariadicType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
@@ -72,13 +73,12 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                     Linkage linkage = map(item.getLinkage());
                     if (item instanceof Function) {
                         ExecutableElement element = ((Function) item).getOriginalElement();
-                        MethodBody body = ((Function) item).getBody();
-                        boolean isExact = item == ctxt.getExactFunction(element);
-                        if (body == null) {
-                            ctxt.warning("Function `%s` has no body", name);
+                        if (element.hasAllModifiersOf(ClassFile.ACC_ABSTRACT)) {
+                            // Abstract methods may be "reachable" but they have no body to generate
                             continue;
                         }
-
+                        MethodBody body = ((Function) item).getBody();
+                        boolean isExact = item == ctxt.getExactFunction(element);
                         BasicBlock entryBlock = body.getEntryBlock();
                         FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
                         LLValue topSubprogram = null;
