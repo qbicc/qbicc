@@ -37,6 +37,7 @@ import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.PoisonType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
+import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
@@ -588,13 +589,28 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_IASTORE:
                     case OP_FASTORE:
                     case OP_AASTORE:
-                    case OP_BASTORE:
-                    case OP_SASTORE:
-                    case OP_CASTORE:
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
                         gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                        break;
+                    case OP_BASTORE:
+                        v3 = pop1();
+                        v2 = pop1();
+                        v1 = pop1();
+                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger8Type()), MemoryAtomicityMode.UNORDERED);
+                        break;
+                    case OP_SASTORE:
+                        v3 = pop1();
+                        v2 = pop1();
+                        v1 = pop1();
+                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
+                        break;
+                    case OP_CASTORE:
+                        v3 = pop1();
+                        v2 = pop1();
+                        v1 = pop1();
+                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getUnsignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
                         break;
                     case OP_LASTORE:
                     case OP_DASTORE:
@@ -1198,7 +1214,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                         String name = getNameOfFieldRef(fieldRef);
                         ValueHandle handle = gf.staticField(owner, name, desc);
-                        gf.store(handle, pop(desc.isClass2()), handle.getDetectedMode());
+                        gf.store(handle, storeTruncate(pop(desc.isClass2()), desc), handle.getDetectedMode());
                         break;
                     }
                     case OP_GETFIELD: {
@@ -1222,7 +1238,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v2 = pop(desc.isClass2());
                         v1 = pop1();
                         ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
-                        gf.store(handle, v2, handle.getDetectedMode());
+                        gf.store(handle, storeTruncate(v2, desc), handle.getDetectedMode());
                         break;
                     }
                     case OP_INVOKEVIRTUAL:
@@ -1499,6 +1515,18 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         }
         // no promote necessary
         return value;
+    }
+
+    private Value storeTruncate(Value v, TypeDescriptor desc) {
+        if (desc.equals(BaseTypeDescriptor.B) || desc.equals(BaseTypeDescriptor.Z)) {
+            return gf.truncate(v, ts.getSignedInteger8Type());
+        } else if (desc.equals(BaseTypeDescriptor.C)) {
+            return gf.truncate(v, ts.getUnsignedInteger16Type());
+        } else if (desc.equals(BaseTypeDescriptor.S)) {
+            return gf.truncate(v, ts.getSignedInteger16Type());
+        } else {
+            return v;
+        }
     }
 
     private ClassFileImpl getClassFile() {
