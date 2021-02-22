@@ -41,9 +41,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.VOLATILE) {
-            Node store = super.store(handle, value, MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
             fence(MemoryAtomicityMode.RELEASE);
-            return store;
+            return super.store(handle, value, MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
         } else {
             return super.store(handle, value, mode);
         }
