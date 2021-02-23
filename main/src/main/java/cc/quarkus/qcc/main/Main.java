@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.main;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -12,7 +11,6 @@ import java.util.ServiceLoader;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Diagnostic;
@@ -84,6 +82,9 @@ import io.smallrye.common.constraint.Assert;
 import org.jboss.logmanager.Level;
 import org.jboss.logmanager.LogManager;
 import org.jboss.logmanager.Logger;
+import picocli.CommandLine;
+import picocli.CommandLine.ParameterException;
+import picocli.CommandLine.ParseResult;
 
 /**
  * The main entry point, which can be constructed using a builder or directly invoked.
@@ -295,7 +296,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie));
                                 builder.addPostHook(Phase.GENERATE, new LinkStage(isPie));
 
-
                                 CompilationContext ctxt;
                                 try (Driver driver = builder.build()) {
                                     ctxt = driver.getCompilationContext();
@@ -316,85 +316,28 @@ public class Main implements Callable<DiagnosticContext> {
 
     public static void main(String[] args) {
         System.setProperty("java.util.logging.manager", LogManager.class.getName());
+        CommandLineProcessor optionsProcessor = new CommandLineProcessor();
+        CmdResult result = optionsProcessor.process(args);
+        if (result != CmdResult.CMD_RESULT_OK) {
+            return;
+        }
         Builder mainBuilder = builder();
-        mainBuilder.setDiagnosticsHandler(diagnostics -> {
-            for (Diagnostic diagnostic : diagnostics) {
-                try {
-                    diagnostic.appendTo(System.err);
-                } catch (IOException e) {
-                    // just give up
-                    break;
-                }
-            }
-        });
-        final Iterator<String> argIter = List.of(args).iterator();
-        String mainClass = null;
-        Path outputPath = null;
-        String gc = "none";
-
-        // TODO Detect whether the system uses PIEs by default and match that if possible
-        boolean isPie = false;
-
-        while (argIter.hasNext()) {
-            final String arg = argIter.next();
-            if (arg.startsWith("-")) {
-                if (arg.equals("--boot-module-path")) {
-                    String[] path = argIter.next().split(Pattern.quote(File.pathSeparator));
-                    for (String pathStr : path) {
-                        if (! pathStr.isEmpty()) {
-                            mainBuilder.addBootModulePath(Path.of(pathStr));
-                        }
+        mainBuilder.setBootModulePaths(optionsProcessor.bootPaths)
+            .setOutputPath(optionsProcessor.outputPath)
+            .setMainClass(optionsProcessor.mainClass)
+            .setDiagnosticsHandler(diagnostics -> {
+                for (Diagnostic diagnostic : diagnostics) {
+                    try {
+                        diagnostic.appendTo(System.err);
+                    } catch (IOException e) {
+                        // just give up
+                        break;
                     }
-                } else if (arg.equals("--output-path") || arg.equals("-o")) {
-                    outputPath = Path.of(argIter.next());
-                } else if (arg.equals("--debug")) {
-                    Logger.getLogger("").setLevel(Level.DEBUG);
-                } else if (arg.equals("--debug-devirt")) {
-                    Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.devirt").setLevel(Level.DEBUG);
-                } else if (arg.equals("--debug-vtables")) {
-                    Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables").setLevel(Level.DEBUG);
-                } else if (arg.equals("--debug-rta")) {
-                    Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
-                } else if (arg.equals("--debug-supers")) {
-                    Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
-                } else if (arg.startsWith("--gc=")) {
-                    gc = arg.substring(5);
-                } else if (arg.equals("--gc")) {
-                    gc = argIter.next();
-                } else if (arg.equals("--pie")) {
-                    isPie = true;
-                } else if (arg.equals("--no-pie")) {
-                    isPie = false;
-                } else {
-                    System.err.printf("Unrecognized argument \"%s\"", arg);
-                    System.exit(1);
-                    return;
                 }
-            } else if (mainClass == null) {
-                mainClass = arg;
-            } else {
-                System.err.printf("Extra argument \"%s\"", arg);
-                System.exit(1);
-                break;
-            }
-        }
-        if (mainClass == null) {
-            System.err.println("No main class specified");
-            System.exit(1);
-            return;
-        }
-        if (outputPath == null) {
-            System.err.println("No output path specified");
-            System.exit(1);
-            return;
-        }
-        if (!gc.equals("none")) {
-            System.err.printf("Unknown GC strategy \"%s\"%n", gc);
-            System.exit(1);
-        }
-        mainBuilder.setMainClass(mainClass);
-        mainBuilder.setOutputPath(outputPath);
-        mainBuilder.setIsPie(isPie);
+            })
+            .setGc(optionsProcessor.gc.toString())
+            .setIsPie(optionsProcessor.isPie);
+
         Main main = mainBuilder.build();
         DiagnosticContext context = main.call();
         int errors = context.errors();
@@ -411,16 +354,88 @@ public class Main implements Callable<DiagnosticContext> {
         System.exit(errors == 0 ? 0 : 1);
     }
 
+    private enum CmdResult {
+        CMD_RESULT_HELP,
+        CMD_RESULT_OK,
+        CMD_RESULT_ERROR,
+        ;
+    }
+
+    @CommandLine.Command(version = "1.0", mixinStandardHelpOptions = true)
+    private static final class CommandLineProcessor {
+        private enum GCType {
+            NONE("none"),
+            ;
+            private final String gcType;
+
+            GCType(String type) {
+                this.gcType = type;
+            }
+            public String toString() {
+                return gcType;
+            }
+        }
+
+        @CommandLine.Option(names = "--boot-module-path", required = true, split=":")
+        private String[] bootPaths;
+        @CommandLine.Option(names = "--output-path", description = "Specify directory where the executable is placed")
+        private Path outputPath;
+        @CommandLine.Option(names = "--debug")
+        private boolean debug;
+        @CommandLine.Option(names = "--debug-vtables")
+        private boolean debugVTables;
+        @CommandLine.Option(names = "--debug-rta")
+        private boolean debugRTA;
+        @CommandLine.Option(names = "--debug-supers")
+        private boolean debugSupers;
+        @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
+        private GCType gc;
+        @CommandLine.Option(names = "--pie", negatable = true, defaultValue = "false", description = "[Disable|Enable] generation of position independent executable")
+        private boolean isPie;
+
+        @CommandLine.Parameters(index="0", arity="1", description = "Application main class")
+        private String mainClass;
+
+        public CmdResult process(String[] args) {
+            try {
+                ParseResult parseResult = new CommandLine(this).parseArgs(args);
+                if (CommandLine.printHelpIfRequested(parseResult)) {
+                    return CmdResult.CMD_RESULT_HELP;
+                }
+            } catch (ParameterException ex) { // command line arguments could not be parsed
+                System.err.println(ex.getMessage());
+                ex.getCommandLine().usage(System.err);
+                return CmdResult.CMD_RESULT_ERROR;
+            }
+
+            if (debug) {
+                Logger.getLogger("").setLevel(Level.DEBUG);
+            } else if (debugVTables) {
+                Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables").setLevel(Level.DEBUG);
+            } else if (debugRTA) {
+                Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
+            } else if (debugSupers) {
+                Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
+            }
+            if (outputPath == null) {
+                outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qcc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));
+            }
+
+            return CmdResult.CMD_RESULT_OK;
+        }
+    }
+
     public static Builder builder() {
         return new Builder();
     }
 
     public static final class Builder {
         private final List<Path> bootModulePath = new ArrayList<>();
-        private Path outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qcc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));
+        private Path outputPath;
         private Consumer<Iterable<Diagnostic>> diagnosticsHandler = diagnostics -> {};
         private String mainClass;
         private String gc = "none";
+        // TODO Detect whether the system uses PIEs by default and match that if possible
         private boolean isPie = false;
 
         Builder() {}
@@ -437,9 +452,19 @@ public class Main implements Callable<DiagnosticContext> {
             return this;
         }
 
-        public Builder setOutputPath(Path outputPath) {
-            Assert.checkNotNullParam("outputPath", outputPath);
-            this.outputPath = outputPath;
+        public Builder setBootModulePaths(String[] paths) {
+            Assert.checkNotNullParam("paths", paths);
+            for (String pathStr : paths) {
+                if (! pathStr.isEmpty()) {
+                    addBootModulePath(Path.of(pathStr));
+                }
+            }
+            return this;
+        }
+
+        public Builder setOutputPath(Path path) {
+            Assert.checkNotNullParam("path", path);
+            this.outputPath = path;
             return this;
         }
 
@@ -450,6 +475,7 @@ public class Main implements Callable<DiagnosticContext> {
         }
 
         public Builder setMainClass(String mainClass) {
+            Assert.checkNotNullParam("mainClass", mainClass);
             this.mainClass = mainClass;
             return this;
         }
