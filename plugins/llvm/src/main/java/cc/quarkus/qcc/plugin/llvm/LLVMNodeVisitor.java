@@ -18,6 +18,9 @@ import cc.quarkus.qcc.graph.And;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockEntry;
+import cc.quarkus.qcc.graph.Cmp;
+import cc.quarkus.qcc.graph.CmpG;
+import cc.quarkus.qcc.graph.CmpL;
 import cc.quarkus.qcc.graph.IsEq;
 import cc.quarkus.qcc.graph.IsGe;
 import cc.quarkus.qcc.graph.IsGt;
@@ -267,6 +270,41 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         LLValue llvmLeft = map(node.getLeftInput());
         LLValue llvmRight = map(node.getRightInput());
         return builder.and(map(node.getType()), llvmLeft, llvmRight).asLocal();
+    }
+
+    @Override
+    public LLValue visit(Void param, Cmp node) {
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+
+        IntCondition lessThanCondition = isSigned(left.getType()) ? IntCondition.slt : IntCondition.ult;
+
+        LLValue booleanType = map(ctxt.getTypeSystem().getBooleanType());
+        return builder.select(
+            booleanType,
+            builder.icmp(lessThanCondition, inputType, llvmLeft, llvmRight).asLocal(),
+            inputType,
+            map(ctxt.getLiteralFactory().literalOf(-1)),
+            builder.select(
+                booleanType,
+                builder.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal(),
+                inputType,
+                map(ctxt.getLiteralFactory().literalOf(0)),
+                map(ctxt.getLiteralFactory().literalOf(1))
+            ).asLocal()
+        ).asLocal();
+    }
+
+    @Override
+    public LLValue visit(Void param, CmpG node) {
+        throw new RuntimeException("NYI");
+    }
+
+    @Override
+    public LLValue visit(Void param, CmpL node) {
+        throw new RuntimeException("NYI");
     }
 
     public LLValue visit(final Void param, final IsEq node) {

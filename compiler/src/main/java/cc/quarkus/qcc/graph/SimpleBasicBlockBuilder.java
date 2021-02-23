@@ -209,6 +209,18 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Ror(callSite, element, line, bci, v1, v2);
     }
 
+    public Value cmp(Value v1, Value v2) {
+        return new Cmp(callSite, element, line, bci, v1, v2);
+    }
+
+    public Value cmpG(Value v1, Value v2) {
+        return new CmpG(callSite, element, line, bci, v1, v2);
+    }
+
+    public Value cmpL(Value v1, Value v2) {
+        return new CmpL(callSite, element, line, bci, v1, v2);
+    }
+
     public Value negate(final Value v) {
         return new Neg(callSite, element, line, bci, v);
     }

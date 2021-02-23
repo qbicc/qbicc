@@ -37,7 +37,7 @@ public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangObjectIntrinsics(ctxt);
-        registerJavaLangIntegerLongMathIntrinsics(ctxt);
+        registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerCcQuarkusQccRuntimeValuesIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
@@ -83,19 +83,25 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(systemDesc, "setErr", setPrintStreamDesc, setVolatile(err));
     }
 
-    public static void registerJavaLangIntegerLongMathIntrinsics(CompilationContext ctxt) {
+    public static void registerJavaLangNumberIntrinsics(CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         // Mathematical intrinsics
 
+        ClassTypeDescriptor byteDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Byte");
+        ClassTypeDescriptor characterDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Character");
         ClassTypeDescriptor integerDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Integer");
         ClassTypeDescriptor longDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Long");
+        ClassTypeDescriptor shortDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Short");
 
         // binary operations
 
+        MethodDescriptor binaryByteToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.B, BaseTypeDescriptor.B));
+        MethodDescriptor binaryCharToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.C, BaseTypeDescriptor.C));
         MethodDescriptor binaryIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.I, BaseTypeDescriptor.I));
         MethodDescriptor binaryLongDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J, BaseTypeDescriptor.J));
+        MethodDescriptor binaryShortToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(BaseTypeDescriptor.S, BaseTypeDescriptor.S));
         MethodDescriptor longIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J, BaseTypeDescriptor.I));
 
         StaticValueIntrinsic divideUnsigned = (builder, owner, name, descriptor, arguments) ->
@@ -121,6 +127,19 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(integerDesc, "rotateLeft", binaryIntDesc, rol);
         intrinsics.registerIntrinsic(longDesc, "rotateLeft", longIntDesc, rol);
+
+        StaticValueIntrinsic compare = (builder, owner, name, descriptor, arguments) ->
+            builder.cmp(arguments.get(0), arguments.get(1));
+        StaticValueIntrinsic compareUnsigned = (builder, owner, name, descriptor, arguments) ->
+            builder.cmp(asUnsigned(builder, arguments.get(0)), asUnsigned(builder, arguments.get(1)));
+
+        intrinsics.registerIntrinsic(byteDesc, "compare", binaryByteToIntDesc, compare);
+        intrinsics.registerIntrinsic(byteDesc, "compareUnsigned", binaryByteToIntDesc, compareUnsigned);
+        intrinsics.registerIntrinsic(characterDesc, "compare", binaryCharToIntDesc, compare);
+        intrinsics.registerIntrinsic(integerDesc, "compare", binaryIntDesc, compare);
+        intrinsics.registerIntrinsic(integerDesc, "compareUnsigned", binaryIntDesc, compareUnsigned);
+        intrinsics.registerIntrinsic(shortDesc, "compare", binaryShortToIntDesc, compare);
+        intrinsics.registerIntrinsic(shortDesc, "compareUnsigned", binaryShortToIntDesc, compareUnsigned);
     }
 
     private static void registerJavaLangFloatDoubleMathIntrinsics(CompilationContext ctxt) {
