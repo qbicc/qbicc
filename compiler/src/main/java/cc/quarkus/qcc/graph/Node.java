@@ -445,10 +445,22 @@ public interface Node {
                 return param.getBlockBuilder().clone(param.copyValue(node.getInput()));
             }
 
+            public Value visit(Copier param, Cmp node) {
+                return param.getBlockBuilder().cmp(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
             public Value visit(final Copier param, final CmpAndSwap node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().cmpAndSwap(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getExpectedValue()),
                     param.copyValue(node.getUpdateValue()), node.getSuccessAtomicityMode(), node.getFailureAtomicityMode());
+            }
+
+            public Value visit(Copier param, CmpG node) {
+                return param.getBlockBuilder().cmpG(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(Copier param, CmpL node) {
+                return param.getBlockBuilder().cmpL(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
             public Value visit(final Copier param, final CompoundLiteral node) {

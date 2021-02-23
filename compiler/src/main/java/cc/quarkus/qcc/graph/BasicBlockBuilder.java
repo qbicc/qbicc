@@ -178,6 +178,12 @@ public interface BasicBlockBuilder {
 
     Value ror(Value v1, Value v2);
 
+    Value cmp(Value v1, Value v2);
+
+    Value cmpG(Value v1, Value v2);
+
+    Value cmpL(Value v1, Value v2);
+
     // unary
 
     Value negate(Value v); // neg is only needed for FP; ints should use 0-n

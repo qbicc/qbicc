@@ -423,6 +423,18 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().ror(v1, v2);
     }
 
+    public Value cmp(Value v1, Value v2) {
+        return getDelegate().cmp(v1, v2);
+    }
+
+    public Value cmpG(Value v1, Value v2) {
+        return getDelegate().cmpG(v1, v2);
+    }
+
+    public Value cmpL(Value v1, Value v2) {
+        return getDelegate().cmpL(v1, v2);
+    }
+
     public Value negate(final Value v) {
         return getDelegate().negate(v);
     }

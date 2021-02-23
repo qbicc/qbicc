@@ -931,6 +931,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_DCMPL: {
                         v2 = pop2();
                         v1 = pop2();
+                        // TODO use cmpl instead
                         v3 = gf.isLt(v1, v2);
                         v4 = gf.isGt(v1, v2);
                         push1(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
@@ -939,6 +940,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_FCMPL: {
                         v2 = pop1();
                         v1 = pop1();
+                        // TODO use cmpl instead
                         v3 = gf.isLt(v1, v2);
                         v4 = gf.isGt(v1, v2);
                         push1(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
@@ -947,6 +949,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_DCMPG: {
                         v2 = pop2();
                         v1 = pop2();
+                        // TODO use cmpg instead
                         v3 = gf.isLt(v1, v2);
                         v4 = gf.isGt(v1, v2);
                         push1(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
@@ -955,6 +958,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_FCMPG: {
                         v2 = pop1();
                         v1 = pop1();
+                        // TODO use cmpg instead
                         v3 = gf.isLt(v1, v2);
                         v4 = gf.isGt(v1, v2);
                         push1(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));

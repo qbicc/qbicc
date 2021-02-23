@@ -76,7 +76,19 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, Cmp node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, CmpAndSwap node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, CmpG node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, CmpL node) {
         return visitUnknown(param, node);
     }
 
