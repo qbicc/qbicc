@@ -149,7 +149,8 @@ public final class Layout {
 
     private static DefinedTypeDefinition defineArrayType(ClassContext classContext, DefinedTypeDefinition superClass, ValueType realMemberType, String simpleName) {
         DefinedTypeDefinition.Builder typeBuilder = DefinedTypeDefinition.Builder.basic();
-        ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, INTERNAL_ARRAY);
+        String internalName = INTERNAL_ARRAY + "_" + simpleName.charAt(1);
+        ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, internalName);
         typeBuilder.setDescriptor(desc);
         ClassTypeSignature superClassSig = (ClassTypeSignature) TypeSignature.synthesize(classContext, superClass.getDescriptor());
         typeBuilder.setSignature(ClassSignature.synthesize(classContext, superClassSig, List.of()));
@@ -158,7 +159,7 @@ public final class Layout {
         typeBuilder.setSimpleName(simpleName);
         typeBuilder.setContext(classContext);
         typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_HIDDEN);
-        typeBuilder.setName(INTERNAL_ARRAY);
+        typeBuilder.setName(internalName);
         // add fields in this order, which is relied upon up above
         int idx = 0;
         if (realMemberType instanceof ReferenceType) {
