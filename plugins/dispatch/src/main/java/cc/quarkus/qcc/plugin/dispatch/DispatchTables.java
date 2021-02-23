@@ -89,7 +89,7 @@ public class DispatchTables {
         TypeSystem ts = ctxt.getTypeSystem();
         CompoundType.Member[] functions = new CompoundType.Member[vtable.length];
         for (int i=0; i<vtable.length; i++) {
-            FunctionType funType = ctxt.getExactFunction(vtable[i]).getType();
+            FunctionType funType = ctxt.getFunctionTypeForElement(vtable[i]);
             functions[i] = ts.getCompoundTypeMember("m"+i, funType.getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
         }
         CompoundType vtableType = ts.getCompoundType(CompoundType.Tag.STRUCT, vtableName, vtable.length * ts.getPointerSize(),
