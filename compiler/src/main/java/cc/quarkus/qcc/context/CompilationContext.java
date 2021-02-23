@@ -10,6 +10,7 @@ import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.FunctionDeclaration;
 import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -66,6 +67,8 @@ public interface CompilationContext extends DiagnosticContext {
     Section getImplicitSection(DefinedTypeDefinition typeDefinition);
 
     Function getExactFunction(ExecutableElement element);
+
+    FunctionType getFunctionTypeForElement(ExecutableElement element);
 
     FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current);
 
