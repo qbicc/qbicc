@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.plugin.dispatch;
 
 import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
