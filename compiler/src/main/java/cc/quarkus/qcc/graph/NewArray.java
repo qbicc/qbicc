@@ -8,14 +8,20 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * A {@code new} allocation operation for array objects.
  */
-public final class NewArray extends AbstractValue {
+public final class NewArray extends AbstractValue implements OrderedNode {
+    private final Node dependency;
     private final ArrayObjectType type;
     private final Value size;
 
-    NewArray(final Node callSite, final ExecutableElement element, final int line, final int bci, final ArrayObjectType type, final Value size) {
+    NewArray(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final ArrayObjectType type, final Value size) {
         super(callSite, element, line, bci);
+        this.dependency = dependency;
         this.type = type;
         this.size = size;
+    }
+
+    public Node getDependency() {
+        return dependency;
     }
 
     public ReferenceType getType() {

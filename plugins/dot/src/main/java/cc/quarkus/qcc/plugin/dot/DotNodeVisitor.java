@@ -758,6 +758,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "new multi array\\n" + node.getArrayType().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         for (Value dimension : node.getDimensions()) {
             addEdge(param, node, dimension, EdgeType.VALUE_DEPENDENCY, "dim");
         }
@@ -783,6 +785,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "new\\n" + node.getType().getUpperBound().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         return name;
     }
 
@@ -793,6 +797,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "new array\\n" + node.getArrayType().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
         return name;
     }

@@ -396,7 +396,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value new_(final ClassObjectType type) {
-        return new New(callSite, element, line, bci, type);
+        return asDependency(new New(callSite, element, line, bci, requireDependency(), type));
     }
 
     public Value new_(final ClassTypeDescriptor desc) {
@@ -404,7 +404,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value newArray(final ArrayObjectType arrayType, final Value size) {
-        return new NewArray(callSite, element, line, bci, arrayType, size);
+        return asDependency(new NewArray(callSite, element, line, bci, requireDependency(), arrayType, size));
     }
 
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
@@ -412,7 +412,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
-        return new MultiNewArray(callSite, element, line, bci, null, arrayType, dimensions);
+        return asDependency(new MultiNewArray(callSite, element, line, bci, requireDependency(), arrayType, dimensions));
     }
 
     public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {

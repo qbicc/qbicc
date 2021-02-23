@@ -10,14 +10,20 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * A {@code new} allocation operation for multi-dimensional array objects.
  */
-public final class MultiNewArray extends AbstractValue {
+public final class MultiNewArray extends AbstractValue implements OrderedNode {
+    private final Node dependency;
     private final ArrayObjectType type;
     private final List<Value> dimensions;
 
     MultiNewArray(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ArrayObjectType type, final List<Value> dimensions) {
         super(callSite, element, line, bci);
+        this.dependency = dependency;
         this.type = type;
         this.dimensions = dimensions;
+    }
+
+    public Node getDependency() {
+        return dependency;
     }
 
     public ReferenceType getType() {
