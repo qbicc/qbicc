@@ -143,8 +143,8 @@ public class DispatchTables {
             Assert.assertTrue(vtableLiterals[typeId].equals(nullLiteral));
             vtableLiterals[e.getKey().getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), (WordType)vtablesGlobalType.getElementType());
         }
-        ArrayLiteral masterValue = ctxt.getLiteralFactory().literalOf(vtablesGlobalType, List.of(vtableLiterals));
-        section.addData(null, vtablesGlobal.getName(), masterValue);
+        ArrayLiteral vtablesGlobalValue = ctxt.getLiteralFactory().literalOf(vtablesGlobalType, List.of(vtableLiterals));
+        section.addData(null, vtablesGlobal.getName(), vtablesGlobalValue);
     }
 
     public GlobalVariableElement getVTablesGlobal() { return this.vtablesGlobal; }

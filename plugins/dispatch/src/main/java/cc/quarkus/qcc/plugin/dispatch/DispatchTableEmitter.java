@@ -22,7 +22,7 @@ public class DispatchTableEmitter implements Consumer<CompilationContext>  {
         tables.emitVTable(jlo);
         info.visitLiveSubclassesPreOrder(jlo, cls -> tables.emitVTable(cls));
 
-        // Emit the master table of all program vtables in the object file for java.lang.Object
+        // Emit the table of all program vtables in the object file for java.lang.Object
         tables.emitVTableTable(jlo);
     }
 }
