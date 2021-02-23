@@ -87,7 +87,7 @@ public final class CompoundType extends ValueType {
     }
 
     public boolean equals(final CompoundType other) {
-        return this == other || super.equals(other) && size == other.size && align == other.align && getMembers().equals(other.getMembers());
+        return this == other || super.equals(other) && name.equals(other.name) && size == other.size && align == other.align && getMembers().equals(other.getMembers());
     }
 
     public StringBuilder toString(final StringBuilder b) {

@@ -67,7 +67,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                     store(instanceFieldOf(oopHandle, typeId), lf.literalOfType(type.getDefinition().validate().getType()), MemoryAtomicityMode.UNORDERED);
                 } else {
                     // Currently there aren't any fields besides typeId, but protect ourselves from hard to find bugs later...
-                    store(instanceFieldOf(oopHandle, typeId), lf.zeroInitializerLiteralOfType(f.getType(List.of())), MemoryAtomicityMode.UNORDERED);
+                    store(instanceFieldOf(oopHandle, f), lf.zeroInitializerLiteralOfType(f.getType(List.of())), MemoryAtomicityMode.UNORDERED);
                 }
             }
             });
