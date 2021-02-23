@@ -1,7 +1,10 @@
 package cc.quarkus.qcc.graph;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
+
+import io.smallrye.common.constraint.Assert;
 
 /**
  *
@@ -12,6 +15,7 @@ public final class BasicBlock {
     private BlockLabel myLabel;
     private boolean reachable;
     private Set<BasicBlock> incoming = Set.of();
+    private Set<Loop> loops = Set.of();
 
     BasicBlock(final BlockEntry blockEntry, final Terminator terminator) {
         this.blockEntry = blockEntry;
@@ -45,6 +49,19 @@ public final class BasicBlock {
         myLabel = newHandle;
     }
 
+    /**
+     * Get the set of loops that this block is a part of.
+     *
+     * @return the set of loops that this block is a part of
+     */
+    public Set<Loop> getLoops() {
+        return loops;
+    }
+
+    void setLoops(Set<Loop> loops) {
+        this.loops = loops;
+    }
+
     public boolean isReachable() {
         return reachable;
     }
@@ -76,5 +93,37 @@ public final class BasicBlock {
 
     public Set<BasicBlock> getIncoming() {
         return incoming;
+    }
+
+    public static final class Loop {
+        private final BasicBlock startBlock;
+        private final BasicBlock endBlock;
+
+        public Loop(BasicBlock startBlock, BasicBlock endBlock) {
+            this.startBlock = Assert.checkNotNullParam("startBlock", startBlock);
+            this.endBlock = Assert.checkNotNullParam("endBlock", endBlock);
+        }
+
+        public BasicBlock getStartBlock() {
+            return startBlock;
+        }
+
+        public BasicBlock getEndBlock() {
+            return endBlock;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(startBlock, endBlock);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof Loop && equals((Loop) obj);
+        }
+
+        public boolean equals(Loop obj) {
+            return this == obj || obj != null && startBlock == obj.startBlock && endBlock == obj.endBlock;
+        }
     }
 }

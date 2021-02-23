@@ -1,6 +1,11 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
@@ -107,6 +112,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         }
         if (firstBlock != null) {
             mark(BlockLabel.getTargetOf(firstBlock), null);
+            computeLoops(BlockLabel.getTargetOf(firstBlock), new ArrayList<>(), new HashMap<>());
         }
     }
 
@@ -117,6 +123,52 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             for (int i = 0; i < cnt; i ++) {
                 mark(terminator.getSuccessor(i), block);
             }
+        }
+    }
+
+    private void computeLoops(BasicBlock block, ArrayList<BasicBlock> blocks, Map<Set<BasicBlock.Loop>, Map<BasicBlock.Loop, Set<BasicBlock.Loop>>> cache) {
+        blocks.add(block);
+        Terminator terminator = block.getTerminator();
+        int cnt = terminator.getSuccessorCount();
+        for (int i = 0; i < cnt; i ++) {
+            BasicBlock successor = terminator.getSuccessor(i);
+            int idx = blocks.indexOf(successor);
+            if (idx != -1) {
+                // all blocks in the span are a part of the new loop
+                BasicBlock.Loop loop = new BasicBlock.Loop(successor, block);
+                for (int j = idx; j < blocks.size(); j ++) {
+                    BasicBlock member = blocks.get(j);
+                    Set<BasicBlock.Loop> oldLoops = member.getLoops();
+                    member.setLoops(cache.computeIfAbsent(oldLoops, SimpleBasicBlockBuilder::newMap).computeIfAbsent(loop, l -> setWith(oldLoops, l)));
+                }
+            } else {
+                // a block we haven't hit yet
+                computeLoops(successor, blocks, cache);
+            }
+        }
+    }
+
+    private static <K, V> Map<K, V> newMap(Object arg) {
+        return new HashMap<>();
+    }
+
+    private static <E> Set<E> setWith(Set<E> set, E item) {
+        if (set.contains(item)) {
+            return set;
+        }
+        int size = set.size();
+        if (size == 0) {
+            return Set.of(item);
+        } else if (size == 1) {
+            return Set.of(set.iterator().next(), item);
+        } else if (size == 2) {
+            Iterator<E> iterator = set.iterator();
+            return Set.of(iterator.next(), iterator.next(), item);
+        } else {
+            @SuppressWarnings("unchecked")
+            E[] array = set.toArray((E[]) new Object[size + 1]);
+            array[size] = item;
+            return Set.of(array);
         }
     }
 
