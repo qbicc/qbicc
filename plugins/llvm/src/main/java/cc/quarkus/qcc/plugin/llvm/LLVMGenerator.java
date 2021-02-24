@@ -73,8 +73,10 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                     Linkage linkage = map(item.getLinkage());
                     if (item instanceof Function) {
                         ExecutableElement element = ((Function) item).getOriginalElement();
-                        if (element.hasAllModifiersOf(ClassFile.ACC_ABSTRACT)) {
-                            // Abstract methods may be "reachable" but they have no body to generate
+                        MethodBody body = ((Function) item).getBody();
+                        boolean isExact = item == ctxt.getExactFunction(element);
+                        if (body == null) {
+                            ctxt.error("Function `%s` has no body", name);
                             continue;
                         }
                         MethodBody body = ((Function) item).getBody();
