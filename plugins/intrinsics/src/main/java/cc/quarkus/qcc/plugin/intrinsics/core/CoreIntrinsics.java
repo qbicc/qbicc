@@ -54,6 +54,7 @@ public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
         registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
+        registerJavaLangClassLoaderIntrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangThreadIntrinsics(ctxt);
         registerJavaLangThrowableIntrinsics(ctxt);
@@ -172,6 +173,20 @@ public final class CoreIntrinsics {
         } catch (IOException e) {
             ctxt.error(e, "Failed to probe target endianness");
         }
+    }
+
+    public static void registerJavaLangClassLoaderIntrinsics(CompilationContext ctxt) {
+
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor jlclDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
+
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+
+        StaticIntrinsic registerNatives = (builder, owner, name, descriptor, arguments) -> builder.nop();
+
+        intrinsics.registerIntrinsic(jlclDesc, "registerNatives", emptyToVoid, registerNatives);
     }
 
     public static void registerJavaLangSystemIntrinsics(CompilationContext ctxt) {
