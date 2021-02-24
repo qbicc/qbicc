@@ -62,6 +62,7 @@ import cc.quarkus.qcc.plugin.native_.FunctionTypeResolver;
 import cc.quarkus.qcc.plugin.native_.NativeBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeResolver;
+import cc.quarkus.qcc.plugin.native_.PointerBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.PointerTypeResolver;
 import cc.quarkus.qcc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.opt.GotoRemovingVisitor;
@@ -254,6 +255,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PointerBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);

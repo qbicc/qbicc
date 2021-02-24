@@ -50,7 +50,6 @@ final class NativeInfo {
     final Map<DefinedTypeDefinition, AtomicReference<ValueType>> nativeTypes = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, MethodElement> functionalInterfaceMethods = new ConcurrentHashMap<>();
     final Set<InitializerElement> initializers = ConcurrentHashMap.newKeySet();
-    final Set<String> nativeLibraries = ConcurrentHashMap.newKeySet();
 
     private NativeInfo(final CompilationContext ctxt) {
         this.ctxt = ctxt;

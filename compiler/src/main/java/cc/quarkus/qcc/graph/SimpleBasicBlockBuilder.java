@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +113,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         }
         if (firstBlock != null) {
             mark(BlockLabel.getTargetOf(firstBlock), null);
-            computeLoops(BlockLabel.getTargetOf(firstBlock), new ArrayList<>(), new HashMap<>());
+            computeLoops(BlockLabel.getTargetOf(firstBlock), new ArrayList<>(), new HashSet<>(), new HashSet<>(), new HashMap<>());
         }
     }
 
@@ -126,14 +127,19 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         }
     }
 
-    private void computeLoops(BasicBlock block, ArrayList<BasicBlock> blocks, Map<Set<BasicBlock.Loop>, Map<BasicBlock.Loop, Set<BasicBlock.Loop>>> cache) {
+    private void computeLoops(BasicBlock block, ArrayList<BasicBlock> blocks, HashSet<BasicBlock> blocksSet, HashSet<BasicBlock> visited, Map<Set<BasicBlock.Loop>, Map<BasicBlock.Loop, Set<BasicBlock.Loop>>> cache) {
+        if (! visited.add(block)) {
+            return;
+        }
         blocks.add(block);
+        blocksSet.add(block);
         Terminator terminator = block.getTerminator();
         int cnt = terminator.getSuccessorCount();
         for (int i = 0; i < cnt; i ++) {
             BasicBlock successor = terminator.getSuccessor(i);
-            int idx = blocks.indexOf(successor);
-            if (idx != -1) {
+            if (blocksSet.contains(successor)) {
+                int idx = blocks.indexOf(successor);
+                assert idx != -1;
                 // all blocks in the span are a part of the new loop
                 BasicBlock.Loop loop = new BasicBlock.Loop(successor, block);
                 for (int j = idx; j < blocks.size(); j ++) {
@@ -143,9 +149,12 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
                 }
             } else {
                 // a block we haven't hit yet
-                computeLoops(successor, blocks, cache);
+                computeLoops(successor, blocks, blocksSet, visited, cache);
             }
         }
+        BasicBlock removed = blocks.remove(blocks.size() - 1);
+        assert removed == block;
+        blocksSet.remove(block);
     }
 
     private static <K, V> Map<K, V> newMap(Object arg) {

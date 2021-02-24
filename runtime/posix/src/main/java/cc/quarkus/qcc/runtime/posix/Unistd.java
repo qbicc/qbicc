@@ -15,6 +15,7 @@ public final class Unistd {
     private Unistd() {
         /* empty */ }
 
+    @incomplete
     public static final class struct_fd_pair extends object {
         public c_long @array_size(2) [] fd;
     }

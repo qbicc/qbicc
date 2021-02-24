@@ -1,10 +1,14 @@
 package cc.quarkus.qcc.plugin.intrinsics.core;
 
+import java.io.IOException;
+import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.Load;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
@@ -13,6 +17,10 @@ import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.Variable;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.StringLiteral;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
+import cc.quarkus.qcc.machine.probe.CProbe;
 import cc.quarkus.qcc.plugin.intrinsics.InstanceValueIntrinsic;
 import cc.quarkus.qcc.plugin.intrinsics.Intrinsics;
 import cc.quarkus.qcc.plugin.intrinsics.StaticIntrinsic;
@@ -20,11 +28,13 @@ import cc.quarkus.qcc.plugin.intrinsics.StaticValueIntrinsic;
 import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.PointerType;
+import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -35,7 +45,11 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
  */
 public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
+        registerJavaLangClassIntrinsics(ctxt);
+        registerJavaLangStringUTF16Intrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
+        registerJavaLangThreadIntrinsics(ctxt);
+        registerJavaLangThrowableIntrinsics(ctxt);
         registerJavaLangObjectIntrinsics(ctxt);
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
@@ -47,12 +61,104 @@ public final class CoreIntrinsics {
         return (builder, owner, name, descriptor, arguments) -> builder.store(builder.staticField(field), arguments.get(0), MemoryAtomicityMode.VOLATILE);
     }
 
+    public static void registerJavaLangClassIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor jlsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
+
+        MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jlcDesc));
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+        MethodDescriptor emptyToString = MethodDescriptor.synthesize(classContext, jlsDesc, List.of());
+        MethodDescriptor stringToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of(jlsDesc));
+
+        // Assertion status
+
+        // todo: this probably belongs in the class libraries rather than here
+        StaticValueIntrinsic desiredAssertionStatus0 = (builder, owner, name, descriptor, arguments) ->
+            classContext.getLiteralFactory().literalOf(false);
+
+        StaticIntrinsic registerNatives = (builder, owner, name, descriptor, arguments) -> builder.nop();
+
+        InstanceValueIntrinsic initClassName = (builder, kind, instance, owner, name, descriptor, arguments) -> {
+            // not reachable; we always would initialize our class name eagerly
+            throw new BlockEarlyTermination(builder.unreachable());
+        };
+
+        StaticValueIntrinsic getPrimitiveClass = (builder, owner, name, descriptor, arguments) -> {
+            // always called with a string literal
+            StringLiteral lit = (StringLiteral) arguments.get(0);
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            TypeSystem ts = ctxt.getTypeSystem();
+            ValueType type;
+            switch (lit.getValue()) {
+                case "byte": type = ts.getSignedInteger8Type(); break;
+                case "short": type = ts.getSignedInteger16Type(); break;
+                case "int": type = ts.getSignedInteger32Type(); break;
+                case "long": type = ts.getSignedInteger64Type(); break;
+
+                case "char": type = ts.getUnsignedInteger16Type(); break;
+
+                case "float": type = ts.getFloat32Type(); break;
+                case "double": type = ts.getFloat64Type(); break;
+
+                case "boolean": type = ts.getBooleanType(); break;
+
+                case "void": type = ts.getVoidType(); break;
+
+                default: {
+                    ctxt.error(builder.getLocation(), "Invalid argument to `getPrimitiveClass`: %s", lit.getValue());
+                    throw new BlockEarlyTermination(builder.unreachable());
+                }
+            }
+            return builder.classOf(lf.literalOfType(type));
+        };
+
+        //    static native Class<?> getPrimitiveClass(String name);
+
+        intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus0", classToBool, desiredAssertionStatus0);
+        intrinsics.registerIntrinsic(jlcDesc, "registerNatives", emptyToVoid, registerNatives);
+        intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
+        intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
+    }
+
+    public static void registerJavaLangStringUTF16Intrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor jlsu16Desc = ClassTypeDescriptor.synthesize(classContext, "java/lang/StringUTF16");
+
+        MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
+
+        //    private static native boolean isBigEndian();
+
+        CProbe probe = CProbe.builder().build();
+        try {
+            CProbe.Result result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), ctxt);
+            if (result == null) {
+                ctxt.error("Failed to probe target endianness (no exception)");
+            } else {
+                StaticValueIntrinsic isBigEndian = (builder, owner, name, descriptor, arguments) ->
+                    ctxt.getLiteralFactory().literalOf(result.getByteOrder() == ByteOrder.BIG_ENDIAN);
+
+                intrinsics.registerIntrinsic(jlsu16Desc, "isBigEndian", emptyToBool, isBigEndian);
+            }
+        } catch (IOException e) {
+            ctxt.error(e, "Failed to probe target endianness");
+        }
+    }
+
     public static void registerJavaLangSystemIntrinsics(CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         ClassTypeDescriptor systemDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/System");
         ValidatedTypeDefinition jls = classContext.findDefinedType("java/lang/System").validate();
+        ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/VM");
+
+        MethodDescriptor objectToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jloDesc));
 
         // Null and no-operation intrinsics
 
@@ -76,11 +182,68 @@ public final class CoreIntrinsics {
 
         MethodDescriptor setPrintStreamDesc =
             MethodDescriptor.synthesize(classContext,
-                BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(classContext, ("java/io/PrintStream"))));
+                BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(classContext, "java/io/PrintStream")));
 
         intrinsics.registerIntrinsic(systemDesc, "setIn", setPrintStreamDesc, setVolatile(in));
         intrinsics.registerIntrinsic(systemDesc, "setOut", setPrintStreamDesc, setVolatile(out));
         intrinsics.registerIntrinsic(systemDesc, "setErr", setPrintStreamDesc, setVolatile(err));
+
+        // arraycopy
+
+        MethodDescriptor arraycopyDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(
+            jloDesc,
+            BaseTypeDescriptor.I,
+            jloDesc,
+            BaseTypeDescriptor.I,
+            BaseTypeDescriptor.I
+        ));
+
+        StaticIntrinsic arraycopy = (builder, owner, name, descriptor, arguments) ->
+            builder.invokeStatic(vmDesc, "arraycopy", descriptor, arguments);
+
+        intrinsics.registerIntrinsic(systemDesc, "arraycopy", arraycopyDesc, arraycopy);
+
+        // identity hash code
+
+        // todo: obviously non-optimal; replace once we have object headers sorted out
+        StaticValueIntrinsic identityHashCode = (builder, owner, name, descriptor, arguments) ->
+            ctxt.getLiteralFactory().literalOf(0);
+
+        intrinsics.registerIntrinsic(systemDesc, "identityHashCode", objectToIntDesc, identityHashCode);
+    }
+
+    public static void registerJavaLangThreadIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
+        MethodDescriptor returnJlt = MethodDescriptor.synthesize(classContext, jltDesc, List.of());
+
+        StaticValueIntrinsic currentThread = (builder, owner, name, descriptor, arguments) -> builder.currentThread();
+
+        intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
+    }
+
+    public static void registerJavaLangThrowableIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
+        ClassTypeDescriptor steDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/StackTraceElement");
+        ArrayTypeDescriptor steArrayDesc = ArrayTypeDescriptor.of(classContext, steDesc);
+
+        ZeroInitializerLiteral zero = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getSignedInteger32Type());
+
+        // todo: temporary, until we have a stack walker
+
+        InstanceValueIntrinsic fillInStackTrace = (builder, kind, instance, owner, name, descriptor, arguments) ->
+            instance;
+
+        InstanceValueIntrinsic getStackTrace = (builder, kind, instance, owner, name, descriptor, arguments) ->
+            builder.newArray(steArrayDesc, zero);
+
+        intrinsics.registerIntrinsic(jltDesc, "fillInStackTrace", MethodDescriptor.synthesize(classContext, jltDesc, List.of()), fillInStackTrace);
+        intrinsics.registerIntrinsic(jltDesc, "getStackTrace", MethodDescriptor.synthesize(classContext, steArrayDesc, List.of()), getStackTrace);
     }
 
     public static void registerJavaLangNumberIntrinsics(CompilationContext ctxt) {
