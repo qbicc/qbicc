@@ -141,7 +141,7 @@ public final class CProbe {
                     typeInfos.put(type, info);
                     memberInfos.put(type, memberInfo);
                 }
-                return new Result(typeInfos, memberInfos, functionInfos, constantInfos);
+                return new Result(typeInfos, memberInfos, functionInfos, constantInfos, byteOrder);
             }
         }
     }
@@ -632,12 +632,14 @@ public final class CProbe {
         private final Map<Type, Map<String, Type.Info>> memberInfos;
         private final Map<String, FunctionInfo> functionInfos;
         private final Map<String, ConstantInfo> constantInfos;
+        private final ByteOrder byteOrder;
 
-        Result(final Map<Type, Type.Info> typeInfos, final Map<Type, Map<String, Type.Info>> memberInfos, final Map<String, FunctionInfo> functionInfos, final Map<String, ConstantInfo> constantInfos) {
+        Result(final Map<Type, Type.Info> typeInfos, final Map<Type, Map<String, Type.Info>> memberInfos, final Map<String, FunctionInfo> functionInfos, final Map<String, ConstantInfo> constantInfos, ByteOrder byteOrder) {
             this.typeInfos = typeInfos;
             this.memberInfos = memberInfos;
             this.functionInfos = functionInfos;
             this.constantInfos = constantInfos;
+            this.byteOrder = byteOrder;
         }
 
         public Type.Info getTypeInfo(Type type) throws NoSuchElementException {
@@ -674,6 +676,10 @@ public final class CProbe {
                 throw new NoSuchElementException();
             }
             return val;
+        }
+
+        public ByteOrder getByteOrder() {
+            return byteOrder;
         }
     }
 

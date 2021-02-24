@@ -1,9 +1,12 @@
 package cc.quarkus.qcc.plugin.intrinsics.core;
 
+import java.io.IOException;
+import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.Load;
@@ -17,6 +20,7 @@ import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
+import cc.quarkus.qcc.machine.probe.CProbe;
 import cc.quarkus.qcc.plugin.intrinsics.InstanceValueIntrinsic;
 import cc.quarkus.qcc.plugin.intrinsics.Intrinsics;
 import cc.quarkus.qcc.plugin.intrinsics.StaticIntrinsic;
@@ -42,6 +46,7 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
         registerJavaLangClassIntrinsics(ctxt);
+        registerJavaLangStringUTF16Intrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangThreadIntrinsics(ctxt);
         registerJavaLangThrowableIntrinsics(ctxt);
@@ -116,6 +121,32 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jlcDesc, "registerNatives", emptyToVoid, registerNatives);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
         intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
+    }
+
+    public static void registerJavaLangStringUTF16Intrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor jlsu16Desc = ClassTypeDescriptor.synthesize(classContext, "java/lang/StringUTF16");
+
+        MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
+
+        //    private static native boolean isBigEndian();
+
+        CProbe probe = CProbe.builder().build();
+        try {
+            CProbe.Result result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), ctxt);
+            if (result == null) {
+                ctxt.error("Failed to probe target endianness (no exception)");
+            } else {
+                StaticValueIntrinsic isBigEndian = (builder, owner, name, descriptor, arguments) ->
+                    ctxt.getLiteralFactory().literalOf(result.getByteOrder() == ByteOrder.BIG_ENDIAN);
+
+                intrinsics.registerIntrinsic(jlsu16Desc, "isBigEndian", emptyToBool, isBigEndian);
+            }
+        } catch (IOException e) {
+            ctxt.error(e, "Failed to probe target endianness");
+        }
     }
 
     public static void registerJavaLangSystemIntrinsics(CompilationContext ctxt) {
