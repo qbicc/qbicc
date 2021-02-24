@@ -18,6 +18,8 @@ public class RTAInfo {
 
     // Tracks reachable classes and their (direct) reachable subclasses
     private final Map<ValidatedTypeDefinition, Set<ValidatedTypeDefinition>> classHierarchy = new ConcurrentHashMap<>();
+    // Tracks reachable interfaces and their (direct) reachable implementors
+    private final Map<ValidatedTypeDefinition, Set<ValidatedTypeDefinition>> interfaceHierarchy = new ConcurrentHashMap<>();
 
     private final CompilationContext ctxt;
 
@@ -40,6 +42,7 @@ public class RTAInfo {
     public static void clear(CompilationContext ctxt) {
         RTAInfo info = get(ctxt);
         info.classHierarchy.clear();
+        info.interfaceHierarchy.clear();
     }
 
     public boolean isLiveClass(ValidatedTypeDefinition type) {
@@ -54,16 +57,26 @@ public class RTAInfo {
             addLiveClass(superClass);
             classHierarchy.get(superClass).add(type);
         }
-        // TODO: Record implements hierarchy info to make visitLiveImplementors more efficient
     }
 
+    public boolean isLiveInterface(ValidatedTypeDefinition type) { return interfaceHierarchy.containsKey(type); }
+
+    public void addInterfaceEdge(ValidatedTypeDefinition child, ValidatedTypeDefinition parent) {
+        interfaceHierarchy.computeIfAbsent(parent, t -> ConcurrentHashMap.newKeySet()).add(child);
+    }
+
+    // NOTE: If there are diamonds in the interface hierarchy, we may visit an implementor multiple times.
+    //       We could avoid that by building a set before we visit anyone, but the only client of this function
+    //       is robust against duplicates, so don't bother to handle this fringe case until we need to care.
     public void visitLiveImplementors(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {
-        // Brute force it; just ask every live class if it implements the interface
-        // TODO: Build a better data structure to support this.
-        InterfaceObjectType interfaceType = type.getInterfaceType();
-        for (ValidatedTypeDefinition c: classHierarchy.keySet()) {
-            if (c.getClassType().isSubtypeOf(interfaceType)) {
-                function.accept(c);
+        Set<ValidatedTypeDefinition> implementors = interfaceHierarchy.get(type);
+        if (implementors == null) return;
+        for (ValidatedTypeDefinition child: implementors) {
+            function.accept(child);
+            if (child.isInterface()) {
+                visitLiveImplementors(child, function);
+            } else {
+                visitLiveSubclassesPreOrder(child, function);
             }
         }
     }

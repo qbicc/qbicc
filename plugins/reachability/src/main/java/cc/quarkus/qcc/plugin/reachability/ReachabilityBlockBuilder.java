@@ -14,6 +14,7 @@ import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
 /**
@@ -39,9 +40,9 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         if (!ctxt.wasEnqueued(target)) {
             rtaLog.debugf("Adding method (directly invoked): %s", target);
-            processNewTarget(target);
+            ctxt.enqueue(target);
+            processInvokeTarget(target);
         }
-        ctxt.enqueue(target);
         return super.invokeInstance(kind, instance, target, arguments);
     }
 
@@ -53,9 +54,9 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         if (!ctxt.wasEnqueued(target)) {
             rtaLog.debugf("Adding method (directly invoked): %s", target);
-            processNewTarget(target);
+            ctxt.enqueue(target);
+            processInvokeTarget(target);
         }
-        ctxt.enqueue(target);
         return super.invokeValueInstance(kind, instance, target, arguments);
     }
 
@@ -81,8 +82,8 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                 processInstantiatedClass(type.getSuperClass());
                 info.addLiveClass(type);
 
-                // For every defined virtual method, check to see if it is overriding an enqueued method.
-                // If so, then conservatively enqueue it (if it is not already enqueued).
+                // For every defined virtual method that is not already enqueued,
+                // check to see if it is overriding an enqueued method and thus should be enqueued.
                 for (int i = 0; i < type.getMethodCount(); i++) {
                     MethodElement defMethod = type.getMethod(i);
                     if (!defMethod.isStatic() && !ctxt.wasEnqueued(defMethod)) {
@@ -95,9 +96,13 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
 
+            for (ValidatedTypeDefinition i: type.getInterfaces()) {
+                processInstantiatedInterface(info, i);
+                info.addInterfaceEdge(type, i);
+            }
+
             // For every defined virtual method that is not already enqueued,
-            // check to see if it is implementing an enqueued interface method.
-            // If so, then conservatively enqueue it.
+            // check to see if it is implementing an enqueued interface method and thus should be enqueued.
             for (int i = 0; i < type.getMethodCount(); i++) {
                 MethodElement defMethod = type.getMethod(i);
                 if (!defMethod.isStatic() && !ctxt.wasEnqueued(defMethod)) {
@@ -113,36 +118,51 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         }
     }
 
-    private void processNewTarget(final MethodElement target) {
+    private void processInstantiatedInterface(RTAInfo info, final ValidatedTypeDefinition type) {
+        if (!info.isLiveInterface(type)) {
+            rtaLog.debugf("Adding reachable interface: %s", type.getDescriptor().getClassName());
+            for (ValidatedTypeDefinition i: type.getInterfaces()) {
+                processInstantiatedInterface(info, i);
+                info.addInterfaceEdge(type, i);
+            }
+
+            // For every defined virtual method that is not already enqueued,
+            // check to see if it is implementing an enqueued super-interface method and thus should be enqueued.
+            for (int i = 0; i < type.getMethodCount(); i++) {
+                MethodElement defMethod = type.getMethod(i);
+                if (!defMethod.isStatic() && !ctxt.wasEnqueued(defMethod)) {
+                    for (ValidatedTypeDefinition si : type.getInterfaces()) {
+                        MethodElement implementedMethod = si.resolveMethodElementInterface(defMethod.getName(), defMethod.getDescriptor());
+                        if (implementedMethod != null && ctxt.wasEnqueued(implementedMethod)) {
+                            rtaLog.debugf("Newly reachable interface: enqueued implementing method:  %s", defMethod);
+                            ctxt.enqueue(defMethod);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void processInvokeTarget(final MethodElement target) {
         RTAInfo info = RTAInfo.get(ctxt);
         ValidatedTypeDefinition definingClass = target.getEnclosingType().validate();
 
         if (definingClass.isInterface()) {
-            // First, traverse the instantiated implementors and handle as-if we just saw
-            // an invokevirtual of their implementing method.
+            // Traverse the instantiated extenders and implementors and handle as-if we just saw
+            // an invoke of their overriding/implementing method
             info.visitLiveImplementors(definingClass, (c) -> {
-                MethodElement cand = c.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
+                MethodElement cand;
+                if (c.isInterface()) {
+                    cand = c.resolveMethodElementInterface(target.getName(), target.getDescriptor());
+                } else {
+                    cand = c.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
+                }
                 if (!ctxt.wasEnqueued(cand)) {
                     rtaLog.debugf("Adding method (implements): %s", cand);
                     ctxt.enqueue(cand);
-                    processNewTarget(cand);
+                    processInvokeTarget(cand);
                 }
             });
-
-            // Second, traverse the direct superinterfaces and if target is "overriding" a superinterface method
-            // handle as-if we just saw an invoke of the superinterface method.
-            for (ValidatedTypeDefinition si: definingClass.getInterfaces()) {
-                MethodElement cand = si.resolveMethodElementInterface(target.getName(), target.getDescriptor());
-                if (cand != null && !ctxt.wasEnqueued(cand)) {
-                    rtaLog.debugf("Adding method (subinterface overrides): %s", cand);
-                    ctxt.enqueue(cand);
-                    processNewTarget(cand);
-                }
-            }
-
-            // Third: we also need to traverse any extending interfaces and handle as-if we just
-            // saw an invokeinterface of thier overridding "implementation" of target.
-            // TODO: Need to track the extends relationship in RTAInfo so we can do this computation!
         } else {
             // Traverse the instantiated subclasses of target's defining class and
             // ensure that all overriding implementations of this method are marked invokable.
