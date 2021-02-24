@@ -35,6 +35,7 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
  */
 public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
+        registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangThreadIntrinsics(ctxt);
         registerJavaLangObjectIntrinsics(ctxt);
@@ -46,6 +47,23 @@ public final class CoreIntrinsics {
 
     private static StaticIntrinsic setVolatile(FieldElement field) {
         return (builder, owner, name, descriptor, arguments) -> builder.store(builder.staticField(field), arguments.get(0), MemoryAtomicityMode.VOLATILE);
+    }
+
+    public static void registerJavaLangClassIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+
+        MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jlcDesc));
+
+        // Assertion status
+
+        // todo: this probably belongs in the class libraries rather than here
+        StaticValueIntrinsic desiredAssertionStatus0 = (builder, owner, name, descriptor, arguments) ->
+            classContext.getLiteralFactory().literalOf(false);
+
+        intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus0", classToBool, desiredAssertionStatus0);
     }
 
     public static void registerJavaLangSystemIntrinsics(CompilationContext ctxt) {
