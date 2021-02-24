@@ -5,6 +5,7 @@ import java.util.List;
 import org.jboss.logging.Logger;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
@@ -81,17 +82,15 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
          * 2 - expectedType statically known to be an interface
          * 3 - expectedType statically known to be a class
          * The check takes the form of:
-         *   boolean result;
-         *   if (input == null) result = false;
-         *   else result = doCheck(input, expectedType);
+         *   boolean result = false;
+         *   if (input != null) result = doCheck(input, expectedType);
          *   return result;
          */
-        final BlockLabel isNullLabel = new BlockLabel();
         final BlockLabel notNullLabel = new BlockLabel();
         final BlockLabel afterCheckLabel = new BlockLabel();
         final NullLiteral nullLiteral = lf.literalOfNull();
         
-        if_(isNe(input, nullLiteral), notNullLabel, isNullLabel);
+        BasicBlock incomingBlock = if_(isNe(input, nullLiteral), notNullLabel, afterCheckLabel);
         begin(notNullLabel);
         Value result = null;
         if (expectedType instanceof ReferenceType) {
@@ -129,12 +128,10 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                 }
             }
             goto_(afterCheckLabel);
-            begin(isNullLabel);
-            goto_(afterCheckLabel);
             begin(afterCheckLabel);
 
             PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), afterCheckLabel);
-            phi.setValueForBlock(ctxt, getCurrentElement(), isNullLabel, lf.literalOf(false));
+            phi.setValueForBlock(ctxt, getCurrentElement(), incomingBlock, lf.literalOf(false));
             phi.setValueForBlock(ctxt, getCurrentElement(), notNullLabel, result);
             return phi;
         }
