@@ -13,6 +13,7 @@ import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.Variable;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.plugin.intrinsics.InstanceValueIntrinsic;
 import cc.quarkus.qcc.plugin.intrinsics.Intrinsics;
 import cc.quarkus.qcc.plugin.intrinsics.StaticIntrinsic;
@@ -25,6 +26,7 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -38,6 +40,7 @@ public final class CoreIntrinsics {
         registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangSystemIntrinsics(ctxt);
         registerJavaLangThreadIntrinsics(ctxt);
+        registerJavaLangThrowableIntrinsics(ctxt);
         registerJavaLangObjectIntrinsics(ctxt);
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
@@ -112,6 +115,28 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic currentThread = (builder, owner, name, descriptor, arguments) -> builder.currentThread();
 
         intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
+    }
+
+    public static void registerJavaLangThrowableIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
+        ClassTypeDescriptor steDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/StackTraceElement");
+        ArrayTypeDescriptor steArrayDesc = ArrayTypeDescriptor.of(classContext, steDesc);
+
+        ZeroInitializerLiteral zero = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getSignedInteger32Type());
+
+        // todo: temporary, until we have a stack walker
+
+        InstanceValueIntrinsic fillInStackTrace = (builder, kind, instance, owner, name, descriptor, arguments) ->
+            instance;
+
+        InstanceValueIntrinsic getStackTrace = (builder, kind, instance, owner, name, descriptor, arguments) ->
+            builder.newArray(steArrayDesc, zero);
+
+        intrinsics.registerIntrinsic(jltDesc, "fillInStackTrace", MethodDescriptor.synthesize(classContext, jltDesc, List.of()), fillInStackTrace);
+        intrinsics.registerIntrinsic(jltDesc, "getStackTrace", MethodDescriptor.synthesize(classContext, steArrayDesc, List.of()), getStackTrace);
     }
 
     public static void registerJavaLangNumberIntrinsics(CompilationContext ctxt) {
