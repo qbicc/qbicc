@@ -15,6 +15,7 @@ import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
@@ -335,7 +336,19 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value narrow(final Value value, final ValueType toType) {
-        return new Narrow(callSite, element, line, bci, value, toType);
+        ValueType inputType = value.getType();
+        ValueType outputType;
+        if (toType instanceof ReferenceType && inputType instanceof ReferenceType) {
+            outputType = ((ReferenceType) toType).meet((ReferenceType) inputType);
+            if (outputType == null) {
+                CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
+                ctxt.error(getLocation(), "Invalid narrow from %s to %s", inputType, toType);
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toType);
+            }
+        } else {
+            outputType = toType;
+        }
+        return new Narrow(callSite, element, line, bci, value, outputType);
     }
 
     public Value narrow(final Value value, final TypeDescriptor desc) {
