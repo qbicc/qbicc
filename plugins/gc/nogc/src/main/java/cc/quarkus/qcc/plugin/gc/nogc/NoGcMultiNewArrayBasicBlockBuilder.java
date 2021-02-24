@@ -6,6 +6,7 @@ import java.util.List;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
@@ -53,12 +54,12 @@ public class NoGcMultiNewArrayBasicBlockBuilder extends DelegatingBasicBlockBuil
         ArrayObjectType nestedType;
         if (! (elementType instanceof ReferenceType)) {
             ctxt.error(getLocation(), "Unexpected array element type: %s", elementType);
-            return lf.literalOfNull();
+            throw new BlockEarlyTermination(unreachable());
         }
         ObjectType upperBound = ((ReferenceType) elementType).getUpperBound();
         if (! (upperBound instanceof ArrayObjectType)) {
             ctxt.error(getLocation(), "Unexpected array element upper bound: %s", upperBound);
-            return lf.literalOfNull();
+            throw new BlockEarlyTermination(unreachable());
         }
         nestedType = (ArrayObjectType) upperBound;
         Value innerArray = multiNewArray(nestedType, dimensions);

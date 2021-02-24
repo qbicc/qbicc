@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.graph;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
@@ -20,12 +21,16 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         return ((AbstractTerminator) Assert.checkNotNullParam("input", input)).getOutboundValue(this);
     }
 
-    public void setValueForTerminator(final CompilationContext ctxt, final Element element, final Terminator input, final Value value) {
+    public void setValueForTerminator(final CompilationContext ctxt, final Element element, final Terminator input, Value value) {
         Assert.checkNotNullParam("value", value);
         ValueType expected = getType();
         ValueType actual = value.getType();
         if (! expected.isImplicitlyConvertibleFrom(actual)) {
-            ctxt.warning(element, this, "Invalid input value for phi: expected %s, got %s", expected, actual);
+            if (value instanceof ZeroInitializerLiteral) {
+                value = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(expected);
+            } else {
+                ctxt.warning(element, this, "Invalid input value for phi: expected %s, got %s", expected, actual);
+            }
         }
         if (! ((AbstractTerminator) input).registerValue(this, value)) {
             ctxt.error(element, this, "Phi already has a value for block %s", input.getTerminatedBlock());

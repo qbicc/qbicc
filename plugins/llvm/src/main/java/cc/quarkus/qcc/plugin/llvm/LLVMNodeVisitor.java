@@ -87,7 +87,6 @@ import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
@@ -578,29 +577,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         // two scans - once to populate the maps, and then once to emit the call in the right order
         for (int i = 0; i < arguments.size(); i++) {
             ValueType type = arguments.get(i).getType();
-            if (type instanceof NullType) {
-                // it's a null of whatever type the parameter is
-                if (i < functionType.getParameterCount()) {
-                    type = functionType.getParameterType(i);
-                    // else we'll just make it an i8*
-                }
-            }
             map(type);
             map(arguments.get(i));
         }
         Call call = builder.call(llType, llTarget);
         for (int i = 0; i < arguments.size(); i++) {
             ValueType type = arguments.get(i).getType();
-            if (type instanceof NullType) {
-                // it's a null of whatever type the parameter is
-                if (i < functionType.getParameterCount()) {
-                    call.arg(map(functionType.getParameterType(i)), zeroinitializer);
-                } else {
-                    call.arg(ptrTo(i8), zeroinitializer);
-                }
-            } else {
-                call.arg(map(type), map(arguments.get(i)));
-            }
+            call.arg(map(type), map(arguments.get(i)));
         }
         return call.asLocal();
     }

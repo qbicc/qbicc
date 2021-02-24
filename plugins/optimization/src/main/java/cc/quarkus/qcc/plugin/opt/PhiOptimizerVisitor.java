@@ -54,6 +54,6 @@ public class PhiOptimizerVisitor implements NodeVisitor.Delegating<Node.Copier, 
         }
         // *no* inputs; should be impossible!
         context.error("internal: phi block with no inputs (element: " + node.getElement() + ")");
-        return context.getLiteralFactory().literalOfNull();
+        return (PhiValue) NodeVisitor.Delegating.super.visit(param, node);
     }
 }

@@ -104,7 +104,7 @@ public final class ReferenceType extends WordType {
     }
 
     public boolean isImplicitlyConvertibleFrom(Type other) {
-        return other instanceof ReferenceType && isImplicitlyConvertibleFrom((ReferenceType) other) || other instanceof NullType && isNullable();
+        return other instanceof ReferenceType && isImplicitlyConvertibleFrom((ReferenceType) other);
     }
 
     public boolean isImplicitlyConvertibleFrom(ReferenceType other) {
@@ -114,8 +114,6 @@ public final class ReferenceType extends WordType {
     public ValueType join(final ValueType other) {
         if (other instanceof ReferenceType) {
             return join(((ReferenceType) other));
-        } else if (other instanceof NullType) {
-            return asNullable();
         } else {
             return super.join(other);
         }
