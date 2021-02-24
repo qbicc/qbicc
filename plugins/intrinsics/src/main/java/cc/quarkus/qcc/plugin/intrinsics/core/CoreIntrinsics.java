@@ -14,6 +14,8 @@ import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.Variable;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.plugin.intrinsics.InstanceValueIntrinsic;
 import cc.quarkus.qcc.plugin.intrinsics.Intrinsics;
@@ -22,6 +24,7 @@ import cc.quarkus.qcc.plugin.intrinsics.StaticValueIntrinsic;
 import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.PointerType;
+import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
@@ -63,6 +66,7 @@ public final class CoreIntrinsics {
         MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jlcDesc));
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor emptyToString = MethodDescriptor.synthesize(classContext, jlsDesc, List.of());
+        MethodDescriptor stringToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of(jlsDesc));
 
         // Assertion status
 
@@ -77,9 +81,41 @@ public final class CoreIntrinsics {
             throw new BlockEarlyTermination(builder.unreachable());
         };
 
+        StaticValueIntrinsic getPrimitiveClass = (builder, owner, name, descriptor, arguments) -> {
+            // always called with a string literal
+            StringLiteral lit = (StringLiteral) arguments.get(0);
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            TypeSystem ts = ctxt.getTypeSystem();
+            ValueType type;
+            switch (lit.getValue()) {
+                case "byte": type = ts.getSignedInteger8Type(); break;
+                case "short": type = ts.getSignedInteger16Type(); break;
+                case "int": type = ts.getSignedInteger32Type(); break;
+                case "long": type = ts.getSignedInteger64Type(); break;
+
+                case "char": type = ts.getUnsignedInteger16Type(); break;
+
+                case "float": type = ts.getFloat32Type(); break;
+                case "double": type = ts.getFloat64Type(); break;
+
+                case "boolean": type = ts.getBooleanType(); break;
+
+                case "void": type = ts.getVoidType(); break;
+
+                default: {
+                    ctxt.error(builder.getLocation(), "Invalid argument to `getPrimitiveClass`: %s", lit.getValue());
+                    throw new BlockEarlyTermination(builder.unreachable());
+                }
+            }
+            return builder.classOf(lf.literalOfType(type));
+        };
+
+        //    static native Class<?> getPrimitiveClass(String name);
+
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus0", classToBool, desiredAssertionStatus0);
         intrinsics.registerIntrinsic(jlcDesc, "registerNatives", emptyToVoid, registerNatives);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
+        intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
     }
 
     public static void registerJavaLangSystemIntrinsics(CompilationContext ctxt) {
@@ -111,7 +147,7 @@ public final class CoreIntrinsics {
 
         MethodDescriptor setPrintStreamDesc =
             MethodDescriptor.synthesize(classContext,
-                BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(classContext, ("java/io/PrintStream"))));
+                BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(classContext, "java/io/PrintStream")));
 
         intrinsics.registerIntrinsic(systemDesc, "setIn", setPrintStreamDesc, setVolatile(in));
         intrinsics.registerIntrinsic(systemDesc, "setOut", setPrintStreamDesc, setVolatile(out));
