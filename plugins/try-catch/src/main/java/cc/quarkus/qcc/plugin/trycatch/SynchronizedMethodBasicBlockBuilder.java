@@ -77,7 +77,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
                 // generate the new handler body
                 begin(label);
                 // release the lock
-                monitorEnter(monitor);
+                monitorExit(monitor);
                 // hopefully the delegate simply rethrows
                 BasicBlock ourFrom = goto_(delegate.getHandler());
                 delegate.enterHandler(ourFrom, phi);

@@ -184,7 +184,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     gf.begin(block);
                     processNewBlock();
                 } else {
-                    processBlock(from);
+                    processBlock(innerFrom);
                 }
                 // restore everything like nothing happened...
                 buffer.position(pos);
