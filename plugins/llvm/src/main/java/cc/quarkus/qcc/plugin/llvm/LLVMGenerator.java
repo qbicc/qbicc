@@ -79,8 +79,6 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             ctxt.error("Function `%s` has no body", name);
                             continue;
                         }
-                        MethodBody body = ((Function) item).getBody();
-                        boolean isExact = item == ctxt.getExactFunction(element);
                         BasicBlock entryBlock = body.getEntryBlock();
                         FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
                         LLValue topSubprogram = null;
