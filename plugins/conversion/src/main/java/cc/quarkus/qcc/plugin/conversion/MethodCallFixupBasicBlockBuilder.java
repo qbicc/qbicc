@@ -16,6 +16,7 @@ import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VariadicType;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -65,7 +66,12 @@ public class MethodCallFixupBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     private List<Value> fixArguments(final InvokableElement target, final List<Value> arguments) {
-        return fixArguments(target.getType(List.of()), arguments);
+        if (target.hasAllModifiersOf(ClassFile.I_ACC_SIGNATURE_POLYMORPHIC)) {
+            // TODO: extract the signature from the method handle instance!
+            return arguments;
+        } else {
+            return fixArguments(target.getType(List.of()), arguments);
+        }
     }
 
     private List<Value> fixArguments(final ValueType targetType, final List<Value> arguments) {
