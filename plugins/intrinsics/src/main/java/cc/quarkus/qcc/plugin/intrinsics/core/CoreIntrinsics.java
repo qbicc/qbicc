@@ -36,6 +36,7 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
         registerJavaLangSystemIntrinsics(ctxt);
+        registerJavaLangThreadIntrinsics(ctxt);
         registerJavaLangObjectIntrinsics(ctxt);
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
@@ -81,6 +82,18 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(systemDesc, "setIn", setPrintStreamDesc, setVolatile(in));
         intrinsics.registerIntrinsic(systemDesc, "setOut", setPrintStreamDesc, setVolatile(out));
         intrinsics.registerIntrinsic(systemDesc, "setErr", setPrintStreamDesc, setVolatile(err));
+    }
+
+    public static void registerJavaLangThreadIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor jltDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
+        MethodDescriptor returnJlt = MethodDescriptor.synthesize(classContext, jltDesc, List.of());
+
+        StaticValueIntrinsic currentThread = (builder, owner, name, descriptor, arguments) -> builder.currentThread();
+
+        intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
     }
 
     public static void registerJavaLangNumberIntrinsics(CompilationContext ctxt) {
