@@ -127,6 +127,8 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/VM");
 
+        MethodDescriptor objectToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jloDesc));
+
         // Null and no-operation intrinsics
 
         StaticValueIntrinsic returnNull = (builder, owner, name, descriptor, arguments) ->
@@ -169,6 +171,14 @@ public final class CoreIntrinsics {
             builder.invokeStatic(vmDesc, "arraycopy", descriptor, arguments);
 
         intrinsics.registerIntrinsic(systemDesc, "arraycopy", arraycopyDesc, arraycopy);
+
+        // identity hash code
+
+        // todo: obviously non-optimal; replace once we have object headers sorted out
+        StaticValueIntrinsic identityHashCode = (builder, owner, name, descriptor, arguments) ->
+            ctxt.getLiteralFactory().literalOf(0);
+
+        intrinsics.registerIntrinsic(systemDesc, "identityHashCode", objectToIntDesc, identityHashCode);
     }
 
     public static void registerJavaLangThreadIntrinsics(CompilationContext ctxt) {
