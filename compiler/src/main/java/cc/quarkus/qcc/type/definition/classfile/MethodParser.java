@@ -171,6 +171,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 if (single) {
                     block = new BlockLabel();
                 }
+                gf.setBytecodeIndex(pc);
+                gf.setLineNumber(info.getLineNumber(pc));
                 BasicBlock innerFrom = gf.if_(gf.instanceOf(phi, exType), block, delegate.getHandler());
                 // enter the delegate handler
                 delegate.enterHandler(innerFrom, phi);
@@ -178,13 +180,14 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 Value[] locals = saveLocals();
                 Value[] stack = saveStack();
                 clearStack();
-                push1(gf.narrow(phi, exType));
                 int pos = buffer.position();
                 buffer.position(pc);
                 if (single) {
                     gf.begin(block);
+                    push1(gf.narrow(phi, exType));
                     processNewBlock();
                 } else {
+                    push1(gf.narrow(phi, exType));
                     processBlock(innerFrom);
                 }
                 // restore everything like nothing happened...
