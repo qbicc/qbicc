@@ -22,6 +22,7 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -95,16 +96,19 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         Value result = null;
         if (expectedType instanceof ReferenceType) {
             ReferenceType refExpectedType = (ReferenceType) expectedType;
-            ClassObjectType cotExpectedType = (ClassObjectType)refExpectedType.getUpperBound();
-            ValidatedTypeDefinition vtdExpectedType = cotExpectedType.getDefinition().validate();
-            TypeDescriptor descriptor = vtdExpectedType.getDescriptor();
-            if (descriptor instanceof ArrayTypeDescriptor) {
-                // 1 - expectedType statically known to be an array class
+            if (refExpectedType.getUpperBound() instanceof ArrayObjectType) {
+                  // 1 - expectedType statically known to be an array class
                 // TODO
+                Object o = refExpectedType.getUpperBound();
+                o.getClass();
+                result = lf.literalOf(false);
             } else {
+                ClassObjectType cotExpectedType = (ClassObjectType)refExpectedType.getUpperBound();
+                ValidatedTypeDefinition vtdExpectedType = cotExpectedType.getDefinition().validate();
                 if (vtdExpectedType.isInterface()) {
                     // 2 - expectedType statically known to be an interface
                     // TODO
+                    result = lf.literalOf(false);
                 } else {
                     // 3 - expectedType statically known to be a class
                     // There are two sub cases when dealing with classes:
