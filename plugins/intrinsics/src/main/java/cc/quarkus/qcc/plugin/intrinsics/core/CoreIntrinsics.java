@@ -59,6 +59,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
 
         MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jlcDesc));
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
 
         // Assertion status
 
@@ -66,7 +67,10 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic desiredAssertionStatus0 = (builder, owner, name, descriptor, arguments) ->
             classContext.getLiteralFactory().literalOf(false);
 
+        StaticIntrinsic registerNatives = (builder, owner, name, descriptor, arguments) -> builder.nop();
+
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus0", classToBool, desiredAssertionStatus0);
+        intrinsics.registerIntrinsic(jlcDesc, "registerNatives", emptyToVoid, registerNatives);
     }
 
     public static void registerJavaLangSystemIntrinsics(CompilationContext ctxt) {
