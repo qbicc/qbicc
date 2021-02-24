@@ -110,6 +110,10 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public FunctionType getFunctionTypeForElement(ExecutableElement element) {
+            return null;
+        }
+
         public FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current) {
             return null;  // TODO: Customise this generated block
         }

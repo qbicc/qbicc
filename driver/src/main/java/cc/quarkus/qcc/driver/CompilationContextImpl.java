@@ -263,9 +263,7 @@ final class CompilationContextImpl implements CompilationContext {
             if (element instanceof FunctionElement) {
                 return implicit.addFunction(element, ((FunctionElement) element).getName(), element.getType(List.of()));
             }
-            // look up the thread ID literal - todo: lazy cache?
-            ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
-            FunctionType type = getFunctionTypeForElement(typeSystem, element, threadType);
+            FunctionType type = getFunctionTypeForElement(element);
             return implicit.addFunction(element, getExactNameForElement(element, type), type);
         });
     }
@@ -298,7 +296,7 @@ final class CompilationContextImpl implements CompilationContext {
         ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
         Section implicit = getImplicitSection(element);
         return exactFunctions.computeIfAbsent(element, e -> {
-            FunctionType type = getFunctionTypeForElement(typeSystem, element, threadType);
+            FunctionType type = getFunctionTypeForElement(element, threadType);
             return implicit.addFunction(element, getVirtualNameForElement(element, type), type);
         });
     }
@@ -376,7 +374,8 @@ final class CompilationContextImpl implements CompilationContext {
         return b.toString();
     }
 
-    private FunctionType getFunctionTypeForElement(TypeSystem ts, ExecutableElement element, final ClassObjectType threadType) {
+    private FunctionType getFunctionTypeForElement(ExecutableElement element, final ClassObjectType threadType) {
+        TypeSystem ts = typeSystem;
         if (element instanceof InitializerElement) {
             // todo: initializers should not survive the copy
             return ts.getFunctionType(ts.getVoidType());
@@ -400,6 +399,12 @@ final class CompilationContextImpl implements CompilationContext {
             argTypes[j] = methodType.getParameterType(i);
         }
         return ts.getFunctionType(methodType.getReturnType(), argTypes);
+    }
+
+    public FunctionType getFunctionTypeForElement(final ExecutableElement element) {
+        // look up the thread ID literal - todo: lazy cache?
+        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
+        return getFunctionTypeForElement(element, threadType);
     }
 
     public Iterable<ExecutableElement> getEntryPoints() {
