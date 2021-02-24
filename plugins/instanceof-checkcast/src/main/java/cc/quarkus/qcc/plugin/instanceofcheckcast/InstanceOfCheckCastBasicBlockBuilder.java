@@ -134,7 +134,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     Value generateCallToRuntimeHelper(final Value input, ObjectType classFileType, final ValueType expectedType) {
-                // This code is not yet enabled.  Committing in this state so it's available
+        // This code is not yet enabled.  Committing in this state so it's available
         // and so the plugin is included in the list of plugins.
 
         if (PLUGIN_DISABLED) {
