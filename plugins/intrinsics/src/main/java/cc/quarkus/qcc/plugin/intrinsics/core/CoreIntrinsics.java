@@ -5,6 +5,7 @@ import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.Load;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
@@ -57,9 +58,11 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor jlsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
 
         MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jlcDesc));
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+        MethodDescriptor emptyToString = MethodDescriptor.synthesize(classContext, jlsDesc, List.of());
 
         // Assertion status
 
@@ -69,8 +72,14 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic registerNatives = (builder, owner, name, descriptor, arguments) -> builder.nop();
 
+        InstanceValueIntrinsic initClassName = (builder, kind, instance, owner, name, descriptor, arguments) -> {
+            // not reachable; we always would initialize our class name eagerly
+            throw new BlockEarlyTermination(builder.unreachable());
+        };
+
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus0", classToBool, desiredAssertionStatus0);
         intrinsics.registerIntrinsic(jlcDesc, "registerNatives", emptyToVoid, registerNatives);
+        intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
     }
 
     public static void registerJavaLangSystemIntrinsics(CompilationContext ctxt) {
