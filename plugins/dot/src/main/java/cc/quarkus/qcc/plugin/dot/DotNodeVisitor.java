@@ -24,6 +24,7 @@ import cc.quarkus.qcc.graph.ClassCastErrorNode;
 import cc.quarkus.qcc.graph.ClassNotFoundErrorNode;
 import cc.quarkus.qcc.graph.ClassOf;
 import cc.quarkus.qcc.graph.Clone;
+import cc.quarkus.qcc.graph.Cmp;
 import cc.quarkus.qcc.graph.IsEq;
 import cc.quarkus.qcc.graph.IsGe;
 import cc.quarkus.qcc.graph.IsGt;
@@ -49,7 +50,9 @@ import cc.quarkus.qcc.graph.InstanceInvocationValue;
 import cc.quarkus.qcc.graph.InstanceOf;
 import cc.quarkus.qcc.graph.Jsr;
 import cc.quarkus.qcc.graph.Load;
+import cc.quarkus.qcc.graph.Max;
 import cc.quarkus.qcc.graph.MemberOf;
+import cc.quarkus.qcc.graph.Min;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.MonitorEnter;
 import cc.quarkus.qcc.graph.MonitorExit;
@@ -167,6 +170,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         this.entryBlock = entryBlock;
     }
 
+    public String visitUnknown(final Appendable param, Value node) {
+        throw new IllegalStateException("Visitor for node " + node.getClass() + " is not implemented");
+    }
+
     public String visit(final Appendable param, final BlockEntry node) {
         String name = register(node);
         appendTo(param, name);
@@ -180,6 +187,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         dependencyList.add(name);
         return name;
+    }
+
+    public String visit(final Appendable param, final Cmp node) {
+        return node(param, "cmp", node);
     }
 
     public String visit(final Appendable param, final DynamicInvocation node) {
@@ -747,6 +758,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final MethodHandleLiteral node) {
         return literal(param, node.toString());
+    }
+
+    public String visit(final Appendable param, final Max node) {
+        return node(param, "max", node);
+    }
+
+    public String visit(final Appendable param, final Min node) {
+        return node(param, "min", node);
     }
 
     public String visit(final Appendable param, final Mod node) {
