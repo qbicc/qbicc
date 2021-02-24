@@ -17,6 +17,7 @@ import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.object.ThreadLocalMode;
 import cc.quarkus.qcc.plugin.dispatch.DispatchTables;
 import cc.quarkus.qcc.plugin.layout.Layout;
+import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -146,9 +147,9 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     private Value expandInterfaceDispatch(Value instance, MethodElement target) {
         ctxt.warning(getLocation(), "interface invocation not supported yet");
-        // Construct a doomed-to-fail indirect call target by casting null to the right function type
+        // Construct a doomed-to-fail indirect call target by invoking a zero initializer of the right function type.
         // This will at least compile, have the right calling convention, and not cause a linkage problem.
-        Function absMethod = ctxt.getExactFunction(target);
-        return bitCast(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(absMethod.getType().getPointer()), absMethod.getType().getPointer());
+        FunctionType funType = ctxt.getFunctionTypeForElement(target);
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(funType.getPointer());
     }
 }

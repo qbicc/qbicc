@@ -119,11 +119,18 @@ public class DispatchTables {
             Section section = ctxt.getImplicitSection(cls);
             HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
             for (int i = 0; i < vtable.length; i++) {
-                Function impl = ctxt.getExactFunction(vtable[i]);
-                if (!vtable[i].getEnclosingType().validate().equals(cls)) {
-                    section.declareFunction(vtable[i], impl.getName(), impl.getType());
+                FunctionType funType = ctxt.getFunctionTypeForElement(vtable[i]);
+                if (vtable[i].isAbstract()) {
+                    // TODO: In a correct program, this null should never be used. However, we'd get better
+                    //       debugability if we initialized it to an "AbstractMethodInvoked" error stub
+                    valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().zeroInitializerLiteralOfType(funType));
+                } else {
+                    Function impl = ctxt.getExactFunction(vtable[i]);
+                    if (!vtable[i].getEnclosingType().validate().equals(cls)) {
+                        section.declareFunction(vtable[i], impl.getName(), funType);
+                    }
+                    valueMap.put(info.getType().getMember(i), impl.getLiteral());
                 }
-                valueMap.put(info.getType().getMember(i), impl.getLiteral());
             }
             CompoundLiteral vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
             section.addData(null, info.getSymbol().getName(), vtableLiteral).setLinkage(Linkage.EXTERNAL);
