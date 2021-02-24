@@ -675,9 +675,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         } else {
                             // form 2
                             v1 = pop2();
-                            v2 = pop2();
+                            v2 = pop1();
                             push2(v1);
-                            push2(v2);
+                            push1(v2);
                             push2(v1);
                         }
                         break;
