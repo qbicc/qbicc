@@ -20,7 +20,6 @@ import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.ValueHandleVisitor;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.IntegerType;
@@ -272,9 +271,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         final BlockLabel throwIt = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
         final LiteralFactory lf = ctxt.getLiteralFactory();
-        final NullLiteral nullLiteral = lf.literalOfNull();
-
-        if_(isEq(value, nullLiteral), throwIt, goAhead);
+        if_(isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), throwIt, goAhead);
         begin(throwIt);
         MethodElement helper = ctxt.getVMHelperMethod("raiseNullPointerException");
         invokeStatic(helper, List.of());

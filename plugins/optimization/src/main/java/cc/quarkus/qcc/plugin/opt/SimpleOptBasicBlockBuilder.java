@@ -1,7 +1,5 @@
 package cc.quarkus.qcc.plugin.opt;
 
-import static cc.quarkus.qcc.type.NullType.isAlwaysNull;
-
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.AddressOf;
 import cc.quarkus.qcc.graph.BasicBlock;
@@ -19,6 +17,7 @@ import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
@@ -251,4 +250,9 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
         return super.pointerHandle(pointer);
     }
+
+    private static boolean isAlwaysNull(final Value value) {
+        return value instanceof ZeroInitializerLiteral;
+    }
+
 }

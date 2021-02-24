@@ -12,7 +12,6 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.CompoundLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
-import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.Linkage;
@@ -141,9 +140,9 @@ public class DispatchTables {
         ArrayType vtablesGlobalType = ((ArrayType)vtablesGlobal.getType(List.of()));
         Section section = ctxt.getImplicitSection(jlo);
         Literal[] vtableLiterals = new Literal[(int)vtablesGlobalType.getElementCount()];
-        NullLiteral nullLiteral = ctxt.getLiteralFactory().literalOfNull();
+        Literal nullLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(vtablesGlobalType.getElementType());
         Arrays.fill(vtableLiterals, nullLiteral);
-        vtableLiterals[0] = ctxt.getLiteralFactory().literalOfNull(); // typeId 0 is not assigned.
+        vtableLiterals[0] = nullLiteral; // typeId 0 is not assigned.
         for (Map.Entry<ValidatedTypeDefinition, VTableInfo> e: vtables.entrySet()) {
             ValidatedTypeDefinition cls = e.getKey();
             if (!cls.isAbstract()) {

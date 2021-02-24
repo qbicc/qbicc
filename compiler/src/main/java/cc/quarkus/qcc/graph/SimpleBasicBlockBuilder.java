@@ -512,7 +512,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             FieldElement exceptionField = ctxt.getExceptionField();
             ValueHandle handle = instanceFieldOf(referenceHandle(thr), exceptionField);
             Value exceptionValue = load(handle, MemoryAtomicityMode.NONE);
-            store(handle, ctxt.getLiteralFactory().literalOfNull(), MemoryAtomicityMode.NONE);
+            store(handle, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(handle.getValueType()), MemoryAtomicityMode.NONE);
             BasicBlock sourceBlock = goto_(handler);
             exceptionHandler.enterHandler(sourceBlock, exceptionValue);
             begin(resume);

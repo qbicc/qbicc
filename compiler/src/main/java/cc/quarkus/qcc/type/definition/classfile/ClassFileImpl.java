@@ -1396,7 +1396,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         } else if (viTag == 4) { // long
             return ts.getSignedInteger64Type();
         } else if (viTag == 5) { // null
-            return ts.getNullType();
+            // todo: bottom object type?
+            return ctxt.findDefinedType("java/lang/Object").validate().getClassType().getReference().asNullable();
         } else if (viTag == 6) { // uninitialized this
             return element.getEnclosingType().validate().getType().getReference().asNullable();
         } else if (viTag == 7) { // object

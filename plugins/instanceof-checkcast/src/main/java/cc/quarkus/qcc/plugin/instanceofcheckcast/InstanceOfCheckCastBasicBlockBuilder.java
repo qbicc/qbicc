@@ -7,12 +7,12 @@ import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 
@@ -46,7 +46,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
 
     public Value instanceOf(final Value input, final ValueType expectedType) {
         // "null" instanceof <X> is always false
-        if (NullType.isAlwaysNull(input)) {
+        if (input instanceof ZeroInitializerLiteral) {
             return ctxt.getLiteralFactory().literalOf(false);
         }
         // statically true instanceof checks are equal to x != null
@@ -57,7 +57,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             if (actualType instanceof ReferenceType) {
                 if (((ReferenceType) actualType).instanceOf(refExpectedType)) {
                     // the reference type matches statically
-                    return super.isNe(input, lf.literalOfNull());
+                    return super.isNe(input, lf.zeroInitializerLiteralOfType(actualType));
                 }
             }
         }

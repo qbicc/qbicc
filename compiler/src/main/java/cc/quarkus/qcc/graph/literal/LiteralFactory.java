@@ -44,8 +44,6 @@ public interface LiteralFactory {
 
     StringLiteral literalOf(String value, ReferenceType stringRefType);
 
-    NullLiteral literalOfNull();
-
     ObjectLiteral literalOf(VmObject value);
 
     MethodHandleLiteral literalOfMethodHandle(int referenceKind, int referenceIndex);
@@ -76,7 +74,6 @@ public interface LiteralFactory {
         return new LiteralFactory() {
             private final BooleanLiteral TRUE = new BooleanLiteral(typeSystem.getBooleanType(), true);
             private final BooleanLiteral FALSE = new BooleanLiteral(typeSystem.getBooleanType(), false);
-            private final NullLiteral NULL = new NullLiteral(typeSystem.getNullType());
             private final UndefinedLiteral undef = new UndefinedLiteral(typeSystem.getPoisonType());
             private final ConcurrentMap<String, StringLiteral> stringLiterals = new ConcurrentHashMap<>();
             // todo: come up with a more efficient caching scheme
@@ -133,10 +130,6 @@ public interface LiteralFactory {
 
             public StringLiteral literalOf(final String value, ReferenceType stringRefType) {
                 return stringLiterals.computeIfAbsent(value, v -> new StringLiteral(stringRefType, v));
-            }
-
-            public NullLiteral literalOfNull() {
-                return NULL;
             }
 
             public UndefinedLiteral literalOfUndefined() {

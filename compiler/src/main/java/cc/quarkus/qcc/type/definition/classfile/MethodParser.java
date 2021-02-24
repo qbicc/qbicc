@@ -37,7 +37,6 @@ import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.PoisonType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
-import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
@@ -70,6 +69,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     private final ClassContext ctxt;
     private final LiteralFactory lf;
     private final TypeSystem ts;
+    private final DefinedTypeDefinition jlo;
     private final DefinedTypeDefinition throwable;
     private int currentbci;
     /**
@@ -102,6 +102,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         gf.setExceptionHandlerPolicy(this);
         int exCnt = info.getExTableLen();
         exceptionHandlers = exCnt == 0 ? List.of() : new ArrayList<>(Collections.nCopies(exCnt, null));
+        jlo = ctxt.findDefinedType("java/lang/Object");
         throwable = ctxt.findDefinedType("java/lang/Throwable");
     }
 
@@ -449,7 +450,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_NOP:
                         break;
                     case OP_ACONST_NULL:
-                        push1(lf.literalOfNull());
+                        push1(lf.zeroInitializerLiteralOfType(jlo.validate().getClassType().getReference().asNullable()));
                         break;
                     case OP_ICONST_M1:
                     case OP_ICONST_0:
@@ -1373,7 +1374,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             push1(gf.new_((ClassTypeDescriptor) desc));
                         } else {
                             ctxt.getCompilationContext().error(gf.getLocation(), "Wrong kind of descriptor for `new`: %s", desc);
-                            push1(lf.literalOfNull());
+                            throw new BlockEarlyTermination(gf.unreachable());
                         }
                         break;
                     }
@@ -1435,12 +1436,16 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         }
                         push1(gf.multiNewArray(ArrayTypeDescriptor.of(ctxt, desc), List.of(dims)));
                         break;
-                    case OP_IFNULL:
-                        processIf(buffer, gf.isEq(pop1(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
+                    case OP_IFNULL: {
+                        v1 = pop1();
+                        processIf(buffer, gf.isEq(v1, lf.zeroInitializerLiteralOfType(v1.getType())), buffer.getShort() + src, buffer.position());
                         return;
-                    case OP_IFNONNULL:
-                        processIf(buffer, gf.isNe(pop1(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
+                    }
+                    case OP_IFNONNULL: {
+                        v1 = pop1();
+                        processIf(buffer, gf.isNe(v1, lf.zeroInitializerLiteralOfType(v1.getType())), buffer.getShort() + src, buffer.position());
                         return;
+                    }
                     default:
                         throw new InvalidByteCodeException();
                 }

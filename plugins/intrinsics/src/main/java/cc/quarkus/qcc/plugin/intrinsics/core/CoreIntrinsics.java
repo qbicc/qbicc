@@ -52,11 +52,12 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         ClassTypeDescriptor systemDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/System");
+        ValidatedTypeDefinition jls = classContext.findDefinedType("java/lang/System").validate();
 
         // Null and no-operation intrinsics
 
         StaticValueIntrinsic returnNull = (builder, owner, name, descriptor, arguments) ->
-            builder.getCurrentElement().getEnclosingType().getContext().getCompilationContext().getLiteralFactory().literalOfNull();
+            classContext.getLiteralFactory().zeroInitializerLiteralOfType(jls.getClassType().getReference().asNullable());
         intrinsics.registerIntrinsic(systemDesc, "getSecurityManager",
             MethodDescriptor.synthesize(classContext,
                 ClassTypeDescriptor.synthesize(classContext,"java/lang/SecurityManager"), List.of()),
@@ -64,7 +65,6 @@ public final class CoreIntrinsics {
 
         // System public API
 
-        ValidatedTypeDefinition jls = classContext.findDefinedType("java/lang/System").validate();
         FieldElement in = jls.findField("in");
         in.setModifierFlags(ClassFile.I_ACC_NOT_REALLY_FINAL);
         FieldElement out = jls.findField("out");

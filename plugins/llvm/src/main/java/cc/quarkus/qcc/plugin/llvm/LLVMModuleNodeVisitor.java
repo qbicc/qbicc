@@ -25,7 +25,6 @@ import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
@@ -48,7 +47,6 @@ import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
@@ -118,8 +116,6 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         } else if (type instanceof PointerType) {
             Type pointeeType = ((PointerType) type).getPointeeType();
             res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType));
-        } else if (type instanceof NullType) {
-            res = i64;
         } else if (type instanceof WordType) {
             // all other words are integers
             // LLVM doesn't really care about signedness
@@ -305,16 +301,22 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         return Values.intConstant(node.longValue());
     }
 
-    public LLValue visit(final Void param, final NullLiteral node) {
-        return zeroinitializer;
-    }
-
     public LLValue visit(final Void param, final SymbolLiteral node) {
         return Values.global(node.getName());
     }
 
     public LLValue visit(final Void param, final ZeroInitializerLiteral node) {
-        return Values.zeroinitializer;
+        if (node.getType() instanceof IntegerType) {
+            return Values.intConstant(0);
+        } else if (node.getType() instanceof PointerType) {
+            return NULL;
+        } else if (node.getType() instanceof BooleanType) {
+            return FALSE;
+        } else if (node.getType() instanceof FloatType) {
+            return Values.floatConstant(0);
+        } else {
+            return Values.zeroinitializer;
+        }
     }
 
     public LLValue visit(final Void param, final BooleanLiteral node) {

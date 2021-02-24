@@ -4,6 +4,7 @@ import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Value;
@@ -118,7 +119,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return valueConvert(ptrVal, type.getReference());
         } else if (objType instanceof ArrayObjectType) {
             ctxt.error(getLocation(), "Array allocations not supported until layout supports arrays");
-            return ctxt.getLiteralFactory().literalOfNull();
+            throw new BlockEarlyTermination(unreachable());
         } else {
             return super.clone(object);
         }

@@ -103,7 +103,6 @@ import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.MethodDescriptorLiteral;
 import cc.quarkus.qcc.graph.literal.MethodHandleLiteral;
-import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.ObjectLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
@@ -822,10 +821,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         processDependency(param, node.getDependency());
         addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
         return name;
-    }
-
-    public String visit(final Appendable param, final NullLiteral node) {
-        return literal(param, "null");
     }
 
     public String visit(final Appendable param, final ZeroInitializerLiteral node) {
