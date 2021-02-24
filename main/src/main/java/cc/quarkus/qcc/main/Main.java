@@ -18,6 +18,7 @@ import cc.quarkus.qcc.context.DiagnosticContext;
 import cc.quarkus.qcc.driver.BaseDiagnosticContext;
 import cc.quarkus.qcc.driver.BuilderStage;
 import cc.quarkus.qcc.driver.Driver;
+import cc.quarkus.qcc.driver.GraphGenConfig;
 import cc.quarkus.qcc.driver.Phase;
 import cc.quarkus.qcc.driver.plugin.DriverPlugin;
 import cc.quarkus.qcc.machine.arch.Platform;
@@ -96,6 +97,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final String mainClass;
     private final String gc;
     private final boolean isPie;
+    private final GraphGenConfig graphGenConfig;
 
     Main(Builder builder) {
         bootModulePath = List.copyOf(builder.bootModulePath);
@@ -105,6 +107,7 @@ public class Main implements Callable<DiagnosticContext> {
         mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
         gc = builder.gc;
         isPie = builder.isPie;
+        graphGenConfig = builder.graphGenConfig;
     }
 
     public DiagnosticContext call() {
@@ -261,6 +264,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, RegisterHelperBasicBlockBuilder::new);
+                                builder.addElementVisitor(Phase.ADD, new DotGenerator(Phase.ADD, graphGenConfig));
                                 builder.addPostHook(Phase.ADD, RTAInfo::clear);
 
                                 builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
@@ -268,6 +272,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                                builder.addElementVisitor(Phase.ANALYZE, new DotGenerator(Phase.ANALYZE, graphGenConfig));
                                 builder.addPostHook(Phase.ANALYZE, new VTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
@@ -287,12 +292,12 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LLVMCompatibleBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                                builder.addElementVisitor(Phase.LOWER, new DotGenerator(Phase.LOWER, graphGenConfig));
 
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0));
 
-                                builder.addGenerateVisitor(DotGenerator.genPhase());
-
+                                builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
                                 builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie));
                                 builder.addPostHook(Phase.GENERATE, new LinkStage(isPie));
 
@@ -336,7 +341,8 @@ public class Main implements Callable<DiagnosticContext> {
                 }
             })
             .setGc(optionsProcessor.gc.toString())
-            .setIsPie(optionsProcessor.isPie);
+            .setIsPie(optionsProcessor.isPie)
+            .setGraphGenConfig(optionsProcessor.graphGenConfig);
 
         Main main = mainBuilder.build();
         DiagnosticContext context = main.call();
@@ -396,6 +402,27 @@ public class Main implements Callable<DiagnosticContext> {
         @CommandLine.Parameters(index="0", arity="1", description = "Application main class")
         private String mainClass;
 
+        @CommandLine.ArgGroup(exclusive = false, multiplicity = "0..1", heading = "Options for controlling generation of graphs for methods%n")
+        private GraphGenArgs graphGenArgs;
+
+        private GraphGenConfig graphGenConfig = new GraphGenConfig();
+
+        private static class GraphGenArgs {
+            @CommandLine.Option(names = { "-g", "--gen-graph"}, required = true, description = "Enable generation of graphs")
+            boolean genGraph;
+            @CommandLine.ArgGroup(exclusive=false, multiplicity = "0..*")
+            List<GraphGenMethodsPhases> methodsAndPhases;
+        }
+
+        private static class GraphGenMethodsPhases {
+            @CommandLine.Option(names = { "-m", "--methods"}, required = false, split = ",", defaultValue = GraphGenConfig.ALL_METHODS,
+                                description = "List of methods separated by comma. Default: ${DEFAULT-VALUE}")
+            List<String> methods;
+            @CommandLine.Option(names = { "-p", "--phases" }, required = false, split = ",", defaultValue = GraphGenConfig.ALL_PHASES,
+                                description = "List of phases separated by comma. Default: ${DEFAULT-VALUE}")
+            List<String> phases;
+        }
+
         public CmdResult process(String[] args) {
             try {
                 ParseResult parseResult = new CommandLine(this).parseArgs(args);
@@ -421,6 +448,19 @@ public class Main implements Callable<DiagnosticContext> {
                 outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qcc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));
             }
 
+            if (graphGenArgs != null && graphGenArgs.genGraph) {
+                if (graphGenArgs.methodsAndPhases == null) {
+                    graphGenConfig.addMethodAndPhase(GraphGenConfig.ALL_METHODS, GraphGenConfig.ALL_PHASES);
+                } else {
+                    for (GraphGenMethodsPhases option : graphGenArgs.methodsAndPhases) {
+                        for (String method : option.methods) {
+                            for (String phase : option.phases) {
+                                graphGenConfig.addMethodAndPhase(method, phase);
+                            }
+                        }
+                    }
+                }
+            }
             return CmdResult.CMD_RESULT_OK;
         }
     }
@@ -437,6 +477,7 @@ public class Main implements Callable<DiagnosticContext> {
         private String gc = "none";
         // TODO Detect whether the system uses PIEs by default and match that if possible
         private boolean isPie = false;
+        private GraphGenConfig graphGenConfig;
 
         Builder() {}
 
@@ -487,6 +528,12 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setIsPie(boolean isPie) {
             this.isPie = isPie;
+            return this;
+        }
+
+        public Builder setGraphGenConfig(GraphGenConfig graphGenConfig) {
+            Assert.checkNotNullParam("graphGenConfig", graphGenConfig);
+            this.graphGenConfig = graphGenConfig;
             return this;
         }
 

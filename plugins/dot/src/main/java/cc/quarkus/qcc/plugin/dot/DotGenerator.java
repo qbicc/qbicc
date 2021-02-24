@@ -11,6 +11,9 @@ import java.util.function.Consumer;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Diagnostic;
+import cc.quarkus.qcc.driver.GraphGenConfig;
+import cc.quarkus.qcc.driver.GraphGenFilter;
+import cc.quarkus.qcc.driver.Phase;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.ProgramModule;
@@ -28,10 +31,16 @@ import cc.quarkus.qcc.type.definition.element.MemberElement;
  *
  */
 public class DotGenerator implements ElementVisitor<CompilationContext, Void>, Consumer<CompilationContext> {
-    private final String stage;
+    private final Phase phase;
+    private final GraphGenFilter filter;
 
-    private DotGenerator(final String stage) {
-        this.stage = stage;
+    public DotGenerator(Phase p, GraphGenConfig graphGenConfig) {
+        this.phase = p;
+        if (graphGenConfig != null) {
+            filter = graphGenConfig.getFilter();
+        } else {
+            filter = null;
+        }
     }
 
     public void accept(final CompilationContext compilationContext) {
@@ -42,7 +51,9 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
                         Element element = ((Function) content).getOriginalElement();
                         if (element instanceof MemberElement) {
                             MethodBody body = ((Function) content).getBody();
-                            process((MemberElement) element, body);
+                            if (body != null && filter != null && filter.accept(element, phase)) {
+                                process((MemberElement) element, body);
+                            }
                         }
                     }
                 }
@@ -54,7 +65,9 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
         if (basicElement instanceof ExecutableElement) {
             ExecutableElement element = (ExecutableElement) basicElement;
             MethodBody methodBody = element.getOrCreateMethodBody();
-            process(element, methodBody);
+            if (methodBody != null && filter != null && filter.accept(element, phase)) {
+                process(element, methodBody);
+            }
         }
         return null;
     }
@@ -70,7 +83,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
             failedToWrite(ctxt, dir, e);
             return;
         }
-        Path path = dir.resolve(stage + ".dot");
+        Path path = dir.resolve(phase.toString() + ".dot");
         try (BufferedWriter bw = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
             bw.write("digraph {");
             bw.newLine();
@@ -92,13 +105,5 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
 
     private static Diagnostic failedToWrite(final CompilationContext ctxt, final Path path, final IOException cause) {
         return ctxt.warning("Failed to write \"%s\": %s", path, cause);
-    }
-
-    public static DotGenerator addPhase() {
-        return new DotGenerator("add");
-    }
-
-    public static DotGenerator genPhase() {
-        return new DotGenerator("gen");
     }
 }
