@@ -13,7 +13,6 @@ import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.NullLiteral;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.type.definition.ClassContext;
@@ -25,7 +24,6 @@ import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.ValueType;
 
 /**
@@ -34,11 +32,10 @@ import cc.quarkus.qcc.type.ValueType;
  */
 public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast");
-    private static final Logger supersLog = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers");
     
     private final CompilationContext ctxt;
 
-    static final boolean PLUGIN_DISABLED = true; // don't commit yet
+    static final boolean PLUGIN_DISABLED = true;
 
     public InstanceOfCheckCastBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
@@ -78,70 +75,67 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             }
         }
 
-        // TODO: missing null check on the input
-        final BlockLabel nullPath = new BlockLabel();
-        final BlockLabel notNull = new BlockLabel();
-        final BlockLabel after = new BlockLabel();
+        
+        /* Set up the runtime checks here for the 3 major cases:
+         * 1 - expectedType statically known to be an array class
+         * 2 - expectedType statically known to be an interface
+         * 3 - expectedType statically known to be a class
+         * The check takes the form of:
+         *   boolean result;
+         *   if (input == null) result = false;
+         *   else result = doCheck(input, expectedType);
+         *   return result;
+         */
+        final BlockLabel isNullLabel = new BlockLabel();
+        final BlockLabel notNullLabel = new BlockLabel();
+        final BlockLabel afterCheckLabel = new BlockLabel();
         final NullLiteral nullLiteral = lf.literalOfNull();
-        //PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), after);
-        if_(isEq(input, nullLiteral), nullPath, notNull);
-        begin(nullPath);
-        //PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), after);
-        // (final CompilationContext ctxt, final Element element, final BlockLabel input, final Value value)
-        //phi.setValueForBlock(ctxt, getCurrentElement(), nullPath, lf.literalOf(false));
-        goto_(after);
-        begin(notNull);
-
-        // 3 cases:
-        // 1 - expectedType statically known to be a class
-        // 2 - expectedType statically known to be an interface
-        // 3 - expectedType statically known to be an array class
-Value result = null;
+        
+        if_(isNe(input, nullLiteral), notNullLabel, isNullLabel);
+        begin(notNullLabel);
+        Value result = null;
         if (expectedType instanceof ReferenceType) {
             ReferenceType refExpectedType = (ReferenceType) expectedType;
             ClassObjectType cotExpectedType = (ClassObjectType)refExpectedType.getUpperBound();
             ValidatedTypeDefinition vtdExpectedType = cotExpectedType.getDefinition().validate();
             TypeDescriptor descriptor = vtdExpectedType.getDescriptor();
             if (descriptor instanceof ArrayTypeDescriptor) {
-                // an array
+                // 1 - expectedType statically known to be an array class
+                // TODO
             } else {
                 if (vtdExpectedType.isInterface()) {
-                    // interface
+                    // 2 - expectedType statically known to be an interface
+                    // TODO
                 } else {
-                    // class
-                    // Two cases here: leaf classes and those with subclasses
+                    // 3 - expectedType statically known to be a class
+                    // There are two sub cases when dealing with classes:
+                    // A - leaf classes that have no subclasses can be a direct compare
+                    // B - non-leaf classes need a subtract + compare
+
                     Value inputTypeId = typeIdOf(referenceHandle(input));
                     final int typeId = vtdExpectedType.getTypeId();
                     final int maxSubId = vtdExpectedType.getMaximumSubtypeId();
-                    Literal vtdTypeId = ctxt.getLiteralFactory().literalOf(typeId);
+                    Literal vtdTypeId = lf.literalOf(typeId);
                     if (typeId == maxSubId) {
-                        supersLog.debug("instanceof: leaf class: direct compare: (" 
-                        + typeId
-                        + ") " + vtdExpectedType.getInternalName());
                         // "leaf" class case - use direct comparison
-                        //return super.isEq(inputTypeId, vtdTypeId);
-                        //phi.setValueForBlock(ctxt, getCurrentElement(), notNull, super.isEq(inputTypeId, vtdTypeId));
                         result = super.isEq(inputTypeId, vtdTypeId);
                     } else {
                         // "non-leaf" class case
                         // (instanceId - castClassId <= (castClassId.range - castClassId)
-                        IntegerLiteral allowedRange = ctxt.getLiteralFactory().literalOf(maxSubId - typeId);
-                        supersLog.debug("instanceof: non-leaf class: allowedRange: (" 
-                            + maxSubId + " - " + typeId + ") = " + allowedRange.longValue()
-                            + " " + vtdExpectedType.getInternalName());
-                        
+                        IntegerLiteral allowedRange = lf.literalOf(maxSubId - typeId);
                         Value subtract = sub(inputTypeId, vtdTypeId);
-                        //return super.isLe(subtract, allowedRange);
-                        //phi.setValueForBlock(ctxt, getCurrentElement(), notNull, super.isLe(subtract, allowedRange));
                         result = super.isLe(subtract, allowedRange);
                     }
                 }
             }
-            goto_(after);
-            begin(after);
-            PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), after);
-            phi.setValueForBlock(ctxt, getCurrentElement(), nullPath, lf.literalOf(false));
-            phi.setValueForBlock(ctxt, getCurrentElement(), notNull, result);
+            goto_(afterCheckLabel);
+            begin(isNullLabel);
+            goto_(afterCheckLabel);
+            begin(afterCheckLabel);
+
+            PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), afterCheckLabel);
+            phi.setValueForBlock(ctxt, getCurrentElement(), isNullLabel, lf.literalOf(false));
+            phi.setValueForBlock(ctxt, getCurrentElement(), notNullLabel, result);
             return phi;
         }
 
