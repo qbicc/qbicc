@@ -159,7 +159,11 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
                 if (!ctxt.wasEnqueued(cand)) {
                     rtaLog.debugf("Adding method (implements): %s", cand);
-                    ctxt.enqueue(cand);
+                    try {
+                        ctxt.enqueue(cand);
+                    } catch (IllegalStateException e) {
+                        ctxt.error(getLocation(), "Unexpected failure enqueueing a reachable element: %s", e);
+                    }
                     processInvokeTarget(cand);
                 }
             });
@@ -170,7 +174,11 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                 MethodElement cand = sc.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
                 if (!ctxt.wasEnqueued(cand)) {
                     rtaLog.debugf("Adding method (subclass overrides): %s", cand);
-                    ctxt.enqueue(cand);
+                    try {
+                        ctxt.enqueue(cand);
+                    } catch (IllegalStateException e) {
+                        ctxt.error(getLocation(), "Unexpected failure enqueueing a reachable element: %s", e);
+                    }
                 }
             });
         }
