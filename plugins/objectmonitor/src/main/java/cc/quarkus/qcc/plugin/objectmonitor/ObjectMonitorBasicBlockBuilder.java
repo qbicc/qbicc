@@ -19,7 +19,6 @@ import cc.quarkus.qcc.type.definition.element.MethodElement;
 public class ObjectMonitorBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    private final String runtimeHelpersClassName = "cc/quarkus/qcc/runtime/main/VMHelpers";
     private final String monitorEnterFunctionName = "monitor_enter";
     private final String monitorExitFunctionName = "monitor_exit";
 
@@ -43,15 +42,7 @@ public class ObjectMonitorBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
     
     private Value generateObjectMonitorFunctionCall(final Value object, String functionName) {
-        ClassContext bootstrapCC = ctxt.getBootstrapClassContext();
-        DefinedTypeDefinition dtd = bootstrapCC.findDefinedType(runtimeHelpersClassName);
-        if (dtd == null) {
-            ctxt.error("Can't find runtime library class: " + runtimeHelpersClassName);
-        }
-        ValidatedTypeDefinition resolved = dtd.validate();
-        int idx = resolved.findMethodIndex(e -> functionName.equals(e.getName()));
-        assert(idx != -1);
-        MethodElement methodElement = resolved.getMethod(idx);
+        MethodElement methodElement = ctxt.getVMHelperMethod(functionName);
         ctxt.registerEntryPoint(methodElement);
         Function function = ctxt.getExactFunction(methodElement);
 

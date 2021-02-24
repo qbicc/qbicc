@@ -79,16 +79,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         // and let the optimizer inline the 'fast_instanceof' call and hope the rest is removed
         // mark the slow path as @noinline
         // DelegatingBasicBlockBuilder.getLocation() to get the bci & line
-        ClassContext bootstrapCC = ctxt.getBootstrapClassContext();
-        DefinedTypeDefinition dtd = bootstrapCC.findDefinedType("cc/quarkus/qcc/runtime/main/VMHelpers");
-        if (dtd == null) {
-            ctxt.error("Can't find runtime library class: " + "cc/quarkus/qcc/runtime/main/VMHelpers");
-        }
-        ValidatedTypeDefinition resolved = dtd.validate();
-
-        int idx = resolved.findMethodIndex(e -> "fast_instanceof".equals(e.getName()));
-        assert(idx != -1);
-        MethodElement methodElement = resolved.getMethod(idx);
+        MethodElement methodElement = ctxt.getVMHelperMethod("fast_instanceof");
         ctxt.registerEntryPoint(methodElement);
         Function function = ctxt.getExactFunction(methodElement);
         List<Value> args = List.of(input, lf.literalOfType(expectedType));
