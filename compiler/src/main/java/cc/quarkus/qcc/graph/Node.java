@@ -417,6 +417,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final ArrayLength node) {
+                param.copyNode(node.getDependency());
                 return param.getBlockBuilder().arrayLength(param.copyValueHandle(node.getInstance()));
             }
 

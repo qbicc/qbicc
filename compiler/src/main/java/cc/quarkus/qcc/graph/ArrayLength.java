@@ -8,14 +8,20 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 /**
  * The length of a Java array instance.
  */
-public final class ArrayLength extends AbstractValue {
+public final class ArrayLength extends AbstractValue implements OrderedNode {
+    private final Node dependency;
     private final ValueHandle instance;
     private final SignedIntegerType type;
 
-    ArrayLength(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueHandle instance, final SignedIntegerType type) {
+    ArrayLength(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final ValueHandle instance, final SignedIntegerType type) {
         super(callSite, element, line, bci);
+        this.dependency = dependency;
         this.instance = instance;
         this.type = type;
+    }
+
+    public Node getDependency() {
+        return dependency;
     }
 
     public ValueHandle getInstance() {
@@ -41,7 +47,7 @@ public final class ArrayLength extends AbstractValue {
     }
 
     int calcHashCode() {
-        return Objects.hash(ArrayLength.class, instance);
+        return Objects.hash(ArrayLength.class, instance, dependency);
     }
 
     public boolean equals(final Object other) {
@@ -49,6 +55,6 @@ public final class ArrayLength extends AbstractValue {
     }
 
     public boolean equals(final ArrayLength other) {
-        return this == other || other != null && instance.equals(other.instance);
+        return this == other || other != null && instance.equals(other.instance) && dependency.equals(other.dependency);
     }
 }
