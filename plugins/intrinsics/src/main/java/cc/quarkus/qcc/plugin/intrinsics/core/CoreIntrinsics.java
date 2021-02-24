@@ -124,6 +124,8 @@ public final class CoreIntrinsics {
 
         ClassTypeDescriptor systemDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/System");
         ValidatedTypeDefinition jls = classContext.findDefinedType("java/lang/System").validate();
+        ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/VM");
 
         // Null and no-operation intrinsics
 
@@ -152,6 +154,21 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(systemDesc, "setIn", setPrintStreamDesc, setVolatile(in));
         intrinsics.registerIntrinsic(systemDesc, "setOut", setPrintStreamDesc, setVolatile(out));
         intrinsics.registerIntrinsic(systemDesc, "setErr", setPrintStreamDesc, setVolatile(err));
+
+        // arraycopy
+
+        MethodDescriptor arraycopyDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(
+            jloDesc,
+            BaseTypeDescriptor.I,
+            jloDesc,
+            BaseTypeDescriptor.I,
+            BaseTypeDescriptor.I
+        ));
+
+        StaticIntrinsic arraycopy = (builder, owner, name, descriptor, arguments) ->
+            builder.invokeStatic(vmDesc, "arraycopy", descriptor, arguments);
+
+        intrinsics.registerIntrinsic(systemDesc, "arraycopy", arraycopyDesc, arraycopy);
     }
 
     public static void registerJavaLangThreadIntrinsics(CompilationContext ctxt) {
