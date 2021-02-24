@@ -32,6 +32,7 @@ import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.Element;
@@ -168,6 +169,19 @@ final class CompilationContextImpl implements CompilationContext {
 
     public ClassContext constructClassContext(final VmObject classLoaderObject) {
         return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> new ClassContextImpl(this, classLoader));
+    }
+
+    public MethodElement getVMHelperMethod(String name) {
+        DefinedTypeDefinition dtd = bootstrapClassContext.findDefinedType("cc/quarkus/qcc/runtime/main/VMHelpers");
+        if (dtd == null) {
+            error("Can't find runtime library class: " + "cc/quarkus/qcc/runtime/main/VMHelpers");
+        }
+        ValidatedTypeDefinition helpers = dtd.validate();
+        int idx = helpers.findMethodIndex(e -> name.equals(e.getName()));
+        if (idx == -1) {
+            error("Can't find the runtime helper method %s", name);
+        }
+        return helpers.getMethod(idx);
     }
 
     public void enqueue(final ExecutableElement element) {

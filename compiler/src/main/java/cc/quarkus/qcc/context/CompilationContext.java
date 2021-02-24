@@ -14,9 +14,11 @@ import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MemberElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
  *
@@ -32,6 +34,8 @@ public interface CompilationContext extends DiagnosticContext {
     ClassContext getBootstrapClassContext();
 
     ClassContext constructClassContext(VmObject classLoaderObject);
+
+    MethodElement getVMHelperMethod(String helperName);
 
     void enqueue(ExecutableElement element);
 

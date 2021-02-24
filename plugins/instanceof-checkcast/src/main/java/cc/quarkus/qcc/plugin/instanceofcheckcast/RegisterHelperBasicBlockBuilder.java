@@ -39,9 +39,7 @@ public class RegisterHelperBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public Value instanceOf(final Value input, final ValueType expectedType) {
         if (!InstanceOfCheckCastBasicBlockBuilder.PLUGIN_DISABLED) {
             // Only force loading if the plugin is enabled
-            int idx = vmHelpersVTD.findMethodIndex(e -> "fast_instanceof".equals(e.getName()));
-            assert(idx != -1);
-            MethodElement methodElement = vmHelpersVTD.getMethod(idx);
+            MethodElement methodElement = ctxt.getVMHelperMethod("fast_instanceof");
             ctxt.registerEntryPoint(methodElement);
             ctxt.enqueue(methodElement);
         }

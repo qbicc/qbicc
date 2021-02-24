@@ -205,31 +205,24 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
             if_(isEq(v2, zero), throwIt, goAhead);
             begin(throwIt);
-            ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
-            ValidatedTypeDefinition ae = classContext.findDefinedType("java/lang/ArithmeticException").validate();
-            Value ex = new_(ae.getClassType());
-            ex = invokeConstructor(ex, ae.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-            throw_(ex); // Throw java.lang.ArithmeticException
+            MethodElement helper = ctxt.getVMHelperMethod("raiseArithmeticException");
+            invokeStatic(helper, List.of());
+            unreachable();
             begin(goAhead);
         }
         return super.divide(v1, v2);
     }
 
     private void throwUnsatisfiedLinkError() {
-        throwException("java/lang/UnsatisfiedLinkError");
+        MethodElement helper = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
+        invokeStatic(helper, List.of());
+        throw new BlockEarlyTermination(unreachable());
     }
 
     private void throwIncompatibleClassChangeError() {
-        throwException("java/lang/IncompatibleClassChangeError");
-    }
-
-    private void throwException(String exceptionName) {
-        ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
-        ValidatedTypeDefinition ule = classContext.findDefinedType(exceptionName).validate();
-        BasicBlockBuilder builder = getFirstBuilder();
-        Value ex = builder.new_(ule.getClassType());
-        ex = builder.invokeConstructor(ex, ule.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-        throw new BlockEarlyTermination(throw_(ex)); // Throw java.lang.UnsatisfiedLinkError
+        MethodElement helper = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
+        invokeStatic(helper, List.of());
+        throw new BlockEarlyTermination(unreachable());
     }
 
     private void check(ValueHandle handle) {
@@ -283,11 +276,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
         if_(isEq(value, nullLiteral), throwIt, goAhead);
         begin(throwIt);
-        ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
-        ValidatedTypeDefinition npe = classContext.findDefinedType("java/lang/NullPointerException").validate();
-        Value ex = new_(npe.getClassType());
-        ex = super.invokeConstructor(ex, npe.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-        super.throw_(ex); // Throw java.lang.NullPointerException
+        MethodElement helper = ctxt.getVMHelperMethod("raiseNullPointerException");
+        invokeStatic(helper, List.of());
+        unreachable();
         begin(goAhead);
     }
 
@@ -303,11 +294,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         final Value length = arrayLength(array);
         if_(isGe(index, length), throwIt, goAhead);
         begin(throwIt);
-        ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
-        ValidatedTypeDefinition aiobe = classContext.findDefinedType("java/lang/ArrayIndexOutOfBoundsException").validate();
-        Value ex = new_(aiobe.getClassType());
-        ex = invokeConstructor(ex, aiobe.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-        throw_(ex); // Throw java.lang.ArrayIndexOutOfBoundsException
+        MethodElement helper = ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException");
+        invokeStatic(helper, List.of());
+        unreachable();
         begin(goAhead);
     }
 

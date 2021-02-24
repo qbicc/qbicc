@@ -57,4 +57,26 @@ public final class VMHelpers {
         }
         omError(pthread_mutex_unlock(monitor.getPthreadMutex()));
     }
+
+    // TODO: mark this with a "NoInline" annotation
+    static final void raiseArithmeticException() {
+        throw new ArithmeticException();
+    }
+
+    // TODO: mark this with a "NoInline" annotation
+    static final void raiseArrayIndexOutOfBoundsException() {
+        throw new ArrayIndexOutOfBoundsException();
+    }
+
+    // TODO: mark this with a "NoInline" annotation
+    static final void raiseIncompatibleClassChangeError() { throw new IncompatibleClassChangeError(); }
+
+    // TODO: mark this with a "NoInline" annotation
+    static final void raiseNullPointerException() {
+        throw new NullPointerException();
+    }
+
+    // TODO: mark this with a "NoInline" annotation
+    static final void raiseUnsatisfiedLinkError() { throw new UnsatisfiedLinkError(); }
+
 }
