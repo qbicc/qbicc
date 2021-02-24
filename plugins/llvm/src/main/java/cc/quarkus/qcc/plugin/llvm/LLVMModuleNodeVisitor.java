@@ -119,7 +119,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             Type pointeeType = ((PointerType) type).getPointeeType();
             res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType));
         } else if (type instanceof NullType) {
-            res = ptrTo(i8);
+            res = i64;
         } else if (type instanceof WordType) {
             // all other words are integers
             // LLVM doesn't really care about signedness

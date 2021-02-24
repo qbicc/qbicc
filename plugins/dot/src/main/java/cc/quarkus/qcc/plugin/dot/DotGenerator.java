@@ -21,6 +21,7 @@ import cc.quarkus.qcc.object.ProgramObject;
 import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.BasicElement;
 import cc.quarkus.qcc.type.definition.element.Element;
 import cc.quarkus.qcc.type.definition.element.ElementVisitor;
@@ -73,6 +74,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
     }
 
     private void process(final MemberElement element, MethodBody methodBody) {
+        if (element.hasAllModifiersOf(ClassFile.ACC_ABSTRACT)) return;
         DefinedTypeDefinition def = element.getEnclosingType();
         CompilationContext ctxt = def.getContext().getCompilationContext();
         BasicBlock entryBlock = methodBody.getEntryBlock();

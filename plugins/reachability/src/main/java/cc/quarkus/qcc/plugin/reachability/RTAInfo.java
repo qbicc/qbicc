@@ -2,6 +2,8 @@ package cc.quarkus.qcc.plugin.reachability;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.InterfaceObjectType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 
 import java.util.Map;
@@ -52,7 +54,18 @@ public class RTAInfo {
             addLiveClass(superClass);
             classHierarchy.get(superClass).add(type);
         }
-        // TODO: Record implements hierarchy info
+        // TODO: Record implements hierarchy info to make visitLiveImplementors more efficient
+    }
+
+    public void visitLiveImplementors(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {
+        // Brute force it; just ask every live class if it implements the interface
+        // TODO: Build a better data structure to support this.
+        InterfaceObjectType interfaceType = type.getInterfaceType();
+        for (ValidatedTypeDefinition c: classHierarchy.keySet()) {
+            if (c.getClassType().isSubtypeOf(interfaceType)) {
+                function.accept(c);
+            }
+        }
     }
 
     public void visitLiveSubclassesPreOrder(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {

@@ -63,7 +63,8 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         }
 
         if (PLUGIN_DISABLED) {
-            return super.instanceOf(input, expectedType);
+            ctxt.warning(getLocation(), "instanceof not supported yet");
+            return ctxt.getLiteralFactory().literalOf(true);
         }
         // This code is not yet enabled.  Committing in this state so it's available
         // and so the plugin is included in the list of plugins.

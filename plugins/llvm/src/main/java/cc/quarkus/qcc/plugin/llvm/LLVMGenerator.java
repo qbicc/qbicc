@@ -34,6 +34,7 @@ import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VariadicType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
@@ -78,7 +79,6 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             ctxt.error("Function `%s` has no body", name);
                             continue;
                         }
-
                         BasicBlock entryBlock = body.getEntryBlock();
                         FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
                         LLValue topSubprogram = null;
