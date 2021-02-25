@@ -16,6 +16,7 @@ import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.Linkage;
 import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FunctionType;
@@ -216,9 +217,8 @@ public class DispatchTables {
         ArrayType vtablesGlobalType = ((ArrayType)vtablesGlobal.getType(List.of()));
         Section section = ctxt.getImplicitSection(jlo);
         Literal[] vtableLiterals = new Literal[(int)vtablesGlobalType.getElementCount()];
-        Literal nullLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(vtablesGlobalType.getElementType());
-        Arrays.fill(vtableLiterals, nullLiteral);
-        vtableLiterals[0] = nullLiteral; // typeId 0 is not assigned.
+        Literal zeroLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(vtablesGlobalType.getElementType());
+        Arrays.fill(vtableLiterals, zeroLiteral);
         for (Map.Entry<ValidatedTypeDefinition, VTableInfo> e: vtables.entrySet()) {
             ValidatedTypeDefinition cls = e.getKey();
             if (!cls.isAbstract()) {
@@ -226,7 +226,7 @@ public class DispatchTables {
                     section.declareData(null, e.getValue().getSymbol().getName(), e.getValue().getType());
                 }
                 int typeId = cls.getTypeId();
-                Assert.assertTrue(vtableLiterals[typeId].equals(nullLiteral));
+                Assert.assertTrue(vtableLiterals[typeId].equals(zeroLiteral));
                 vtableLiterals[typeId] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), (WordType) vtablesGlobalType.getElementType());
             }
         }
@@ -235,6 +235,23 @@ public class DispatchTables {
     }
 
     public GlobalVariableElement getVTablesGlobal() { return this.vtablesGlobal; }
+
+    public void emitInterfaceTables(RTAInfo rtaInfo) {
+        for (Map.Entry<ValidatedTypeDefinition, ITableInfo> entry: itables.entrySet()) {
+            ValidatedTypeDefinition currentInterface = entry.getKey();
+            ITableInfo itable = entry.getValue();
+            ArrayType rootType = (ArrayType)itable.getGlobal().getType(List.of());
+            Literal[] rootTable = new Literal[(int)rootType.getElementCount()];
+            Literal zeroLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(rootType.getElementType());
+            Arrays.fill(rootTable, zeroLiteral);
+
+            // TODO: Emit the itable for each implementing class and stick a pointer to it into rootTable[cls.typeId]
+
+            Section iSection = ctxt.getImplicitSection(currentInterface);
+            iSection.addData(null, itable.getGlobal().getName(), ctxt.getLiteralFactory().literalOf(rootType, List.of(rootTable)));
+        }
+    }
+
 
     public int getVTableIndex(MethodElement target) {
         ValidatedTypeDefinition definingType = target.getEnclosingType().validate();
