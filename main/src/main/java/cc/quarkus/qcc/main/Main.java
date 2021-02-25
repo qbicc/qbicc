@@ -439,11 +439,14 @@ public class Main implements Callable<DiagnosticContext> {
 
             if (debug) {
                 Logger.getLogger("").setLevel(Level.DEBUG);
-            } else if (debugVTables) {
+            }
+            if (debugVTables) {
                 Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables").setLevel(Level.DEBUG);
-            } else if (debugRTA) {
+            }
+            if (debugRTA) {
                 Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
-            } else if (debugSupers) {
+            }
+            if (debugSupers) {
                 Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
             }
             if (outputPath == null) {
