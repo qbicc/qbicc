@@ -145,14 +145,14 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return load(memberOf(pointerHandle(bitCast(vtable, info.getType().getPointer())), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
     }
 
-    // Current implementation strategy is "directly indexed itable" in the terminology of [Alpern et al 2000].
-    // Very fast dispatch; but wasted data space due to sparse per-interface itables[]
+    // Current implementation strategy is "directly indexed itable" in the terminology of [Alpern et al 2001].
+    // Very fast dispatch; but significant wasted data space due to sparse per-interface itables[]
     private Value expandInterfaceDispatch(Value instance, MethodElement target) {
         DispatchTables dt = DispatchTables.get(ctxt);
         DispatchTables.ITableInfo info = dt.getITableInfo(target.getEnclosingType().validate());
         if (info == null) {
             // No realized invocation targets are possible for this method!
-            // Throwing BlockEarlyTermination here breaks compilation, so do something hackier...
+            // Throwing BlockEarlyTermination(unreachable()) here breaks compilation, so do something hackier...
             // Construct a doomed-to-fail indirect call target by invoking a zero initializer of the right function type.
             ctxt.warning("Unreachable interface invoke of %s compiled to *(null)()", target);
             FunctionType funType = ctxt.getFunctionTypeForElement(target);
