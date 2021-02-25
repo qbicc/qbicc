@@ -412,6 +412,22 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new CurrentThreadRead(callSite, element, line, bci, requireDependency(), type.getReference()));
     }
 
+    public Value extractElement(Value array, Value index) {
+        return new ExtractElement(callSite, element, line, bci, array, index);
+    }
+
+    public Value extractMember(Value compound, CompoundType.Member member) {
+        return new ExtractMember(callSite, element, line, bci, compound, member);
+    }
+
+    public Value extractInstanceField(Value valueObj, TypeDescriptor owner, String name, TypeDescriptor type) {
+        throw new IllegalStateException("Field access of unresolved class");
+    }
+
+    public Value extractInstanceField(Value valueObj, FieldElement field) {
+        return new ExtractInstanceField(callSite, element, line, bci, valueObj, field, field.getType());
+    }
+
     public PhiValue phi(final ValueType type, final BlockLabel owner) {
         return new PhiValue(callSite, element, line, bci, type, owner);
     }

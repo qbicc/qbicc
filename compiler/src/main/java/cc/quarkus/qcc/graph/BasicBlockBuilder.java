@@ -128,6 +128,16 @@ public interface BasicBlockBuilder {
 
     Value currentThread();
 
+    // sub-value extraction
+
+    Value extractElement(Value array, Value index);
+
+    Value extractMember(Value compound, CompoundType.Member member);
+
+    Value extractInstanceField(Value valueObj, TypeDescriptor owner, String name, TypeDescriptor type);
+
+    Value extractInstanceField(Value valueObj, FieldElement field);
+
     // phi
 
     PhiValue phi(ValueType type, BlockLabel owner);

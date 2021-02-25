@@ -171,6 +171,22 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().currentThread();
     }
 
+    public Value extractElement(final Value array, final Value index) {
+        return getDelegate().extractElement(array, index);
+    }
+
+    public Value extractMember(final Value compound, final CompoundType.Member member) {
+        return getDelegate().extractMember(compound, member);
+    }
+
+    public Value extractInstanceField(Value valueObj, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return getDelegate().extractInstanceField(valueObj, owner, name, type);
+    }
+
+    public Value extractInstanceField(Value valueObj, FieldElement field) {
+        return getDelegate().extractInstanceField(valueObj, field);
+    }
+
     public PhiValue phi(final ValueType type, final BlockLabel owner) {
         return getDelegate().phi(type, owner);
     }
