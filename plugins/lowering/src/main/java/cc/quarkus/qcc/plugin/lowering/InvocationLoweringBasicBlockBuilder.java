@@ -145,11 +145,24 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return load(memberOf(pointerHandle(bitCast(vtable, info.getType().getPointer())), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
     }
 
+    // Current implementation strategy is "directly indexed itable" in the terminology of [Alpern et al 2001].
+    // Very fast dispatch; but significant wasted data space due to sparse per-interface itables[]
     private Value expandInterfaceDispatch(Value instance, MethodElement target) {
-        ctxt.warning(getLocation(), "interface invocation not supported yet");
-        // Construct a doomed-to-fail indirect call target by invoking a zero initializer of the right function type.
-        // This will at least compile, have the right calling convention, and not cause a linkage problem.
-        FunctionType funType = ctxt.getFunctionTypeForElement(target);
-        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(funType.getPointer());
+        DispatchTables dt = DispatchTables.get(ctxt);
+        DispatchTables.ITableInfo info = dt.getITableInfo(target.getEnclosingType().validate());
+        if (info == null) {
+            // No realized invocation targets are possible for this method!
+            // Throwing BlockEarlyTermination(unreachable()) here breaks compilation, so do something hackier...
+            // Construct a doomed-to-fail indirect call target by invoking a zero initializer of the right function type.
+            ctxt.warning("Unreachable interface invoke of %s compiled to *(null)()", target);
+            FunctionType funType = ctxt.getFunctionTypeForElement(target);
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(funType.getPointer());
+        }
+        Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
+        section.declareData(null, info.getGlobal().getName(), info.getGlobal().getType(List.of()));
+        int index = dt.getITableIndex(target);
+        Value typeId = load(instanceFieldOf(referenceHandle(instance), Layout.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
+        Value itable = load(elementOf(globalVariable(info.getGlobal()), typeId), MemoryAtomicityMode.UNORDERED);
+        return load(memberOf(pointerHandle(itable), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
     }
 }

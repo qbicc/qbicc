@@ -16,6 +16,7 @@ import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.Linkage;
 import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FunctionType;
@@ -38,6 +39,7 @@ public class DispatchTables {
 
     private final CompilationContext ctxt;
     private final Map<ValidatedTypeDefinition, VTableInfo> vtables = new ConcurrentHashMap<>();
+    private final Map<ValidatedTypeDefinition, ITableInfo> itables = new ConcurrentHashMap<>();
     private GlobalVariableElement vtablesGlobal;
 
     private DispatchTables(final CompilationContext ctxt) {
@@ -60,8 +62,10 @@ public class DispatchTables {
         return vtables.get(cls);
     }
 
+    public ITableInfo getITableInfo(ValidatedTypeDefinition cls) { return itables.get(cls); }
+
     void buildFilteredVTable(ValidatedTypeDefinition cls) {
-        log.debugf("Building VTable for %s", cls.getDescriptor());
+        vtLog.debugf("Building VTable for %s", cls.getDescriptor());
 
         MethodElement[] inherited = cls.hasSuperClass() ? getVTableInfo(cls.getSuperClass()).getVtable() : MethodElement.NO_METHODS;
         ArrayList<MethodElement> vtableVector = new ArrayList<>(List.of(inherited));
@@ -77,7 +81,7 @@ public class DispatchTables {
                         continue  outer;
                     }
                 }
-                vtLog.debugf("\tadded new method  %s%s", m.getName(), m.getDescriptor().toString());
+                vtLog.debugf("\tadded new method %s%s", m.getName(), m.getDescriptor().toString());
                 ctxt.registerEntryPoint(m);
                 vtableVector.add(m);
             }
@@ -96,6 +100,79 @@ public class DispatchTables {
         SymbolLiteral vtableSymbol = ctxt.getLiteralFactory().literalOfSymbol(vtableName, vtableType.getPointer());
 
         vtables.put(cls,new VTableInfo(vtable, vtableType, vtableSymbol));
+    }
+
+    void buildFilteredITableForInterface(ValidatedTypeDefinition cls) {
+        if (itables.containsKey(cls)) {
+            return; // already built; possible because we aren't doing a coordinated topological traversal of the interface hierarchy.
+        }
+
+        // First, ensure my ancestors have already been computed computed
+        for (ValidatedTypeDefinition si : cls.getInterfaces()) {
+            if (!itables.containsKey(si)) {
+                buildFilteredITableForInterface(si);
+            }
+        }
+
+        // Now we can really start...
+        vtLog.debugf("Building ITable for %s", cls.getDescriptor());
+
+        // Accumulate all unique selectors from super-interfaces
+        ArrayList<MethodElement> itableVector = new ArrayList<>();
+        for (ValidatedTypeDefinition si : cls.getInterfaces()) {
+            ITableInfo siInfo = getITableInfo(si);
+            outer:
+            for (MethodElement m : siInfo.getItable()) {
+                for (MethodElement already : itableVector) {
+                    if (already.getName().equals(m.getName()) && already.getDescriptor().equals(m.getDescriptor())) {
+                        continue outer;
+                    }
+                }
+                vtLog.debugf("\tadded inherited selector %s%s from %s", m.getName(), m.getDescriptor().toString(), si.getDescriptor().getClassName());
+                itableVector.add(m);
+            }
+        }
+
+        // Add any additional unique selectors declared by cls
+        outer:
+        for (int i = 0; i < cls.getMethodCount(); i++) {
+            MethodElement m = cls.getMethod(i);
+            if (!m.isStatic() && ctxt.wasEnqueued(m)) {
+                for (MethodElement already : itableVector) {
+                    if (already.getName().equals(m.getName()) && already.getDescriptor().equals(m.getDescriptor())) {
+                        continue outer;
+                    }
+                }
+                vtLog.debugf("\tadded new declared selector %s%s", m.getName(), m.getDescriptor().toString());
+                itableVector.add(m);
+            }
+        }
+
+        // Build the CompoundType for the ITable using the (arbitrary) order of selectors in itableVector
+        MethodElement[] itable = itableVector.toArray(MethodElement.NO_METHODS);
+        String itableName = "itable-" + cls.getInternalName().replace('/', '.');
+        TypeSystem ts = ctxt.getTypeSystem();
+        CompoundType.Member[] functions = new CompoundType.Member[itable.length];
+        for (int i=0; i<itable.length; i++) {
+            FunctionType funType = ctxt.getFunctionTypeForElement(itable[i]);
+            functions[i] = ts.getCompoundTypeMember("m"+i, funType.getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
+        }
+        CompoundType itableType = ts.getCompoundType(CompoundType.Tag.STRUCT, itableName, itable.length * ts.getPointerSize(),
+            ts.getPointerAlignment(), () -> List.of(functions));
+
+        // Define the GlobalVariable that will hold the itables[] for this interface.
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
+        builder.setName("qcc_itables_array_"+itableType.getName());
+        // Yet another table indexed by typeId (like the VTableGlobal) that will only contain entries for instantiated classes.
+        // Use the VTableGlobal to set the size to avoid replicating that logic...
+        builder.setType(ctxt.getTypeSystem().getArrayType(itableType.getPointer(), ((ArrayType)vtablesGlobal.getType(List.of())).getElementCount()));
+        builder.setEnclosingType(cls);
+        // void for now, but this is cheating terribly
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        GlobalVariableElement itablesGlobal = builder.build();
+
+        itables.put(cls, new ITableInfo(itable, itableType, cls, itablesGlobal));
     }
 
     void buildVTablesGlobal(DefinedTypeDefinition containingType) {
@@ -140,9 +217,8 @@ public class DispatchTables {
         ArrayType vtablesGlobalType = ((ArrayType)vtablesGlobal.getType(List.of()));
         Section section = ctxt.getImplicitSection(jlo);
         Literal[] vtableLiterals = new Literal[(int)vtablesGlobalType.getElementCount()];
-        Literal nullLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(vtablesGlobalType.getElementType());
-        Arrays.fill(vtableLiterals, nullLiteral);
-        vtableLiterals[0] = nullLiteral; // typeId 0 is not assigned.
+        Literal zeroLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(vtablesGlobalType.getElementType());
+        Arrays.fill(vtableLiterals, zeroLiteral);
         for (Map.Entry<ValidatedTypeDefinition, VTableInfo> e: vtables.entrySet()) {
             ValidatedTypeDefinition cls = e.getKey();
             if (!cls.isAbstract()) {
@@ -150,7 +226,7 @@ public class DispatchTables {
                     section.declareData(null, e.getValue().getSymbol().getName(), e.getValue().getType());
                 }
                 int typeId = cls.getTypeId();
-                Assert.assertTrue(vtableLiterals[typeId].equals(nullLiteral));
+                Assert.assertTrue(vtableLiterals[typeId].equals(zeroLiteral));
                 vtableLiterals[typeId] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), (WordType) vtablesGlobalType.getElementType());
             }
         }
@@ -159,6 +235,58 @@ public class DispatchTables {
     }
 
     public GlobalVariableElement getVTablesGlobal() { return this.vtablesGlobal; }
+
+    public void emitInterfaceTables(RTAInfo rtaInfo) {
+        for (Map.Entry<ValidatedTypeDefinition, ITableInfo> entry: itables.entrySet()) {
+            ValidatedTypeDefinition currentInterface = entry.getKey();
+            Section iSection = ctxt.getImplicitSection(currentInterface);
+            ITableInfo itableInfo= entry.getValue();
+            MethodElement[] itable = itableInfo.getItable();
+            if (itable.length == 0) {
+                continue; // If there are no invokable methods then this whole family of itables will never be referenced.
+            }
+            vtLog.debugf("Emitting itable[] for %s", currentInterface.getDescriptor().getClassName());
+            ArrayType rootType = (ArrayType)itableInfo.getGlobal().getType(List.of());
+            Literal[] rootTable = new Literal[(int)rootType.getElementCount()];
+            Literal zeroLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(rootType.getElementType());
+            Arrays.fill(rootTable, zeroLiteral);
+            rtaInfo.visitLiveImplementors(currentInterface, cls -> {
+                if (!cls.isAbstract() && !cls.isInterface()) {
+                    // Build the itable for an instantiable class
+                    vtLog.debugf("\temitting itable for %s", cls.getDescriptor().getClassName());
+                    HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
+                    Section cSection = ctxt.getImplicitSection(cls);
+                    for (int i = 0; i < itable.length; i++) {
+                        MethodElement methImpl = cls.resolveMethodElementVirtual(itable[i].getName(), itable[i].getDescriptor());
+                        FunctionType funType = ctxt.getFunctionTypeForElement(itable[i]);
+                        FunctionType implType = ctxt.getFunctionTypeForElement(methImpl);
+                        if (methImpl == null || methImpl.isAbstract()) {
+                            // TODO: In a correct program, this null should never be used. However, we'd get better
+                            //       debugability if we initialized it to an "AbstractMethodInvoked" error stub
+                            valueMap.put(itableInfo.getType().getMember(i), ctxt.getLiteralFactory().zeroInitializerLiteralOfType(funType));
+                        } else {
+                            Function impl = ctxt.getExactFunction(methImpl);
+                            if (!methImpl.getEnclosingType().validate().equals(cls)) {
+                                cSection.declareFunction(methImpl, impl.getName(), implType);
+                            }
+                            valueMap.put(itableInfo.getType().getMember(i), impl.getLiteral());
+                        }
+                    }
+
+                    // Emit itable and refer to it in rootTable
+                    String tableName = "qcc_itable_impl_"+cls.getInternalName().replace('/', '.')+"_for_"+itableInfo.getGlobal().getName();
+                    CompoundLiteral itableLiteral = ctxt.getLiteralFactory().literalOf(itableInfo.getType(), valueMap);
+                    cSection.addData(null, tableName, itableLiteral).setLinkage(Linkage.EXTERNAL);
+                    iSection.declareData(null, tableName, itableInfo.getType());
+                    rootTable[cls.getTypeId()] = ctxt.getLiteralFactory().literalOfSymbol(tableName, itableInfo.getType());
+                }
+            });
+
+            // Finally emit the iTable[] for the interface
+            iSection.addData(null, itableInfo.getGlobal().getName(), ctxt.getLiteralFactory().literalOf(rootType, List.of(rootTable)));
+        }
+    }
+
 
     public int getVTableIndex(MethodElement target) {
         ValidatedTypeDefinition definingType = target.getEnclosingType().validate();
@@ -172,6 +300,21 @@ public class DispatchTables {
             }
         }
         ctxt.error("No vtable entry found for "+target);
+        return 0;
+    }
+
+    public int getITableIndex(MethodElement target) {
+        ValidatedTypeDefinition definingType = target.getEnclosingType().validate();
+        ITableInfo info = getITableInfo(definingType);
+        if (info != null) {
+            MethodElement[] itable = info.getItable();
+            for (int i = 0; i < itable.length; i++) {
+                if (target.getName().equals(itable[i].getName()) && target.getDescriptor().equals(itable[i].getDescriptor())) {
+                    return i;
+                }
+            }
+        }
+        ctxt.error("No itable entry found for "+target);
         return 0;
     }
 
@@ -189,5 +332,24 @@ public class DispatchTables {
         public MethodElement[] getVtable() { return vtable; }
         public SymbolLiteral getSymbol() { return symbol; }
         public CompoundType getType() { return  type; }
+    }
+
+    public static final class ITableInfo {
+        private final ValidatedTypeDefinition myInterface;
+        private final MethodElement[] itable;
+        private final CompoundType type;
+        private final GlobalVariableElement global;
+
+        ITableInfo(MethodElement[] itable, CompoundType type, ValidatedTypeDefinition myInterface, GlobalVariableElement global) {
+            this.myInterface = myInterface;
+            this.itable = itable;
+            this.type = type;
+            this.global = global;
+        }
+
+        public ValidatedTypeDefinition getInterface() { return myInterface; }
+        public MethodElement[] getItable() { return itable; }
+        public CompoundType getType() { return type; }
+        public GlobalVariableElement getGlobal() { return global; }
     }
 }

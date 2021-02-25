@@ -24,5 +24,8 @@ public class DispatchTableEmitter implements Consumer<CompilationContext>  {
 
         // Emit the table of all program vtables in the object file for java.lang.Object
         tables.emitVTableTable(jlo);
+
+        // Emit all interface dispatching tables
+        tables.emitInterfaceTables(info);
     }
 }

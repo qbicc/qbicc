@@ -6,6 +6,7 @@ import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.InterfaceObjectType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,18 +66,31 @@ public class RTAInfo {
         interfaceHierarchy.computeIfAbsent(parent, t -> ConcurrentHashMap.newKeySet()).add(child);
     }
 
-    // NOTE: If there are diamonds in the interface hierarchy, we may visit an implementor multiple times.
-    //       We could avoid that by building a set before we visit anyone, but the only client of this function
-    //       is robust against duplicates, so don't bother to handle this fringe case until we need to care.
+    public void visitLiveInterfaces(Consumer<ValidatedTypeDefinition> function) {
+        for (ValidatedTypeDefinition i: interfaceHierarchy.keySet()) {
+            function.accept(i);
+        }
+    }
+
     public void visitLiveImplementors(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {
         Set<ValidatedTypeDefinition> implementors = interfaceHierarchy.get(type);
         if (implementors == null) return;
+        Set<ValidatedTypeDefinition> toProcess = new HashSet<>();
+        collectImplementors(type, toProcess);
+        for (ValidatedTypeDefinition cls : toProcess) {
+            function.accept(cls);
+        }
+    }
+
+    private void collectImplementors(ValidatedTypeDefinition type, Set<ValidatedTypeDefinition> toProcess) {
+        Set<ValidatedTypeDefinition> implementors = interfaceHierarchy.get(type);
+        if (implementors == null) return;
         for (ValidatedTypeDefinition child: implementors) {
-            function.accept(child);
+            toProcess.add(child);
             if (child.isInterface()) {
-                visitLiveImplementors(child, function);
+                collectImplementors(child, toProcess);
             } else {
-                visitLiveSubclassesPreOrder(child, function);
+                visitLiveSubclassesPreOrder(child, cls -> toProcess.add(cls));
             }
         }
     }
