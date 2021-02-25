@@ -12,7 +12,7 @@ public final class IntegerLiteral extends Literal {
     private final int hashCode;
 
     IntegerLiteral(final IntegerType type, final long value) {
-        this.value = value;
+        this.value = type.truncateValue(value);
         this.type = type;
         hashCode = Long.hashCode(value) * 19 + type.hashCode();
     }
