@@ -163,9 +163,9 @@ public class DispatchTables {
         // Define the GlobalVariable that will hold the itables[] for this interface.
         GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
         builder.setName("qcc_itables_array_"+itableType.getName());
-        // Invariant: typeIds are assigned from 1...N, where N is the number of reachable classes as computed by RTA
-        // Arrays, primitives, and void do not implement any interfaces that define methods, so +1 is all we need here.
-        builder.setType(ctxt.getTypeSystem().getArrayType(itableType.getPointer(), vtables.size()+1));
+        // Yet another table indexed by typeId (like the VTableGlobal) that will only contain entries for instantiated classes.
+        // Use the VTableGlobal to set the size to avoid replicating that logic...
+        builder.setType(ctxt.getTypeSystem().getArrayType(itableType.getPointer(), ((ArrayType)vtablesGlobal.getType(List.of())).getElementCount()));
         builder.setEnclosingType(cls);
         // void for now, but this is cheating terribly
         builder.setDescriptor(BaseTypeDescriptor.V);
@@ -239,16 +239,49 @@ public class DispatchTables {
     public void emitInterfaceTables(RTAInfo rtaInfo) {
         for (Map.Entry<ValidatedTypeDefinition, ITableInfo> entry: itables.entrySet()) {
             ValidatedTypeDefinition currentInterface = entry.getKey();
-            ITableInfo itable = entry.getValue();
-            ArrayType rootType = (ArrayType)itable.getGlobal().getType(List.of());
+            Section iSection = ctxt.getImplicitSection(currentInterface);
+            ITableInfo itableInfo= entry.getValue();
+            MethodElement[] itable = itableInfo.getItable();
+            if (itable.length == 0) {
+                continue; // If there are no invokable methods then this whole family of itables will never be referenced.
+            }
+            ArrayType rootType = (ArrayType)itableInfo.getGlobal().getType(List.of());
             Literal[] rootTable = new Literal[(int)rootType.getElementCount()];
             Literal zeroLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(rootType.getElementType());
             Arrays.fill(rootTable, zeroLiteral);
+            rtaInfo.visitLiveImplementors(currentInterface, cls -> {
+                if (!cls.isAbstract() && !cls.isInterface()) {
+                    // Build the itable for an instantiable class
+                    HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
+                    Section cSection = ctxt.getImplicitSection(cls);
+                    for (int i = 0; i < itable.length; i++) {
+                        MethodElement methImpl = cls.resolveMethodElementVirtual(itable[i].getName(), itable[i].getDescriptor());
+                        FunctionType funType = ctxt.getFunctionTypeForElement(itable[i]);
+                        FunctionType implType = ctxt.getFunctionTypeForElement(methImpl);
+                        if (methImpl == null || methImpl.isAbstract()) {
+                            // TODO: In a correct program, this null should never be used. However, we'd get better
+                            //       debugability if we initialized it to an "AbstractMethodInvoked" error stub
+                            valueMap.put(itableInfo.getType().getMember(i), ctxt.getLiteralFactory().zeroInitializerLiteralOfType(funType));
+                        } else {
+                            Function impl = ctxt.getExactFunction(methImpl);
+                            if (!methImpl.getEnclosingType().validate().equals(cls)) {
+                                cSection.declareFunction(methImpl, impl.getName(), implType);
+                            }
+                            valueMap.put(itableInfo.getType().getMember(i), impl.getLiteral());
+                        }
+                    }
 
-            // TODO: Emit the itable for each implementing class and stick a pointer to it into rootTable[cls.typeId]
+                    // Emit itable and refer to it in rootTable
+                    String tableName = "qcc_itable_impl_"+cls.getInternalName().replace('/', '.')+"_for_"+itableInfo.getGlobal().getName();
+                    CompoundLiteral itableLiteral = ctxt.getLiteralFactory().literalOf(itableInfo.getType(), valueMap);
+                    cSection.addData(null, tableName, itableLiteral).setLinkage(Linkage.EXTERNAL);
+                    iSection.declareData(null, tableName, itableInfo.getType());
+                    rootTable[cls.getTypeId()] = ctxt.getLiteralFactory().literalOfSymbol(tableName, itableInfo.getType());
+                }
+            });
 
-            Section iSection = ctxt.getImplicitSection(currentInterface);
-            iSection.addData(null, itable.getGlobal().getName(), ctxt.getLiteralFactory().literalOf(rootType, List.of(rootTable)));
+            // Finally emit the iTable[] for the interface
+            iSection.addData(null, itableInfo.getGlobal().getName(), ctxt.getLiteralFactory().literalOf(rootType, List.of(rootTable)));
         }
     }
 
