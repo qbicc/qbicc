@@ -13,6 +13,7 @@ import cc.quarkus.qcc.machine.llvm.op.Binary;
 import cc.quarkus.qcc.machine.llvm.op.Branch;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.ExactBinary;
+import cc.quarkus.qcc.machine.llvm.op.ExtractValue;
 import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
@@ -417,6 +418,12 @@ final class BuilderImpl implements LLBuilder {
         Assert.checkNotNullParam("ptrType", ptrType);
         Assert.checkNotNullParam("pointer", pointer);
         return append(new GetElementPtrImpl(block, (AbstractValue) type, (AbstractValue) ptrType, (AbstractValue) pointer));
+    }
+
+    public ExtractValue extractvalue(final LLValue aggregateType, final LLValue aggregate) {
+        Assert.checkNotNullParam("aggregateType", aggregateType);
+        Assert.checkNotNullParam("aggregate", aggregate);
+        return append(new ExtractValueImpl(block, (AbstractValue) aggregateType, (AbstractValue) aggregate));
     }
 
     public Alloca alloca(final LLValue type) {
