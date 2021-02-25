@@ -31,10 +31,10 @@ abstract class AbstractFastMathBinary extends AbstractBinary implements FastMath
         return this;
     }
 
-    Appendable appendTrailer(final Appendable target) throws IOException {
+    protected Appendable appendMathFlags(Appendable target) throws IOException {
         for (FastMathFlag flag : flags) {
             target.append(' ').append(flag.name());
         }
-        return super.appendTrailer(target);
+        return target;
     }
 }
