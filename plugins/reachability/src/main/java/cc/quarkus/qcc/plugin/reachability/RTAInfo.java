@@ -77,7 +77,7 @@ public class RTAInfo {
         if (implementors == null) return;
         Set<ValidatedTypeDefinition> toProcess = new HashSet<>();
         collectImplementors(type, toProcess);
-        for (ValidatedTypeDefinition cls : implementors) {
+        for (ValidatedTypeDefinition cls : toProcess) {
             function.accept(cls);
         }
     }
