@@ -97,6 +97,11 @@ public final class InitializerElement extends BasicElement implements Executable
         return new Builder();
     }
 
+    @Override
+    public String toString() {
+        return "Initializer(" + getEnclosingType().getInternalName() + ")";
+    }
+
     public static final class Builder extends BasicElement.Builder implements ExecutableElement.Builder {
         MethodBodyFactory methodBodyFactory;
         int methodBodyFactoryIndex;

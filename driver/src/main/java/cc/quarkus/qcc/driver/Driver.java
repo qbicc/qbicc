@@ -341,12 +341,6 @@ public class Driver implements Closeable {
 
         ExecutableElement element = compilationContext.dequeue();
         if (element != null) do {
-            // todo: this will be removed once the VM is functional
-            // make sure the initializer is enqueued
-            InitializerElement initializer = element.getEnclosingType().validate().resolve().getInitializer();
-            if (initializer != null) {
-                compilationContext.enqueue(initializer);
-            }
             if (element.hasMethodBody()) {
                 // cause method and field references to be resolved
                 try {
@@ -417,12 +411,6 @@ public class Driver implements Closeable {
 
         element = compilationContext.dequeue();
         if (element != null) do {
-            // todo: this will be removed once the VM is functional
-            // make sure the initializer is enqueued
-            InitializerElement initializer = element.getEnclosingType().validate().resolve().getInitializer();
-            if (initializer != null) {
-                compilationContext.enqueue(initializer);
-            }
             if (element.hasMethodBody()) {
                 // rewrite the method body
                 ClassContext classContext = element.getEnclosingType().getContext();
