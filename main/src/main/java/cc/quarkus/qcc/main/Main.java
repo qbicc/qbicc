@@ -67,6 +67,7 @@ import cc.quarkus.qcc.plugin.native_.PointerBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.PointerTypeResolver;
 import cc.quarkus.qcc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.opt.GotoRemovingVisitor;
+import cc.quarkus.qcc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
@@ -100,6 +101,9 @@ public class Main implements Callable<DiagnosticContext> {
     private final String gc;
     private final boolean isPie;
     private final GraphGenConfig graphGenConfig;
+    private final boolean optMemoryTracking;
+    private final boolean optPhis;
+    private final boolean optGotos;
 
     Main(Builder builder) {
         bootModulePath = List.copyOf(builder.bootModulePath);
@@ -110,6 +114,9 @@ public class Main implements Callable<DiagnosticContext> {
         gc = builder.gc;
         isPie = builder.isPie;
         graphGenConfig = builder.graphGenConfig;
+        optMemoryTracking = builder.optMemoryTracking;
+        optPhis = builder.optPhis;
+        optGotos = builder.optGotos;
     }
 
     public DiagnosticContext call() {
@@ -264,6 +271,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThrowValueBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MethodCallFixupBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
+                                if (optMemoryTracking) {
+                                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
@@ -271,8 +281,15 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addElementVisitor(Phase.ADD, new DotGenerator(Phase.ADD, graphGenConfig));
                                 builder.addPostHook(Phase.ADD, RTAInfo::clear);
 
-                                builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
-                                builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
+                                if (optGotos) {
+                                    builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
+                                }
+                                if (optPhis) {
+                                    builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
+                                }
+                                if (optMemoryTracking) {
+                                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
@@ -280,7 +297,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
-                                builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
+                                if (optGotos) {
+                                    builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
+                                }
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
@@ -295,6 +314,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectMonitorBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LLVMCompatibleBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                                if (optMemoryTracking) {
+                                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addElementVisitor(Phase.LOWER, new DotGenerator(Phase.LOWER, graphGenConfig));
@@ -347,6 +369,9 @@ public class Main implements Callable<DiagnosticContext> {
             })
             .setGc(optionsProcessor.gc.toString())
             .setIsPie(optionsProcessor.isPie)
+            .setOptMemoryTracking(optionsProcessor.optArgs.optMemoryTracking)
+            .setOptGotos(optionsProcessor.optArgs.optGotos)
+            .setOptPhis(optionsProcessor.optArgs.optPhis)
             .setGraphGenConfig(optionsProcessor.graphGenConfig);
 
         Main main = mainBuilder.build();
@@ -412,6 +437,9 @@ public class Main implements Callable<DiagnosticContext> {
         @CommandLine.ArgGroup(exclusive = false, multiplicity = "0..1", heading = "Options for controlling generation of graphs for methods%n")
         private GraphGenArgs graphGenArgs;
 
+        @CommandLine.ArgGroup(exclusive = false, heading = "Options for controlling optimizations%n")
+        private OptArgs optArgs;
+
         private GraphGenConfig graphGenConfig = new GraphGenConfig();
 
         private static class GraphGenArgs {
@@ -428,6 +456,15 @@ public class Main implements Callable<DiagnosticContext> {
             @CommandLine.Option(names = { "-p", "--phases" }, required = false, split = ",", defaultValue = GraphGenConfig.ALL_PHASES,
                                 description = "List of phases separated by comma. Default: ${DEFAULT-VALUE}")
             List<String> phases;
+        }
+
+        static class OptArgs {
+            @CommandLine.Option(names = "--opt-memory-tracking", negatable = true, defaultValue = "false", description = "Enable/disable redundant store/load tracking and elimination")
+            boolean optMemoryTracking;
+            @CommandLine.Option(names = "--opt-phis", negatable = true, defaultValue = "true", description = "Enable/disable `phi` elimination")
+            boolean optPhis;
+            @CommandLine.Option(names = "--opt-gotos", negatable = true, defaultValue = "true", description = "Enable/disable `goto` elimination")
+            boolean optGotos;
         }
 
         public CmdResult process(String[] args) {
@@ -490,6 +527,9 @@ public class Main implements Callable<DiagnosticContext> {
         private String gc = "none";
         // TODO Detect whether the system uses PIEs by default and match that if possible
         private boolean isPie = false;
+        private boolean optMemoryTracking = false;
+        private boolean optPhis = true;
+        private boolean optGotos = true;
         private GraphGenConfig graphGenConfig;
 
         Builder() {}
@@ -547,6 +587,21 @@ public class Main implements Callable<DiagnosticContext> {
         public Builder setGraphGenConfig(GraphGenConfig graphGenConfig) {
             Assert.checkNotNullParam("graphGenConfig", graphGenConfig);
             this.graphGenConfig = graphGenConfig;
+            return this;
+        }
+
+        public Builder setOptMemoryTracking(boolean optMemoryTracking) {
+            this.optMemoryTracking = optMemoryTracking;
+            return this;
+        }
+
+        public Builder setOptPhis(boolean optPhis) {
+            this.optPhis = optPhis;
+            return this;
+        }
+
+        public Builder setOptGotos(boolean optGotos) {
+            this.optGotos = optGotos;
             return this;
         }
 
