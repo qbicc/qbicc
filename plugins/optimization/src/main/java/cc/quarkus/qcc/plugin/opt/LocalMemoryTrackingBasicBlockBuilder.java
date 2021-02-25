@@ -1,12 +1,14 @@
 package cc.quarkus.qcc.plugin.opt;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
+import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.ElementOf;
 import cc.quarkus.qcc.graph.MemberOf;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
@@ -14,6 +16,8 @@ import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.ValueHandleVisitor;
+import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
  *
@@ -56,6 +60,114 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
         knownValues.keySet().removeIf(k -> ! hasSameRoot(k, root));
         knownValues.put(handle, value);
         return super.store(handle, value, mode);
+    }
+
+    @Override
+    public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        knownValues.clear();
+        return super.getAndAdd(target, update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndBitwiseAnd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        knownValues.clear();
+        return super.getAndBitwiseAnd(target, update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndBitwiseNand(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        knownValues.clear();
+        return super.getAndBitwiseNand(target, update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndBitwiseOr(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        knownValues.clear();
+        return super.getAndBitwiseOr(target, update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndBitwiseXor(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        knownValues.clear();
+        return super.getAndBitwiseXor(target, update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndSet(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        knownValues.clear();
+        return super.getAndSet(target, update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndSetMax(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        knownValues.clear();
+        return super.getAndSetMax(target, update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndSetMin(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        knownValues.clear();
+        return super.getAndSetMin(target, update, atomicityMode);
+    }
+
+    @Override
+    public Value getAndSub(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        knownValues.clear();
+        return super.getAndSub(target, update, atomicityMode);
+    }
+
+    @Override
+    public Value cmpAndSwap(ValueHandle target, Value expect, Value update, MemoryAtomicityMode successMode, MemoryAtomicityMode failureMode) {
+        knownValues.clear();
+        return super.cmpAndSwap(target, expect, update, successMode, failureMode);
+    }
+
+    @Override
+    public Node fence(MemoryAtomicityMode fenceType) {
+        knownValues.clear();
+        return super.fence(fenceType);
+    }
+
+    @Override
+    public Node monitorEnter(Value obj) {
+        knownValues.clear();
+        return super.monitorEnter(obj);
+    }
+
+    @Override
+    public Node monitorExit(Value obj) {
+        knownValues.clear();
+        return super.monitorExit(obj);
+    }
+
+    @Override
+    public Node invokeStatic(MethodElement target, List<Value> arguments) {
+        knownValues.clear();
+        return super.invokeStatic(target, arguments);
+    }
+
+    @Override
+    public Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
+        knownValues.clear();
+        return super.invokeInstance(kind, instance, target, arguments);
+    }
+
+    @Override
+    public Value invokeValueStatic(MethodElement target, List<Value> arguments) {
+        knownValues.clear();
+        return super.invokeValueStatic(target, arguments);
+    }
+
+    @Override
+    public Value invokeConstructor(Value instance, ConstructorElement target, List<Value> arguments) {
+        knownValues.clear();
+        return super.invokeConstructor(instance, target, arguments);
+    }
+
+    @Override
+    public Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
+        knownValues.clear();
+        return super.invokeValueInstance(kind, instance, target, arguments);
     }
 
     private static ValueHandle findRoot(ValueHandle handle) {
