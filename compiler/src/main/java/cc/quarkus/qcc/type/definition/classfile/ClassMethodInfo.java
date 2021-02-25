@@ -726,7 +726,7 @@ final class ClassMethodInfo {
     }
 
     int getEntryPointTarget(final int index) {
-        return entryPoints[index];
+        return entryPoints[index] & 0xffff;
     }
 
     int getLineNumber(int bci) {
@@ -738,23 +738,23 @@ final class ClassMethodInfo {
     }
 
     int getLocalVarStartPc(int varIdx, int entryIdx) {
-        return localVariables[varIdx][entryIdx * 5];
+        return localVariables[varIdx][entryIdx * 5] & 0xffff;
     }
 
     int getLocalVarLength(int varIdx, int entryIdx) {
-        return localVariables[varIdx][entryIdx * 5 + 1];
+        return localVariables[varIdx][entryIdx * 5 + 1] & 0xffff;
     }
 
     int getLocalVarNameIndex(int varIdx, int entryIdx) {
-        return localVariables[varIdx][entryIdx * 5 + 2];
+        return localVariables[varIdx][entryIdx * 5 + 2] & 0xffff;
     }
 
     int getLocalVarDescriptorIndex(int varIdx, int entryIdx) {
-        return localVariables[varIdx][entryIdx * 5 + 3];
+        return localVariables[varIdx][entryIdx * 5 + 3] & 0xffff;
     }
 
     int getLocalVarSignatureIndex(int varIdx, int entryIdx) {
-        return localVariables[varIdx][entryIdx * 5 + 4];
+        return localVariables[varIdx][entryIdx * 5 + 4] & 0xffff;
     }
 
     int getCodeOffs() {
