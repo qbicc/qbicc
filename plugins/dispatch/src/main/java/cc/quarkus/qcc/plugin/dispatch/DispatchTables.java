@@ -101,7 +101,7 @@ public class DispatchTables {
         vtables.put(cls,new VTableInfo(vtable, vtableType, vtableSymbol));
     }
 
-    void buildFilteredITable(ValidatedTypeDefinition cls) {
+    void buildFilteredITableForInterface(ValidatedTypeDefinition cls) {
         if (itables.containsKey(cls)) {
             return; // already built; possible because we aren't doing a coordinated topological traversal of the interface hierarchy.
         }
@@ -109,7 +109,7 @@ public class DispatchTables {
         // First, ensure my ancestors have already been computed computed
         for (ValidatedTypeDefinition si : cls.getInterfaces()) {
             if (!itables.containsKey(si)) {
-                buildFilteredITable(si);
+                buildFilteredITableForInterface(si);
             }
         }
 
@@ -147,7 +147,7 @@ public class DispatchTables {
             }
         }
 
-        // We have all the selectors, now we can build the ITableInfo
+        // Build the CompoundType for the ITable using the (arbitrary) order of selectors in itableVector
         MethodElement[] itable = itableVector.toArray(MethodElement.NO_METHODS);
         String itableName = "itable-" + cls.getInternalName().replace('/', '.');
         TypeSystem ts = ctxt.getTypeSystem();
@@ -159,7 +159,19 @@ public class DispatchTables {
         CompoundType itableType = ts.getCompoundType(CompoundType.Tag.STRUCT, itableName, itable.length * ts.getPointerSize(),
             ts.getPointerAlignment(), () -> List.of(functions));
 
-        itables.put(cls,new ITableInfo(itable, itableType, cls));
+        // Define the GlobalVariable that will hold the itables[] for this interface.
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
+        builder.setName("qcc_itables_array_"+itableType.getName());
+        // Invariant: typeIds are assigned from 1...N, where N is the number of reachable classes as computed by RTA
+        // Arrays, primitives, and void do not implement any interfaces that define methods, so +1 is all we need here.
+        builder.setType(ctxt.getTypeSystem().getArrayType(itableType.getPointer(), vtables.size()+1));
+        builder.setEnclosingType(cls);
+        // void for now, but this is cheating terribly
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        GlobalVariableElement itablesGlobal = builder.build();
+
+        itables.put(cls, new ITableInfo(itable, itableType, cls, itablesGlobal));
     }
 
     void buildVTablesGlobal(DefinedTypeDefinition containingType) {
@@ -274,15 +286,18 @@ public class DispatchTables {
         private final ValidatedTypeDefinition myInterface;
         private final MethodElement[] itable;
         private final CompoundType type;
+        private final GlobalVariableElement global;
 
-        ITableInfo(MethodElement[] itable, CompoundType type, ValidatedTypeDefinition myInterface) {
+        ITableInfo(MethodElement[] itable, CompoundType type, ValidatedTypeDefinition myInterface, GlobalVariableElement global) {
             this.myInterface = myInterface;
             this.itable = itable;
             this.type = type;
+            this.global = global;
         }
 
         public ValidatedTypeDefinition getInterface() { return myInterface; }
         public MethodElement[] getItable() { return itable; }
         public CompoundType getType() { return type; }
+        public GlobalVariableElement getGlobal() { return global; }
     }
 }

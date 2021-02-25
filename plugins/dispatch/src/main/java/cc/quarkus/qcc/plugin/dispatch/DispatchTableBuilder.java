@@ -8,7 +8,7 @@ import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 
 import java.util.function.Consumer;
 
-public class VTableBuilder implements Consumer<CompilationContext>  {
+public class DispatchTableBuilder implements Consumer<CompilationContext>  {
     @Override
     public void accept(CompilationContext ctxt) {
         RTAInfo info = RTAInfo.get(ctxt);
@@ -26,6 +26,6 @@ public class VTableBuilder implements Consumer<CompilationContext>  {
         tables.buildVTablesGlobal(jlo);
 
         // Now build the interface dispatching structures for the reachable methods
-        info.visitLiveInterfaces(i -> tables.buildFilteredITable(i));
+        info.visitLiveInterfaces(i -> tables.buildFilteredITableForInterface(i));
     }
 }
