@@ -53,6 +53,10 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return staticField(resolveField(owner, name, type));
     }
 
+    public Value extractInstanceField(Value valueObj, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return extractInstanceField(valueObj, resolveField(owner, name, type));
+    }
+
     public Value narrow(final Value value, final TypeDescriptor desc) {
         ClassContext cc = getClassContext();
         // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
