@@ -38,6 +38,7 @@ public class DispatchTables {
 
     private final CompilationContext ctxt;
     private final Map<ValidatedTypeDefinition, VTableInfo> vtables = new ConcurrentHashMap<>();
+    private final Map<ValidatedTypeDefinition, ITableInfo> itables = new ConcurrentHashMap<>();
     private GlobalVariableElement vtablesGlobal;
 
     private DispatchTables(final CompilationContext ctxt) {
@@ -60,8 +61,10 @@ public class DispatchTables {
         return vtables.get(cls);
     }
 
+    public ITableInfo getITableInfo(ValidatedTypeDefinition cls) { return itables.get(cls); }
+
     void buildFilteredVTable(ValidatedTypeDefinition cls) {
-        log.debugf("Building VTable for %s", cls.getDescriptor());
+        vtLog.debugf("Building VTable for %s", cls.getDescriptor());
 
         MethodElement[] inherited = cls.hasSuperClass() ? getVTableInfo(cls.getSuperClass()).getVtable() : MethodElement.NO_METHODS;
         ArrayList<MethodElement> vtableVector = new ArrayList<>(List.of(inherited));
@@ -77,7 +80,7 @@ public class DispatchTables {
                         continue  outer;
                     }
                 }
-                vtLog.debugf("\tadded new method  %s%s", m.getName(), m.getDescriptor().toString());
+                vtLog.debugf("\tadded new method %s%s", m.getName(), m.getDescriptor().toString());
                 ctxt.registerEntryPoint(m);
                 vtableVector.add(m);
             }
@@ -96,6 +99,67 @@ public class DispatchTables {
         SymbolLiteral vtableSymbol = ctxt.getLiteralFactory().literalOfSymbol(vtableName, vtableType.getPointer());
 
         vtables.put(cls,new VTableInfo(vtable, vtableType, vtableSymbol));
+    }
+
+    void buildFilteredITable(ValidatedTypeDefinition cls) {
+        if (itables.containsKey(cls)) {
+            return; // already built; possible because we aren't doing a coordinated topological traversal of the interface hierarchy.
+        }
+
+        // First, ensure my ancestors have already been computed computed
+        for (ValidatedTypeDefinition si : cls.getInterfaces()) {
+            if (!itables.containsKey(si)) {
+                buildFilteredITable(si);
+            }
+        }
+
+        // Now we can really start...
+        vtLog.debugf("Building ITable for %s", cls.getDescriptor());
+
+        // Accumulate all unique selectors from super-interfaces
+        ArrayList<MethodElement> itableVector = new ArrayList<>();
+        for (ValidatedTypeDefinition si : cls.getInterfaces()) {
+            ITableInfo siInfo = getITableInfo(si);
+            outer:
+            for (MethodElement m : siInfo.getItable()) {
+                for (MethodElement already : itableVector) {
+                    if (already.getName().equals(m.getName()) && already.getDescriptor().equals(m.getDescriptor())) {
+                        continue outer;
+                    }
+                }
+                vtLog.debugf("\tadded inherited selector %s%s from %s", m.getName(), m.getDescriptor().toString(), si.getDescriptor().getClassName());
+                itableVector.add(m);
+            }
+        }
+
+        // Add any additional unique selectors declared by cls
+        outer:
+        for (int i = 0; i < cls.getMethodCount(); i++) {
+            MethodElement m = cls.getMethod(i);
+            if (!m.isStatic() && ctxt.wasEnqueued(m)) {
+                for (MethodElement already : itableVector) {
+                    if (already.getName().equals(m.getName()) && already.getDescriptor().equals(m.getDescriptor())) {
+                        continue outer;
+                    }
+                }
+                vtLog.debugf("\tadded new declared selector %s%s", m.getName(), m.getDescriptor().toString());
+                itableVector.add(m);
+            }
+        }
+
+        // We have all the selectors, now we can build the ITableInfo
+        MethodElement[] itable = itableVector.toArray(MethodElement.NO_METHODS);
+        String itableName = "itable-" + cls.getInternalName().replace('/', '.');
+        TypeSystem ts = ctxt.getTypeSystem();
+        CompoundType.Member[] functions = new CompoundType.Member[itable.length];
+        for (int i=0; i<itable.length; i++) {
+            FunctionType funType = ctxt.getFunctionTypeForElement(itable[i]);
+            functions[i] = ts.getCompoundTypeMember("m"+i, funType.getPointer(), i*ts.getPointerSize(), ts.getPointerAlignment());
+        }
+        CompoundType itableType = ts.getCompoundType(CompoundType.Tag.STRUCT, itableName, itable.length * ts.getPointerSize(),
+            ts.getPointerAlignment(), () -> List.of(functions));
+
+        itables.put(cls,new ITableInfo(itable, itableType, cls));
     }
 
     void buildVTablesGlobal(DefinedTypeDefinition containingType) {
@@ -175,6 +239,21 @@ public class DispatchTables {
         return 0;
     }
 
+    public int getITableIndex(MethodElement target) {
+        ValidatedTypeDefinition definingType = target.getEnclosingType().validate();
+        ITableInfo info = getITableInfo(definingType);
+        if (info != null) {
+            MethodElement[] itable = info.getItable();
+            for (int i = 0; i < itable.length; i++) {
+                if (target.getName().equals(itable[i].getName()) && target.getDescriptor().equals(itable[i].getDescriptor())) {
+                    return i;
+                }
+            }
+        }
+        ctxt.error("No itable entry found for "+target);
+        return 0;
+    }
+
     public static final class VTableInfo {
         private final MethodElement[] vtable;
         private final CompoundType type;
@@ -189,5 +268,21 @@ public class DispatchTables {
         public MethodElement[] getVtable() { return vtable; }
         public SymbolLiteral getSymbol() { return symbol; }
         public CompoundType getType() { return  type; }
+    }
+
+    public static final class ITableInfo {
+        private final ValidatedTypeDefinition myInterface;
+        private final MethodElement[] itable;
+        private final CompoundType type;
+
+        ITableInfo(MethodElement[] itable, CompoundType type, ValidatedTypeDefinition myInterface) {
+            this.myInterface = myInterface;
+            this.itable = itable;
+            this.type = type;
+        }
+
+        public ValidatedTypeDefinition getInterface() { return myInterface; }
+        public MethodElement[] getItable() { return itable; }
+        public CompoundType getType() { return type; }
     }
 }

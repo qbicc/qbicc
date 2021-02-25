@@ -24,5 +24,8 @@ public class VTableBuilder implements Consumer<CompilationContext>  {
 
         // Synthesize GlobalVariable for vtables[]
         tables.buildVTablesGlobal(jlo);
+
+        // Now build the interface dispatching structures for the reachable methods
+        info.visitLiveInterfaces(i -> tables.buildFilteredITable(i));
     }
 }

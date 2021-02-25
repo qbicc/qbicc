@@ -65,6 +65,12 @@ public class RTAInfo {
         interfaceHierarchy.computeIfAbsent(parent, t -> ConcurrentHashMap.newKeySet()).add(child);
     }
 
+    public void visitLiveInterfaces(Consumer<ValidatedTypeDefinition> function) {
+        for (ValidatedTypeDefinition i: interfaceHierarchy.keySet()) {
+            function.accept(i);
+        }
+    }
+
     // NOTE: If there are diamonds in the interface hierarchy, we may visit an implementor multiple times.
     //       We could avoid that by building a set before we visit anyone, but the only client of this function
     //       is robust against duplicates, so don't bother to handle this fringe case until we need to care.
