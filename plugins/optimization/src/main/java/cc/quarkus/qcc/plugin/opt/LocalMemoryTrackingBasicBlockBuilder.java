@@ -59,7 +59,7 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     private static ValueHandle findRoot(ValueHandle handle) {
-        return handle.hasValueHandleDependency() ? findRoot(handle.getValueHandle()) : handle;
+        return handle instanceof ElementOf || ! handle.hasValueHandleDependency() ? handle : findRoot(handle.getValueHandle());
     }
 
     private static boolean hasSameRoot(ValueHandle handle, ValueHandle root) {
