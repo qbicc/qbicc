@@ -245,6 +245,7 @@ public class DispatchTables {
             if (itable.length == 0) {
                 continue; // If there are no invokable methods then this whole family of itables will never be referenced.
             }
+            vtLog.debugf("Emitting itable[] for %s", currentInterface.getDescriptor().getClassName());
             ArrayType rootType = (ArrayType)itableInfo.getGlobal().getType(List.of());
             Literal[] rootTable = new Literal[(int)rootType.getElementCount()];
             Literal zeroLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(rootType.getElementType());
@@ -252,6 +253,7 @@ public class DispatchTables {
             rtaInfo.visitLiveImplementors(currentInterface, cls -> {
                 if (!cls.isAbstract() && !cls.isInterface()) {
                     // Build the itable for an instantiable class
+                    vtLog.debugf("\temitting itable for %s", cls.getDescriptor().getClassName());
                     HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
                     Section cSection = ctxt.getImplicitSection(cls);
                     for (int i = 0; i < itable.length; i++) {
