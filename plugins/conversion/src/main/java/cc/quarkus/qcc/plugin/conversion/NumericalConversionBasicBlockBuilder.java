@@ -77,6 +77,11 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                         return from;
                     }
                 }
+            } else if (fromType instanceof BooleanType) {
+                if (toType instanceof BooleanType) {
+                    // no actual truncation needed
+                    return from;
+                }
             }
         }
         // report the error but produce the node anyway and continue
