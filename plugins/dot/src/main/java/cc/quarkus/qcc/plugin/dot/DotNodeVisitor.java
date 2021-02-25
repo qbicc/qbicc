@@ -25,6 +25,9 @@ import cc.quarkus.qcc.graph.ClassNotFoundErrorNode;
 import cc.quarkus.qcc.graph.ClassOf;
 import cc.quarkus.qcc.graph.Clone;
 import cc.quarkus.qcc.graph.Cmp;
+import cc.quarkus.qcc.graph.ExtractElement;
+import cc.quarkus.qcc.graph.ExtractInstanceField;
+import cc.quarkus.qcc.graph.ExtractMember;
 import cc.quarkus.qcc.graph.IsEq;
 import cc.quarkus.qcc.graph.IsGe;
 import cc.quarkus.qcc.graph.IsGt;
@@ -622,6 +625,40 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final Extend node) {
         return node(param, "extend", node);
+    }
+
+    public String visit(Appendable param, ExtractElement node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "circle");
+        attr(param, "label", "extracted element");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getIndex(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getArrayValue(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(Appendable param, ExtractInstanceField node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "circle");
+        attr(param, "label", "extracted field \"" + node.getFieldElement().getName() + "\"");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getObjectValue(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(Appendable param, ExtractMember node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "circle");
+        attr(param, "label", "extracted member \"" + node.getMember().getName() + "\"");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getCompoundValue(), EdgeType.VALUE_DEPENDENCY);
+        return name;
     }
 
     public String visit(final Appendable param, final FloatLiteral node) {
