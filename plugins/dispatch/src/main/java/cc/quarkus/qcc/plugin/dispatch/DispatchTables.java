@@ -33,8 +33,8 @@ import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
 public class DispatchTables {
-    private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch");
-    private static final Logger vtLog = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables");
+    private static final Logger slog = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.stats");
+    private static final Logger tlog = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.tables");
 
     private static final AttachmentKey<DispatchTables> KEY = new AttachmentKey<>();
 
@@ -42,6 +42,15 @@ public class DispatchTables {
     private final Map<ValidatedTypeDefinition, VTableInfo> vtables = new ConcurrentHashMap<>();
     private final Map<ValidatedTypeDefinition, ITableInfo> itables = new ConcurrentHashMap<>();
     private GlobalVariableElement vtablesGlobal;
+
+    // Used to accumulate statistics
+    private int emittedVTableCount;
+    private int emittedVTableBytes;
+    private int emittedClassITableCount;
+    private int emittedClassITableBytes;
+    private int emittedInterfaceITableCount;
+    private int emittedInterfaceITableBytes;
+    private int emittedInterfaceITableUsefulBytes;
 
     private DispatchTables(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -66,12 +75,12 @@ public class DispatchTables {
     public ITableInfo getITableInfo(ValidatedTypeDefinition cls) { return itables.get(cls); }
 
     void buildFilteredVTable(ValidatedTypeDefinition cls) {
-        vtLog.debugf("Building VTable for %s", cls.getDescriptor());
+        tlog.debugf("Building VTable for %s", cls.getDescriptor());
 
         ArrayList<MethodElement> vtableVector = new ArrayList<>();
         for (MethodElement m: cls.getInstanceMethods()) {
             if (ctxt.wasEnqueued(m)) {
-                vtLog.debugf("\tadding reachable method %s%s", m.getName(), m.getDescriptor().toString());
+                tlog.debugf("\tadding reachable method %s%s", m.getName(), m.getDescriptor().toString());
                 ctxt.registerEntryPoint(m);
                 vtableVector.add(m);
             }
@@ -93,12 +102,12 @@ public class DispatchTables {
     }
 
     void buildFilteredITableForInterface(ValidatedTypeDefinition cls) {
-        vtLog.debugf("Building ITable for %s", cls.getDescriptor());
+        tlog.debugf("Building ITable for %s", cls.getDescriptor());
 
         ArrayList<MethodElement> itableVector = new ArrayList<>();
         for (MethodElement m: cls.getInstanceMethods()) {
             if (ctxt.wasEnqueued(m)) {
-                vtLog.debugf("\tadding invokable signature %s%s", m.getName(), m.getDescriptor().toString());
+                tlog.debugf("\tadding invokable signature %s%s", m.getName(), m.getDescriptor().toString());
                 itableVector.add(m);
             }
         }
@@ -167,6 +176,8 @@ public class DispatchTables {
             }
             CompoundLiteral vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
             section.addData(null, info.getSymbol().getName(), vtableLiteral).setLinkage(Linkage.EXTERNAL);
+            emittedVTableCount += 1;
+            emittedVTableBytes += info.getType().getMemberCount() * ctxt.getTypeSystem().getPointerSize();
         }
     }
 
@@ -189,6 +200,8 @@ public class DispatchTables {
         }
         ArrayLiteral vtablesGlobalValue = ctxt.getLiteralFactory().literalOf(vtablesGlobalType, List.of(vtableLiterals));
         section.addData(null, vtablesGlobal.getName(), vtablesGlobalValue);
+        slog.debugf("Root vtable[] has %d slots (%d bytes)", vtableLiterals.length, vtableLiterals.length * ctxt.getTypeSystem().getPointerSize());
+        slog.debugf("Emitted %d vtables with combined size of %d bytes", emittedVTableCount, emittedVTableBytes);
     }
 
     public GlobalVariableElement getVTablesGlobal() { return this.vtablesGlobal; }
@@ -201,6 +214,7 @@ public class DispatchTables {
         MethodElement ameStub = ctxt.getVMHelperMethod("raiseAbstractMethodError");
         Function ameImpl = ctxt.getExactFunction(ameStub);
         SymbolLiteral ameLiteral = lf.literalOfSymbol(ameImpl.getLiteral().getName(), ameImpl.getLiteral().getType().getPointer());
+        final int pointerSize = ctxt.getTypeSystem().getPointerSize();
         for (Map.Entry<ValidatedTypeDefinition, ITableInfo> entry: itables.entrySet()) {
             ValidatedTypeDefinition currentInterface = entry.getKey();
             Section iSection = ctxt.getImplicitSection(currentInterface);
@@ -209,7 +223,7 @@ public class DispatchTables {
             if (itable.length == 0) {
                 continue; // If there are no invokable methods then this whole family of itables will never be referenced.
             }
-            vtLog.debugf("Emitting itable[] for %s", currentInterface.getDescriptor().getClassName());
+            tlog.debugf("Emitting itable[] for %s", currentInterface.getDescriptor().getClassName());
 
             // First, construct an iTable of the right length of icceStubs
             iSection.declareFunction(icceStub, icceImpl.getName(), icceImpl.getType());
@@ -228,12 +242,14 @@ public class DispatchTables {
             ArrayType rootType = (ArrayType)itableInfo.getGlobal().getType(List.of());
             Literal[] rootTable = new Literal[(int)rootType.getElementCount()];
             Arrays.fill(rootTable, stubPtrLiteral);
+            emittedInterfaceITableCount += 1;
+            emittedInterfaceITableBytes += rootTable.length * pointerSize;
 
             // Now build all the implementing class itables and update the rootTable
             rtaInfo.visitLiveImplementors(currentInterface, cls -> {
                 if (!cls.isAbstract() && !cls.isInterface()) {
                     // Build the itable for an instantiable class
-                    vtLog.debugf("\temitting itable for %s", cls.getDescriptor().getClassName());
+                    tlog.debugf("\temitting itable for %s", cls.getDescriptor().getClassName());
                     HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
                     Section cSection = ctxt.getImplicitSection(cls);
                     for (int i = 0; i < itable.length; i++) {
@@ -260,12 +276,19 @@ public class DispatchTables {
                     cSection.addData(null, tableName, itableLiteral).setLinkage(Linkage.EXTERNAL);
                     iSection.declareData(null, tableName, itableInfo.getType());
                     rootTable[cls.getTypeId()] = lf.literalOfSymbol(tableName, itableInfo.getType());
+                    emittedClassITableCount += 1;
+                    emittedClassITableBytes += itable.length * pointerSize;
+                    emittedInterfaceITableUsefulBytes += pointerSize;
                 }
             });
 
             // Finally emit the root iTable[] for the interface
             iSection.addData(null, itableInfo.getGlobal().getName(), lf.literalOf(rootType, List.of(rootTable)));
         }
+        slog.debugf("Emitted iTables for %d class+interface combinations consuming %d bytes", emittedClassITableCount, emittedClassITableBytes);
+        slog.debugf("Emitted iTables for %d interfaces consuming %d bytes; %d non-icce bytes (%s)",
+            emittedInterfaceITableCount, emittedInterfaceITableBytes, emittedInterfaceITableUsefulBytes,
+            String.format("%.2f%%", (float)emittedInterfaceITableUsefulBytes/(float)emittedInterfaceITableBytes*100f));
     }
 
 

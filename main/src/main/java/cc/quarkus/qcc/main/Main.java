@@ -395,6 +395,8 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debug;
         @CommandLine.Option(names = "--debug-vtables")
         private boolean debugVTables;
+        @CommandLine.Option(names = "--dispatch-stats")
+        private boolean dispatchStats;
         @CommandLine.Option(names = "--debug-rta")
         private boolean debugRTA;
         @CommandLine.Option(names = "--debug-supers")
@@ -444,7 +446,10 @@ public class Main implements Callable<DiagnosticContext> {
                 Logger.getLogger("").setLevel(Level.DEBUG);
             }
             if (debugVTables) {
-                Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables").setLevel(Level.DEBUG);
+                Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.tables").setLevel(Level.DEBUG);
+            }
+            if (dispatchStats) {
+                Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.stats").setLevel(Level.DEBUG);
             }
             if (debugRTA) {
                 Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
