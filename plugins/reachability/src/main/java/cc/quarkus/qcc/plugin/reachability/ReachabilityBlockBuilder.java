@@ -13,8 +13,8 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
 /**
@@ -33,6 +33,11 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
+        // cause the class to be initialized
+        InitializerElement initializer = target.getEnclosingType().validate().resolve().getInitializer();
+        if (initializer != null) {
+            ctxt.enqueue(initializer);
+        }
         ctxt.enqueue(target);
         return super.invokeStatic(target, arguments);
     }
@@ -47,6 +52,11 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
+        // cause the class to be initialized
+        InitializerElement initializer = target.getEnclosingType().validate().resolve().getInitializer();
+        if (initializer != null) {
+            ctxt.enqueue(initializer);
+        }
         ctxt.enqueue(target);
         return super.invokeValueStatic(target, arguments);
     }
@@ -61,6 +71,11 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
+        // cause the class to be initialized
+        InitializerElement initializer = target.getEnclosingType().validate().resolve().getInitializer();
+        if (initializer != null) {
+            ctxt.enqueue(initializer);
+        }
         processInstantiatedClass(target.getEnclosingType().validate());
         ctxt.enqueue(target);
         return super.invokeConstructor(instance, target, arguments);
