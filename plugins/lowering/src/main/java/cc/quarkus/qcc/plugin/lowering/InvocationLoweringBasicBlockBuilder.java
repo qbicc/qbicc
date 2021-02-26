@@ -154,7 +154,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             // No realized invocation targets are possible for this method!
             // Throwing BlockEarlyTermination(unreachable()) here breaks compilation, so do something hackier...
             // Construct a doomed-to-fail indirect call target by invoking a zero initializer of the right function type.
-            ctxt.warning("Unreachable interface invoke of %s compiled to *(null)()", target);
+            ctxt.warning(originalElement, "Unreachable interface invoke of %s compiled to *(null)()", target);
             FunctionType funType = ctxt.getFunctionTypeForElement(target);
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(funType.getPointer());
         }
