@@ -42,6 +42,7 @@ public class RTAInfo {
 
     public static void clear(CompilationContext ctxt) {
         RTAInfo info = get(ctxt);
+        ReachabilityBlockBuilder.rtaLog.debugf("Clearing RTAInfo %s classes; %s interfaces", info.classHierarchy.size(), info.interfaceHierarchy.size());
         info.classHierarchy.clear();
         info.interfaceHierarchy.clear();
     }

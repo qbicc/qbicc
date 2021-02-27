@@ -12,6 +12,7 @@ import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -23,13 +24,15 @@ import org.jboss.logging.Logger;
  * the set of reachable call sites and instantiated types.
  */
 public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
-    private static final Logger rtaLog = Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta");
+    static final Logger rtaLog = Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta");
 
     private final CompilationContext ctxt;
+    private final ExecutableElement originalElement;
 
     public ReachabilityBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+        this.originalElement = delegate.getCurrentElement();
     }
 
     public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
@@ -44,7 +47,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         if (!ctxt.wasEnqueued(target)) {
-            rtaLog.debugf("Adding method (directly invoked): %s", target);
+            rtaLog.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
             ctxt.enqueue(target);
             processInvokeTarget(target);
         }
@@ -63,7 +66,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         if (!ctxt.wasEnqueued(target)) {
-            rtaLog.debugf("Adding method (directly invoked): %s", target);
+            rtaLog.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
             ctxt.enqueue(target);
             processInvokeTarget(target);
         }
@@ -76,7 +79,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         if (initializer != null) {
             ctxt.enqueue(initializer);
         }
-        processInstantiatedClass(target.getEnclosingType().validate());
+        processInstantiatedClass(target.getEnclosingType().validate(), true);
         ctxt.enqueue(target);
         return super.invokeConstructor(instance, target, arguments);
     }
@@ -89,12 +92,16 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.staticField(field);
     }
 
-    private void processInstantiatedClass(final ValidatedTypeDefinition type) {
+    private void processInstantiatedClass(final ValidatedTypeDefinition type, boolean directlyInstantiated) {
         RTAInfo info = RTAInfo.get(ctxt);
         if (!info.isLiveClass(type)) {
-            rtaLog.debugf("Adding reachable class: %s", type.getDescriptor().getClassName());
+            if (directlyInstantiated) {
+                rtaLog.debugf("Adding class %s (instantiated in %s)", type.getDescriptor().getClassName(), originalElement);
+            } else {
+                rtaLog.debugf("\tadding ancestor class: %s", type.getDescriptor().getClassName());
+            }
             if (type.hasSuperClass()) {
-                processInstantiatedClass(type.getSuperClass());
+                processInstantiatedClass(type.getSuperClass(), false);
                 info.addLiveClass(type);
 
                 // For every defined virtual method that is not already enqueued,
@@ -105,7 +112,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                         MethodElement overiddenMethod = type.getSuperClass().resolveMethodElementVirtual(defMethod.getName(), defMethod.getDescriptor());
                         if (overiddenMethod != null && ctxt.wasEnqueued(overiddenMethod)) {
                             ctxt.enqueue(defMethod);
-                            rtaLog.debugf("Newly reachable class: enqueued overriding method: %s", defMethod);
+                            rtaLog.debugf("\tnewly reachable class: enqueued overriding method: %s", defMethod);
                         }
                     }
                 }
@@ -125,7 +132,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                         MethodElement implementedMethod = si.resolveMethodElementInterface(defMethod.getName(), defMethod.getDescriptor());
                         if (implementedMethod != null && ctxt.wasEnqueued(implementedMethod)) {
                             ctxt.enqueue(defMethod);
-                            rtaLog.debugf("Newly reachable class: enqueued implementing method:  %s", defMethod);
+                            rtaLog.debugf("\tnewly reachable class: enqueued implementing method:  %s", defMethod);
                         }
                     }
                 }
@@ -135,7 +142,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private void processInstantiatedInterface(RTAInfo info, final ValidatedTypeDefinition type) {
         if (!info.isLiveInterface(type)) {
-            rtaLog.debugf("Adding reachable interface: %s", type.getDescriptor().getClassName());
+            rtaLog.debugf("\tadding implemented interface: %s", type.getDescriptor().getClassName());
             for (ValidatedTypeDefinition i: type.getInterfaces()) {
                 processInstantiatedInterface(info, i);
                 info.addInterfaceEdge(type, i);
@@ -149,7 +156,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                     for (ValidatedTypeDefinition si : type.getInterfaces()) {
                         MethodElement implementedMethod = si.resolveMethodElementInterface(defMethod.getName(), defMethod.getDescriptor());
                         if (implementedMethod != null && ctxt.wasEnqueued(implementedMethod)) {
-                            rtaLog.debugf("Newly reachable interface: enqueued implementing method:  %s", defMethod);
+                            rtaLog.debugf("\tnewly reachable interface: enqueued implementing method:  %s", defMethod);
                             ctxt.enqueue(defMethod);
                         }
                     }
@@ -173,7 +180,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                     cand = c.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
                 }
                 if (!ctxt.wasEnqueued(cand)) {
-                    rtaLog.debugf("Adding method (implements): %s", cand);
+                    rtaLog.debugf("\tadding method (implements): %s", cand);
                     try {
                         ctxt.enqueue(cand);
                     } catch (IllegalStateException e) {
@@ -188,7 +195,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
             info.visitLiveSubclassesPreOrder(definingClass, (sc) -> {
                 MethodElement cand = sc.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
                 if (!ctxt.wasEnqueued(cand)) {
-                    rtaLog.debugf("Adding method (subclass overrides): %s", cand);
+                    rtaLog.debugf("\tadding method (subclass overrides): %s", cand);
                     try {
                         ctxt.enqueue(cand);
                     } catch (IllegalStateException e) {
