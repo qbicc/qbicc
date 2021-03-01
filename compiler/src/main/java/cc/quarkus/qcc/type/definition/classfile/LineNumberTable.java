@@ -44,14 +44,14 @@ final class LineNumberTable {
                 high = mid - 1;
             } else {
                 // exact match
-                return lineNumbers[(mid << 1) + 1];
+                return lineNumbers[(mid << 1) + 1] & 0xffff;
             }
         }
         // return previous entry
         if (low == 0) {
             return 1;
         } else {
-            return lineNumbers[((low - 1) << 1) + 1];
+            return lineNumbers[((low - 1) << 1) + 1] & 0xffff;
         }
     }
 
@@ -60,7 +60,7 @@ final class LineNumberTable {
             int minimumLineNumber = Integer.MAX_VALUE;
 
             for (int i = 1; i < this.lineNumbers.length; i += 2) {
-                minimumLineNumber = Math.min(minimumLineNumber, this.lineNumbers[i]);
+                minimumLineNumber = Math.min(minimumLineNumber, this.lineNumbers[i] & 0xffff);
             }
 
             return minimumLineNumber;
@@ -74,7 +74,7 @@ final class LineNumberTable {
             int maximumLineNumber = 1;
 
             for (int i = 1; i < this.lineNumbers.length; i += 2) {
-                maximumLineNumber = Math.max(maximumLineNumber, this.lineNumbers[i]);
+                maximumLineNumber = Math.max(maximumLineNumber, this.lineNumbers[i] & 0xffff);
             }
 
             return maximumLineNumber;
