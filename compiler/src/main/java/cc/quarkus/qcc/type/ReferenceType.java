@@ -432,6 +432,17 @@ public final class ReferenceType extends WordType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        return upperBound.toFriendlyString(b.append("ref").append('.'));
+        Set<InterfaceObjectType> interfaceBounds = this.interfaceBounds;
+        PhysicalObjectType upperBound = this.upperBound;
+        if (upperBound.hasSuperClassType() || interfaceBounds.isEmpty()) {
+            b.append("ref").append('.').append(1 + interfaceBounds.size());
+            upperBound.toFriendlyString(b.append('.'));
+        } else {
+            b.append("ref").append('.').append(interfaceBounds.size());
+        }
+        for (InterfaceObjectType interfaceBound : interfaceBounds) {
+            interfaceBound.toFriendlyString(b.append('.'));
+        }
+        return b;
     }
 }
