@@ -28,6 +28,7 @@
         <module>llvm</module>
         <module>lowering</module>
         <module>main</module>
+        <module>metrics</module>
         <module>native</module>
         <module>objectmonitor</module>
         <module>optimization</module>
