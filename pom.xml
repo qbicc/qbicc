@@ -29,6 +29,25 @@
 
     <packaging>pom</packaging>
 
+    <licenses>
+        <license>
+            <name>GNU General Public License, version 2, with the Classpath Exception</name>
+            <url>http://openjdk.java.net/legal/gplv2+ce.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/quarkuscc/qcc</url>
+        <connection>scm:git:git://github.com/quarkuscc/qcc</connection>
+        <developerConnection>scm:git:git@github.com:quarkuscc/qcc</developerConnection>
+    </scm>
+
+    <issueManagement>
+        <url>https://github.com/quarkuscc/qcc/issues</url>
+        <system>GitHub Issues</system>
+    </issueManagement>
+
     <modules>
         <module>compiler</module>
         <module>driver</module>
