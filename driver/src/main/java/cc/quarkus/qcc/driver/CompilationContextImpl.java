@@ -274,11 +274,12 @@ final class CompilationContextImpl implements CompilationContext {
         }
         return exactFunctions.computeIfAbsent(element, e -> {
             Section implicit = getImplicitSection(element);
+            FunctionType elementType = element.getType(List.of());
             if (element instanceof FunctionElement) {
-                return implicit.addFunction(element, ((FunctionElement) element).getName(), element.getType(List.of()));
+                return implicit.addFunction(element, ((FunctionElement) element).getName(), elementType);
             }
-            FunctionType type = getFunctionTypeForElement(element);
-            return implicit.addFunction(element, getExactNameForElement(element, type), type);
+            FunctionType functionType = getFunctionTypeForElement(element);
+            return implicit.addFunction(element, getExactNameForElement(element, elementType), functionType);
         });
     }
 
@@ -363,8 +364,8 @@ final class CompilationContextImpl implements CompilationContext {
             b.append(((MethodElement)element).getName()).append('.');
             type.getReturnType().toFriendlyString(b).append('.');
         }
-        b.append(parameterCount - 1);
-        for (int i = 1; i < parameterCount; i ++) {
+        b.append(parameterCount);
+        for (int i = 0; i < parameterCount; i ++) {
             b.append('.');
             type.getParameterType(i).toFriendlyString(b);
         }
