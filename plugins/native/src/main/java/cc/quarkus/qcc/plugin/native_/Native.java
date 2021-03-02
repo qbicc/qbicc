@@ -32,6 +32,7 @@ final class Native {
 
     static final String OBJECT_INT_NAME = intName(object.class);
     static final String WORD_INT_NAME = intName(word.class);
+    static final String TYPE_ID_INT_NAME = intName(type_id.class);
     static final String PTR = className(ptr.class);
     static final String WORD = className(word.class);
     static final String OBJECT = className(object.class);

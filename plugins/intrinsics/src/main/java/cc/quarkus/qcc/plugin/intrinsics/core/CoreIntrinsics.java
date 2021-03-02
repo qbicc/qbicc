@@ -53,6 +53,7 @@ public final class CoreIntrinsics {
         registerJavaLangObjectIntrinsics(ctxt);
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
+        registerCcQuarkusQccRuntimeCNativeIntrinsics(ctxt);
         registerCcQuarkusQccRuntimeValuesIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
     }
@@ -360,6 +361,31 @@ public final class CoreIntrinsics {
 
     static Literal literalOf(CompilationContext ctxt, boolean v) {
         return ctxt.getLiteralFactory().literalOf(v);
+    }
+
+    static void registerCcQuarkusQccRuntimeCNativeIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor cNativeDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative");
+        ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$type_id");
+        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
+
+        MethodDescriptor objTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objDesc));
+        MethodDescriptor objArrayTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objArrayDesc));
+
+        StaticValueIntrinsic typeOf = (builder, owner, name, descriptor, arguments) ->
+            builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
+
+        intrinsics.registerIntrinsic(cNativeDesc, "type_id_of", objTypeIdDesc, typeOf);
+
+        FieldElement elementTypeField = Layout.get(ctxt).getRefArrayElementTypeIdField();
+
+        StaticValueIntrinsic elementTypeOf = (builder, owner, name, descriptor, arguments) ->
+            builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), elementTypeField), MemoryAtomicityMode.UNORDERED);
+
+        intrinsics.registerIntrinsic(cNativeDesc, "element_type_id_of", objArrayTypeIdDesc, elementTypeOf);
     }
 
     static void registerCcQuarkusQccRuntimeValuesIntrinsics(final CompilationContext ctxt) {
