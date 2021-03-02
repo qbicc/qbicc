@@ -1,0 +1,66 @@
+= QCC: Interpreter
+
+== Motivation
+
+A major part of fast application startup is derived from pre-initializing classes during build.
+Since QCC is designed to be independent of any particular Java or host environment, it is necessary to employ an interpreter.
+The interpreter runs the initialization of each reachable class and contributes to the serialized heap.
+
+== Requirements
+
+* Initialization must, to the greatest extent possible, emulate the target environment, not the host environment.
+* Produce a serializable heap in the form of object literals which are associated with constant values and static fields which are reachable from the root entry point set.
+* Provide a means for calling static and instance methods from outside the interpreted environment (i.e. from the compiler) using a simple invocation API (already largely defined).
+** The caller must be able to catch exceptions thrown from the interpreted environment.
+** Primitive arguments should be passed in via boxing using host box types.
+** This mechanism will be used to load non-bootstrap classes via `ClassLoader`, so it must be robust for that use case.
+* It must be possible to await termination of all of the interpreter's threads (which will happen after `ADD` is complete).
+** Do not rely on `Thread.stop()` or similar mechanisms for this functionality.  Instead, prefer thread interruption, the standard `exit` mechanism, and hard termination (or emulation thereof).
+** Exit hooks should be supported but are not a "day one" requirement.
+** Leakable resources such as sockets or files must be tracked and released at the end of interpreter execution.
+* It must be possible to map or "mount" files and directories into the interpreted environment as virtual files.
+** This is necessary in order to bring in the application class path and resources.
+* It should be possible to initialize native opaque data structures that can be stored directly into the target object files using the target layout.
+** Invocation of native functions on the target would not be supported for obvious reasons.
+
+== Design Option: Direct interpretation
+
+It is possible to directly interpret the program graph.
+The interpreter would amount to a series of visitors which perform each operation or calculation, representing objects, structures, and the local frame using hash tables or arrays.
+Primitive values would be boxed or stored in separate primitive value hash tables or arrays.
+
+This approach is fairly verbose and may be relatively slow in terms of execution speed.
+Memory consumption may be greater with this approach than with other approaches.
+However, its relative simplicity and single-stage nature may provide a shorter ramp-up time compared to alternatives.
+
+This was the basis of an initial implementation which predates much of the current type and node system, but only a small amount of progress was made before it was abandoned in favor of exploring a bytecode-generation-based solution.
+
+=== Variation: Little virtual machine
+
+Rather than using hash tables and an object graph to represent the run time state, an alternative could be to use byte/word arrays or even direct byte buffers to represent memory arenas to store the machine state.
+In this system, all values are converted to bytes or words that are addressed by index.
+Objects and frames would be laid out similarly to the backend layout support.
+Each reference or pointer would translate to an "address" in a memory area.
+Separate memory areas could exist for the heap and for thread stacks.
+
+This approach would likely be more space-efficient than pure direct interpretation.
+However, it may be more complex to debug, and also requires an extra layout step compared to the direct approach.
+
+== Design Option: Bytecode generation
+
+This approach entails building compiled classes for methods, object classes, and interfaces which directly implement the necessary interpreter APIs.
+Primitive value types are wrapped directly into their corresponding host JVM types.
+Compound types are wrapped with object holders.
+Inline compound values may be broken into individual fields or handled as nested object references.
+Methods are compiled to classes containing methods with bytecodes derived from the program graph of the original method.
+
+This approach is fairly complex, requiring object layouts, bytecode generation from a graph (which in turn may entail some kind of register coloring and/or stack scheduling), mapping of local variables, and handling of stack walking, among other things.
+Several of these facilities are already required for back end handling, but those implementations may not be directly applicable.
+
+The advantage to this approach is that it may exhibit superior execution speed - especially for complex or repetitive initialization tasks.
+It is possible that it would exhibit better memory efficiency over the long term of a compilation due to more efficient field packing and reliance upon the host JVM for heap management, despite generating potentially many classes; however, it is also possible that the amount of object allocation required by the setup stage of the bytecode compiler itself would create allocation pressure which could be greater than what would be associated with the other possible approaches, and that the overhead of the classes themselves and their loading might exceed that of simpler options, potentially negating that benefit.
+
+It is not clear whether the advantages would outweigh the presumed implementation complexity.
+However, it is also possible that some amount of this implementation would be reusable as a technique for precompiling pure-Java applications (optimizing for a specific target environment, for example, by way of constant folding and dead code elimination, and resultant production of a minimal standalone application JAR), which may weigh somewhat in favor of (eventually) pursuing this approach despite the costs.
+
+This was the second implementation option explored, but only a limited amount of progress was made, due largely to what at the time was a very rapidly-changing compiler API.
