@@ -203,19 +203,51 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         InitializerElement init = initializerResolver.resolveInitializer(initializerIndex, this);
         NestedClassElement enclosingClass = enclosingClassResolver == null ? null : enclosingClassResolver.resolveEnclosingNestedClass(enclosingClassResolverIndex, this);
         NestedClassElement[] enclosedClasses = resolveEnclosedClasses(enclosedClassResolvers, enclosedClassResolverIndexes, 0, 0);
+
+        // Construct instanceMethods -- the ordered list of all instance methods inherited and directly implemented.
+        ArrayList<MethodElement> instanceMethods = new ArrayList<>();
+        if (superType != null) {
+            // (i) all instance methods of my superclass
+            instanceMethods.addAll(List.of(superType.getInstanceMethods()));
+        }
+        for (ValidatedTypeDefinition i: interfaces) {
+            outer: for (MethodElement im: i.getInstanceMethods()) {
+                for (MethodElement already : instanceMethods) {
+                    if (already.getName().equals(im.getName()) && already.getDescriptor().equals(im.getDescriptor())) {
+                        continue outer;
+                    }
+                }
+                // (ii) abstract instance methods implied by an implemented/extended interfaces
+                instanceMethods.add(im);
+            }
+        }
+        outer: for (MethodElement dm: methods) {
+            if (!dm.isStatic()) {
+                for (int i=0; i<instanceMethods.size(); i++) {
+                    if (instanceMethods.get(i).getName().equals(dm.getName()) && instanceMethods.get(i).getDescriptor().equals(dm.getDescriptor())) {
+                        // override inherited method
+                        instanceMethods.set(i, dm);
+                        continue outer;
+                    }
+                }
+                // (iii) instance method newly defined in this class/interface
+                instanceMethods.add(dm);
+            }
+        }
+        MethodElement[] instMethods = instanceMethods.toArray(new MethodElement[instanceMethods.size()]);
         synchronized (this) {
             validated = this.validated;
             if (validated != null) {
                 return validated.validate();
             }
             try {
-                validated = new ValidatedTypeDefinitionImpl(this, superType, interfaces, fields, methods, ctors, init, enclosingClass, enclosedClasses);
+                validated = new ValidatedTypeDefinitionImpl(this, superType, interfaces, fields, methods, instMethods, ctors, init, enclosingClass, enclosedClasses);
             } catch (VerifyFailedException e) {
                 this.validated = new VerificationFailedDefinitionImpl(this, e.getMessage(), e.getCause());
                 throw e;
             }
             // replace in the map *first*, *then* replace our local ref
-//            definingLoader.replaceTypeDefinition(name, this, verified);
+            // definingLoader.replaceTypeDefinition(name, this, verified);
             this.validated = validated;
             return validated.validate();
         }

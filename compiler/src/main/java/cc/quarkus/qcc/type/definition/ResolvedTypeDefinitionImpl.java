@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.type.definition;
 
+import cc.quarkus.qcc.type.definition.element.MethodElement;
+
 /**
  *
  */
@@ -26,6 +28,8 @@ final class ResolvedTypeDefinitionImpl extends DelegatingValidatedTypeDefinition
     public ValidatedTypeDefinition[] getInterfaces() {
         return delegate.getInterfaces();
     }
+
+    public MethodElement[] getInstanceMethods() { return delegate.getInstanceMethods(); }
 
     public ResolvedTypeDefinitionImpl validate() {
         return this;

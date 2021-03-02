@@ -48,6 +48,8 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
 
     FieldSet getStaticFieldSet();
 
+    MethodElement[] getInstanceMethods();
+
     NestedClassElement getEnclosingNestedClass();
 
     int getEnclosedNestedClassCount();
