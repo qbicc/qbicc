@@ -231,6 +231,9 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
 
     public LLValue visit(final Void param, final BitCastLiteral node) {
         LLValue input = map(node.getValue());
+        if (mapsToSameType(node.getValue().getType(), node.getType())) {
+            return input;
+        }
         LLValue fromType = map(node.getValue().getType());
         LLValue toType = map(node.getType());
         return Values.bitcastConstant(input, fromType, toType);
@@ -330,6 +333,13 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     public LLValue visitUnknown(final Void param, final Value node) {
         ctxt.error(Location.builder().setNode(node).build(), "llvm: Unrecognized value %s", node.getClass());
         return LLVM.FALSE;
+    }
+
+    public static boolean mapsToSameType(ValueType t1, ValueType t2) {
+        return t1.equals(t2)
+            || t1 instanceof IntegerType && t2 instanceof IntegerType && ((IntegerType) t1).getMinBits() == ((IntegerType) t2).getMinBits()
+            || t1 instanceof ReferenceType && t2 instanceof ReferenceType
+            || t1 instanceof PointerType && t2 instanceof PointerType && mapsToSameType(((PointerType) t1).getPointeeType(), ((PointerType) t2).getPointeeType());
     }
 
     // === TEMPORARY until heap serialization is functional ===
