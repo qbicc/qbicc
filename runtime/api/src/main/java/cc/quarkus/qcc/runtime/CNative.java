@@ -567,6 +567,29 @@ public final class CNative {
     }
 
     /**
+     * The special type which corresponds to a value whose type is a run time type ID.
+     */
+    public static final class type_id extends word {
+    }
+
+    /**
+     * Get the concrete type ID value from the referenced object.  Note that all reference arrays will have the same
+     * type ID, which does not reflect the element type.
+     *
+     * @param reference the object reference (must not be {@code null})
+     * @return the type ID of the object
+     */
+    public static native type_id type_id_of(Object reference);
+
+    /**
+     * Get the element type ID value of the referenced array.
+     *
+     * @param arrayReference the array reference (must not be {@code null})
+     * @return the array element type ID
+     */
+    public static native type_id element_type_id_of(Object[] arrayReference);
+
+    /**
      * The special type representing the platform-specific variable argument list.
      */
     @include("<stdarg.h>")
