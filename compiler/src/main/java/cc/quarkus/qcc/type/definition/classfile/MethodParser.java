@@ -1523,7 +1523,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     }
 
     private Value storeTruncate(Value v, TypeDescriptor desc) {
-        if (desc.equals(BaseTypeDescriptor.B) || desc.equals(BaseTypeDescriptor.Z)) {
+        if (desc.equals(BaseTypeDescriptor.Z)) {
+            return gf.truncate(v, ts.getBooleanType());
+        } else if (desc.equals(BaseTypeDescriptor.B)) {
             return gf.truncate(v, ts.getSignedInteger8Type());
         } else if (desc.equals(BaseTypeDescriptor.C)) {
             return gf.truncate(v, ts.getUnsignedInteger16Type());
