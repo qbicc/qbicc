@@ -75,9 +75,9 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        if (notVoidFunctionCall())
+        if (notVoidFunctionCall()) {
             super.appendTo(target);
-
+        }
         if (tailType != TailType.notail) {
             target.append(tailType.name()).append(' ');
         }
