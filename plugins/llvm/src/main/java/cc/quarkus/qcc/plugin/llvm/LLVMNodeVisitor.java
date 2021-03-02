@@ -69,6 +69,7 @@ import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
 import cc.quarkus.qcc.graph.schedule.Schedule;
+import cc.quarkus.qcc.machine.llvm.FastMathFlag;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
@@ -280,15 +281,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         IntCondition lessThanCondition = isSigned(left.getType()) ? IntCondition.slt : IntCondition.ult;
 
         LLValue booleanType = map(ctxt.getTypeSystem().getBooleanType());
+        LLValue integerType = map(ctxt.getTypeSystem().getSignedInteger32Type());
         return builder.select(
             booleanType,
             builder.icmp(lessThanCondition, inputType, llvmLeft, llvmRight).asLocal(),
-            inputType,
+            integerType,
             map(ctxt.getLiteralFactory().literalOf(-1)),
             builder.select(
                 booleanType,
                 builder.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal(),
-                inputType,
+                integerType,
                 map(ctxt.getLiteralFactory().literalOf(0)),
                 map(ctxt.getLiteralFactory().literalOf(1))
             ).asLocal()
@@ -297,12 +299,50 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
 
     @Override
     public LLValue visit(Void param, CmpG node) {
-        throw new RuntimeException("NYI");
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+
+        LLValue booleanType = map(ctxt.getTypeSystem().getBooleanType());
+        LLValue integerType = map(ctxt.getTypeSystem().getSignedInteger32Type());
+        return builder.select(
+            booleanType,
+            builder.fcmp(FloatCondition.ugt, inputType, llvmLeft, llvmRight).asLocal(),
+            integerType,
+            map(ctxt.getLiteralFactory().literalOf(1)),
+            builder.select(
+                booleanType,
+                builder.fcmp(FloatCondition.ult, inputType, llvmLeft, llvmRight).withFlags(Set.of(FastMathFlag.nnan)).asLocal(),
+                integerType,
+                map(ctxt.getLiteralFactory().literalOf(-1)),
+                map(ctxt.getLiteralFactory().literalOf(0))
+            ).asLocal()
+        ).asLocal();
     }
 
     @Override
     public LLValue visit(Void param, CmpL node) {
-        throw new RuntimeException("NYI");
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+
+        LLValue booleanType = map(ctxt.getTypeSystem().getBooleanType());
+        LLValue integerType = map(ctxt.getTypeSystem().getSignedInteger32Type());
+        return builder.select(
+            booleanType,
+            builder.fcmp(FloatCondition.ult, inputType, llvmLeft, llvmRight).asLocal(),
+            integerType,
+            map(ctxt.getLiteralFactory().literalOf(-1)),
+            builder.select(
+                booleanType,
+                builder.fcmp(FloatCondition.ugt, inputType, llvmLeft, llvmRight).withFlags(Set.of(FastMathFlag.nnan)).asLocal(),
+                integerType,
+                map(ctxt.getLiteralFactory().literalOf(1)),
+                map(ctxt.getLiteralFactory().literalOf(0))
+            ).asLocal()
+        ).asLocal();
     }
 
     public LLValue visit(final Void param, final IsEq node) {

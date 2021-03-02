@@ -13,6 +13,6 @@ final class FCmpImpl extends AbstractFastMathBinary {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        return appendTrailer(super.appendTo(target).append("fcmp").append(' ').append(cond.name()));
+        return appendTrailer(appendMathFlags(super.appendTo(target).append("fcmp")).append(' ').append(cond.name()));
     }
 }
