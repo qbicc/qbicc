@@ -104,35 +104,33 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                 processInstantiatedClass(type.getSuperClass(), false);
                 info.addLiveClass(type);
 
-                // For every defined virtual method that is not already enqueued,
+                // For every instance method that is not already enqueued,
                 // check to see if it is overriding an enqueued method and thus should be enqueued.
-                for (int i = 0; i < type.getMethodCount(); i++) {
-                    MethodElement defMethod = type.getMethod(i);
-                    if (!defMethod.isStatic() && !ctxt.wasEnqueued(defMethod)) {
-                        MethodElement overiddenMethod = type.getSuperClass().resolveMethodElementVirtual(defMethod.getName(), defMethod.getDescriptor());
+                for (MethodElement im: type.getInstanceMethods()) {
+                    if (!ctxt.wasEnqueued(im)) {
+                        MethodElement overiddenMethod = type.getSuperClass().resolveMethodElementVirtual(im.getName(), im.getDescriptor());
                         if (overiddenMethod != null && ctxt.wasEnqueued(overiddenMethod)) {
-                            ctxt.enqueue(defMethod);
-                            rtaLog.debugf("\tnewly reachable class: enqueued overriding method: %s", defMethod);
+                            ctxt.enqueue(im);
+                            rtaLog.debugf("\tnewly reachable class: enqueued overriding method: %s", im);
                         }
                     }
                 }
             }
 
+            // Extend the interface hierarchy
             for (ValidatedTypeDefinition i: type.getInterfaces()) {
                 processInstantiatedInterface(info, i);
                 info.addInterfaceEdge(type, i);
             }
 
-            // For every defined virtual method that is not already enqueued,
-            // check to see if it is implementing an enqueued interface method and thus should be enqueued.
-            for (int i = 0; i < type.getMethodCount(); i++) {
-                MethodElement defMethod = type.getMethod(i);
-                if (!defMethod.isStatic() && !ctxt.wasEnqueued(defMethod)) {
-                    for (ValidatedTypeDefinition si : type.getInterfaces()) {
-                        MethodElement implementedMethod = si.resolveMethodElementInterface(defMethod.getName(), defMethod.getDescriptor());
-                        if (implementedMethod != null && ctxt.wasEnqueued(implementedMethod)) {
-                            ctxt.enqueue(defMethod);
-                            rtaLog.debugf("\tnewly reachable class: enqueued implementing method:  %s", defMethod);
+            // For every enqueued interface method, make sure my implementation of that method is also enqueued.
+            for (ValidatedTypeDefinition i: type.getInterfaces()) {
+                for (MethodElement sig: i.getInstanceMethods()) {
+                    if (ctxt.wasEnqueued((sig))) {
+                        MethodElement impl = type.resolveMethodElementVirtual(sig.getName(), sig.getDescriptor());
+                        if (impl != null && !ctxt.wasEnqueued(impl)) {
+                            ctxt.enqueue(impl);
+                            rtaLog.debugf("\tnewly reachable class: enqueued implementing method:  %s", impl);
                         }
                     }
                 }
@@ -148,16 +146,16 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                 info.addInterfaceEdge(type, i);
             }
 
-            // For every defined virtual method that is not already enqueued,
-            // check to see if it is implementing an enqueued super-interface method and thus should be enqueued.
-            for (int i = 0; i < type.getMethodCount(); i++) {
-                MethodElement defMethod = type.getMethod(i);
-                if (!defMethod.isStatic() && !ctxt.wasEnqueued(defMethod)) {
+            // For every instance method that is not already enqueued,
+            // check to see if it has the same selector as an enqueued super-interface method and thus should be enqueued.
+            outer: for (MethodElement im: type.getInstanceMethods()) {
+                if (!ctxt.wasEnqueued(im)) {
                     for (ValidatedTypeDefinition si : type.getInterfaces()) {
-                        MethodElement implementedMethod = si.resolveMethodElementInterface(defMethod.getName(), defMethod.getDescriptor());
-                        if (implementedMethod != null && ctxt.wasEnqueued(implementedMethod)) {
-                            rtaLog.debugf("\tnewly reachable interface: enqueued implementing method:  %s", defMethod);
-                            ctxt.enqueue(defMethod);
+                        MethodElement sm = si.resolveMethodElementInterface(im.getName(), im.getDescriptor());
+                        if (sm != null && ctxt.wasEnqueued(sm)) {
+                            rtaLog.debugf("\tnewly reachable interface: enqueued implementing method:  %s", im);
+                            ctxt.enqueue(im);
+                            continue outer;
                         }
                     }
                 }
