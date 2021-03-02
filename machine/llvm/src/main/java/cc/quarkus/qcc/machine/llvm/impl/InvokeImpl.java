@@ -8,6 +8,7 @@ import cc.quarkus.qcc.machine.llvm.FastMathFlag;
 import cc.quarkus.qcc.machine.llvm.SignExtension;
 import cc.quarkus.qcc.machine.llvm.TailType;
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import io.smallrye.common.constraint.Assert;
 
@@ -78,7 +79,9 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        super.appendTo(target);
+        if (notVoidFunctionCall()) {
+            super.appendTo(target);
+        }
         if (tailType != TailType.notail) {
             target.append(tailType.name()).append(' ');
         }
@@ -110,6 +113,10 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
         target.append("unwind label ");
         unwind.appendTo(target);
         return appendTrailer(target);
+    }
+
+    private boolean notVoidFunctionCall() {
+        return !(type instanceof FunctionType) || Types.void_ != ((FunctionType) type).returnType;
     }
 
     static final class ArgImpl extends AbstractEmittable implements Argument {
