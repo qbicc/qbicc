@@ -176,8 +176,10 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
     }
 
     void appendAfterAddressSpace(final Appendable target) throws IOException {
-        returnType.appendTo(target);
-        target.append(' ');
+        if(returnType != null) {
+            returnType.appendTo(target);
+            target.append(' ');
+        }
         appendAfterReturnType(target);
     }
 
