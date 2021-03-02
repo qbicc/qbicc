@@ -23,6 +23,7 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     private final ValidatedTypeDefinition[] interfaces;
     private final ArrayList<FieldElement> fields;
     private final MethodElement[] methods;
+    private final MethodElement[] instanceMethods;
     private final ConstructorElement[] ctors;
     private final InitializerElement init;
     private final FieldSet staticFieldSet;
@@ -33,12 +34,13 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     private int typeId = -1;
     private int maximumSubtypeId = -1;
 
-    ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
+    ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
         this.delegate = delegate;
         this.superType = superType;
         this.interfaces = interfaces;
         this.fields = fields;
         this.methods = methods;
+        this.instanceMethods = instanceMethods;
         this.ctors = ctors;
         this.init = init;
         this.enclosingClass = enclosingClass;
@@ -84,6 +86,8 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     public ValidatedTypeDefinition[] getInterfaces() {
         return interfaces.clone();
     }
+
+    public MethodElement[] getInstanceMethods() { return instanceMethods; }
 
     public FieldSet getStaticFieldSet() {
         return staticFieldSet;

@@ -67,21 +67,10 @@ public class DispatchTables {
     void buildFilteredVTable(ValidatedTypeDefinition cls) {
         vtLog.debugf("Building VTable for %s", cls.getDescriptor());
 
-        MethodElement[] inherited = cls.hasSuperClass() ? getVTableInfo(cls.getSuperClass()).getVtable() : MethodElement.NO_METHODS;
-        ArrayList<MethodElement> vtableVector = new ArrayList<>(List.of(inherited));
-        vtLog.debugf("\t inheriting %d methods", inherited.length);
-        outer: for (int i=0; i<cls.getMethodCount(); i++) {
-            MethodElement m = cls.getMethod(i);
-            if (!m.isStatic() && ctxt.wasEnqueued(m)) {
-                for (int j=0; j<inherited.length; j++) {
-                    if (m.getName().equals(inherited[j].getName()) && m.getDescriptor().equals(inherited[j].getDescriptor())) {
-                        vtLog.debugf("\tfound override for %s%s", m.getName(), m.getDescriptor().toString());
-                        ctxt.registerEntryPoint(m);
-                        vtableVector.set(j, m);
-                        continue  outer;
-                    }
-                }
-                vtLog.debugf("\tadded new method %s%s", m.getName(), m.getDescriptor().toString());
+        ArrayList<MethodElement> vtableVector = new ArrayList<>();
+        for (MethodElement m: cls.getInstanceMethods()) {
+            if (ctxt.wasEnqueued(m)) {
+                vtLog.debugf("\tadding reachable method %s%s", m.getName(), m.getDescriptor().toString());
                 ctxt.registerEntryPoint(m);
                 vtableVector.add(m);
             }
@@ -103,47 +92,12 @@ public class DispatchTables {
     }
 
     void buildFilteredITableForInterface(ValidatedTypeDefinition cls) {
-        if (itables.containsKey(cls)) {
-            return; // already built; possible because we aren't doing a coordinated topological traversal of the interface hierarchy.
-        }
-
-        // First, ensure my ancestors have already been computed computed
-        for (ValidatedTypeDefinition si : cls.getInterfaces()) {
-            if (!itables.containsKey(si)) {
-                buildFilteredITableForInterface(si);
-            }
-        }
-
-        // Now we can really start...
         vtLog.debugf("Building ITable for %s", cls.getDescriptor());
 
-        // Accumulate all unique selectors from super-interfaces
         ArrayList<MethodElement> itableVector = new ArrayList<>();
-        for (ValidatedTypeDefinition si : cls.getInterfaces()) {
-            ITableInfo siInfo = getITableInfo(si);
-            outer:
-            for (MethodElement m : siInfo.getItable()) {
-                for (MethodElement already : itableVector) {
-                    if (already.getName().equals(m.getName()) && already.getDescriptor().equals(m.getDescriptor())) {
-                        continue outer;
-                    }
-                }
-                vtLog.debugf("\tadded inherited selector %s%s from %s", m.getName(), m.getDescriptor().toString(), si.getDescriptor().getClassName());
-                itableVector.add(m);
-            }
-        }
-
-        // Add any additional unique selectors declared by cls
-        outer:
-        for (int i = 0; i < cls.getMethodCount(); i++) {
-            MethodElement m = cls.getMethod(i);
-            if (!m.isStatic() && ctxt.wasEnqueued(m)) {
-                for (MethodElement already : itableVector) {
-                    if (already.getName().equals(m.getName()) && already.getDescriptor().equals(m.getDescriptor())) {
-                        continue outer;
-                    }
-                }
-                vtLog.debugf("\tadded new declared selector %s%s", m.getName(), m.getDescriptor().toString());
+        for (MethodElement m: cls.getInstanceMethods()) {
+            if (ctxt.wasEnqueued(m)) {
+                vtLog.debugf("\tadding invokable signature %s%s", m.getName(), m.getDescriptor().toString());
                 itableVector.add(m);
             }
         }
