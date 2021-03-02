@@ -13,6 +13,9 @@ import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.ValueHandleVisitor;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.PrimitiveArrayObjectType;
+import cc.quarkus.qcc.type.ReferenceArrayObjectType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 
@@ -118,7 +121,15 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
                     ObjectType upperBound = (ObjectType) inputHandle.getValueType();
                     if (upperBound instanceof ArrayObjectType) {
                         FieldElement contentField = layout.getArrayContentField(upperBound);
-                        return b.elementOf(b.transform(b.instanceFieldOf(inputHandle, contentField)), node.getIndex());
+                        if (upperBound instanceof ReferenceArrayObjectType) {
+                            ValueHandle elementHandle = b.elementOf(b.transform(b.instanceFieldOf(inputHandle, contentField)), node.getIndex());
+                            Value addr = b.addressOf(elementHandle);
+                            ReferenceType elementType = ((ReferenceArrayObjectType) upperBound).getElementType();
+                            return b.transform(b.pointerHandle(b.bitCast(addr, elementType.getPointer())));
+                        } else {
+                            assert upperBound instanceof PrimitiveArrayObjectType;
+                            return b.elementOf(b.transform(b.instanceFieldOf(inputHandle, contentField)), node.getIndex());
+                        }
                     }
                 }
                 // normal array, probably

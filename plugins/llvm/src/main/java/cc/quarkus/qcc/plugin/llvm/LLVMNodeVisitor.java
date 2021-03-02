@@ -86,7 +86,6 @@ import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
@@ -492,16 +491,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     }
 
     public LLValue visit(final Void param, final BitCast node) {
-        Type javaInputType = node.getInput().getType();
-        Type javaOutputType = node.getType();
-        // skip bitcasts between same types
+        ValueType javaInputType = node.getInput().getType();
+        ValueType javaOutputType = node.getType();
         LLValue llvmInput = map(node.getInput());
-        if (javaInputType instanceof IntegerType && javaOutputType instanceof IntegerType) {
-            IntegerType in = (IntegerType) javaInputType;
-            IntegerType out = (IntegerType) javaOutputType;
-            if (in.getMinBits() == out.getMinBits()) {
-                return llvmInput;
-            }
+        // skip bitcasts between same types
+        if (LLVMModuleNodeVisitor.mapsToSameType(javaInputType, javaOutputType)) {
+            return llvmInput;
         }
         LLValue inputType = map(javaInputType);
         LLValue outputType = map(javaOutputType);
