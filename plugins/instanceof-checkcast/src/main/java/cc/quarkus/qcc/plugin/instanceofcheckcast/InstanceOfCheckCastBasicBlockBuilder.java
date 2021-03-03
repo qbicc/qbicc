@@ -88,7 +88,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
          */
         final BlockLabel notNullLabel = new BlockLabel();
         final BlockLabel afterCheckLabel = new BlockLabel();
-        final ZeroInitializerLiteral nullLiteral = lf.zeroInitializerLiteralOfType(actualType);
+        final ZeroInitializerLiteral nullLiteral = lf.zeroInitializerLiteralOfType(classFileType);
         
         BasicBlock incomingBlock = if_(isNe(input, nullLiteral), notNullLabel, afterCheckLabel);
         begin(notNullLabel);
