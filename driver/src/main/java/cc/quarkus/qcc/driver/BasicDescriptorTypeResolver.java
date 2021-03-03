@@ -3,7 +3,9 @@ package cc.quarkus.qcc.driver;
 import java.util.Arrays;
 import java.util.List;
 
+import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.ReferenceArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -68,6 +70,25 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
             }
             ValueType elementType = classContext.resolveTypeFromDescriptor(elemType, typeParamCtxt, elemSig, visible.inArray(), invisible.inArray());
             return elementType instanceof ReferenceType ? ((ReferenceType) elementType).getReferenceArrayObject().getReference() : ((WordType) elementType).getPrimitiveArrayObjectType().getReference();
+        }
+    }
+
+    public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
+        if (descriptor instanceof BaseTypeDescriptor) {
+            throw new ResolutionFailedException("Cannot resolve type as array " + descriptor);
+        } else if (descriptor instanceof ClassTypeDescriptor) {
+            throw new ResolutionFailedException("Cannot resolve type as array " + descriptor);
+        } else {
+            assert descriptor instanceof ArrayTypeDescriptor;
+            TypeDescriptor elemType = ((ArrayTypeDescriptor) descriptor).getElementTypeDescriptor();
+            TypeSignature elemSig;
+            if (signature instanceof ArrayTypeSignature) {
+                elemSig = ((ArrayTypeSignature) signature).getElementTypeSignature();
+            } else {
+                elemSig = TypeSignature.synthesize(classContext, elemType);
+            }
+            ValueType elementType = classContext.resolveTypeFromDescriptor(elemType, typeParamCtxt, elemSig, visible.inArray(), invisible.inArray());
+            return elementType instanceof ReferenceType ? ((ReferenceType) elementType).getReferenceArrayObject() : ((WordType) elementType).getPrimitiveArrayObjectType();
         }
     }
 

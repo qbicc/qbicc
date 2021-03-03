@@ -11,6 +11,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.interpreter.VmObject;
+import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -130,6 +131,10 @@ final class ClassContextImpl implements ClassContext {
 
     public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
         return descriptorTypeResolver.resolveTypeFromDescriptor(descriptor, typeParamCtxt, signature, visibleAnnotations, invisibleAnnotations);
+    }
+
+    public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
+        return descriptorTypeResolver.resolveArrayObjectTypeFromDescriptor(descriptor, typeParamCtxt, signature, visible, invisible);
     }
 
     public FunctionType resolveMethodFunctionType(MethodDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisibleAnnotations) {
