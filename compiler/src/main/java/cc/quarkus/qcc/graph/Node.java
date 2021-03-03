@@ -559,7 +559,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final InstanceOf node) {
-                return param.getBlockBuilder().instanceOf(param.copyValue(node.getInstance()), node.getCheckType());
+                return param.getBlockBuilder().instanceOf(param.copyValue(node.getInstance()), node.getClassFileType(), node.getCheckType());
             }
 
             public Value visit(final Copier param, final IntegerLiteral node) {

@@ -170,7 +170,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 if (single) {
                     block = new BlockLabel();
                 }
-                BasicBlock innerFrom = gf.if_(gf.instanceOf(phi, exType), block, delegate.getHandler());
+                // Safe to pass the upperBound as the classFileType to the instanceOf node here as catch blocks can
+                // only catch subclasses of Throwable as enforced by the verifier
+                BasicBlock innerFrom = gf.if_(gf.instanceOf(phi, exType.getUpperBound(), exType), block, delegate.getHandler());
                 // enter the delegate handler
                 delegate.enterHandler(innerFrom, phi);
                 // enter our handler
