@@ -44,7 +44,14 @@ public final class Main {
             args[i] = utf8zToJavaString(argv[i].cast());
         }
         String execName = utf8zToJavaString(argv[0].cast());
-        userMain(args);
+        try {
+            userMain(args);
+        } catch (Throwable t) {
+            Thread.UncaughtExceptionHandler handler = Thread.currentThread().getUncaughtExceptionHandler();
+            if (handler != null) {
+                handler.uncaughtException(Thread.currentThread(), t);
+            }
+        }
         if (Build.Target.isPosix()) {
             pthread_exit(zero());
         }
