@@ -2,6 +2,7 @@ package cc.quarkus.qcc.type.definition;
 
 import java.util.List;
 
+import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
@@ -57,6 +58,8 @@ public interface DescriptorTypeResolver {
 
     ValueType resolveTypeFromMethodDescriptor(TypeDescriptor descriptor, List<ParameterizedSignature> typeParamCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations);
 
+    ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible);
+        
     interface Delegating extends DescriptorTypeResolver {
         DescriptorTypeResolver getDelegate();
 
@@ -66,6 +69,10 @@ public interface DescriptorTypeResolver {
 
         default ValueType resolveTypeFromDescriptor(TypeDescriptor descriptor, List<ParameterizedSignature> typeParamCtxt, TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations) {
             return getDelegate().resolveTypeFromDescriptor(descriptor, typeParamCtxt, signature, visibleAnnotations, invisibleAnnotations);
+        }
+
+        default public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
+            return getDelegate().resolveArrayObjectTypeFromDescriptor(descriptor, typeParamCtxt, signature, visible, invisible);
         }
 
         default FunctionType resolveMethodFunctionType(MethodDescriptor descriptor, List<ParameterizedSignature> typeParamCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, List<TypeAnnotationList> invisibleAnnotations) {
