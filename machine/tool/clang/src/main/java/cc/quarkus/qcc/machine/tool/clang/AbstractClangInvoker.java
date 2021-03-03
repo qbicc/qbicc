@@ -57,13 +57,15 @@ abstract class AbstractClangInvoker implements MessagingToolInvoker {
                 if (matcher.matches()) {
                     String levelStr = matcher.group(4);
                     ToolMessageHandler.Level level;
+                    String msg;
                     switch (levelStr) {
-                        case "note": level = ToolMessageHandler.Level.INFO; break;
-                        case "warning": level = ToolMessageHandler.Level.WARNING; break;
-                        default: level = ToolMessageHandler.Level.ERROR; break;
+                        case "note": level = ToolMessageHandler.Level.INFO; msg = matcher.group(5); break;
+                        case "warning": level = ToolMessageHandler.Level.WARNING; msg = matcher.group(5); break;
+                        case "error": level = ToolMessageHandler.Level.ERROR; msg = matcher.group(5); break;
+                        default: level = ToolMessageHandler.Level.ERROR; msg = levelStr; break;
                     }
                     // don't log potentially misleading line numbers
-                    handler.handleMessage(this, level, matcher.group(1), Integer.parseInt(matcher.group(2)), -1, matcher.group(5));
+                    handler.handleMessage(this, level, matcher.group(1), Integer.parseInt(matcher.group(2)), -1, msg);
                 }
             }
         }
