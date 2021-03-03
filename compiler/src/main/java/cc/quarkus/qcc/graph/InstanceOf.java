@@ -3,6 +3,7 @@ package cc.quarkus.qcc.graph;
 import java.util.Objects;
 
 import cc.quarkus.qcc.type.BooleanType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
@@ -13,11 +14,13 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
     private final Value input;
     private final ValueType checkType;
     private final BooleanType booleanType;
+    private final ObjectType classFileType;
 
-    InstanceOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, final ValueType checkType, final BooleanType booleanType) {
+    InstanceOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, final ValueType checkType, final ObjectType classFileType, final BooleanType booleanType) {
         super(callSite, element, line, bci);
         this.input = input;
         this.checkType = checkType;
+        this.classFileType = classFileType;
         this.booleanType = booleanType;
     }
 
@@ -51,6 +54,10 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
 
     public BooleanType getType() {
         return booleanType;
+    }
+    
+    public ObjectType getClassFileType() {
+        return classFileType;
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
