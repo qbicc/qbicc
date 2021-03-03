@@ -49,4 +49,11 @@ public class RegisterHelperBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
         return super.instanceOf(input, desc);
     }
+
+    public Value classOf(final Value instance) {
+        MethodElement methodElement = ctxt.getVMHelperMethod("classof_from_typeid");
+        ctxt.registerEntryPoint(methodElement);
+        ctxt.enqueue(methodElement);
+        return super.classOf(instance);
+    }
 }
