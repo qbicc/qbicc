@@ -19,12 +19,12 @@ import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.InterfaceObjectType;
 import cc.quarkus.qcc.type.NullType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 
@@ -58,7 +58,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         return super.narrow(value, toType);
     }
 
-    public Value instanceOf(final Value input, final ValueType expectedType) {
+    public Value instanceOf(final Value input, ObjectType classFileType, final ValueType expectedType) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         // "null" instanceof <X> is always false
         if (NullType.isAlwaysNull(input)) {
@@ -94,60 +94,54 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         BasicBlock incomingBlock = if_(isNe(input, nullLiteral), notNullLabel, afterCheckLabel);
         begin(notNullLabel);
         Value result = null;
-        if (expectedType instanceof ReferenceType) {
-            ReferenceType refExpectedType = (ReferenceType) expectedType;
-            if (refExpectedType.getUpperBound() instanceof ArrayObjectType) {
-                  // 1 - expectedType statically known to be an array class
-                // TODO
-                Object o = refExpectedType.getUpperBound();
-                o.getClass();
-                result = lf.literalOf(false);
+        if (classFileType instanceof ArrayObjectType) {
+                // 1 - expectedType statically known to be an array class
+            // TODO
+            result = lf.literalOf(false);
+        } else if (classFileType instanceof InterfaceObjectType) {
+            // 2 - expectedType statically known to be an interface
+            // TODO
+            result = lf.literalOf(false);
+        } else {
+            // 3 - expectedType statically known to be a class
+            // There are two sub cases when dealing with classes:
+            // A - leaf classes that have no subclasses can be a direct compare
+            // B - non-leaf classes need a subtract + compare
+            ClassObjectType cotExpectedType = (ClassObjectType)classFileType;
+            ValidatedTypeDefinition vtdExpectedType = cotExpectedType.getDefinition().validate();
+            Value inputTypeId = typeIdOf(referenceHandle(input));
+            final int typeId = vtdExpectedType.getTypeId();
+            final int maxSubId = vtdExpectedType.getMaximumSubtypeId();
+            Literal vtdTypeId = lf.literalOf(typeId);
+            if (typeId == maxSubId) {
+                // "leaf" class case - use direct comparison
+                result = super.isEq(inputTypeId, vtdTypeId);
             } else {
-                ClassObjectType cotExpectedType = (ClassObjectType)refExpectedType.getUpperBound();
-                ValidatedTypeDefinition vtdExpectedType = cotExpectedType.getDefinition().validate();
-                if (vtdExpectedType.isInterface()) {
-                    // 2 - expectedType statically known to be an interface
-                    // TODO
-                    result = lf.literalOf(false);
-                } else {
-                    // 3 - expectedType statically known to be a class
-                    // There are two sub cases when dealing with classes:
-                    // A - leaf classes that have no subclasses can be a direct compare
-                    // B - non-leaf classes need a subtract + compare
-
-                    Value inputTypeId = typeIdOf(referenceHandle(input));
-                    final int typeId = vtdExpectedType.getTypeId();
-                    final int maxSubId = vtdExpectedType.getMaximumSubtypeId();
-                    Literal vtdTypeId = lf.literalOf(typeId);
-                    if (typeId == maxSubId) {
-                        // "leaf" class case - use direct comparison
-                        result = super.isEq(inputTypeId, vtdTypeId);
-                    } else {
-                        // "non-leaf" class case
-                        // (instanceId - castClassId <= (castClassId.range - castClassId)
-                        IntegerLiteral allowedRange = lf.literalOf(maxSubId - typeId);
-                        Value subtract = sub(inputTypeId, vtdTypeId);
-                        result = super.isLe(subtract, allowedRange);
-                    }
-                }
+                // "non-leaf" class case
+                // (instanceId - castClassId <= (castClassId.range - castClassId)
+                IntegerLiteral allowedRange = lf.literalOf(maxSubId - typeId);
+                Value subtract = sub(inputTypeId, vtdTypeId);
+                result = super.isLe(subtract, allowedRange);
             }
-            goto_(afterCheckLabel);
-            begin(afterCheckLabel);
-
-            PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), afterCheckLabel);
-            phi.setValueForBlock(ctxt, getCurrentElement(), incomingBlock, lf.literalOf(false));
-            phi.setValueForBlock(ctxt, getCurrentElement(), notNullLabel, result);
-            return phi;
         }
+        goto_(afterCheckLabel);
+        begin(afterCheckLabel);
 
+        PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), afterCheckLabel);
+        phi.setValueForBlock(ctxt, getCurrentElement(), incomingBlock, lf.literalOf(false));
+        phi.setValueForBlock(ctxt, getCurrentElement(), notNullLabel, result);
+        return phi;
 
-        if (PLUGIN_DISABLED) {
-            return super.instanceOf(input, expectedType);
-        }
-        // This code is not yet enabled.  Committing in this state so it's available
+    }
+
+    Value generateCallToRuntimeHelper(final Value input, ObjectType classFileType, final ValueType expectedType) {
+                // This code is not yet enabled.  Committing in this state so it's available
         // and so the plugin is included in the list of plugins.
 
-
+        if (PLUGIN_DISABLED) {
+            return super.instanceOf(input, classFileType, expectedType);
+        }
+        LiteralFactory lf = ctxt.getLiteralFactory();
         ctxt.info("Lowering instanceof:" + expectedType.getClass());
         // Value result = super.instanceOf(input, expectedType);
         // convert InstanceOf into a new FunctionCall()
