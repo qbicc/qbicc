@@ -26,7 +26,7 @@ public class NativeTypeResolver implements DescriptorTypeResolver.Delegating {
     }
 
     public ValueType resolveTypeFromClassName(final String packageName, final String internalName) {
-        if (packageName.equals(Native.NATIVE_PKG) && internalName.equals(Native.TYPE_ID_INT_NAME)) {
+        if (packageName.equals(Native.NATIVE_PKG) && internalName.equals(Native.TYPE_ID)) {
             return classCtxt.findDefinedType("java/lang/Object").validate().getClassType().getReference().getTypeType();
         }
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
