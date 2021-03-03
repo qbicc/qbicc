@@ -184,7 +184,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
         ValueType type = input.getType();
         LiteralFactory lf = ctxt.getLiteralFactory();
-        if (type instanceof IntegerType || type instanceof FloatType || type instanceof PointerType) {
+        if (type instanceof IntegerType || type instanceof FloatType || type instanceof PointerType || type instanceof TypeType) {
             TypeSystem ts = ctxt.getTypeSystem();
             switch (name) {
                 case "byteValue": {
