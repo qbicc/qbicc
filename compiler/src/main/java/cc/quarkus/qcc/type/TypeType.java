@@ -43,6 +43,6 @@ public final class TypeType extends ValueType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        return upperBound.toString(b.append("typeof").append('.'));
+        return upperBound.toFriendlyString(b.append("typeof").append('.'));
     }
 }
