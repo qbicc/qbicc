@@ -65,6 +65,11 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
+    static void raiseAbstractMethodError() {
+        throw new AbstractMethodError();
+    }
+
+    // TODO: mark this with a "NoInline" annotation
     static void raiseArithmeticException() {
         throw new ArithmeticException();
     }
