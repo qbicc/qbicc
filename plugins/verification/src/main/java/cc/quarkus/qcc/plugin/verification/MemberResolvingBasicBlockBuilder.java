@@ -29,6 +29,7 @@ import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.generic.TypeSignature;
+import io.smallrye.common.constraint.Assert;
 
 /**
  * A block builder that resolves member references to their elements.
@@ -62,9 +63,20 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
-        ClassContext cc = getClassContext();
-        // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-        return instanceOf(input, cc.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty()));
+        ClassContext cc = getClassContext(); 
+        // fetch the classfile's view of the type (or as close as we can synthesize) to save in the InstanceOf node
+        ObjectType ot = null;
+        if (desc instanceof ArrayTypeDescriptor) {
+            ot = cc.resolveArrayObjectTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        } else if (desc instanceof ClassTypeDescriptor) {
+            ClassTypeDescriptor classDesc = (ClassTypeDescriptor) desc;
+            DefinedTypeDefinition definedType = cc.findDefinedType(classDesc.getPackageName() + "/" + classDesc.getClassName());
+            ot = definedType.validate().getType();
+        } else {
+            // this comes from the classfile - it better be something the verifier allows in instanceof/checkcast expressions
+            Assert.unreachableCode();
+        }
+        return instanceOf(input, ot);
     }
 
     public Value new_(final ClassTypeDescriptor desc) {

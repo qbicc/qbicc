@@ -8,8 +8,7 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.ObjectType;
 
 /**
  * A BasicBlockBuilder which registers the necessary helper calls with the QCC compiler.
@@ -36,7 +35,7 @@ public class RegisterHelperBasicBlockBuilder extends DelegatingBasicBlockBuilder
         return vtd;
     }
 
-    public Value instanceOf(final Value input, final ValueType expectedType) {
+    public Value instanceOf(final Value input, final ObjectType expectedType) {
         if (!InstanceOfCheckCastBasicBlockBuilder.PLUGIN_DISABLED) {
             // Only force loading if the plugin is enabled
             MethodElement methodElement = ctxt.getVMHelperMethod("fast_instanceof");
@@ -44,10 +43,6 @@ public class RegisterHelperBasicBlockBuilder extends DelegatingBasicBlockBuilder
             ctxt.enqueue(methodElement);
         }
         return super.instanceOf(input, expectedType);
-    }
-
-    public Value instanceOf(final Value input, final TypeDescriptor desc) {
-        return super.instanceOf(input, desc);
     }
 
     public Value classOf(final Value instance) {

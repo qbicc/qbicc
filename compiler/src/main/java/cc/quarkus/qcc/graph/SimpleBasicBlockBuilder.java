@@ -327,7 +327,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Convert(callSite, element, line, bci, value, toType);
     }
 
-    public Value instanceOf(final Value input, final ValueType expectedType) {
+    public Value instanceOf(final Value input, final ObjectType expectedType) {
         return new InstanceOf(callSite, element, line, bci, input, expectedType, typeSystem.getBooleanType());
     }
 

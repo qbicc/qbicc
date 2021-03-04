@@ -471,7 +471,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().valueConvert(value, toType);
     }
 
-    public Value instanceOf(final Value input, final ValueType expectedType) {
+    public Value instanceOf(final Value input, final ObjectType expectedType) {
         return getDelegate().instanceOf(input, expectedType);
     }
 

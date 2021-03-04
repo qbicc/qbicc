@@ -63,12 +63,13 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.narrow(value, orig);
     }
 
-    public Value instanceOf(final Value input, TypeDescriptor desc) {
-        while (desc instanceof ArrayTypeDescriptor) {
-            desc = ((ArrayTypeDescriptor) desc).getElementTypeDescriptor();
+    public Value instanceOf(final Value input, final TypeDescriptor desc) {
+        TypeDescriptor baseDescriptor = desc;
+        while (baseDescriptor instanceof ArrayTypeDescriptor) {
+            baseDescriptor = ((ArrayTypeDescriptor) baseDescriptor).getElementTypeDescriptor();
         }
-        if (desc instanceof ClassTypeDescriptor) {
-            if (! loadClass((ClassTypeDescriptor) desc)) {
+        if (baseDescriptor instanceof ClassTypeDescriptor) {
+            if (! loadClass((ClassTypeDescriptor) baseDescriptor)) {
                 // no need to continue
                 throw new BlockEarlyTermination(noClassDefFound());
             }
