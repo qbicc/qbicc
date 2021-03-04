@@ -63,10 +63,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
-        ClassContext cc = getClassContext();
-        // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-        ValueType vt = cc.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
-        
+        ClassContext cc = getClassContext(); 
         // fetch the classfile's view of the type (or as close as we can synthesize) to save in the InstanceOf node
         ObjectType ot = null;
         if (desc instanceof ArrayTypeDescriptor) {
@@ -79,7 +76,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // this comes from the classfile - it better be something the verifier allows in instanceof/checkcast expressions
             Assert.unreachableCode();
         }
-        return instanceOf(input, ot, vt);
+        return instanceOf(input, ot);
     }
 
     public Value new_(final ClassTypeDescriptor desc) {

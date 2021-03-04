@@ -16,8 +16,6 @@ import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.ArrayObjectType;
@@ -57,7 +55,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         return super.narrow(value, toType);
     }
 
-    public Value instanceOf(final Value input, ObjectType classFileType, final ValueType expectedType) {
+    public Value instanceOf(final Value input, final ObjectType expectedType) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         // "null" instanceof <X> is always false
         if (input instanceof ZeroInitializerLiteral) {
@@ -65,18 +63,14 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         }
         
         // statically true instanceof checks are equal to x != null
-        if (expectedType instanceof ReferenceType) {
-            ReferenceType refExpectedType = (ReferenceType) expectedType;
-            ValueType actualType = input.getType();
-            if (actualType instanceof ReferenceType) {
-                if (((ReferenceType) actualType).instanceOf(refExpectedType)) {
-                    // the reference type matches statically
-                    return super.isNe(input, lf.zeroInitializerLiteralOfType(actualType));
-                }
+        ValueType actualType = input.getType();
+        if (actualType instanceof ReferenceType) {
+            if (((ReferenceType) actualType).instanceOf(expectedType)) {
+                // the input is known to be an instance
+                return super.isNe(input, lf.zeroInitializerLiteralOfType(actualType));
             }
         }
-
-        
+    
         /* Set up the runtime checks here for the 3 major cases:
          * 1 - expectedType statically known to be an array class
          * 2 - expectedType statically known to be an interface
@@ -88,16 +82,16 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
          */
         final BlockLabel notNullLabel = new BlockLabel();
         final BlockLabel afterCheckLabel = new BlockLabel();
-        final ZeroInitializerLiteral nullLiteral = lf.zeroInitializerLiteralOfType(classFileType);
+        final ZeroInitializerLiteral nullLiteral = lf.zeroInitializerLiteralOfType(expectedType);
         
         BasicBlock incomingBlock = if_(isNe(input, nullLiteral), notNullLabel, afterCheckLabel);
         begin(notNullLabel);
         Value result = null;
-        if (classFileType instanceof ArrayObjectType) {
+        if (expectedType instanceof ArrayObjectType) {
             // 1 - expectedType statically known to be an array class
             // TODO
             result = lf.literalOf(false);
-        } else if (classFileType instanceof InterfaceObjectType) {
+        } else if (expectedType instanceof InterfaceObjectType) {
             // 2 - expectedType statically known to be an interface
             // TODO
             result = lf.literalOf(false);
@@ -106,7 +100,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             // There are two sub cases when dealing with classes:
             // A - leaf classes that have no subclasses can be a direct compare
             // B - non-leaf classes need a subtract + compare
-            ClassObjectType cotExpectedType = (ClassObjectType)classFileType;
+            ClassObjectType cotExpectedType = (ClassObjectType)expectedType;
             ValidatedTypeDefinition vtdExpectedType = cotExpectedType.getDefinition().validate();
             Value inputTypeId = typeIdOf(referenceHandle(input));
             final int typeId = vtdExpectedType.getTypeId();
@@ -133,12 +127,12 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
 
     }
 
-    Value generateCallToRuntimeHelper(final Value input, ObjectType classFileType, final ValueType expectedType) {
+    Value generateCallToRuntimeHelper(final Value input, ObjectType expectedType) {
         // This code is not yet enabled.  Committing in this state so it's available
         // and so the plugin is included in the list of plugins.
 
         if (PLUGIN_DISABLED) {
-            return super.instanceOf(input, classFileType, expectedType);
+            return super.instanceOf(input, expectedType);
         }
         LiteralFactory lf = ctxt.getLiteralFactory();
         ctxt.info("Lowering instanceof:" + expectedType.getClass());

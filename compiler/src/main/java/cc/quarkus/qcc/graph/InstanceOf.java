@@ -4,7 +4,6 @@ import java.util.Objects;
 
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
@@ -12,19 +11,22 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
  */
 public final class InstanceOf extends AbstractValue implements InstanceOperation {
     private final Value input;
-    private final ValueType checkType;
+    private final ObjectType checkType;
     private final BooleanType booleanType;
-    private final ObjectType classFileType;
 
-    InstanceOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, final ValueType checkType, final ObjectType classFileType, final BooleanType booleanType) {
+    InstanceOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, final ObjectType checkType, final BooleanType booleanType) {
         super(callSite, element, line, bci);
         this.input = input;
         this.checkType = checkType;
-        this.classFileType = classFileType;
         this.booleanType = booleanType;
     }
 
-    public ValueType getCheckType() {
+    /**
+     * This is the type listed in the classfile that we
+     * are doing the instanceof against.
+     * @return the ObjectType we're checking against
+     */
+    public ObjectType getCheckType() {
         return checkType;
     }
 
@@ -54,10 +56,6 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
 
     public BooleanType getType() {
         return booleanType;
-    }
-    
-    public ObjectType getClassFileType() {
-        return classFileType;
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

@@ -9,7 +9,6 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.ValueType;
 
 /**
  * A BasicBlockBuilder which registers the necessary helper calls with the QCC compiler.
@@ -36,14 +35,14 @@ public class RegisterHelperBasicBlockBuilder extends DelegatingBasicBlockBuilder
         return vtd;
     }
 
-    public Value instanceOf(final Value input, ObjectType classFileType, final ValueType expectedType) {
+    public Value instanceOf(final Value input, final ObjectType expectedType) {
         if (!InstanceOfCheckCastBasicBlockBuilder.PLUGIN_DISABLED) {
             // Only force loading if the plugin is enabled
             MethodElement methodElement = ctxt.getVMHelperMethod("fast_instanceof");
             ctxt.registerEntryPoint(methodElement);
             ctxt.enqueue(methodElement);
         }
-        return super.instanceOf(input, classFileType, expectedType);
+        return super.instanceOf(input, expectedType);
     }
 
     public Value classOf(final Value instance) {

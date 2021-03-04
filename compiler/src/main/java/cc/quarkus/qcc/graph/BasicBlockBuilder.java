@@ -227,7 +227,7 @@ public interface BasicBlockBuilder {
 
     Value valueConvert(Value value, WordType toType);
 
-    Value instanceOf(Value input, ObjectType classFileType, ValueType expectedType);
+    Value instanceOf(Value input, ObjectType expectedType);
 
     Value instanceOf(Value input, TypeDescriptor desc);
 
