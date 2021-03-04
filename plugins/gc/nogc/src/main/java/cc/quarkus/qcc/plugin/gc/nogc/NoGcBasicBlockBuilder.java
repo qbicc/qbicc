@@ -10,12 +10,17 @@ import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
+import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.PhysicalObjectType;
+import cc.quarkus.qcc.type.ReferenceArrayObjectType;
+import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
@@ -60,18 +65,8 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             curClass = curClass.getSuperClass();
         }
 
-        // now initialize the object header (which is defined via instance fields of java.lang.Object)
-        FieldElement typeId = layout.getObjectTypeIdField();
-        curClass.eachField(f -> {
-            if (!f.isStatic()) {
-                if (f.equals(typeId)) {
-                    store(instanceFieldOf(oopHandle, typeId), lf.literalOfType(type.getDefinition().validate().getType()), MemoryAtomicityMode.UNORDERED);
-                } else {
-                    // Currently there aren't any fields besides typeId, but protect ourselves from hard to find bugs later...
-                    store(instanceFieldOf(oopHandle, f), lf.zeroInitializerLiteralOfType(f.getType(List.of())), MemoryAtomicityMode.UNORDERED);
-                }
-            }
-            });
+        // now initialize the object header (aka fields of java.lang.Object)
+        initializeObjectHeader(oopHandle, layout, type.getDefinition().validate().getType());
 
         return oop;
     }
@@ -90,10 +85,19 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             size = extend(size, ctxt.getTypeSystem().getSignedInteger64Type());
         }
         Value realSize = add(baseSize, multiply(lf.literalOf(arrayType.getElementType().getSize()), size));
-        Value ptrVal = invokeValueStatic(noGc.getAllocateMethod(), List.of(realSize, align));
-        // todo: zero-fill...
-        // todo: initialize object header
-        return valueConvert(ptrVal, arrayType.getReference());
+        Value rawMem = invokeValueStatic(noGc.getAllocateMethod(), List.of(realSize, align));
+
+        Value ptrVal = invokeValueStatic(noGc.getZeroMethod(), List.of(rawMem, realSize));
+        Value arrayPtr = valueConvert(ptrVal, arrayType.getReference());
+        ValueHandle arrayHandle = referenceHandle(arrayPtr);
+
+        initializeObjectHeader(arrayHandle, layout, arrayContentField.getEnclosingType().validate().getType());
+
+        store(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), truncate(size, ctxt.getTypeSystem().getSignedInteger32Type()), MemoryAtomicityMode.UNORDERED);
+        if (arrayType instanceof ReferenceArrayObjectType) {
+            ctxt.warning(getLocation(),"Skipping initialization of reference array header fields");
+        }
+        return arrayPtr;
     }
 
     public Value clone(final Value object) {
@@ -123,5 +127,11 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         } else {
             return super.clone(object);
         }
+    }
+
+    // Currently there is only one header field, but abstract into a helper method so we only have one place to update later!
+    private void initializeObjectHeader(ValueHandle oopHandle, Layout layout, ObjectType objType) {
+        FieldElement typeId = layout.getObjectTypeIdField();
+        store(instanceFieldOf(oopHandle, typeId),  ctxt.getLiteralFactory().literalOfType(objType), MemoryAtomicityMode.UNORDERED);
     }
 }

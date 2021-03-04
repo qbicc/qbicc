@@ -38,6 +38,8 @@ public final class NoGcHelpers {
         }
     }
 
+    public static ptr<?> zero(ptr<?> ptr, long size) { return memset(ptr, word(0), word(size)); }
+
     public static void copy(ptr<?> to, ptr<@c_const ?> from, long size) {
         memcpy(to, from, word(size));
     }
