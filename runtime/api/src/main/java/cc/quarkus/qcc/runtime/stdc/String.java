@@ -13,4 +13,6 @@ public class String {
     public static native ptr<c_char> strerror(c_int errNum);
 
     public static native ptr<?> memcpy(ptr<?> dest, ptr<@c_const ?> src, size_t n);
+
+    public static native ptr<?> memset(ptr<?> dest, c_int data, size_t len);
 }
