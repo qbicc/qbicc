@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.plugin.instanceofcheckcast;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +22,7 @@ import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.generic.BaseTypeSignature;
@@ -453,6 +453,23 @@ public class SupersDisplayTables {
         builder.setSignature(BaseTypeSignature.V);
         typeIdArrayGlobal = builder.build();
         typeIdStructType = typeIdStruct;
+    }
+
+    /**
+     * Get the GlobalVariableElement reference to the `qcc_typeid_array`.
+     * 
+     * As part of it getting it, ensure a reference to it has been recorded into
+     * the ExectuableElement's section.
+     * 
+     * @param typeIdGlobal - the `qcc_typeid_array` global
+     */
+    public GlobalVariableElement getAndRegisterGlobalTypeIdArray(ExecutableElement originalElement) {
+        Assert.assertNotNull(typeIdArrayGlobal);
+        if (!typeIdArrayGlobal.getEnclosingType().equals(originalElement.getEnclosingType())) {
+            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
+            section.declareData(null, typeIdArrayGlobal.getName(), typeIdArrayGlobal.getType(List.of()));
+        }
+        return typeIdArrayGlobal;
     }
 }
 
