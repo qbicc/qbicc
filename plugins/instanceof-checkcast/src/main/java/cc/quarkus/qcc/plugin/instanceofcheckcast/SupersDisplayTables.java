@@ -16,6 +16,7 @@ import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.plugin.instanceofcheckcast.SupersDisplayTables.IdAndRange.Factory;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.CompoundType;
@@ -36,7 +37,7 @@ import io.smallrye.common.constraint.Assert;
 public class SupersDisplayTables {
     private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast");
     private static final Logger supersLog = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers");
-    
+
     private static final AttachmentKey<SupersDisplayTables> KEY = new AttachmentKey<>();
     private static final ValidatedTypeDefinition[] INVALID_DISPLAY = new ValidatedTypeDefinition[0];
 
@@ -90,7 +91,6 @@ public class SupersDisplayTables {
             // interface ids must be contigious and after the class ids
             private int first_interface_typeid = 0;
 
-
             public IdAndRange nextID() {
                 return new IdAndRange(typeid_index++, this);
             }
@@ -120,7 +120,7 @@ public class SupersDisplayTables {
         }
 
         public String toString() {
-            String s = "ID[" + typeid +"] Range["+ typeid +", " + maximumSubtypeId + "]";
+            String s = "ID[" + typeid + "] Range[" + typeid + ", " + maximumSubtypeId + "]";
             if (typeid >= constants.first_interface_typeid) {
                 int bit = (typeid - constants.first_interface_typeid);
                 s += " indexBit[" + bit + "]";
@@ -185,7 +185,7 @@ public class SupersDisplayTables {
             return supers.computeIfAbsent(cls, theCls -> new ValidatedTypeDefinition[] { theCls });
         } else if (cls.isInterface()) {
             // Interfaces only have Object as their superclass
-            // TODO: Should the interface be in the display?  no for the Click paper
+            // TODO: Should the interface be in the display? no for the Click paper
             return supers.computeIfAbsent(cls, theCls -> new ValidatedTypeDefinition[] { theCls });
         }
         // Display should have been built before this point so return the built one
@@ -213,7 +213,7 @@ public class SupersDisplayTables {
             // TODO: ValidatedTypeDefinition needs to have its depth set
             maxDisplaySizeElements = Math.max(maxDisplaySizeElements, superDisplay.size());
             supersArray = superDisplay.toArray(INVALID_DISPLAY); // Use this to ensure toArray result has right type
-            supers.put(cls, supersArray); 
+            supers.put(cls, supersArray);
         }
         log.debug("Display size: " + supersArray.length);
     }
@@ -228,11 +228,11 @@ public class SupersDisplayTables {
         });
         supersLog.debug("Supers display statistics: [size, occurrance]");
         histogram.entrySet().stream().forEach(es -> {
-            supersLog.debug("\t["+ es.getKey() +", " + es.getValue()+ "]");
+            supersLog.debug("\t[" + es.getKey() + ", " + es.getValue() + "]");
         });
         int numClasses = supers.size();
-        supersLog.debug("Classes: "+ numClasses);
-        supersLog.debug("Max display size: "+ maxDisplaySizeElements);
+        supersLog.debug("Classes: " + numClasses);
+        supersLog.debug("Max display size: " + maxDisplaySizeElements);
         supersLog.debug("Slots of storage: " + numClasses * maxDisplaySizeElements);
         int emptySlots = histogram.entrySet().stream().flatMapToInt(es -> {
             int waste = maxDisplaySizeElements - es.getKey(); // max - needed number
@@ -244,15 +244,14 @@ public class SupersDisplayTables {
         supersLog.debug("typeid and range");
         typeids.entrySet().stream()
             .sorted((a, b) -> a.getValue().typeid - b.getValue().typeid)
-            .forEach(es -> {
+            .forEach(es -> {            
                 ValidatedTypeDefinition vtd = es.getKey();
                 IdAndRange idRange = es.getValue();
                 supersLog.debug(idRange.toString() + " " + vtd.getInternalName());
             }
         );
 
-        int numInterfaces = typeids.size() - supers.size() - 18 /* primitives, void, primitive arrays, ref array */;
-        int bytesPerClass = (numInterfaces + idAndRange.interfaces_per_byte - 1) / idAndRange.interfaces_per_byte;
+        int bytesPerClass = getNumberOfBytesInInterfaceBitsArray();
         supersLog.debug("===============");
         supersLog.debug("Implemented interface bits require " + bytesPerClass + " bytes per class");
         supersLog.debug("classes + interfaces = " + typeids.size());
@@ -261,7 +260,7 @@ public class SupersDisplayTables {
 
     void assignTypeID(ValidatedTypeDefinition cls) {
         IdAndRange myID = typeids.computeIfAbsent(cls, theCls -> idAndRange.nextID());
-        log.debug("["+ myID.typeid +"] Class: " + cls.getInternalName());
+        log.debug("[" + myID.typeid + "] Class: " + cls.getInternalName());
     }
 
     void assignMaximumSubtypeId(ValidatedTypeDefinition cls) {
@@ -303,14 +302,12 @@ public class SupersDisplayTables {
     }
 
     void writeTypeIdToClasses() {
-        typeids.entrySet().stream()
-            .forEach(es -> {
-                ValidatedTypeDefinition vtd = es.getKey();
-                IdAndRange idRange = es.getValue();
-                vtd.assignTypeId(idRange.typeid);
-                vtd.assignMaximumSubtypeId(idRange.maximumSubtypeId);
-            }
-        );
+        typeids.entrySet().stream().forEach(es -> {
+            ValidatedTypeDefinition vtd = es.getKey();
+            IdAndRange idRange = es.getValue();
+            vtd.assignTypeId(idRange.typeid);
+            vtd.assignMaximumSubtypeId(idRange.maximumSubtypeId);
+        });
     }
 
     int getNumberOfInterfacesInTypeIds() {
@@ -320,7 +317,7 @@ public class SupersDisplayTables {
 
     public int getNumberOfBytesInInterfaceBitsArray() {
         int numInterfaces = getNumberOfInterfacesInTypeIds();
-        return (numInterfaces + idAndRange.interfaces_per_byte - 1) / idAndRange.interfaces_per_byte;
+        return (numInterfaces + Factory.interfaces_per_byte - 1) / Factory.interfaces_per_byte;
     }
 
     byte[] getImplementedInterfaceBits(ValidatedTypeDefinition cls) {
