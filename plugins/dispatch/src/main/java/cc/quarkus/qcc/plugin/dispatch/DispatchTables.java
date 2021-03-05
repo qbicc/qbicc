@@ -12,6 +12,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.CompoundLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
+import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.Linkage;
@@ -151,9 +152,11 @@ public class DispatchTables {
             for (int i = 0; i < vtable.length; i++) {
                 FunctionType funType = ctxt.getFunctionTypeForElement(vtable[i]);
                 if (vtable[i].isAbstract()) {
-                    // TODO: In a correct program, this null should never be used. However, we'd get better
-                    //       debugability if we initialized it to an "AbstractMethodInvoked" error stub
-                    valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().zeroInitializerLiteralOfType(funType));
+                    MethodElement stub = ctxt.getVMHelperMethod("raiseAbstractMethodError");
+                    Function stubImpl = ctxt.getExactFunction(stub);
+                    SymbolLiteral literal = ctxt.getLiteralFactory().literalOfSymbol(stubImpl.getLiteral().getName(), stubImpl.getType().getPointer());
+                    section.declareFunction(stub, stubImpl.getName(), stubImpl.getType());
+                    valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getFunctionTypeForElement(vtable[i]).getPointer()));
                 } else {
                     Function impl = ctxt.getExactFunction(vtable[i]);
                     if (!vtable[i].getEnclosingType().validate().equals(cls)) {
@@ -191,6 +194,13 @@ public class DispatchTables {
     public GlobalVariableElement getVTablesGlobal() { return this.vtablesGlobal; }
 
     public void emitInterfaceTables(RTAInfo rtaInfo) {
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        MethodElement icceStub = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
+        Function icceImpl = ctxt.getExactFunction(icceStub);
+        SymbolLiteral iceeLiteral = lf.literalOfSymbol(icceImpl.getLiteral().getName(), icceImpl.getLiteral().getType().getPointer());
+        MethodElement ameStub = ctxt.getVMHelperMethod("raiseAbstractMethodError");
+        Function ameImpl = ctxt.getExactFunction(ameStub);
+        SymbolLiteral ameLiteral = lf.literalOfSymbol(ameImpl.getLiteral().getName(), ameImpl.getLiteral().getType().getPointer());
         for (Map.Entry<ValidatedTypeDefinition, ITableInfo> entry: itables.entrySet()) {
             ValidatedTypeDefinition currentInterface = entry.getKey();
             Section iSection = ctxt.getImplicitSection(currentInterface);
@@ -200,10 +210,26 @@ public class DispatchTables {
                 continue; // If there are no invokable methods then this whole family of itables will never be referenced.
             }
             vtLog.debugf("Emitting itable[] for %s", currentInterface.getDescriptor().getClassName());
+
+            // First, construct an iTable of the right length of icceStubs
+            iSection.declareFunction(icceStub, icceImpl.getName(), icceImpl.getType());
+            HashMap<CompoundType.Member, Literal> stubMap = new HashMap<>();
+            for (int i = 0; i < itable.length; i++) {
+                FunctionType sigType = ctxt.getFunctionTypeForElement(itable[i]);
+                stubMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(iceeLiteral, sigType.getPointer()));
+            }
+            String stubsName = "qcc_itable_icce_stubs_for_"+currentInterface.getInterfaceType().toFriendlyString();
+            CompoundLiteral stubsLiteral = lf.literalOf(itableInfo.getType(), stubMap);
+            iSection.addData(null, stubsName, stubsLiteral).setLinkage(Linkage.INTERNAL);
+            SymbolLiteral stubPtrLiteral = lf.literalOfSymbol(stubsName, itableInfo.getType());
+
+            // Initialize all the slots of the rootTable to point to the icce itable.
+            // This enables us to elide an explicit check for IncompatibleClassChangeError at the dispatch site.
             ArrayType rootType = (ArrayType)itableInfo.getGlobal().getType(List.of());
             Literal[] rootTable = new Literal[(int)rootType.getElementCount()];
-            Literal zeroLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(rootType.getElementType());
-            Arrays.fill(rootTable, zeroLiteral);
+            Arrays.fill(rootTable, stubPtrLiteral);
+
+            // Now build all the implementing class itables and update the rootTable
             rtaInfo.visitLiveImplementors(currentInterface, cls -> {
                 if (!cls.isAbstract() && !cls.isInterface()) {
                     // Build the itable for an instantiable class
@@ -214,10 +240,12 @@ public class DispatchTables {
                         MethodElement methImpl = cls.resolveMethodElementVirtual(itable[i].getName(), itable[i].getDescriptor());
                         FunctionType funType = ctxt.getFunctionTypeForElement(itable[i]);
                         FunctionType implType = ctxt.getFunctionTypeForElement(methImpl);
-                        if (methImpl == null || methImpl.isAbstract()) {
-                            // TODO: In a correct program, this null should never be used. However, we'd get better
-                            //       debugability if we initialized it to an "AbstractMethodInvoked" error stub
-                            valueMap.put(itableInfo.getType().getMember(i), ctxt.getLiteralFactory().zeroInitializerLiteralOfType(funType));
+                        if (methImpl == null) {
+                            cSection.declareFunction(icceStub, icceImpl.getName(), icceImpl.getType());
+                            valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(iceeLiteral, implType.getPointer()));
+                        } else if (methImpl.isAbstract()) {
+                            cSection.declareFunction(ameStub, ameImpl.getName(), ameImpl.getType());
+                            valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(ameLiteral, implType.getPointer()));
                         } else {
                             Function impl = ctxt.getExactFunction(methImpl);
                             if (!methImpl.getEnclosingType().validate().equals(cls)) {
@@ -226,18 +254,17 @@ public class DispatchTables {
                             valueMap.put(itableInfo.getType().getMember(i), impl.getLiteral());
                         }
                     }
-
                     // Emit itable and refer to it in rootTable
                     String tableName = "qcc_itable_impl_"+cls.getInternalName().replace('/', '.')+"_for_"+itableInfo.getGlobal().getName();
-                    CompoundLiteral itableLiteral = ctxt.getLiteralFactory().literalOf(itableInfo.getType(), valueMap);
+                    CompoundLiteral itableLiteral = lf.literalOf(itableInfo.getType(), valueMap);
                     cSection.addData(null, tableName, itableLiteral).setLinkage(Linkage.EXTERNAL);
                     iSection.declareData(null, tableName, itableInfo.getType());
-                    rootTable[cls.getTypeId()] = ctxt.getLiteralFactory().literalOfSymbol(tableName, itableInfo.getType());
+                    rootTable[cls.getTypeId()] = lf.literalOfSymbol(tableName, itableInfo.getType());
                 }
             });
 
-            // Finally emit the iTable[] for the interface
-            iSection.addData(null, itableInfo.getGlobal().getName(), ctxt.getLiteralFactory().literalOf(rootType, List.of(rootTable)));
+            // Finally emit the root iTable[] for the interface
+            iSection.addData(null, itableInfo.getGlobal().getName(), lf.literalOf(rootType, List.of(rootTable)));
         }
     }
 

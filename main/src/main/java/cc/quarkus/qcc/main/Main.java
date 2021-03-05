@@ -53,6 +53,7 @@ import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.lowering.StaticFieldLoweringBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.lowering.ThrowExceptionHelper;
 import cc.quarkus.qcc.plugin.lowering.ThrowLoweringBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.lowering.VMHelpersSetupHook;
 import cc.quarkus.qcc.plugin.main_method.AddMainClassHook;
 import cc.quarkus.qcc.plugin.main_method.MainMethod;
 import cc.quarkus.qcc.plugin.native_.ConstTypeResolver;
@@ -242,6 +243,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, Layout::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
+                                builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());

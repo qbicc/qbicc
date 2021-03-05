@@ -146,17 +146,16 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     // Current implementation strategy is "directly indexed itable" in the terminology of [Alpern et al 2001].
-    // Very fast dispatch; but significant wasted data space due to sparse per-interface itables[]
+    // Very fast dispatch; but significant wasted data space due to sparse per-interface itables[].
+    // However, all the invalid slots in the itable contain a pointer to VMHelpers.raiseIncompatibleClassChangerError()
+    // so we do not need an explicit test at the call site.
     private Value expandInterfaceDispatch(Value instance, MethodElement target) {
         DispatchTables dt = DispatchTables.get(ctxt);
         DispatchTables.ITableInfo info = dt.getITableInfo(target.getEnclosingType().validate());
         if (info == null) {
             // No realized invocation targets are possible for this method!
-            // Throwing BlockEarlyTermination(unreachable()) here breaks compilation, so do something hackier...
-            // Construct a doomed-to-fail indirect call target by invoking a zero initializer of the right function type.
-            ctxt.warning(originalElement, "Unreachable interface invoke of %s compiled to *(null)()", target);
-            FunctionType funType = ctxt.getFunctionTypeForElement(target);
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(funType.getPointer());
+            invokeStatic(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError"), List.of());
+            throw new BlockEarlyTermination(unreachable());
         }
         Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
         section.declareData(null, info.getGlobal().getName(), info.getGlobal().getType(List.of()));
