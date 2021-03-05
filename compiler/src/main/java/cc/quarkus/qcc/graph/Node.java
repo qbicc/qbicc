@@ -126,7 +126,11 @@ public interface Node {
                     if (incomingBlock.isReachable()) {
                         Value val = orig.getValueForInput(incomingTerminator);
                         if (val != null) {
-                            copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copiedTerminators.get(incomingTerminator), copyValue(val));
+                            BasicBlock copiedIncomingBlock = copiedTerminators.get(incomingTerminator);
+                            // if this block is null, that means that the copied block can no longer flow into this block due to transformation
+                            if (copiedIncomingBlock != null) {
+                                copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copiedIncomingBlock, copyValue(val));
+                            }
                         }
                     }
                 }
