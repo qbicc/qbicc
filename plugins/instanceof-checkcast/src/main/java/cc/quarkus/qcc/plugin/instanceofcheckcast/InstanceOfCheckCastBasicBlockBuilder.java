@@ -107,7 +107,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             // typeIdStruct = qcc_typeid_array[typeId]
             ValueHandle typeIdStruct = elementOf(globalVariable(typeIdGlobal), inputTypeId);
             // bits = &typeIdStruct.interfaceBits
-            ValueHandle bits = memberOf(typeIdStruct, tables.typeIdStructType.getMember(2));
+            ValueHandle bits = memberOf(typeIdStruct, tables.typeIdStructType.getMember("interfaceBits"));
             // thisByte = bits[byteIndex] 
             Value thisByte = load(elementOf(bits, lf.literalOf(byteIndex)), MemoryAtomicityMode.UNORDERED);
             // maskedValue = thisByte & mask
