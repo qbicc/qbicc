@@ -46,7 +46,7 @@ public class SupersDisplayTables {
     private final Map<ValidatedTypeDefinition, IdAndRange> typeids = new ConcurrentHashMap<>();
 
     static final String GLOBAL_TYPEID_ARRAY = "qcc_typeid_array";
-    GlobalVariableElement typeIdArrayGlobal;
+    private GlobalVariableElement typeIdArrayGlobal;
     CompoundType typeIdStructType;
 
     /** 
