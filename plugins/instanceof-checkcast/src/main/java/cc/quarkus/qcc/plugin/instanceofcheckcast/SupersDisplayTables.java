@@ -23,6 +23,9 @@ import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
+import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
+import cc.quarkus.qcc.type.generic.BaseTypeSignature;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -43,6 +46,8 @@ public class SupersDisplayTables {
     private final Map<ValidatedTypeDefinition, IdAndRange> typeids = new ConcurrentHashMap<>();
 
     static final String GLOBAL_TYPEID_ARRAY = "qcc_typeid_array";
+    GlobalVariableElement typeIdArrayGlobal;
+    CompoundType typeIdStructType;
 
     /** 
      * This class embodies the typeid for a class and the
@@ -313,7 +318,7 @@ public class SupersDisplayTables {
         return typeids.size() - idAndRange.first_interface_typeid + 10;
     }
 
-    int getNumberOfBytesInInterfaceBitsArray() {
+    public int getNumberOfBytesInInterfaceBitsArray() {
         int numInterfaces = getNumberOfInterfacesInTypeIds();
         return (numInterfaces + idAndRange.interfaces_per_byte - 1) / idAndRange.interfaces_per_byte;
     }
@@ -334,6 +339,18 @@ public class SupersDisplayTables {
         }
 
         return setBits;
+    }
+
+    public int getInterfaceByteIndex(ValidatedTypeDefinition cls) {
+        Assert.assertTrue(cls.isInterface());
+        IdAndRange idRange = typeids.get(cls);
+        return idRange.implementedInterfaceByteIndex();
+    }
+
+    public int getInterfaceBitMask(ValidatedTypeDefinition cls) {
+        Assert.assertTrue(cls.isInterface());
+        IdAndRange idRange = typeids.get(cls);
+        return idRange.implementedInterfaceBitMask();
     }
 
     List<Literal> convertByteArrayToValuesList(LiteralFactory literalFactory, byte[] array) {
@@ -389,7 +406,7 @@ public class SupersDisplayTables {
             memberSize /* size */,
             ts.getPointerAlignment(), 
             () -> List.of(members));
-
+        
         Section section = ctxt.getImplicitSection(jlo);
         Literal[] typeIdTable = new Literal[typeids.size() + 10]; // invalid zero + 8 prims + void
         LiteralFactory literalFactory = ctxt.getLiteralFactory();
@@ -425,6 +442,17 @@ public class SupersDisplayTables {
         ArrayType typeIdsArrayType = ctxt.getTypeSystem().getArrayType(typeIdStruct, typeIdTable.length);
         ArrayLiteral typeIdsValue = ctxt.getLiteralFactory().literalOf(typeIdsArrayType, List.of(typeIdTable));
         section.addData(null, GLOBAL_TYPEID_ARRAY, typeIdsValue);
+
+        // create a GlobalVariable for shared access to the typeId array
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
+        builder.setName(GLOBAL_TYPEID_ARRAY);
+        builder.setType(typeIdsArrayType);
+        builder.setEnclosingType(jlo);
+        // void for now, but this is cheating terribly
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        typeIdArrayGlobal = builder.build();
+        typeIdStructType = typeIdStruct;
     }
 }
 
