@@ -37,7 +37,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
         // cause the class to be initialized
-        InitializerElement initializer = target.getEnclosingType().validate().resolve().getInitializer();
+        InitializerElement initializer = target.getEnclosingType().validate().getInitializer();
         if (initializer != null) {
             ctxt.enqueue(initializer);
         }
@@ -56,7 +56,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
         // cause the class to be initialized
-        InitializerElement initializer = target.getEnclosingType().validate().resolve().getInitializer();
+        InitializerElement initializer = target.getEnclosingType().validate().getInitializer();
         if (initializer != null) {
             ctxt.enqueue(initializer);
         }
@@ -75,7 +75,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
         // cause the class to be initialized
-        InitializerElement initializer = target.getEnclosingType().validate().resolve().getInitializer();
+        InitializerElement initializer = target.getEnclosingType().validate().getInitializer();
         if (initializer != null) {
             ctxt.enqueue(initializer);
         }

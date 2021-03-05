@@ -1580,7 +1580,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
 
     private FieldElement resolveTargetOfFieldRef(final int fieldRef) {
         ValidatedTypeDefinition definition = getOwnerOfFieldRef(fieldRef).getDefinition().validate();
-        FieldElement field = definition.resolve().resolveField(getDescriptorOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef));
+        FieldElement field = definition.validate().resolveField(getDescriptorOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef));
         if (field == null) {
             // todo
             throw new IllegalStateException();
