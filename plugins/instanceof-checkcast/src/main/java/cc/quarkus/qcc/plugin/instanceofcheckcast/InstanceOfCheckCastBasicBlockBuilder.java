@@ -9,13 +9,19 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
+import cc.quarkus.qcc.graph.GlobalVariable;
+import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.ArrayObjectType;
@@ -71,6 +77,8 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             }
         }
     
+        // TODO: instanceof X, where X is not in the RTAInfo should always be false
+
         /* Set up the runtime checks here for the 3 major cases:
          * 1 - expectedType statically known to be an array class
          * 2 - expectedType statically known to be an interface
@@ -93,8 +101,25 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             result = lf.literalOf(false);
         } else if (expectedType instanceof InterfaceObjectType) {
             // 2 - expectedType statically known to be an interface
-            // TODO
-            result = lf.literalOf(false);
+            SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
+            ValidatedTypeDefinition vtdExpectedType = expectedType.getDefinition().validate();
+            final int byteIndex = tables.getInterfaceByteIndex(vtdExpectedType);
+            final int mask = tables.getInterfaceBitMask(vtdExpectedType);
+            GlobalVariableElement typeIdGlobal = tables.typeIdArrayGlobal;
+            // register the table in the current classes implicit section so we can access it at llvm time
+            registerUseOfGlobalTypeIdArray(typeIdGlobal);
+            Value inputTypeId = typeIdOf(referenceHandle(input));
+            // typeIdStruct = qcc_typeid_array[typeId]
+            ValueHandle typeIdStruct = elementOf(globalVariable(typeIdGlobal), inputTypeId);
+            // bits = &typeIdStruct.interfaceBits
+            ValueHandle bits = memberOf(typeIdStruct, tables.typeIdStructType.getMember(2));
+            // thisByte = bits[byteIndex] 
+            Value thisByte = load(elementOf(bits, lf.literalOf(byteIndex)), MemoryAtomicityMode.UNORDERED);
+            // maskedValue = thisByte & mask
+            Value maskedValue = and(thisByte, lf.literalOf(mask));
+            
+            // TODO: this can probably be replaced with `maskedValue != 0`
+            result = super.isEq(maskedValue, lf.literalOf(mask));
         } else {
             // 3 - expectedType statically known to be a class
             // There are two sub cases when dealing with classes:
@@ -125,6 +150,20 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         phi.setValueForBlock(ctxt, getCurrentElement(), notNullLabel, result);
         return phi;
 
+    }
+
+    /**
+     * The use of a global variable needs to be recorded in the section of the
+     * class using it.
+     * 
+     * @param typeIdGlobal - the `qcc_qcc_typeid_array` global
+     */
+    void registerUseOfGlobalTypeIdArray(GlobalVariableElement typeIdGlobal) {
+        ExecutableElement originalElement = getDelegate().getCurrentElement();
+        if (!typeIdGlobal.getEnclosingType().equals(originalElement.getEnclosingType())) {
+            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
+            section.declareData(null, typeIdGlobal.getName(), typeIdGlobal.getType(List.of()));
+        }
     }
 
     Value generateCallToRuntimeHelper(final Value input, ObjectType expectedType) {
