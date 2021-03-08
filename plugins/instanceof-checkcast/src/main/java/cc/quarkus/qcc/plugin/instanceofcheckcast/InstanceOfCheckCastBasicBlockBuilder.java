@@ -18,6 +18,7 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
@@ -25,8 +26,11 @@ import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.InterfaceObjectType;
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.PrimitiveArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.WordType;
 
 /**
  * A BasicBlockBuilder which replaces instanceof/checkcast operations with calls to
@@ -95,7 +99,37 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         if (expectedType instanceof ArrayObjectType) {
             // 1 - expectedType statically known to be an array class
             // TODO
-            result = lf.literalOf(false);
+            if (expectedType instanceof PrimitiveArrayObjectType) {
+                PrimitiveArrayObjectType paot = (PrimitiveArrayObjectType) expectedType;
+                TypeSystem ts = ctxt.getTypeSystem();
+                WordType elementType = paot.getElementType();
+                ValidatedTypeDefinition arrayVTD = null;
+                if ((ts.getUnsignedInteger8Type().equals(elementType)) // as per Layout
+                || (ts.getBooleanType().equals(elementType)) // as per MethodParser OP_NEWARRAY
+                ) {
+                    arrayVTD = Layout.get(ctxt).getArrayValidatedTypeDefinition("[Z");
+                } else if (ts.getSignedInteger8Type().equals(elementType)) {
+                    arrayVTD = Layout.get(ctxt).getArrayValidatedTypeDefinition("[B");
+                } else if (ts.getSignedInteger16Type().equals(elementType)) {
+                    arrayVTD = Layout.get(ctxt).getArrayValidatedTypeDefinition("[S");
+                }else if (ts.getSignedInteger32Type().equals(elementType)) {
+                    arrayVTD = Layout.get(ctxt).getArrayValidatedTypeDefinition("[I");
+                } else if (ts.getSignedInteger64Type().equals(elementType)) {
+                    arrayVTD = Layout.get(ctxt).getArrayValidatedTypeDefinition("[J");
+                } else if (ts.getUnsignedInteger16Type().equals(elementType)) {
+                    arrayVTD = Layout.get(ctxt).getArrayValidatedTypeDefinition("[C");
+                } else if (ts.getFloat32Type().equals(elementType)) {
+                    arrayVTD = Layout.get(ctxt).getArrayValidatedTypeDefinition("[F");
+                } else if (ts.getFloat64Type().equals(elementType)) {
+                    arrayVTD = Layout.get(ctxt).getArrayValidatedTypeDefinition("[D");
+                }
+                final int primArrayTypeId = arrayVTD.getTypeId();
+                Value inputTypeId = typeIdOf(referenceHandle(input));
+                result = super.isEq(inputTypeId, lf.literalOf(primArrayTypeId));
+            } else {
+                // Layout#getRefArrayDimensionsField
+                result = lf.literalOf(false);
+            }
         } else if (expectedType instanceof InterfaceObjectType) {
             // 2 - expectedType statically known to be an interface
             SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
