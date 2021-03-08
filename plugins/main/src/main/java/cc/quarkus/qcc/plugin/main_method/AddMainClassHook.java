@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
@@ -28,7 +28,7 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
             String mainType = mainClass.replace('.', '/');
             DefinedTypeDefinition definedMainClass = ctxt.getBootstrapClassContext().findDefinedType(mainType);
             if (definedMainClass != null) {
-                ResolvedTypeDefinition resolvedMainClass = definedMainClass.validate().resolve();
+                ValidatedTypeDefinition resolvedMainClass = definedMainClass.validate();
                 int idx = resolvedMainClass.findMethodIndex(e -> {
                     // todo: maybe we could simplify this a little...?
                     MethodDescriptor desc = e.getDescriptor();

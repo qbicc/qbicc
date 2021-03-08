@@ -42,12 +42,11 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
-import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ElementVisitor;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FunctionElement;
-import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
@@ -282,17 +281,17 @@ public class Driver implements Closeable {
         return compilationContext;
     }
 
-    private ResolvedTypeDefinition loadAndResolveBootstrapClass(String name) {
+    private ValidatedTypeDefinition loadBootstrapClass(String name) {
         DefinedTypeDefinition clazz = compilationContext.getBootstrapClassContext().findDefinedType(name);
         if (clazz == null) {
             compilationContext.error("Required bootstrap class \"%s\" was not found", name);
             return null;
         }
         try {
-            return clazz.validate().resolve();
+            return clazz.validate();
         } catch (Exception ex) {
-            log.error("An exception was thrown while resolving a bootstrap class", ex);
-            compilationContext.error("Failed to resolve bootstrap class \"%s\": %s", name, ex);
+            log.error("An exception was thrown while loading a bootstrap class", ex);
+            compilationContext.error("Failed to load bootstrap class \"%s\": %s", name, ex);
             return null;
         }
     }
@@ -319,15 +318,15 @@ public class Driver implements Closeable {
                 return false;
             }
         }
-        ResolvedTypeDefinition stringClass = loadAndResolveBootstrapClass("java/lang/String");
+        ValidatedTypeDefinition stringClass = loadBootstrapClass("java/lang/String");
         if (stringClass == null) {
             return false;
         }
-        ResolvedTypeDefinition threadClass = loadAndResolveBootstrapClass("java/lang/Thread");
+        ValidatedTypeDefinition threadClass = loadBootstrapClass("java/lang/Thread");
         if (threadClass == null) {
             return false;
         }
-        ResolvedTypeDefinition vmClass = loadAndResolveBootstrapClass("cc/quarkus/qcc/runtime/main/VM");
+        ValidatedTypeDefinition vmClass = loadBootstrapClass("cc/quarkus/qcc/runtime/main/VM");
         if (vmClass == null) {
             return false;
         }
