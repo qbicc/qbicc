@@ -1,0 +1,531 @@
+= QCC: Object Model Implementation
+
+== Background
+
+=== What is an Object Model?
+
+The Java language defines a number of operations that can be performed
+on any non-primitive value. These include:
+
+* Dynamic typechecking
+** `instanceof`
+** `checkcast`
+** must implement interface check in `invokeinterface`
+** dispatching to an exception handler
+* Dynamic method dispatch
+** `invokevirtual`
+** `invokeinterface`
+* Default hashcode
+* Object cloning
+* Synchronization
+** `monitorenter` and `monitorexit`
+** synchronized virtual methods
+* Getting the `java.lang.Class` instance for an object
+* Various additional reflective operations (field access, method dispatch)
+
+In addition, the memory management subsystem needs to be able to
+perform operations such as:
+* Identify the runtime type of a heap allocated object to:
+** Trace its pointer fields during a GC
+** Allow the GC to move an object
+* Support heap walking
+* ...
+
+All of these operations rely on being able to map from an object
+reference to information about the object.  In many systems, an
+object reference, ie a pointer whose target is a heap allocated
+object, is referred to as an OOP (object-oriented pointer).
+
+Almost universally, the heart of the object model implementation is a
+standardized object header which is stored at a fixed offset in the
+object instance.
+
+=== Object Model Design Considerations
+
+Object header design is fundamentally a time-space tradeoff. Bigger
+headers allow more information to be "close at hand" to allow shorter
+instruction sequences for key operations.  Smaller headers reduce the
+memory footprint of the program which often improves performance by
+increasing locality and reducing GC overheads.
+
+Object headers are usually designed in "word sized" chunks. On a
+system with 32 bit pointers, a 4 byte word is the natural unit.  Even
+on a 64-bit system, it may still be advantageous to think of object
+headers in 4 byte chunks (especially if the header does not contain
+any potentially 64-bit pointers).  Since the bulk of non-array heap
+allocated objects are expected to contain object references and 32 or
+64 bit primitive values, having "empty" bytes between the end of the
+object header and the start of the first data field of the object is
+usually not useful.
+
+If the target system has alignment constraints for certain operations
+(for example, atomic memory operations are more efficient on 8 byte
+aligned addresses), then the alignment and size of the object header
+need to reflect these constraints.
+
+Similar object model operations are often repeated on the same OOP
+within a region of code.  Therefore it is important to represent
+primitive object model operations in the compiler's intermediate
+representation in a form that enables the compiler to optimize away
+redundant operations.  In particular, it is critical that the compiler
+understand that most parts of an object header (and the downstream
+runtime artifacts derived from header loads such as vtables, itables,
+etc) are immutable.  Therefore is is safe to reuse previously loaded
+values across function calls and to aggressively schedule these
+operations "early" by hoisting them out of loops.
+
+=== Prior Art
+
+Not surprisingly, there is a rich history of object model innovation.
+
+Here are some ideas from prior work that are perhaps less well known
+and most relevant to QCC.
+
+==== Type pointers vs type ids
+
+Object headers will contain encoding of the object's runtime type.
+There are two choices: a pointer to some type-specific structure
+(vtable, VMClass instance, etc.) or an index. The main tradeoff is
+that typeIds typically take many fewer bits, while pointers usually
+enable slightly faster access to variable sized information. Pointers
+are almost always combined with some form of bit-stealing where the
+low-order bits of the pointer are used to encode additional
+information. 
+
+==== Lock Nursery
+
+Although in principle any object could be locked, it has been observed
+that it is possible to make fairly accurate Class-based predictions on
+whether or not instances of the Class will be frequently locked. If
+instances of a Class are unlikely to be used in locking operations,
+the data fields used for "thin locks" can be elided from instances of
+the Class. When the predictions is wrong, a slow-path locking sequence
+using a "lock nursery" (a side hash table of "fat locks") is
+utilized. Some of the typical heuristics are:
+
+* classes that has synchronized virtual methods need thin locks.
+* instances of `java.lang.Object` should have a non-inherited thin
+lock.
+
+In effect, a `.lock` instance field is introduced into a class (and
+inherited by its subclasses) when the class defines a synchronized
+virtual method. There is no additional cost for these methods
+(vs. having a thin lock at a fixed offset), since the offset of the
+`.lock` field is always known statically.  There is some runtime
+overhead when a `monitorenter` or `monitorexit` operation is performed
+on an object and static type information does not allow the existence
+or offset of the `.lock` word to be known statically....the inlined
+code sequence has to dynamically acquire the possible offset of the
+`.lock` field from the metadata in the object's `VMClass` and check it
+for validity before either using it or calling the slow path "fat
+lock" path.
+
+The Lock Nursery technique is described by [Bacon, Fink, Grove ECOOP 2002]
+and has been adopted by J9 and others.
+
+==== Address-based hashing
+
+Using the "middle bits" of an object's address as its default hash
+code is a common technique.  In systems where the garbage collector
+may need to move live objects, a common technique is to use two bits
+in the object header to encode one of three possible states for an
+object "not-hashed", "hashed", "hashed-and-moved".  When an object in
+the hashed state is relocated by GC, it is switched to the
+"hashed-and-moved" state and its original default hashcode is stored
+elsewhere. This introduces complexity in the GC and (depending on
+whether the hashcode is stored "before" or "after" the moved object in
+memory or in some other side table can have significant implications
+for the scanability of the heap and the efficiency of the default
+hashcode operation on the subset of objects that have are
+"hashed-and-moved".
+
+One weakness of address-based hashing in a system with a
+generational garbage collector is that since almost all objects are
+initially allocated in a nursery of modest size, there is not a huge
+amount of entropy in the initial addressed of objects.  J9 addressed
+this by mixing in a "salt" value to the hashcode of objects in the
+nursery that was changed after each minor collection.
+
+==== Selector Coloring etc.
+
+Prior work has used the term "selector" as a generalization of message
+name when discussing dispatching techniques.  In the context of Java,
+a selector is the combination of a method name and method descriptor
+(the descriptor encodes the static type signature of a method).
+
+Message dispatching can be viewed as a table lookup: each valid
+pair of (receiver dynamic type, selector) is mapped to a unique method
+implementation that should be invoked for that pair. A straightforward
+implementation of this idea is to construct in some form the full
+two dimensional array that is indexed by (typeId, selector).  Usually
+this array would be extremely sparse, therefore it is amenable to
+various forms of compression and hashing (aka selector coloring).
+In the context of QCC where the entire class hierarchy of the program
+is known statically, table compression techniques could be applied
+without the normal Java complication of dynamic class loading
+invalidating the compression algorithm.
+
+However, there are some tradeoffs to consider.  If we cannot rule out
+IncompatibleClassChangeErrors, then either (a) we must perform a
+`doesImplement` dynamic check prior to the compressed table lookup or
+(b) the compressed table must contain enough data to allow the
+detection of ICCE and raise the appropriate exception.
+
+==== typeId assignment optimizations
+
+If we use a dense numbering scheme that encodes the `extends`
+relationship correctly (tree traversal order), then subclass tests can
+be simple range checks.
+
+A dense assignment of subclass ids also enables dense arrays of the
+primary derived type specific information (for example vtable style
+dispatching, itables, access to VMClass, access to java.lang.Class, etc).
+
+
+=== QCC Base Assumptions
+
+QCC operates under a strong closed world assumption.  All program
+classes are statically available when the program is compiled. This
+enables the compiler to apply whole program analysis and generate
+optimized data structures to implement method dispatch and dynamic
+type checking.
+
+We are biased towards space-efficient object models, even if it adds
+compile-time complexity.
+
+We want either a 32-bit or 64-bit object header.
+
+== Potential QCC Object Headers
+
+=== A 32 bit header for QCC
+
+Almost certainly, a 32-bit header implies using a typeId as the
+primary runtime type identifier for an object.
+
+A 32-bit header implies using the lock nursery technique to avoid any
+thin lock state in the default object header.
+
+We will need to reserve a few (2?) bits in the object header for
+use by an eventual GC system.
+
+A 32-bit header may imply using 2 header bits to encode hashing
+state and dealing with hashed-and-moved in a moving GC.
+
+If we use a 16 bit typeId, we could access it with a simple load
+instruction without any subsequent masking operations.  Any other size
+typeId would require a mask or shift operation after the load to
+extract the typeId bits for use in subsequent operations. 
+
+If we think 14 bits of default hashcode are acceptable, then a
+potentially optimal 32 bit header would contain:
+
+* 16 bit typeId
+* 14 bit default hash code
+* 2 bits for the GC
+
+=== A 64 bit typeId-based header for QCC
+
+We use 20-24 bits of the header for a type id. This effectively
+removes any limitation on supported program size. 
+
+We will need to reserve a few (2? 3?) bits in the object header for
+use by an eventual GC system.
+
+We have quite a few bits available for other purposes.  Some
+possibilities include:
+
+* We use about 24 bits to store the default hashcode for the object
+  (middle bits of its initially allocated address). This avoids some
+  complexity when we get to moving GCs. 
+* We decide to not use a lock nursery and spend some bits on a thin
+lock. We can probably get away with 16ish bits for this, assuming we
+still use a side-structure for "fat locks" and store an index into
+that structure instead of a full fat lock pointer.
+* We still use a lock nursery, but use a few bits in the object header
+to encode the offset of the `.lock` word to optimize `monitorenter`
+and `monitorexit` bytecodes. 
+* We could use a few bits to try to optimize dynamic type checking
+operations on arrays (store dimensionality for example). 
+* Other stuff...
+
+=== A 64 bit pointer-based header for QCC
+
+The object header is a VMClass pointer with some bottom bits being
+stolen for use as a bit field. 
+
+We have to carefully tradeoff the number of stolen bits vs. the
+alignment constraints that imposes on the VMClass instances. Probably
+we can afford to steal between 4 and 6 bits. Assuming we want to
+support a moving GC eventually, we need two bits for the GC itself and
+two for addressed based hashing.
+
+We use a lock nursery.
+
+We use address based hashing and hash-and-moved scheme. 
+
+
+== QCC 0.1 Object Header
+
+Our initial design point is for a compact typeId based header. The
+object header common to all heap allocated objects contains:
+
+* A 16 bit `typeId` field that contains the object's typeId.
+
+In the short term, all object monitor operations will be implemented
+via out-of-line fat locks.  We will very likely enhance this with a
+lock nursery approach for providing 32 bit inline `.lock` words for
+reachable classes with synchronized virtual methods.
+
+While we are using the `NoGC` allocator, we can simply use the
+object's address for its hashcode with no additional object model
+support.
+
+All arrays extend the basic object header by adding a 32 bit `length`
+field that contains the length of the array.
+
+Arrays of non-primitives extend the array header by adding a 32 bit
+`dimensions` field that indicates the dimensionality of the array
+(valid values are between 1 and 255) and a 16 bit `elementType` field
+that indicates the type of the base element. To illustrate how these
+fields are used, a `String[][][]` would have a `dimension` value of
+`3` and an `elementType` that corresponded to `java.lang.String`.
+
+=== Instruction Sequences for Critical Operations
+
+==== invokevirtual
+
+We generate a `vtable` for each class that contains function pointers
+to the method to be invoked for each reachable selector of the
+class. There is a root `vtable[]` generated in `java.lang.Object.ll`
+that is indexed by `typeId` and contains pointers to each class's
+`vtable`.  Therefore an `invokevirtual` dispatch is simply three
+dependent loads and an indirect call.
+
+```
+  # Load the `typeId` from the receiver (%L1)
+  %L7 = getelementptr %T.test.InvokeVirtual$Data, %T.test.InvokeVirtual$Data* %L1, i32 0, i32 0
+  %L8 = load i32, i32* %L7, align 4, !dbg !24
+  # Load the object's vtable for vtable[typeId]
+  %L9 = getelementptr [58 x i8**], [58 x i8**]* @qcc_vtables_array, i32 0, i32 %L8
+  %LA = load i8**, i8*** %L9, align 8, !dbg !23
+  # Load function pointer from vtable[selector]
+  %LB = bitcast i8** %LA to %T.struct.vtable-test.InvokeVirtual$Data*, !dbg !33
+  %LC = getelementptr %T.struct.vtable-test.InvokeVirtual$Data, %T.struct.vtable-test.InvokeVirtual$Data* %LB, i32 0, i32 1
+  %LD = load i32 (i64, i64)*, i32 (i64, i64)** %LC, align 8, !dbg !22
+  # Invoke the target function
+  %LE = call i32 (i64, i64) %LD(i64 %thr0, i64 %L5), !dbg !21
+```
+
+==== invokeinterface
+
+We define an `itable` for each interface that specifies an order for
+the reachable selectors that are usable in `invokeinterface` for that
+interface type.  Each class that implements the interface will define
+its own `itable` that contains pointers to the instance methods of the
+class that implement each selector.  For each interface we generate an
+`itables[]` that is indexed by `typeId` and contains a pointer to each
+class's `itable`. All invalid slots are initialized to an error `itable`
+that contains stubs that will throw an `IncompatibleClassChangeError`
+if invoked. The presence of these stubs eliminates the need to perform
+an explicit check at the `invokeinterface` call site to validate that
+the receiver object actually implements the interface.
+
+Therefore an `invokeinterface` dispatch is simply three
+dependent loads and an indirect call.
+
+```
+  # Load the `typeId` from the receiver (%L1)
+  %L1 = inttoptr i64 %L0 to %T.java.lang.Object*, !dbg !27
+  %L2 = getelementptr %T.java.lang.Object, %T.java.lang.Object* %L1, i32 0, i32 0
+  %L3 = load i32, i32* %L2, align 4, !dbg !24
+  # Load the object's itable from itables[typeId]
+  %L4 = getelementptr [58 x %T.struct.itable-test.InvokeInterface$I*], [58 x %T.struct.itable-test.InvokeInterface$I*]* @qcc_itables_array_itable-test.InvokeInterface$I, i32 0, i32 %L3
+  %L5 = load %T.struct.itable-test.InvokeInterface$I*, %T.struct.itable-test.InvokeInterface$I** %L4, align 8, !dbg !23
+  # Load function pointer from itable[selector]
+  %L6 = getelementptr %T.struct.itable-test.InvokeInterface$I, %T.struct.itable-test.InvokeInterface$I* %L5, i32 0, i32 2
+  %L7 = load i32 (i64, i64)*, i32 (i64, i64)** %L6, align 8, !dbg !22
+  # Invoke the target function
+  %L8 = call i32 (i64, i64) %L7(i64 %thr0, i64 %L0), !dbg !21
+```
+
+==== instanceof/checkcast (of a class)
+
+We have assigned typeIds via a postorder traversal of the class hierarchy. Therefore an object `o` is a subclass of `C` exactly when `C.minTypeId <= o.typeId <= C.maxTypeId`.
+
+We will use the following trivial class hierarchy to illustrate the cases:
+
+```java
+class A {}
+final class B extends A {}
+class C extends A implements I {}
+interface I {}
+```
+We can implement this test with a single branch by using unsigned comparisons by doing the test:
+`o.typeId - C.minTypeId <= (C.maxTypeId - C.minTypeId)`
+As `C.minTypeId` and `C.maxTypeId` are compile time constants, we can get a tight 4 instruction sequence: load, add immediate, unsigned compare, branch.
+
+```java
+static boolean test1(Object a) { return a instanceof A; }
+```
+
+Compiles into:
+
+```
+B0:
+  # test for a != null
+  %L0 = icmp ne i64 %p0, zeroinitializer, !dbg !69
+  %L1 = inttoptr i64 %p0 to %T.java.lang.Object*, !dbg !73
+  br i1 %L0, label %B1, label %B2, !dbg !67
+B1:
+  # load typeId from a
+  %L2 = getelementptr %T.java.lang.Object, %T.java.lang.Object* %L1, i32 0, i32 0
+  %L3 = load i32, i32* %L2, align 4, !dbg !71
+  # subtract `A.minTypeId` from typeId
+  %L5 = sub i32 %L3, 20, !dbg !78
+  # unsigned compare to A.maxTypeId - A.minTypeId
+  %L6 = icmp ule i32 %L5, 2, !dbg !77
+  br label %B2, !dbg !70
+B2:
+  %L4 = phi i1 [ %L6, %B1 ], [ false, %B0 ], !dbg !76
+  ret i1 %L4, !dbg !74
+```
+
+
+If `C` is a leaf class (no live subclasses), we can do a simple load, cmp eq, branch.
+
+```java
+static boolean test2(Object a) { return a instanceof B; }
+```
+
+Compiles into:
+
+```
+B0:
+  # test for a != null
+  %L0 = icmp ne i64 %p0, zeroinitializer, !dbg !83
+  %L1 = inttoptr i64 %p0 to %T.java.lang.Object*, !dbg !87
+  br i1 %L0, label %B1, label %B2, !dbg !81
+B1:
+  # load typeId from a
+  %L2 = getelementptr %T.java.lang.Object, %T.java.lang.Object* %L1, i32 0, i32 0
+  %L3 = load i32, i32* %L2, align 4, !dbg !85
+  # compare to B.typeId
+  %L5 = icmp eq i32 %L3, 22, !dbg !91
+  br label %B2, !dbg !84
+B2:
+  %L4 = phi i1 [ %L5, %B1 ], [ false, %B0 ], !dbg !90
+  ret i1 %L4, !dbg !88
+```
+
+==== instanceof/checkcast (of an array)
+
+There are a variety of cases to cover. Some can be done with fast
+inline implementations, others we may want to implement with
+out-of-line helpers as they are less common, potentially more
+complex and may need out-of-line helpers defined anyways (to support
+optimized arraycopy implementations for compatible Reference array types).
+
+The cases to cover are:
+
+* Testing for a 1 dimensional primitive [] is analogous to testing
+  for a final class.  Equality compare for the typeId of the array
+  class.
+
+* Testing for various forms of Reference array that are all encoded
+  using a single primary ReferenceArray `typeId` and a secondary
+  `dimensions` and `elementType` `typeId`.
+** Testing for a k-dimensional primitive arrays.
+** Testing for a k-dimensional Object[]
+** Testing for a k-dimensional array of class `C` or interface `I`.
+
+TODO: Finish implementation and fill in above with generated LLVM IR sequences.
+
+==== instanceof/checkcast (of an interface)
+
+We generate a byte array for each interface that is indexed by `typeId` and contains
+`0` or `1` values to indicate whether or not the class implements the interface.
+
+```java
+static boolean test3(Object a) { return a instanceof I; }
+```
+
+Compiles into:
+
+```
+B0:
+  %L0 = icmp ne i64 %p0, zeroinitializer, !dbg !96
+  %L1 = inttoptr i64 %p0 to %T.java.lang.Object*, !dbg !101
+  br i1 %L0, label %B1, label %B2, !dbg !94
+B1:
+  %L2 = getelementptr %T.java.lang.Object, %T.java.lang.Object* %L1, i32 0, i32 0
+  %L3 = load i32, i32* %L2, align 4, !dbg !99
+  %L4 = getelementptr [74 x %T.struct.typeIds], [74 x %T.struct.typeIds]* @qcc_typeid_array, i32 0, i32 %L3, i32 2, i32 0
+  %L5 = load i8, i8* %L4, align 1, !dbg !98
+  %L7 = and i8 %L5, 1, !dbg !106
+  %L8 = icmp eq i8 %L7, 1, !dbg !105
+  br label %B2, !dbg !97
+B2:
+  %L6 = phi i1 [ %L8, %B1 ], [ false, %B0 ], !dbg !104
+  ret i1 %L6, !dbg !102
+```
+
+==== getClass()
+
+TODO: Implement and document
+
+==== hashCode
+
+TODO: Implement and document
+
+==== monitorenter/monitorexit
+
+TODO: Implement and document
+
+
+== Future QCC Object Model Ideas
+
+This section is an attempt to capture as many of the possible future
+design options that have been raised in chat/discussion.  Not all of
+these ideas are mutually compatible or fully formed, so caveat lecotr!
+
+=== Method Dispatch
+
+Use selector indexed tables for both invokevirtual and
+invokedispatch.  Each method selector would have its own dispatch
+table that would be indexed by typeId.
+
+Explore other options for invokeinterface:
+
+* save data space by using searched itables instead of directly indexed
+  itables. In some previous systems, searched itables have been
+  combined with a move-to-front cache to optimize for classes that
+  implement a large number of interfaces.
+* generate customized interface dispatching stubs as in
+  [Alpern et al OOPSLA 2001]
+* Use perfect hashing or some other hash-based compression scheme to
+  improve the space usage of directly-indexed interface tables.
+
+A key question for using many of the more space efficient dispatching
+schemes is determining whether or not we can statically eliminate the
+need to dynamically check for `AbstractMethodError` and
+`IncompatibleClassChangeError` as part of the dispatching sequence.
+
+=== Hashcodes / Garbage Collection
+
+It is likely we will want to allow moving garbage collectors at some
+point in the future.  When we do, we will need to add the necessary
+support to the object header (GC-specific bits and support for
+maintaining defualt hashcodes as objects are moved).
+
+=== Compressed pointers
+
+Having compressed (ie 32-bit) pointers can yield significant heap size
+reductions for programs that have a max heap of a small number of GB
+(between 4GB and 32GB typically depending on assumptions on object
+alignment). Combining compressed heap pointers with ASLR probably
+means keeping more or more base pointers in the `VMThread` object. We
+might be able to control the logical heap layout enough to allow the
+basepointer to be derived by masking the VMThread object (for example,
+the VMThreads are all allocated in the lowest `N^k` bytes of the heap
+and the heap is 2^k aligned. Therefore we can obtain the base pointer
+of the heap simply by masking the low k bits of the VMThread ptr.
