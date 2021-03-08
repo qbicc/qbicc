@@ -352,26 +352,135 @@ dependent loads and an indirect call.
 
 We have assigned typeIds via a postorder traversal of the class hierarchy. Therefore an object `o` is a subclass of `C` exactly when `C.minTypeId <= o.typeId <= C.maxTypeId`.
 
+We will use the following trivial class hierarchy to illustrate the cases:
+
+```java
+class A {}
+final class B extends A {}
+class C extends A implements I {}
+interface I {}
+```
 We can implement this test with a single branch by using unsigned comparisons by doing the test:
 `o.typeId - C.minTypeId <= (C.maxTypeId - C.minTypeId)`
 As `C.minTypeId` and `C.maxTypeId` are compile time constants, we can get a tight 4 instruction sequence: load, add immediate, unsigned compare, branch.
 
-If C is a leaf class (no live subclasses), we can do a simple load, cmp eq, branch.
+```java
+static boolean test1(Object a) { return a instanceof A; }
+```
+
+Compiles into:
+
+```
+B0:
+  # test for a != null
+  %L0 = icmp ne i64 %p0, zeroinitializer, !dbg !69
+  %L1 = inttoptr i64 %p0 to %T.java.lang.Object*, !dbg !73
+  br i1 %L0, label %B1, label %B2, !dbg !67
+B1:
+  # load typeId from a
+  %L2 = getelementptr %T.java.lang.Object, %T.java.lang.Object* %L1, i32 0, i32 0
+  %L3 = load i32, i32* %L2, align 4, !dbg !71
+  # subtract `A.minTypeId` from typeId
+  %L5 = sub i32 %L3, 20, !dbg !78
+  # unsigned compare to A.maxTypeId - A.minTypeId
+  %L6 = icmp ule i32 %L5, 2, !dbg !77
+  br label %B2, !dbg !70
+B2:
+  %L4 = phi i1 [ %L6, %B1 ], [ false, %B0 ], !dbg !76
+  ret i1 %L4, !dbg !74
+```
+
+
+If `C` is a leaf class (no live subclasses), we can do a simple load, cmp eq, branch.
+
+```java
+static boolean test2(Object a) { return a instanceof B; }
+```
+
+Compiles into:
+
+```
+B0:
+  # test for a != null
+  %L0 = icmp ne i64 %p0, zeroinitializer, !dbg !83
+  %L1 = inttoptr i64 %p0 to %T.java.lang.Object*, !dbg !87
+  br i1 %L0, label %B1, label %B2, !dbg !81
+B1:
+  # load typeId from a
+  %L2 = getelementptr %T.java.lang.Object, %T.java.lang.Object* %L1, i32 0, i32 0
+  %L3 = load i32, i32* %L2, align 4, !dbg !85
+  # compare to B.typeId
+  %L5 = icmp eq i32 %L3, 22, !dbg !91
+  br label %B2, !dbg !84
+B2:
+  %L4 = phi i1 [ %L5, %B1 ], [ false, %B0 ], !dbg !90
+  ret i1 %L4, !dbg !88
+```
 
 ==== instanceof/checkcast (of an array)
 
-Can have some fast paths based on dimensionality and leaf-element type
-ids. 
+There are a variety of cases to cover. Some can be done with fast
+inline implementations, others we may want to implement with
+out-of-line helpers as they are less common, potentially more
+complex and may need out-of-line helpers defined anyways (to support
+optimized arraycopy implementations for compatible Reference array types).
+
+The cases to cover are:
+
+* Testing for a 1 dimensional primitive [] is analogous to testing
+  for a final class.  Equality compare for the typeId of the array
+  class.
+
+* Testing for various forms of Reference array that are all encoded
+  using a single primary ReferenceArray `typeId` and a secondary
+  `dimensions` and `elementType` `typeId`.
+** Testing for a k-dimensional primitive arrays.
+** Testing for a k-dimensional Object[]
+** Testing for a k-dimensional array of class `C` or interface `I`.
+
+TODO: Finish implementation and fill in above with generated LLVM IR sequences.
 
 ==== instanceof/checkcast (of an interface)
 
-May depend on how we implement invokeinterface....
+We generate a byte array for each interface that is indexed by `typeId` and contains
+`0` or `1` values to indicate whether or not the class implements the interface.
+
+```java
+static boolean test3(Object a) { return a instanceof I; }
+```
+
+Compiles into:
+
+```
+B0:
+  %L0 = icmp ne i64 %p0, zeroinitializer, !dbg !96
+  %L1 = inttoptr i64 %p0 to %T.java.lang.Object*, !dbg !101
+  br i1 %L0, label %B1, label %B2, !dbg !94
+B1:
+  %L2 = getelementptr %T.java.lang.Object, %T.java.lang.Object* %L1, i32 0, i32 0
+  %L3 = load i32, i32* %L2, align 4, !dbg !99
+  %L4 = getelementptr [74 x %T.struct.typeIds], [74 x %T.struct.typeIds]* @qcc_typeid_array, i32 0, i32 %L3, i32 2, i32 0
+  %L5 = load i8, i8* %L4, align 1, !dbg !98
+  %L7 = and i8 %L5, 1, !dbg !106
+  %L8 = icmp eq i8 %L7, 1, !dbg !105
+  br label %B2, !dbg !97
+B2:
+  %L6 = phi i1 [ %L8, %B1 ], [ false, %B0 ], !dbg !104
+  ret i1 %L6, !dbg !102
+```
 
 ==== getClass()
 
+TODO: Implement and document
+
 ==== hashCode
 
+TODO: Implement and document
+
 ==== monitorenter/monitorexit
+
+TODO: Implement and document
+
 
 == Future QCC Object Model Ideas
 
