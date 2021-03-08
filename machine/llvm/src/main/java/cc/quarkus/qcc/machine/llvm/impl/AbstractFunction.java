@@ -8,7 +8,9 @@ import cc.quarkus.qcc.machine.llvm.DllStorageClass;
 import cc.quarkus.qcc.machine.llvm.Function;
 import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.SignExtension;
 import cc.quarkus.qcc.machine.llvm.Visibility;
+import cc.quarkus.qcc.machine.llvm.op.Call;
 import io.smallrye.common.constraint.Assert;
 
 abstract class AbstractFunction extends AbstractMetable implements Function {
@@ -245,6 +247,7 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         final ParameterImpl prev;
         final AbstractFunction function;
         final AbstractValue type;
+        SignExtension ext = SignExtension.none;
 
         ParameterImpl(final ParameterImpl prev, final AbstractFunction function, final AbstractValue type) {
             this.prev = prev;
@@ -279,10 +282,23 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
                 target.append(',').append(' ');
             }
             type.appendTo(target);
+            if (ext != SignExtension.none) {
+                target.append(' ').append(ext.name());
+            }
             if (name != null) {
                 target.append(' ').append('%').append(name);
             }
             return target;
+        }
+
+        public ParameterImpl signExt() {
+            ext = SignExtension.signext;
+            return this;
+        }
+
+        public ParameterImpl zeroExt() {
+            ext = SignExtension.zeroext;
+            return this;
         }
     }
 }

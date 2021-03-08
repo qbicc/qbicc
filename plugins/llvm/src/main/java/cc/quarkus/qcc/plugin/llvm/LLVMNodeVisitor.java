@@ -84,12 +84,14 @@ import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
+import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.definition.MethodBody;
@@ -138,7 +140,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         }
         for (int i = 0; i < cnt; i ++) {
             ParameterValue value = functionObj.getBody().getParameterValue(i);
-            mappedValues.put(value, func.param(map(value.getType())).name(value.getLabel() + value.getIndex()).asValue());
+            ValueType      type = value.getType();
+            cc.quarkus.qcc.machine.llvm.Function.Parameter param = func.param(map(value.getType())).name(value.getLabel() + value.getIndex());
+            if(type instanceof SignedIntegerType) {
+                param.signExt();
+            } else if(type instanceof UnsignedIntegerType || type instanceof BooleanType) {
+                param.zeroExt();
+            }
+            mappedValues.put(value, param.asValue());
         }
         func.returns(map(funcType.getReturnType()));
         map(entryBlock);
@@ -618,7 +627,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         Call call = builder.call(llType, llTarget);
         for (int i = 0; i < arguments.size(); i++) {
             ValueType type = arguments.get(i).getType();
-            call.arg(map(type), map(arguments.get(i)));
+            Call.Argument arg = call.arg(map(type), map(arguments.get(i)));
+            if (type instanceof SignedIntegerType) {
+                arg.signExt();
+            } else if (type instanceof BooleanType || type instanceof UnsignedIntegerType) {
+                arg.zeroExt();
+            }
         }
         return call.asLocal();
     }
@@ -636,7 +650,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         }
         Call call = builder.invoke(llType, llTarget, map(try_.getResumeTarget()), mapCatch(try_.getExceptionHandler()));
         for (int i = 0; i < arguments.size(); i++) {
-            call.arg(map(functionType.getParameterType(i)), map(arguments.get(i)));
+            ValueType     type = functionType.getParameterType(i);
+            Call.Argument arg = call.arg(map(type), map(arguments.get(i)));
+            if(type instanceof SignedIntegerType) {
+                arg.signExt();
+            } else if (type instanceof BooleanType || type instanceof UnsignedIntegerType) {
+                arg.zeroExt();
+            }
         }
         return call.asLocal();
     }

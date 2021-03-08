@@ -149,14 +149,14 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
                 prev.appendTo(target);
                 target.append(',').append(' ');
             }
-            if (ext != SignExtension.none) {
-                target.append(ext.name()).append(' ');
-            }
             if (inReg) {
                 target.append("inreg").append(' ');
             }
             type.appendTo(target);
             target.append(' ');
+            if (ext != SignExtension.none) {
+                target.append(ext.name()).append(' ');
+            }
             value.appendTo(target);
             return target;
         }
