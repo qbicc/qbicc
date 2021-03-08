@@ -29,6 +29,7 @@ import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.generic.BaseTypeSignature;
 import cc.quarkus.qcc.type.generic.ClassSignature;
 import cc.quarkus.qcc.type.generic.ClassTypeSignature;
@@ -46,6 +47,8 @@ public final class Layout {
         return builder.build();
     };
     private static final String INTERNAL_ARRAY = "internal_array";
+    private static TypeDescriptor typeTypeDescriptor = BaseTypeDescriptor.V; // TODO: Should be C (16 bit unsigned)
+    private static TypeSignature typeTypeSignature = BaseTypeSignature.V;    // TODO: Should be C (16 bit unsigned)
 
     private final Map<ValidatedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
@@ -78,27 +81,27 @@ public final class Layout {
         ValidatedTypeDefinition jlo = jloDef.validate();
         ValidatedTypeDefinition jlc = jlcDef.validate();
 
-        // inject a 16bit unsigned int field to hold the object typeId
+        // inject a field to hold the object typeId
+        // TODO: This should be a 16 bit unsigned field.  It is being generated as an i32 currently.
         FieldElement.Builder builder = FieldElement.builder();
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
         builder.setName("typeId");
         builder.setEnclosingType(jloDef);
-        // typeId is a 16 bit unsigned int value, Char is the closest descriptor
-        builder.setDescriptor(BaseTypeDescriptor.C);
-        builder.setSignature(BaseTypeSignature.C);
+        builder.setDescriptor(typeTypeDescriptor);
+        builder.setSignature(typeTypeSignature);
         builder.setType(jlo.getClassType().getTypeType());
         FieldElement field = builder.build();
         jlo.injectField(field);
         objectTypeIdField = field;
 
         // now inject a field of ClassObjectType into Class to hold the corresponding run time type
+        // TODO: This should be a 16 bit unsigned field.  It is being generated as an i32 currently.
         builder = FieldElement.builder();
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
         builder.setName("id");
         builder.setEnclosingType(jlcDef);
-        // void for now, but this is cheating terribly
-        builder.setDescriptor(BaseTypeDescriptor.V);
-        builder.setSignature(BaseTypeSignature.V);
+        builder.setDescriptor(typeTypeDescriptor);
+        builder.setSignature(typeTypeSignature);
         builder.setType(jlo.getClassType().getTypeType());
         field = builder.build();
         jlc.injectField(field);
@@ -166,7 +169,7 @@ public final class Layout {
             // also need a dimensions field
             typeBuilder.addField(Layout::makeDimensionsField, idx++);
             // also need a type ID field
-            typeBuilder.addField((index, encl) -> makeTypeIdField(index, superClass, encl), idx++);
+            typeBuilder.addField((index, encl) -> makeElementTypeIdField(index, superClass, encl), idx++);
         }
         typeBuilder.addField((index, enclosing) -> makeContentField(index, enclosing, realMemberType), idx);
         typeBuilder.setInitializer(EMPTY_INIT, 0);
@@ -176,6 +179,7 @@ public final class Layout {
     private static FieldElement makeDimensionsField(final int index, final DefinedTypeDefinition enclosing) {
         FieldElement.Builder fieldBuilder = FieldElement.builder();
         fieldBuilder.setEnclosingType(enclosing);
+        // TODO: This should be a 8 bit unsigned field. (max dimensions is 255 from multianewarray)
         fieldBuilder.setDescriptor(BaseTypeDescriptor.I);
         fieldBuilder.setSignature(BaseTypeSignature.I);
         fieldBuilder.setIndex(index);
@@ -197,11 +201,12 @@ public final class Layout {
         return fieldBuilder.build();
     }
 
-    private static FieldElement makeTypeIdField(final int index, final DefinedTypeDefinition jlo, final DefinedTypeDefinition enclosing) {
+    private static FieldElement makeElementTypeIdField(final int index, final DefinedTypeDefinition jlo, final DefinedTypeDefinition enclosing) {
         FieldElement.Builder fieldBuilder = FieldElement.builder();
         fieldBuilder.setEnclosingType(enclosing);
-        fieldBuilder.setDescriptor(BaseTypeDescriptor.V);
-        fieldBuilder.setSignature(BaseTypeSignature.V);
+        // TODO: This should be a 16 bit unsigned field.  It is being generated as an i32 currently.
+        fieldBuilder.setDescriptor(typeTypeDescriptor);
+        fieldBuilder.setSignature(typeTypeSignature);
         fieldBuilder.setIndex(index);
         fieldBuilder.setName("elementType");
         fieldBuilder.setType(jlo.validate().getClassType().getReference().getTypeType());

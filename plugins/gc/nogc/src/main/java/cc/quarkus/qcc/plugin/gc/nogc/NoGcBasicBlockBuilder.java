@@ -20,6 +20,7 @@ import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.ReferenceArrayObjectType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
@@ -95,7 +96,9 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
         store(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), truncate(size, ctxt.getTypeSystem().getSignedInteger32Type()), MemoryAtomicityMode.UNORDERED);
         if (arrayType instanceof ReferenceArrayObjectType) {
-            ctxt.warning(getLocation(),"Skipping initialization of reference array header fields");
+            ReferenceArrayObjectType refArrayType = (ReferenceArrayObjectType)arrayType;
+            store(instanceFieldOf(arrayHandle, layout.getRefArrayDimensionsField()), lf.literalOf(refArrayType.getDimensionCount()), MemoryAtomicityMode.UNORDERED);
+            store(instanceFieldOf(arrayHandle, layout.getRefArrayElementTypeIdField()), lf.literalOfType(refArrayType.getElementObjectType()), MemoryAtomicityMode.UNORDERED);
         }
         return arrayPtr;
     }

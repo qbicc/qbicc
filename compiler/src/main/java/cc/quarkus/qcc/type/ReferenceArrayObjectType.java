@@ -55,7 +55,7 @@ public final class ReferenceArrayObjectType extends ArrayObjectType {
         return elementType;
     }
 
-    public ValueType getLeafElementType() {
+    public ObjectType getLeafElementType() {
         if (elementType instanceof ReferenceArrayObjectType) {
             return ((ReferenceArrayObjectType) elementType).getLeafElementType();
         } else {

@@ -9,6 +9,15 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
+import cc.quarkus.qcc.type.ArrayObjectType;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.InterfaceObjectType;
+import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.PhysicalObjectType;
+import cc.quarkus.qcc.type.PrimitiveArrayObjectType;
+import cc.quarkus.qcc.type.ReferenceArrayObjectType;
+import cc.quarkus.qcc.type.ReferenceType;
+import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -79,9 +88,37 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         if (initializer != null) {
             ctxt.enqueue(initializer);
         }
-        processInstantiatedClass(target.getEnclosingType().validate(), true);
+        processInstantiatedClass(target.getEnclosingType().validate(), true, false);
         ctxt.enqueue(target);
         return super.invokeConstructor(instance, target, arguments);
+    }
+
+    public Value newArray(final ArrayObjectType arrayType, Value size) {
+        if (arrayType instanceof ReferenceArrayObjectType) {
+            // To avoid obscure corner cases errors in dynamic type checking code,
+            // force the array's leaf element type to be resolved (and thus assigned a typeId).
+            ObjectType elemType = ((ReferenceArrayObjectType)arrayType).getLeafElementType();
+            if (elemType instanceof ClassObjectType) {
+                processInstantiatedClass(elemType.getDefinition().validate(), false, true);
+            } else if (elemType instanceof InterfaceObjectType) {
+                processInstantiatedInterface(RTAInfo.get(ctxt), elemType.getDefinition().validate(), true);
+            }
+        }
+        return super.newArray(arrayType, size);
+    }
+
+    public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
+        if (arrayType instanceof ReferenceArrayObjectType) {
+            // To avoid obscure corner cases errors in dynamic type checking code,
+            // force the array's leaf element type to be resolved (and thus assigned a typeId).
+            ObjectType elemType = ((ReferenceArrayObjectType) arrayType).getLeafElementType();
+            if (elemType instanceof ClassObjectType) {
+                processInstantiatedClass(elemType.getDefinition().validate(), false, true);
+            } else if (elemType instanceof InterfaceObjectType) {
+                processInstantiatedInterface(RTAInfo.get(ctxt), elemType.getDefinition().validate(), true);
+            }
+        }
+        return super.multiNewArray(arrayType, dimensions);
     }
 
     @Override
@@ -92,16 +129,18 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.staticField(field);
     }
 
-    private void processInstantiatedClass(final ValidatedTypeDefinition type, boolean directlyInstantiated) {
+    private void processInstantiatedClass(final ValidatedTypeDefinition type, boolean directlyInstantiated, boolean arrayElement) {
         RTAInfo info = RTAInfo.get(ctxt);
         if (!info.isLiveClass(type)) {
             if (directlyInstantiated) {
                 rtaLog.debugf("Adding class %s (instantiated in %s)", type.getDescriptor().getClassName(), originalElement);
+            } else if (arrayElement) {
+                rtaLog.debugf("Adding class %s (array element in %s)", type.getDescriptor().getClassName(), originalElement);
             } else {
                 rtaLog.debugf("\tadding ancestor class: %s", type.getDescriptor().getClassName());
             }
             if (type.hasSuperClass()) {
-                processInstantiatedClass(type.getSuperClass(), false);
+                processInstantiatedClass(type.getSuperClass(), false, false);
                 info.addLiveClass(type);
 
                 // For every instance method that is not already enqueued,
@@ -119,7 +158,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
             // Extend the interface hierarchy
             for (ValidatedTypeDefinition i: type.getInterfaces()) {
-                processInstantiatedInterface(info, i);
+                processInstantiatedInterface(info, i, false);
                 info.addInterfaceEdge(type, i);
             }
 
@@ -138,11 +177,16 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         }
     }
 
-    private void processInstantiatedInterface(RTAInfo info, final ValidatedTypeDefinition type) {
+    private void processInstantiatedInterface(RTAInfo info, final ValidatedTypeDefinition type, boolean arrayElement) {
         if (!info.isLiveInterface(type)) {
-            rtaLog.debugf("\tadding implemented interface: %s", type.getDescriptor().getClassName());
+            info.makeInterfaceLive(type);
+            if (arrayElement) {
+                rtaLog.debugf("Adding interface used as array element: %s", type.getDescriptor().getClassName());
+            } else {
+                rtaLog.debugf("\tadding implemented interface: %s", type.getDescriptor().getClassName());
+            }
             for (ValidatedTypeDefinition i: type.getInterfaces()) {
-                processInstantiatedInterface(info, i);
+                processInstantiatedInterface(info, i, false);
                 info.addInterfaceEdge(type, i);
             }
 
