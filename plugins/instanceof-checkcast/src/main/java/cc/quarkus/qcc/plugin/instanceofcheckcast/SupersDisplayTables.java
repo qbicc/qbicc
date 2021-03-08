@@ -48,7 +48,7 @@ public class SupersDisplayTables {
 
     static final String GLOBAL_TYPEID_ARRAY = "qcc_typeid_array";
     private GlobalVariableElement typeIdArrayGlobal;
-    CompoundType typeIdStructType;
+    private CompoundType typeIdStructType;
 
     /** 
      * This class embodies the typeid for a class and the
@@ -467,6 +467,19 @@ public class SupersDisplayTables {
             section.declareData(null, typeIdArrayGlobal.getName(), typeIdArrayGlobal.getType(List.of()));
         }
         return typeIdArrayGlobal;
+    }
+
+    /**
+     * Get the CompoundType for the GlobalTypeIdArray (`qcc_typeid_array`) 
+     * global variable elements.
+     * 
+     * See #emitTypeIdTable for the definition of the typeid array elements.
+     * 
+     * @return  The CompoundType describing the struct.
+     */
+    public CompoundType getGlobalTypeIdStructType() {
+        Assert.assertNotNull(typeIdStructType);
+        return typeIdStructType;
     }
 }
 
