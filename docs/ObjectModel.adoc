@@ -373,3 +373,50 @@ May depend on how we implement invokeinterface....
 
 ==== monitorenter/monitorexit
 
+== Future QCC Object Model Ideas
+
+This section is an attempt to capture as many of the possible future
+design options that have been raised in chat/discussion.  Not all of
+these ideas are mutually compatible or fully formed, so caveat lecotr!
+
+=== Method Dispatch
+
+Use selector indexed tables for both invokevirtual and
+invokedispatch.  Each method selector would have its own dispatch
+table that would be indexed by typeId.
+
+Explore other options for invokeinterface:
+
+* save data space by using searched itables instead of directly indexed
+  itables. In some previous systems, searched itables have been
+  combined with a move-to-front cache to optimize for classes that
+  implement a large number of interfaces.
+* generate customized interface dispatching stubs as in
+  [Alpern et al OOPSLA 2001]
+* Use perfect hashing or some other hash-based compression scheme to
+  improve the space usage of directly-indexed interface tables.
+
+A key question for using many of the more space efficient dispatching
+schemes is determining whether or not we can statically eliminate the
+need to dynamically check for `AbstractMethodError` and
+`IncompatibleClassChangeError` as part of the dispatching sequence.
+
+=== Hashcodes / Garbage Collection
+
+It is likely we will want to allow moving garbage collectors at some
+point in the future.  When we do, we will need to add the necessary
+support to the object header (GC-specific bits and support for
+maintaining defualt hashcodes as objects are moved).
+
+=== Compressed pointers
+
+Having compressed (ie 32-bit) pointers can yield significant heap size
+reductions for programs that have a max heap of a small number of GB
+(between 4GB and 32GB typically depending on assumptions on object
+alignment). Combining compressed heap pointers with ASLR probably
+means keeping more or more base pointers in the `VMThread` object. We
+might be able to control the logical heap layout enough to allow the
+basepointer to be derived by masking the VMThread object (for example,
+the VMThreads are all allocated in the lowest `N^k` bytes of the heap
+and the heap is 2^k aligned. Therefore we can obtain the base pointer
+of the heap simply by masking the low k bits of the VMThread ptr.
