@@ -127,8 +127,30 @@ public class ArithmeticCompare {
 
     static void javaLangIntegerCompare() {
         putchar(Integer.compare(46095, -985998) > 0 ? '_' : 'F');
+        putchar(Integer.compare(6095, -85998) >= 0 ? '_' : 'F');
         putchar(Integer.compare(2, 2) == 0 ? '_' : 'F');
+        putchar(Integer.compare(2, -2) != 0 ? '_' : 'F');
         putchar(Integer.compare(-511, -8) < 0 ? '_' : 'F');
+        putchar(Integer.compare(-51, -7) <= 0 ? '_' : 'F');
+
+        putchar(0 > Integer.compare(-85998, 6095) ? '_' : 'F');
+        putchar(0 >= Integer.compare(-5998, 95) ? '_' : 'F');
+        putchar(0 == Integer.compare(3, 3) ? '_' : 'F');
+        putchar(0 != Integer.compare(3, -3) ? '_' : 'F');
+        putchar(0 < Integer.compare(-9, -11) ? '_' : 'F');
+        putchar(0 <= Integer.compare(-5, -18) ? '_' : 'F');
+
+        putchar(Integer.compare(32, -744865192) >= 1 ? '_' : 'F'); // IsLt(Cmp(a, b), 1)  => IsLe(a, b)
+        putchar(Integer.compare(-5, 10) < 1 ? '_' : 'F');          // IsGe(Cmp(a, b), 1)  => IsGt(a, b)
+        putchar(1 <= Integer.compare(497, -319) ? '_' : 'F');      // IsGt(1, Cmp(a, b))  => IsLe(a, b)
+        putchar(1 > Integer.compare(-445866, -31029) ? '_' : 'F'); // IsLe(1, Cmp(a, b))  => IsGt(a, b)
+
+        putchar(Integer.compare(-865192, 32) <= -1 ? '_' : 'F');   // IsGt(Cmp(a, b), -1) => IsGe(a, b)
+        putchar(Integer.compare(8, -3) > -1 ? '_' : 'F');          // IsLe(Cmp(a, b), -1) => IsLt(a, b)
+        putchar(-1 >= Integer.compare(-19, 97) ? '_' : 'F');       // IsLt(-1, Cmp(a, b)) => IsGe(a, b)
+        putchar(-1 < Integer.compare(-1029, -45866) ? '_' : 'F');  // IsGe(-1, Cmp(a, b)) => IsLt(a, b)
+
+        putchar(-Integer.compare(32, -744865192) < 0 ? '_' : 'F');  // Neg(Cmp(a, b)) -> Cmp(b, a)
     }
 
     static void javaLangIntegerCompareUnsigned() {

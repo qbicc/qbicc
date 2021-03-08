@@ -6,6 +6,7 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.Cmp;
 import cc.quarkus.qcc.graph.Convert;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.NewArray;
@@ -24,6 +25,8 @@ import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
+
+import java.util.function.BiFunction;
 
 /**
  * A graph factory which performs simple optimizations opportunistically.
@@ -44,9 +47,16 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         } else if (v1 instanceof Literal && v2 instanceof Literal && v1.getType().equals(v2.getType())) {
             // todo: replace with constant detection
             return ctxt.getLiteralFactory().literalOf(v1.equals(v2));
-        } else {
-            return super.isEq(v1, v2);
         }
+
+        if (isCmp(v1) && isLiteral(v2, 0)) {
+            return isEq(cmpLeft(v1), cmpRight(v1));
+        }
+        if (isCmp(v2) && isLiteral(v1, 0)) {
+            return isEq(cmpLeft(v2), cmpRight(v2));
+        }
+
+        return super.isEq(v1, v2);
     }
 
     public Value isNe(final Value v1, final Value v2) {
@@ -54,9 +64,16 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return ctxt.getLiteralFactory().literalOf(false);
         } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
-        } else {
-            return super.isNe(v1, v2);
         }
+
+        if (isCmp(v1) && isLiteral(v2, 0)) {
+            return isNe(cmpLeft(v1), cmpRight(v1));
+        }
+        if (isCmp(v2) && isLiteral(v1, 0)) {
+            return isNe(cmpLeft(v2), cmpRight(v2));
+        }
+
+        return super.isNe(v1, v2);
     }
 
     public Value isLt(Value v1, Value v2) {
@@ -75,6 +92,20 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
+
+        if (isCmp(v1) && isLiteral(v2, 1)) {
+            return isLe(cmpLeft(v1), cmpRight(v1));
+        }
+        if (isCmp(v2) && isLiteral(v1, -1)) {
+            return isGe(cmpLeft(v2), cmpRight(v2));
+        }
+        if (isCmp(v1) && isLiteral(v2, 0)) {
+            return isLt(cmpLeft(v1), cmpRight(v1));
+        }
+        if (isCmp(v2) && isLiteral(v1, 0)) {
+            return isLt(cmpRight(v2), cmpLeft(v2));
+        }
+
         return super.isLt(v1, v2);
     }
 
@@ -94,6 +125,20 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
+
+        if (isCmp(v2) && isLiteral(v1, 1)) {
+            return isLe(cmpLeft(v2), cmpRight(v2));
+        }
+        if (isCmp(v1) && isLiteral(v2, -1)) {
+            return isGe(cmpLeft(v1), cmpRight(v1));
+        }
+        if (isCmp(v1) && isLiteral(v2, 0)) {
+            return isGt(cmpLeft(v1), cmpRight(v1));
+        }
+        if (isCmp(v2) && isLiteral(v1, 0)) {
+            return isGt(cmpRight(v2), cmpLeft(v2));
+        }
+
         return super.isGt(v1, v2);
     }
 
@@ -113,6 +158,20 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
+
+        if (isCmp(v2) && isLiteral(v1, 1)) {
+            return isGt(cmpLeft(v2), cmpRight(v2));
+        }
+        if (isCmp(v1) && isLiteral(v2, -1)) {
+            return isLt(cmpLeft(v1), cmpRight(v1));
+        }
+        if (isCmp(v1) && isLiteral(v2, 0)) {
+            return isLe(cmpLeft(v1), cmpRight(v1));
+        }
+        if (isCmp(v2) && isLiteral(v1, 0)) {
+            return isLe(cmpRight(v2), cmpLeft(v2));
+        }
+
         return super.isLe(v1, v2);
     }
 
@@ -132,6 +191,20 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 }
             }
         }
+
+        if (isCmp(v1) && isLiteral(v2, -1)) {
+            return isGe(cmpLeft(v1), cmpRight(v1));
+        }
+        if (isCmp(v2) && isLiteral(v1, -1)) {
+            return isLt(cmpLeft(v2), cmpRight(v2));
+        }
+        if (isCmp(v1) && isLiteral(v2, 0)) {
+            return isGe(cmpLeft(v1), cmpRight(v1));
+        }
+        if (isCmp(v2) && isLiteral(v1, 0)) {
+            return isGe(cmpRight(v2), cmpLeft(v2));
+        }
+
         return super.isGe(v1, v2);
     }
 
@@ -233,6 +306,15 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.sub(v1, v2);
     }
 
+    @Override
+    public Value negate(Value v) {
+        if (isCmp(v)) {
+            return cmp(cmpRight(v), cmpLeft(v));
+        }
+
+        return super.negate(v);
+    }
+
     // handles
 
     @Override
@@ -255,4 +337,20 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return value instanceof ZeroInitializerLiteral;
     }
 
+    private static boolean isCmp(final Value value) {
+        return value instanceof Cmp;
+    }
+
+    private static Value cmpLeft(final Value value) {
+        return ((Cmp) value).getLeftInput();
+    }
+
+    private static Value cmpRight(final Value value) {
+        return ((Cmp) value).getRightInput();
+    }
+
+    private boolean isLiteral(final Value value, final int literal) {
+        return value instanceof IntegerLiteral &&
+            ((IntegerLiteral) value).equals(ctxt.getLiteralFactory().literalOf(literal));
+    }
 }
