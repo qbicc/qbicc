@@ -1,12 +1,12 @@
 package cc.quarkus.qcc.type;
 
 /**
- * An object type whose elements are references.
+ * An object type whose elements are references to some ObjectType.
  */
 public final class ReferenceArrayObjectType extends ArrayObjectType {
-    private final ReferenceType elementType;
+    private final ObjectType elementType;
 
-    ReferenceArrayObjectType(final TypeSystem typeSystem, final ClassObjectType objectClass, final ReferenceType elementType) {
+    ReferenceArrayObjectType(final TypeSystem typeSystem, final ClassObjectType objectClass, final ObjectType elementType) {
         super(typeSystem, elementType.hashCode(), objectClass);
         this.elementType = elementType;
     }
@@ -22,7 +22,7 @@ public final class ReferenceArrayObjectType extends ArrayObjectType {
 
     public boolean isSubtypeOf(final ReferenceArrayObjectType other) {
         return this == other
-            || elementType.instanceOf(other.elementType);
+            || elementType.isSubtypeOf(other.elementType);
     }
 
     public ObjectType getCommonSupertype(final ObjectType other) {
@@ -37,7 +37,23 @@ public final class ReferenceArrayObjectType extends ArrayObjectType {
     }
 
     public ReferenceType getElementType() {
-        return elementType;
+        return elementType.getReference();
+    }
+
+    public ValueType getLeafElementType() {
+        if (elementType instanceof ArrayObjectType) {
+            return ((ArrayObjectType) elementType).getLeafElementType();
+        } else {
+            return elementType;
+        }
+    }
+
+    public int getDimensionCount() {
+        if (elementType instanceof ArrayObjectType) {
+            return 1 + ((ArrayObjectType) elementType).getDimensionCount();
+        } else {
+            return 1;
+        }
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {

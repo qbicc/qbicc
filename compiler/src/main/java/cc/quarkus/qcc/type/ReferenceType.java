@@ -81,7 +81,11 @@ public final class ReferenceType extends WordType {
         if (refArrayType != null) {
             return refArrayType;
         }
-        ReferenceArrayObjectType newReferenceArrayObjectType = typeSystem.createReferenceArrayObject(this);
+        if (interfaceBounds.size() > 1) {
+            throw new IllegalStateException();
+        }
+        ObjectType elementType = interfaceBounds.size() == 0 ? upperBound : interfaceBounds.iterator().next();
+        ReferenceArrayObjectType newReferenceArrayObjectType = typeSystem.createReferenceArrayObject(elementType);
         while (! refArrayTypeHandle.compareAndSet(this, null, newReferenceArrayObjectType)) {
             refArrayType = this.refArrayType;
             if (refArrayType != null) {

@@ -30,6 +30,14 @@ public final class PrimitiveArrayObjectType extends ArrayObjectType {
         return elementType;
     }
 
+    public ValueType getLeafElementType() {
+        return elementType;
+    }
+
+    public int getDimensionCount() {
+        return 1;
+    }
+
     public ObjectType getCommonSupertype(final ObjectType other) {
         return equals(other) ? this : super.getCommonSupertype(other);
     }

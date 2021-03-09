@@ -24,6 +24,10 @@ public abstract class ArrayObjectType extends PhysicalObjectType {
 
     public abstract ValueType getElementType();
 
+    public abstract ValueType getLeafElementType();
+
+    public abstract int getDimensionCount();
+
     public boolean isSubtypeOf(final ObjectType other) {
         return this == other
             || other instanceof ClassObjectType && isSubtypeOf((ClassObjectType) other)

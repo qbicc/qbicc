@@ -382,7 +382,7 @@ public final class TypeSystem {
         return new ReferenceType(this, objectType, interfaceBounds, false, referenceSize, referenceAlign);
     }
 
-    ReferenceArrayObjectType createReferenceArrayObject(final ReferenceType elementType) {
+    ReferenceArrayObjectType createReferenceArrayObject(final ObjectType elementType) {
         return new ReferenceArrayObjectType(this, objectClass, elementType);
     }
 
