@@ -18,19 +18,22 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.InterfaceObjectType;
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.PrimitiveArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 
 /**
- * A BasicBlockBuilder which replaces instanceof/checkcast operations with calls to
- * RuntimeHelper APIs.
+ * A BasicBlockBuilder which replaces instanceof/checkcast operations with calls
+ * to RuntimeHelper APIs.
  */
 public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast");
@@ -95,7 +98,16 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         if (expectedType instanceof ArrayObjectType) {
             // 1 - expectedType statically known to be an array class
             // TODO
-            result = lf.literalOf(false);
+            if (expectedType instanceof PrimitiveArrayObjectType) {
+                DefinedTypeDefinition dtd = Layout.get(ctxt).getArrayContentField(expectedType).getEnclosingType();
+                ValidatedTypeDefinition arrayVTD = dtd.validate();
+                final int primArrayTypeId = arrayVTD.getTypeId();
+                Value inputTypeId = typeIdOf(referenceHandle(input));
+                result = super.isEq(inputTypeId, lf.literalOf(primArrayTypeId));
+            } else {
+                // Layout#getRefArrayDimensionsField
+                result = lf.literalOf(false);
+            }
         } else if (expectedType instanceof InterfaceObjectType) {
             // 2 - expectedType statically known to be an interface
             SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
@@ -107,7 +119,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             // typeIdStruct = qcc_typeid_array[typeId]
             ValueHandle typeIdStruct = elementOf(globalVariable(typeIdGlobal), inputTypeId);
             // bits = &typeIdStruct.interfaceBits
-            ValueHandle bits = memberOf(typeIdStruct, tables.typeIdStructType.getMember("interfaceBits"));
+            ValueHandle bits = memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));
             // thisByte = bits[byteIndex] 
             Value thisByte = load(elementOf(bits, lf.literalOf(byteIndex)), MemoryAtomicityMode.UNORDERED);
             // maskedValue = thisByte & mask
