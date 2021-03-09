@@ -59,10 +59,6 @@ public abstract class DelegatingValidatedTypeDefinition extends DelegatingDefine
         return this;
     }
 
-    public ResolvedTypeDefinition resolve() throws ResolutionFailedException {
-        return getDelegate().resolve();
-    }
-
     public FieldElement getField(final int index) {
         return getDelegate().getField(index);
     }

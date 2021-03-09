@@ -30,7 +30,6 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     private final FieldSet instanceFieldSet;
     private final NestedClassElement enclosingClass;
     private final NestedClassElement[] enclosedClasses;
-    private volatile ResolvedTypeDefinition resolved;
     private int typeId = -1;
     private int maximumSubtypeId = -1;
 
@@ -138,39 +137,6 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     }
 
     // next stage
-
-    public ResolvedTypeDefinition resolve() throws ResolutionFailedException {
-        ResolvedTypeDefinition resolved = this.resolved;
-        if (resolved != null) {
-            return resolved;
-        }
-        ValidatedTypeDefinition superClass = getSuperClass();
-        if (superClass != null) {
-            superClass.resolve();
-        }
-        int cnt = getInterfaceCount();
-        for (int i = 0; i < cnt; i ++) {
-            getInterface(i).resolve();
-        }
-        cnt = getFieldCount();
-        for (int i = 0; i < cnt; i ++) {
-            fields.get(i).getType(List.of());
-        }
-        cnt = getMethodCount();
-        for (int i = 0; i < cnt; i ++) {
-            MethodElement method = methods[i];
-            method.getType(List.of());
-        }
-        synchronized (this) {
-            resolved = this.resolved;
-            if (resolved != null) {
-                return resolved;
-            }
-            resolved = new ResolvedTypeDefinitionImpl(this);
-            this.resolved = resolved;
-        }
-        return resolved;
-    }
 
     public int getTypeId() {
         return typeId;
