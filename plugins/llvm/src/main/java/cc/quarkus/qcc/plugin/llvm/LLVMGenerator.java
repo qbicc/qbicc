@@ -34,7 +34,6 @@ import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VariadicType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.MethodBody;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 

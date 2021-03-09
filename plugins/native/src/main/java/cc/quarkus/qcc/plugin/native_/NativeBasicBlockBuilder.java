@@ -169,6 +169,10 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
         NativeFunctionInfo functionInfo = nativeInfo.getFunctionInfo(owner, name, descriptor);
         if (functionInfo != null) {
+            SymbolLiteral sym = functionInfo.symbolLiteral;
+            FunctionType functionType = (FunctionType) sym.getType();
+            ctxt.getImplicitSection(getCurrentElement())
+                .declareFunction(functionInfo.origMethod, sym.getName(), functionType);
             // todo: store current thread into TLS for recursive Java call-in
             return callFunction(functionInfo.symbolLiteral, arguments);
         }

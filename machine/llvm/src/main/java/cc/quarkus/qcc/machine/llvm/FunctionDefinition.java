@@ -37,4 +37,8 @@ public interface FunctionDefinition extends Function {
     FunctionDefinition section(String section);
 
     FunctionDefinition preemption(RuntimePreemption preemption);
+
+    FunctionDefinition unwindTable();
+
+    FunctionDefinition personality(LLValue personalityValue, LLValue personalityType);
 }

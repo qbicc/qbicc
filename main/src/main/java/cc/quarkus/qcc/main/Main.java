@@ -76,6 +76,7 @@ import cc.quarkus.qcc.plugin.threadlocal.ThreadLocalTypeBuilder;
 import cc.quarkus.qcc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.SynchronizedMethodBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.ThrowValueBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.unwind.UnwindSetupHook;
 import cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.MemberResolvingBasicBlockBuilder;
@@ -244,6 +245,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, Layout::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
                                 builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
+                                builder.addPreHook(Phase.ADD, new UnwindSetupHook());
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());

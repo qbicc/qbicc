@@ -291,6 +291,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, name);
         nl(param);
         attr(param, "label", "static field\\n" + node.getVariableElement().toString());
+        nl(param);
         return name;
     }
 
@@ -672,7 +673,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "instanceof " + node.getCheckType().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
-        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY, "value");
         return name;
     }
 

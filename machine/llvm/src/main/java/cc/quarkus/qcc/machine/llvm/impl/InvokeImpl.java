@@ -20,6 +20,7 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
     Set<FastMathFlag> flags = Set.of();
     TailType tailType = TailType.notail;
     CallingConvention cconv = CallingConvention.C;
+    SignExtension ext = SignExtension.none;
     ArgImpl lastArg;
     int addressSpace;
 
@@ -75,11 +76,13 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
     }
 
     public Call signExt() {
-        throw new IllegalArgumentException("Use CallImpl instance to record signext attribute");
+        ext = SignExtension.signext;
+        return this;
     }
 
     public Call zeroExt() {
-        throw new IllegalArgumentException("Use CallImpl instance to record zeronext attribute");
+        ext = SignExtension.zeroext;
+        return this;
     }
 
     public Argument arg(final LLValue type, final LLValue value) {
@@ -103,6 +106,9 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
         // todo ret attrs
         if (addressSpace != 0) {
             target.append("addrspace").append('(').append(Integer.toString(addressSpace)).append(')').append(' ');
+        }
+        if(ext != SignExtension.none) {
+            target.append(ext.name()).append(' ');
         }
         type.appendTo(target).append(' ');
         function.appendTo(target);
