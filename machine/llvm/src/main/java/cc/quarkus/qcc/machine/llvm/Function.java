@@ -32,6 +32,10 @@ public interface Function extends Metable {
 
     Function comment(String comment);
 
+    Function signExt();
+
+    Function zeroExt();
+
     LLValue asGlobal();
 
     interface Parameter {

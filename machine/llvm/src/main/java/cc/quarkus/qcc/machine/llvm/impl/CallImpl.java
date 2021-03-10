@@ -18,6 +18,7 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
     Set<FastMathFlag> flags = Set.of();
     TailType tailType = TailType.notail;
     CallingConvention cconv = CallingConvention.C;
+    SignExtension ext = SignExtension.none;
     ArgImpl lastArg;
     int addressSpace;
 
@@ -70,6 +71,16 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
         return this;
     }
 
+    public Call signExt() {
+        ext = SignExtension.signext;
+        return this;
+    }
+
+    public Call zeroExt() {
+        ext = SignExtension.zeroext;
+        return this;
+    }
+
     public Argument arg(final LLValue type, final LLValue value) {
         return lastArg = new ArgImpl(this, lastArg, (AbstractValue) type, (AbstractValue) value);
     }
@@ -91,6 +102,9 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
         // todo ret attrs
         if (addressSpace != 0) {
             target.append("addrspace").append('(').append(Integer.toString(addressSpace)).append(')').append(' ');
+        }
+        if(ext != SignExtension.none) {
+            target.append(ext.name()).append(' ');
         }
         type.appendTo(target).append(' ');
         function.appendTo(target);
