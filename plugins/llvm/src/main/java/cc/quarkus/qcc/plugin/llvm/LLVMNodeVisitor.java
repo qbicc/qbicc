@@ -154,7 +154,17 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             }
             mappedValues.put(value, param.asValue());
         }
-        func.returns(map(funcType.getReturnType()));
+        ValueType retType = funcType.getReturnType();
+        func.returns(map(retType));
+        if(retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
+            if(retType instanceof SignedIntegerType) {
+                func.signExt();
+            } else {
+                func.zeroExt();
+            }
+        } else if(retType instanceof BooleanType) {
+            func.zeroExt();
+        }
         map(entryBlock);
     }
 
@@ -643,6 +653,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
                 arg.zeroExt();
             }
         }
+        ValueType retType = functionType.getReturnType();
+        if(retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
+            if(retType instanceof SignedIntegerType) {
+                call.signExt();
+            } else {
+                call.zeroExt();
+            }
+        } else if(retType instanceof BooleanType) {
+            call.zeroExt();
+        }
         return call.asLocal();
     }
 
@@ -670,6 +690,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             } else if (type instanceof BooleanType) {
                 arg.zeroExt();
             }
+        }
+        ValueType retType = functionType.getReturnType();
+        if(retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
+            if(retType instanceof SignedIntegerType) {
+                call.signExt();
+            } else {
+                call.zeroExt();
+            }
+        } else if(retType instanceof BooleanType) {
+            call.zeroExt();
         }
         return call.asLocal();
     }

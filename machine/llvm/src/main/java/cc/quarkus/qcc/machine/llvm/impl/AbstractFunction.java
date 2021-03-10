@@ -21,6 +21,8 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
     CallingConvention callingConvention = CallingConvention.C;
     AddressNaming addressNaming = AddressNaming.NAMED;
     AbstractValue returnType;
+    SignExtension ext = SignExtension.none;
+
     int addressSpace = 0;
     // todo: return type attribute
     int alignment = 0;
@@ -37,6 +39,16 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         Assert.checkNotNullParam("returnType", returnType);
         // todo with attributes...
         this.returnType = (AbstractValue) returnType;
+        return this;
+    }
+
+    public Function signExt() {
+        ext = SignExtension.signext;
+        return this;
+    }
+
+    public Function zeroExt() {
+        ext = SignExtension.zeroext;
         return this;
     }
 
@@ -179,6 +191,10 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
 
     void appendAfterAddressSpace(final Appendable target) throws IOException {
         if(returnType != null) {
+            if(ext != SignExtension.none) {
+                target.append(ext.name());
+                target.append(' ');
+            }
             returnType.appendTo(target);
             target.append(' ');
         }

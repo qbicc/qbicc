@@ -74,6 +74,14 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
         return this;
     }
 
+    public Call signExt() {
+        throw new IllegalArgumentException("Use CallImpl instance to record signext attribute");
+    }
+
+    public Call zeroExt() {
+        throw new IllegalArgumentException("Use CallImpl instance to record zeronext attribute");
+    }
+
     public Argument arg(final LLValue type, final LLValue value) {
         return lastArg = new ArgImpl(this, lastArg, (AbstractValue) type, (AbstractValue) value);
     }
