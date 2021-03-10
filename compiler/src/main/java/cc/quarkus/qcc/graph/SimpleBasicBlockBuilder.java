@@ -579,10 +579,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("Invoke of unresolved method: " + name);
     }
 
-    public Node invokeDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final List<Value> arguments) {
-        return optionallyTry(new DynamicInvocation(callSite, element, line, bci, requireDependency(), bootstrapMethod, staticArguments, arguments));
-    }
-
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
         return optionallyTry(new StaticInvocationValue(callSite, element, line, bci, requireDependency(), target, target.getType(List.of()).getReturnType(), arguments));
     }
@@ -597,10 +593,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         throw new IllegalStateException("Invoke of unresolved method: " + name);
-    }
-
-    public Value invokeValueDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final ValueType type, final List<Value> arguments) {
-        return optionallyTry(new DynamicInvocationValue(callSite, element, line, bci, requireDependency(), bootstrapMethod, staticArguments, type, arguments));
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
