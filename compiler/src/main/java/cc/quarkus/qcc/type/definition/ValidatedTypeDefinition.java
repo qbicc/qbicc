@@ -250,7 +250,7 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
         // specified by the interface method reference, which has its ACC_PUBLIC flag set
         // and does not have its ACC_STATIC flag set, method lookup succeeds.
         if (! virtualOnly) {
-            ResolvedTypeDefinition object = getContext().findDefinedType("java/lang/Object").validate().resolve();
+            ValidatedTypeDefinition object = getContext().findDefinedType("java/lang/Object").validate();
             result = object.findMethodIndex(name, descriptor);
             if (result != -1) {
                 MethodElement method = object.getMethod(result);
@@ -369,8 +369,6 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
 
     InitializerElement getInitializer();
 
-
-    ResolvedTypeDefinition resolve() throws ResolutionFailedException;
 
     /**
      * Get this ValidatedTypeDefinition's typeId.
