@@ -2,6 +2,17 @@ package cc.quarkus.qcc.type;
 
 /**
  * An object type whose elements are references to some ObjectType.
+ * For any given program, there is a large, but finite, set of possible
+ * ReferenceArrayObjectTypes.  However, in Qcc we use a single runtime
+ * typeId for all of these logically distinct runtime types and encode
+ * the details using "instance fields" containing the typeId of the element
+ * ObjectType and the dimension count.
+ *
+ * To give some concrete examples:
+ *  1. String[] is a RefArray with an elementType of String and a dimension count of 1.
+ *  2. Iterable[][] is a RefArray with an elementType of Iterable and a dimension count of 2.
+ *  3. byte[][][] is a RefArray with an elementType of byte[] and a dimension count of 2.
+ *     In effect, we encode this array as-if byte[] was a class.
  */
 public final class ReferenceArrayObjectType extends ArrayObjectType {
     private final ObjectType elementType;
@@ -41,16 +52,16 @@ public final class ReferenceArrayObjectType extends ArrayObjectType {
     }
 
     public ValueType getLeafElementType() {
-        if (elementType instanceof ArrayObjectType) {
-            return ((ArrayObjectType) elementType).getLeafElementType();
+        if (elementType instanceof ReferenceArrayObjectType) {
+            return ((ReferenceArrayObjectType) elementType).getLeafElementType();
         } else {
             return elementType;
         }
     }
 
     public int getDimensionCount() {
-        if (elementType instanceof ArrayObjectType) {
-            return 1 + ((ArrayObjectType) elementType).getDimensionCount();
+        if (elementType instanceof ReferenceArrayObjectType) {
+            return 1 + ((ReferenceArrayObjectType) elementType).getDimensionCount();
         } else {
             return 1;
         }
