@@ -41,7 +41,7 @@ public final class ReferenceArrayObjectType extends ArrayObjectType {
             ReferenceType elementType = getElementType();
             ReferenceType otherElementType = ((ReferenceArrayObjectType) other).getElementType();
             ObjectType commonBound = elementType.getUpperBound().getCommonSupertype(otherElementType.getUpperBound());
-            return commonBound.getReference().getReferenceArrayObject();
+            return commonBound.getReferenceArrayObject();
         } else {
             return super.getCommonSupertype(other);
         }
@@ -49,6 +49,10 @@ public final class ReferenceArrayObjectType extends ArrayObjectType {
 
     public ReferenceType getElementType() {
         return elementType.getReference();
+    }
+
+    public ObjectType getElementObjectType() {
+        return elementType;
     }
 
     public ValueType getLeafElementType() {

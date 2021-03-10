@@ -12,16 +12,12 @@ import java.util.Set;
  * type.  Alternatively, a reference value may be equal to {@code null}.
  */
 public final class ReferenceType extends WordType {
-    private static final VarHandle refArrayTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "refArrayType", VarHandle.class, ReferenceType.class, ReferenceArrayObjectType.class);
-
     private final PhysicalObjectType upperBound;
     private final Set<InterfaceObjectType> interfaceBounds;
     private final int size;
     private final int align;
     private final boolean nullable;
     private final ReferenceType asNullable;
-    @SuppressWarnings("unused")
-    private volatile ReferenceArrayObjectType refArrayType;
 
     ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, Set<InterfaceObjectType> interfaceBounds, final boolean nullable, final int size, final int align) {
         super(typeSystem, ((Objects.hash(upperBound, interfaceBounds) * 19 + size) * 19 + ReferenceType.class.hashCode()) * 19 + Boolean.hashCode(nullable));
@@ -69,30 +65,6 @@ public final class ReferenceType extends WordType {
 
     public int getMinBits() {
         return typeSystem.getReferenceSize() * typeSystem.getByteBits();
-    }
-
-    /**
-     * Get the referenceArrayObject type to this type.
-     *
-     * @return the referenceArrayObject type
-     */
-    public final ReferenceArrayObjectType getReferenceArrayObject() {
-        ReferenceArrayObjectType refArrayType = this.refArrayType;
-        if (refArrayType != null) {
-            return refArrayType;
-        }
-        if (interfaceBounds.size() > 1) {
-            throw new IllegalStateException();
-        }
-        ObjectType elementType = interfaceBounds.size() == 0 ? upperBound : interfaceBounds.iterator().next();
-        ReferenceArrayObjectType newReferenceArrayObjectType = typeSystem.createReferenceArrayObject(elementType);
-        while (! refArrayTypeHandle.compareAndSet(this, null, newReferenceArrayObjectType)) {
-            refArrayType = this.refArrayType;
-            if (refArrayType != null) {
-                return refArrayType;
-            }
-        }
-        return newReferenceArrayObjectType;
     }
 
     public int getAlign() {
