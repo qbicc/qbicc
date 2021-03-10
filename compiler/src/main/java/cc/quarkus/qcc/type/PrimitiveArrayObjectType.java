@@ -4,6 +4,7 @@ import java.util.Objects;
 
 /**
  * An object type whose elements are primitive type values.
+ * There are exactly 8 such object types in Java: [Z, [B, [C, [S, [I, [J, [F, [D.
  */
 public final class PrimitiveArrayObjectType extends ArrayObjectType {
     private final WordType elementType;

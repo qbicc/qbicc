@@ -1,10 +1,13 @@
 package cc.quarkus.qcc.driver;
 
+import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.List;
 
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.FunctionType;
+import cc.quarkus.qcc.type.InterfaceObjectType;
+import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.ReferenceArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -15,6 +18,7 @@ import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
 import cc.quarkus.qcc.type.definition.ResolutionFailedException;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -61,17 +65,10 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
             return classContext.resolveTypeFromClassName(classTypeDescriptor.getPackageName(), classTypeDescriptor.getClassName());
         } else {
             assert descriptor instanceof ArrayTypeDescriptor;
-            TypeDescriptor elemType = ((ArrayTypeDescriptor) descriptor).getElementTypeDescriptor();
-            TypeSignature elemSig;
-            if (signature instanceof ArrayTypeSignature) {
-                elemSig = ((ArrayTypeSignature) signature).getElementTypeSignature();
-            } else {
-                elemSig = TypeSignature.synthesize(classContext, elemType);
-            }
-            ValueType elementType = classContext.resolveTypeFromDescriptor(elemType, typeParamCtxt, elemSig, visible.inArray(), invisible.inArray());
-            return elementType instanceof ReferenceType ? ((ReferenceType) elementType).getReferenceArrayObject().getReference() : ((WordType) elementType).getPrimitiveArrayObjectType().getReference();
+            ArrayObjectType arrayObjectType = resolveArrayObjectTypeFromDescriptor(descriptor, typeParamCtxt, signature, visible, invisible);
+            return arrayObjectType.getReference();
         }
-    }
+     }
 
     public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
         if (descriptor instanceof BaseTypeDescriptor) {
@@ -80,15 +77,45 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
             throw new ResolutionFailedException("Cannot resolve type as array " + descriptor);
         } else {
             assert descriptor instanceof ArrayTypeDescriptor;
-            TypeDescriptor elemType = ((ArrayTypeDescriptor) descriptor).getElementTypeDescriptor();
-            TypeSignature elemSig;
-            if (signature instanceof ArrayTypeSignature) {
-                elemSig = ((ArrayTypeSignature) signature).getElementTypeSignature();
+            TypeDescriptor elemDescriptor = ((ArrayTypeDescriptor) descriptor).getElementTypeDescriptor();
+            TypeSystem ts = classContext.getTypeSystem();
+            if (elemDescriptor instanceof BaseTypeDescriptor) {
+                switch (((BaseTypeDescriptor) elemDescriptor).getShortName()) {
+                    case 'B': return ts.getSignedInteger8Type().getPrimitiveArrayObjectType();
+                    case 'C': return ts.getUnsignedInteger16Type().getPrimitiveArrayObjectType();
+                    case 'D': return ts.getFloat64Type().getPrimitiveArrayObjectType();
+                    case 'F': return ts.getFloat32Type().getPrimitiveArrayObjectType();
+                    case 'I': return ts.getSignedInteger32Type().getPrimitiveArrayObjectType();
+                    case 'J': return ts.getSignedInteger64Type().getPrimitiveArrayObjectType();
+                    case 'S': return ts.getSignedInteger16Type().getPrimitiveArrayObjectType();
+                    case 'Z': return ts.getBooleanType().getPrimitiveArrayObjectType();
+                    default: throw new ResolutionFailedException("Cannot resolve type as array " + descriptor);
+                }
+            } else if (elemDescriptor instanceof ClassTypeDescriptor) {
+                ValueType elemType = classContext.resolveTypeFromClassName(((ClassTypeDescriptor)elemDescriptor).getPackageName(), ((ClassTypeDescriptor)elemDescriptor).getClassName());
+                if (elemType instanceof ReferenceType) {
+                    ReferenceType refElemType = (ReferenceType) elemType;
+                    if (refElemType.getInterfaceBounds().size() > 0) {
+                        assert refElemType.getInterfaceBounds().size() == 1;
+                        InterfaceObjectType typeDef = refElemType.getInterfaceBounds().iterator().next();
+                        return typeDef.getReferenceArrayObject();
+                    } else {
+                        PhysicalObjectType typeDef = refElemType.getUpperBound();
+                        return typeDef.getReferenceArrayObject();
+                    }
+                } else {
+                    throw new ResolutionFailedException("Cannot resolve type as array " + descriptor);
+                }
             } else {
-                elemSig = TypeSignature.synthesize(classContext, elemType);
+                TypeSignature elemSig;
+                if (signature instanceof ArrayTypeSignature) {
+                    elemSig = ((ArrayTypeSignature) signature).getElementTypeSignature();
+                } else {
+                    elemSig = TypeSignature.synthesize(classContext, elemDescriptor);
+                }
+                ArrayObjectType elementArrayObj = resolveArrayObjectTypeFromDescriptor(elemDescriptor, typeParamCtxt, elemSig, visible, invisible);
+                return elementArrayObj.getReferenceArrayObject();
             }
-            ValueType elementType = classContext.resolveTypeFromDescriptor(elemType, typeParamCtxt, elemSig, visible.inArray(), invisible.inArray());
-            return elementType instanceof ReferenceType ? ((ReferenceType) elementType).getReferenceArrayObject() : ((WordType) elementType).getPrimitiveArrayObjectType();
         }
     }
 
