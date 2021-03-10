@@ -301,11 +301,6 @@ public interface Node {
                 return param.getBlockBuilder().getBlockEntry();
             }
 
-            public Node visit(Copier param, DynamicInvocation node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().invokeDynamic(node.getBootstrapMethod(), param.copyValues(node.getStaticArguments()), param.copyValues(node.getArguments()));
-            }
-
             public Node visit(Copier param, InstanceInvocation node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().invokeInstance(node.getKind(), param.copyValue(node.getInstance()), node.getInvocationTarget(), param.copyValues(node.getArguments()));
@@ -491,11 +486,6 @@ public interface Node {
 
             public Value visit(final Copier param, final Div node) {
                 return param.getBlockBuilder().divide(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
-            public Value visit(final Copier param, final DynamicInvocationValue node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().invokeValueDynamic(node.getBootstrapMethod(), param.copyValues(node.getStaticArguments()), node.getType(), param.copyValues(node.getArguments()));
             }
 
             public Value visit(final Copier param, final Extend node) {

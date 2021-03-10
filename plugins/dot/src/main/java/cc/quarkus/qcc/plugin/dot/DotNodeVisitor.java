@@ -36,8 +36,6 @@ import cc.quarkus.qcc.graph.ConstructorInvocation;
 import cc.quarkus.qcc.graph.Convert;
 import cc.quarkus.qcc.graph.CurrentThreadRead;
 import cc.quarkus.qcc.graph.Div;
-import cc.quarkus.qcc.graph.DynamicInvocation;
-import cc.quarkus.qcc.graph.DynamicInvocationValue;
 import cc.quarkus.qcc.graph.ElementOf;
 import cc.quarkus.qcc.graph.Extend;
 import cc.quarkus.qcc.graph.FunctionCall;
@@ -190,23 +188,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final Cmp node) {
         return node(param, "cmp", node);
-    }
-
-    public String visit(final Appendable param, final DynamicInvocation node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "label", "invokedynamic");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
-        for (Value arg : node.getArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
-        for (Value arg : node.getStaticArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
-        return name;
     }
 
     public String visit(final Appendable param, final ElementOf node) {
@@ -637,23 +618,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final Div node) {
         return node(param, "/", node);
-    }
-
-    public String visit(final Appendable param, final DynamicInvocationValue node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "label", "invokedynamic");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
-        for (Value arg : node.getArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
-        for (Value arg : node.getStaticArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
-        return name;
     }
 
     public String visit(final Appendable param, final Extend node) {

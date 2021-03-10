@@ -324,8 +324,6 @@ public interface BasicBlockBuilder {
 
     Node invokeInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
 
-    Node invokeDynamic(MethodElement bootstrapMethod, List<Value> staticArguments, List<Value> arguments);
-
     Value invokeValueStatic(MethodElement target, List<Value> arguments);
 
     Value invokeValueStatic(TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
@@ -333,8 +331,6 @@ public interface BasicBlockBuilder {
     Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
 
     Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
-
-    Value invokeValueDynamic(MethodElement bootstrapMethod, List<Value> staticArguments, ValueType type, List<Value> arguments);
 
     /**
      * Invoke an object instance initializer.  The value returned has an initialized type.  The returned value should

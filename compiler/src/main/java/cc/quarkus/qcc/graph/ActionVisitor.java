@@ -12,10 +12,6 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, DynamicInvocation node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, InstanceInvocation node) {
         return visitUnknown(param, node);
     }
@@ -48,10 +44,6 @@ public interface ActionVisitor<T, R> {
         }
 
         default R visit(T param, BlockEntry node) {
-            return getDelegateActionVisitor().visit(param, node);
-        }
-
-        default R visit(T param, DynamicInvocation node) {
             return getDelegateActionVisitor().visit(param, node);
         }
 

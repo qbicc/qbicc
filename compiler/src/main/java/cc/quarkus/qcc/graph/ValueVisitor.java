@@ -139,10 +139,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, DynamicInvocationValue node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, Extend node) {
         return visitUnknown(param, node);
     }
