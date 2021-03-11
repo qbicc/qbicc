@@ -63,6 +63,10 @@ public class RTAInfo {
 
     public boolean isLiveInterface(ValidatedTypeDefinition type) { return interfaceHierarchy.containsKey(type); }
 
+    public void makeInterfaceLive(ValidatedTypeDefinition type) {
+        interfaceHierarchy.computeIfAbsent(type, t -> ConcurrentHashMap.newKeySet());
+    }
+
     public void addInterfaceEdge(ValidatedTypeDefinition child, ValidatedTypeDefinition parent) {
         interfaceHierarchy.computeIfAbsent(parent, t -> ConcurrentHashMap.newKeySet()).add(child);
     }
