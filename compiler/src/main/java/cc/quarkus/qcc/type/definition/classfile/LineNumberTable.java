@@ -93,7 +93,7 @@ final class LineNumberTable {
         codeAttr.position(codeAttr.position() + codeLen);
 
         // Skip exception_table
-        short exTableLen = codeAttr.getShort();
+        int exTableLen = codeAttr.getShort() & 0xffff;
         codeAttr.position(codeAttr.position() + exTableLen * 8);
 
         int attrCnt = codeAttr.getShort() & 0xffff;
