@@ -7,6 +7,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockEarlyTermination;
+import cc.quarkus.qcc.graph.CheckCast;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
@@ -18,6 +19,7 @@ import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -57,14 +59,20 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return extractInstanceField(valueObj, resolveField(owner, name, type));
     }
 
-    public Value narrow(final Value value, final TypeDescriptor desc) {
+    public Value checkcast(final Value value, final TypeDescriptor desc) {
         ClassContext cc = getClassContext();
         // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
         ValueType narrowType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
-        if (value.getType() instanceof ReferenceType && ((ReferenceType) value.getType()).isNullable()) {
-            narrowType = ((ReferenceType) narrowType).asNullable();
+        if (narrowType instanceof ReferenceType) {
+            if (value.getType() instanceof ReferenceType && ((ReferenceType) value.getType()).isNullable()) {
+                narrowType = ((ReferenceType)narrowType).asNullable();
+            }
+            return checkcast(value, cc.getLiteralFactory().literalOfType(((ReferenceType) narrowType).getUpperBound()), CheckCast.CastType.Cast, (ReferenceType) narrowType);
+        } else if (narrowType instanceof WordType) {
+            // A checkcast in the bytecodes, but it is actually a word type coming from some native magic...just bitcast it.
+            return bitCast(value, (WordType) narrowType);
         }
-        return narrow(value, narrowType);
+        throw Assert.unreachableCode();
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {

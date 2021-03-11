@@ -8,6 +8,7 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.PointerType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 
 /**
@@ -19,16 +20,6 @@ public class PointerBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public PointerBasicBlockBuilder(CompilationContext ctxt, BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
-    }
-
-    @Override
-    public Value narrow(Value input, ValueType toType) {
-        if (input.getType() instanceof PointerType && toType instanceof ArrayType) {
-            // narrowing a pointer to an array is actually an array view of a pointer
-            return input;
-        } else {
-            return super.narrow(input, toType);
-        }
     }
 
     @Override

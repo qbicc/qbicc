@@ -335,11 +335,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("InstanceOf of unresolved type");
     }
 
-    public Value narrow(final Value value, final ValueType toType) {
+    public Value checkcast(final Value value, final Value narrowInput, final CheckCast.CastType kind, final ReferenceType toType) {
         ValueType inputType = value.getType();
-        ValueType outputType;
-        if (toType instanceof ReferenceType && inputType instanceof ReferenceType) {
-            outputType = ((ReferenceType) toType).meet((ReferenceType) inputType);
+        ReferenceType outputType;
+        if (inputType instanceof ReferenceType) {
+            outputType = toType.meet((ReferenceType) inputType);
             if (outputType == null) {
                 CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
                 ctxt.error(getLocation(), "Invalid narrow from %s to %s", inputType, toType);
@@ -348,11 +348,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         } else {
             outputType = toType;
         }
-        return new Narrow(callSite, element, line, bci, value, outputType);
+        return new CheckCast(callSite, element, line, bci, value, narrowInput, outputType, kind);
     }
 
-    public Value narrow(final Value value, final TypeDescriptor desc) {
-        throw new IllegalStateException("Narrow of unresolved type");
+    public Value checkcast(final Value value, final TypeDescriptor desc) {
+        throw new IllegalStateException("CheckCast of unresolved type");
     }
 
     public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {

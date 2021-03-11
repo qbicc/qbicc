@@ -435,6 +435,10 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final CheckCast node) {
+                return param.getBlockBuilder().checkcast(param.copyValue(node.getInput()), param.copyValue(node.getNarrowInput()), node.getKind(), node.getType());
+            }
+
             public Value visit(final Copier param, final ClassOf node) {
                 return param.getBlockBuilder().classOf(param.copyValue(node.getInput()));
             }
@@ -583,11 +587,6 @@ public interface Node {
                 return param.getBlockBuilder().isNe(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
-            public Node visit(final Copier param, final Store node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().store(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getValue()), node.getMode());
-            }
-
             public Value visit(final Copier param, final Load node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().load(param.copyValueHandle(node.getValueHandle()), node.getMode());
@@ -612,10 +611,6 @@ public interface Node {
 
             public Value visit(final Copier param, final Multiply node) {
                 return param.getBlockBuilder().multiply(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
-            public Value visit(final Copier param, final Narrow node) {
-                return param.getBlockBuilder().narrow(param.copyValue(node.getInput()), node.getType());
             }
 
             public Value visit(final Copier param, final Neg node) {
@@ -680,6 +675,11 @@ public interface Node {
 
             public Value visit(final Copier param, final StringLiteral node) {
                 return node;
+            }
+
+            public Node visit(final Copier param, final Store node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().store(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getValue()), node.getMode());
             }
 
             public Value visit(final Copier param, final SymbolLiteral node) {
