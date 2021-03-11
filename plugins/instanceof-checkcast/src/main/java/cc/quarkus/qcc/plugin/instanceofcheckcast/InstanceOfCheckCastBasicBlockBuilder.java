@@ -19,6 +19,7 @@ import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.plugin.layout.Layout;
+import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -28,6 +29,7 @@ import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.InterfaceObjectType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.PrimitiveArrayObjectType;
+import cc.quarkus.qcc.type.ReferenceArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 
@@ -37,7 +39,7 @@ import cc.quarkus.qcc.type.ValueType;
  */
 public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast");
-    
+
     private final CompilationContext ctxt;
 
     static final boolean PLUGIN_DISABLED = true;
@@ -67,7 +69,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         if (input instanceof ZeroInitializerLiteral) {
             return ctxt.getLiteralFactory().literalOf(false);
         }
-        
+
         // statically true instanceof checks are equal to x != null
         ValueType actualType = input.getType();
         if (actualType instanceof ReferenceType) {
@@ -76,8 +78,24 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                 return super.isNe(input, lf.zeroInitializerLiteralOfType(actualType));
             }
         }
-    
-        // TODO: instanceof X, where X is not in the RTAInfo should always be false
+
+        // If the class isn't loaded in the RTAInfo, then we know we can never have an
+        // instanceof it at runtime. Transform all such instanceofs to false
+        RTAInfo info = RTAInfo.get(ctxt);
+        if (expectedType instanceof ClassObjectType || expectedType instanceof InterfaceObjectType) {
+            ValidatedTypeDefinition vtd = expectedType.getDefinition().validate();
+            if (vtd.isInterface()) {
+                if (!info.isLiveInterface(vtd)) {
+                    return ctxt.getLiteralFactory().literalOf(false);
+                }
+            } else {
+                if (!info.isLiveClass(vtd)) {
+                    return ctxt.getLiteralFactory().literalOf(false);
+                }
+            }
+        } else if (expectedType instanceof ReferenceArrayObjectType) {
+            // TODO: check element type is in RTAInfo.  Can't do that till some other PRs land
+        }
 
         /* Set up the runtime checks here for the 3 major cases:
          * 1 - expectedType statically known to be an array class
@@ -91,13 +109,12 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         final BlockLabel notNullLabel = new BlockLabel();
         final BlockLabel afterCheckLabel = new BlockLabel();
         final ZeroInitializerLiteral nullLiteral = lf.zeroInitializerLiteralOfType(expectedType);
-        
+
         BasicBlock incomingBlock = if_(isNe(input, nullLiteral), notNullLabel, afterCheckLabel);
         begin(notNullLabel);
         Value result = null;
         if (expectedType instanceof ArrayObjectType) {
             // 1 - expectedType statically known to be an array class
-            // TODO
             if (expectedType instanceof PrimitiveArrayObjectType) {
                 DefinedTypeDefinition dtd = Layout.get(ctxt).getArrayContentField(expectedType).getEnclosingType();
                 ValidatedTypeDefinition arrayVTD = dtd.validate();
@@ -106,6 +123,32 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                 result = super.isEq(inputTypeId, lf.literalOf(primArrayTypeId));
             } else {
                 // Layout#getRefArrayDimensionsField
+                Layout layout = Layout.get(ctxt);
+                ValidatedTypeDefinition arrayVTD = layout.getArrayValidatedTypeDefinition("[ref");
+                final int refArrayTypeId = arrayVTD.getTypeId();
+
+                //Value inputTypeId = typeIdOf(referenceHandle(input));
+                //Value isRefArray = super.isEq(inputTypeId, lf.literalOf(refArrayTypeId));
+                //Value inputDims = load(instanceFieldOf(referenceHandle(input), layout.getRefArrayDimensionsField()), MemoryAtomicityMode.UNORDERED);
+                //TODO - get the dims from the ReferenceArrayObjectType - waiting on other PRs
+                /* 
+                if (inputTypeId == refTypeId) {
+                    if (inputDims == expectedType.dims) {
+                        if (inputElementTypeId == expectedType.typeId) {
+                            result = true
+                        } else {
+                            subtype check or interface type check
+                        }
+                    } else if (inputDims > expectedType.dims) {
+                        // need to check
+                        object or interface implemented by arrays
+                    } else if (inputDims < expectedType.dims) {
+                        result = false;
+                    }
+                } else {
+                    result = false
+                }
+                */
                 result = lf.literalOf(false);
             }
         } else if (expectedType instanceof InterfaceObjectType) {

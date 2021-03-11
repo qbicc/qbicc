@@ -276,16 +276,9 @@ public class SupersDisplayTables {
         }
     }
 
-    void assignInterfaceID(ValidatedTypeDefinition cls) {
-        int numInterfaces = cls.getInterfaceCount();
-        for (int i = 0; i < numInterfaces; i++) {
-            ValidatedTypeDefinition interface_i = cls.getInterface(i);
-            if (typeids.get(interface_i) == null) {
-                typeids.computeIfAbsent(interface_i, theInterface -> idAndRange.nextInterfaceID());
-                // assign IDs to interfaces implemented by this interface
-                assignInterfaceID(interface_i);
-            }
-        }
+    void assignInterfaceId(ValidatedTypeDefinition cls) {
+        Assert.assertTrue(cls.isInterface());
+        typeids.computeIfAbsent(cls, theInterface -> idAndRange.nextInterfaceID());
     }
 
     void updateJLORange(ValidatedTypeDefinition jlo) {
@@ -322,16 +315,11 @@ public class SupersDisplayTables {
 
     byte[] getImplementedInterfaceBits(ValidatedTypeDefinition cls) {
         byte[] setBits = new byte[getNumberOfBytesInInterfaceBitsArray()];
-        // supersLog.debug("Setting interface bits for: " + cls.getInternalName() + " byteArray size=" + setBits.length);
         for (ValidatedTypeDefinition i : cls.getInterfaces()) {
             IdAndRange idRange = typeids.get(i);
             if (idRange != null) {
                 int index = idRange.implementedInterfaceByteIndex();
-                // int originalValue = setBits[index];
                 setBits[index] |= idRange.implementedInterfaceBitMask();
-                // supersLog.debug("Applying interface: " + i.getInternalName() + " setBits["+index+"] mask:" + Integer.toUnsignedString(idRange.implementedInterfaceBitMask(), 2));
-                // supersLog.debug("was: " + Integer.toUnsignedString(originalValue, 2));
-                // supersLog.debug("now: " + Integer.toUnsignedString(setBits[index], 2));
             }
         }
 
