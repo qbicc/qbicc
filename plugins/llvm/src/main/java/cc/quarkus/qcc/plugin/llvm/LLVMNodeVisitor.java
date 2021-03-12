@@ -396,7 +396,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         LLValue llvmRight = map(node.getRightInput());
         ValueType valueType = node.getLeftInput().getType();
         return isFloating(valueType) ?
-            builder.fcmp(FloatCondition.ult, inputType, llvmLeft, llvmRight).asLocal() :
+            builder.fcmp(FloatCondition.olt, inputType, llvmLeft, llvmRight).asLocal() :
             isSigned(valueType) ?
                 builder.icmp(IntCondition.slt, inputType, llvmLeft, llvmRight).asLocal() :
                 builder.icmp(IntCondition.ult, inputType, llvmLeft, llvmRight).asLocal();
@@ -422,7 +422,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         LLValue llvmRight = map(node.getRightInput());
         ValueType valueType = node.getLeftInput().getType();
         return isFloating(valueType) ?
-            builder.fcmp(FloatCondition.ugt, inputType, llvmLeft, llvmRight).asLocal() :
+            builder.fcmp(FloatCondition.ogt, inputType, llvmLeft, llvmRight).asLocal() :
             isSigned(valueType) ?
                 builder.icmp(IntCondition.sgt, inputType, llvmLeft, llvmRight).asLocal() :
                 builder.icmp(IntCondition.ugt, inputType, llvmLeft, llvmRight).asLocal();
