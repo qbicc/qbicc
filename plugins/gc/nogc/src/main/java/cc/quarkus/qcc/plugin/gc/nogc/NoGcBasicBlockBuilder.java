@@ -98,7 +98,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (arrayType instanceof ReferenceArrayObjectType) {
             ReferenceArrayObjectType refArrayType = (ReferenceArrayObjectType)arrayType;
             store(instanceFieldOf(arrayHandle, layout.getRefArrayDimensionsField()), lf.literalOf(refArrayType.getDimensionCount()), MemoryAtomicityMode.UNORDERED);
-            store(instanceFieldOf(arrayHandle, layout.getRefArrayElementTypeIdField()), lf.literalOfType(refArrayType.getElementObjectType()), MemoryAtomicityMode.UNORDERED);
+            store(instanceFieldOf(arrayHandle, layout.getRefArrayElementTypeIdField()), lf.literalOfType(refArrayType.getLeafElementType()), MemoryAtomicityMode.UNORDERED);
         }
         return arrayPtr;
     }
