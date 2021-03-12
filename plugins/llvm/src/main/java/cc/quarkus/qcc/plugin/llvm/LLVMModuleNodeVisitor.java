@@ -50,6 +50,7 @@ import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.PointerType;
+import cc.quarkus.qcc.type.PrimitiveArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -328,7 +329,12 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     }
 
     public LLValue visit(Void param, TypeLiteral node) {
-        return Values.intConstant(((ObjectType)node.getValue()).getDefinition().validate().getTypeId());
+        ObjectType type = (ObjectType)node.getValue();
+        if  (type instanceof PrimitiveArrayObjectType) {
+            return Values.intConstant(Layout.get(ctxt).getArrayContentField(type).getEnclosingType().validate().getTypeId());
+        } else {
+            return Values.intConstant(type.getDefinition().validate().getTypeId());
+        }
     }
 
     public LLValue visitUnknown(final Void param, final Value node) {
