@@ -111,7 +111,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                             addExport(nativeInfo, resolved, name);
                             // and define it
                             Section section = ctxt.getOrAddProgramModule(enclosing).getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
-                            ValueType fieldType = resolved.getType(enclosing);
+                            ValueType fieldType = resolved.getType();
                             Data data = section.addData(resolved, name, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(fieldType));
                             if (resolved.hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL)) {
                                 data.setThreadLocalMode(ThreadLocalMode.GENERAL_DYNAMIC);
@@ -126,7 +126,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             }
 
             private void addExtern(final NativeInfo nativeInfo, final FieldElement resolved, final String name) {
-                ValueType fieldType = resolved.getType(resolved.getEnclosingType());
+                ValueType fieldType = resolved.getType();
                 nativeInfo.registerFieldInfo(
                     resolved.getEnclosingType().getDescriptor(),
                     resolved.getName(),
@@ -135,7 +135,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
             }
 
             private void addExport(final NativeInfo nativeInfo, final FieldElement resolved, final String name) {
-                ValueType fieldType = resolved.getType(resolved.getEnclosingType());
+                ValueType fieldType = resolved.getType();
                 nativeInfo.registerFieldInfo(
                     resolved.getEnclosingType().getDescriptor(),
                     resolved.getName(),

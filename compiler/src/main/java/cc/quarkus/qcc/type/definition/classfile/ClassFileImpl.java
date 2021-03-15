@@ -981,11 +981,13 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         int mpCnt = methodParams == null ? 0 : methodParams.get() & 0xff;
         int mpOffs = realCnt - mpCnt;
         ParameterElement[] parameters = new ParameterElement[realCnt];
+        TypeParameterContext tpc = TypeParameterContext.create(enclosing, signature);
         for (int i = 0; i < realCnt; i ++) {
             ParameterElement.Builder paramBuilder = ParameterElement.builder();
             paramBuilder.setEnclosingType(enclosing);
             paramBuilder.setIndex(i);
             paramBuilder.setDescriptor(methodDescriptor.getParameterTypes().get(i));
+            paramBuilder.setTypeParameterContext(tpc);
             paramBuilder.setSignature(signature.getParameterTypes().get(i));
             if (i >= vaOffs && i < vaOffs + vaCnt) {
                 int annCnt = visibleAnn.getShort() & 0xffff;
@@ -1210,7 +1212,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 thisValue = null;
             }
             for (int i = 0; i < paramCount; i ++) {
-                ValueType type = elementParameters.get(i).getType((InvokableElement) element);
+                ValueType type = elementParameters.get(i).getType();
                 parameters[i] = gf.parameter(type, "p", i);
                 boolean class2 = elementParameters.get(i).hasClass2Type();
                 Value promoted = methodParser.promote(parameters[i]);

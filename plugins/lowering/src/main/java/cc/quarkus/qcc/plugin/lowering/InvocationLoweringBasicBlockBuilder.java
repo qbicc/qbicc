@@ -136,7 +136,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         GlobalVariableElement vtables = dt.getVTablesGlobal();
         if (!vtables.getEnclosingType().equals(originalElement.getEnclosingType())) {
             Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-            section.declareData(null, vtables.getName(), vtables.getType(target));
+            section.declareData(null, vtables.getName(), vtables.getType());
         }
         int index = dt.getVTableIndex(target);
         Value typeId = load(instanceFieldOf(referenceHandle(instance), Layout.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
@@ -157,7 +157,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             throw new BlockEarlyTermination(unreachable());
         }
         Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-        section.declareData(null, info.getGlobal().getName(), info.getGlobal().getType(target));
+        section.declareData(null, info.getGlobal().getName(), info.getGlobal().getType());
         int index = dt.getITableIndex(target);
         Value typeId = load(instanceFieldOf(referenceHandle(instance), Layout.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
         Value itable = load(elementOf(globalVariable(info.getGlobal()), typeId), MemoryAtomicityMode.UNORDERED);

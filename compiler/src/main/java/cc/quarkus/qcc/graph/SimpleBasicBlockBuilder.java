@@ -30,7 +30,6 @@ import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import io.smallrye.common.constraint.Assert;
 
 final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuilder.ExceptionHandler {
@@ -373,7 +372,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
-        return new InstanceFieldOf(element, line, bci, field, field.getType(field.getEnclosingType()), instance);
+        return new InstanceFieldOf(element, line, bci, field, field.getType(), instance);
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
@@ -381,7 +380,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public ValueHandle staticField(FieldElement field) {
-        return new StaticField(element, line, bci, field, field.getType(TypeParameterContext.EMPTY));
+        return new StaticField(element, line, bci, field, field.getType());
     }
 
     public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
@@ -389,11 +388,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public ValueHandle globalVariable(GlobalVariableElement variable) {
-        return new GlobalVariable(element, line, bci, variable, variable.getType(TypeParameterContext.EMPTY));
+        return new GlobalVariable(element, line, bci, variable, variable.getType());
     }
 
     public ValueHandle localVariable(LocalVariableElement variable) {
-        return new LocalVariable(element, line, bci, variable, variable.getType(TypeParameterContext.of(element)));
+        return new LocalVariable(element, line, bci, variable, variable.getType());
     }
 
     public Value addressOf(ValueHandle handle) {

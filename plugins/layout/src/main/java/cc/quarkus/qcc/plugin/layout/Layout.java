@@ -422,7 +422,7 @@ public final class Layout {
 
     private CompoundType.Member computeMember(final BitSet allocated, final FieldElement field) {
         TypeSystem ts = ctxt.getTypeSystem();
-        ValueType fieldType = field.getType(field.getEnclosingType());
+        ValueType fieldType = field.getType();
         int size = (int) fieldType.getSize();
         int align = fieldType.getAlign();
         int idx = find(allocated, align, size);

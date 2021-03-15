@@ -22,7 +22,6 @@ import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
 
 /**
  *
@@ -57,7 +56,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         while (curClass.hasSuperClass()) {
             curClass.eachField(f -> {
                 if (!f.isStatic()) {
-                    store(instanceFieldOf(oopHandle, f), lf.zeroInitializerLiteralOfType(f.getType(TypeParameterContext.of(getCurrentElement()))), MemoryAtomicityMode.UNORDERED);
+                    store(instanceFieldOf(oopHandle, f), lf.zeroInitializerLiteralOfType(f.getType()), MemoryAtomicityMode.UNORDERED);
                 }
             });
             curClass = curClass.getSuperClass();

@@ -2,6 +2,7 @@ package cc.quarkus.qcc.type.definition.element;
 
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 
 /**
  *
@@ -46,6 +47,11 @@ public final class FieldElement extends VariableElement implements MemberElement
         }
 
         public FieldElement build() {
+            if ((modifiers & ClassFile.ACC_STATIC) != 0) {
+                setTypeParameterContext(TypeParameterContext.EMPTY);
+            } else {
+                setTypeParameterContext(enclosingType);
+            }
             return new FieldElement(this);
         }
     }

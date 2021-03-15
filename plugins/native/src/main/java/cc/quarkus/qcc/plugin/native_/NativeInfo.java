@@ -188,7 +188,7 @@ final class NativeInfo {
                                         for (int i = 0; i < fc; i ++) {
                                             FieldElement field = vt.getField(i);
                                             if (! field.isStatic()) {
-                                                ValueType type = field.getType(definedType);
+                                                ValueType type = field.getType();
                                                 // compound type
                                                 String name = field.getName();
                                                 CProbe.Type.Info member = result.getTypeInfoOfMember(probeType, name);

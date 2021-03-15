@@ -9,7 +9,6 @@ import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
 
 /**
  *
@@ -30,7 +29,7 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
         DefinedTypeDefinition fieldHolder = fieldElement.getEnclosingType();
         if (! fieldHolder.equals(ourHolder)) {
             // we have to declare it in our translation unit
-            ValueType fieldType = fieldElement.getType(TypeParameterContext.EMPTY);
+            ValueType fieldType = fieldElement.getType();
             Section section = ctxt.getImplicitSection(ourHolder);
             section.declareData(fieldElement, symbol.getName(), fieldType);
         }

@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.type.definition.element;
 
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
+
 /**
  * A global variable.
  */
@@ -18,6 +20,10 @@ public final class GlobalVariableElement extends VariableElement {
     }
 
     public static final class Builder extends VariableElement.Builder {
+        Builder() {
+            setTypeParameterContext(TypeParameterContext.EMPTY);
+        }
+
         public GlobalVariableElement build() {
             return new GlobalVariableElement(this);
         }

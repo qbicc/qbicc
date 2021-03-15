@@ -8,9 +8,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
 
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
-import org.jboss.logging.Logger;
-
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.literal.ArrayLiteral;
@@ -29,6 +26,7 @@ import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.generic.BaseTypeSignature;
 import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 
 /**
  * Build Cohen's display of accessible super types.
@@ -454,7 +452,7 @@ public class SupersDisplayTables {
         Assert.assertNotNull(typeIdArrayGlobal);
         if (!typeIdArrayGlobal.getEnclosingType().equals(originalElement.getEnclosingType())) {
             Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-            section.declareData(null, typeIdArrayGlobal.getName(), typeIdArrayGlobal.getType(TypeParameterContext.of(originalElement)));
+            section.declareData(null, typeIdArrayGlobal.getName(), typeIdArrayGlobal.getType());
         }
         return typeIdArrayGlobal;
     }
