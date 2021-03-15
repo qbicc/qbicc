@@ -1432,7 +1432,10 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         for (int i = dims.length - 1; i >= 0; i --) {
                             dims[i] = pop1();
                         }
-                        push1(gf.multiNewArray(ArrayTypeDescriptor.of(ctxt, desc), List.of(dims)));
+                        if (! (desc instanceof ArrayTypeDescriptor)) {
+                            throw new InvalidByteCodeException();
+                        }
+                        push1(gf.multiNewArray((ArrayTypeDescriptor) desc, List.of(dims)));
                         break;
                     case OP_IFNULL: {
                         v1 = pop1();
