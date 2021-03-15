@@ -2,6 +2,7 @@ package cc.quarkus.qcc.type.definition.element;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
@@ -12,12 +13,14 @@ import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.generic.MethodSignature;
 import cc.quarkus.qcc.type.generic.ParameterizedSignature;
+import cc.quarkus.qcc.type.generic.TypeParameter;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import io.smallrye.common.constraint.Assert;
 
 /**
  * An element which is executable and can be directly invoked.
  */
-public abstract class InvokableElement extends AnnotatedElement implements ExecutableElement {
+public abstract class InvokableElement extends AnnotatedElement implements ExecutableElement, TypeParameterContext {
     private final MethodDescriptor descriptor;
     private final MethodSignature signature;
     private final TypeAnnotationList returnVisibleTypeAnnotations;
@@ -131,6 +134,15 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
 
     public int getMaximumLineNumber() {
         return maximumLineNumber;
+    }
+
+    @Override
+    public TypeParameter resolveTypeParameter(String parameterName) throws NoSuchElementException {
+        TypeParameter parameter = getSignature().getTypeParameter(parameterName);
+        if (parameter == null) {
+            return getEnclosingType().resolveTypeParameter(parameterName);
+        }
+        return parameter;
     }
 
     public List<ParameterElement> getParameters() {
