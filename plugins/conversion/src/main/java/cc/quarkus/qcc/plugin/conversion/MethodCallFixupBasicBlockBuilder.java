@@ -70,7 +70,7 @@ public class MethodCallFixupBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // TODO: extract the signature from the method handle instance!
             return arguments;
         } else {
-            return fixArguments(target.getType(List.of()), arguments);
+            return fixArguments(target.getType(), arguments);
         }
     }
 

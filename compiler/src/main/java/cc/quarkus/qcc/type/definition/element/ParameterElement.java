@@ -1,10 +1,8 @@
 package cc.quarkus.qcc.type.definition.element;
 
-import java.util.List;
-
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.generic.ParameterizedSignature;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 
 /**
  * A method parameter variable.
@@ -24,10 +22,10 @@ public final class ParameterElement extends VariableElement {
         return new Builder();
     }
 
-    ValueType resolveTypeDescriptor(final ClassContext classContext, final List<ParameterizedSignature> signatureContext) {
+    ValueType resolveTypeDescriptor(final ClassContext classContext, TypeParameterContext paramCtxt) {
         return classContext.resolveTypeFromMethodDescriptor(
                         getTypeDescriptor(),
-                        signatureContext,
+                        paramCtxt,
                         getTypeSignature(),
                         getVisibleTypeAnnotations(),
                         getInvisibleTypeAnnotations());

@@ -12,7 +12,6 @@ import cc.quarkus.qcc.type.definition.MethodBodyFactory;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.generic.MethodSignature;
-import cc.quarkus.qcc.type.generic.ParameterizedSignature;
 import cc.quarkus.qcc.type.generic.TypeParameter;
 import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import io.smallrye.common.constraint.Assert;
@@ -111,13 +110,13 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         return signature;
     }
 
-    public FunctionType getType(final List<ParameterizedSignature> signatureContext) {
+    public FunctionType getType() {
         ClassContext classContext = getEnclosingType().getContext();
         FunctionType type = this.type;
         if (type == null) {
             this.type = type = classContext.resolveMethodFunctionType(
                 descriptor,
-                signatureContext,
+                this,
                 signature,
                 returnVisibleTypeAnnotations,
                 getParameterVisibleTypeAnnotations(),

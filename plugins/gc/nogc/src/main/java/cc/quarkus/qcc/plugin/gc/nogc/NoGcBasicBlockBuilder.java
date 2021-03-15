@@ -10,7 +10,6 @@ import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.ArrayObjectType;
@@ -18,14 +17,12 @@ import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.ReferenceArrayObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.TypeType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 
 /**
  *
@@ -60,7 +57,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         while (curClass.hasSuperClass()) {
             curClass.eachField(f -> {
                 if (!f.isStatic()) {
-                    store(instanceFieldOf(oopHandle, f), lf.zeroInitializerLiteralOfType(f.getType(List.of())), MemoryAtomicityMode.UNORDERED);
+                    store(instanceFieldOf(oopHandle, f), lf.zeroInitializerLiteralOfType(f.getType(TypeParameterContext.of(getCurrentElement()))), MemoryAtomicityMode.UNORDERED);
                 }
             });
             curClass = curClass.getSuperClass();

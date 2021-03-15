@@ -3,7 +3,8 @@ package cc.quarkus.qcc.plugin.native_;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -131,7 +133,10 @@ final class NativeInfo {
                     tb.setQualifier(q);
                     for (int i = 0; i < fc; i ++) {
                         // compound type
-                        tb.addMember(vt.getField(i).getName());
+                        FieldElement field = vt.getField(i);
+                        if (! field.isStatic()) {
+                            tb.addMember(field.getName());
+                        }
                     }
                     CompoundType.Tag tag = q == Qualifier.NONE ? CompoundType.Tag.NONE : q == Qualifier.STRUCT ? CompoundType.Tag.STRUCT : CompoundType.Tag.UNION;
                     if (incomplete) {
@@ -179,16 +184,19 @@ final class NativeInfo {
                                     }
                                 } else {
                                     resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign(), () -> {
-                                        CompoundType.Member[] members = new CompoundType.Member[fc];
+                                        ArrayList<CompoundType.Member> list = new ArrayList<>();
                                         for (int i = 0; i < fc; i ++) {
-                                            ValueType type = vt.getField(i).getType(List.of(/*todo*/));
-                                            // compound type
-                                            String name = vt.getField(i).getName();
-                                            CProbe.Type.Info member = result.getTypeInfoOfMember(probeType, name);
-                                            members[i] = ts.getCompoundTypeMember(name, type, (int) member.getOffset(), 1);
+                                            FieldElement field = vt.getField(i);
+                                            if (! field.isStatic()) {
+                                                ValueType type = field.getType(definedType);
+                                                // compound type
+                                                String name = field.getName();
+                                                CProbe.Type.Info member = result.getTypeInfoOfMember(probeType, name);
+                                                list.add(ts.getCompoundTypeMember(name, type, (int) member.getOffset(), 1));
+                                            }
                                         }
-                                        Arrays.sort(members);
-                                        return List.of(members);
+                                        list.sort(Comparator.naturalOrder());
+                                        return List.copyOf(list);
                                     });
                                 }
                             }
@@ -209,7 +217,7 @@ final class NativeInfo {
         if (method == null) {
             return ctxt.getTypeSystem().getFunctionType(ctxt.getTypeSystem().getVoidType());
         }
-        return method.getType(List.of(/* todo */));
+        return method.getType();
     }
 
     public MethodElement getFunctionalInterfaceMethod(final DefinedTypeDefinition definedType) {

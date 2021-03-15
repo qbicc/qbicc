@@ -3,7 +3,6 @@ package cc.quarkus.qcc.interpreter.impl;
 import static cc.quarkus.qcc.interpreter.impl.CodegenUtils.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import cc.quarkus.qcc.type.BooleanType;
@@ -55,7 +54,7 @@ public class PrototypeGenerator {
                 (field) -> proto.visitField(
                         field.getModifiers(),
                         field.getName(),
-                        ci(javaTypeFromFieldType(field.getType(List.of()))),
+                        ci(javaTypeFromFieldType(field.getType(defined))),
                         null, null));
 
         proto.visitEnd();

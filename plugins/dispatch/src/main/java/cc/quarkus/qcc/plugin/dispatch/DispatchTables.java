@@ -29,6 +29,7 @@ import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.generic.BaseTypeSignature;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
@@ -129,7 +130,7 @@ public class DispatchTables {
         builder.setName("qcc_itables_array_"+itableType.getName());
         // Yet another table indexed by typeId (like the VTableGlobal) that will only contain entries for instantiated classes.
         // Use the VTableGlobal to set the size to avoid replicating that logic...
-        builder.setType(ctxt.getTypeSystem().getArrayType(itableType.getPointer(), ((ArrayType)vtablesGlobal.getType(List.of())).getElementCount()));
+        builder.setType(ctxt.getTypeSystem().getArrayType(itableType.getPointer(), ((ArrayType)vtablesGlobal.getType(cls)).getElementCount()));
         builder.setEnclosingType(cls);
         // void for now, but this is cheating terribly
         builder.setDescriptor(BaseTypeDescriptor.V);
@@ -182,7 +183,7 @@ public class DispatchTables {
     }
 
     void emitVTableTable(ValidatedTypeDefinition jlo) {
-        ArrayType vtablesGlobalType = ((ArrayType)vtablesGlobal.getType(List.of()));
+        ArrayType vtablesGlobalType = ((ArrayType)vtablesGlobal.getType(jlo));
         Section section = ctxt.getImplicitSection(jlo);
         Literal[] vtableLiterals = new Literal[(int)vtablesGlobalType.getElementCount()];
         Literal zeroLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(vtablesGlobalType.getElementType());
@@ -239,7 +240,7 @@ public class DispatchTables {
 
             // Initialize all the slots of the rootTable to point to the icce itable.
             // This enables us to elide an explicit check for IncompatibleClassChangeError at the dispatch site.
-            ArrayType rootType = (ArrayType)itableInfo.getGlobal().getType(List.of());
+            ArrayType rootType = (ArrayType)itableInfo.getGlobal().getType(TypeParameterContext.EMPTY);
             Literal[] rootTable = new Literal[(int)rootType.getElementCount()];
             Arrays.fill(rootTable, stubPtrLiteral);
             emittedInterfaceITableCount += 1;

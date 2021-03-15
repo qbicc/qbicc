@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
 
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import org.jboss.logging.Logger;
 
 import cc.quarkus.qcc.context.AttachmentKey;
@@ -444,15 +445,16 @@ public class SupersDisplayTables {
      * Get the GlobalVariableElement reference to the `qcc_typeid_array`.
      * 
      * As part of it getting it, ensure a reference to it has been recorded into
-     * the ExectuableElement's section.
+     * the ExecutableElement's section.
      * 
-     * @param typeIdGlobal - the `qcc_typeid_array` global
+     * @param originalElement the original element (must not be {@code null})
+     * @return the type ID global
      */
     public GlobalVariableElement getAndRegisterGlobalTypeIdArray(ExecutableElement originalElement) {
         Assert.assertNotNull(typeIdArrayGlobal);
         if (!typeIdArrayGlobal.getEnclosingType().equals(originalElement.getEnclosingType())) {
             Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-            section.declareData(null, typeIdArrayGlobal.getName(), typeIdArrayGlobal.getType(List.of()));
+            section.declareData(null, typeIdArrayGlobal.getName(), typeIdArrayGlobal.getType(TypeParameterContext.of(originalElement)));
         }
         return typeIdArrayGlobal;
     }

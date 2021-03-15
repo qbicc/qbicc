@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.plugin.native_;
 
 import java.io.IOException;
-import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
@@ -29,6 +28,7 @@ import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 
 /**
  * This block builder replaces calls to the {@link CNative#constant()} method with a registration of the constant
@@ -126,7 +126,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         }
         CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
         // compute the type and raw value
-        ValueType type = fieldElement.getType(List.of(/*todo*/));
+        ValueType type = fieldElement.getType(TypeParameterContext.EMPTY);
         Value val;
         // todo: if constant value is actually a symbol ref...
         if (type instanceof IntegerType) {

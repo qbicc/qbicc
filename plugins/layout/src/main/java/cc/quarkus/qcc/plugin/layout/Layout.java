@@ -47,8 +47,8 @@ public final class Layout {
         return builder.build();
     };
     private static final String INTERNAL_ARRAY = "internal_array";
-    private static TypeDescriptor typeTypeDescriptor = BaseTypeDescriptor.V; // TODO: Should be C (16 bit unsigned)
-    private static TypeSignature typeTypeSignature = BaseTypeSignature.V;    // TODO: Should be C (16 bit unsigned)
+    private static final TypeDescriptor typeTypeDescriptor = BaseTypeDescriptor.V; // TODO: Should be C (16 bit unsigned)
+    private static final TypeSignature typeTypeSignature = BaseTypeSignature.V;    // TODO: Should be C (16 bit unsigned)
 
     private final Map<ValidatedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
@@ -422,7 +422,7 @@ public final class Layout {
 
     private CompoundType.Member computeMember(final BitSet allocated, final FieldElement field) {
         TypeSystem ts = ctxt.getTypeSystem();
-        ValueType fieldType = field.getType(List.of(/* todo */));
+        ValueType fieldType = field.getType(field.getEnclosingType());
         int size = (int) fieldType.getSize();
         int align = fieldType.getAlign();
         int idx = find(allocated, align, size);
