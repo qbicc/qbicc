@@ -177,6 +177,12 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
+    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+        arraySizeCheck(size);
+        return super.newArray(arrayType, size);
+    }
+
+    @Override
     public BasicBlock throw_(Value value) {
         nullCheck(value);
         return super.throw_(value);
@@ -292,6 +298,18 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         if_(isGe(index, length), throwIt, goAhead);
         begin(throwIt);
         MethodElement helper = ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException");
+        invokeStatic(helper, List.of());
+        unreachable();
+        begin(goAhead);
+    }
+
+    private void arraySizeCheck(Value size) {
+        final BlockLabel throwIt = new BlockLabel();
+        final BlockLabel goAhead = new BlockLabel();
+        final IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
+        if_(isLt(size, zero), throwIt, goAhead);
+        begin(throwIt);
+        MethodElement helper = ctxt.getVMHelperMethod("raiseNegativeArraySizeException");
         invokeStatic(helper, List.of());
         unreachable();
         begin(goAhead);
