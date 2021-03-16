@@ -83,6 +83,9 @@ public final class VMHelpers {
     static void raiseIncompatibleClassChangeError() { throw new IncompatibleClassChangeError(); }
 
     // TODO: mark this with a "NoInline" annotation
+    static void raiseNegativeArraySizeException() { throw new NegativeArraySizeException(); }
+
+    // TODO: mark this with a "NoInline" annotation
     static void raiseNullPointerException() {
         throw new NullPointerException();
     }

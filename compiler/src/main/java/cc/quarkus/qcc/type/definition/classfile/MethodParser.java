@@ -1389,12 +1389,10 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             case T_LONG: arrayType = ts.getSignedInteger64Type().getPrimitiveArrayObjectType(); break;
                             default: throw new InvalidByteCodeException();
                         }
-                        // todo: check for negative array size
                         push1(gf.newArray(arrayType, pop1()));
                         break;
                     case OP_ANEWARRAY: {
                         TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
-                        // todo: check for negative array size
                         push1(gf.newArray(ArrayTypeDescriptor.of(ctxt, desc), pop1()));
                         break;
                     }
