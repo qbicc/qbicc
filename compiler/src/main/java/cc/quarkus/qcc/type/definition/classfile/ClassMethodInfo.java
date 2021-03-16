@@ -5,12 +5,14 @@ import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.List;
 
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.InvokableElement;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 
 /**
@@ -54,7 +56,7 @@ final class ClassMethodInfo {
 
     private final Type[][] variableTypes;
 
-    ClassMethodInfo(final ClassFileImpl classFile, final int modifiers, final int index, final ByteBuffer codeAttr) {
+    ClassMethodInfo(final ClassFileImpl classFile, ExecutableElement element, final int modifiers, final int index, final ByteBuffer codeAttr) {
         this.classFile = classFile;
         this.modifiers = modifiers;
         this.index = index;
@@ -345,6 +347,7 @@ final class ClassMethodInfo {
         this.entryPoints = entryPoints;
         codeAttr.position(save);
         Type[][] variableTypes1 = new Type[maxLocals][];
+        TypeParameterContext paramCtxt = element instanceof InvokableElement ? (InvokableElement) element : element.getEnclosingType();
         for (int i = 0; i < maxLocals; i ++) {
             int cnt = getLocalVarEntryCount(i);
             Type[] array = variableTypes1[i] = new Type[cnt];
@@ -363,7 +366,7 @@ final class ClassMethodInfo {
                     sig = TypeSignature.parse(ctxt, classFile.getUtf8ConstantAsBuffer(idx));
                 }
                 array[j] = ctxt.resolveTypeFromDescriptor(desc,
-                    List.of(), sig, TypeAnnotationList.empty(), TypeAnnotationList.empty());
+                    paramCtxt, sig, TypeAnnotationList.empty(), TypeAnnotationList.empty());
             }
         }
         this.variableTypes = variableTypes1;

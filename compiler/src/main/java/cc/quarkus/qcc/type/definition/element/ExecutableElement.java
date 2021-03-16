@@ -8,6 +8,7 @@ import cc.quarkus.qcc.type.definition.MethodBodyFactory;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.generic.MethodSignature;
 import cc.quarkus.qcc.type.generic.ParameterizedSignature;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 
 /**
  *
@@ -23,7 +24,7 @@ public interface ExecutableElement extends MemberElement {
 
     void replaceMethodBody(MethodBody replacement);
 
-    FunctionType getType(List<ParameterizedSignature> signatureContext);
+    FunctionType getType();
 
     MethodDescriptor getDescriptor();
 

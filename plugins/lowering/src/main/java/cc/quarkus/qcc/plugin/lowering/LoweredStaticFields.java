@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.plugin.lowering;
 
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -35,7 +34,7 @@ public class LoweredStaticFields {
         DefinedTypeDefinition enclosingType = fieldElement.getEnclosingType();
         ClassContext classContext = enclosingType.getContext();
         CompilationContext ctxt = classContext.getCompilationContext();
-        ValueType fieldType = fieldElement.getType(List.of());
+        ValueType fieldType = fieldElement.getType();
         String itemName = "static-" + enclosingType.getInternalName().replace('/', '.') + "-" + fieldElement.getName() + "-" + fieldElement.getIndex();
         symbol = ctxt.getLiteralFactory().literalOfSymbol(itemName, fieldType.getPointer());
         SymbolLiteral appearing = staticFields.putIfAbsent(fieldElement, symbol);

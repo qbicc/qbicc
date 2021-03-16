@@ -27,8 +27,6 @@ import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -99,11 +97,11 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     public Value invokeValueStatic(MethodElement target, List<Value> arguments) {
         if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
             throwUnsatisfiedLinkError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
         if (target.isVirtual()) {
             throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
         return super.invokeValueStatic(target, arguments);
     }
@@ -132,11 +130,11 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     public Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
         if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
             throwUnsatisfiedLinkError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
         if (target.isStatic()) {
             throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
         nullCheck(instance);
         return super.invokeValueInstance(kind, instance, target, arguments);
@@ -153,7 +151,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         nullCheck(instance);
         if (target.isStatic()) {
             throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
         return super.invokeConstructor(instance, target, arguments);
     }

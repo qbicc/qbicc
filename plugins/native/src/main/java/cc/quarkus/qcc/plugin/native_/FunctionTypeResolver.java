@@ -17,9 +17,9 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.generic.AnyTypeArgument;
 import cc.quarkus.qcc.type.generic.BoundTypeArgument;
 import cc.quarkus.qcc.type.generic.ClassTypeSignature;
-import cc.quarkus.qcc.type.generic.ParameterizedSignature;
 import cc.quarkus.qcc.type.generic.ReferenceTypeSignature;
 import cc.quarkus.qcc.type.generic.TypeArgument;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 import cc.quarkus.qcc.type.generic.Variance;
 
@@ -41,7 +41,7 @@ public class FunctionTypeResolver implements DescriptorTypeResolver.Delegating {
         return delegate;
     }
 
-    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations) {
+    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, TypeAnnotationList visibleAnnotations, TypeAnnotationList invisibleAnnotations) {
         out: if (descriptor instanceof ClassTypeDescriptor) {
             ClassTypeDescriptor ctd = (ClassTypeDescriptor) descriptor;
             if (ctd.getPackageName().equals(Native.NATIVE_PKG)) {
@@ -116,6 +116,6 @@ public class FunctionTypeResolver implements DescriptorTypeResolver.Delegating {
                 break out;
             }
         }
-        return getDelegate().resolveTypeFromDescriptor(descriptor, typeParamCtxt, signature, visibleAnnotations, invisibleAnnotations);
+        return getDelegate().resolveTypeFromDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
     }
 }

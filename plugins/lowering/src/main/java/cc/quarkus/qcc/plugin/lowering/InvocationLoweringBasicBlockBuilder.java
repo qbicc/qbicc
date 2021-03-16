@@ -17,7 +17,6 @@ import cc.quarkus.qcc.object.Section;
 import cc.quarkus.qcc.object.ThreadLocalMode;
 import cc.quarkus.qcc.plugin.dispatch.DispatchTables;
 import cc.quarkus.qcc.plugin.layout.Layout;
-import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -137,7 +136,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         GlobalVariableElement vtables = dt.getVTablesGlobal();
         if (!vtables.getEnclosingType().equals(originalElement.getEnclosingType())) {
             Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-            section.declareData(null, vtables.getName(), vtables.getType(List.of()));
+            section.declareData(null, vtables.getName(), vtables.getType());
         }
         int index = dt.getVTableIndex(target);
         Value typeId = load(instanceFieldOf(referenceHandle(instance), Layout.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
@@ -158,7 +157,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             throw new BlockEarlyTermination(unreachable());
         }
         Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-        section.declareData(null, info.getGlobal().getName(), info.getGlobal().getType(List.of()));
+        section.declareData(null, info.getGlobal().getName(), info.getGlobal().getType());
         int index = dt.getITableIndex(target);
         Value typeId = load(instanceFieldOf(referenceHandle(instance), Layout.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
         Value itable = load(elementOf(globalVariable(info.getGlobal()), typeId), MemoryAtomicityMode.UNORDERED);

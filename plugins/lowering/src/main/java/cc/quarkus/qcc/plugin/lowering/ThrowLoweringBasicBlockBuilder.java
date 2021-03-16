@@ -21,7 +21,7 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         ThrowExceptionHelper teh = ThrowExceptionHelper.get(ctxt);
         Value ptr = addressOf(instanceFieldOf(referenceHandle(currentThread()), teh.getUnwindExceptionField()));
         String functionName = "_Unwind_RaiseException";
-        FunctionType functionType = teh.getRaiseExceptionMethod().getType(List.of(/**/));
+        FunctionType functionType = teh.getRaiseExceptionMethod().getType();
         ctxt.getImplicitSection(getCurrentElement()).declareFunction(teh.getRaiseExceptionMethod(), functionName, functionType);
         callFunction(ctxt.getLiteralFactory().literalOfSymbol(functionName, functionType), List.of(ptr));
         return unreachable();

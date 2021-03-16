@@ -102,7 +102,7 @@ final class LLVMModuleDebugInfo {
     }
 
     private MethodDebugInfo createDebugInfoForFunction(final ExecutableElement element) {
-        LLValue type = getType(element.getType(null));
+        LLValue type = getType(element.getType());
         int line = element.getMinimumLineNumber();
 
         LLValue diSubprogram = module.diSubprogram(getFriendlyName(element), type, diCompileUnit)

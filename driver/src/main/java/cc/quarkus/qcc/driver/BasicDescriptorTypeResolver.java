@@ -1,24 +1,19 @@
 package cc.quarkus.qcc.driver;
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
 import java.util.List;
 
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.InterfaceObjectType;
 import cc.quarkus.qcc.type.PhysicalObjectType;
-import cc.quarkus.qcc.type.ReferenceArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
 import cc.quarkus.qcc.type.definition.ResolutionFailedException;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -26,7 +21,7 @@ import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.generic.ArrayTypeSignature;
 import cc.quarkus.qcc.type.generic.MethodSignature;
-import cc.quarkus.qcc.type.generic.ParameterizedSignature;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 
 final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
@@ -45,7 +40,7 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
         }
     }
 
-    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
+    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
         TypeSystem ts = classContext.getCompilationContext().getTypeSystem();
         if (descriptor instanceof BaseTypeDescriptor) {
             switch (((BaseTypeDescriptor) descriptor).getShortName()) {
@@ -65,12 +60,12 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
             return classContext.resolveTypeFromClassName(classTypeDescriptor.getPackageName(), classTypeDescriptor.getClassName());
         } else {
             assert descriptor instanceof ArrayTypeDescriptor;
-            ArrayObjectType arrayObjectType = resolveArrayObjectTypeFromDescriptor(descriptor, typeParamCtxt, signature, visible, invisible);
+            ArrayObjectType arrayObjectType = resolveArrayObjectTypeFromDescriptor(descriptor, paramCtxt, signature, visible, invisible);
             return arrayObjectType.getReference();
         }
      }
 
-    public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
+    public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
         if (descriptor instanceof BaseTypeDescriptor) {
             throw new ResolutionFailedException("Cannot resolve type as array " + descriptor);
         } else if (descriptor instanceof ClassTypeDescriptor) {
@@ -113,32 +108,18 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
                 } else {
                     elemSig = TypeSignature.synthesize(classContext, elemDescriptor);
                 }
-                ArrayObjectType elementArrayObj = resolveArrayObjectTypeFromDescriptor(elemDescriptor, typeParamCtxt, elemSig, visible, invisible);
+                ArrayObjectType elementArrayObj = resolveArrayObjectTypeFromDescriptor(elemDescriptor, paramCtxt, elemSig, visible, invisible);
                 return elementArrayObj.getReferenceArrayObject();
             }
         }
     }
 
-    public FunctionType resolveMethodFunctionType(final MethodDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final MethodSignature signature, final TypeAnnotationList returnTypeVisible, final List<TypeAnnotationList> visible, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisible) {
+    public FunctionType resolveMethodFunctionType(final MethodDescriptor descriptor, TypeParameterContext paramCtxt, final MethodSignature signature, final TypeAnnotationList returnTypeVisible, final List<TypeAnnotationList> visible, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisible) {
         TypeDescriptor returnType = descriptor.getReturnType();
         List<TypeDescriptor> parameterTypes = descriptor.getParameterTypes();
         TypeSignature returnTypeSignature = signature.getReturnTypeSignature();
         List<TypeSignature> paramSignatures = signature.getParameterTypes();
-        List<ParameterizedSignature> nestedCtxt;
-        if (signature.getTypeParameters().isEmpty()) {
-            // no nested context needed
-            nestedCtxt = typeParamCtxt;
-        } else {
-            int ctxtSize = typeParamCtxt.size();
-            if (ctxtSize == 0) {
-                nestedCtxt = List.of(signature);
-            } else {
-                ParameterizedSignature[] array = new ParameterizedSignature[ctxtSize + 1];
-                typeParamCtxt.toArray(array);
-                array[ctxtSize] = signature;
-                nestedCtxt = Arrays.asList(array);
-            }
-        }
+        TypeParameterContext nestedCtxt = TypeParameterContext.create(paramCtxt, signature);
         ValueType resolvedReturnType = classContext.resolveTypeFromMethodDescriptor(returnType, nestedCtxt, returnTypeSignature, returnTypeVisible, returnTypeInvisible);
         int cnt = parameterTypes.size();
         ValueType[] resolvedParamTypes = new ValueType[cnt];
@@ -148,7 +129,7 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
         return classContext.getTypeSystem().getFunctionType(resolvedReturnType, resolvedParamTypes);
     }
 
-    public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
-        return classContext.resolveTypeFromDescriptor(descriptor, typeParamCtxt, signature, visibleAnnotations, invisibleAnnotations);
+    public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
+        return classContext.resolveTypeFromDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
     }
 }

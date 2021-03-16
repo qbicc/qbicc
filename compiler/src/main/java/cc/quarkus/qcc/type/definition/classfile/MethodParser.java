@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.type.definition.classfile;
 
 import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
-import static cc.quarkus.qcc.type.definition.classfile.ClassMethodInfo.*;
+import static cc.quarkus.qcc.type.definition.classfile.ClassMethodInfo.align;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -33,7 +33,6 @@ import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.PoisonType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
@@ -43,17 +42,15 @@ import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.InvokableElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 import io.smallrye.common.constraint.Assert;
 
@@ -164,7 +161,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 if (exTypeIdx == 0) {
                     exType = throwable.validate().getType().getReference();
                 } else {
-                    exType = (ReferenceType) getClassFile().getTypeConstant(exTypeIdx);
+                    exType = (ReferenceType) getClassFile().getTypeConstant(exTypeIdx, TypeParameterContext.of(gf.getCurrentElement()));
                 }
                 BlockLabel block = getBlockForIndexIfExists(pc);
                 boolean single = block == null;
@@ -295,8 +292,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         return value;
     }
 
-    Value getConstantValue(int cpIndex) {
-        Literal literal = getClassFile().getConstantValue(cpIndex);
+    Value getConstantValue(int cpIndex, TypeParameterContext paramCtxt) {
+        Literal literal = getClassFile().getConstantValue(cpIndex, paramCtxt);
         if (literal instanceof TypeLiteral) {
             return gf.classOf(literal);
         } else {
@@ -486,13 +483,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         push1(lf.literalOf((int) buffer.getShort()));
                         break;
                     case OP_LDC:
-                        push1(getConstantValue(buffer.get() & 0xff));
+                        push1(getConstantValue(buffer.get() & 0xff, TypeParameterContext.of(gf.getCurrentElement())));
                         break;
                     case OP_LDC_W:
-                        push1(getConstantValue(buffer.getShort() & 0xffff));
+                        push1(getConstantValue(buffer.getShort() & 0xffff, TypeParameterContext.of(gf.getCurrentElement())));
                         break;
                     case OP_LDC2_W:
-                        push2(getConstantValue(buffer.getShort() & 0xffff));
+                        push2(getConstantValue(buffer.getShort() & 0xffff, TypeParameterContext.of(gf.getCurrentElement())));
                         break;
                     case OP_ILOAD:
                     case OP_FLOAD:
@@ -1178,7 +1175,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         return;
                     }
                     case OP_IRETURN: {
-                        FunctionType fnType = gf.getCurrentElement().getType(List.of());
+                        FunctionType fnType = gf.getCurrentElement().getType();
                         ValueType returnType = fnType.getReturnType();
                         gf.return_(gf.truncate(pop1(), (WordType) returnType));
                         // block complete
@@ -1551,66 +1548,12 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         return getClassFile().getFieldrefConstantName(fieldRef);
     }
 
-    private ObjectType getOwnerOfFieldRef(final int fieldRef) {
-        return resolveClass(getClassFile().getFieldrefConstantClassName(fieldRef));
-    }
-
     private String getNameOfMethodRef(final int methodRef) {
         return getClassFile().getMethodrefConstantName(methodRef);
     }
 
-    private boolean nameOfMethodRefEquals(final int methodRef, final String expected) {
-        return getClassFile().methodrefConstantNameEquals(methodRef, expected);
-    }
-
-    private ObjectType getOwnerOfMethodRef(final int methodRef) {
-        ValueType owner = getClassFile().getTypeConstant(getClassFile().getMethodrefConstantClassIndex(methodRef));
-        if (owner instanceof ReferenceType) {
-            return ((ReferenceType) owner).getUpperBound();
-        } else if (owner instanceof ObjectType) {
-            return (ObjectType) owner;
-        }
-        ctxt.getCompilationContext().error(gf.getLocation(), "Owner of method is not a valid object type (%s)", owner);
-        // return *something*
-        return gf.getCurrentElement().getEnclosingType().validate().getType();
-    }
-
     private int getNameAndTypeOfMethodRef(final int methodRef) {
         return getClassFile().getMethodrefNameAndTypeIndex(methodRef);
-    }
-
-    private FieldElement resolveTargetOfFieldRef(final int fieldRef) {
-        ValidatedTypeDefinition definition = getOwnerOfFieldRef(fieldRef).getDefinition().validate();
-        FieldElement field = definition.validate().resolveField(getDescriptorOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef));
-        if (field == null) {
-            // todo
-            throw new IllegalStateException();
-        }
-        return field;
-    }
-
-    private InvokableElement resolveTargetOfDescriptor(ValidatedTypeDefinition resolved, final MethodDescriptor desc, final int nameAndTypeRef) {
-        boolean ctor = getClassFile().nameAndTypeConstantNameEquals(nameAndTypeRef, "<init>");
-        int idx;
-        if (ctor) {
-            idx = resolved.findConstructorIndex(desc);
-            return idx == -1 ? null : resolved.getConstructor(idx);
-        } else {
-            idx = resolved.findMethodIndex(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), desc);
-            return idx == -1 ? null : resolved.getMethod(idx);
-        }
-    }
-
-    private MethodElement resolveVirtualTargetOfDescriptor(ValidatedTypeDefinition resolved, final MethodDescriptor desc, final int nameAndTypeRef) {
-        return resolved.resolveMethodElementVirtual(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), desc);
-    }
-
-    private MethodElement resolveInterfaceTargetOfDescriptor(ValidatedTypeDefinition resolved, final MethodDescriptor desc, final int nameAndTypeRef) {
-        return resolved.resolveMethodElementInterface(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), desc);
-    }
-
-    private ObjectType resolveClass(String name) {
-        return getClassFile().getClassContext().findDefinedType(name).validate().getType();
     }
 
     private static int getWidenableValue(final ByteBuffer buffer, final boolean wide) {

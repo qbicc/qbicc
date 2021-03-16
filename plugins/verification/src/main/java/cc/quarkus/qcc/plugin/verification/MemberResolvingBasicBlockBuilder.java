@@ -28,6 +28,7 @@ import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 import io.smallrye.common.constraint.Assert;
 
@@ -55,7 +56,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value narrow(final Value value, final TypeDescriptor desc) {
         ClassContext cc = getClassContext();
         // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-        ValueType narrowType = cc.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        ValueType narrowType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
         if (value.getType() instanceof ReferenceType && ((ReferenceType) value.getType()).isNullable()) {
             narrowType = ((ReferenceType) narrowType).asNullable();
         }
@@ -67,21 +68,21 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         // fetch the classfile's view of the type (or as close as we can synthesize) to save in the InstanceOf node
         ObjectType ot = null;
         if (desc instanceof ArrayTypeDescriptor) {
-            ot = cc.resolveArrayObjectTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+            ot = cc.resolveArrayObjectTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
         } else if (desc instanceof ClassTypeDescriptor) {
             ClassTypeDescriptor classDesc = (ClassTypeDescriptor) desc;
             DefinedTypeDefinition definedType = cc.findDefinedType(classDesc.getPackageName() + "/" + classDesc.getClassName());
             ot = definedType.validate().getType();
         } else {
             // this comes from the classfile - it better be something the verifier allows in instanceof/checkcast expressions
-            Assert.unreachableCode();
+            throw Assert.unreachableCode();
         }
         return instanceOf(input, ot);
     }
 
     public Value new_(final ClassTypeDescriptor desc) {
         ClassContext cc = getClassContext();
-        ValueType type = cc.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
         if (type instanceof ReferenceType) {
             ObjectType upperBound = ((ReferenceType) type).getUpperBound();
             if (upperBound instanceof ClassObjectType) {
@@ -93,7 +94,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
         ClassContext cc = getClassContext();
-        ValueType type = cc.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
         if (type instanceof ReferenceType) {
             ObjectType upperBound = ((ReferenceType) type).getUpperBound();
             if (upperBound instanceof ArrayObjectType) {
@@ -108,7 +109,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
         ClassContext cc = getClassContext();
-        ValueType type = cc.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
         if (type instanceof ReferenceType) {
             ObjectType upperBound = ((ReferenceType) type).getUpperBound();
             if (upperBound instanceof ArrayObjectType) {

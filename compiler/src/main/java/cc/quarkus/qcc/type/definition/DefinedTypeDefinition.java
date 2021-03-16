@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.type.definition;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.ObjIntConsumer;
 
 import cc.quarkus.qcc.type.annotation.Annotation;
@@ -13,6 +14,8 @@ import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.generic.ClassSignature;
+import cc.quarkus.qcc.type.generic.TypeParameter;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 
 /**
  *
@@ -20,7 +23,8 @@ import cc.quarkus.qcc.type.generic.ClassSignature;
 public interface DefinedTypeDefinition extends FieldResolver,
                                                MethodResolver,
                                                ConstructorResolver,
-                                               InitializerResolver {
+                                               InitializerResolver,
+                                               TypeParameterContext {
 
     ValidatedTypeDefinition validate() throws VerifyFailedException;
 
@@ -35,6 +39,27 @@ public interface DefinedTypeDefinition extends FieldResolver,
     ClassTypeDescriptor getDescriptor();
 
     ClassSignature getSignature();
+
+    @Override
+    default TypeParameter resolveTypeParameter(String parameterName) throws NoSuchElementException {
+        TypeParameter parameter = getSignature().getTypeParameter(parameterName);
+        if (parameter == null) {
+            return getEnclosingTypeParameterContext().resolveTypeParameter(parameterName);
+        }
+        return parameter;
+    }
+
+    @Override
+    default TypeParameterContext getEnclosingTypeParameterContext() {
+        String enclosingName = getEnclosingClassInternalName();
+        if (enclosingName != null && ! isStatic()) {
+            DefinedTypeDefinition enclosing = getContext().findDefinedType(enclosingName);
+            if (enclosing != null) {
+                return enclosing;
+            }
+        }
+        return EMPTY;
+    }
 
     int getModifiers();
 

@@ -274,7 +274,7 @@ final class CompilationContextImpl implements CompilationContext {
         }
         return exactFunctions.computeIfAbsent(element, e -> {
             Section implicit = getImplicitSection(element);
-            FunctionType elementType = element.getType(List.of());
+            FunctionType elementType = element.getType();
             if (element instanceof FunctionElement) {
                 return implicit.addFunction(element, ((FunctionElement) element).getName(), elementType);
             }
@@ -396,7 +396,7 @@ final class CompilationContextImpl implements CompilationContext {
             return ts.getFunctionType(ts.getVoidType());
         }
         assert element instanceof InvokableElement;
-        FunctionType methodType = element.getType(List.of(/*todo*/));
+        FunctionType methodType = element.getType();
         // function type is the same as the method type, except with current thread/receiver first
         int pcnt = methodType.getParameterCount();
         ValueType[] argTypes;

@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.plugin.native_;
 
 import java.io.IOException;
-import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
@@ -126,7 +125,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         }
         CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
         // compute the type and raw value
-        ValueType type = fieldElement.getType(List.of(/*todo*/));
+        ValueType type = fieldElement.getType();
         Value val;
         // todo: if constant value is actually a symbol ref...
         if (type instanceof IntegerType) {
