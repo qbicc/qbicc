@@ -1,7 +1,8 @@
 package cc.quarkus.qcc.plugin.llvm;
 
 import static cc.quarkus.qcc.machine.llvm.Types.*;
-import static cc.quarkus.qcc.machine.llvm.Values.*;
+import static cc.quarkus.qcc.machine.llvm.Values.NULL;
+import static cc.quarkus.qcc.machine.llvm.Values.ZERO;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,21 +22,23 @@ import cc.quarkus.qcc.graph.BlockEntry;
 import cc.quarkus.qcc.graph.Cmp;
 import cc.quarkus.qcc.graph.CmpG;
 import cc.quarkus.qcc.graph.CmpL;
+import cc.quarkus.qcc.graph.Convert;
+import cc.quarkus.qcc.graph.Div;
+import cc.quarkus.qcc.graph.ElementOf;
+import cc.quarkus.qcc.graph.Extend;
+import cc.quarkus.qcc.graph.ExtractElement;
+import cc.quarkus.qcc.graph.ExtractMember;
+import cc.quarkus.qcc.graph.Fence;
+import cc.quarkus.qcc.graph.FunctionCall;
+import cc.quarkus.qcc.graph.GlobalVariable;
+import cc.quarkus.qcc.graph.Goto;
+import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.IsEq;
 import cc.quarkus.qcc.graph.IsGe;
 import cc.quarkus.qcc.graph.IsGt;
 import cc.quarkus.qcc.graph.IsLe;
 import cc.quarkus.qcc.graph.IsLt;
 import cc.quarkus.qcc.graph.IsNe;
-import cc.quarkus.qcc.graph.Convert;
-import cc.quarkus.qcc.graph.Div;
-import cc.quarkus.qcc.graph.ElementOf;
-import cc.quarkus.qcc.graph.Extend;
-import cc.quarkus.qcc.graph.Fence;
-import cc.quarkus.qcc.graph.FunctionCall;
-import cc.quarkus.qcc.graph.GlobalVariable;
-import cc.quarkus.qcc.graph.Goto;
-import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.Load;
 import cc.quarkus.qcc.graph.MemberOf;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
@@ -600,6 +603,20 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
                     isSigned(javaInputType) ?
                     builder.sext(inputType, llvmInput, outputType).asLocal() :
                     builder.zext(inputType, llvmInput, outputType).asLocal();
+    }
+
+    public LLValue visit(final Void param, final ExtractElement node) {
+        LLValue arrayType = map(node.getArrayType());
+        LLValue array = map(node.getArrayValue());
+        LLValue index = map(node.getIndex());
+        return builder.extractvalue(arrayType, array).arg(index).asLocal();
+    }
+
+    public LLValue visit(final Void param, final ExtractMember node) {
+        LLValue compType = map(node.getCompoundType());
+        LLValue comp = map(node.getCompoundValue());
+        LLValue index = map(node.getCompoundType(), node.getMember());
+        return builder.extractvalue(compType, comp).arg(index).asLocal();
     }
 
     public LLValue visit(final Void param, final Narrow node) {

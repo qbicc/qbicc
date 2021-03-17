@@ -11,6 +11,7 @@ import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
+import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
@@ -81,6 +82,14 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         }
         
         return super.negate(v);
+    }
+
+    @Override
+    public Value extractElement(Value array, Value index) {
+        if (!(index instanceof Literal)) {
+            ctxt.error(getLocation(), "Index of ExtractElement must be constant");
+        }
+        return super.extractElement(array, index);
     }
 
     @Override

@@ -14,11 +14,14 @@ import cc.quarkus.qcc.graph.PointerHandle;
 import cc.quarkus.qcc.graph.ReferenceHandle;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
+import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.BooleanLiteral;
+import cc.quarkus.qcc.graph.literal.CompoundLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
+import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
@@ -37,6 +40,22 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public SimpleOptBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+    }
+
+    @Override
+    public Value extractElement(Value array, Value index) {
+        if (array instanceof ArrayLiteral && index instanceof IntegerLiteral) {
+            return ((ArrayLiteral) array).getValues().get(((IntegerLiteral) index).intValue());
+        }
+        return super.extractElement(array, index);
+    }
+
+    @Override
+    public Value extractMember(Value compound, CompoundType.Member member) {
+        if (compound instanceof CompoundLiteral) {
+            return ((CompoundLiteral) compound).getValues().get(member);
+        }
+        return super.extractMember(compound, member);
     }
 
     public Value isEq(final Value v1, final Value v2) {
