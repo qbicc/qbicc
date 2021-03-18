@@ -440,7 +440,7 @@ public class Main implements Callable<DiagnosticContext> {
         private GraphGenArgs graphGenArgs;
 
         @CommandLine.ArgGroup(exclusive = false, heading = "Options for controlling optimizations%n")
-        private OptArgs optArgs;
+        private OptArgs optArgs = new OptArgs();
 
         private GraphGenConfig graphGenConfig = new GraphGenConfig();
 
