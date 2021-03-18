@@ -71,6 +71,7 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
 import cc.quarkus.qcc.machine.llvm.FastMathFlag;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
@@ -87,6 +88,7 @@ import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.plugin.unwind.UnwindHelper;
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
@@ -95,7 +97,6 @@ import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
-import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.VoidType;
 import cc.quarkus.qcc.type.definition.MethodBody;
@@ -120,6 +121,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     final LLBuilder builder;
     final Map<Node, LLValue> inlineLocations = new HashMap<>();
 
+    private boolean personalityAdded;
+
     LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLValue topSubprogram, final LLVMModuleNodeVisitor moduleVisitor, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
         this.module = module;
@@ -132,6 +135,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         this.methodBody = functionObj.getBody();
         entryBlock = methodBody.getEntryBlock();
         builder = LLBuilder.newBuilder(func.getRootBlock());
+        personalityAdded = false;
     }
 
     // begin
@@ -696,7 +700,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         }
         Call call = builder.invoke(llType, llTarget, map(try_.getResumeTarget()), mapCatch(try_.getExceptionHandler()));
         for (int i = 0; i < arguments.size(); i++) {
-            ValueType     type = functionType.getParameterType(i);
+            ValueType type = functionType.getParameterType(i);
             Call.Argument arg = call.arg(map(type), map(arguments.get(i)));
             if(type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
                 if(type instanceof SignedIntegerType) {
@@ -717,6 +721,19 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             }
         } else if(retType instanceof BooleanType) {
             call.zeroExt();
+        }
+
+        if (!personalityAdded) {
+            Function personalityFunction = ctxt.getExactFunction(UnwindHelper.get(ctxt).getPersonalityMethod());
+            SymbolLiteral literal = ctxt.getLiteralFactory().literalOfSymbol(personalityFunction.getLiteral().getName(), personalityFunction.getType().getPointer());
+            // clang generates the personality argument like this (by casting the function to i8* using bitcast):
+            //      define dso_local void @_Z7catchitv() #0 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+            // We can also generate it this way using following construct:
+            //      func.personality(Values.bitcastConstant(map(literal), map(literal.getType()), ptrTo(i8)), ptrTo(i8));
+            // but directly specifying the function works as well.
+            func.personality(map(literal), map(literal.getType()));
+            func.unwindTable();
+            personalityAdded = true;
         }
         return call.asLocal();
     }
@@ -851,7 +868,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         // TODO Is it correct to use the call's debug info here?
         LLBasicBlock oldBuilderBlock = builder.moveToBlock(mapped);
 
-        builder.landingpad(ptrTo(i8)).catch_(ptrTo(i8), NULL);
+        builder.landingpad(structType().member(ptrTo(i8)).member(i32)).catch_(ptrTo(i8), NULL);
         LLBasicBlock handler = map(block);
         builder.br(handler);
 

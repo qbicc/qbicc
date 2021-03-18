@@ -105,5 +105,11 @@ public final class Unwind {
         _Unwind_Reason_Code run(c_int version, _Unwind_Action actions, uint64_t exception_class, ptr<struct__Unwind_Context> exception_object, ptr<struct__Unwind_Context> context, ptr<?> stop_parameter);
     }
 
+    public static _Unwind_Reason_Code personality(c_int version, _Unwind_Action action, uint64_t exceptionClass,
+                                    ptr<struct__Unwind_Exception> exceptionObject, ptr<struct__Unwind_Context> context) {
+        // TODO: This is just a stub.
+        return _URC_CONTINUE_UNWIND;
+    }
+
     // TODO: support for classic ARM EHABI needs a different prototype for _Unwind_Stop_Fn
 }

@@ -36,5 +36,6 @@
         <module>thread-local</module>
         <module>try-catch</module>
         <module>verification</module>
+        <module>unwind</module>
     </modules>
 </project>
