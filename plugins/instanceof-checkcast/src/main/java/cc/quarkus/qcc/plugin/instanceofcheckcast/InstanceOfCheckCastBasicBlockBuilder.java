@@ -4,7 +4,6 @@ import java.util.List;
 
 import cc.quarkus.qcc.graph.CheckCast;
 import cc.quarkus.qcc.graph.literal.TypeLiteral;
-import cc.quarkus.qcc.type.WordType;
 import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
@@ -55,25 +54,22 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
 
     public Value checkcast(Value input, Value narrowInput, CheckCast.CastType kind, ReferenceType toType) {
         // First, see if we can completely eliminate the cast statically
-        switch (kind) {
-            case Cast: {
-                ValueType actualType = input.getType();
-                if (actualType instanceof ReferenceType) {
-                    if (((ReferenceType) actualType).instanceOf(toType)) {
-                        // the reference type matches statically
-                        return input;
-                    }
+
+        if (kind.equals(CheckCast.CastType.Cast) && narrowInput instanceof TypeLiteral) {
+            ValueType inputType = input.getType();
+            ValueType desiredType = narrowInput.getType().getTypeType().getUpperBound();
+            if (inputType instanceof ReferenceType && desiredType instanceof ReferenceType) {
+                if (((ReferenceType) inputType).instanceOf((ReferenceType) desiredType)) {
+                    // Statically safe cast
+                    return input;
                 }
             }
-            break;
-            case ArrayStore: {
-                // TODO: Have to think through the statically resolvable cases. Some possibilities:
-                //   1. The type of narrowInput is C[] where C is final or effectively final and
-                //      the type of value is C
-                //   2. The type of narrowInput is a k-dimensional prim array and the
-                //      type of value is an k-1 dimensional prim array.
-            }
-            break;
+        } else if (kind.equals(CheckCast.CastType.ArrayStore)) {
+            // TODO: Have to think through the statically resolvable cases. Some possibilities:
+            //   1. The type of narrowInput is C[] where C is final or effectively final and
+            //      the type of value is C
+            //   2. The type of narrowInput is a k-dimensional prim array and the
+            //      type of value is an k-1 dimensional prim array.
         }
 
         // If we get here, we have to generate code for a test of some form.

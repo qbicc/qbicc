@@ -9,6 +9,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockEarlyTermination;
+import cc.quarkus.qcc.graph.CheckCast;
 import cc.quarkus.qcc.graph.Extend;
 import cc.quarkus.qcc.graph.Load;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
@@ -29,6 +30,7 @@ import cc.quarkus.qcc.plugin.intrinsics.StaticValueIntrinsic;
 import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.PointerType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
@@ -69,17 +71,28 @@ public final class CoreIntrinsics {
 
         ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor jlsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
+        ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
 
         MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jlcDesc));
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor emptyToString = MethodDescriptor.synthesize(classContext, jlsDesc, List.of());
         MethodDescriptor stringToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of(jlsDesc));
+        MethodDescriptor objToObj = MethodDescriptor.synthesize(classContext, jloDesc, List.of(jloDesc));
 
         // Assertion status
 
         // todo: this probably belongs in the class libraries rather than here
         StaticValueIntrinsic desiredAssertionStatus0 = (builder, owner, name, descriptor, arguments) ->
             classContext.getLiteralFactory().literalOf(false);
+
+        InstanceValueIntrinsic cast =  (builder, kind, instance, owner, name, descriptor, arguments) -> {
+            // Generics erasure issue. The return type of Class<T>.cast is T, but it gets wiped to Object.
+            // If the result of this cast is actually used as a T, there will be a (redundant) checkcast bytecode.
+            // If instance is a Class literal, then by generating a checkcast here we allow oursevles tomay be able to generate something better than the
+            // naive call to the VMHelper method, so create the checkcast instead of going directly to the VMHelper here.
+            ReferenceType jlot = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").validate().getType().getReference();
+            return builder.checkcast(arguments.get(0), instance, CheckCast.CastType.Cast, jlot);
+        };
 
         StaticIntrinsic registerNatives = (builder, owner, name, descriptor, arguments) -> builder.nop();
 
@@ -119,6 +132,7 @@ public final class CoreIntrinsics {
 
         //    static native Class<?> getPrimitiveClass(String name);
 
+        intrinsics.registerIntrinsic(jlcDesc, "cast", objToObj, cast);
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus0", classToBool, desiredAssertionStatus0);
         intrinsics.registerIntrinsic(jlcDesc, "registerNatives", emptyToVoid, registerNatives);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
