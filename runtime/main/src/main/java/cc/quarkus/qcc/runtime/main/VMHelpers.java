@@ -25,6 +25,30 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
+    //       value and array are both non-null (enforced by compiler at call site).
+    public static void arrayStoreCheck(Object value, Object array) {
+        // TODO: Implement this check.
+        // We've inlined some common cases, but still have to handle them again here because this
+        // runtime helper can be called simply because the static type information was too imprecise
+        // to guarantee that we were in one of those simple cases.
+    }
+
+    // TODO: mark this with a "NoInline" annotation
+    //       value is non-null (enforced by compiler at call site)
+    public static void checkcast_class (Object value, Class<?> cls) {
+        // TODO: Implement this check.
+    }
+
+    // TODO: mark this with a "NoInline" annotation
+    //       value is non-null (enforced by compiler at call site)
+    public static void checkcast_typeId(Object value, type_id typeId) {
+        // TODO: Implement this check.
+        // We've inlined some common cases, but still have to handle them again here because this
+        // runtime helper can be called simply because the static type information was too imprecise
+        // to guarantee that we were in one of those simple cases.
+    }
+
+    // TODO: mark this with a "NoInline" annotation
     static Class<?> classof_from_typeid(type_id typeId) {
         // Load the java.lang.Class object from an array of them indexed by typeId.
         return null; // TODO: Implement this! (or perhaps implement it inline; it should take less code than a call).
@@ -65,31 +89,44 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
+    @SuppressWarnings("unused")
     static void raiseAbstractMethodError() {
         throw new AbstractMethodError();
     }
 
     // TODO: mark this with a "NoInline" annotation
+    @SuppressWarnings("unused")
     static void raiseArithmeticException() {
         throw new ArithmeticException();
     }
 
     // TODO: mark this with a "NoInline" annotation
+    @SuppressWarnings("unused")
     static void raiseArrayIndexOutOfBoundsException() {
         throw new ArrayIndexOutOfBoundsException();
     }
 
     // TODO: mark this with a "NoInline" annotation
+    @SuppressWarnings("unused")
+    static void raiseArrayStoreException() {
+        throw new ArrayStoreException();
+    }
+
+    // TODO: mark this with a "NoInline" annotation
+    @SuppressWarnings("unused")
     static void raiseIncompatibleClassChangeError() { throw new IncompatibleClassChangeError(); }
 
     // TODO: mark this with a "NoInline" annotation
+    @SuppressWarnings("unused")
     static void raiseNegativeArraySizeException() { throw new NegativeArraySizeException(); }
 
     // TODO: mark this with a "NoInline" annotation
+    @SuppressWarnings("unused")
     static void raiseNullPointerException() {
         throw new NullPointerException();
     }
 
     // TODO: mark this with a "NoInline" annotation
+    @SuppressWarnings("unused")
     static void raiseUnsatisfiedLinkError() { throw new UnsatisfiedLinkError(); }
 }

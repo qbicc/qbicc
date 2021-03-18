@@ -44,7 +44,7 @@ import cc.quarkus.qcc.graph.MemberOf;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.Multiply;
-import cc.quarkus.qcc.graph.Narrow;
+import cc.quarkus.qcc.graph.CheckCast;
 import cc.quarkus.qcc.graph.Neg;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NodeVisitor;
@@ -623,7 +623,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         return builder.extractvalue(compType, comp).arg(index).asLocal();
     }
 
-    public LLValue visit(final Void param, final Narrow node) {
+    public LLValue visit(final Void param, final CheckCast node) {
         return map(node.getInput());
     }
 

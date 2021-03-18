@@ -59,7 +59,7 @@ import cc.quarkus.qcc.graph.MonitorEnter;
 import cc.quarkus.qcc.graph.MonitorExit;
 import cc.quarkus.qcc.graph.MultiNewArray;
 import cc.quarkus.qcc.graph.Multiply;
-import cc.quarkus.qcc.graph.Narrow;
+import cc.quarkus.qcc.graph.CheckCast;
 import cc.quarkus.qcc.graph.Neg;
 import cc.quarkus.qcc.graph.New;
 import cc.quarkus.qcc.graph.NewArray;
@@ -792,8 +792,17 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return node(param, "*", node);
     }
 
-    public String visit(final Appendable param, final Narrow node) {
-        return node(param, "narrow", node);
+    public String visit(final Appendable param, final CheckCast node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "circle");
+        attr(param, "label", node.getKind() + "→" + node.getType().toString());
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getNarrowInput(), EdgeType.VALUE_DEPENDENCY);
+        dependencyList.add(name);
+        return name;
     }
 
     public String visit(final Appendable param, final Neg node) {

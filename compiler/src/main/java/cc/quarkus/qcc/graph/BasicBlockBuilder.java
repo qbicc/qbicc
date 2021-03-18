@@ -241,16 +241,9 @@ public interface BasicBlockBuilder {
 
     Value instanceOf(Value input, TypeDescriptor desc);
 
-    /**
-     * Narrow a value with reference type to another (typically more specific) type.
-     *
-     * @param value the value to narrow
-     * @param toType the type to narrow to
-     * @return the narrowed type
-     */
-    Value narrow(Value value, ValueType toType);
+    Value checkcast(Value value, Value narrowInput, CheckCast.CastType kind, ReferenceType toType);
 
-    Value narrow(Value value, TypeDescriptor desc);
+    Value checkcast(Value value, TypeDescriptor desc);
 
     // memory handles
 

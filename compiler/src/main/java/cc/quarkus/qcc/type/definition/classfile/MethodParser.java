@@ -183,10 +183,10 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 buffer.position(pc);
                 if (single) {
                     gf.begin(block);
-                    push1(gf.narrow(phi, exType));
+                    push1(gf.bitCast(phi, exType));
                     processNewBlock();
                 } else {
-                    push1(gf.narrow(phi, exType));
+                    push1(gf.bitCast(phi, exType));
                     processBlock(innerFrom);
                 }
                 // restore everything like nothing happened...
@@ -1402,7 +1402,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         return;
                     case OP_CHECKCAST: {
                         v1 = pop1();
-                        Value narrowed = gf.narrow(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff));
+                        Value narrowed = gf.checkcast(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff));
                         replaceAll(v1, narrowed);
                         push1(narrowed);
                         break;

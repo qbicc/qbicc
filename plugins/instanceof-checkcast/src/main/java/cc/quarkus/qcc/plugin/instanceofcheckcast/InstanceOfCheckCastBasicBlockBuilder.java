@@ -2,6 +2,10 @@ package cc.quarkus.qcc.plugin.instanceofcheckcast;
 
 import java.util.List;
 
+import cc.quarkus.qcc.graph.CheckCast;
+import cc.quarkus.qcc.graph.literal.TypeLiteral;
+import cc.quarkus.qcc.type.WordType;
+import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
 import cc.quarkus.qcc.context.CompilationContext;
@@ -49,18 +53,98 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         this.ctxt = ctxt;
     }
 
-    public Value narrow(Value value, ValueType toType) {
-        if (toType instanceof ReferenceType) {
-            ReferenceType refExpectedType = (ReferenceType) toType;
-            ValueType actualType = value.getType();
-            if (actualType instanceof ReferenceType) {
-                if (((ReferenceType) actualType).instanceOf(refExpectedType)) {
-                    // the reference type matches statically
-                    return value;
+    public Value checkcast(Value input, Value narrowInput, CheckCast.CastType kind, ReferenceType toType) {
+        // First, see if we can completely eliminate the cast statically
+        switch (kind) {
+            case Cast: {
+                ValueType actualType = input.getType();
+                if (actualType instanceof ReferenceType) {
+                    if (((ReferenceType) actualType).instanceOf(toType)) {
+                        // the reference type matches statically
+                        return input;
+                    }
                 }
             }
+            break;
+            case ArrayStore: {
+                // TODO: Have to think through the statically resolvable cases. Some possibilities:
+                //   1. The type of narrowInput is C[] where C is final or effectively final and
+                //      the type of value is C
+                //   2. The type of narrowInput is a k-dimensional prim array and the
+                //      type of value is an k-1 dimensional prim array.
+            }
+            break;
         }
-        return super.narrow(value, toType);
+
+        // If we get here, we have to generate code for a test of some form.
+
+        // Null can be cast to any reference type and the test is cheap; if null branch to "pass"
+        final BlockLabel pass = new BlockLabel();
+        final BlockLabel dynCheck = new BlockLabel();
+        if_(isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType())), pass, dynCheck);
+        begin(dynCheck);
+
+        // Now expand into either an inlined or outlined dynamic check based on what we know at compile time.
+        if (kind.equals(CheckCast.CastType.Cast)) {
+            if (narrowInput instanceof TypeLiteral) {
+                // TODO: inline some of the easy cases.  For now, just call the VMHelper that does the check.
+                MethodElement helper = ctxt.getVMHelperMethod("checkcast_typeId");
+                getFirstBuilder().invokeStatic(helper, List.of(input, narrowInput));
+                goto_(pass);
+                begin(pass);
+                return bitCast(input, toType);
+            } else {
+                // Not a case we inline; call the VMHelper that does the check.
+                MethodElement helper = ctxt.getVMHelperMethod("checkcast_class");
+                getFirstBuilder().invokeStatic(helper, List.of(input, narrowInput));
+                goto_(pass);
+                begin(pass);
+                return bitCast(input, toType);
+            }
+        } else {
+            Assert.assertTrue(kind.equals(CheckCast.CastType.ArrayStore));
+
+            if (narrowInput.getType() instanceof ReferenceType && ((ReferenceType)narrowInput.getType()).getUpperBound() instanceof ReferenceArrayObjectType) {
+                SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
+                Layout layout = Layout.get(ctxt);
+                ObjectType elemType = ((ReferenceArrayObjectType) ((ReferenceType) narrowInput.getType()).getUpperBound()).getElementObjectType();
+                // Peel of simple and common cases of array store check that we should do inline
+                if (elemType instanceof ClassObjectType && elemType.hasSuperClass()) {
+                    // array is statically a Class[] and is not j.l.Object[]
+                    // Therefore it cannot hold a runtime value that is an Interface[] or prim[][]
+
+                    // 1. use the array's element typeId to load the element's maxTypeId
+                    GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().getCurrentElement());
+                    Value elemTypeId = load(instanceFieldOf(referenceHandle(narrowInput), layout.getRefArrayElementTypeIdField()), MemoryAtomicityMode.UNORDERED);
+                    ValueHandle typeIdStruct = elementOf(globalVariable(typeIdGlobal), elemTypeId);
+                    Value elemMaxTypeId = load(memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("maxSubTypeId")), MemoryAtomicityMode.UNORDERED);
+
+                    // 2. get the typeId of the storedValue
+                    Value valueTypeId = typeIdOf(referenceHandle(input));
+
+                    // 3. Cast is legal iff elemTypeId <= valueTypeId <= elemMaxTypeId
+                    BlockLabel fail = new BlockLabel();
+                    if_(and(isLe(elemTypeId, valueTypeId), isLe(valueTypeId, elemMaxTypeId)), pass, fail);
+
+                    // raise exception on failure.
+                    begin(fail);
+                    MethodElement helper = ctxt.getVMHelperMethod("raiseArrayStoreException");
+                    getFirstBuilder().invokeStatic(helper, List.of());
+                    unreachable();
+
+                    // success block
+                    begin(pass);
+                    return bitCast(input, toType);
+                }
+            }
+
+            // Not a case we inline; call the VMHelper that does the check.
+            MethodElement helper = ctxt.getVMHelperMethod("arrayStoreCheck");
+            getFirstBuilder().invokeStatic(helper, List.of(input, narrowInput));
+            goto_(pass);
+            begin(pass);
+            return bitCast(input, toType);
+        }
     }
 
     public Value instanceOf(final Value input, final ObjectType expectedType) {

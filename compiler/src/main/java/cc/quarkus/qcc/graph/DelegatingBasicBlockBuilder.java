@@ -8,6 +8,7 @@ import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -91,12 +92,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return delegate;
     }
 
-    public Value narrow(final Value value, final ValueType toType) {
-        return getDelegate().narrow(value, toType);
+    public Value checkcast(final Value value, final Value narrowInput, final CheckCast.CastType kind, final ReferenceType toType) {
+        return getDelegate().checkcast(value, narrowInput, kind, toType);
     }
 
-    public Value narrow(final Value value, final TypeDescriptor desc) {
-        return getDelegate().narrow(value, desc);
+    public Value checkcast(final Value value, final TypeDescriptor desc) {
+        return getDelegate().checkcast(value, desc);
     }
 
     public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {

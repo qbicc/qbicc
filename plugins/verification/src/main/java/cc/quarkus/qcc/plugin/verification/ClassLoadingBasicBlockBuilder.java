@@ -49,7 +49,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound());
     }
 
-    public Value narrow(final Value value, TypeDescriptor desc) {
+    public Value checkcast(final Value value, TypeDescriptor desc) {
         TypeDescriptor orig = desc;
         while (desc instanceof ArrayTypeDescriptor) {
             desc = ((ArrayTypeDescriptor) desc).getElementTypeDescriptor();
@@ -60,7 +60,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 throw new BlockEarlyTermination(noClassDefFound());
             }
         }
-        return super.narrow(value, orig);
+        return super.checkcast(value, orig);
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {

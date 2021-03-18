@@ -7,6 +7,7 @@ import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.CheckCast;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.ElementOf;
@@ -23,6 +24,7 @@ import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.ReferenceArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
@@ -58,8 +60,8 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
-        check(handle);
-        return super.store(handle, value, mode);
+        Value narrowedValue = check(handle, value);
+        return super.store(handle, narrowedValue != null ? narrowedValue : value, mode);
     }
 
     @Override
@@ -228,21 +230,29 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         throw new BlockEarlyTermination(unreachable());
     }
 
-    private void check(ValueHandle handle) {
-        handle.accept(new ValueHandleVisitor<Void, Void>() {
+    private Value check(ValueHandle handle) {
+        return check(handle, null);
+    }
+
+    private Value check(ValueHandle handle, Value storedValue) {
+        return handle.accept(new ValueHandleVisitor<Void, Value>() {
             @Override
-            public Void visit(Void param, ElementOf node) {
+            public Value visit(Void param, ElementOf node) {
                 ValueHandle arrayHandle = node.getValueHandle();
                 arrayHandle.accept(this, param);
                 ValueType arrayType = arrayHandle.getValueType();
                 if (arrayType instanceof ArrayObjectType) {
                     indexOutOfBoundsCheck(arrayHandle, node.getIndex());
+                    if (arrayType instanceof ReferenceArrayObjectType && storedValue != null) {
+                        return checkcast(storedValue, ((ReferenceHandle)arrayHandle).getReferenceValue(),
+                            CheckCast.CastType.ArrayStore, ((ReferenceArrayObjectType) arrayType).getElementType());
+                    }
                 }
                 return null;
             }
 
             @Override
-            public Void visit(Void param, InstanceFieldOf node) {
+            public Value visit(Void param, InstanceFieldOf node) {
                 if (node.getVariableElement().isStatic()) {
                     throwIncompatibleClassChangeError();
                 } else {
@@ -252,7 +262,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             }
 
             @Override
-            public Void visit(Void param, StaticField node) {
+            public Value visit(Void param, StaticField node) {
                 if (! node.getVariableElement().isStatic()) {
                     throwIncompatibleClassChangeError();
                 }
@@ -260,7 +270,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             }
 
             @Override
-            public Void visit(Void param, ReferenceHandle node) {
+            public Value visit(Void param, ReferenceHandle node) {
                 nullCheck(node.getReferenceValue());
                 return null;
             }

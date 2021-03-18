@@ -115,6 +115,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, CheckCast node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, CompoundLiteral node) {
         return visitUnknown(param, node);
     }
@@ -240,10 +244,6 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, Multiply node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, Narrow node) {
         return visitUnknown(param, node);
     }
 
@@ -383,6 +383,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, ByteArrayLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CheckCast node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -539,10 +543,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, Multiply node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, Narrow node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
