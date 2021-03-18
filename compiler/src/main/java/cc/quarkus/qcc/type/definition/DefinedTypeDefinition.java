@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.ObjIntConsumer;
 
+import cc.quarkus.qcc.context.Locatable;
+import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.type.annotation.Annotation;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.classfile.BootstrapMethod;
@@ -24,11 +26,17 @@ public interface DefinedTypeDefinition extends FieldResolver,
                                                MethodResolver,
                                                ConstructorResolver,
                                                InitializerResolver,
-                                               TypeParameterContext {
+                                               TypeParameterContext,
+                                               Locatable {
 
     ValidatedTypeDefinition validate() throws VerifyFailedException;
 
     ClassContext getContext();
+
+    @Override
+    default Location getLocation() {
+        return Location.builder().setClassInternalName(getInternalName()).build();
+    }
 
     String getInternalName();
 
@@ -58,7 +66,7 @@ public interface DefinedTypeDefinition extends FieldResolver,
                 return enclosing;
             }
         }
-        return EMPTY;
+        return TypeParameterContext.EMPTY;
     }
 
     int getModifiers();
