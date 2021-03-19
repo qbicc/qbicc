@@ -55,6 +55,7 @@ public final class CoreIntrinsics {
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerCcQuarkusQccRuntimeCNativeIntrinsics(ctxt);
+        registerCcQuarkusQccObjectModelIntrinsics(ctxt);
         registerCcQuarkusQccRuntimeValuesIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
     }
@@ -413,6 +414,39 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.S)), addrOf);
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.Z)), addrOf);
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(nObjDesc)), addrOf);
+    }
+
+    static void registerCcQuarkusQccObjectModelIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+        Layout layout = Layout.get(ctxt);
+
+        ClassTypeDescriptor objModDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/ObjectModel");
+        ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$type_id");
+        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
+
+        MethodDescriptor objTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objDesc));
+        MethodDescriptor objArrayTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objArrayDesc));
+
+        StaticValueIntrinsic typeOf = (builder, owner, name, descriptor, arguments) ->
+            builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
+
+        intrinsics.registerIntrinsic(objModDesc, "type_id_of", objTypeIdDesc, typeOf);
+
+        FieldElement elementTypeField = layout.getRefArrayElementTypeIdField();
+        StaticValueIntrinsic elementTypeOf = (builder, owner, name, descriptor, arguments) ->
+            builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), elementTypeField), MemoryAtomicityMode.UNORDERED);
+
+        intrinsics.registerIntrinsic(objModDesc, "element_type_id_of", objArrayTypeIdDesc, elementTypeOf);
+
+        FieldElement dimensionsField = layout.getRefArrayDimensionsField();
+        StaticValueIntrinsic dimensionsOf = (builder, owner, name, descriptor, arguments) ->
+            builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), dimensionsField), MemoryAtomicityMode.UNORDERED);
+
+        intrinsics.registerIntrinsic(objModDesc, "dimensions_of", objArrayTypeIdDesc, elementTypeOf);
+
+
     }
 
     static void registerCcQuarkusQccRuntimeValuesIntrinsics(final CompilationContext ctxt) {
