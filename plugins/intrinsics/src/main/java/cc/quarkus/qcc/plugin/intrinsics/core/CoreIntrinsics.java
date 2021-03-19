@@ -88,7 +88,7 @@ public final class CoreIntrinsics {
         InstanceValueIntrinsic cast =  (builder, kind, instance, owner, name, descriptor, arguments) -> {
             // Generics erasure issue. The return type of Class<T>.cast is T, but it gets wiped to Object.
             // If the result of this cast is actually used as a T, there will be a (redundant) checkcast bytecode.
-            // If instance is a Class literal, then by generating a checkcast here we allow oursevles tomay be able to generate something better than the
+            // If instance is a Class literal, then by generating a checkcast here we allow ourselves to maybe able to generate something better than the
             // naive call to the VMHelper method, so create the checkcast instead of going directly to the VMHelper here.
             ReferenceType jlot = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").validate().getType().getReference();
             return builder.checkcast(arguments.get(0), instance, CheckCast.CastType.Cast, jlot);
