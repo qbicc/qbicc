@@ -428,25 +428,22 @@ public final class CoreIntrinsics {
 
         MethodDescriptor objTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objDesc));
         MethodDescriptor objArrayTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objArrayDesc));
+        MethodDescriptor objArrayIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(objArrayDesc));
+        MethodDescriptor typeIdTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(typeIdDesc));
 
         StaticValueIntrinsic typeOf = (builder, owner, name, descriptor, arguments) ->
             builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
-
         intrinsics.registerIntrinsic(objModDesc, "type_id_of", objTypeIdDesc, typeOf);
 
         FieldElement elementTypeField = layout.getRefArrayElementTypeIdField();
         StaticValueIntrinsic elementTypeOf = (builder, owner, name, descriptor, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), elementTypeField), MemoryAtomicityMode.UNORDERED);
-
         intrinsics.registerIntrinsic(objModDesc, "element_type_id_of", objArrayTypeIdDesc, elementTypeOf);
 
         FieldElement dimensionsField = layout.getRefArrayDimensionsField();
         StaticValueIntrinsic dimensionsOf = (builder, owner, name, descriptor, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), dimensionsField), MemoryAtomicityMode.UNORDERED);
-
-        intrinsics.registerIntrinsic(objModDesc, "dimensions_of", objArrayTypeIdDesc, elementTypeOf);
-
-
+        intrinsics.registerIntrinsic(objModDesc, "dimensions_of", objArrayIntDesc, dimensionsOf);
     }
 
     static void registerCcQuarkusQccRuntimeValuesIntrinsics(final CompilationContext ctxt) {

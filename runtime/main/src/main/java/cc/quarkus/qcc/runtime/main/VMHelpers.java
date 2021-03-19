@@ -7,45 +7,64 @@ import static cc.quarkus.qcc.runtime.stdc.Stdlib.*;
 /**
  * Runtime Helpers to support the operation of the compiled code.
  */
+@SuppressWarnings("unused")
 public final class VMHelpers {
 
-    // TODO: mark this with a "AlwaysInline" annotation
-    public static int fast_instanceof(Object instance, Class<?> castClass) {
-        if (instance == null) return 0;        // null isn't an instance of anything
-        Class<?> instanceClass = instance.getClass();
-        if (instanceClass == castClass) {
-            return 1;
+    public static int full_instanceof(Object instance, Class<?> cls) {
+        if (instance == null) {
+            return 0;
         }
-        return full_instanceof(instance, castClass);
+        type_id toTypeId = ObjectModel.get_type_id_from_class(cls);
+        int toDim = ObjectModel.get_dimensions_from_class(cls);
+        return isAssignableTo(instance, toTypeId, toDim) ? 1 : 0;
     }
 
-    // TODO: mark this with a "NoInline" annotation
-    public static int full_instanceof(Object instance, Class<?> castClass) {
-        return 0; // TODO: full instance of support
+    public static void arrayStoreCheck(Object value, type_id toTypeId, int toDimensions) {
+        if (value == null || isAssignableTo(value, toTypeId, toDimensions - 1)) {
+            return;
+        }
+        raiseArrayStoreException();
     }
 
-    // TODO: mark this with a "NoInline" annotation
-    //       value and array are both non-null (enforced by compiler at call site).
-    public static void arrayStoreCheck(Object value, Object array) {
-        // TODO: Implement this check.
-        // We've inlined some common cases, but still have to handle them again here because this
-        // runtime helper can be called simply because the static type information was too imprecise
-        // to guarantee that we were in one of those simple cases.
-    }
-
-    // TODO: mark this with a "NoInline" annotation
-    //       value is non-null (enforced by compiler at call site)
     public static void checkcast_class (Object value, Class<?> cls) {
-        // TODO: Implement this check.
+        type_id toTypeId = ObjectModel.get_type_id_from_class(cls);
+        int toDim = ObjectModel.get_dimensions_from_class(cls);
+        checkcast_typeId(value, toTypeId, toDim);
     }
 
-    // TODO: mark this with a "NoInline" annotation
-    //       value is non-null (enforced by compiler at call site)
-    public static void checkcast_typeId(Object value, type_id typeId) {
-        // TODO: Implement this check.
-        // We've inlined some common cases, but still have to handle them again here because this
-        // runtime helper can be called simply because the static type information was too imprecise
-        // to guarantee that we were in one of those simple cases.
+    public static void checkcast_typeId(Object value, type_id toTypeId, int toDimensions) {
+        if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
+            return;
+        }
+        throw new ClassCastException();
+    }
+
+    // Invariant: value is not null
+    private static boolean isAssignableTo(Object value, type_id toTypeId, int toDimensions) {
+        if (toDimensions == 0) {
+            return isAssignableToLeaf(ObjectModel.type_id_of(value), toTypeId);
+        } else if (ObjectModel.is_reference_array(ObjectModel.type_id_of(value))) {
+            int valueDims = ObjectModel.dimensions_of(value);
+            if (valueDims == toDimensions) {
+                type_id valueElemTypeId = ObjectModel.element_type_id_of(value);
+                return isAssignableToLeaf(valueElemTypeId, toTypeId);
+            } else if (valueDims > toDimensions) {
+                return ObjectModel.is_java_lang_object(toTypeId);
+            }
+        }
+        return false;
+    }
+
+    private static final boolean isAssignableToLeaf(type_id valueTypeId, type_id toTypeId) {
+        if (ObjectModel.is_class(toTypeId)) {
+            type_id maxTypeId = ObjectModel.max_subclass_type_id_of(toTypeId);
+            return toTypeId.intValue() <= valueTypeId.intValue() && valueTypeId.intValue() <= maxTypeId.intValue();
+        } else if (ObjectModel.is_interface(toTypeId)) {
+            return ObjectModel.does_implement(valueTypeId, toTypeId);
+        } else {
+            // PrimitiveObjectArray
+            return valueTypeId == toTypeId;
+        }
     }
 
     // TODO: mark this with a "NoInline" annotation
@@ -89,44 +108,36 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
-    @SuppressWarnings("unused")
     static void raiseAbstractMethodError() {
         throw new AbstractMethodError();
     }
 
     // TODO: mark this with a "NoInline" annotation
-    @SuppressWarnings("unused")
     static void raiseArithmeticException() {
         throw new ArithmeticException();
     }
 
     // TODO: mark this with a "NoInline" annotation
-    @SuppressWarnings("unused")
     static void raiseArrayIndexOutOfBoundsException() {
         throw new ArrayIndexOutOfBoundsException();
     }
 
     // TODO: mark this with a "NoInline" annotation
-    @SuppressWarnings("unused")
     static void raiseArrayStoreException() {
         throw new ArrayStoreException();
     }
 
     // TODO: mark this with a "NoInline" annotation
-    @SuppressWarnings("unused")
     static void raiseIncompatibleClassChangeError() { throw new IncompatibleClassChangeError(); }
 
     // TODO: mark this with a "NoInline" annotation
-    @SuppressWarnings("unused")
     static void raiseNegativeArraySizeException() { throw new NegativeArraySizeException(); }
 
     // TODO: mark this with a "NoInline" annotation
-    @SuppressWarnings("unused")
     static void raiseNullPointerException() {
         throw new NullPointerException();
     }
 
     // TODO: mark this with a "NoInline" annotation
-    @SuppressWarnings("unused")
     static void raiseUnsatisfiedLinkError() { throw new UnsatisfiedLinkError(); }
 }
