@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.runtime.main;
 
+import cc.quarkus.qcc.runtime.CNative;
+
 import static cc.quarkus.qcc.runtime.CNative.*;
 import static cc.quarkus.qcc.runtime.posix.PThread.*;
 import static cc.quarkus.qcc.runtime.stdc.Stdlib.*;
@@ -10,13 +12,20 @@ import static cc.quarkus.qcc.runtime.stdc.Stdlib.*;
 @SuppressWarnings("unused")
 public final class VMHelpers {
 
-    public static int full_instanceof(Object instance, Class<?> cls) {
+    public static boolean instanceof_class(Object instance, Class<?> cls) {
         if (instance == null) {
-            return 0;
+            return false;
         }
         type_id toTypeId = ObjectModel.get_type_id_from_class(cls);
         int toDim = ObjectModel.get_dimensions_from_class(cls);
-        return isAssignableTo(instance, toTypeId, toDim) ? 1 : 0;
+        return isAssignableTo(instance, toTypeId, toDim);
+    }
+
+    public static boolean instanceof_typeId(Object instance, CNative.type_id typeId, int dimensions) {
+        if (instance == null) {
+            return false;
+        }
+        return isAssignableTo(instance, typeId, dimensions);
     }
 
     public static void arrayStoreCheck(Object value, type_id toTypeId, int toDimensions) {

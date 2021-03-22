@@ -286,29 +286,6 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
 
     }
 
-    Value generateCallToRuntimeHelper(final Value input, ObjectType expectedType) {
-        // This code is not yet enabled.  Committing in this state so it's available
-        // and so the plugin is included in the list of plugins.
-
-        if (PLUGIN_DISABLED) {
-            return super.instanceOf(input, expectedType);
-        }
-        LiteralFactory lf = ctxt.getLiteralFactory();
-        ctxt.info("Lowering instanceof:" + expectedType.getClass());
-        // Value result = super.instanceOf(input, expectedType);
-        // convert InstanceOf into a new FunctionCall()
-        // RuntimeHelpers.fast_instanceof(CurrentThread, Value, ValueType) {
-        //  cheap checks for class depth and then probe supers[]
-        //  for array cases, etc, call RuntimeHelpers.slow_instanceOf(CurrentThread, Value, ValueType)
-        // and let the optimizer inline the 'fast_instanceof' call and hope the rest is removed
-        // mark the slow path as @noinline
-        // DelegatingBasicBlockBuilder.getLocation() to get the bci & line
-        MethodElement methodElement = ctxt.getVMHelperMethod("fast_instanceof");
-        ctxt.registerEntryPoint(methodElement);
-        Function function = ctxt.getExactFunction(methodElement);
-        List<Value> args = List.of(input, lf.literalOfType(expectedType));
-        return super.callFunction(lf.literalOfSymbol(function.getName(), function.getType()), args);
-    }
 
     // TODO: Find equivalent checkcast methods to implement here as well
 
