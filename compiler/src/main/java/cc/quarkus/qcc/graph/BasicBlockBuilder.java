@@ -2,6 +2,7 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
+import cc.quarkus.qcc.context.Locatable;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
@@ -27,7 +28,7 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 /**
  * A program graph builder, which builds each basic block in succession and wires them together.
  */
-public interface BasicBlockBuilder {
+public interface BasicBlockBuilder extends Locatable {
     // context
 
     /**
