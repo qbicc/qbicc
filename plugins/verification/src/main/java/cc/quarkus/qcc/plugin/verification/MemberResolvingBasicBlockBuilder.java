@@ -13,10 +13,12 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
+import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.ReferenceArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
@@ -62,15 +64,21 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value checkcast(final Value value, final TypeDescriptor desc) {
         ClassContext cc = getClassContext();
         // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-        ValueType narrowType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
-        if (narrowType instanceof ReferenceType) {
+        ValueType castType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+        if (castType instanceof ReferenceType) {
             if (value.getType() instanceof ReferenceType && ((ReferenceType) value.getType()).isNullable()) {
-                narrowType = ((ReferenceType)narrowType).asNullable();
+                castType = ((ReferenceType)castType).asNullable();
             }
-            return checkcast(value, cc.getLiteralFactory().literalOfType(((ReferenceType) narrowType).getUpperBound()), CheckCast.CastType.Cast, (ReferenceType) narrowType);
-        } else if (narrowType instanceof WordType) {
-            // A checkcast in the bytecodes, but it is actually a word type coming from some native magic...just bitcast it.
-            return bitCast(value, (WordType) narrowType);
+            ObjectType toType = ((ReferenceType) castType).getUpperBound();
+            int toDimensions = 0;
+            if (toType instanceof ReferenceArrayObjectType) {
+                toDimensions = ((ReferenceArrayObjectType) toType).getDimensionCount();
+                toType = ((ReferenceArrayObjectType) toType).getLeafElementType();
+            }
+            return checkcast(value, cc.getLiteralFactory().literalOfType(toType), cc.getLiteralFactory().literalOf(toDimensions), CheckCast.CastType.Cast, (ReferenceType) castType);
+        } else if (castType instanceof WordType) {
+            // A checkcast in the bytecodes, but it is actually a WordType coming from some native magic...just bitcast it.
+            return bitCast(value, (WordType) castType);
         }
         throw Assert.unreachableCode();
     }
@@ -79,17 +87,22 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         ClassContext cc = getClassContext(); 
         // fetch the classfile's view of the type (or as close as we can synthesize) to save in the InstanceOf node
         ObjectType ot = null;
+        int dimensions = 0;
         if (desc instanceof ArrayTypeDescriptor) {
             ot = cc.resolveArrayObjectTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+            if (ot instanceof ReferenceArrayObjectType) {
+                dimensions = ((ReferenceArrayObjectType) ot).getDimensionCount();
+            }
         } else if (desc instanceof ClassTypeDescriptor) {
             ClassTypeDescriptor classDesc = (ClassTypeDescriptor) desc;
-            DefinedTypeDefinition definedType = cc.findDefinedType(classDesc.getPackageName() + "/" + classDesc.getClassName());
+            String className = (classDesc.getPackageName() != "" ? classDesc.getPackageName() + "/" : "") + classDesc.getClassName();
+            DefinedTypeDefinition definedType = cc.findDefinedType(className);
             ot = definedType.validate().getType();
         } else {
             // this comes from the classfile - it better be something the verifier allows in instanceof/checkcast expressions
             throw Assert.unreachableCode();
         }
-        return instanceOf(input, ot);
+        return instanceOf(input, ot, ctxt.getLiteralFactory().literalOf(dimensions));
     }
 
     public Value new_(final ClassTypeDescriptor desc) {

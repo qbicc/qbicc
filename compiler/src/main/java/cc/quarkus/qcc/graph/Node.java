@@ -436,7 +436,8 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final CheckCast node) {
-                return param.getBlockBuilder().checkcast(param.copyValue(node.getInput()), param.copyValue(node.getNarrowInput()), node.getKind(), node.getType());
+                return param.getBlockBuilder().checkcast(param.copyValue(node.getInput()), param.copyValue(node.getToType()),
+                    param.copyValue(node.getToDimensions()), node.getKind(), node.getType());
             }
 
             public Value visit(final Copier param, final ClassOf node) {
@@ -564,7 +565,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final InstanceOf node) {
-                return param.getBlockBuilder().instanceOf(param.copyValue(node.getInstance()), node.getCheckType());
+                return param.getBlockBuilder().instanceOf(param.copyValue(node.getInstance()), node.getCheckType(), (IntegerLiteral) param.copyValue(node.getCheckDimensions()));
             }
 
             public Value visit(final Copier param, final IntegerLiteral node) {

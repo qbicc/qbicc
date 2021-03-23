@@ -21,6 +21,7 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseArithmeticException"));
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException"));
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseArrayStoreException"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseClassCastException"));
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError"));
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseNegativeArraySizeException"));
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseNullPointerException"));

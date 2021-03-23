@@ -5,6 +5,7 @@ import java.util.List;
 import cc.quarkus.qcc.context.Locatable;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
@@ -238,11 +239,11 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value valueConvert(Value value, WordType toType);
 
-    Value instanceOf(Value input, ObjectType expectedType);
+    Value instanceOf(Value input, ObjectType expectedType, IntegerLiteral expectedDimensions);
 
     Value instanceOf(Value input, TypeDescriptor desc);
 
-    Value checkcast(Value value, Value narrowInput, CheckCast.CastType kind, ReferenceType toType);
+    Value checkcast(Value value, Value toType, Value toDimensions, CheckCast.CastType kind, ReferenceType type);
 
     Value checkcast(Value value, TypeDescriptor desc);
 

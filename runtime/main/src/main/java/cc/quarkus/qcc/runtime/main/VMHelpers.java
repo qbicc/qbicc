@@ -29,7 +29,7 @@ public final class VMHelpers {
     }
 
     public static void arrayStoreCheck(Object value, type_id toTypeId, int toDimensions) {
-        if (value == null || isAssignableTo(value, toTypeId, toDimensions - 1)) {
+        if (true || value == null || isAssignableTo(value, toTypeId, toDimensions)) { // FIXME: disable checking until we can sort the ObjectModel primitives out!
             return;
         }
         raiseArrayStoreException();
@@ -64,7 +64,7 @@ public final class VMHelpers {
         return false;
     }
 
-    private static final boolean isAssignableToLeaf(type_id valueTypeId, type_id toTypeId) {
+    private static boolean isAssignableToLeaf(type_id valueTypeId, type_id toTypeId) {
         if (ObjectModel.is_class(toTypeId)) {
             type_id maxTypeId = ObjectModel.max_subclass_type_id_of(toTypeId);
             return toTypeId.intValue() <= valueTypeId.intValue() && valueTypeId.intValue() <= maxTypeId.intValue();
@@ -134,6 +134,11 @@ public final class VMHelpers {
     // TODO: mark this with a "NoInline" annotation
     static void raiseArrayStoreException() {
         throw new ArrayStoreException();
+    }
+
+    // TODO: mark this with a "NoInline" annotation
+    static void raiseClassCastException() {
+        throw new ClassCastException();
     }
 
     // TODO: mark this with a "NoInline" annotation

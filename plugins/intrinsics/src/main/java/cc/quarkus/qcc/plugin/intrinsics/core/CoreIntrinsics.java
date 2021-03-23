@@ -39,6 +39,7 @@ import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
@@ -89,12 +90,15 @@ public final class CoreIntrinsics {
             classContext.getLiteralFactory().literalOf(false);
 
         InstanceValueIntrinsic cast =  (builder, kind, instance, owner, name, descriptor, arguments) -> {
+            // TODO: Once we support java.lang.Class literals, we should add a check here to
+            //  emit a CheckCast node instead of a call to the helper method if `instance` is a Class literal.
+            MethodElement helper = ctxt.getVMHelperMethod("checkcast_class");
+            builder.getFirstBuilder().invokeStatic(helper, List.of(arguments.get(0), instance));
+
             // Generics erasure issue. The return type of Class<T>.cast is T, but it gets wiped to Object.
-            // If the result of this cast is actually used as a T, there will be a (redundant) checkcast bytecode.
-            // If instance is a Class literal, then by generating a checkcast here we allow ourselves to maybe able to generate something better than the
-            // naive call to the VMHelper method, so create the checkcast instead of going directly to the VMHelper here.
+            // If the result of this cast is actually used as a T, there will be a (redundant) checkcast bytecode following this operation.
             ReferenceType jlot = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").validate().getType().getReference();
-            return builder.checkcast(arguments.get(0), instance, CheckCast.CastType.Cast, jlot);
+            return builder.bitCast(arguments.get(0), jlot);
         };
 
         StaticIntrinsic registerNatives = (builder, owner, name, descriptor, arguments) -> builder.nop();
@@ -470,9 +474,12 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(objModDesc, "dimensions_of", objIntDesc, dimensionsOf);
 
         StaticValueIntrinsic maxSubclassId = (builder, owner, name, descriptor, arguments) -> {
+            /* TODO!  Currently can't refer to this type too early in compilation :(
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
             ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), arguments.get(0));
             return builder.load(builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("maxSubTypeId")), MemoryAtomicityMode.UNORDERED);
+             */
+            return arguments.get(0); // FIXME. Type correct, but only semantically correct for leaf clases.
         };
         intrinsics.registerIntrinsic(objModDesc, "max_subclass_type_id_of", typeIdTypeIdDesc, maxSubclassId);
 
@@ -484,7 +491,7 @@ public final class CoreIntrinsics {
 
         // TODO: public static native boolean is_class(CNative.type_id typeId);
         StaticValueIntrinsic isClass = (builder, owner, name, descriptor, arguments) -> {
-            return ctxt.getLiteralFactory().literalOf(false);
+            return ctxt.getLiteralFactory().literalOf(true);
         };
         intrinsics.registerIntrinsic(objModDesc, "is_class", typeIdBooleanDesc, isClass);
 

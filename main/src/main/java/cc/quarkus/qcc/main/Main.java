@@ -40,7 +40,6 @@ import cc.quarkus.qcc.plugin.gc.nogc.NoGcMultiNewArrayBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.gc.nogc.NoGcSetupHook;
 import cc.quarkus.qcc.plugin.gc.nogc.NoGcTypeSystemConfigurator;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
-import cc.quarkus.qcc.plugin.instanceofcheckcast.RegisterHelperBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import cc.quarkus.qcc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.intrinsics.core.CoreIntrinsics;
@@ -279,7 +278,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, RegisterHelperBasicBlockBuilder::new);
                                 builder.addElementVisitor(Phase.ADD, new DotGenerator(Phase.ADD, graphGenConfig));
                                 builder.addPostHook(Phase.ADD, RTAInfo::clear);
 
