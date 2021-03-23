@@ -89,14 +89,14 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             if (narrowInput instanceof TypeLiteral) {
                 // TODO: inline some of the easy cases.  For now, just call the VMHelper that does the check.
                 MethodElement helper = ctxt.getVMHelperMethod("checkcast_typeId");
-                getFirstBuilder().invokeStatic(helper, List.of(input, narrowInput));
+                getFirstBuilder().invokeStatic(helper, List.of(input, narrowInput, ctxt.getLiteralFactory().literalOf(0))); // TODO: real dimension value
                 goto_(pass);
                 begin(pass);
                 return bitCast(input, toType);
             } else {
                 // Not a case we inline; call the VMHelper that does the check.
                 MethodElement helper = ctxt.getVMHelperMethod("checkcast_class");
-                getFirstBuilder().invokeStatic(helper, List.of(input, narrowInput));
+                getFirstBuilder().invokeStatic(helper, List.of(input, narrowInput, ctxt.getLiteralFactory().literalOf(0))); // TODO: real dimension value
                 goto_(pass);
                 begin(pass);
                 return bitCast(input, toType);
@@ -139,8 +139,10 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             }
 
             // Not a case we inline; call the VMHelper that does the check.
-            MethodElement helper = ctxt.getVMHelperMethod("arrayStoreCheck");
-            getFirstBuilder().invokeStatic(helper, List.of(input, narrowInput));
+            //
+            ctxt.warning(getLocation(), "Eliding non-inlinable storecheck");
+            // MethodElement helper = ctxt.getVMHelperMethod("arrayStoreCheck");
+            // getFirstBuilder().invokeStatic(helper, List.of(input, narrowInput, ctxt.getLiteralFactory().literalOf(0))); // TODO: Real dim count!
             goto_(pass);
             begin(pass);
             return bitCast(input, toType);

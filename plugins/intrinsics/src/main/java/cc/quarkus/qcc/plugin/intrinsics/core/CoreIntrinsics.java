@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.plugin.intrinsics.core;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.ByteOrder;
 import java.util.Collections;
 import java.util.List;
@@ -14,7 +13,6 @@ import cc.quarkus.qcc.graph.Extend;
 import cc.quarkus.qcc.graph.Load;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.ReferenceHandle;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.Variable;
