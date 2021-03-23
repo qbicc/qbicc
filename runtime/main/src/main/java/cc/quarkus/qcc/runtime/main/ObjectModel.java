@@ -13,13 +13,10 @@ import cc.quarkus.qcc.runtime.CNative;
 public class ObjectModel {
 
     /**
-     * Get the concrete type ID value from the referenced object.  Note that all reference arrays will have the same
-     * type ID, which does not reflect the element type.
-     *
-     * @param reference the object reference (must not be {@code null})
-     * @return the type ID of the object
+     * Get the dimensionality for the represented type from a java.lang.Class instance.
+     * Classes and interfaces have dimensionality 0.
      */
-    public static native CNative.type_id type_id_of(Object reference);
+    public static native int get_dimensions_from_class(Class<?> cls);
 
     /**
      * Get the concrete type ID for the represented type from a java.lang.Class instance.
@@ -27,10 +24,13 @@ public class ObjectModel {
     public static native CNative.type_id get_type_id_from_class(Class<?> cls);
 
     /**
-     * Get the dimensionality for the represented type from a java.lang.Class instance.
-     * Classes and interfaces have dimensionality 0.
+     * Get the concrete type ID value from the referenced object.  Note that all reference arrays will have the same
+     * type ID, which does not reflect the element type.
+     *
+     * @param reference the object reference (must not be {@code null})
+     * @return the type ID of the object
      */
-    public static native int get_dimensions_from_class(Class<?> cls);
+    public static native CNative.type_id type_id_of(Object reference);
 
     /**
      * Get the dimensionality of the referenced array.
