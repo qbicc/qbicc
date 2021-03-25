@@ -20,6 +20,7 @@ import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -50,12 +51,14 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         if (initializer != null) {
             ctxt.enqueue(initializer);
         }
-        ctxt.enqueue(target);
+        if (!target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+            ctxt.enqueue(target);
+        }
         return super.invokeStatic(target, arguments);
     }
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        if (!ctxt.wasEnqueued(target)) {
+        if (!target.hasAllModifiersOf(ClassFile.ACC_NATIVE) && !ctxt.wasEnqueued(target)) {
             rtaLog.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
             ctxt.enqueue(target);
             processInvokeTarget(target);
@@ -69,12 +72,14 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         if (initializer != null) {
             ctxt.enqueue(initializer);
         }
-        ctxt.enqueue(target);
+        if (!target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+            ctxt.enqueue(target);
+        }
         return super.invokeValueStatic(target, arguments);
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        if (!ctxt.wasEnqueued(target)) {
+        if (!target.hasAllModifiersOf(ClassFile.ACC_NATIVE) && !ctxt.wasEnqueued(target)) {
             rtaLog.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
             ctxt.enqueue(target);
             processInvokeTarget(target);
