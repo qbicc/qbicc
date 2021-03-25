@@ -1,6 +1,9 @@
 package cc.quarkus.qcc.runtime.main;
 
-import cc.quarkus.qcc.runtime.CNative;
+import cc.quarkus.qcc.runtime.stdc.Stddef;
+
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static cc.quarkus.qcc.runtime.CNative.*;
 import static cc.quarkus.qcc.runtime.posix.PThread.*;
@@ -11,6 +14,8 @@ import static cc.quarkus.qcc.runtime.stdc.Stdlib.*;
  */
 @SuppressWarnings("unused")
 public final class VMHelpers {
+    /* map Java object to native mutex for object monitor bytecodes. */
+    static ConcurrentMap<Object, NativeObjectMonitor> objectMonitorNatives = null;
 
     public static boolean instanceof_class(Object instance, Class<?> cls) {
         if (instance == null) {
@@ -21,7 +26,7 @@ public final class VMHelpers {
         return isAssignableTo(instance, toTypeId, toDim);
     }
 
-    public static boolean instanceof_typeId(Object instance, CNative.type_id typeId, int dimensions) {
+    public static boolean instanceof_typeId(Object instance, type_id typeId, int dimensions) {
         if (instance == null) {
             return false;
         }
@@ -92,30 +97,43 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
-    static void monitorEnter(Object object) throws IllegalMonitorStateException {
-        /* get native mutex associated with object, else atomically create a new one. */
-        NativeObjectMonitor monitor = Main.objectMonitorNatives.computeIfAbsent(object, k -> {
-                pthread_mutexattr_t_ptr attr = malloc(sizeof(pthread_mutexattr_t.class));
-                pthread_mutex_t_ptr m = malloc(sizeof(pthread_mutex_t.class));
-                omError(pthread_mutexattr_init(attr));
-                /* recursive lock allows for locking multiple times on the same thread. */
-                omError(pthread_mutexattr_settype(attr, PTHREAD_MUTEX_RECURSIVE));
-                omError(pthread_mutex_init(m, attr.cast()));
-                omError(pthread_mutexattr_destroy(attr));
-                free(attr);
-                return new NativeObjectMonitor(m);
-            }
-        );
-        omError(pthread_mutex_lock(monitor.getPthreadMutex().cast()));
+    static void monitor_enter(Object object) throws IllegalMonitorStateException {
+        /* TODO: deal with racy nature of this creation */
+        if (objectMonitorNatives == null) {
+            objectMonitorNatives = new ConcurrentHashMap<>();
+        }
+
+        // TODO malloc(sizeof(class)) resulted in "invalid coercion of s64 to u64" this is a workaround
+        Stddef.size_t mutexAttrSize = sizeof(pthread_mutexattr_t.class);
+        ptr<?> attrVoid = malloc(word(mutexAttrSize.longValue()));
+        if (attrVoid.isNull()) {
+            throw new OutOfMemoryError(/*"Allocation failed"*/);
+        }
+        ptr<pthread_mutexattr_t> attr = (ptr<pthread_mutexattr_t>)castPtr(attrVoid, pthread_mutexattr_t.class);
+
+        Stddef.size_t mutexSize = sizeof(pthread_mutex_t.class);
+        ptr<?> mVoid = malloc(word(mutexSize.longValue()));
+        if (attrVoid.isNull()) {
+            throw new OutOfMemoryError(/*"Allocation failed"*/);
+        }
+        ptr<pthread_mutex_t> m = (ptr<pthread_mutex_t>)castPtr(mVoid, pthread_mutex_t.class);
+
+        omError(pthread_mutexattr_init(attr));
+        omError(pthread_mutexattr_settype(attr, PTHREAD_MUTEX_RECURSIVE));
+        omError(pthread_mutex_init(m, attr));
+        omError(pthread_mutexattr_destroy(attr));
+        free(attrVoid);
+
+        // TODO acquire monitor and add to hash map
     }
 
     // TODO: mark this with a "NoInline" annotation
-    static void monitorExit(Object object) throws IllegalMonitorStateException {
-        NativeObjectMonitor monitor = Main.objectMonitorNatives.get(object);
-        if (null == monitor) {
-            throw new IllegalMonitorStateException("monitor could not be found for monitorexit");
-        }
-        omError(pthread_mutex_unlock(monitor.getPthreadMutex().cast()));
+    static void monitor_exit(Object object) throws IllegalMonitorStateException {
+//        NativeObjectMonitor monitor = objectMonitorNatives.get(object);
+//        if (null == monitor) {
+//            throw new IllegalMonitorStateException("monitor could not be found for monitorexit");
+//        }
+//        omError(pthread_mutex_unlock(monitor.getPthreadMutex()));
     }
 
     // TODO: mark this with a "NoInline" annotation

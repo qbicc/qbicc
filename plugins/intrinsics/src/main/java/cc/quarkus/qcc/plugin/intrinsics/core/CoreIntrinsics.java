@@ -11,6 +11,8 @@ import cc.quarkus.qcc.driver.Phase;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockEarlyTermination;
+import cc.quarkus.qcc.graph.CheckCast;
+import cc.quarkus.qcc.graph.ClassOf;
 import cc.quarkus.qcc.graph.Extend;
 import cc.quarkus.qcc.graph.Load;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
@@ -22,6 +24,7 @@ import cc.quarkus.qcc.graph.literal.BooleanLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
+import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.machine.probe.CProbe;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.SupersDisplayTables;
@@ -67,6 +70,7 @@ public final class CoreIntrinsics {
         registerCcQuarkusQccRuntimeMainIntrinsics(ctxt);
         registerCcQuarkusQccRuntimeValuesIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
+        registerCCQuarkusQccPosixPthreadCastPtr(ctxt);
     }
 
     private static StaticIntrinsic setVolatile(FieldElement field) {
@@ -843,5 +847,34 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(strictDesc, "max", longLongLongDescriptor, max);
         intrinsics.registerIntrinsic(strictDesc, "max", floatFloatFloatDescriptor, max);
         intrinsics.registerIntrinsic(strictDesc, "max", doubleDoubleDoubleDescriptor, max);
+    }
+
+    /* Temporary workaround for casting in VMHelpers */
+    static void registerCCQuarkusQccPosixPthreadCastPtr(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor cnativeDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative");
+        ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$ptr");
+        ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+
+        /* intrinsic implementation */
+        StaticValueIntrinsic castPtr = (builder, owner, name, descriptor, arguments) -> {
+            Value castObject = arguments.get(0);
+            Value typeValue = arguments.get(1);
+            if (typeValue instanceof ClassOf) {
+                ClassOf typeClassOf = (ClassOf)typeValue;
+                Value typeInput = typeClassOf.getInput();
+                if (typeInput instanceof TypeLiteral) {
+                    ValueType type = ((TypeLiteral) typeInput).getValue();
+                    PointerType newPointerType = ctxt.getTypeSystem().createPointer(type);
+                    return builder.bitCast(castObject, newPointerType);
+                }
+            }
+            ctxt.error(builder.getLocation(), "Invalid pointer type.");
+            return castObject;
+        };
+
+        intrinsics.registerIntrinsic(cnativeDesc, "castPtr", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(ptrDesc, classDesc)), castPtr);
     }
 }

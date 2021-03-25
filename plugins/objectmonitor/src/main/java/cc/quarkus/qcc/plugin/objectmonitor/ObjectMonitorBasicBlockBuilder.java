@@ -6,10 +6,6 @@ import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
@@ -43,11 +39,7 @@ public class ObjectMonitorBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     
     private Value generateObjectMonitorFunctionCall(final Value object, String functionName) {
         MethodElement methodElement = ctxt.getVMHelperMethod(functionName);
-        ctxt.registerEntryPoint(methodElement);
-        Function function = ctxt.getExactFunction(methodElement);
-
-        Value callTarget = ctxt.getLiteralFactory().literalOfSymbol(function.getName(), function.getType());
         List<Value> args = List.of(object);
-        return super.callFunction(callTarget, args);
+        return getFirstBuilder().invokeValueStatic(methodElement, args);
     }
 }

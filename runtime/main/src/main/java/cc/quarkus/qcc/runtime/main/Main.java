@@ -3,9 +3,6 @@ package cc.quarkus.qcc.runtime.main;
 import static cc.quarkus.qcc.runtime.CNative.*;
 import static cc.quarkus.qcc.runtime.posix.PThread.pthread_exit;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
 import cc.quarkus.qcc.runtime.Build;
 import cc.quarkus.qcc.runtime.Detached;
 import cc.quarkus.qcc.runtime.NotReachableException;
@@ -14,9 +11,6 @@ import cc.quarkus.qcc.runtime.NotReachableException;
  * Holds the native image main entry point.
  */
 public final class Main {
-
-    /* map Java object to native mutex for object monitor bytecodes. */
-    static final ConcurrentMap<Object, NativeObjectMonitor> objectMonitorNatives = new ConcurrentHashMap<>();
 
     private Main() {
     }

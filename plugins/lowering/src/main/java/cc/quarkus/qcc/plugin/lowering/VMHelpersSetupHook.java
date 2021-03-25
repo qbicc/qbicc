@@ -26,5 +26,7 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseNegativeArraySizeException"));
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseNullPointerException"));
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("monitor_enter"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("monitor_exit"));
     }
 }
