@@ -29,7 +29,7 @@ public final class VMHelpers {
     }
 
     public static void arrayStoreCheck(Object value, type_id toTypeId, int toDimensions) {
-        if (true || value == null || isAssignableTo(value, toTypeId, toDimensions)) { // FIXME: disable checking until we can sort the ObjectModel primitives out!
+        if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
         }
         raiseArrayStoreException();
@@ -50,13 +50,13 @@ public final class VMHelpers {
 
     // Invariant: value is not null
     private static boolean isAssignableTo(Object value, type_id toTypeId, int toDimensions) {
+        type_id valueTypeId = ObjectModel.type_id_of(value);
         if (toDimensions == 0) {
-            return isAssignableToLeaf(ObjectModel.type_id_of(value), toTypeId);
-        } else if (ObjectModel.is_reference_array(ObjectModel.type_id_of(value))) {
+            return isAssignableToLeaf(valueTypeId, toTypeId);
+        } else if (ObjectModel.is_reference_array(valueTypeId)) {
             int valueDims = ObjectModel.dimensions_of(value);
             if (valueDims == toDimensions) {
-                type_id valueElemTypeId = ObjectModel.element_type_id_of(value);
-                return isAssignableToLeaf(valueElemTypeId, toTypeId);
+                return isAssignableToLeaf(ObjectModel.element_type_id_of(value), toTypeId);
             } else if (valueDims > toDimensions) {
                 return ObjectModel.is_java_lang_object(toTypeId);
             }

@@ -368,7 +368,6 @@ public final class CoreIntrinsics {
 
     public static void registerJavaLangObjectIntrinsics(CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
-        Layout layout = Layout.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
 
@@ -441,6 +440,7 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         Layout layout = Layout.get(ctxt);
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
+        LiteralFactory lf = ctxt.getLiteralFactory();
 
         ClassTypeDescriptor objModDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/ObjectModel");
         ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$type_id");
@@ -457,77 +457,88 @@ public final class CoreIntrinsics {
 
         StaticValueIntrinsic typeOf = (builder, owner, name, descriptor, arguments) ->
             builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
-        intrinsics.registerIntrinsic(Phase.ADD, objModDesc, "type_id_of", objTypeIdDesc, typeOf);
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "type_id_of", objTypeIdDesc, typeOf);
 
         FieldElement elementTypeField = layout.getRefArrayElementTypeIdField();
         StaticValueIntrinsic elementTypeOf = (builder, owner, name, descriptor, arguments) -> {
             ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), elementTypeField.getEnclosingType().validate().getType().getReference()));
             return builder.load(builder.instanceFieldOf(handle, elementTypeField), MemoryAtomicityMode.UNORDERED);
         };
-        intrinsics.registerIntrinsic(Phase.ADD, objModDesc, "element_type_id_of", objTypeIdDesc, elementTypeOf);
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "element_type_id_of", objTypeIdDesc, elementTypeOf);
 
         FieldElement dimensionsField = layout.getRefArrayDimensionsField();
         StaticValueIntrinsic dimensionsOf = (builder, owner, name, descriptor, arguments) -> {
             ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), dimensionsField.getEnclosingType().validate().getType().getReference()));
             return builder.load(builder.instanceFieldOf(handle, dimensionsField), MemoryAtomicityMode.UNORDERED);
         };
-        intrinsics.registerIntrinsic(Phase.ADD, objModDesc, "dimensions_of", objIntDesc, dimensionsOf);
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "dimensions_of", objIntDesc, dimensionsOf);
 
         StaticValueIntrinsic maxSubclassId = (builder, owner, name, descriptor, arguments) -> {
-            /* TODO!  Currently can't refer to this type too early in compilation :(
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
             ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), arguments.get(0));
             return builder.load(builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("maxSubTypeId")), MemoryAtomicityMode.UNORDERED);
-             */
-            return arguments.get(0); // FIXME. Type correct, but only semantically correct for leaf clases.
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "max_subclass_type_id_of", typeIdTypeIdDesc, maxSubclassId);
 
-        // TODO: public static native boolean is_java_lang_object(CNative.type_id typeId);
         StaticValueIntrinsic isObject = (builder, owner, name, descriptor, arguments) -> {
-            return ctxt.getLiteralFactory().literalOf(false);
+            ValidatedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").validate();
+            return builder.isEq(arguments.get(0), lf.literalOfType(jlo.getType()));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_java_lang_object", typeIdBooleanDesc, isObject);
 
-        // TODO: public static native boolean is_class(CNative.type_id typeId);
         StaticValueIntrinsic isClass = (builder, owner, name, descriptor, arguments) -> {
-            return ctxt.getLiteralFactory().literalOf(true);
+            ValidatedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").validate();
+            ValueType refArray = layout.getArrayValidatedTypeDefinition("[ref").getType();
+            Value isObj = builder.isEq(arguments.get(0), lf.literalOfType(jlo.getType()));
+            Value isAboveRef = builder.isGt(lf.literalOfType(refArray), arguments.get(0));
+            Value isNotInterface = builder.isLe(arguments.get(0), lf.literalOf(jlo.getMaximumSubtypeId()));
+            return builder.or(isObj, builder.and(isAboveRef, isNotInterface));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_class", typeIdBooleanDesc, isClass);
 
-        // TODO: public static native boolean is_interface(CNative.type_id typeId);
         StaticValueIntrinsic isInterface = (builder, owner, name, descriptor, arguments) -> {
-            return ctxt.getLiteralFactory().literalOf(false);
+            ValidatedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").validate();
+            return builder.isLt(lf.literalOf(jlo.getMaximumSubtypeId()), arguments.get(0));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_interface", typeIdBooleanDesc, isInterface);
 
-        // TODO: public static native boolean is_prim_array(CNative.type_id typeId);
         StaticValueIntrinsic isPrimArray = (builder, owner, name, descriptor, arguments) -> {
-            return ctxt.getLiteralFactory().literalOf(false);
+            ValueType firstPrimArray = layout.getArrayValidatedTypeDefinition("[Z").getType();
+            ValueType lastPrimArray = layout.getArrayValidatedTypeDefinition("[D").getType();
+            return builder.and(builder.isLe(lf.literalOfType(firstPrimArray), arguments.get(0)),
+                builder.isGe(arguments.get(0), lf.literalOfType(lastPrimArray)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_prim_array", typeIdBooleanDesc, isPrimArray);
 
-        // TODO: public static native boolean is_reference_array(CNative.type_id typeId);
         StaticValueIntrinsic isRefArray = (builder, owner, name, descriptor, arguments) -> {
-            return ctxt.getLiteralFactory().literalOf(false);
+            ValueType refArray = layout.getArrayValidatedTypeDefinition("[ref").getType();
+            return builder.isEq(arguments.get(0), lf.literalOfType(refArray));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_reference_array", typeIdBooleanDesc, isRefArray);
 
-        // TODO: public static native boolean does_implement(CNative.type_id valueTypeId, CNative.type_id interfaceTypeId);
         StaticValueIntrinsic doesImplement = (builder, owner, name, descriptor, arguments) -> {
-            return ctxt.getLiteralFactory().literalOf(false);
+            ValidatedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").validate();
+            Value objTypeId = arguments.get(0);
+            Value interfaceTypeId = arguments.get(1);
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
+            ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), objTypeId);
+            ValueHandle bits = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));
+            Value adjustedInterfaceTypeId = builder.sub(interfaceTypeId, lf.literalOf(jlo.getMaximumSubtypeId()+1)); // +1 because arrays are 0-indexed!
+            Value implementsIdx = builder.shr(builder.bitCast(adjustedInterfaceTypeId, ctxt.getTypeSystem().getUnsignedInteger32Type()), lf.literalOf(3));
+            Value implementsBit = builder.and(adjustedInterfaceTypeId, lf.literalOf(7));
+            Value dataByte = builder.load(builder.elementOf(bits, implementsIdx), MemoryAtomicityMode.UNORDERED);
+            Value mask = builder.truncate(builder.shl(lf.literalOf(1), implementsBit), ctxt.getTypeSystem().getSignedInteger8Type());
+            return builder.isEq(mask, builder.and(mask, dataByte));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "does_implement", typeIdTypeIdBooleanDesc, doesImplement);
 
-        // TODO: public static native int get_dimensions_from_class(Class<?> cls);
-        StaticValueIntrinsic getDimFromClass = (builder, owner, name, descriptor, arguments) -> {
-            return ctxt.getLiteralFactory().literalOf(-1);
-        };
-        intrinsics.registerIntrinsic(Phase.ADD, objModDesc, "get_dimensions_from_class", clsInt, getDimFromClass);
+        StaticValueIntrinsic getDimFromClass = (builder, owner, name, descriptor, arguments) ->
+            builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), layout.getClassDimensionField()), MemoryAtomicityMode.UNORDERED);
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_dimensions_from_class", clsInt, getDimFromClass);
 
         StaticValueIntrinsic getTypeIdFromClass = (builder, owner, name, descriptor, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), layout.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
-        intrinsics.registerIntrinsic(Phase.ADD, objModDesc, "get_type_id_from_class", clsTypeId, getTypeIdFromClass);
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_type_id_from_class", clsTypeId, getTypeIdFromClass);
     }
 
     static void registerCcQuarkusQccRuntimeValuesIntrinsics(final CompilationContext ctxt) {

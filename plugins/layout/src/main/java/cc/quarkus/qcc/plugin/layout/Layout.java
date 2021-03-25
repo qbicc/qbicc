@@ -54,6 +54,7 @@ public final class Layout {
     private final CompilationContext ctxt;
     private final FieldElement objectTypeIdField;
     private final FieldElement classTypeIdField;
+    private final FieldElement classDimensionField;
 
     private final FieldElement arrayLengthField;
 
@@ -106,6 +107,19 @@ public final class Layout {
         field = builder.build();
         jlc.injectField(field);
         classTypeIdField = field;
+
+        // now inject a field of int into Class to hold the corresponding run time dimensionality
+        // TODO: This could be a 8 bit unsigned field.  It is being generated as an i32 currently.
+        builder = FieldElement.builder();
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
+        builder.setName("dimension");
+        builder.setEnclosingType(jlcDef);
+        builder.setDescriptor(BaseTypeDescriptor.I);
+        builder.setSignature(BaseTypeSignature.I);
+        builder.setType(jlo.getClassType().getTypeType());
+        field = builder.build();
+        jlc.injectField(field);
+        classDimensionField = field;
 
         // now define classes for arrays
         // todo: assign special type ID values to array types
@@ -330,6 +344,10 @@ public final class Layout {
      */
     public FieldElement getClassTypeIdField() {
         return classTypeIdField;
+    }
+
+    public FieldElement getClassDimensionField() {
+        return classDimensionField;
     }
 
     public FieldElement getArrayLengthField() {
