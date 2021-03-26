@@ -490,7 +490,7 @@ public final class CoreIntrinsics {
             ValidatedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").validate();
             ValueType refArray = layout.getArrayValidatedTypeDefinition("[ref").getType();
             Value isObj = builder.isEq(arguments.get(0), lf.literalOfType(jlo.getType()));
-            Value isAboveRef = builder.isGt(lf.literalOfType(refArray), arguments.get(0));
+            Value isAboveRef = builder.isLt(lf.literalOfType(refArray), arguments.get(0));
             Value isNotInterface = builder.isLe(arguments.get(0), lf.literalOf(jlo.getMaximumSubtypeId()));
             return builder.or(isObj, builder.and(isAboveRef, isNotInterface));
         };

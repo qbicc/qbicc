@@ -92,6 +92,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             ot = cc.resolveArrayObjectTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
             if (ot instanceof ReferenceArrayObjectType) {
                 dimensions = ((ReferenceArrayObjectType) ot).getDimensionCount();
+                ot = ((ReferenceArrayObjectType) ot).getLeafElementType();
             }
         } else if (desc instanceof ClassTypeDescriptor) {
             ClassTypeDescriptor classDesc = (ClassTypeDescriptor) desc;
