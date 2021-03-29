@@ -29,7 +29,9 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
         return checkType;
     }
 
-    public IntegerLiteral getCheckDimensions() { return checkDimensions; }
+    public IntegerLiteral getCheckDimensions() { 
+        return checkDimensions; 
+     }
 
     int calcHashCode() {
         return Objects.hash(input, checkType, checkDimensions);
