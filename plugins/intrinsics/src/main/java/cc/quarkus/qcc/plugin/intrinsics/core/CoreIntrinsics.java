@@ -491,14 +491,13 @@ public final class CoreIntrinsics {
             ValueType refArray = layout.getArrayValidatedTypeDefinition("[ref").getType();
             Value isObj = builder.isEq(arguments.get(0), lf.literalOfType(jlo.getType()));
             Value isAboveRef = builder.isLt(lf.literalOfType(refArray), arguments.get(0));
-            Value isNotInterface = builder.isLe(arguments.get(0), lf.literalOf(jlo.getMaximumSubtypeId()));
+            Value isNotInterface = builder.isLt(arguments.get(0), lf.literalOf(tables.getFirstInterfaceTypeId()));
             return builder.or(isObj, builder.and(isAboveRef, isNotInterface));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_class", typeIdBooleanDesc, isClass);
 
         StaticValueIntrinsic isInterface = (builder, owner, name, descriptor, arguments) -> {
-            ValidatedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").validate();
-            return builder.isLt(lf.literalOf(jlo.getMaximumSubtypeId()), arguments.get(0));
+            return builder.isLe(lf.literalOf(tables.getFirstInterfaceTypeId()), arguments.get(0));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_interface", typeIdBooleanDesc, isInterface);
 
@@ -517,13 +516,12 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_reference_array", typeIdBooleanDesc, isRefArray);
 
         StaticValueIntrinsic doesImplement = (builder, owner, name, descriptor, arguments) -> {
-            ValidatedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").validate();
             Value objTypeId = arguments.get(0);
             Value interfaceTypeId = arguments.get(1);
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
             ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), objTypeId);
             ValueHandle bits = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));
-            Value adjustedInterfaceTypeId = builder.sub(interfaceTypeId, lf.literalOf(jlo.getMaximumSubtypeId()+1)); // +1 because arrays are 0-indexed!
+            Value adjustedInterfaceTypeId = builder.sub(interfaceTypeId, lf.literalOf(tables.getFirstInterfaceTypeId()));
             Value implementsIdx = builder.shr(builder.bitCast(adjustedInterfaceTypeId, ctxt.getTypeSystem().getUnsignedInteger32Type()), lf.literalOf(3));
             Value implementsBit = builder.and(adjustedInterfaceTypeId, lf.literalOf(7));
             Value dataByte = builder.load(builder.elementOf(bits, implementsIdx), MemoryAtomicityMode.UNORDERED);

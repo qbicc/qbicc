@@ -48,7 +48,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         if (toType instanceof TypeLiteral && toDimensions instanceof IntegerLiteral) {
             // We know the exact toType at compile time
             ObjectType toTypeOT = (ObjectType) ((TypeLiteral) toType).getValue(); // by construction in MemberResolvingBasicBlockBuilder.checkcast
-            int dims = kind.equals(CheckCast.CastType.Cast) ? ((IntegerLiteral) toDimensions).intValue() : ((IntegerLiteral) toDimensions).intValue() - 1;
+            int dims = ((IntegerLiteral) toDimensions).intValue();
             if (isAlwaysAssignable(input.getType(), toTypeOT, dims)) {
                 return input;
             }
@@ -85,7 +85,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         if (toType instanceof TypeLiteral && toDimensions instanceof IntegerLiteral) {
             // We know the exact toType at compile time
             ObjectType toTypeOT = (ObjectType) ((TypeLiteral) toType).getValue(); // by construction in MemberResolvingBasicBlockBuilder.checkcast
-            int dims = kind.equals(CheckCast.CastType.Cast) ? ((IntegerLiteral) toDimensions).intValue() : ((IntegerLiteral) toDimensions).intValue() - 1;
+            int dims = ((IntegerLiteral) toDimensions).intValue();
             inlinedTest = generateTypeTest(input, toTypeOT, dims, pass, fail);
         } else {
             inlinedTest = generateTypeTest(input, toType, toDimensions, type, pass, fail);

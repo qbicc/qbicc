@@ -74,11 +74,10 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         // back propagate max subclass typeid
         info.visitLiveSubclassesPostOrder(jlo, tables::assignMaximumSubtypeId);
 
-        // Capture maximum typeId assigned non-interfaces
-        tables.updateJLORange(jlo);
-
         // visit all interfaces implemented as determined by the RTAInfo
         info.visitLiveInterfaces(tables::assignInterfaceId);
+
+        tables.updateJLORange(jlo);
 
         tables.statistics();
 

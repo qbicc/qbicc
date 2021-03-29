@@ -304,6 +304,10 @@ public class SupersDisplayTables {
         });
     }
 
+    public int getFirstInterfaceTypeId() {
+        return idAndRange.first_interface_typeid;
+    }
+
     int getNumberOfInterfacesInTypeIds() {
         // + 10 to handle poisioned 0 entry and the 8 prims and void
         return typeids.size() - idAndRange.first_interface_typeid + 10;
