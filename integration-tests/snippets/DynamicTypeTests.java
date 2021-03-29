@@ -33,6 +33,8 @@ public class DynamicTypeTests {
         print(x instanceof I[]);
         print(x instanceof Middle[][]);
         print(x instanceof J[][]);
+        print(x instanceof java.io.Serializable);
+        print(x instanceof Cloneable[]);
         putchar('#');
     }
 

@@ -58,7 +58,9 @@ public final class VMHelpers {
             if (valueDims == toDimensions) {
                 return isAssignableToLeaf(ObjectModel.element_type_id_of(value), toTypeId);
             } else if (valueDims > toDimensions) {
-                return ObjectModel.is_java_lang_object(toTypeId);
+                return ObjectModel.is_java_lang_object(toTypeId) ||
+                    ObjectModel.is_java_io_serializable(toTypeId) ||
+                    ObjectModel.is_java_lang_cloneable(toTypeId);
             }
         }
         return false;

@@ -132,10 +132,13 @@ public final class Layout {
         ClassTypeSignature superClassSig = (ClassTypeSignature) TypeSignature.synthesize(classContext, jlo.getDescriptor());
         typeBuilder.setSignature(ClassSignature.synthesize(classContext, superClassSig, List.of()));
         typeBuilder.setSuperClassName("java/lang/Object");
-        typeBuilder.setSimpleName("base array type");
+        typeBuilder.expectInterfaceNameCount(2);
+        typeBuilder.addInterfaceName("java/lang/Cloneable");
+        typeBuilder.addInterfaceName("java/io/Serializable");
+        typeBuilder.setSimpleName("base_array_type");
         typeBuilder.setContext(classContext);
         typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_HIDDEN);
-        typeBuilder.setName("base array type");
+        typeBuilder.setName("base_array_type");
         typeBuilder.addField(Layout::makeLengthField, 0);
         typeBuilder.setInitializer(EMPTY_INIT, 0);
         DefinedTypeDefinition baseType = typeBuilder.build();

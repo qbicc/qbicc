@@ -9,6 +9,7 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
+import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.InterfaceObjectType;
@@ -109,6 +110,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                 processInstantiatedInterface(RTAInfo.get(ctxt), elemType.getDefinition().validate(), true);
             }
         }
+        processInstantiatedClass(Layout.get(ctxt).getArrayContentField(arrayType).getEnclosingType().validate(), true, false);
         return super.newArray(arrayType, size);
     }
 

@@ -486,6 +486,18 @@ public final class CoreIntrinsics {
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_java_lang_object", typeIdBooleanDesc, isObject);
 
+        StaticValueIntrinsic isCloneable = (builder, owner, name, descriptor, arguments) -> {
+            ValidatedTypeDefinition jlc = classContext.findDefinedType("java/lang/Cloneable").validate();
+            return builder.isEq(arguments.get(0), lf.literalOfType(jlc.getType()));
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_java_lang_cloneable", typeIdBooleanDesc, isCloneable);
+
+        StaticValueIntrinsic isSerializable = (builder, owner, name, descriptor, arguments) -> {
+            ValidatedTypeDefinition jis = classContext.findDefinedType("java/io/Serializable").validate();
+            return builder.isEq(arguments.get(0), lf.literalOfType(jis.getType()));
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_java_io_serializable", typeIdBooleanDesc, isSerializable);
+
         StaticValueIntrinsic isClass = (builder, owner, name, descriptor, arguments) -> {
             ValidatedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").validate();
             ValueType refArray = layout.getArrayValidatedTypeDefinition("[ref").getType();
