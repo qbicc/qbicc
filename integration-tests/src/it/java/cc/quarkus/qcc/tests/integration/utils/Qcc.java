@@ -19,6 +19,8 @@ public class Qcc {
                 Path.of(QCC_RUNTIME_API_JAR),
                 Path.of(QCC_RUNTIME_MAIN_JAR),
                 Path.of(QCC_RUNTIME_NOGC_JAR),
+                Path.of(QCC_RUNTIME_POSIX),
+                Path.of(QCC_RUNTIME_LINUX),
                 outputPath))
             .setOutputPath(nativeOutputPath)
             .setDiagnosticsHandler(new QccDiagnosticLogger(logger))
