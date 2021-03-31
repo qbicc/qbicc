@@ -9,6 +9,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.driver.Phase;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.Extend;
 import cc.quarkus.qcc.graph.Load;
@@ -446,6 +447,9 @@ public final class CoreIntrinsics {
 
         StaticValueIntrinsic addrOf = (builder, owner, name, descriptor, arguments) -> {
             Value value = arguments.get(0);
+            if (value instanceof BitCast) {
+                value = ((BitCast)value).getInput();
+            }
             if (value instanceof Extend) {
                 value = ((Extend) value).getInput();
             }
