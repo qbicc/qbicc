@@ -328,7 +328,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Convert(callSite, element, line, bci, value, toType);
     }
 
-    public Value instanceOf(final Value input, final ObjectType expectedType, final IntegerLiteral expectedDimensions) {
+    public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {
         return new InstanceOf(callSite, element, line, bci, input, expectedType, expectedDimensions, typeSystem.getBooleanType());
     }
 
@@ -343,8 +343,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             outputType = type.meet((ReferenceType) inputType);
             if (outputType == null) {
                 CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
-                ctxt.error(getLocation(), "Invalid narrow from %s to %s", inputType, type);
-                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(type);
+                ctxt.warning(getLocation(), "Invalid narrow from %s to %s compiled to raiseCCE()", inputType, type);
+                MethodElement helper = ctxt.getVMHelperMethod("raiseClassCastException");
+                invokeStatic(helper, List.of());
+                throw new BlockEarlyTermination(unreachable());
             }
         }
         return new CheckCast(callSite, element, line, bci, value, toType, toDimensions, kind, outputType);

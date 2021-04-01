@@ -4,7 +4,6 @@ import java.util.List;
 
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
-import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
@@ -481,7 +480,7 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().valueConvert(value, toType);
     }
 
-    public Value instanceOf(final Value input, final ObjectType expectedType, final IntegerLiteral expectedDimensions) {
+    public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {
         return getDelegate().instanceOf(input, expectedType, expectedDimensions);
     }
 

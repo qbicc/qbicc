@@ -13,11 +13,11 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 public final class InstanceOf extends AbstractValue implements InstanceOperation {
     private final Value input;
     private final ObjectType checkType;
-    private final IntegerLiteral checkDimensions;
+    private final int checkDimensions;
     private final BooleanType booleanType;
 
     InstanceOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input,
-               final ObjectType checkType, final IntegerLiteral checkDimensions, final BooleanType booleanType) {
+               final ObjectType checkType, final int checkDimensions, final BooleanType booleanType) {
         super(callSite, element, line, bci);
         this.input = input;
         this.checkType = checkType;
@@ -29,7 +29,7 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
         return checkType;
     }
 
-    public IntegerLiteral getCheckDimensions() { 
+    public int getCheckDimensions() {
         return checkDimensions; 
      }
 
@@ -42,15 +42,15 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
     }
 
     public boolean equals(final InstanceOf other) {
-        return this == other || other != null && input.equals(other.input) && checkType.equals(other.checkType) && checkDimensions.equals(other.checkDimensions);
+        return this == other || other != null && input.equals(other.input) && checkType.equals(other.checkType) && checkDimensions == other.checkDimensions;
     }
 
     public int getValueDependencyCount() {
-        return 2;
+        return 1;
     }
 
     public Value getValueDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? input : index == 1 ? checkDimensions : Util.throwIndexOutOfBounds(index);
+        return index == 0 ? input : Util.throwIndexOutOfBounds(index);
     }
 
     public Value getInstance() {

@@ -32,11 +32,15 @@ public final class Intrinsics {
     }
 
     // Static intrinsics
-
+    public boolean registerIntrinsic(TypeDescriptor owner, String name, MethodDescriptor desc, StaticIntrinsic intrinsic) {
+        return registerIntrinsic(Phase.ADD, owner, name, desc, intrinsic);
+    }
     public boolean registerIntrinsic(Phase phase, TypeDescriptor owner, String name, MethodDescriptor desc, StaticIntrinsic intrinsic) {
         return staticIntrinsics.computeIfAbsent(phase, Intrinsics::map).computeIfAbsent(owner, Intrinsics::map).computeIfAbsent(name, Intrinsics::map).putIfAbsent(desc, intrinsic) != null;
     }
-
+    public boolean registerIntrinsic(TypeDescriptor owner, String name, MethodDescriptor desc, StaticValueIntrinsic intrinsic) {
+        return registerIntrinsic(Phase.ADD, owner, name, desc, intrinsic);
+    }
     public boolean registerIntrinsic(Phase phase, TypeDescriptor owner, String name, MethodDescriptor desc, StaticValueIntrinsic intrinsic) {
         return staticValueIntrinsics.computeIfAbsent(phase, Intrinsics::map).computeIfAbsent(owner, Intrinsics::map).computeIfAbsent(name, Intrinsics::map).putIfAbsent(desc, intrinsic) != null;
     }
@@ -50,11 +54,16 @@ public final class Intrinsics {
     }
 
     // Instance intrisics
-
+    public boolean registerIntrinsic(TypeDescriptor owner, String name, MethodDescriptor desc, InstanceIntrinsic intrinsic) {
+        return registerIntrinsic(Phase.ADD, owner, name, desc, intrinsic);
+    }
     public boolean registerIntrinsic(Phase phase, TypeDescriptor owner, String name, MethodDescriptor desc, InstanceIntrinsic intrinsic) {
         return instanceIntrinsics.computeIfAbsent(phase, Intrinsics::map).computeIfAbsent(owner, Intrinsics::map).computeIfAbsent(name, Intrinsics::map).putIfAbsent(desc, intrinsic) != null;
     }
 
+    public boolean registerIntrinsic(TypeDescriptor owner, String name, MethodDescriptor desc, InstanceValueIntrinsic intrinsic) {
+        return registerIntrinsic(Phase.ADD, owner, name, desc, intrinsic);
+    }
     public boolean registerIntrinsic(Phase phase, TypeDescriptor owner, String name, MethodDescriptor desc, InstanceValueIntrinsic intrinsic) {
         return instanceValueIntrinsics.computeIfAbsent(phase, Intrinsics::map).computeIfAbsent(owner, Intrinsics::map).computeIfAbsent(name, Intrinsics::map).putIfAbsent(desc, intrinsic) != null;
     }

@@ -139,11 +139,11 @@ public final class CoreIntrinsics {
 
         //    static native Class<?> getPrimitiveClass(String name);
 
-        intrinsics.registerIntrinsic(Phase.ADD, jlcDesc, "cast", objToObj, cast);
-        intrinsics.registerIntrinsic(Phase.ADD, jlcDesc, "desiredAssertionStatus0", classToBool, desiredAssertionStatus0);
-        intrinsics.registerIntrinsic(Phase.ADD, jlcDesc, "registerNatives", emptyToVoid, registerNatives);
-        intrinsics.registerIntrinsic(Phase.ADD, jlcDesc, "initClassName", emptyToString, initClassName);
-        intrinsics.registerIntrinsic(Phase.ADD, jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
+        intrinsics.registerIntrinsic(jlcDesc, "cast", objToObj, cast);
+        intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus0", classToBool, desiredAssertionStatus0);
+        intrinsics.registerIntrinsic(jlcDesc, "registerNatives", emptyToVoid, registerNatives);
+        intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
+        intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
     }
 
     public static void registerJavaLangStringUTF16Intrinsics(CompilationContext ctxt) {
@@ -165,7 +165,7 @@ public final class CoreIntrinsics {
                 StaticValueIntrinsic isBigEndian = (builder, owner, name, descriptor, arguments) ->
                     ctxt.getLiteralFactory().literalOf(result.getByteOrder() == ByteOrder.BIG_ENDIAN);
 
-                intrinsics.registerIntrinsic(Phase.ADD, jlsu16Desc, "isBigEndian", emptyToBool, isBigEndian);
+                intrinsics.registerIntrinsic(jlsu16Desc, "isBigEndian", emptyToBool, isBigEndian);
             }
         } catch (IOException e) {
             ctxt.error(e, "Failed to probe target endianness");
@@ -187,7 +187,7 @@ public final class CoreIntrinsics {
 
         StaticValueIntrinsic returnNull = (builder, owner, name, descriptor, arguments) ->
             classContext.getLiteralFactory().zeroInitializerLiteralOfType(jls.getClassType().getReference().asNullable());
-        intrinsics.registerIntrinsic(Phase.ADD, systemDesc, "getSecurityManager",
+        intrinsics.registerIntrinsic(systemDesc, "getSecurityManager",
             MethodDescriptor.synthesize(classContext,
                 ClassTypeDescriptor.synthesize(classContext,"java/lang/SecurityManager"), List.of()),
             returnNull);
@@ -207,9 +207,9 @@ public final class CoreIntrinsics {
             MethodDescriptor.synthesize(classContext,
                 BaseTypeDescriptor.V, List.of(ClassTypeDescriptor.synthesize(classContext, "java/io/PrintStream")));
 
-        intrinsics.registerIntrinsic(Phase.ADD, systemDesc, "setIn", setPrintStreamDesc, setVolatile(in));
-        intrinsics.registerIntrinsic(Phase.ADD, systemDesc, "setOut", setPrintStreamDesc, setVolatile(out));
-        intrinsics.registerIntrinsic(Phase.ADD, systemDesc, "setErr", setPrintStreamDesc, setVolatile(err));
+        intrinsics.registerIntrinsic(systemDesc, "setIn", setPrintStreamDesc, setVolatile(in));
+        intrinsics.registerIntrinsic(systemDesc, "setOut", setPrintStreamDesc, setVolatile(out));
+        intrinsics.registerIntrinsic(systemDesc, "setErr", setPrintStreamDesc, setVolatile(err));
 
         // arraycopy
 
@@ -224,7 +224,7 @@ public final class CoreIntrinsics {
         StaticIntrinsic arraycopy = (builder, owner, name, descriptor, arguments) ->
             builder.invokeStatic(vmDesc, "arraycopy", descriptor, arguments);
 
-        intrinsics.registerIntrinsic(Phase.ADD, systemDesc, "arraycopy", arraycopyDesc, arraycopy);
+        intrinsics.registerIntrinsic(systemDesc, "arraycopy", arraycopyDesc, arraycopy);
 
         // identity hash code
 
@@ -232,7 +232,7 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic identityHashCode = (builder, owner, name, descriptor, arguments) ->
             ctxt.getLiteralFactory().literalOf(0);
 
-        intrinsics.registerIntrinsic(Phase.ADD, systemDesc, "identityHashCode", objectToIntDesc, identityHashCode);
+        intrinsics.registerIntrinsic(systemDesc, "identityHashCode", objectToIntDesc, identityHashCode);
     }
 
     public static void registerJavaLangThreadIntrinsics(CompilationContext ctxt) {
@@ -244,7 +244,7 @@ public final class CoreIntrinsics {
 
         StaticValueIntrinsic currentThread = (builder, owner, name, descriptor, arguments) -> builder.currentThread();
 
-        intrinsics.registerIntrinsic(Phase.ADD, jltDesc, "currentThread", returnJlt, currentThread);
+        intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
     }
 
     public static void registerJavaLangThrowableIntrinsics(CompilationContext ctxt) {
@@ -265,8 +265,8 @@ public final class CoreIntrinsics {
         InstanceValueIntrinsic getStackTrace = (builder, kind, instance, owner, name, descriptor, arguments) ->
             builder.newArray(steArrayDesc, zero);
 
-        intrinsics.registerIntrinsic(Phase.ADD, jltDesc, "fillInStackTrace", MethodDescriptor.synthesize(classContext, jltDesc, List.of()), fillInStackTrace);
-        intrinsics.registerIntrinsic(Phase.ADD, jltDesc, "getStackTrace", MethodDescriptor.synthesize(classContext, steArrayDesc, List.of()), getStackTrace);
+        intrinsics.registerIntrinsic(jltDesc, "fillInStackTrace", MethodDescriptor.synthesize(classContext, jltDesc, List.of()), fillInStackTrace);
+        intrinsics.registerIntrinsic(jltDesc, "getStackTrace", MethodDescriptor.synthesize(classContext, steArrayDesc, List.of()), getStackTrace);
     }
 
     public static void registerJavaLangNumberIntrinsics(CompilationContext ctxt) {
@@ -296,11 +296,11 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic remainderUnsigned = (builder, owner, name, descriptor, arguments) ->
             builder.remainder(asUnsigned(builder, arguments.get(0)), asUnsigned(builder, arguments.get(1)));
 
-        intrinsics.registerIntrinsic(Phase.ADD, integerDesc, "divideUnsigned", binaryIntDesc, divideUnsigned);
-        intrinsics.registerIntrinsic(Phase.ADD, longDesc, "divideUnsigned", binaryLongDesc, divideUnsigned);
+        intrinsics.registerIntrinsic(integerDesc, "divideUnsigned", binaryIntDesc, divideUnsigned);
+        intrinsics.registerIntrinsic(longDesc, "divideUnsigned", binaryLongDesc, divideUnsigned);
 
-        intrinsics.registerIntrinsic(Phase.ADD, integerDesc, "remainderUnsigned", binaryIntDesc, remainderUnsigned);
-        intrinsics.registerIntrinsic(Phase.ADD, longDesc, "remainderUnsigned", binaryLongDesc, remainderUnsigned);
+        intrinsics.registerIntrinsic(integerDesc, "remainderUnsigned", binaryIntDesc, remainderUnsigned);
+        intrinsics.registerIntrinsic(longDesc, "remainderUnsigned", binaryLongDesc, remainderUnsigned);
 
         StaticValueIntrinsic ror = (builder, owner, name, descriptor, arguments) ->
             builder.ror(arguments.get(0), arguments.get(1));
@@ -308,24 +308,24 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic rol = (builder, owner, name, descriptor, arguments) ->
             builder.rol(arguments.get(0), arguments.get(1));
 
-        intrinsics.registerIntrinsic(Phase.ADD, integerDesc, "rotateRight", binaryIntDesc, ror);
-        intrinsics.registerIntrinsic(Phase.ADD, longDesc, "rotateRight", longIntDesc, ror);
+        intrinsics.registerIntrinsic(integerDesc, "rotateRight", binaryIntDesc, ror);
+        intrinsics.registerIntrinsic(longDesc, "rotateRight", longIntDesc, ror);
 
-        intrinsics.registerIntrinsic(Phase.ADD, integerDesc, "rotateLeft", binaryIntDesc, rol);
-        intrinsics.registerIntrinsic(Phase.ADD, longDesc, "rotateLeft", longIntDesc, rol);
+        intrinsics.registerIntrinsic(integerDesc, "rotateLeft", binaryIntDesc, rol);
+        intrinsics.registerIntrinsic(longDesc, "rotateLeft", longIntDesc, rol);
 
         StaticValueIntrinsic compare = (builder, owner, name, descriptor, arguments) ->
             builder.cmp(arguments.get(0), arguments.get(1));
         StaticValueIntrinsic compareUnsigned = (builder, owner, name, descriptor, arguments) ->
             builder.cmp(asUnsigned(builder, arguments.get(0)), asUnsigned(builder, arguments.get(1)));
 
-        intrinsics.registerIntrinsic(Phase.ADD, byteDesc, "compare", binaryByteToIntDesc, compare);
-        intrinsics.registerIntrinsic(Phase.ADD, byteDesc, "compareUnsigned", binaryByteToIntDesc, compareUnsigned);
-        intrinsics.registerIntrinsic(Phase.ADD, characterDesc, "compare", binaryCharToIntDesc, compare);
-        intrinsics.registerIntrinsic(Phase.ADD, integerDesc, "compare", binaryIntDesc, compare);
-        intrinsics.registerIntrinsic(Phase.ADD, integerDesc, "compareUnsigned", binaryIntDesc, compareUnsigned);
-        intrinsics.registerIntrinsic(Phase.ADD, shortDesc, "compare", binaryShortToIntDesc, compare);
-        intrinsics.registerIntrinsic(Phase.ADD, shortDesc, "compareUnsigned", binaryShortToIntDesc, compareUnsigned);
+        intrinsics.registerIntrinsic(byteDesc, "compare", binaryByteToIntDesc, compare);
+        intrinsics.registerIntrinsic(byteDesc, "compareUnsigned", binaryByteToIntDesc, compareUnsigned);
+        intrinsics.registerIntrinsic(characterDesc, "compare", binaryCharToIntDesc, compare);
+        intrinsics.registerIntrinsic(integerDesc, "compare", binaryIntDesc, compare);
+        intrinsics.registerIntrinsic(integerDesc, "compareUnsigned", binaryIntDesc, compareUnsigned);
+        intrinsics.registerIntrinsic(shortDesc, "compare", binaryShortToIntDesc, compare);
+        intrinsics.registerIntrinsic(shortDesc, "compareUnsigned", binaryShortToIntDesc, compareUnsigned);
     }
 
     private static void registerJavaLangFloatDoubleMathIntrinsics(CompilationContext ctxt) {
@@ -346,8 +346,8 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic doubleToRawLongBits = (builder, owner, name, descriptor, arguments) ->
             builder.bitCast(arguments.get(0), ts.getSignedInteger64Type());
 
-        intrinsics.registerIntrinsic(Phase.ADD, floatDesc, "floatToRawIntBits", floatToIntMethodDesc, floatToRawIntBits);
-        intrinsics.registerIntrinsic(Phase.ADD, doubleDesc, "doubleToRawLongBits", doubleToLongMethodDesc, doubleToRawLongBits);
+        intrinsics.registerIntrinsic(floatDesc, "floatToRawIntBits", floatToIntMethodDesc, floatToRawIntBits);
+        intrinsics.registerIntrinsic(doubleDesc, "doubleToRawLongBits", doubleToLongMethodDesc, doubleToRawLongBits);
 
         MethodDescriptor intToFloatMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.F, List.of(BaseTypeDescriptor.I));
         MethodDescriptor longToDoubleMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.D, List.of(BaseTypeDescriptor.J));
@@ -357,8 +357,8 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic longBitsToDouble = (builder, owner, name, descriptor, arguments) ->
             builder.bitCast(arguments.get(0), ts.getFloat64Type());
 
-        intrinsics.registerIntrinsic(Phase.ADD, floatDesc, "intBitsToFloat", intToFloatMethodDesc, intBitsToFloat);
-        intrinsics.registerIntrinsic(Phase.ADD, doubleDesc, "longBitsToDouble", longToDoubleMethodDesc, longBitsToDouble);
+        intrinsics.registerIntrinsic(floatDesc, "intBitsToFloat", intToFloatMethodDesc, intBitsToFloat);
+        intrinsics.registerIntrinsic(doubleDesc, "longBitsToDouble", longToDoubleMethodDesc, longBitsToDouble);
     }
 
     static Value asUnsigned(BasicBlockBuilder builder, Value value) {
@@ -377,7 +377,7 @@ public final class CoreIntrinsics {
                 ClassTypeDescriptor.synthesize(classContext, "java/lang/Class"), List.of());
         InstanceValueIntrinsic getClassIntrinsic = (builder, kind, instance, owner, name, descriptor, arguments) ->
             builder.classOf(builder.typeIdOf(builder.referenceHandle(instance)));
-        intrinsics.registerIntrinsic(Phase.ADD, classDesc, "getClass", getClassDesc, getClassIntrinsic);
+        intrinsics.registerIntrinsic(classDesc, "getClass", getClassDesc, getClassIntrinsic);
     }
 
     static Literal literalOf(CompilationContext ctxt, boolean v) {
@@ -401,14 +401,14 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic typeOf = (builder, owner, name, descriptor, arguments) ->
             builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
 
-        intrinsics.registerIntrinsic(Phase.ADD, cNativeDesc, "type_id_of", objTypeIdDesc, typeOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "type_id_of", objTypeIdDesc, typeOf);
 
         FieldElement elementTypeField = Layout.get(ctxt).getRefArrayElementTypeIdField();
 
         StaticValueIntrinsic elementTypeOf = (builder, owner, name, descriptor, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), elementTypeField), MemoryAtomicityMode.UNORDERED);
 
-        intrinsics.registerIntrinsic(Phase.ADD, cNativeDesc, "element_type_id_of", objArrayTypeIdDesc, elementTypeOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "element_type_id_of", objArrayTypeIdDesc, elementTypeOf);
 
         StaticValueIntrinsic addrOf = (builder, owner, name, descriptor, arguments) -> {
             Value value = arguments.get(0);
@@ -424,15 +424,15 @@ public final class CoreIntrinsics {
             }
         };
 
-        intrinsics.registerIntrinsic(Phase.ADD, cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.B)), addrOf);
-        intrinsics.registerIntrinsic(Phase.ADD, cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.C)), addrOf);
-        intrinsics.registerIntrinsic(Phase.ADD, cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.D)), addrOf);
-        intrinsics.registerIntrinsic(Phase.ADD, cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.F)), addrOf);
-        intrinsics.registerIntrinsic(Phase.ADD, cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.I)), addrOf);
-        intrinsics.registerIntrinsic(Phase.ADD, cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.J)), addrOf);
-        intrinsics.registerIntrinsic(Phase.ADD, cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.S)), addrOf);
-        intrinsics.registerIntrinsic(Phase.ADD, cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.Z)), addrOf);
-        intrinsics.registerIntrinsic(Phase.ADD, cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(nObjDesc)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.B)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.C)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.D)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.F)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.I)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.J)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.S)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.Z)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(nObjDesc)), addrOf);
     }
 
     static void registerCcQuarkusQccObjectModelIntrinsics(final CompilationContext ctxt) {
@@ -586,23 +586,23 @@ public final class CoreIntrinsics {
 
         StaticValueIntrinsic isConstant = (builder, owner, name, descriptor, arguments) -> literalOf(ctxt, arguments.get(0) instanceof Literal);
 
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "isConstant", objBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "isConstant", boolBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "isConstant", longBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "isConstant", intBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "isConstant", shortBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "isConstant", byteBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "isConstant", charBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "isConstant", floatBoolDesc, isConstant);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "isConstant", doubleBoolDesc, isConstant);
+        intrinsics.registerIntrinsic(valsDesc, "isConstant", objBoolDesc, isConstant);
+        intrinsics.registerIntrinsic(valsDesc, "isConstant", boolBoolDesc, isConstant);
+        intrinsics.registerIntrinsic(valsDesc, "isConstant", longBoolDesc, isConstant);
+        intrinsics.registerIntrinsic(valsDesc, "isConstant", intBoolDesc, isConstant);
+        intrinsics.registerIntrinsic(valsDesc, "isConstant", shortBoolDesc, isConstant);
+        intrinsics.registerIntrinsic(valsDesc, "isConstant", byteBoolDesc, isConstant);
+        intrinsics.registerIntrinsic(valsDesc, "isConstant", charBoolDesc, isConstant);
+        intrinsics.registerIntrinsic(valsDesc, "isConstant", floatBoolDesc, isConstant);
+        intrinsics.registerIntrinsic(valsDesc, "isConstant", doubleBoolDesc, isConstant);
 
         // isAlways*
 
         StaticValueIntrinsic isAlwaysTrue = (builder, owner, name, descriptor, arguments) -> literalOf(ctxt, arguments.get(0) instanceof BooleanLiteral && ((BooleanLiteral) arguments.get(0)).booleanValue());
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "isAlwaysTrue", boolBoolDesc, isAlwaysTrue);
+        intrinsics.registerIntrinsic(valsDesc, "isAlwaysTrue", boolBoolDesc, isAlwaysTrue);
 
         StaticValueIntrinsic isAlwaysFalse = (builder, owner, name, descriptor, arguments) -> literalOf(ctxt, arguments.get(0) instanceof BooleanLiteral && ((BooleanLiteral) arguments.get(0)).booleanValue());
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "isAlwaysFalse", boolBoolDesc, isAlwaysFalse);
+        intrinsics.registerIntrinsic(valsDesc, "isAlwaysFalse", boolBoolDesc, isAlwaysFalse);
 
         // todo: compareAndSwap*
 
@@ -626,16 +626,16 @@ public final class CoreIntrinsics {
 
         StaticValueIntrinsic getAndSetVolatile = new GetAndSetIntrinsic(MemoryAtomicityMode.VOLATILE);
 
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getAndSetVolatile", objObjObjDescriptor, getAndSetVolatile);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getAndSetVolatile", longLongLongDescriptor, getAndSetVolatile);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getAndSetVolatile", intIntIntDescriptor, getAndSetVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "getAndSetVolatile", objObjObjDescriptor, getAndSetVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "getAndSetVolatile", longLongLongDescriptor, getAndSetVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "getAndSetVolatile", intIntIntDescriptor, getAndSetVolatile);
 
         // todo: determine the real atomicity mode for "relaxed"
         StaticValueIntrinsic getAndSetRelaxed = new GetAndSetIntrinsic(MemoryAtomicityMode.MONOTONIC);
 
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getAndSetRelaxed", objObjObjDescriptor, getAndSetRelaxed);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getAndSetRelaxed", longLongLongDescriptor, getAndSetRelaxed);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getAndSetRelaxed", intIntIntDescriptor, getAndSetRelaxed);
+        intrinsics.registerIntrinsic(valsDesc, "getAndSetRelaxed", objObjObjDescriptor, getAndSetRelaxed);
+        intrinsics.registerIntrinsic(valsDesc, "getAndSetRelaxed", longLongLongDescriptor, getAndSetRelaxed);
+        intrinsics.registerIntrinsic(valsDesc, "getAndSetRelaxed", intIntIntDescriptor, getAndSetRelaxed);
 
         // set*
 
@@ -659,16 +659,16 @@ public final class CoreIntrinsics {
         // todo: determine the real atomicity mode for "relaxed"
         StaticIntrinsic setVolatile = new SetIntrinsic(MemoryAtomicityMode.VOLATILE);
 
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "setVolatile", objObjVoidDescriptor, setVolatile);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "setVolatile", intIntVoidDescriptor, setVolatile);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "setVolatile", longLongVoidDescriptor, setVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "setVolatile", objObjVoidDescriptor, setVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "setVolatile", intIntVoidDescriptor, setVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "setVolatile", longLongVoidDescriptor, setVolatile);
 
         // todo: determine the real atomicity mode for "relaxed"
         StaticIntrinsic setRelaxed = new SetIntrinsic(MemoryAtomicityMode.MONOTONIC);
 
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "setRelaxed", objObjVoidDescriptor, setRelaxed);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "setRelaxed", intIntVoidDescriptor, setRelaxed);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "setRelaxed", longLongVoidDescriptor, setRelaxed);
+        intrinsics.registerIntrinsic(valsDesc, "setRelaxed", objObjVoidDescriptor, setRelaxed);
+        intrinsics.registerIntrinsic(valsDesc, "setRelaxed", intIntVoidDescriptor, setRelaxed);
+        intrinsics.registerIntrinsic(valsDesc, "setRelaxed", longLongVoidDescriptor, setRelaxed);
 
         // todo: exitConstructorBarrier
 
@@ -693,16 +693,16 @@ public final class CoreIntrinsics {
 
         StaticValueIntrinsic getVolatile = new GetIntrinsic(MemoryAtomicityMode.VOLATILE);
 
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getVolatile", objObjDescriptor, getVolatile);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getVolatile", intIntDescriptor, getVolatile);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getVolatile", longLongDescriptor, getVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "getVolatile", objObjDescriptor, getVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "getVolatile", intIntDescriptor, getVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "getVolatile", longLongDescriptor, getVolatile);
 
         // todo: determine the real atomicity mode for "relaxed"
         StaticValueIntrinsic getRelaxed = new GetIntrinsic(MemoryAtomicityMode.MONOTONIC);
 
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getRelaxed", objObjDescriptor, getRelaxed);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getRelaxed", intIntDescriptor, getRelaxed);
-        intrinsics.registerIntrinsic(Phase.ADD, valsDesc, "getRelaxed", objObjDescriptor, getRelaxed);
+        intrinsics.registerIntrinsic(valsDesc, "getRelaxed", objObjDescriptor, getRelaxed);
+        intrinsics.registerIntrinsic(valsDesc, "getRelaxed", intIntDescriptor, getRelaxed);
+        intrinsics.registerIntrinsic(valsDesc, "getRelaxed", objObjDescriptor, getRelaxed);
     }
 
     static ValueHandle getTarget(CompilationContext ctxt, BasicBlockBuilder builder, Value input) {
@@ -741,24 +741,24 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic max = (builder, owner, name, descriptor, arguments) ->
             builder.max(arguments.get(0), arguments.get(1));
 
-        intrinsics.registerIntrinsic(Phase.ADD, mathDesc, "min", intIntIntDescriptor, min);
-        intrinsics.registerIntrinsic(Phase.ADD, mathDesc, "min", longLongLongDescriptor, min);
-        intrinsics.registerIntrinsic(Phase.ADD, mathDesc, "min", floatFloatFloatDescriptor, min);
-        intrinsics.registerIntrinsic(Phase.ADD, mathDesc, "min", doubleDoubleDoubleDescriptor, min);
+        intrinsics.registerIntrinsic(mathDesc, "min", intIntIntDescriptor, min);
+        intrinsics.registerIntrinsic(mathDesc, "min", longLongLongDescriptor, min);
+        intrinsics.registerIntrinsic(mathDesc, "min", floatFloatFloatDescriptor, min);
+        intrinsics.registerIntrinsic(mathDesc, "min", doubleDoubleDoubleDescriptor, min);
 
-        intrinsics.registerIntrinsic(Phase.ADD, mathDesc, "max", intIntIntDescriptor, max);
-        intrinsics.registerIntrinsic(Phase.ADD, mathDesc, "max", longLongLongDescriptor, max);
-        intrinsics.registerIntrinsic(Phase.ADD, mathDesc, "max", floatFloatFloatDescriptor, max);
-        intrinsics.registerIntrinsic(Phase.ADD, mathDesc, "max", doubleDoubleDoubleDescriptor, max);
+        intrinsics.registerIntrinsic(mathDesc, "max", intIntIntDescriptor, max);
+        intrinsics.registerIntrinsic(mathDesc, "max", longLongLongDescriptor, max);
+        intrinsics.registerIntrinsic(mathDesc, "max", floatFloatFloatDescriptor, max);
+        intrinsics.registerIntrinsic(mathDesc, "max", doubleDoubleDoubleDescriptor, max);
 
-        intrinsics.registerIntrinsic(Phase.ADD, strictDesc, "min", intIntIntDescriptor, min);
-        intrinsics.registerIntrinsic(Phase.ADD, strictDesc, "min", longLongLongDescriptor, min);
-        intrinsics.registerIntrinsic(Phase.ADD, strictDesc, "min", floatFloatFloatDescriptor, min);
-        intrinsics.registerIntrinsic(Phase.ADD, strictDesc, "min", doubleDoubleDoubleDescriptor, min);
+        intrinsics.registerIntrinsic(strictDesc, "min", intIntIntDescriptor, min);
+        intrinsics.registerIntrinsic(strictDesc, "min", longLongLongDescriptor, min);
+        intrinsics.registerIntrinsic(strictDesc, "min", floatFloatFloatDescriptor, min);
+        intrinsics.registerIntrinsic(strictDesc, "min", doubleDoubleDoubleDescriptor, min);
 
-        intrinsics.registerIntrinsic(Phase.ADD, strictDesc, "max", intIntIntDescriptor, max);
-        intrinsics.registerIntrinsic(Phase.ADD, strictDesc, "max", longLongLongDescriptor, max);
-        intrinsics.registerIntrinsic(Phase.ADD, strictDesc, "max", floatFloatFloatDescriptor, max);
-        intrinsics.registerIntrinsic(Phase.ADD, strictDesc, "max", doubleDoubleDoubleDescriptor, max);
+        intrinsics.registerIntrinsic(strictDesc, "max", intIntIntDescriptor, max);
+        intrinsics.registerIntrinsic(strictDesc, "max", longLongLongDescriptor, max);
+        intrinsics.registerIntrinsic(strictDesc, "max", floatFloatFloatDescriptor, max);
+        intrinsics.registerIntrinsic(strictDesc, "max", doubleDoubleDoubleDescriptor, max);
     }
 }

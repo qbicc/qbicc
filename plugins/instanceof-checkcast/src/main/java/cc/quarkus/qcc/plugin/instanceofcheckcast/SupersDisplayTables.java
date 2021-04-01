@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.plugin.instanceofcheckcast;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -320,7 +321,7 @@ public class SupersDisplayTables {
 
     byte[] getImplementedInterfaceBits(ValidatedTypeDefinition cls) {
         byte[] setBits = new byte[getNumberOfBytesInInterfaceBitsArray()];
-        Stack<ValidatedTypeDefinition> worklist = new Stack<>();
+        ArrayDeque<ValidatedTypeDefinition> worklist = new ArrayDeque<>();
         if (cls.isInterface()) {
             worklist.add(cls);
         } else {

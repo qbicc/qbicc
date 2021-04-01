@@ -4,6 +4,7 @@ import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.CheckCast;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
@@ -74,38 +75,46 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         if_(isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType())), pass, dynCheck);
 
         // raise exception on failure.
-        begin(fail);
-        MethodElement thrower = ctxt.getVMHelperMethod(kind.equals(CheckCast.CastType.Cast) ? "raiseClassCastException" : "raiseArrayStoreException");
-        getFirstBuilder().invokeStatic(thrower, List.of());
-        unreachable();
-
-        // Generate the code for a check; ideally inline but if that isn't possible then out-of-line.
-        begin(dynCheck);
-        boolean inlinedTest;
-        if (toType instanceof TypeLiteral && toDimensions instanceof IntegerLiteral) {
-            // We know the exact toType at compile time
-            ObjectType toTypeOT = (ObjectType) ((TypeLiteral) toType).getValue(); // by construction in MemberResolvingBasicBlockBuilder.checkcast
-            int dims = ((IntegerLiteral) toDimensions).intValue();
-            inlinedTest = generateTypeTest(input, toTypeOT, dims, pass, fail);
-        } else {
-            inlinedTest = generateTypeTest(input, toType, toDimensions, type, pass, fail);
+        try {
+            begin(fail);
+            MethodElement thrower = ctxt.getVMHelperMethod(kind.equals(CheckCast.CastType.Cast) ? "raiseClassCastException" : "raiseArrayStoreException");
+            getFirstBuilder().invokeStatic(thrower, List.of());
+            unreachable();
+        } catch (BlockEarlyTermination ignored) {
+            // continue
         }
-        if (!inlinedTest) {
-            String helperName;
-            if (kind.equals(CheckCast.CastType.Cast)) {
-                helperName = toType instanceof TypeLiteral ? "checkcast_typeId" : "checkcast_class";
+
+        try {
+            // Generate the code for a check; ideally inline but if that isn't possible then out-of-line.
+            begin(dynCheck);
+            boolean inlinedTest;
+            if (toType instanceof TypeLiteral && toDimensions instanceof IntegerLiteral) {
+                // We know the exact toType at compile time
+                ObjectType toTypeOT = (ObjectType) ((TypeLiteral) toType).getValue(); // by construction in MemberResolvingBasicBlockBuilder.checkcast
+                int dims = ((IntegerLiteral) toDimensions).intValue();
+                inlinedTest = generateTypeTest(input, toTypeOT, dims, pass, fail);
             } else {
-                helperName = "arrayStoreCheck";
+                inlinedTest = generateTypeTest(input, toType, toDimensions, type, pass, fail);
             }
-            getFirstBuilder().invokeStatic(ctxt.getVMHelperMethod(helperName), List.of(input, toType, toDimensions));
-            goto_(pass);
+            if (!inlinedTest) {
+                String helperName;
+                if (kind.equals(CheckCast.CastType.Cast)) {
+                    helperName = toType instanceof TypeLiteral ? "checkcast_typeId" : "checkcast_class";
+                } else {
+                    helperName = "arrayStoreCheck";
+                }
+                getFirstBuilder().invokeStatic(ctxt.getVMHelperMethod(helperName), List.of(input, toType, toDimensions));
+                goto_(pass);
+            }
+        } catch (BlockEarlyTermination ignored) {
+            // continue
         }
 
         begin(pass);
         return bitCast(input, type);
     }
 
-    public Value instanceOf(final Value input, final ObjectType expectedType, IntegerLiteral expectedDimensions) {
+    public Value instanceOf(final Value input, final ObjectType expectedType, int expectedDimensions) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         // "null" instanceof <X> is always false
         if (input instanceof ZeroInitializerLiteral) {
@@ -115,7 +124,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         // statically true instanceof checks reduce to input != null
         ValueType actualType = input.getType();
         if (actualType instanceof ReferenceType) {
-            if (expectedDimensions.intValue() == 0 && ((ReferenceType) actualType).instanceOf(expectedType)) {
+            if (expectedDimensions == 0 && ((ReferenceType) actualType).instanceOf(expectedType)) {
                 // the input is known to be an instance
                 return super.isNe(input, lf.zeroInitializerLiteralOfType(actualType));
             }
@@ -138,42 +147,44 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         }
 
         // If we get here, we have to generate a real dynamic typecheck.
-        final BlockLabel pass = new BlockLabel();
         final BlockLabel fail = new BlockLabel();
-        final BlockLabel dynCheck = new BlockLabel();
+        final BlockLabel notNull = new BlockLabel();
         final BlockLabel allDone = new BlockLabel();
 
         // first, handle null
-        if_(isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType())), fail, dynCheck);
+        if_(isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType())), fail, notNull);
 
-        begin(dynCheck);
-        boolean inlinedTest = generateTypeTest(input, expectedType, expectedDimensions.intValue(), pass, fail);
-        if (!inlinedTest) {
-            MethodElement helper = ctxt.getVMHelperMethod("instanceof_typeId");
-            Value result = getFirstBuilder().invokeValueStatic(helper, List.of(input, lf.literalOfType(expectedType), expectedDimensions));
-            goto_(allDone);
-
-            begin(fail);
-            goto_(allDone);
-
-            begin(allDone);
-            PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), allDone);
-            phi.setValueForBlock(ctxt, getCurrentElement(), fail, lf.literalOf(false));
-            phi.setValueForBlock(ctxt, getCurrentElement(), dynCheck, result);
-            return phi;
-        } else {
-            begin(pass);
-            goto_(allDone);
-
-            begin(fail);
-            goto_(allDone);
-
-            begin(allDone);
-            PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), allDone);
-            phi.setValueForBlock(ctxt, getCurrentElement(), fail, lf.literalOf(false));
-            phi.setValueForBlock(ctxt, getCurrentElement(), pass, lf.literalOf(true));
-            return phi;
+        Value passResult = null;
+        BlockLabel passLabel = null;
+        try {
+            begin(notNull);
+            // invariant: passInline label is only used by generateTypeTest when it returns true;
+            final BlockLabel passInline = new BlockLabel();
+            boolean inlinedTest = generateTypeTest(input, expectedType, expectedDimensions, passInline, fail);
+            if (!inlinedTest) {
+                MethodElement helper = ctxt.getVMHelperMethod("instanceof_typeId");
+                passResult = getFirstBuilder().invokeValueStatic(helper, List.of(input, lf.literalOfType(expectedType), lf.literalOf(expectedDimensions)));
+                passLabel = notNull;
+                goto_(allDone);
+            } else {
+                begin(passInline);
+                goto_(allDone);
+                passLabel = passInline;
+                passResult = lf.literalOf(true);
+            }
+        } catch (BlockEarlyTermination ignored) {
+            // continue
         }
+        begin(fail);
+        goto_(allDone);
+
+        begin(allDone);
+        PhiValue phi = phi(ctxt.getTypeSystem().getBooleanType(), allDone);
+        phi.setValueForBlock(ctxt, getCurrentElement(), fail, lf.literalOf(false));
+        if (passLabel != null) {
+            phi.setValueForBlock(ctxt, getCurrentElement(), passLabel, passResult);
+        }
+        return phi;
     }
 
     public Value classOf(final Value typeId) {

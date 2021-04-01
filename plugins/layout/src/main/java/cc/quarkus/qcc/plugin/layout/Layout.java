@@ -116,7 +116,7 @@ public final class Layout {
         builder.setEnclosingType(jlcDef);
         builder.setDescriptor(BaseTypeDescriptor.I);
         builder.setSignature(BaseTypeSignature.I);
-        builder.setType(jlo.getClassType().getTypeType());
+        builder.setType(ctxt.getTypeSystem().getSignedInteger32Type());
         field = builder.build();
         jlc.injectField(field);
         classDimensionField = field;

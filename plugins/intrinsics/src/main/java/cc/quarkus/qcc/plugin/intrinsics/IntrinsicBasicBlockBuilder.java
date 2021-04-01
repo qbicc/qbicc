@@ -9,7 +9,6 @@ import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
@@ -22,28 +21,24 @@ import org.jboss.logging.Logger;
  * methods to be replaced by intrinsics originate from descriptors (ie: classfile
  * parsing).
  */
-public abstract class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     public static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.intrinsics");
 
     private final CompilationContext ctxt;
     private final Phase phase;
 
-    public static final class AddIntrinsicBasicBlockBuilder extends IntrinsicBasicBlockBuilder {
-        public AddIntrinsicBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
-            super(ctxt, delegate, Phase.ADD);
-        }
-    }
-
-    public static final class LowerIntrinsicBasicBlockBuilder extends IntrinsicBasicBlockBuilder {
-        public LowerIntrinsicBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
-            super(ctxt, delegate, Phase.LOWER);
-        }
-    }
-
-    public IntrinsicBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate, Phase phase) {
+    private IntrinsicBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate, Phase phase) {
         super(delegate);
         this.phase = phase;
         this.ctxt = ctxt;
+    }
+
+    public static IntrinsicBasicBlockBuilder createForAddPhase(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+        return new IntrinsicBasicBlockBuilder(ctxt, delegate, Phase.ADD);
+    }
+
+    public static IntrinsicBasicBlockBuilder createForLowerPhase(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+        return new IntrinsicBasicBlockBuilder(ctxt, delegate, Phase.LOWER);
     }
 
     public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {

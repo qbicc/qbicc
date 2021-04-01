@@ -239,7 +239,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value valueConvert(Value value, WordType toType);
 
-    Value instanceOf(Value input, ObjectType expectedType, IntegerLiteral expectedDimensions);
+    Value instanceOf(Value input, ObjectType expectedType, int expectedDimensions);
 
     Value instanceOf(Value input, TypeDescriptor desc);
 

@@ -565,7 +565,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final InstanceOf node) {
-                return param.getBlockBuilder().instanceOf(param.copyValue(node.getInstance()), node.getCheckType(), (IntegerLiteral) param.copyValue(node.getCheckDimensions()));
+                return param.getBlockBuilder().instanceOf(param.copyValue(node.getInstance()), node.getCheckType(), node.getCheckDimensions());
             }
 
             public Value visit(final Copier param, final IntegerLiteral node) {

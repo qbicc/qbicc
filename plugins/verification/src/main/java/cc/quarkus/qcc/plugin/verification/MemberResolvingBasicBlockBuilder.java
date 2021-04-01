@@ -13,7 +13,6 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
-import cc.quarkus.qcc.graph.literal.TypeLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
@@ -107,7 +106,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // this comes from the classfile - it better be something the verifier allows in instanceof/checkcast expressions
             throw Assert.unreachableCode();
         }
-        return instanceOf(input, ot, ctxt.getLiteralFactory().literalOf(dimensions));
+        return instanceOf(input, ot, dimensions);
     }
 
     public Value new_(final ClassTypeDescriptor desc) {
