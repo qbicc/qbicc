@@ -9,15 +9,12 @@ import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
+import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.InterfaceObjectType;
 import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.PhysicalObjectType;
-import cc.quarkus.qcc.type.PrimitiveArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceArrayObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -104,6 +101,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
                 processInstantiatedInterface(RTAInfo.get(ctxt), elemType.getDefinition().validate(), true);
             }
         }
+        processInstantiatedClass(Layout.get(ctxt).getArrayContentField(arrayType).getEnclosingType().validate(), true, false);
         return super.newArray(arrayType, size);
     }
 

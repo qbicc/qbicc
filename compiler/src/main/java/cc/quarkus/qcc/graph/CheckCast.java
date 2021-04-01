@@ -11,16 +11,26 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
  * arraystorechecks and checkcasts.
  */
 public final class CheckCast extends AbstractValue implements CastValue {
+    /**
+     * The input value, which must be of type ReferenceType
+     */
     private final Value input;
     /**
-     * If the kind is Cast, then narrowInput can be a typeLiteral (checkcast bytecode),
-     * or a reference to a java.lang.Class instance (Class.cast intrinsic).
-     *
-     * If the kind is ArrayStore, then narrowInput will be a reference to the array
-     * in which input is being stored.
+     * The type to cast to (may be a TypeLiteral).
+     * The upper bound of the type must be ClassObjectType, PrimitiveArrayObjectType, or InterfaceObjectType.
      */
-    private final Value narrowInput;
+    private final Value toType;
+    /**
+     * The number of array dimensions (may be an IntegerLiteral, must be zero if the argument type is not a reference array).
+     */
+    private final Value toDimensions;
+    /**
+     * The type of the value produced by the CheckCast node (when an exception is not raised).
+     */
     private final ReferenceType type;
+    /**
+     * The kind of exception to throw on cast failure
+     */
     private final CastType kind;
 
     public enum CastType {
@@ -31,10 +41,12 @@ public final class CheckCast extends AbstractValue implements CastValue {
         }
     }
 
-    CheckCast(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, final Value narrowInput, ReferenceType type, CastType kind) {
+    CheckCast(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, final Value toType,
+              final Value toDimensions, CastType kind, ReferenceType type) {
         super(callSite, element, line, bci);
         this.input = input;
-        this.narrowInput = narrowInput;
+        this.toType = toType;
+        this.toDimensions = toDimensions;
         this.type = type;
         this.kind = kind;
     }
@@ -43,8 +55,12 @@ public final class CheckCast extends AbstractValue implements CastValue {
         return input;
     }
 
-    public Value getNarrowInput() {
-        return narrowInput;
+    public Value getToType() {
+        return toType;
+    }
+
+    public Value getToDimensions() {
+        return toDimensions;
     }
 
     public ReferenceType getType() {
@@ -56,11 +72,16 @@ public final class CheckCast extends AbstractValue implements CastValue {
     }
 
     public int getValueDependencyCount() {
-        return 2;
+        return 3;
     }
 
     public Value getValueDependency(final int index) throws IndexOutOfBoundsException {
-        return index == 0 ? input : index == 1 ? narrowInput : Util.throwIndexOutOfBounds(index);
+        switch(index) {
+            case 0: return input;
+            case 1: return toType;
+            case 2: return toDimensions;
+            default: return Util.throwIndexOutOfBounds(index);
+        }
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
@@ -68,7 +89,7 @@ public final class CheckCast extends AbstractValue implements CastValue {
     }
 
     int calcHashCode() {
-        return Objects.hash(CheckCast.class, input, narrowInput, kind, type);
+        return Objects.hash(CheckCast.class, input, toType, toDimensions, kind, type);
     }
 
     public boolean equals(final Object other) {
@@ -78,7 +99,8 @@ public final class CheckCast extends AbstractValue implements CastValue {
     public boolean equals(final CheckCast other) {
         return this == other || other != null
             && input.equals(other.input)
-            && narrowInput.equals(other.narrowInput)
+            && toType.equals(other.toType)
+            && toDimensions.equals(other.toDimensions)
             && kind.equals(other.kind)
             && type.equals(other.type);
     }

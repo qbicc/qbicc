@@ -41,6 +41,7 @@ import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.Values;
 import cc.quarkus.qcc.machine.llvm.impl.LLVM;
 import cc.quarkus.qcc.plugin.layout.Layout;
+import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.CompoundType;
@@ -48,9 +49,7 @@ import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.PhysicalObjectType;
 import cc.quarkus.qcc.type.PointerType;
-import cc.quarkus.qcc.type.PrimitiveArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.Type;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -330,7 +329,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
 
     public LLValue visit(Void param, TypeLiteral node) {
         ObjectType type = (ObjectType)node.getValue();
-        if  (type instanceof PrimitiveArrayObjectType) {
+        if  (type instanceof ArrayObjectType) {
             return Values.intConstant(Layout.get(ctxt).getArrayContentField(type).getEnclosingType().validate().getTypeId());
         } else {
             return Values.intConstant(type.getDefinition().validate().getTypeId());

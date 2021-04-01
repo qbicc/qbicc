@@ -1,10 +1,13 @@
 package cc.quarkus.qcc.plugin.instanceofcheckcast;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
 
@@ -302,6 +305,10 @@ public class SupersDisplayTables {
         });
     }
 
+    public int getFirstInterfaceTypeId() {
+        return idAndRange.first_interface_typeid;
+    }
+
     int getNumberOfInterfacesInTypeIds() {
         // + 10 to handle poisioned 0 entry and the 8 prims and void
         return typeids.size() - idAndRange.first_interface_typeid + 10;
@@ -314,7 +321,19 @@ public class SupersDisplayTables {
 
     byte[] getImplementedInterfaceBits(ValidatedTypeDefinition cls) {
         byte[] setBits = new byte[getNumberOfBytesInInterfaceBitsArray()];
-        for (ValidatedTypeDefinition i : cls.getInterfaces()) {
+        ArrayDeque<ValidatedTypeDefinition> worklist = new ArrayDeque<>();
+        if (cls.isInterface()) {
+            worklist.add(cls);
+        } else {
+            ValidatedTypeDefinition cur = cls;
+            while (cur != null) {
+                worklist.addAll(List.of(cur.getInterfaces()));
+                cur = cur.getSuperClass();
+            }
+        }
+        while (!worklist.isEmpty()) {
+            ValidatedTypeDefinition i = worklist.pop();
+            worklist.addAll(List.of(i.getInterfaces()));
             IdAndRange idRange = typeids.get(i);
             if (idRange != null) {
                 int index = idRange.implementedInterfaceByteIndex();

@@ -17,6 +17,10 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
     
     @Override
     public void accept(CompilationContext ctxt) {
+        // NOTE: CoreIntrinsics.registerCcQuarkusQccObjectModelIntrinsics depends on the exact order
+        //       in which typeIds are assigned to implement intrinsics is_class, is_interface, and is_prim_array.
+        //       If any changes are made in the order here, the implementation of those primitives must be updated!
+
         RTAInfo info = RTAInfo.get(ctxt);
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
         // Starting from java.lang.Object walk down the live class hierarchy and
@@ -69,7 +73,7 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
 
         // back propagate max subclass typeid
         info.visitLiveSubclassesPostOrder(jlo, tables::assignMaximumSubtypeId);
-        
+
         // visit all interfaces implemented as determined by the RTAInfo
         info.visitLiveInterfaces(tables::assignInterfaceId);
 

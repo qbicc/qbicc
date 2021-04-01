@@ -59,6 +59,16 @@ public class ObjectModel {
     public static native boolean is_java_lang_object(CNative.type_id typeId);
 
     /**
+     * Is the argument typeId the typeId for java.lang.Cloneable?
+     */
+    public static native boolean is_java_lang_cloneable(CNative.type_id typeId);
+
+    /**
+     * Is the argument typeId the typeId for java.io.Serializable?
+     */
+    public static native boolean is_java_io_serializable(CNative.type_id typeId);
+
+    /**
      * Is the argument typeId the typeId of a Class?
      */
     public static native boolean is_class(CNative.type_id typeId);

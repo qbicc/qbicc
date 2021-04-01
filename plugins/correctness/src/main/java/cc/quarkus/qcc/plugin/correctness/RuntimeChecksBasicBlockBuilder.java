@@ -3,6 +3,7 @@ package cc.quarkus.qcc.plugin.correctness;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.driver.Phase;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockEarlyTermination;
@@ -21,6 +22,8 @@ import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.ValueHandleVisitor;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.plugin.intrinsics.Intrinsics;
+import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.IntegerType;
@@ -84,7 +87,8 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Node invokeStatic(MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+            null == Intrinsics.get(ctxt).getStaticIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
             throwUnsatisfiedLinkError();
             return nop();
         }
@@ -97,7 +101,8 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Value invokeValueStatic(MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+            null == Intrinsics.get(ctxt).getStaticValueIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
             throwUnsatisfiedLinkError();
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
@@ -110,7 +115,8 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+            null == Intrinsics.get(ctxt).getInstanceIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
             throwUnsatisfiedLinkError();
             return nop();
         }
@@ -130,7 +136,8 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+            null == Intrinsics.get(ctxt).getInstanceValueIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
             throwUnsatisfiedLinkError();
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
@@ -244,8 +251,9 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (arrayType instanceof ArrayObjectType) {
                     indexOutOfBoundsCheck(arrayHandle, node.getIndex());
                     if (arrayType instanceof ReferenceArrayObjectType && storedValue != null) {
-                        return checkcast(storedValue, ((ReferenceHandle)arrayHandle).getReferenceValue(),
-                            CheckCast.CastType.ArrayStore, ((ReferenceArrayObjectType) arrayType).getElementType());
+                        Value toTypeId = load(instanceFieldOf(arrayHandle, Layout.get(ctxt).getRefArrayElementTypeIdField()), MemoryAtomicityMode.UNORDERED);
+                        Value toDimensions = ctxt.getLiteralFactory().literalOf(((ReferenceArrayObjectType) arrayType).getDimensionCount() - 1);
+                        return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, ((ReferenceArrayObjectType) arrayType).getElementType());
                     }
                 }
                 return null;

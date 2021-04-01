@@ -29,7 +29,7 @@ public final class VMHelpers {
     }
 
     public static void arrayStoreCheck(Object value, type_id toTypeId, int toDimensions) {
-        if (value == null || isAssignableTo(value, toTypeId, toDimensions - 1)) {
+        if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
         }
         raiseArrayStoreException();
@@ -50,21 +50,23 @@ public final class VMHelpers {
 
     // Invariant: value is not null
     private static boolean isAssignableTo(Object value, type_id toTypeId, int toDimensions) {
+        type_id valueTypeId = ObjectModel.type_id_of(value);
         if (toDimensions == 0) {
-            return isAssignableToLeaf(ObjectModel.type_id_of(value), toTypeId);
-        } else if (ObjectModel.is_reference_array(ObjectModel.type_id_of(value))) {
+            return isAssignableToLeaf(valueTypeId, toTypeId);
+        } else if (ObjectModel.is_reference_array(valueTypeId)) {
             int valueDims = ObjectModel.dimensions_of(value);
             if (valueDims == toDimensions) {
-                type_id valueElemTypeId = ObjectModel.element_type_id_of(value);
-                return isAssignableToLeaf(valueElemTypeId, toTypeId);
+                return isAssignableToLeaf(ObjectModel.element_type_id_of(value), toTypeId);
             } else if (valueDims > toDimensions) {
-                return ObjectModel.is_java_lang_object(toTypeId);
+                return ObjectModel.is_java_lang_object(toTypeId) ||
+                    ObjectModel.is_java_io_serializable(toTypeId) ||
+                    ObjectModel.is_java_lang_cloneable(toTypeId);
             }
         }
         return false;
     }
 
-    private static final boolean isAssignableToLeaf(type_id valueTypeId, type_id toTypeId) {
+    private static boolean isAssignableToLeaf(type_id valueTypeId, type_id toTypeId) {
         if (ObjectModel.is_class(toTypeId)) {
             type_id maxTypeId = ObjectModel.max_subclass_type_id_of(toTypeId);
             return toTypeId.intValue() <= valueTypeId.intValue() && valueTypeId.intValue() <= maxTypeId.intValue();
@@ -134,6 +136,11 @@ public final class VMHelpers {
     // TODO: mark this with a "NoInline" annotation
     static void raiseArrayStoreException() {
         throw new ArrayStoreException();
+    }
+
+    // TODO: mark this with a "NoInline" annotation
+    static void raiseClassCastException() {
+        throw new ClassCastException();
     }
 
     // TODO: mark this with a "NoInline" annotation

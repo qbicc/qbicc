@@ -800,7 +800,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
-        addEdge(param, node, node.getNarrowInput(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getToType(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getToDimensions(), EdgeType.VALUE_DEPENDENCY);
         dependencyList.add(name);
         return name;
     }

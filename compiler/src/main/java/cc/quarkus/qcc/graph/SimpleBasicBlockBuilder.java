@@ -11,6 +11,7 @@ import java.util.Set;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
@@ -327,28 +328,28 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Convert(callSite, element, line, bci, value, toType);
     }
 
-    public Value instanceOf(final Value input, final ObjectType expectedType) {
-        return new InstanceOf(callSite, element, line, bci, input, expectedType, typeSystem.getBooleanType());
+    public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {
+        return new InstanceOf(callSite, element, line, bci, input, expectedType, expectedDimensions, typeSystem.getBooleanType());
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
         throw new IllegalStateException("InstanceOf of unresolved type");
     }
 
-    public Value checkcast(final Value value, final Value narrowInput, final CheckCast.CastType kind, final ReferenceType toType) {
+    public Value checkcast(final Value value, final Value toType, final Value toDimensions, final CheckCast.CastType kind, final ReferenceType type) {
         ValueType inputType = value.getType();
-        ReferenceType outputType;
+        ReferenceType outputType = type;
         if (inputType instanceof ReferenceType) {
-            outputType = toType.meet((ReferenceType) inputType);
+            outputType = type.meet((ReferenceType) inputType);
             if (outputType == null) {
                 CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
-                ctxt.error(getLocation(), "Invalid narrow from %s to %s", inputType, toType);
-                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toType);
+                ctxt.warning(getLocation(), "Invalid narrow from %s to %s compiled to raiseCCE()", inputType, type);
+                MethodElement helper = ctxt.getVMHelperMethod("raiseClassCastException");
+                invokeStatic(helper, List.of());
+                throw new BlockEarlyTermination(unreachable());
             }
-        } else {
-            outputType = toType;
         }
-        return new CheckCast(callSite, element, line, bci, value, narrowInput, outputType, kind);
+        return new CheckCast(callSite, element, line, bci, value, toType, toDimensions, kind, outputType);
     }
 
     public Value checkcast(final Value value, final TypeDescriptor desc) {

@@ -54,6 +54,7 @@ public final class Layout {
     private final CompilationContext ctxt;
     private final FieldElement objectTypeIdField;
     private final FieldElement classTypeIdField;
+    private final FieldElement classDimensionField;
 
     private final FieldElement arrayLengthField;
 
@@ -107,6 +108,19 @@ public final class Layout {
         jlc.injectField(field);
         classTypeIdField = field;
 
+        // now inject a field of int into Class to hold the corresponding run time dimensionality
+        // TODO: This could be a 8 bit unsigned field.  It is being generated as an i32 currently.
+        builder = FieldElement.builder();
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
+        builder.setName("dimension");
+        builder.setEnclosingType(jlcDef);
+        builder.setDescriptor(BaseTypeDescriptor.I);
+        builder.setSignature(BaseTypeSignature.I);
+        builder.setType(ctxt.getTypeSystem().getSignedInteger32Type());
+        field = builder.build();
+        jlc.injectField(field);
+        classDimensionField = field;
+
         // now define classes for arrays
         // todo: assign special type ID values to array types
         TypeSystem ts = classContext.getTypeSystem();
@@ -118,10 +132,13 @@ public final class Layout {
         ClassTypeSignature superClassSig = (ClassTypeSignature) TypeSignature.synthesize(classContext, jlo.getDescriptor());
         typeBuilder.setSignature(ClassSignature.synthesize(classContext, superClassSig, List.of()));
         typeBuilder.setSuperClassName("java/lang/Object");
-        typeBuilder.setSimpleName("base array type");
+        typeBuilder.expectInterfaceNameCount(2);
+        typeBuilder.addInterfaceName("java/lang/Cloneable");
+        typeBuilder.addInterfaceName("java/io/Serializable");
+        typeBuilder.setSimpleName("base_array_type");
         typeBuilder.setContext(classContext);
         typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_HIDDEN);
-        typeBuilder.setName("base array type");
+        typeBuilder.setName("base_array_type");
         typeBuilder.addField(Layout::makeLengthField, 0);
         typeBuilder.setInitializer(EMPTY_INIT, 0);
         DefinedTypeDefinition baseType = typeBuilder.build();
@@ -330,6 +347,10 @@ public final class Layout {
      */
     public FieldElement getClassTypeIdField() {
         return classTypeIdField;
+    }
+
+    public FieldElement getClassDimensionField() {
+        return classDimensionField;
     }
 
     public FieldElement getArrayLengthField() {

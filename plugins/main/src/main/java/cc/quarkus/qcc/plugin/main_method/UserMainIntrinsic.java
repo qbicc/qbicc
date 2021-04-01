@@ -3,6 +3,7 @@ package cc.quarkus.qcc.plugin.main_method;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.driver.Phase;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
@@ -35,6 +36,6 @@ public class UserMainIntrinsic implements StaticIntrinsic {
         TypeDescriptor runtimeMainDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/Main");
         MethodDescriptor runtimeMainMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V,
             List.of(ClassTypeDescriptor.synthesize(classContext, "java/lang/String")));
-        intrinsics.registerIntrinsic(runtimeMainDesc, "userMain", runtimeMainMethodDesc, new UserMainIntrinsic(mainMethod));
+        intrinsics.registerIntrinsic(Phase.ADD, runtimeMainDesc, "userMain", runtimeMainMethodDesc, new UserMainIntrinsic(mainMethod));
     }
 }
