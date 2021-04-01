@@ -16,15 +16,15 @@ public final class NoGcHelpers {
 
     public static ptr<?> allocate(long size, int align) {
         if (false && Build.Target.isPosix()) {
-            ptr<ptr<?>> ptr = alloca(sizeof(ptr.class));
-            c_int res = posix_memalign(ptr, word((long)align), word(size));
+            void_ptr ptr = auto();
+            c_int res = posix_memalign(addr_of(ptr), word((long)align), word(size));
             if (res.intValue() != 0) {
                 // todo: read errno
                 throw new OutOfMemoryError(/*"Allocation failed"*/);
             }
-            return ptr.deref();
+            return ptr;
         } else {
-            ptr<c_char> ptr = malloc(word(size + align));
+            char_ptr ptr = malloc(word(size + align));
             if (ptr.isNull()) {
                 throw new OutOfMemoryError(/*"Allocation failed"*/);
             }
@@ -38,9 +38,9 @@ public final class NoGcHelpers {
         }
     }
 
-    public static ptr<?> zero(ptr<?> ptr, long size) { return memset(ptr, word(0), word(size)); }
+    public static void_ptr clear(void_ptr ptr, long size) { return memset(ptr, word(0), word(size)); }
 
-    public static void copy(ptr<?> to, ptr<@c_const ?> from, long size) {
+    public static void copy(void_ptr to, const_void_ptr from, long size) {
         memcpy(to, from, word(size));
     }
 }

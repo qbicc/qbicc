@@ -22,7 +22,7 @@ public final class Errno {
     }
 
     public static final class GLibCErrnoAccessor implements Accessor<c_int> {
-        private static native ptr<c_int> __errno_location();
+        private static native int_ptr __errno_location();
 
         public c_int get() {
             return __errno_location().deref();
@@ -34,7 +34,7 @@ public final class Errno {
     }
 
     public static final class MacOsErrnoAccessor implements Accessor<c_int> {
-        private static native ptr<c_int> __error();
+        private static native int_ptr __error();
 
         public c_int get() {
             return __error().deref();
@@ -46,7 +46,7 @@ public final class Errno {
     }
 
     public static final class AixErrnoAccessor implements Accessor<c_int> {
-        private static native ptr<c_int> _Errno();
+        private static native int_ptr _Errno();
 
         public c_int get() {
             return _Errno().deref();

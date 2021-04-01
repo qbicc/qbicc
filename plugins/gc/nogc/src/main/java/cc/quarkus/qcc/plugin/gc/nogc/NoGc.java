@@ -36,7 +36,7 @@ public final class NoGc {
             throw methodMissing();
         }
         copyMethod = loaded.getMethod(index);
-        index = loaded.findMethodIndex(e -> e.getName().equals("zero"));
+        index = loaded.findMethodIndex(e -> e.getName().equals("clear"));
         if (index == -1) {
             throw methodMissing();
         }
