@@ -18,6 +18,7 @@ import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.ReferenceArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
@@ -79,6 +80,9 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         } else if (castType instanceof WordType) {
             // A checkcast in the bytecodes, but it is actually a WordType coming from some native magic...just bitcast it.
             return bitCast(value, (WordType) castType);
+        } else if (value.getType() instanceof PointerType && castType instanceof ArrayType) {
+            // narrowing a pointer to an array is actually an array view of a pointer
+            return value;
         }
         throw Assert.unreachableCode();
     }
