@@ -42,5 +42,11 @@ public final class TestConstants {
                     .toString();
 
 
+    public static final String QCCRT_POSIX_JAR =
+            Path.of(System.getProperty("user.home"),
+                    ".m2", "repository", "cc", "quarkus", "qcc-runtime-posix", "1.0.0-SNAPSHOT", "qcc-runtime-posix-1.0.0-SNAPSHOT.jar")
+                    .toString();
+
+
 
 }

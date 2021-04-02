@@ -5,8 +5,7 @@ public class MathMinMax {
     @extern
     public static native int putchar(int arg);
 
-    @export
-    public static int main() {
+    public static void main(String[] args) {
         int i1 = 1;
         int i2 = 2147483647;
         int ib1 = Math.min(i1, i2);
@@ -34,11 +33,5 @@ public class MathMinMax {
         putchar(db1 == 1 ? 'X' : 'F');
         double db2 = Math.max(d1, d2);
         putchar(db2 == 1.7976931348623157E308 ? 'X' : 'F');
-
-        return 0;
-    }
-
-    public static void main(String[] args) {
-        // make driver happy
     }
 }

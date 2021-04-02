@@ -357,7 +357,9 @@ public final class CNative {
         return word(doubleValue);
     }
 
-    public static native void copy(int8_t_ptr dest, byte[] src, int srcOff, int len);
+    public static void copy(int8_t_ptr dest, byte[] src, int srcOff, int len) {
+        memcpy(dest.cast(), addr_of(src[srcOff]).cast(), word((long)len));
+    }
 
     public static native void copy(int16_t_ptr dest, short[] src, int srcOff, int len);
 
@@ -367,7 +369,9 @@ public final class CNative {
 
     public static native void copy(uint16_t_ptr dest, char[] src, int srcOff, int len);
 
-    public static native void copy(byte[] dest, int destOff, int destLen, const_int8_t_ptr src);
+    public static void copy(byte[] dest, int destOff, int destLen, const_int8_t_ptr src) {
+        memcpy(addr_of(dest[destOff]).cast(), src.cast(), word((long)destLen));
+    }
 
     public static native void copy(short[] dest, int destOff, int destLen, const_int16_t_ptr src);
 
@@ -414,8 +418,9 @@ public final class CNative {
      * Attach to a thread which is created and started.  Only call if there is no currently attached thread.
      *
      * @param name the name of the new thread
+     * @param threadGroup the thread group to use
      */
-    public static native void attachNewThread(String name);
+    public static native void attachNewThread(String name, ThreadGroup threadGroup);
 
     /**
      * Reattach to the given running thread (used for native-to-Java call-ins).  The thread must be reattached from

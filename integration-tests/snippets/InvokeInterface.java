@@ -21,20 +21,6 @@ public class InvokeInterface {
 
     static I alloc() { return new C(); }
 
-    @export
-    public static int main() {
-        I it = alloc();
-        int a = it.m1();
-        int b = it.m2();
-        if (a == 60 && b == 20) {
-            reportSuccess();
-            return 0;
-        } else {
-            reportFailure();
-            return 1;
-        }
-    }
-
     static void reportSuccess() {
         putchar('P');
         putchar('A');
@@ -52,6 +38,13 @@ public class InvokeInterface {
     }
 
     public static void main(String[] args) {
-        main();
+        I it = alloc();
+        int a = it.m1();
+        int b = it.m2();
+        if (a == 60 && b == 20) {
+            reportSuccess();
+        } else {
+            reportFailure();
+        }
     }
 }

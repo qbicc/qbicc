@@ -76,16 +76,11 @@ public class Arrays {
         return 0;
     }
 
-    @export
-    public static int main() {
+    public static void main(String[] args) {
         int failCount = 0;
         failCount += validate1(test1());
         failCount += validate2(test2(10,10));
         failCount += validate3(test3(10,10));
         putchar('\n');
-        return failCount;
-    }
-
-    public static void main(String[] args) {
     }
 }
