@@ -7,8 +7,10 @@ import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.PhiValue;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.literal.FloatLiteral;
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.IntegerType;
@@ -147,6 +149,9 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
         if (fromTypeRaw.equals(toType)) {
             // no bitcast needed
             return from;
+        }
+        if (from instanceof ZeroInitializerLiteral || from instanceof IntegerLiteral && ((IntegerLiteral) from).isZero()) {
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toType);
         }
         if (fromTypeRaw instanceof WordType) {
             WordType fromType = (WordType) fromTypeRaw;
