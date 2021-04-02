@@ -127,6 +127,13 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.staticField(field);
     }
 
+    @Override
+    public Value classOf(Value typeId) {
+        MethodElement methodElement = ctxt.getVMHelperMethod("classof_from_typeid");
+        ctxt.enqueue(methodElement);
+        return super.classOf(typeId);
+    }
+
     private void processInstantiatedClass(final ValidatedTypeDefinition type, boolean directlyInstantiated, boolean arrayElement) {
         RTAInfo info = RTAInfo.get(ctxt);
         if (!info.isLiveClass(type)) {
