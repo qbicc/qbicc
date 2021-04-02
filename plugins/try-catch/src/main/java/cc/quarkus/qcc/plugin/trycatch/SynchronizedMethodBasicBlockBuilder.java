@@ -36,7 +36,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
         if (element.isStatic()) {
             monitor = classOf(ctxt.getLiteralFactory().literalOfType(enclosing.validate().getType()));
         } else {
-            monitor = parameter(enclosing.validate().getType(), "this", 0);
+            monitor = parameter(enclosing.validate().getType().getReference().asNullable(), "this", 0);
         }
         throwable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Throwable").validate().getClassType().getReference();
     }
