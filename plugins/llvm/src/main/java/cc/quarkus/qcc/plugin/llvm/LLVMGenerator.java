@@ -139,7 +139,10 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                 }
             }
             try {
-                Files.createDirectories(outputFile.getParent());
+                Path parent = outputFile.getParent();
+                if (! Files.exists(parent)) {
+                    Files.createDirectories(parent);
+                }
                 try (BufferedWriter writer = Files.newBufferedWriter(outputFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
                     module.writeTo(writer);
                 }

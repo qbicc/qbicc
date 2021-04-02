@@ -10,6 +10,7 @@ import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import cc.quarkus.qcc.context.CompilationContext;
@@ -120,6 +121,27 @@ public class Main implements Callable<DiagnosticContext> {
     }
 
     public DiagnosticContext call() {
+        AtomicReference<DiagnosticContext> ref = new AtomicReference<>();
+        Thread compilerThread = new Thread(Thread.currentThread().getThreadGroup(), () -> {
+            ref.set(call0());
+        }, "Compiler thread", 64L * 1024 * 1024);
+        compilerThread.start();
+        boolean intr = false;
+        try {
+            for (;;) try {
+                compilerThread.join();
+                return ref.get();
+            } catch (InterruptedException ex) {
+                intr = true;
+            }
+        } finally {
+            if (intr) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    DiagnosticContext call0() {
         final BaseDiagnosticContext initialContext = new BaseDiagnosticContext();
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);

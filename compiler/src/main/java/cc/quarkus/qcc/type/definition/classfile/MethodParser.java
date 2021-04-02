@@ -530,6 +530,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_ALOAD_3:
                         push1(getLocal(opcode - OP_ALOAD_0));
                         break;
+                    case OP_AALOAD: {
+                        v2 = pop1();
+                        v1 = pop1();
+                        v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
+                        push1(v1);
+                        break;
+                    }
                     case OP_DALOAD:
                     case OP_LALOAD: {
                         v2 = pop1();
@@ -539,7 +546,6 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     }
                     case OP_IALOAD:
-                    case OP_AALOAD:
                     case OP_FALOAD:
                     case OP_BALOAD:
                     case OP_SALOAD:

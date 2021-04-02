@@ -11,6 +11,7 @@ import cc.quarkus.qcc.plugin.intrinsics.Intrinsics;
 import cc.quarkus.qcc.plugin.intrinsics.StaticIntrinsic;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
@@ -35,7 +36,7 @@ public class UserMainIntrinsic implements StaticIntrinsic {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         TypeDescriptor runtimeMainDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/Main");
         MethodDescriptor runtimeMainMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V,
-            List.of(ClassTypeDescriptor.synthesize(classContext, "java/lang/String")));
+            List.of(ArrayTypeDescriptor.of(classContext, ClassTypeDescriptor.synthesize(classContext, "java/lang/String"))));
         intrinsics.registerIntrinsic(Phase.ADD, runtimeMainDesc, "userMain", runtimeMainMethodDesc, new UserMainIntrinsic(mainMethod));
     }
 }
