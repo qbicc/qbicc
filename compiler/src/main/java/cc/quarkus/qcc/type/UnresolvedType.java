@@ -20,6 +20,11 @@ public final class UnresolvedType extends ValueType {
         return 0;
     }
 
+    @Override
+    public boolean equals(ValueType other) {
+        return this == other;
+    }
+
     public StringBuilder toFriendlyString(final StringBuilder b) {
         return b.append("unresolved");
     }

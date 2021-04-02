@@ -86,4 +86,13 @@ public abstract class ObjectType extends ValueType {
     public boolean isSupertypeOf(ObjectType other) {
         return other.isSubtypeOf(this);
     }
+
+    @Override
+    public final boolean equals(ValueType other) {
+        return other instanceof ObjectType && equals((ObjectType) other);
+    }
+
+    public boolean equals(ObjectType other) {
+        return super.equals(other);
+    }
 }

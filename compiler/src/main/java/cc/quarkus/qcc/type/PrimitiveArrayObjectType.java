@@ -38,4 +38,13 @@ public final class PrimitiveArrayObjectType extends ArrayObjectType {
     public StringBuilder toFriendlyString(final StringBuilder b) {
         return elementType.toFriendlyString(b.append("prim_array").append('.'));
     }
+
+    @Override
+    public final boolean equals(ObjectType other) {
+        return other instanceof PrimitiveArrayObjectType && equals((PrimitiveArrayObjectType) other);
+    }
+
+    public boolean equals(PrimitiveArrayObjectType other) {
+        return super.equals(other) && elementType.equals(other.elementType);
+    }
 }

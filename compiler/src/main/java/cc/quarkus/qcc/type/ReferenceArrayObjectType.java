@@ -74,4 +74,13 @@ public final class ReferenceArrayObjectType extends ArrayObjectType {
     public StringBuilder toFriendlyString(final StringBuilder b) {
         return elementType.toFriendlyString(b.append("ref_array").append('.'));
     }
+
+    @Override
+    public final boolean equals(ObjectType other) {
+        return other instanceof ReferenceArrayObjectType && equals((ReferenceArrayObjectType) other);
+    }
+
+    public boolean equals(ReferenceArrayObjectType other) {
+        return super.equals(other) && elementType.equals(other.elementType);
+    }
 }
