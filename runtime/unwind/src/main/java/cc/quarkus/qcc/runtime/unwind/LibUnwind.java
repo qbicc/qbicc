@@ -11,19 +11,43 @@ import static cc.quarkus.qcc.runtime.CNative.*;
 public final class LibUnwind {
     private LibUnwind() {}
 
-    public static native c_int unw_getcontext(ptr<unw_context_t> context_ptr);
-    public static native c_int unw_init_local(ptr<unw_cursor_t> cursor, ptr<unw_context_t> context_ptr);
-    public static native c_int unw_step(ptr<unw_cursor_t> cursor);
-    public static native c_int unw_get_reg(ptr<unw_cursor_t> cursor, unw_regnum_t reg, ptr<unw_word_t> output);
-    public static native c_int unw_set_reg(ptr<unw_cursor_t> cursor, unw_regnum_t reg, unw_word_t value);
-    public static native c_int unw_resume(ptr<unw_cursor_t> cursor);
-    public static native c_int unw_get_proc_info(ptr<unw_cursor_t> cursor, ptr<unw_proc_info_t> info);
-    public static native c_int unw_is_signal_frame(ptr<unw_cursor_t> cursor);
+    public static native c_int unw_getcontext(unw_context_t_ptr context_ptr);
+    public static native c_int unw_init_local(unw_cursor_t_ptr cursor, unw_context_t_ptr context_ptr);
+    public static native c_int unw_step(unw_cursor_t_ptr cursor);
+    public static native c_int unw_get_reg(unw_cursor_t_ptr cursor, unw_regnum_t reg, unw_word_t_ptr output);
+    public static native c_int unw_set_reg(unw_cursor_t_ptr cursor, unw_regnum_t reg, unw_word_t value);
+    public static native c_int unw_resume(unw_cursor_t_ptr cursor);
+    public static native c_int unw_get_proc_info(unw_cursor_t_ptr cursor, unw_proc_info_t_ptr info);
+    public static native c_int unw_is_signal_frame(unw_cursor_t_ptr cursor);
 
     public static final class unw_context_t extends object {}
+
+    public static final class unw_context_t_ptr extends ptr<unw_context_t> {}
+    public static final class const_unw_context_t_ptr extends ptr<@c_const unw_context_t> {}
+    public static final class unw_context_t_ptr_ptr extends ptr<unw_context_t_ptr> {}
+    public static final class const_unw_context_t_ptr_ptr extends ptr<const_unw_context_t_ptr> {}
+    public static final class unw_context_t_ptr_const_ptr extends ptr<@c_const unw_context_t_ptr> {}
+    public static final class const_unw_context_t_ptr_const_ptr extends ptr<@c_const const_unw_context_t_ptr> {}
+
     public static final class unw_cursor_t extends object {}
+
+    public static final class unw_cursor_t_ptr extends ptr<unw_cursor_t> {}
+    public static final class const_unw_cursor_t_ptr extends ptr<@c_const unw_cursor_t> {}
+    public static final class unw_cursor_t_ptr_ptr extends ptr<unw_cursor_t_ptr> {}
+    public static final class const_unw_cursor_t_ptr_ptr extends ptr<const_unw_cursor_t_ptr> {}
+    public static final class unw_cursor_t_ptr_const_ptr extends ptr<@c_const unw_cursor_t_ptr> {}
+    public static final class const_unw_cursor_t_ptr_const_ptr extends ptr<@c_const const_unw_cursor_t_ptr> {}
+
     public static final class unw_addr_space_t extends object {}
     public static final class unw_word_t extends word {}
+
+    public static final class unw_word_t_ptr extends ptr<unw_word_t> {}
+    public static final class const_unw_word_t_ptr extends ptr<@c_const unw_word_t> {}
+    public static final class unw_word_t_ptr_ptr extends ptr<unw_word_t_ptr> {}
+    public static final class const_unw_word_t_ptr_ptr extends ptr<const_unw_word_t_ptr> {}
+    public static final class unw_word_t_ptr_const_ptr extends ptr<@c_const unw_word_t_ptr> {}
+    public static final class const_unw_word_t_ptr_const_ptr extends ptr<@c_const const_unw_word_t_ptr> {}
+
     public static final class unw_regnum_t extends word {}
 
     public static final class unw_proc_info_t extends object {
@@ -35,8 +59,15 @@ public final class LibUnwind {
         public unw_word_t flags;
         public c_int format;
         public c_int unwind_info_size;
-        public ptr<?> unwind_info;
+        public void_ptr unwind_info;
     }
+
+    public static final class unw_proc_info_t_ptr extends ptr<unw_proc_info_t> {}
+    public static final class const_unw_proc_info_t_ptr extends ptr<@c_const unw_proc_info_t> {}
+    public static final class unw_proc_info_t_ptr_ptr extends ptr<unw_proc_info_t_ptr> {}
+    public static final class const_unw_proc_info_t_ptr_ptr extends ptr<const_unw_proc_info_t_ptr> {}
+    public static final class unw_proc_info_t_ptr_const_ptr extends ptr<@c_const unw_proc_info_t_ptr> {}
+    public static final class const_unw_proc_info_t_ptr_const_ptr extends ptr<@c_const const_unw_proc_info_t_ptr> {}
 
     public static final unw_regnum_t UNW_REG_IP = constant();
     public static final unw_regnum_t UNW_REG_SP = constant();

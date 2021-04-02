@@ -11,5 +11,5 @@ import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
 public final class Stdlib {
     // heap
 
-    public static native c_int posix_memalign(ptr<ptr<?>> memPtr, size_t alignment, size_t size);
+    public static native c_int posix_memalign(void_ptr_ptr memPtr, size_t alignment, size_t size);
 }

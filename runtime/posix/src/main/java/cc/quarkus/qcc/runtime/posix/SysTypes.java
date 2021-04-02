@@ -21,12 +21,27 @@ public final class SysTypes {
     public static final class off_t extends word {
     }
 
+    public static final class off_t_ptr extends ptr<off_t> {}
+    public static final class const_off_t_ptr extends ptr<@c_const off_t> {}
+    public static final class off_t_ptr_ptr extends ptr<off_t_ptr> {}
+    public static final class const_off_t_ptr_ptr extends ptr<const_off_t_ptr> {}
+    public static final class off_t_ptr_const_ptr extends ptr<@c_const off_t_ptr> {}
+    public static final class const_off_t_ptr_const_ptr extends ptr<@c_const const_off_t_ptr> {}
+
+
     @define(LARGEFILE64_SOURCE)
     public static final class off64_t extends word {
     }
 
     public static final class loff_t extends word {
     }
+
+    public static final class loff_t_ptr extends ptr<loff_t> {}
+    public static final class const_loff_t_ptr extends ptr<@c_const loff_t> {}
+    public static final class loff_t_ptr_ptr extends ptr<loff_t_ptr> {}
+    public static final class const_loff_t_ptr_ptr extends ptr<const_loff_t_ptr> {}
+    public static final class loff_t_ptr_const_ptr extends ptr<@c_const loff_t_ptr> {}
+    public static final class const_loff_t_ptr_const_ptr extends ptr<@c_const const_loff_t_ptr> {}
 
     public static final class uid_t extends word {
     }

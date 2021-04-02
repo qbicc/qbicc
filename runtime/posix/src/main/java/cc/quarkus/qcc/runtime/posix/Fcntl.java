@@ -9,13 +9,13 @@ import static cc.quarkus.qcc.runtime.posix.SysTypes.*;
 @define(value = "_POSIX_C_SOURCE", as = "200809L")
 @include("<fcntl.h>")
 public class Fcntl {
-    public static native c_int open(ptr<@c_const c_char> pathname, c_int flags);
+    public static native c_int open(const_char_ptr pathname, c_int flags);
 
-    public static native c_int open(ptr<@c_const c_char> pathname, c_int flags, mode_t mode);
+    public static native c_int open(const_char_ptr pathname, c_int flags, mode_t mode);
 
-    public static native c_int openat(c_int dirFd, ptr<@c_const c_char> pathname, c_int flags);
+    public static native c_int openat(c_int dirFd, const_char_ptr pathname, c_int flags);
 
-    public static native c_int openat(c_int dirFd, ptr<@c_const c_char> pathname, c_int flags, mode_t mode);
+    public static native c_int openat(c_int dirFd, const_char_ptr pathname, c_int flags, mode_t mode);
 
     public static final c_int O_CREAT = constant();
     public static final c_int O_EXCL = constant();

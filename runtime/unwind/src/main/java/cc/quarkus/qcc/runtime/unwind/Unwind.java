@@ -14,16 +14,16 @@ public final class Unwind {
     private Unwind() {
     }
 
-    public static native _Unwind_Reason_Code _Unwind_RaiseException(ptr<struct__Unwind_Exception> exception_object);
-    public static native void _Unwind_Resume(ptr<struct__Unwind_Exception> exception_object);
-    public static native void _Unwind_DeleteException(ptr<struct__Unwind_Exception> exception_object);
-    public static native uint64_t _Unwind_GetGR(ptr<struct__Unwind_Context> context, c_int index);
-    public static native void _Unwind_SetGR(ptr<struct__Unwind_Context> context, c_int index, uint64_t new_value);
-    public static native uint64_t _Unwind_GetIP(ptr<struct__Unwind_Context> context);
-    public static native void _Unwind_SetIP(ptr<struct__Unwind_Context> context, uint64_t new_value);
-    public static native uint64_t _Unwind_GetRegionStart(ptr<struct__Unwind_Context> context);
-    public static native uint64_t _Unwind_GetLanguageSpecificData(ptr<struct__Unwind_Context> context);
-    public static native _Unwind_Reason_Code _Unwind_ForcedUnwind(ptr<struct__Unwind_Exception> exception_object, ptr<function<_Unwind_Stop_Fn>> stop, ptr<?> stop_parameter);
+    public static native _Unwind_Reason_Code _Unwind_RaiseException(struct__Unwind_Exception_ptr exception_object);
+    public static native void _Unwind_Resume(struct__Unwind_Exception_ptr exception_object);
+    public static native void _Unwind_DeleteException(struct__Unwind_Exception_ptr exception_object);
+    public static native uint64_t _Unwind_GetGR(struct__Unwind_Context_ptr context, c_int index);
+    public static native void _Unwind_SetGR(struct__Unwind_Context_ptr context, c_int index, uint64_t new_value);
+    public static native uint64_t _Unwind_GetIP(struct__Unwind_Context_ptr context);
+    public static native void _Unwind_SetIP(struct__Unwind_Context_ptr context, uint64_t new_value);
+    public static native uint64_t _Unwind_GetRegionStart(struct__Unwind_Context_ptr context);
+    public static native uint64_t _Unwind_GetLanguageSpecificData(struct__Unwind_Context_ptr context);
+    public static native _Unwind_Reason_Code _Unwind_ForcedUnwind(struct__Unwind_Exception_ptr exception_object, function_ptr<_Unwind_Stop_Fn> stop, void_ptr stop_parameter);
 
     public static final class _Unwind_Reason_Code extends word {}
 
@@ -89,24 +89,40 @@ public final class Unwind {
         /**
          * The function which frees this object.
          */
-        public ptr<function<_Unwind_Exception_Cleanup_Fn>> exception_cleanup;
+        public function_ptr<_Unwind_Exception_Cleanup_Fn> exception_cleanup;
     }
+
+    public static final class struct__Unwind_Exception_ptr extends ptr<struct__Unwind_Exception> {}
+    public static final class const_struct__Unwind_Exception_ptr extends ptr<@c_const struct__Unwind_Exception> {}
+    public static final class struct__Unwind_Exception_ptr_ptr extends ptr<struct__Unwind_Exception_ptr> {}
+    public static final class const_struct__Unwind_Exception_ptr_ptr extends ptr<const_struct__Unwind_Exception_ptr> {}
+    public static final class struct__Unwind_Exception_ptr_const_ptr extends ptr<@c_const struct__Unwind_Exception_ptr> {}
+    public static final class const_struct__Unwind_Exception_ptr_const_ptr extends ptr<@c_const const_struct__Unwind_Exception_ptr> {}
 
     @FunctionalInterface
     public interface _Unwind_Exception_Cleanup_Fn {
-        void cleanup(_Unwind_Reason_Code reason, ptr<struct__Unwind_Exception> exc);
+        void cleanup(_Unwind_Reason_Code reason, struct__Unwind_Exception_ptr exc);
     }
 
     @incomplete
     public static final class struct__Unwind_Context extends object {}
 
+    public static final class struct__Unwind_Context_ptr extends ptr<struct__Unwind_Context> {}
+    public static final class const_struct__Unwind_Context_ptr extends ptr<@c_const struct__Unwind_Context> {}
+    public static final class struct__Unwind_Context_ptr_ptr extends ptr<struct__Unwind_Context_ptr> {}
+    public static final class const_struct__Unwind_Context_ptr_ptr extends ptr<const_struct__Unwind_Context_ptr> {}
+    public static final class struct__Unwind_Context_ptr_const_ptr extends ptr<@c_const struct__Unwind_Context_ptr> {}
+    public static final class const_struct__Unwind_Context_ptr_const_ptr extends ptr<@c_const const_struct__Unwind_Context_ptr> {}
+
+
+
     @FunctionalInterface
     public interface _Unwind_Stop_Fn {
-        _Unwind_Reason_Code run(c_int version, _Unwind_Action actions, uint64_t exception_class, ptr<struct__Unwind_Context> exception_object, ptr<struct__Unwind_Context> context, ptr<?> stop_parameter);
+        _Unwind_Reason_Code run(c_int version, _Unwind_Action actions, uint64_t exception_class, struct__Unwind_Context_ptr exception_object, struct__Unwind_Context_ptr context, void_ptr stop_parameter);
     }
 
     public static _Unwind_Reason_Code personality(c_int version, _Unwind_Action action, uint64_t exceptionClass,
-                                    ptr<struct__Unwind_Exception> exceptionObject, ptr<struct__Unwind_Context> context) {
+                                    struct__Unwind_Exception_ptr exceptionObject, struct__Unwind_Context_ptr context) {
         // TODO: This is just a stub.
         return _URC_CONTINUE_UNWIND;
     }

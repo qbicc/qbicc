@@ -30,7 +30,7 @@ public final class Main {
 
     @export
     @Detached
-    public static c_int main(c_int argc, ptr<c_char>[] argv) {
+    public static c_int main(c_int argc, char_ptr[] argv) {
 
         // first set up VM
         // ...

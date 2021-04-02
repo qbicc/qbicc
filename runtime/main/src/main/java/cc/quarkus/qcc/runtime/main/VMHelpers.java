@@ -95,18 +95,18 @@ public final class VMHelpers {
     static void monitorEnter(Object object) throws IllegalMonitorStateException {
         /* get native mutex associated with object, else atomically create a new one. */
         NativeObjectMonitor monitor = Main.objectMonitorNatives.computeIfAbsent(object, k -> {
-                ptr<pthread_mutexattr_t> attr = malloc(sizeof(pthread_mutexattr_t.class));
-                ptr<pthread_mutex_t> m = malloc(sizeof(pthread_mutex_t.class));
+                pthread_mutexattr_t_ptr attr = malloc(sizeof(pthread_mutexattr_t.class));
+                pthread_mutex_t_ptr m = malloc(sizeof(pthread_mutex_t.class));
                 omError(pthread_mutexattr_init(attr));
                 /* recursive lock allows for locking multiple times on the same thread. */
                 omError(pthread_mutexattr_settype(attr, PTHREAD_MUTEX_RECURSIVE));
-                omError(pthread_mutex_init(m, attr));
+                omError(pthread_mutex_init(m, attr.cast()));
                 omError(pthread_mutexattr_destroy(attr));
                 free(attr);
                 return new NativeObjectMonitor(m);
             }
         );
-        omError(pthread_mutex_lock(monitor.getPthreadMutex()));
+        omError(pthread_mutex_lock(monitor.getPthreadMutex().cast()));
     }
 
     // TODO: mark this with a "NoInline" annotation
@@ -115,7 +115,7 @@ public final class VMHelpers {
         if (null == monitor) {
             throw new IllegalMonitorStateException("monitor could not be found for monitorexit");
         }
-        omError(pthread_mutex_unlock(monitor.getPthreadMutex()));
+        omError(pthread_mutex_unlock(monitor.getPthreadMutex().cast()));
     }
 
     // TODO: mark this with a "NoInline" annotation

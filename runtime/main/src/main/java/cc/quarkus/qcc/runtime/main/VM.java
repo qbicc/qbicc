@@ -2,7 +2,6 @@ package cc.quarkus.qcc.runtime.main;
 
 import static cc.quarkus.qcc.runtime.CNative.*;
 
-import cc.quarkus.qcc.runtime.CNative;
 import cc.quarkus.qcc.runtime.ThreadScoped;
 
 /**
@@ -19,7 +18,7 @@ public final class VM {
     @ThreadScoped
     @export
     @SuppressWarnings("unused")
-    static CNative.ptr<?> _qcc_bound_thread;
+    static void_ptr _qcc_bound_thread;
 
     // Temporary manual implementation
     @SuppressWarnings("ManualArrayCopy")

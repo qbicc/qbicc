@@ -15,19 +15,19 @@ public final class Stdlib {
 
     // heap
 
-    public static native <T extends object> ptr<T> malloc(size_t size);
+    public static native <P extends ptr<?>> P malloc(size_t size);
 
-    public static <T extends object> ptr<T> malloc(Class<T> type) {
+    public static <T extends object, P extends ptr<T>> P malloc(Class<T> type) {
         return malloc(sizeof(type));
     }
 
-    public static native <T extends object> ptr<T> calloc(size_t nMembers, size_t size);
+    public static native <P extends ptr<?>> P calloc(size_t nMembers, size_t size);
 
     public static <T extends object> T[] callocArray(Class<T> type, int count) {
-        return Stdlib.<T> calloc(sizeof(type), word(count)).asArray();
+        return Stdlib.<ptr<T>>calloc(sizeof(type), word(count)).asArray();
     }
 
-    public static native <T extends object> ptr<T> realloc(ptr<T> ptr, size_t size);
+    public static native <P extends ptr<?>> P realloc(P ptr, size_t size);
 
     /**
      * Free the memory referenced by the given pointer.
@@ -44,15 +44,15 @@ public final class Stdlib {
     @NoReturn
     public static native void exit(c_int exitCode);
 
-    public static native c_int atexit(ptr<function<Runnable>> function);
+    public static native c_int atexit(function_ptr<Runnable> function);
 
     // environment - thread unsafe wrt other env-related operations
 
-    public static native ptr<c_char> getenv(ptr<@c_const c_char> name);
+    public static native char_ptr getenv(const_char_ptr name);
 
-    public static native c_int setenv(ptr<@c_const c_char> name, ptr<@c_const c_char> value, c_int overwrite);
+    public static native c_int setenv(const_char_ptr name, const_char_ptr value, c_int overwrite);
 
-    public static native c_int unsetenv(ptr<@c_const c_char> name);
+    public static native c_int unsetenv(const_char_ptr name);
 
     public static native c_int clearenv();
 

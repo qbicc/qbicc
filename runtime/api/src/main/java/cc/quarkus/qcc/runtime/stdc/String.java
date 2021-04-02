@@ -8,11 +8,11 @@ import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
  */
 @include("<string.h>")
 public class String {
-    public static native size_t strlen(ptr<@c_const c_char> s);
+    public static native size_t strlen(const_char_ptr s);
 
-    public static native ptr<c_char> strerror(c_int errNum);
+    public static native char_ptr strerror(c_int errNum);
 
-    public static native ptr<?> memcpy(ptr<?> dest, ptr<@c_const ?> src, size_t n);
+    public static native void_ptr memcpy(void_ptr dest, const_void_ptr src, size_t n);
 
-    public static native ptr<?> memset(ptr<?> dest, c_int data, size_t len);
+    public static native void_ptr memset(void_ptr dest, c_int data, size_t len);
 }

@@ -14,12 +14,12 @@ public class EPoll {
 
     public static native c_int epoll_create1(c_int flags);
 
-    public static native c_int epoll_ctl(c_int epfd, c_int op, c_int fd, ptr<struct_epoll_event> event);
+    public static native c_int epoll_ctl(c_int epfd, c_int op, c_int fd, struct_epoll_event_ptr event);
 
-    public static native c_int epoll_wait(c_int epfd, ptr<struct_epoll_event> events, c_int maxEvents, c_int timeout);
+    public static native c_int epoll_wait(c_int epfd, struct_epoll_event_ptr events, c_int maxEvents, c_int timeout);
 
-    public static native c_int epoll_pwait(c_int epfd, ptr<struct_epoll_event> events, c_int maxEvents, c_int timeout,
-            ptr<@c_const sigset_t> sigMask);
+    public static native c_int epoll_pwait(c_int epfd, struct_epoll_event_ptr events, c_int maxEvents, c_int timeout,
+            const_sigset_t_ptr sigMask);
 
     public static final c_int EPOLL_CLOEXEC = constant();
 
@@ -39,7 +39,7 @@ public class EPoll {
     public static final uint32_t EPOLLEXCLUSIVE = constant();
 
     public static final class /* union */ epoll_data_t extends object {
-        public ptr<?> ptr;
+        public void_ptr ptr;
         public c_int fd;
         public uint32_t u32;
         public uint64_t u64;
@@ -49,4 +49,12 @@ public class EPoll {
         public uint32_t events;
         public epoll_data_t data;
     }
+
+    public static final class struct_epoll_event_ptr extends ptr<struct_epoll_event> {}
+    public static final class const_struct_epoll_event_ptr extends ptr<@c_const struct_epoll_event> {}
+    public static final class struct_epoll_event_ptr_ptr extends ptr<struct_epoll_event_ptr> {}
+    public static final class const_struct_epoll_event_ptr_ptr extends ptr<const_struct_epoll_event_ptr> {}
+    public static final class struct_epoll_event_ptr_const_ptr extends ptr<@c_const struct_epoll_event_ptr> {}
+    public static final class const_struct_epoll_event_ptr_const_ptr extends ptr<@c_const const_struct_epoll_event_ptr> {}
+
 }
