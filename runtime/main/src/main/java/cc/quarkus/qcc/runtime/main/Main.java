@@ -43,7 +43,8 @@ public final class Main {
         for (int i = 1; i < argc.intValue(); i++) {
             args[i] = utf8zToJavaString(argv[i].cast());
         }
-        String execName = utf8zToJavaString(argv[0].cast());
+        //todo: string construction
+        //String execName = utf8zToJavaString(argv[0].cast());
         try {
             userMain(args);
         } catch (Throwable t) {
