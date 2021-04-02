@@ -15,6 +15,7 @@ public class Qcc {
             .addBootModulePaths(List.of(
                 Path.of(QCCRT_JAVA_BASE_JAR),
                 Path.of(QCCRT_UNWIND_JAR),
+                Path.of(QCCRT_POSIX_JAR),
                 Path.of(QCC_RUNTIME_API_JAR),
                 Path.of(QCC_RUNTIME_MAIN_JAR),
                 Path.of(QCC_RUNTIME_NOGC_JAR),
