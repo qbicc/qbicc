@@ -395,6 +395,18 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor nObjDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$object");
         ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$ptr");
 
+        ClassTypeDescriptor boolPtrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$_Bool_ptr");
+
+        ClassTypeDescriptor float32ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$_Float32_ptr");
+        ClassTypeDescriptor float64ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$_Float64_ptr");
+
+        ClassTypeDescriptor uint16ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/stdc/Stdint$uint16_t_ptr");
+
+        ClassTypeDescriptor int8ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/stdc/Stdint$int8_t_ptr");
+        ClassTypeDescriptor int16ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/stdc/Stdint$int16_t_ptr");
+        ClassTypeDescriptor int32ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/stdc/Stdint$int32_t_ptr");
+        ClassTypeDescriptor int64ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/stdc/Stdint$int64_t_ptr");
+
         MethodDescriptor objTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objDesc));
         MethodDescriptor objArrayTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objArrayDesc));
 
@@ -424,14 +436,14 @@ public final class CoreIntrinsics {
             }
         };
 
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.B)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.C)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.D)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.F)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.I)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.J)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.S)), addrOf);
-        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(BaseTypeDescriptor.Z)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, int8ptrDesc, List.of(BaseTypeDescriptor.B)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, uint16ptrDesc, List.of(BaseTypeDescriptor.C)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, float64ptrDesc, List.of(BaseTypeDescriptor.D)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, float32ptrDesc, List.of(BaseTypeDescriptor.F)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, int32ptrDesc, List.of(BaseTypeDescriptor.I)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, int64ptrDesc, List.of(BaseTypeDescriptor.J)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, int16ptrDesc, List.of(BaseTypeDescriptor.S)), addrOf);
+        intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, boolPtrDesc, List.of(BaseTypeDescriptor.Z)), addrOf);
         intrinsics.registerIntrinsic(cNativeDesc, "addr_of", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(nObjDesc)), addrOf);
     }
 
