@@ -1,4 +1,4 @@
-name: QCC Continuous Integration
+name: qbicc Continuous Integration
 on:
   push:
     paths-ignore:
@@ -21,23 +21,22 @@ jobs:
           rm -rf ~/.m2/repository/cc/quarkus/
           rm -rf ./*
 
-      - name: Clone QCC
+      - name: Clone qbicc
         uses: actions/checkout@v2
         with:
-          path: myqcc
+          path: myqbicc
 
-      - name: Install QCC
+      - name: Install qbicc
         run: |
           mvn install -pl '!integration-tests'
-        working-directory: ./myqcc
+        working-directory: ./myqbicc
 
-      - name: Get QCC Class Library HEAD
-        id: qcc-class-library-head
+      - name: Get qbicc Class Library HEAD
+        id: qbicc-class-library-head
         run: |
           sed -i "/^github.com/d" ~/.ssh/known_hosts
           ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
-          git config core.sshCommand 'ssh -i ~/.ssh/id_rsa'
-          echo "::set-output name=head::$(git ls-remote git@github.com:quarkuscc/qcc-class-library.git | sed 's/\([a-z0-9]*\)[ \t]*HEAD/\1/;t;d')"
+          echo "::set-output name=head::$(git -c core.sshCommand='ssh -i ~/.ssh/id_rsa' ls-remote git@github.com:qbicc/qbicc-class-library.git | sed 's/\([a-z0-9]*\)[ \t]*HEAD/\1/;t;d')"
         shell: bash
 
       - uses: actions/cache@v2
@@ -48,23 +47,23 @@ jobs:
             ~/.m2/repository/cc/quarkus/qccrt-java.base
             ~/.m2/repository/cc/quarkus/qccrt-openjdk-build-tools-maven-plugin
             ~/.m2/repository/cc/quarkus/qccrt-parent
-          key: ${{ steps.qcc-class-library-head.outputs.head }}
+          key: ${{ steps.qbicc-class-library-head.outputs.head }}
 
-      - name: Clone QCC Class Library
+      - name: Clone qbicc Class Library
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          git clone --recurse-submodules git@github.com:quarkuscc/qcc-class-library.git
+          git clone --recurse-submodules git@github.com:qbicc/qbicc-class-library.git
 
-      - name: Install QCC Class Library
+      - name: Install qbicc Class Library
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           mvn install
-        working-directory: ./qcc-class-library
+        working-directory: ./qbicc-class-library
 
-      - name: Test QCC
+      - name: Test qbicc
         run: |
           mvn test -pl integration-tests
-        working-directory: ./myqcc
+        working-directory: ./myqbicc
 
       - name: Prepare failure archive (if maven failed)
         if: failure()
