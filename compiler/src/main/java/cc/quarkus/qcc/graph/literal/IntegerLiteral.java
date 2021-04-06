@@ -61,6 +61,10 @@ public final class IntegerLiteral extends Literal {
         return type.toString(this);
     }
 
+    public boolean isZero() {
+        return value == 0;
+    }
+
     @Override
     public boolean isDefEq(Value other) {
         return equals(other);
