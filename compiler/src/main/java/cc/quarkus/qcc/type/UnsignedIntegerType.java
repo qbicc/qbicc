@@ -23,6 +23,18 @@ public final class UnsignedIntegerType extends IntegerType {
         return this;
     }
 
+    public long truncateValue(final long value) {
+        switch (minBits) {
+            case 8: return value & 0xffL;
+            case 16: return value & 0xffffL;
+            case 32: return value & 0xffffffffL;
+            case 64: return value;
+            default: {
+                throw Assert.impossibleSwitchCase(minBits);
+            }
+        }
+    }
+
     @Override
     public long getMaxValue() {
         final var numBits = minBits - 1;

@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.graph;
 
+import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
@@ -40,5 +41,10 @@ public final class New extends AbstractValue implements OrderedNode {
 
     public boolean equals(final Object other) {
         return this == other;
+    }
+
+    @Override
+    public boolean isDefNe(Value other) {
+        return other instanceof ZeroInitializerLiteral;
     }
 }
