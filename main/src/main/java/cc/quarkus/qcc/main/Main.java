@@ -68,6 +68,7 @@ import cc.quarkus.qcc.plugin.native_.PointerTypeResolver;
 import cc.quarkus.qcc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.opt.GotoRemovingVisitor;
 import cc.quarkus.qcc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.opt.InliningBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
@@ -105,6 +106,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean optMemoryTracking;
     private final boolean optPhis;
     private final boolean optGotos;
+    private final boolean optInlining;
 
     Main(Builder builder) {
         bootModulePath = List.copyOf(builder.bootModulePath);
@@ -116,6 +118,7 @@ public class Main implements Callable<DiagnosticContext> {
         isPie = builder.isPie;
         graphGenConfig = builder.graphGenConfig;
         optMemoryTracking = builder.optMemoryTracking;
+        optInlining = builder.optInlining;
         optPhis = builder.optPhis;
         optGotos = builder.optGotos;
     }
@@ -314,6 +317,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                                if (optInlining) {
+                                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addElementVisitor(Phase.ANALYZE, new DotGenerator(Phase.ANALYZE, graphGenConfig));
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
@@ -393,6 +399,7 @@ public class Main implements Callable<DiagnosticContext> {
             .setGc(optionsProcessor.gc.toString())
             .setIsPie(optionsProcessor.isPie)
             .setOptMemoryTracking(optionsProcessor.optArgs.optMemoryTracking)
+            .setOptInlining(optionsProcessor.optArgs.optInlining)
             .setOptGotos(optionsProcessor.optArgs.optGotos)
             .setOptPhis(optionsProcessor.optArgs.optPhis)
             .setGraphGenConfig(optionsProcessor.graphGenConfig);
@@ -484,6 +491,8 @@ public class Main implements Callable<DiagnosticContext> {
         static class OptArgs {
             @CommandLine.Option(names = "--opt-memory-tracking", negatable = true, defaultValue = "false", description = "Enable/disable redundant store/load tracking and elimination")
             boolean optMemoryTracking;
+            @CommandLine.Option(names = "--opt-inlining", negatable = true, defaultValue = "false", description = "Enable/disable inliner")
+            boolean optInlining;
             @CommandLine.Option(names = "--opt-phis", negatable = true, defaultValue = "true", description = "Enable/disable `phi` elimination")
             boolean optPhis;
             @CommandLine.Option(names = "--opt-gotos", negatable = true, defaultValue = "true", description = "Enable/disable `goto` elimination")
@@ -551,6 +560,7 @@ public class Main implements Callable<DiagnosticContext> {
         // TODO Detect whether the system uses PIEs by default and match that if possible
         private boolean isPie = false;
         private boolean optMemoryTracking = false;
+        private boolean optInlining = false;
         private boolean optPhis = true;
         private boolean optGotos = true;
         private GraphGenConfig graphGenConfig;
@@ -615,6 +625,11 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setOptMemoryTracking(boolean optMemoryTracking) {
             this.optMemoryTracking = optMemoryTracking;
+            return this;
+        }
+
+        public Builder setOptInlining(boolean optInlining) {
+            this.optInlining = optInlining;
             return this;
         }
 
