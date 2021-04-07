@@ -902,13 +902,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             return value.accept(this, null);
         }
 
-        LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(value));
         LLBasicBlock oldBuilderBlock = builder.moveToBlock(map(schedule.getBlockForNode(value)));
 
-        mapped = value.accept(this, null);
-        mappedValues.put(value, mapped);
+        mapped = mappedValues.get(value);
+        if (mapped == null) {
+            LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(value));
+            mapped = value.accept(this, null);
+            mappedValues.put(value, mapped);
+            builder.setDebugLocation(oldBuilderDebugLocation);
+        }
 
-        builder.setDebugLocation(oldBuilderDebugLocation);
         builder.moveToBlock(oldBuilderBlock);
         return mapped;
     }
