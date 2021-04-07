@@ -867,7 +867,7 @@ public final class CoreIntrinsics {
                 Value typeInput = typeClassOf.getInput();
                 if (typeInput instanceof TypeLiteral) {
                     ValueType type = ((TypeLiteral) typeInput).getValue();
-                    PointerType newPointerType = ctxt.getTypeSystem().createPointer(type); //type.getPointer();
+                    PointerType newPointerType = type.getPointer();
                     return builder.bitCast(castObject, newPointerType);
                 }
             }
