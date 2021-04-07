@@ -5,17 +5,17 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-plugin-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <groupId>org.qbicc</groupId>
+        <artifactId>qbicc-plugin-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-plugin-metrics</artifactId>
+    <artifactId>qbicc-plugin-metrics</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-compiler</artifactId>
+            <artifactId>qbicc-compiler</artifactId>
         </dependency>
 
         <dependency>

@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <groupId>org.qbicc</groupId>
+        <artifactId>qbicc-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-main</artifactId>
+    <artifactId>qbicc-main</artifactId>
 
     <build>
         <plugins>
@@ -49,116 +49,116 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-driver</artifactId>
+            <artifactId>qbicc-driver</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-probe</artifactId>
+            <artifactId>qbicc-machine-probe</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-file-elf</artifactId>
+            <artifactId>qbicc-machine-file-elf</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-file-macho</artifactId>
+            <artifactId>qbicc-machine-file-macho</artifactId>
         </dependency>
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-constants</artifactId>
+            <artifactId>qbicc-plugin-constants</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-conversion</artifactId>
+            <artifactId>qbicc-plugin-conversion</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-correctness</artifactId>
+            <artifactId>qbicc-plugin-correctness</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-dispatch</artifactId>
+            <artifactId>qbicc-plugin-dispatch</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-dot</artifactId>
+            <artifactId>qbicc-plugin-dot</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-instanceof-checkcast</artifactId>
+            <artifactId>qbicc-plugin-instanceof-checkcast</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-gc-nogc</artifactId>
+            <artifactId>qbicc-plugin-gc-nogc</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-linker</artifactId>
+            <artifactId>qbicc-plugin-linker</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-llvm</artifactId>
+            <artifactId>qbicc-plugin-llvm</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-layout</artifactId>
+            <artifactId>qbicc-plugin-layout</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-lowering</artifactId>
+            <artifactId>qbicc-plugin-lowering</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-main-method</artifactId>
+            <artifactId>qbicc-plugin-main-method</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-native</artifactId>
+            <artifactId>qbicc-plugin-native</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-objectmonitor</artifactId>
+            <artifactId>qbicc-plugin-objectmonitor</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-optimization</artifactId>
+            <artifactId>qbicc-plugin-optimization</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-patcher</artifactId>
+            <artifactId>qbicc-plugin-patcher</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-reachability</artifactId>
+            <artifactId>qbicc-plugin-reachability</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-thread-local</artifactId>
+            <artifactId>qbicc-plugin-thread-local</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-try-catch</artifactId>
+            <artifactId>qbicc-plugin-try-catch</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-verification</artifactId>
+            <artifactId>qbicc-plugin-verification</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-unwind</artifactId>
+            <artifactId>qbicc-plugin-unwind</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-tool-gnu</artifactId>
+            <artifactId>qbicc-machine-tool-gnu</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-tool-clang</artifactId>
+            <artifactId>qbicc-machine-tool-clang</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-tool-llvm</artifactId>
+            <artifactId>qbicc-machine-tool-llvm</artifactId>
         </dependency>
         <dependency>
             <groupId>info.picocli</groupId>

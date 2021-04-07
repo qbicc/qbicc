@@ -13,13 +13,13 @@ public class Qcc {
     public static DiagnosticContext build(Path outputPath, Path nativeOutputPath, String mainClass, Logger logger) {
         return Main.builder()
             .addBootModulePaths(List.of(
-                Path.of(QCCRT_JAVA_BASE_JAR),
-                Path.of(QCCRT_UNWIND_JAR),
-                Path.of(QCCRT_POSIX_JAR),
-                Path.of(QCCRT_LINUX_JAR),
-                Path.of(QCC_RUNTIME_API_JAR),
-                Path.of(QCC_RUNTIME_MAIN_JAR),
-                Path.of(QCC_RUNTIME_NOGC_JAR),
+                Path.of(QBICC_RT_JAVA_BASE_JAR),
+                Path.of(QBICC_RT_UNWIND_JAR),
+                Path.of(QBICC_RT_POSIX_JAR),
+                Path.of(QBICC_RT_LINUX_JAR),
+                Path.of(QBICC_RUNTIME_API_JAR),
+                Path.of(QBICC_RUNTIME_MAIN_JAR),
+                Path.of(QBICC_RUNTIME_NOGC_JAR),
                 outputPath))
             .setOutputPath(nativeOutputPath)
             .setDiagnosticsHandler(new QccDiagnosticLogger(logger))

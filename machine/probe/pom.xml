@@ -5,37 +5,37 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-machine-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <groupId>org.qbicc</groupId>
+        <artifactId>qbicc-machine-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-machine-probe</artifactId>
+    <artifactId>qbicc-machine-probe</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-tool-api</artifactId>
+            <artifactId>qbicc-machine-tool-api</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-compiler</artifactId>
+            <artifactId>qbicc-compiler</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-file-object</artifactId>
+            <artifactId>qbicc-machine-file-object</artifactId>
         </dependency>
 
         <!-- Test deps -->
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-tool-gnu</artifactId>
+            <artifactId>qbicc-machine-tool-gnu</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-tool-clang</artifactId>
+            <artifactId>qbicc-machine-tool-clang</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -45,12 +45,12 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-file-elf</artifactId>
+            <artifactId>qbicc-machine-file-elf</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-file-macho</artifactId>
+            <artifactId>qbicc-machine-file-macho</artifactId>
             <scope>test</scope>
         </dependency>
 

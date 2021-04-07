@@ -5,33 +5,33 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-plugin-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <groupId>org.qbicc</groupId>
+        <artifactId>qbicc-plugin-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-plugin-intrinsics</artifactId>
+    <artifactId>qbicc-plugin-intrinsics</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-compiler</artifactId>
+            <artifactId>qbicc-compiler</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-driver</artifactId>
+            <artifactId>qbicc-driver</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-probe</artifactId>
+            <artifactId>qbicc-machine-probe</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-layout</artifactId>
+            <artifactId>qbicc-plugin-layout</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-plugin-instanceof-checkcast</artifactId>
+            <artifactId>qbicc-plugin-instanceof-checkcast</artifactId>
         </dependency>
     </dependencies>
 

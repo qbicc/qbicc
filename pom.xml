@@ -4,9 +4,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>cc.quarkus</groupId>
-    <artifactId>qcc-parent</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <groupId>org.qbicc</groupId>
+    <artifactId>qbicc-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
 
     <parent>
         <groupId>org.jboss</groupId>
@@ -38,13 +38,13 @@
     </licenses>
 
     <scm>
-        <url>https://github.com/quarkuscc/qcc</url>
-        <connection>scm:git:git://github.com/quarkuscc/qcc</connection>
-        <developerConnection>scm:git:git@github.com:quarkuscc/qcc</developerConnection>
+        <url>https://github.com/qbicc/qbicc</url>
+        <connection>scm:git:git://github.com/qbicc/qbicc</connection>
+        <developerConnection>scm:git:git@github.com:qbicc/qbicc</developerConnection>
     </scm>
 
     <issueManagement>
-        <url>https://github.com/quarkuscc/qcc/issues</url>
+        <url>https://github.com/qbicc/qbicc/issues</url>
         <system>GitHub Issues</system>
     </issueManagement>
 
@@ -68,31 +68,31 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-runtime-api</artifactId>
+                <artifactId>qbicc-runtime-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-runtime-main</artifactId>
+                <artifactId>qbicc-runtime-main</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-runtime-linux</artifactId>
+                <artifactId>qbicc-runtime-linux</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-runtime-posix</artifactId>
+                <artifactId>qbicc-runtime-posix</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-runtime-unwind</artifactId>
+                <artifactId>qbicc-runtime-unwind</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -100,7 +100,7 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-driver</artifactId>
+                <artifactId>qbicc-driver</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -108,19 +108,19 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-arch</artifactId>
+                <artifactId>qbicc-machine-arch</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-llvm</artifactId>
+                <artifactId>qbicc-machine-llvm</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-probe</artifactId>
+                <artifactId>qbicc-machine-probe</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -128,22 +128,22 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-file-bin</artifactId>
+                <artifactId>qbicc-machine-file-bin</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-file-elf</artifactId>
+                <artifactId>qbicc-machine-file-elf</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-file-macho</artifactId>
+                <artifactId>qbicc-machine-file-macho</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-file-object</artifactId>
+                <artifactId>qbicc-machine-file-object</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -151,22 +151,22 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-tool-api</artifactId>
+                <artifactId>qbicc-machine-tool-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-tool-clang</artifactId>
+                <artifactId>qbicc-machine-tool-clang</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-tool-gnu</artifactId>
+                <artifactId>qbicc-machine-tool-gnu</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-tool-llvm</artifactId>
+                <artifactId>qbicc-machine-tool-llvm</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -174,13 +174,13 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-vm-api</artifactId>
+                <artifactId>qbicc-vm-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-vm-implementation</artifactId>
+                <artifactId>qbicc-vm-implementation</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -188,12 +188,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-asm-common</artifactId>
+                <artifactId>qbicc-machine-asm-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-machine-asm-x86</artifactId>
+                <artifactId>qbicc-machine-asm-x86</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -201,7 +201,7 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-compiler</artifactId>
+                <artifactId>qbicc-compiler</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -209,145 +209,145 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-constants</artifactId>
+                <artifactId>qbicc-plugin-constants</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-conversion</artifactId>
+                <artifactId>qbicc-plugin-conversion</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-correctness</artifactId>
+                <artifactId>qbicc-plugin-correctness</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-dispatch</artifactId>
+                <artifactId>qbicc-plugin-dispatch</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-dot</artifactId>
+                <artifactId>qbicc-plugin-dot</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-instanceof-checkcast</artifactId>
+                <artifactId>qbicc-plugin-instanceof-checkcast</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-intrinsics</artifactId>
+                <artifactId>qbicc-plugin-intrinsics</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-gc-parent</artifactId>
+                <artifactId>qbicc-plugin-gc-parent</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-gc-nogc</artifactId>
+                <artifactId>qbicc-plugin-gc-nogc</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-linker</artifactId>
+                <artifactId>qbicc-plugin-linker</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-llvm</artifactId>
+                <artifactId>qbicc-plugin-llvm</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-layout</artifactId>
+                <artifactId>qbicc-plugin-layout</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-lowering</artifactId>
+                <artifactId>qbicc-plugin-lowering</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-main-method</artifactId>
+                <artifactId>qbicc-plugin-main-method</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-native</artifactId>
+                <artifactId>qbicc-plugin-native</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-objectmonitor</artifactId>
+                <artifactId>qbicc-plugin-objectmonitor</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-optimization</artifactId>
+                <artifactId>qbicc-plugin-optimization</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-patcher</artifactId>
+                <artifactId>qbicc-plugin-patcher</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-reachability</artifactId>
+                <artifactId>qbicc-plugin-reachability</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-metrics</artifactId>
+                <artifactId>qbicc-plugin-metrics</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-thread-local</artifactId>
+                <artifactId>qbicc-plugin-thread-local</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-try-catch</artifactId>
+                <artifactId>qbicc-plugin-try-catch</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-verification</artifactId>
+                <artifactId>qbicc-plugin-verification</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qcc-plugin-unwind</artifactId>
+                <artifactId>qbicc-plugin-unwind</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -434,13 +434,5 @@
             </plugin>
         </plugins>
     </build>
-
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Repository</name>
-            <url>https://maven.pkg.github.com/quarkuscc/qcc</url>
-        </repository>
-    </distributionManagement>
 
 </project>
