@@ -118,10 +118,10 @@ public final class VMHelpers {
         }
         ptr<pthread_mutex_t> m = (ptr<pthread_mutex_t>)castPtr(mVoid, pthread_mutex_t.class);
 
-        omError(pthread_mutexattr_init(attr));
-        omError(pthread_mutexattr_settype(attr, PTHREAD_MUTEX_RECURSIVE));
-        omError(pthread_mutex_init(m, attr));
-        omError(pthread_mutexattr_destroy(attr));
+        omError(pthread_mutexattr_init((pthread_mutexattr_t_ptr)attr));
+        omError(pthread_mutexattr_settype((pthread_mutexattr_t_ptr)attr, PTHREAD_MUTEX_RECURSIVE));
+        omError(pthread_mutex_init((pthread_mutex_t_ptr)m, (const_pthread_mutexattr_t_ptr)attr));
+        omError(pthread_mutexattr_destroy((pthread_mutexattr_t_ptr)attr));
         free(attrVoid);
 
         // TODO acquire monitor and add to hash map

@@ -374,6 +374,7 @@ public final class TypeSystem {
         return new InterfaceObjectType(this, definedType, interfaces);
     }
 
+    // TODO remove public
     public PointerType createPointer(ValueType type) {
         return new PointerType(this, type, false, false);
     }

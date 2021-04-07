@@ -30,18 +30,6 @@ public final class TestConstants {
                     ".m2", "repository", "cc", "quarkus", "qcc-runtime-gc-nogc", "1.0.0-SNAPSHOT", "qcc-runtime-gc-nogc-1.0.0-SNAPSHOT.jar")
                     .toString());
 
-    public static final String QCC_RUNTIME_POSIX = getProperty(
-        new String[]{"QCC_RUNTIME_POSIX", "qcc.runtime.posix.jar"},
-        Path.of(System.getProperty("user.home"),
-            ".m2", "repository", "cc", "quarkus", "qcc-runtime-posix", "1.0.0-SNAPSHOT", "qcc-runtime-posix-1.0.0-SNAPSHOT.jar")
-            .toString());
-    
-    public static final String QCC_RUNTIME_LINUX = getProperty(
-        new String[]{"QCC_RUNTIME_LINUX", "qcc.runtime.linux.jar"},
-        Path.of(System.getProperty("user.home"),
-            ".m2", "repository", "cc", "quarkus", "qcc-runtime-linux", "1.0.0-SNAPSHOT", "qcc-runtime-linux-1.0.0-SNAPSHOT.jar")
-            .toString());
-
     public static final String QCCRT_JAVA_BASE_JAR =
             Path.of(System.getProperty("user.home"),
                     ".m2", "repository", "org", "qbicc", "rt", "qbicc-rt-java.base", "11.0.1-SNAPSHOT", "qbicc-rt-java.base-11.0.1-SNAPSHOT.jar")
@@ -57,6 +45,11 @@ public final class TestConstants {
             Path.of(System.getProperty("user.home"),
                     ".m2", "repository", "cc", "quarkus", "qcc-runtime-posix", "1.0.0-SNAPSHOT", "qcc-runtime-posix-1.0.0-SNAPSHOT.jar")
                     .toString();
+
+    public static final String QCCRT_LINUX_JAR =
+        Path.of(System.getProperty("user.home"),
+            ".m2", "repository", "cc", "quarkus", "qcc-runtime-linux", "1.0.0-SNAPSHOT", "qcc-runtime-linux-1.0.0-SNAPSHOT.jar")
+            .toString();
 
 
 
