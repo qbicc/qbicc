@@ -33,7 +33,7 @@ public final class TestConstants {
 
     public static final String QCCRT_JAVA_BASE_JAR =
             Path.of(System.getProperty("user.home"),
-                    ".m2", "repository", "cc", "quarkus", "qccrt-java.base", "11.0.1-SNAPSHOT", "qccrt-java.base-11.0.1-SNAPSHOT.jar")
+                    ".m2", "repository", "org", "qbicc", "rt", "qbicc-rt-java.base", "11.0.1-SNAPSHOT", "qbicc-rt-java.base-11.0.1-SNAPSHOT.jar")
                     .toString();
 
     public static final String QCCRT_UNWIND_JAR =
