@@ -123,8 +123,80 @@ public final class Unwind {
 
     public static _Unwind_Reason_Code personality(c_int version, _Unwind_Action action, uint64_t exceptionClass,
                                     struct__Unwind_Exception_ptr exceptionObject, struct__Unwind_Context_ptr context) {
-        // TODO: This is just a stub.
-        return _URC_CONTINUE_UNWIND;
+        uint64_t ip = _Unwind_GetIP(context);
+        uint64_t methodStart = _Unwind_GetRegionStart(context);
+        uint64_t lsda = _Unwind_GetLanguageSpecificData(context);
+
+        long offset = ip.longValue() - methodStart.longValue();
+        uint8_t_ptr lsdaPtr = lsda.cast(uint8_t_ptr.class);
+        long lpOffset = getHandlerOffset(lsdaPtr, offset);
+        if ((action.intValue() & _UA_SEARCH_PHASE.intValue()) != 0) {
+            if (lpOffset == 0) {
+                return _URC_CONTINUE_UNWIND;
+            }
+            return _URC_HANDLER_FOUND;
+        } else if ((action.intValue() & _UA_HANDLER_FRAME.intValue()) != 0) {
+            _Unwind_SetIP(context, word(methodStart.longValue() + lpOffset));
+            return _URC_INSTALL_CONTEXT;
+        } else {
+            return _URC_CONTINUE_UNWIND;
+        }
+    }
+
+    public static long getHandlerOffset(uint8_t_ptr lsda, long pcOffset) {
+        int[] offset = new int[1]; /* TODO: Avoid using new in these methods. offset should instead be passed as pointer */
+        offset[0] = 0;
+        uint8_t header = lsda.get(offset[0]);   // encoding of landingpad base which is generally DW_EH_PE_omit(0xff)
+        int headerValue = header.byteValue();
+        offset[0] += 1;
+        uint8_t typeEncodingEncoding = lsda.get(offset[0]);
+        offset[0] += 1;
+        long typeBaseOffset = readULEB(lsda, offset);
+        uint8_t callSiteEncodingEncoding = lsda.get(offset[0]);
+        offset[0] += 1;
+        int callSiteEncoding = callSiteEncodingEncoding.byteValue();
+        long callSiteTableLength = readULEB(lsda, offset);
+        long callSiteTableEnd = offset[0] + callSiteTableLength;
+        while (offset[0] < callSiteTableEnd) {
+            long startOffset = read(lsda, offset, callSiteEncoding);
+            long size = read(lsda, offset, callSiteEncoding);
+            long lpOffset = read(lsda, offset, callSiteEncoding);
+            long action = readULEB(lsda, offset);
+            if ((startOffset <= pcOffset) && (pcOffset < (startOffset + size))) {
+                return lpOffset;
+            }
+        }
+        return headerValue;
+    }
+
+    public static long read(uint8_t_ptr lsda, int[] offset, int callSiteEncoding) {
+        long result = 0;
+        switch(callSiteEncoding) {
+            case 0x1:
+                result = readULEB(lsda, offset);
+                break;
+            case 0x3:
+                uint32_t_ptr temp32 = lsda.plus(offset[0]).cast(uint32_t_ptr.class);
+                result = temp32.deref().longValue();
+                offset[0] += 4;
+                break;
+            default:
+                break;
+        }
+        return result;
+    }
+
+    public static long readULEB(uint8_t_ptr lsda, int[] offset) {
+        long result = 0;
+        int shift = 0;
+        byte singleByte = 0;
+        do {
+            singleByte = lsda.get(offset[0]).byteValue();
+            offset[0] += 1;
+            result |= (singleByte & 0x7f) << shift;
+            shift += 7;
+        } while ((singleByte & 0x80) != 0);
+        return result;
     }
 
     // TODO: support for classic ARM EHABI needs a different prototype for _Unwind_Stop_Fn
