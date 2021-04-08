@@ -25,7 +25,6 @@ import cc.quarkus.qcc.object.ThreadLocalMode;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.TypeSystem;
@@ -170,6 +169,10 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
         NativeFunctionInfo functionInfo = nativeInfo.getFunctionInfo(owner, name, descriptor);
         if (functionInfo != null) {
+            SymbolLiteral sym = functionInfo.symbolLiteral;
+            FunctionType functionType = (FunctionType) sym.getType();
+            ctxt.getImplicitSection(getCurrentElement())
+                .declareFunction(functionInfo.origMethod, sym.getName(), functionType);
             // todo: store current thread into TLS for recursive Java call-in
             return callFunction(functionInfo.symbolLiteral, arguments);
         }
@@ -185,55 +188,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
         ValueType type = input.getType();
         LiteralFactory lf = ctxt.getLiteralFactory();
-        if (type instanceof NullType) {
-            // treat `null` as a null (zero) pointer value
-            if (owner.equals(nativeInfo.ptrDesc) || owner.equals(nativeInfo.wordDesc) || owner.equals(nativeInfo.cObjectDesc)) {
-                switch (name) {
-                    case "byteValue": {
-                        return lf.literalOf((byte) 0);
-                    }
-                    case "shortValue": {
-                        return lf.literalOf((short) 0);
-                    }
-                    case "intValue": {
-                        return lf.literalOf(0);
-                    }
-                    case "longValue": {
-                        return lf.literalOf(0L);
-                    }
-                    case "charValue": {
-                        return lf.literalOf('\0');
-                    }
-                    case "floatValue": {
-                        return lf.literalOf(0.0f);
-                    }
-                    case "doubleValue": {
-                        return lf.literalOf(0.0);
-                    }
-                    case "isZero": {
-                        return lf.literalOf(true);
-                    }
-                    case "deref": {
-                        return load(pointerHandle(input), MemoryAtomicityMode.UNORDERED);
-                    }
-                    case "asArray": {
-                        return input;
-                    }
-                    case "get": {
-                        return load(elementOf(pointerHandle(input), arguments.get(0)), MemoryAtomicityMode.UNORDERED);
-                    }
-                    case "plus": {
-                        return add(input, arguments.get(0));
-                    }
-                    case "minus": {
-                        return sub(input, arguments.get(0));
-                    }
-                    case "cast": {
-                        return input;
-                    }
-                }
-            }
-        } else if (type instanceof IntegerType || type instanceof FloatType || type instanceof PointerType) {
+        if (type instanceof IntegerType || type instanceof FloatType || type instanceof PointerType || type instanceof TypeType) {
             TypeSystem ts = ctxt.getTypeSystem();
             switch (name) {
                 case "byteValue": {
@@ -303,15 +258,6 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
         return super.invokeValueInstance(kind, input, owner, name, descriptor, arguments);
-    }
-
-    @Override
-    public ValueHandle referenceHandle(Value reference) {
-        if (reference.getType() instanceof PointerType) {
-            return pointerHandle(reference);
-        } else {
-            return super.referenceHandle(reference);
-        }
     }
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value input, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {

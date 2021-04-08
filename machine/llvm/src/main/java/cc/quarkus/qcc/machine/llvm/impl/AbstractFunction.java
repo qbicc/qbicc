@@ -8,7 +8,9 @@ import cc.quarkus.qcc.machine.llvm.DllStorageClass;
 import cc.quarkus.qcc.machine.llvm.Function;
 import cc.quarkus.qcc.machine.llvm.Linkage;
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.SignExtension;
 import cc.quarkus.qcc.machine.llvm.Visibility;
+import cc.quarkus.qcc.machine.llvm.op.Call;
 import io.smallrye.common.constraint.Assert;
 
 abstract class AbstractFunction extends AbstractMetable implements Function {
@@ -19,6 +21,8 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
     CallingConvention callingConvention = CallingConvention.C;
     AddressNaming addressNaming = AddressNaming.NAMED;
     AbstractValue returnType;
+    SignExtension ext = SignExtension.none;
+
     int addressSpace = 0;
     // todo: return type attribute
     int alignment = 0;
@@ -35,6 +39,16 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         Assert.checkNotNullParam("returnType", returnType);
         // todo with attributes...
         this.returnType = (AbstractValue) returnType;
+        return this;
+    }
+
+    public Function signExt() {
+        ext = SignExtension.signext;
+        return this;
+    }
+
+    public Function zeroExt() {
+        ext = SignExtension.zeroext;
         return this;
     }
 
@@ -176,8 +190,14 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
     }
 
     void appendAfterAddressSpace(final Appendable target) throws IOException {
-        returnType.appendTo(target);
-        target.append(' ');
+        if(returnType != null) {
+            if(ext != SignExtension.none) {
+                target.append(ext.name());
+                target.append(' ');
+            }
+            returnType.appendTo(target);
+            target.append(' ');
+        }
         appendAfterReturnType(target);
     }
 
@@ -243,6 +263,7 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         final ParameterImpl prev;
         final AbstractFunction function;
         final AbstractValue type;
+        SignExtension ext = SignExtension.none;
 
         ParameterImpl(final ParameterImpl prev, final AbstractFunction function, final AbstractValue type) {
             this.prev = prev;
@@ -277,10 +298,23 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
                 target.append(',').append(' ');
             }
             type.appendTo(target);
+            if (ext != SignExtension.none) {
+                target.append(' ').append(ext.name());
+            }
             if (name != null) {
                 target.append(' ').append('%').append(name);
             }
             return target;
+        }
+
+        public ParameterImpl signExt() {
+            ext = SignExtension.signext;
+            return this;
+        }
+
+        public ParameterImpl zeroExt() {
+            ext = SignExtension.zeroext;
+            return this;
         }
     }
 }

@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.graph.literal;
 
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.ValueType;
@@ -39,5 +40,15 @@ public final class BooleanLiteral extends Literal {
 
     public String toString() {
         return Boolean.toString(value);
+    }
+
+    @Override
+    public boolean isDefEq(Value other) {
+        return equals(other);
+    }
+
+    @Override
+    public boolean isDefNe(Value other) {
+        return other instanceof BooleanLiteral && ! equals((BooleanLiteral) other);
     }
 }

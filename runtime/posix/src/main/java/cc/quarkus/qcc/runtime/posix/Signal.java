@@ -22,26 +22,40 @@ public final class Signal {
 
     public static native c_int kill(pid_t pid, c_int sig);
 
-    public static native c_int sigpending(ptr<sigset_t> set);
+    public static native c_int sigpending(sigset_t_ptr set);
 
-    public static native c_int sigaction(c_int sigNum, ptr<@c_const struct_sigaction> act, ptr<struct_sigaction> oldAct);
+    public static native c_int sigaction(c_int sigNum, const_struct_sigaction_ptr act, struct_sigaction_ptr oldAct);
 
     public interface SignalAction {
-        void handle(c_int sigNum, ptr<siginfo_t> sigInfo, ptr<?> data);
+        void handle(c_int sigNum, siginfo_t_ptr sigInfo, void_ptr data);
     }
 
     public static final class struct_sigaction extends object {
-        public ptr<function<Consumer<c_int>>> sa_handler;
-        public ptr<function<SignalAction>> sa_sigaction;
+        public function_ptr<Consumer<c_int>> sa_handler;
+        public function_ptr<SignalAction> sa_sigaction;
         public sigset_t sa_mask;
         public c_int sa_flags;
-        public ptr<function<Runnable>> sa_restorer;
+        public function_ptr<Runnable> sa_restorer;
     }
+
+    public static final class struct_sigaction_ptr extends ptr<struct_sigaction> {}
+    public static final class const_struct_sigaction_ptr extends ptr<@c_const struct_sigaction> {}
+    public static final class struct_sigaction_ptr_ptr extends ptr<struct_sigaction_ptr> {}
+    public static final class const_struct_sigaction_ptr_ptr extends ptr<const_struct_sigaction_ptr> {}
+    public static final class struct_sigaction_ptr_const_ptr extends ptr<@c_const struct_sigaction_ptr> {}
+    public static final class const_struct_sigaction_ptr_const_ptr extends ptr<@c_const const_struct_sigaction_ptr> {}
 
     public static final class sigval_t extends object {
         public c_int sival_int;
-        public ptr<?> sival_ptr;
+        public void_ptr sival_ptr;
     }
+
+    public static final class sigval_t_ptr extends ptr<sigval_t> {}
+    public static final class const_sigval_t_ptr extends ptr<@c_const sigval_t> {}
+    public static final class sigval_t_ptr_ptr extends ptr<sigval_t_ptr> {}
+    public static final class const_sigval_t_ptr_ptr extends ptr<const_sigval_t_ptr> {}
+    public static final class sigval_t_ptr_const_ptr extends ptr<@c_const sigval_t_ptr> {}
+    public static final class const_sigval_t_ptr_const_ptr extends ptr<@c_const const_sigval_t_ptr> {}
 
     public static final class siginfo_t extends object {
         public c_int si_signo;
@@ -49,7 +63,7 @@ public final class Signal {
         public c_int si_errno;
         public pid_t si_pid;
         public uid_t si_uid;
-        public ptr<?> si_addr;
+        public void_ptr si_addr;
         public c_int si_status;
         public c_long si_band;
         public sigval_t si_value;
@@ -61,7 +75,7 @@ public final class Signal {
         @incomplete(unless = Build.Target.IsLinux.class)
         public c_int si_int;
         @incomplete(unless = Build.Target.IsLinux.class)
-        public ptr<?> si_ptr;
+        public void_ptr si_ptr;
         @incomplete(unless = Build.Target.IsLinux.class)
         public c_int si_overrun;
         @incomplete(unless = Build.Target.IsLinux.class)
@@ -71,24 +85,38 @@ public final class Signal {
         @incomplete(unless = Build.Target.IsLinux.class)
         public c_short si_addr_lsb;
         @incomplete(unless = Build.Target.IsLinux.class)
-        public ptr<?> si_lower;
+        public void_ptr si_lower;
         @incomplete(unless = Build.Target.IsLinux.class)
-        public ptr<?> si_upper;
+        public void_ptr si_upper;
         @incomplete(unless = Build.Target.IsLinux.class)
         public c_int si_pkey;
         @incomplete(unless = Build.Target.IsLinux.class)
-        public ptr<?> si_call_addr;
+        public void_ptr si_call_addr;
         @incomplete(unless = Build.Target.IsLinux.class)
         public c_int si_syscall;
         @incomplete(unless = Build.Target.IsLinux.class)
         public unsigned_int si_arch;
     }
 
+    public static final class siginfo_t_ptr extends ptr<siginfo_t> {}
+    public static final class const_siginfo_t_ptr extends ptr<@c_const siginfo_t> {}
+    public static final class siginfo_t_ptr_ptr extends ptr<siginfo_t_ptr> {}
+    public static final class const_siginfo_t_ptr_ptr extends ptr<const_siginfo_t_ptr> {}
+    public static final class siginfo_t_ptr_const_ptr extends ptr<@c_const siginfo_t_ptr> {}
+    public static final class const_siginfo_t_ptr_const_ptr extends ptr<@c_const const_siginfo_t_ptr> {}
+
     public static final class stack_t extends object {
-        ptr<?> ss_sp;
+        void_ptr ss_sp;
         c_int ss_flags;
         size_t ss_size;
     }
+
+    public static final class stack_t_ptr extends ptr<stack_t> {}
+    public static final class const_stack_t_ptr extends ptr<@c_const stack_t> {}
+    public static final class stack_t_ptr_ptr extends ptr<stack_t_ptr> {}
+    public static final class const_stack_t_ptr_ptr extends ptr<const_stack_t_ptr> {}
+    public static final class stack_t_ptr_const_ptr extends ptr<@c_const stack_t_ptr> {}
+    public static final class const_stack_t_ptr_const_ptr extends ptr<@c_const const_stack_t_ptr> {}
 
     // si_code values
     public static final c_int ILL_ILLOPC = constant();

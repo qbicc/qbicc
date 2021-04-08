@@ -13,7 +13,8 @@ import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.ValueHandleVisitor;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.PhysicalObjectType;
+import cc.quarkus.qcc.type.PrimitiveArrayObjectType;
+import cc.quarkus.qcc.type.ReferenceArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
@@ -113,19 +114,26 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
         return input.accept(new ValueHandleVisitor<>() {
             @Override
             public ValueHandle visit(ObjectAccessLoweringBuilder b, ElementOf node) {
-                ValueType valueType = node.getValueType();
-                if (valueType instanceof ReferenceType) {
+                ValueHandle inputHandle = node.getValueHandle();
+                if (inputHandle instanceof ReferenceHandle) {
                     // Transform array object element handles
-                    ValueHandle reference = node.getValueHandle();
                     Layout layout = Layout.get(ctxt);
-                    PhysicalObjectType upperBound = ((ReferenceType) valueType).getUpperBound();
+                    ObjectType upperBound = (ObjectType) inputHandle.getValueType();
                     if (upperBound instanceof ArrayObjectType) {
                         FieldElement contentField = layout.getArrayContentField(upperBound);
-                        return b.elementOf(b.transform(b.instanceFieldOf(reference, contentField)), node.getIndex());
+                        if (upperBound instanceof ReferenceArrayObjectType) {
+                            ValueHandle elementHandle = b.elementOf(b.transform(b.instanceFieldOf(inputHandle, contentField)), node.getIndex());
+                            Value addr = b.addressOf(elementHandle);
+                            ReferenceType elementType = ((ReferenceArrayObjectType) upperBound).getElementType();
+                            return b.transform(b.pointerHandle(b.bitCast(addr, elementType.getPointer())));
+                        } else {
+                            assert upperBound instanceof PrimitiveArrayObjectType;
+                            return b.elementOf(b.transform(b.instanceFieldOf(inputHandle, contentField)), node.getIndex());
+                        }
                     }
                 }
                 // normal array, probably
-                return b.elementOf(b.transform(node.getValueHandle()), node.getIndex());
+                return b.elementOf(b.transform(inputHandle), node.getIndex());
             }
 
             @Override

@@ -64,14 +64,13 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         Value callTarget;
-        Function invokeTarget = ctxt.getExactFunction(target);
         if (kind == DispatchInvocation.Kind.INTERFACE) {
-            ctxt.warning(getLocation(), "interface invocation not supported yet");
-            // but continue with bogus call target just to see what would happen
-            callTarget = functionLiteral(invokeTarget);
+            callTarget = expandInterfaceDispatch(instance, target);
         } else if (kind == DispatchInvocation.Kind.VIRTUAL) {
             callTarget = expandVirtualDispatch(instance, target);
         } else {
+            Function invokeTarget = ctxt.getExactFunction(target);
+            ctxt.declareForeignFunction(target, invokeTarget, getCurrentElement());
             callTarget = functionLiteral(invokeTarget);
         }
         List<Value> args = new ArrayList<>(arguments.size() + 2);
@@ -94,14 +93,13 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         Value callTarget;
-        Function invokeTarget = ctxt.getExactFunction(target);
         if (kind == DispatchInvocation.Kind.INTERFACE) {
-            ctxt.warning(getLocation(), "interface invocation not supported yet");
-            // but continue with bogus call target just to see what would happen
-            callTarget = functionLiteral(invokeTarget);
+            callTarget = expandInterfaceDispatch(instance, target);
         } else if (kind == DispatchInvocation.Kind.VIRTUAL) {
             callTarget = expandVirtualDispatch(instance, target);
         } else {
+            Function invokeTarget = ctxt.getExactFunction(target);
+            ctxt.declareForeignFunction(target, invokeTarget, getCurrentElement());
             callTarget = functionLiteral(invokeTarget);
         }
         List<Value> args = new ArrayList<>(arguments.size() + 2);
@@ -138,11 +136,31 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         GlobalVariableElement vtables = dt.getVTablesGlobal();
         if (!vtables.getEnclosingType().equals(originalElement.getEnclosingType())) {
             Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-            section.declareData(null, vtables.getName(), vtables.getType(List.of()));
+            section.declareData(null, vtables.getName(), vtables.getType());
         }
         int index = dt.getVTableIndex(target);
         Value typeId = load(instanceFieldOf(referenceHandle(instance), Layout.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
         Value vtable = load(elementOf(globalVariable(dt.getVTablesGlobal()), typeId), MemoryAtomicityMode.UNORDERED);
         return load(memberOf(pointerHandle(bitCast(vtable, info.getType().getPointer())), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
+    }
+
+    // Current implementation strategy is "directly indexed itable" in the terminology of [Alpern et al 2001].
+    // Very fast dispatch; but significant wasted data space due to sparse per-interface itables[].
+    // However, all the invalid slots in the itable contain a pointer to VMHelpers.raiseIncompatibleClassChangerError()
+    // so we do not need an explicit test at the call site.
+    private Value expandInterfaceDispatch(Value instance, MethodElement target) {
+        DispatchTables dt = DispatchTables.get(ctxt);
+        DispatchTables.ITableInfo info = dt.getITableInfo(target.getEnclosingType().validate());
+        if (info == null) {
+            // No realized invocation targets are possible for this method!
+            invokeStatic(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError"), List.of());
+            throw new BlockEarlyTermination(unreachable());
+        }
+        Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
+        section.declareData(null, info.getGlobal().getName(), info.getGlobal().getType());
+        int index = dt.getITableIndex(target);
+        Value typeId = load(instanceFieldOf(referenceHandle(instance), Layout.get(ctxt).getObjectTypeIdField()), MemoryAtomicityMode.UNORDERED);
+        Value itable = load(elementOf(globalVariable(info.getGlobal()), typeId), MemoryAtomicityMode.UNORDERED);
+        return load(memberOf(pointerHandle(itable), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
     }
 }

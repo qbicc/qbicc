@@ -11,9 +11,13 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
  */
 public abstract class ObjectType extends ValueType {
     private static final VarHandle referenceTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "referenceType", VarHandle.class, ObjectType.class, ReferenceType.class);
+    private static final VarHandle refArrayTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "refArrayType", VarHandle.class, ObjectType.class, ReferenceArrayObjectType.class);
+
 
     @SuppressWarnings("unused")
     private volatile ReferenceType referenceType;
+    @SuppressWarnings("unused")
+    private volatile ReferenceArrayObjectType refArrayType;
 
     ObjectType(final TypeSystem typeSystem, final int hashCode) {
         super(typeSystem, hashCode);
@@ -43,6 +47,26 @@ public abstract class ObjectType extends ValueType {
         return newReferenceType;
     }
 
+    /**
+     * Get the referenceArrayObjectType with this type as its element.
+     *
+     * @return the referenceArrayObjectType
+     */
+    public final ReferenceArrayObjectType getReferenceArrayObject() {
+        ReferenceArrayObjectType refArrayType = this.refArrayType;
+        if (refArrayType != null) {
+            return refArrayType;
+        }
+        ReferenceArrayObjectType newReferenceArrayObjectType = typeSystem.createReferenceArrayObject(this);
+        while (! refArrayTypeHandle.compareAndSet(this, null, newReferenceArrayObjectType)) {
+            refArrayType = this.refArrayType;
+            if (refArrayType != null) {
+                return refArrayType;
+            }
+        }
+        return newReferenceArrayObjectType;
+    }
+
     abstract ReferenceType createReferenceType();
 
     public abstract boolean hasSuperClass();
@@ -61,5 +85,14 @@ public abstract class ObjectType extends ValueType {
 
     public boolean isSupertypeOf(ObjectType other) {
         return other.isSubtypeOf(this);
+    }
+
+    @Override
+    public final boolean equals(ValueType other) {
+        return other instanceof ObjectType && equals((ObjectType) other);
+    }
+
+    public boolean equals(ObjectType other) {
+        return super.equals(other);
     }
 }

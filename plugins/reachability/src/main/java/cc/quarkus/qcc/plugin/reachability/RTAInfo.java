@@ -2,8 +2,11 @@ package cc.quarkus.qcc.plugin.reachability;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.type.ClassObjectType;
+import cc.quarkus.qcc.type.InterfaceObjectType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,6 +19,8 @@ public class RTAInfo {
 
     // Tracks reachable classes and their (direct) reachable subclasses
     private final Map<ValidatedTypeDefinition, Set<ValidatedTypeDefinition>> classHierarchy = new ConcurrentHashMap<>();
+    // Tracks reachable interfaces and their (direct) reachable implementors
+    private final Map<ValidatedTypeDefinition, Set<ValidatedTypeDefinition>> interfaceHierarchy = new ConcurrentHashMap<>();
 
     private final CompilationContext ctxt;
 
@@ -37,7 +42,9 @@ public class RTAInfo {
 
     public static void clear(CompilationContext ctxt) {
         RTAInfo info = get(ctxt);
+        ReachabilityBlockBuilder.rtaLog.debugf("Clearing RTAInfo %s classes; %s interfaces", info.classHierarchy.size(), info.interfaceHierarchy.size());
         info.classHierarchy.clear();
+        info.interfaceHierarchy.clear();
     }
 
     public boolean isLiveClass(ValidatedTypeDefinition type) {
@@ -52,7 +59,45 @@ public class RTAInfo {
             addLiveClass(superClass);
             classHierarchy.get(superClass).add(type);
         }
-        // TODO: Record implements hierarchy info
+    }
+
+    public boolean isLiveInterface(ValidatedTypeDefinition type) { return interfaceHierarchy.containsKey(type); }
+
+    public void makeInterfaceLive(ValidatedTypeDefinition type) {
+        interfaceHierarchy.computeIfAbsent(type, t -> ConcurrentHashMap.newKeySet());
+    }
+
+    public void addInterfaceEdge(ValidatedTypeDefinition child, ValidatedTypeDefinition parent) {
+        interfaceHierarchy.computeIfAbsent(parent, t -> ConcurrentHashMap.newKeySet()).add(child);
+    }
+
+    public void visitLiveInterfaces(Consumer<ValidatedTypeDefinition> function) {
+        for (ValidatedTypeDefinition i: interfaceHierarchy.keySet()) {
+            function.accept(i);
+        }
+    }
+
+    public void visitLiveImplementors(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {
+        Set<ValidatedTypeDefinition> implementors = interfaceHierarchy.get(type);
+        if (implementors == null) return;
+        Set<ValidatedTypeDefinition> toProcess = new HashSet<>();
+        collectImplementors(type, toProcess);
+        for (ValidatedTypeDefinition cls : toProcess) {
+            function.accept(cls);
+        }
+    }
+
+    private void collectImplementors(ValidatedTypeDefinition type, Set<ValidatedTypeDefinition> toProcess) {
+        Set<ValidatedTypeDefinition> implementors = interfaceHierarchy.get(type);
+        if (implementors == null) return;
+        for (ValidatedTypeDefinition child: implementors) {
+            toProcess.add(child);
+            if (child.isInterface()) {
+                collectImplementors(child, toProcess);
+            } else {
+                visitLiveSubclassesPreOrder(child, cls -> toProcess.add(cls));
+            }
+        }
     }
 
     public void visitLiveSubclassesPreOrder(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {

@@ -1,7 +1,6 @@
 package cc.quarkus.qcc.plugin.dispatch;
 
 import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
@@ -9,7 +8,7 @@ import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 
 import java.util.function.Consumer;
 
-public class VTableBuilder implements Consumer<CompilationContext>  {
+public class DispatchTableBuilder implements Consumer<CompilationContext>  {
     @Override
     public void accept(CompilationContext ctxt) {
         RTAInfo info = RTAInfo.get(ctxt);
@@ -25,5 +24,8 @@ public class VTableBuilder implements Consumer<CompilationContext>  {
 
         // Synthesize GlobalVariable for vtables[]
         tables.buildVTablesGlobal(jlo);
+
+        // Now build the interface dispatching structures for the reachable methods
+        info.visitLiveInterfaces(i -> tables.buildFilteredITableForInterface(i));
     }
 }

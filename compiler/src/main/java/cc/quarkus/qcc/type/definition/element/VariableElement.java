@@ -1,14 +1,12 @@
 package cc.quarkus.qcc.type.definition.element;
 
-import java.util.List;
-
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.generic.ParameterizedSignature;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 import io.smallrye.common.constraint.Assert;
 
@@ -21,6 +19,7 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
     private final TypeSignature typeSignature;
     private final TypeAnnotationList visibleTypeAnnotations;
     private final TypeAnnotationList invisibleTypeAnnotations;
+    private final TypeParameterContext typeParameterContext;
     private volatile ValueType type;
 
     VariableElement(Builder builder) {
@@ -30,6 +29,7 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         this.typeSignature = Assert.checkNotNullParam("builder.typeSignature", builder.typeSignature);
         this.visibleTypeAnnotations = builder.visibleTypeAnnotations;
         this.invisibleTypeAnnotations = builder.invisibleTypeAnnotations;
+        this.typeParameterContext = Assert.checkNotNullParam("builder.typeParameterContext", builder.typeParameterContext);
         ValueType type = builder.type;
         if (type != null) {
             this.type = type;
@@ -60,14 +60,13 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
      * Get or resolve the type of the variable.  This may cause classes to be loaded, resolved, and/or initialized
      * recursively.
      *
-     * @param signatureContext the signature context (must not be {@code null})
      * @return the resolved type of the variable
      */
-    public ValueType getType(List<ParameterizedSignature> signatureContext) {
+    public ValueType getType() {
         ClassContext classContext = getEnclosingType().getContext();
         ValueType type = this.type;
         if (type == null) {
-            type = resolveTypeDescriptor(classContext, signatureContext);
+            type = resolveTypeDescriptor(classContext, typeParameterContext);
             if (type instanceof ReferenceType) {
                 // all fields are considered nullable for now
                 // todo: add a flag for non-nullable fields
@@ -79,10 +78,10 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         return type;
     }
 
-    ValueType resolveTypeDescriptor(ClassContext classContext, List<ParameterizedSignature> signatureContext) {
+    ValueType resolveTypeDescriptor(ClassContext classContext, TypeParameterContext paramCtxt) {
         return classContext.resolveTypeFromDescriptor(
                         getTypeDescriptor(),
-                        signatureContext,
+                        paramCtxt,
                         getTypeSignature(),
                         getVisibleTypeAnnotations(),
                         getInvisibleTypeAnnotations());
@@ -102,6 +101,7 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         private TypeSignature typeSignature;
         private TypeAnnotationList visibleTypeAnnotations = TypeAnnotationList.empty();
         private TypeAnnotationList invisibleTypeAnnotations = TypeAnnotationList.empty();
+        private TypeParameterContext typeParameterContext;
         private ValueType type;
 
         Builder() {}
@@ -124,6 +124,10 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
 
         public void setInvisibleTypeAnnotations(TypeAnnotationList annotations) {
             this.invisibleTypeAnnotations = Assert.checkNotNullParam("annotations", annotations);
+        }
+
+        public void setTypeParameterContext(TypeParameterContext typeParameterContext) {
+            this.typeParameterContext = typeParameterContext;
         }
 
         public void setType(final ValueType type) {

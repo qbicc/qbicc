@@ -1,15 +1,15 @@
 package cc.quarkus.qcc.plugin.instanceofcheckcast;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
-
-import org.jboss.logging.Logger;
 
 import cc.quarkus.qcc.context.AttachmentKey;
 import cc.quarkus.qcc.context.CompilationContext;
@@ -17,13 +17,19 @@ import cc.quarkus.qcc.graph.literal.ArrayLiteral;
 import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.plugin.instanceofcheckcast.SupersDisplayTables.IdAndRange.Factory;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
+import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
+import cc.quarkus.qcc.type.generic.BaseTypeSignature;
 import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 
 /**
  * Build Cohen's display of accessible super types.
@@ -33,7 +39,7 @@ import io.smallrye.common.constraint.Assert;
 public class SupersDisplayTables {
     private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast");
     private static final Logger supersLog = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers");
-    
+
     private static final AttachmentKey<SupersDisplayTables> KEY = new AttachmentKey<>();
     private static final ValidatedTypeDefinition[] INVALID_DISPLAY = new ValidatedTypeDefinition[0];
 
@@ -43,6 +49,8 @@ public class SupersDisplayTables {
     private final Map<ValidatedTypeDefinition, IdAndRange> typeids = new ConcurrentHashMap<>();
 
     static final String GLOBAL_TYPEID_ARRAY = "qcc_typeid_array";
+    private GlobalVariableElement typeIdArrayGlobal;
+    private CompoundType typeIdStructType;
 
     /** 
      * This class embodies the typeid for a class and the
@@ -85,7 +93,6 @@ public class SupersDisplayTables {
             // interface ids must be contigious and after the class ids
             private int first_interface_typeid = 0;
 
-
             public IdAndRange nextID() {
                 return new IdAndRange(typeid_index++, this);
             }
@@ -115,7 +122,7 @@ public class SupersDisplayTables {
         }
 
         public String toString() {
-            String s = "ID[" + typeid +"] Range["+ typeid +", " + maximumSubtypeId + "]";
+            String s = "ID[" + typeid + "] Range[" + typeid + ", " + maximumSubtypeId + "]";
             if (typeid >= constants.first_interface_typeid) {
                 int bit = (typeid - constants.first_interface_typeid);
                 s += " indexBit[" + bit + "]";
@@ -180,7 +187,7 @@ public class SupersDisplayTables {
             return supers.computeIfAbsent(cls, theCls -> new ValidatedTypeDefinition[] { theCls });
         } else if (cls.isInterface()) {
             // Interfaces only have Object as their superclass
-            // TODO: Should the interface be in the display?  no for the Click paper
+            // TODO: Should the interface be in the display? no for the Click paper
             return supers.computeIfAbsent(cls, theCls -> new ValidatedTypeDefinition[] { theCls });
         }
         // Display should have been built before this point so return the built one
@@ -208,7 +215,7 @@ public class SupersDisplayTables {
             // TODO: ValidatedTypeDefinition needs to have its depth set
             maxDisplaySizeElements = Math.max(maxDisplaySizeElements, superDisplay.size());
             supersArray = superDisplay.toArray(INVALID_DISPLAY); // Use this to ensure toArray result has right type
-            supers.put(cls, supersArray); 
+            supers.put(cls, supersArray);
         }
         log.debug("Display size: " + supersArray.length);
     }
@@ -223,11 +230,11 @@ public class SupersDisplayTables {
         });
         supersLog.debug("Supers display statistics: [size, occurrance]");
         histogram.entrySet().stream().forEach(es -> {
-            supersLog.debug("\t["+ es.getKey() +", " + es.getValue()+ "]");
+            supersLog.debug("\t[" + es.getKey() + ", " + es.getValue() + "]");
         });
         int numClasses = supers.size();
-        supersLog.debug("Classes: "+ numClasses);
-        supersLog.debug("Max display size: "+ maxDisplaySizeElements);
+        supersLog.debug("Classes: " + numClasses);
+        supersLog.debug("Max display size: " + maxDisplaySizeElements);
         supersLog.debug("Slots of storage: " + numClasses * maxDisplaySizeElements);
         int emptySlots = histogram.entrySet().stream().flatMapToInt(es -> {
             int waste = maxDisplaySizeElements - es.getKey(); // max - needed number
@@ -239,15 +246,14 @@ public class SupersDisplayTables {
         supersLog.debug("typeid and range");
         typeids.entrySet().stream()
             .sorted((a, b) -> a.getValue().typeid - b.getValue().typeid)
-            .forEach(es -> {
+            .forEach(es -> {            
                 ValidatedTypeDefinition vtd = es.getKey();
                 IdAndRange idRange = es.getValue();
                 supersLog.debug(idRange.toString() + " " + vtd.getInternalName());
             }
         );
 
-        int numInterfaces = typeids.size() - supers.size() - 18 /* primitives, void, primitive arrays, ref array */;
-        int bytesPerClass = (numInterfaces + idAndRange.interfaces_per_byte - 1) / idAndRange.interfaces_per_byte;
+        int bytesPerClass = getNumberOfBytesInInterfaceBitsArray();
         supersLog.debug("===============");
         supersLog.debug("Implemented interface bits require " + bytesPerClass + " bytes per class");
         supersLog.debug("classes + interfaces = " + typeids.size());
@@ -256,7 +262,7 @@ public class SupersDisplayTables {
 
     void assignTypeID(ValidatedTypeDefinition cls) {
         IdAndRange myID = typeids.computeIfAbsent(cls, theCls -> idAndRange.nextID());
-        log.debug("["+ myID.typeid +"] Class: " + cls.getInternalName());
+        log.debug("[" + myID.typeid + "] Class: " + cls.getInternalName());
     }
 
     void assignMaximumSubtypeId(ValidatedTypeDefinition cls) {
@@ -272,16 +278,9 @@ public class SupersDisplayTables {
         }
     }
 
-    void assignInterfaceID(ValidatedTypeDefinition cls) {
-        int numInterfaces = cls.getInterfaceCount();
-        for (int i = 0; i < numInterfaces; i++) {
-            ValidatedTypeDefinition interface_i = cls.getInterface(i);
-            if (typeids.get(interface_i) == null) {
-                typeids.computeIfAbsent(interface_i, theInterface -> idAndRange.nextInterfaceID());
-                // assign IDs to interfaces implemented by this interface
-                assignInterfaceID(interface_i);
-            }
-        }
+    void assignInterfaceId(ValidatedTypeDefinition cls) {
+        Assert.assertTrue(cls.isInterface());
+        typeids.computeIfAbsent(cls, theInterface -> idAndRange.nextInterfaceID());
     }
 
     void updateJLORange(ValidatedTypeDefinition jlo) {
@@ -298,14 +297,16 @@ public class SupersDisplayTables {
     }
 
     void writeTypeIdToClasses() {
-        typeids.entrySet().stream()
-            .forEach(es -> {
-                ValidatedTypeDefinition vtd = es.getKey();
-                IdAndRange idRange = es.getValue();
-                vtd.assignTypeId(idRange.typeid);
-                vtd.assignMaximumSubtypeId(idRange.maximumSubtypeId);
-            }
-        );
+        typeids.entrySet().stream().forEach(es -> {
+            ValidatedTypeDefinition vtd = es.getKey();
+            IdAndRange idRange = es.getValue();
+            vtd.assignTypeId(idRange.typeid);
+            vtd.assignMaximumSubtypeId(idRange.maximumSubtypeId);
+        });
+    }
+
+    public int getFirstInterfaceTypeId() {
+        return idAndRange.first_interface_typeid;
     }
 
     int getNumberOfInterfacesInTypeIds() {
@@ -313,27 +314,46 @@ public class SupersDisplayTables {
         return typeids.size() - idAndRange.first_interface_typeid + 10;
     }
 
-    int getNumberOfBytesInInterfaceBitsArray() {
+    public int getNumberOfBytesInInterfaceBitsArray() {
         int numInterfaces = getNumberOfInterfacesInTypeIds();
-        return (numInterfaces + idAndRange.interfaces_per_byte - 1) / idAndRange.interfaces_per_byte;
+        return (numInterfaces + Factory.interfaces_per_byte - 1) / Factory.interfaces_per_byte;
     }
 
     byte[] getImplementedInterfaceBits(ValidatedTypeDefinition cls) {
         byte[] setBits = new byte[getNumberOfBytesInInterfaceBitsArray()];
-        // supersLog.debug("Setting interface bits for: " + cls.getInternalName() + " byteArray size=" + setBits.length);
-        for (ValidatedTypeDefinition i : cls.getInterfaces()) {
+        ArrayDeque<ValidatedTypeDefinition> worklist = new ArrayDeque<>();
+        if (cls.isInterface()) {
+            worklist.add(cls);
+        } else {
+            ValidatedTypeDefinition cur = cls;
+            while (cur != null) {
+                worklist.addAll(List.of(cur.getInterfaces()));
+                cur = cur.getSuperClass();
+            }
+        }
+        while (!worklist.isEmpty()) {
+            ValidatedTypeDefinition i = worklist.pop();
+            worklist.addAll(List.of(i.getInterfaces()));
             IdAndRange idRange = typeids.get(i);
             if (idRange != null) {
                 int index = idRange.implementedInterfaceByteIndex();
-                // int originalValue = setBits[index];
                 setBits[index] |= idRange.implementedInterfaceBitMask();
-                // supersLog.debug("Applying interface: " + i.getInternalName() + " setBits["+index+"] mask:" + Integer.toUnsignedString(idRange.implementedInterfaceBitMask(), 2));
-                // supersLog.debug("was: " + Integer.toUnsignedString(originalValue, 2));
-                // supersLog.debug("now: " + Integer.toUnsignedString(setBits[index], 2));
             }
         }
 
         return setBits;
+    }
+
+    public int getInterfaceByteIndex(ValidatedTypeDefinition cls) {
+        Assert.assertTrue(cls.isInterface());
+        IdAndRange idRange = typeids.get(cls);
+        return idRange.implementedInterfaceByteIndex();
+    }
+
+    public int getInterfaceBitMask(ValidatedTypeDefinition cls) {
+        Assert.assertTrue(cls.isInterface());
+        IdAndRange idRange = typeids.get(cls);
+        return idRange.implementedInterfaceBitMask();
     }
 
     List<Literal> convertByteArrayToValuesList(LiteralFactory literalFactory, byte[] array) {
@@ -389,7 +409,7 @@ public class SupersDisplayTables {
             memberSize /* size */,
             ts.getPointerAlignment(), 
             () -> List.of(members));
-
+        
         Section section = ctxt.getImplicitSection(jlo);
         Literal[] typeIdTable = new Literal[typeids.size() + 10]; // invalid zero + 8 prims + void
         LiteralFactory literalFactory = ctxt.getLiteralFactory();
@@ -425,6 +445,48 @@ public class SupersDisplayTables {
         ArrayType typeIdsArrayType = ctxt.getTypeSystem().getArrayType(typeIdStruct, typeIdTable.length);
         ArrayLiteral typeIdsValue = ctxt.getLiteralFactory().literalOf(typeIdsArrayType, List.of(typeIdTable));
         section.addData(null, GLOBAL_TYPEID_ARRAY, typeIdsValue);
+
+        // create a GlobalVariable for shared access to the typeId array
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
+        builder.setName(GLOBAL_TYPEID_ARRAY);
+        builder.setType(typeIdsArrayType);
+        builder.setEnclosingType(jlo);
+        // void for now, but this is cheating terribly
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        typeIdArrayGlobal = builder.build();
+        typeIdStructType = typeIdStruct;
+    }
+
+    /**
+     * Get the GlobalVariableElement reference to the `qcc_typeid_array`.
+     * 
+     * As part of it getting it, ensure a reference to it has been recorded into
+     * the ExecutableElement's section.
+     * 
+     * @param originalElement the original element (must not be {@code null})
+     * @return the type ID global
+     */
+    public GlobalVariableElement getAndRegisterGlobalTypeIdArray(ExecutableElement originalElement) {
+        Assert.assertNotNull(typeIdArrayGlobal);
+        if (!typeIdArrayGlobal.getEnclosingType().equals(originalElement.getEnclosingType())) {
+            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
+            section.declareData(null, typeIdArrayGlobal.getName(), typeIdArrayGlobal.getType());
+        }
+        return typeIdArrayGlobal;
+    }
+
+    /**
+     * Get the CompoundType for the GlobalTypeIdArray (`qcc_typeid_array`) 
+     * global variable elements.
+     * 
+     * See #emitTypeIdTable for the definition of the typeid array elements.
+     * 
+     * @return  The CompoundType describing the struct.
+     */
+    public CompoundType getGlobalTypeIdStructType() {
+        Assert.assertNotNull(typeIdStructType);
+        return typeIdStructType;
     }
 }
 

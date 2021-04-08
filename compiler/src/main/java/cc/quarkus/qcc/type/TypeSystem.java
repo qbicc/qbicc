@@ -26,7 +26,6 @@ public final class TypeSystem {
     private final VariadicType variadicType = new VariadicType(this);
     private final PoisonType poisonType = new PoisonType(this);
     private final VoidType voidType = new VoidType(this);
-    private final NullType nullType = new NullType(this);
     private final BlockType blockType = new BlockType(this);
     private final UnresolvedType unresolvedType = new UnresolvedType(this);
     private final MethodHandleType methodHandleType = new MethodHandleType(this);
@@ -104,10 +103,6 @@ public final class TypeSystem {
 
     public PoisonType getPoisonType() {
         return poisonType;
-    }
-
-    public NullType getNullType() {
-        return nullType;
     }
 
     public BooleanType getBooleanType() {
@@ -387,7 +382,7 @@ public final class TypeSystem {
         return new ReferenceType(this, objectType, interfaceBounds, false, referenceSize, referenceAlign);
     }
 
-    ReferenceArrayObjectType createReferenceArrayObject(final ReferenceType elementType) {
+    ReferenceArrayObjectType createReferenceArrayObject(final ObjectType elementType) {
         return new ReferenceArrayObjectType(this, objectClass, elementType);
     }
 

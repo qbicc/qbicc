@@ -15,5 +15,13 @@ public final class SysUtsname {
         public c_char[] machine;
     }
 
-    public static native c_int uname(ptr<struct_utsname> buf);
+    public static final class struct_utsname_ptr extends ptr<struct_utsname> {}
+    public static final class const_struct_utsname_ptr extends ptr<@c_const struct_utsname> {}
+    public static final class struct_utsname_ptr_ptr extends ptr<struct_utsname_ptr> {}
+    public static final class const_struct_utsname_ptr_ptr extends ptr<const_struct_utsname_ptr> {}
+    public static final class struct_utsname_ptr_const_ptr extends ptr<@c_const struct_utsname_ptr> {}
+    public static final class const_struct_utsname_ptr_const_ptr extends ptr<@c_const const_struct_utsname_ptr> {}
+
+
+    public static native c_int uname(struct_utsname_ptr buf);
 }

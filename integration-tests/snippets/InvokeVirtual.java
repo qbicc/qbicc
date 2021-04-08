@@ -16,17 +16,14 @@ public class InvokeVirtual {
         int mul() { return a * b; }
 
 
-    @export
-    public static int main() {
+    public static void main(String[] args) {
         InvokeVirtual obj = new InvokeVirtual(10, 5);
         int s = obj.sum();
         int p = obj.mul();
         if (s == 15 && p == 50) {
             reportSuccess();
-            return 0;
         } else {
             reportFailure(s, p);
-            return 1;
         }
     }
 
@@ -48,8 +45,5 @@ public class InvokeVirtual {
         putchar(s);
         putchar(p);
         putchar('\n');
-    }
-
-    public static void main(String[] args) {
     }
 }

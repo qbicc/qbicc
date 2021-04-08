@@ -41,6 +41,14 @@ public abstract class IntegerType extends NumericType {
         return minBits;
     }
 
+    /**
+     * Truncate the value to this size and type.  Signed types will sign-extend.
+     *
+     * @param value the value to truncate
+     * @return the truncated value
+     */
+    public abstract long truncateValue(long value);
+
     public abstract long getMaxValue();
 
     public abstract long getMinValue();

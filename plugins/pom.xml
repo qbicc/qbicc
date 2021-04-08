@@ -28,6 +28,7 @@
         <module>llvm</module>
         <module>lowering</module>
         <module>main</module>
+        <module>metrics</module>
         <module>native</module>
         <module>objectmonitor</module>
         <module>optimization</module>
@@ -36,5 +37,6 @@
         <module>thread-local</module>
         <module>try-catch</module>
         <module>verification</module>
+        <module>unwind</module>
     </modules>
 </project>

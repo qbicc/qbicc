@@ -6,6 +6,7 @@ import java.util.List;
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
@@ -16,6 +17,8 @@ import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
+import cc.quarkus.qcc.type.descriptor.Descriptor;
 
 /**
  *
@@ -28,13 +31,13 @@ public class NoGcMultiNewArrayBasicBlockBuilder extends DelegatingBasicBlockBuil
         this.ctxt = ctxt;
     }
 
-    public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
-        return multiNewArray(arrayType, dimensions.iterator());
+    public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
+        return multiNewArray(desc, dimensions.iterator());
     }
 
-    private Value multiNewArray(final ArrayObjectType arrayType, final Iterator<Value> dimensions) {
+    private Value multiNewArray(final ArrayTypeDescriptor desc, final Iterator<Value> dimensions) {
         Value dimension = dimensions.next();
-        Value newArray = newArray(arrayType, dimension);
+        Value newArray = newArray(desc, dimension);
         if (! dimensions.hasNext()) {
             return newArray;
         }
@@ -49,23 +52,16 @@ public class NoGcMultiNewArrayBasicBlockBuilder extends DelegatingBasicBlockBuil
         if_(isEq(phi, dimension), exit, resume);
         begin(resume);
         phi.setValueForBlock(ctxt, getCurrentElement(), initial, lf.literalOf(0));
-        ValueType elementType = arrayType.getElementType();
-        ArrayObjectType nestedType;
-        if (! (elementType instanceof ReferenceType)) {
-            ctxt.error(getLocation(), "Unexpected array element type: %s", elementType);
-            return lf.literalOfNull();
+        Descriptor elementDesc = desc.getElementTypeDescriptor();
+        if (! (elementDesc instanceof ArrayTypeDescriptor)) {
+            ctxt.error(getLocation(), "Unexpected array descriptor: %s", elementDesc);
+            throw new BlockEarlyTermination(unreachable());
         }
-        ObjectType upperBound = ((ReferenceType) elementType).getUpperBound();
-        if (! (upperBound instanceof ArrayObjectType)) {
-            ctxt.error(getLocation(), "Unexpected array element upper bound: %s", upperBound);
-            return lf.literalOfNull();
-        }
-        nestedType = (ArrayObjectType) upperBound;
-        Value innerArray = multiNewArray(nestedType, dimensions);
-        store(elementOf(referenceHandle(innerArray), phi), innerArray, MemoryAtomicityMode.UNORDERED);
+        Value innerArray = multiNewArray((ArrayTypeDescriptor) elementDesc, dimensions);
+        store(elementOf(referenceHandle(newArray), phi), innerArray, MemoryAtomicityMode.UNORDERED);
         BasicBlock loopExit = goto_(loop);
-        phi.setValueForBlock(ctxt, getCurrentElement(), loopExit, sub(phi, lf.literalOf(1)));
-        begin(new BlockLabel());
+        phi.setValueForBlock(ctxt, getCurrentElement(), loopExit, add(phi, lf.literalOf(1)));
+        begin(exit);
         return newArray;
     }
 

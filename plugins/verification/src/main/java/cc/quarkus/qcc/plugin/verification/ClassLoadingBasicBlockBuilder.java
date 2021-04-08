@@ -49,7 +49,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound());
     }
 
-    public Value narrow(final Value value, TypeDescriptor desc) {
+    public Value checkcast(final Value value, TypeDescriptor desc) {
         TypeDescriptor orig = desc;
         while (desc instanceof ArrayTypeDescriptor) {
             desc = ((ArrayTypeDescriptor) desc).getElementTypeDescriptor();
@@ -60,15 +60,16 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 throw new BlockEarlyTermination(noClassDefFound());
             }
         }
-        return super.narrow(value, orig);
+        return super.checkcast(value, orig);
     }
 
-    public Value instanceOf(final Value input, TypeDescriptor desc) {
-        while (desc instanceof ArrayTypeDescriptor) {
-            desc = ((ArrayTypeDescriptor) desc).getElementTypeDescriptor();
+    public Value instanceOf(final Value input, final TypeDescriptor desc) {
+        TypeDescriptor baseDescriptor = desc;
+        while (baseDescriptor instanceof ArrayTypeDescriptor) {
+            baseDescriptor = ((ArrayTypeDescriptor) baseDescriptor).getElementTypeDescriptor();
         }
-        if (desc instanceof ClassTypeDescriptor) {
-            if (! loadClass((ClassTypeDescriptor) desc)) {
+        if (baseDescriptor instanceof ClassTypeDescriptor) {
+            if (! loadClass((ClassTypeDescriptor) baseDescriptor)) {
                 // no need to continue
                 throw new BlockEarlyTermination(noClassDefFound());
             }

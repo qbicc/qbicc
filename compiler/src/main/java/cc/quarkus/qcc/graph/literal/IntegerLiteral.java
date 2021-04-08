@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.graph.literal;
 
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.type.IntegerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
@@ -11,7 +12,7 @@ public final class IntegerLiteral extends Literal {
     private final int hashCode;
 
     IntegerLiteral(final IntegerType type, final long value) {
-        this.value = value;
+        this.value = type.truncateValue(value);
         this.type = type;
         hashCode = Long.hashCode(value) * 19 + type.hashCode();
     }
@@ -40,30 +41,6 @@ public final class IntegerLiteral extends Literal {
         return (char) value;
     }
 
-    public boolean isZero() {
-        return value == 0;
-    }
-
-    public boolean isOne() {
-        return value == 1;
-    }
-
-    public boolean isNegative() {
-        return type instanceof SignedIntegerType && value < 0;
-    }
-
-    public boolean isNotNegative() {
-        return ! isNegative();
-    }
-
-    public boolean isPositive() {
-        return ! isNotPositive();
-    }
-
-    public boolean isNotPositive() {
-        return isNegative() || value == 0;
-    }
-
     public boolean equals(final Literal other) {
         return other instanceof IntegerLiteral && equals((IntegerLiteral) other);
     }
@@ -82,5 +59,59 @@ public final class IntegerLiteral extends Literal {
 
     public String toString() {
         return type.toString(this);
+    }
+
+    public boolean isZero() {
+        return value == 0;
+    }
+
+    @Override
+    public boolean isDefEq(Value other) {
+        return equals(other);
+    }
+
+    @Override
+    public boolean isDefNe(Value other) {
+        return other instanceof IntegerLiteral && ! equals((IntegerLiteral) other);
+    }
+
+    @Override
+    public boolean isDefLt(Value other) {
+        return other instanceof IntegerLiteral && isDefLt((IntegerLiteral) other);
+    }
+
+    public boolean isDefLt(IntegerLiteral other) {
+        IntegerType type = this.type;
+        return type.equals(other.type) && (type instanceof SignedIntegerType ? value < other.value : Long.compareUnsigned(value, other.value) < 0);
+    }
+
+    @Override
+    public boolean isDefGt(Value other) {
+        return other instanceof IntegerLiteral && isDefGt((IntegerLiteral) other);
+    }
+
+    public boolean isDefGt(IntegerLiteral other) {
+        IntegerType type = this.type;
+        return type.equals(other.type) && (type instanceof SignedIntegerType ? value > other.value : Long.compareUnsigned(value, other.value) > 0);
+    }
+
+    @Override
+    public boolean isDefLe(Value other) {
+        return other instanceof IntegerLiteral && isDefLe((IntegerLiteral) other);
+    }
+
+    public boolean isDefLe(IntegerLiteral other) {
+        IntegerType type = this.type;
+        return type.equals(other.type) && (type instanceof SignedIntegerType ? value <= other.value : Long.compareUnsigned(value, other.value) <= 0);
+    }
+
+    @Override
+    public boolean isDefGe(Value other) {
+        return other instanceof IntegerLiteral && isDefGe((IntegerLiteral) other);
+    }
+
+    public boolean isDefGe(IntegerLiteral other) {
+        IntegerType type = this.type;
+        return type.equals(other.type) && (type instanceof SignedIntegerType ? value >= other.value : Long.compareUnsigned(value, other.value) >= 0);
     }
 }

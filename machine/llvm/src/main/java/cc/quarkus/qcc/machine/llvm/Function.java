@@ -1,5 +1,7 @@
 package cc.quarkus.qcc.machine.llvm;
 
+import cc.quarkus.qcc.machine.llvm.op.Call;
+
 /**
  *
  */
@@ -30,6 +32,10 @@ public interface Function extends Metable {
 
     Function comment(String comment);
 
+    Function signExt();
+
+    Function zeroExt();
+
     LLValue asGlobal();
 
     interface Parameter {
@@ -42,6 +48,10 @@ public interface Function extends Metable {
         Parameter param(LLValue type);
 
         Parameter name(String name);
+
+        Parameter signExt();
+
+        Parameter zeroExt();
 
         LLValue type();
 

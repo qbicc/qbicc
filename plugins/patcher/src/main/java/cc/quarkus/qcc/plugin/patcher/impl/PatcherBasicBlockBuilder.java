@@ -50,7 +50,7 @@ final class PatcherBasicBlockBuilder extends DelegatingBasicBlockBuilder impleme
         if (original instanceof ClassObjectType) {
             return (T) patchTypes.getOrDefault(original, (ClassObjectType) original);
         } else if (original instanceof ReferenceArrayObjectType) {
-            return (T) remapType(((ReferenceArrayObjectType) original).getElementType()).getReferenceArrayObject();
+            return (T) remapType(((ReferenceArrayObjectType) original).getElementObjectType()).getReferenceArrayObject();
         } else if (original instanceof ReferenceType) {
             return (T) remapType(((ReferenceType) original).getUpperBound()).getReference();
         } else {

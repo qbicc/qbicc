@@ -8,6 +8,7 @@ import cc.quarkus.qcc.machine.llvm.FastMathFlag;
 import cc.quarkus.qcc.machine.llvm.SignExtension;
 import cc.quarkus.qcc.machine.llvm.TailType;
 import cc.quarkus.qcc.machine.llvm.LLValue;
+import cc.quarkus.qcc.machine.llvm.Types;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import io.smallrye.common.constraint.Assert;
 
@@ -19,6 +20,7 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
     Set<FastMathFlag> flags = Set.of();
     TailType tailType = TailType.notail;
     CallingConvention cconv = CallingConvention.C;
+    SignExtension ext = SignExtension.none;
     ArgImpl lastArg;
     int addressSpace;
 
@@ -73,12 +75,24 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
         return this;
     }
 
+    public Call signExt() {
+        ext = SignExtension.signext;
+        return this;
+    }
+
+    public Call zeroExt() {
+        ext = SignExtension.zeroext;
+        return this;
+    }
+
     public Argument arg(final LLValue type, final LLValue value) {
         return lastArg = new ArgImpl(this, lastArg, (AbstractValue) type, (AbstractValue) value);
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        super.appendTo(target);
+        if (notVoidFunctionCall()) {
+            super.appendTo(target);
+        }
         if (tailType != TailType.notail) {
             target.append(tailType.name()).append(' ');
         }
@@ -92,6 +106,9 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
         // todo ret attrs
         if (addressSpace != 0) {
             target.append("addrspace").append('(').append(Integer.toString(addressSpace)).append(')').append(' ');
+        }
+        if(ext != SignExtension.none) {
+            target.append(ext.name()).append(' ');
         }
         type.appendTo(target).append(' ');
         function.appendTo(target);
@@ -110,6 +127,10 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
         target.append("unwind label ");
         unwind.appendTo(target);
         return appendTrailer(target);
+    }
+
+    private boolean notVoidFunctionCall() {
+        return !(type instanceof FunctionType) || Types.void_ != ((FunctionType) type).returnType;
     }
 
     static final class ArgImpl extends AbstractEmittable implements Argument {

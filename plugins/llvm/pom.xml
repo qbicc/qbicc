@@ -19,6 +19,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-driver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qcc-machine-file-object</artifactId>
         </dependency>
         <dependency>
@@ -46,12 +50,12 @@
             <artifactId>qcc-plugin-linker</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.smallrye.common</groupId>
-            <artifactId>smallrye-common-constraint</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-plugin-unwind</artifactId>
         </dependency>
         <dependency>
-            <groupId>cc.quarkus</groupId>
-            <artifactId>qcc-driver</artifactId>
+            <groupId>io.smallrye.common</groupId>
+            <artifactId>smallrye-common-constraint</artifactId>
         </dependency>
     </dependencies>
 

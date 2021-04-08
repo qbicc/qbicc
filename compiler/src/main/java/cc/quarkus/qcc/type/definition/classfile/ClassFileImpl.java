@@ -50,6 +50,7 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.generic.ClassSignature;
 import cc.quarkus.qcc.type.generic.ClassTypeSignature;
 import cc.quarkus.qcc.type.generic.MethodSignature;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 
 final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, EnclosingClassResolver, EnclosedClassResolver, MethodBodyFactory {
@@ -314,7 +315,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
     }
 
-    public Literal getConstantValue(int idx) {
+    public Literal getConstantValue(int idx, TypeParameterContext paramCtxt) {
         if (idx == 0) {
             return null;
         }
@@ -324,7 +325,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         }
         int constantType = getConstantType(idx);
         switch (constantType) {
-            case CONSTANT_Class: return setIfNull(literals, idx, literalFactory.literalOfType(getTypeConstant(idx)));
+            case CONSTANT_Class: return setIfNull(literals, idx, literalFactory.literalOfType(getTypeConstant(idx, paramCtxt)));
             case CONSTANT_String:
                 return setIfNull(literals, idx, literalFactory.literalOf(getStringConstant(idx), ctxt.findDefinedType("java/lang/String").validate().getType().getReference()));
             case CONSTANT_Integer:
@@ -350,16 +351,17 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
      * by way of the type resolver.
      *
      * @param idx the constant pool index (must not be 0)
+     * @param paramCtxt the type parameter context (must not be {@code null})
      * @return the type
      */
-    ValueType getTypeConstant(int idx) {
+    ValueType getTypeConstant(int idx, TypeParameterContext paramCtxt) {
         int nameIdx = getClassConstantNameIdx(idx);
         String name = getUtf8Constant(nameIdx);
         assert name != null;
         if (name.startsWith("[")) {
             TypeDescriptor desc = (TypeDescriptor) getDescriptorConstant(nameIdx);
             // todo: acquire the correct signature and type annotation info from the bytecode index and method info
-            return ctxt.resolveTypeFromDescriptor(desc, List.of(/*todo*/), TypeSignature.synthesize(ctxt, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+            return ctxt.resolveTypeFromDescriptor(desc, paramCtxt, TypeSignature.synthesize(ctxt, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
         } else {
             int slash = name.lastIndexOf('/');
             String packageName = slash == -1 ? "" : ctxt.deduplicate(name.substring(0, slash));
@@ -804,7 +806,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 builder.setInvisibleTypeAnnotations(list);
             } else if (fieldAttributeNameEquals(index, i, "ConstantValue")) {
                 if ((modifiers & ACC_STATIC) != 0) {
-                    builder.setInitialValue(getConstantValue(getFieldRawAttributeShort(index, i, 0)));
+                    builder.setInitialValue(getConstantValue(getFieldRawAttributeShort(index, i, 0), enclosing));
                 }
             }
         }
@@ -979,11 +981,13 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         int mpCnt = methodParams == null ? 0 : methodParams.get() & 0xff;
         int mpOffs = realCnt - mpCnt;
         ParameterElement[] parameters = new ParameterElement[realCnt];
+        TypeParameterContext tpc = TypeParameterContext.create(enclosing, signature);
         for (int i = 0; i < realCnt; i ++) {
             ParameterElement.Builder paramBuilder = ParameterElement.builder();
             paramBuilder.setEnclosingType(enclosing);
             paramBuilder.setIndex(i);
             paramBuilder.setDescriptor(methodDescriptor.getParameterTypes().get(i));
+            paramBuilder.setTypeParameterContext(tpc);
             paramBuilder.setSignature(signature.getParameterTypes().get(i));
             if (i >= vaOffs && i < vaOffs + vaCnt) {
                 int annCnt = visibleAnn.getShort() & 0xffff;
@@ -1167,7 +1171,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             throw new IllegalArgumentException("Create method body with no method body");
         }
         int modifiers = element.getModifiers();
-        ClassMethodInfo classMethodInfo = new ClassMethodInfo(this, modifiers, index, codeAttr);
+        ClassMethodInfo classMethodInfo = new ClassMethodInfo(this, element, modifiers, index, codeAttr);
         DefinedTypeDefinition enclosing = element.getEnclosingType();
         BasicBlockBuilder gf = enclosing.getContext().newBasicBlockBuilder(element);
         int offs = classMethodInfo.getCodeOffs();
@@ -1208,7 +1212,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 thisValue = null;
             }
             for (int i = 0; i < paramCount; i ++) {
-                ValueType type = elementParameters.get(i).getType(List.of());
+                ValueType type = elementParameters.get(i).getType();
                 parameters[i] = gf.parameter(type, "p", i);
                 boolean class2 = elementParameters.get(i).hasClass2Type();
                 Value promoted = methodParser.promote(parameters[i]);
@@ -1396,16 +1400,17 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         } else if (viTag == 4) { // long
             return ts.getSignedInteger64Type();
         } else if (viTag == 5) { // null
-            return ts.getNullType();
+            // todo: bottom object type?
+            return ctxt.findDefinedType("java/lang/Object").validate().getClassType().getReference().asNullable();
         } else if (viTag == 6) { // uninitialized this
             return element.getEnclosingType().validate().getType().getReference().asNullable();
         } else if (viTag == 7) { // object
             int cpIdx = sm.getShort() & 0xffff;
-            return nullable(getTypeConstant(cpIdx));
+            return nullable(getTypeConstant(cpIdx, TypeParameterContext.of(element)));
         } else if (viTag == 8) { // uninitialized object
             int newIdx = sm.getShort() & 0xffff;
             int cpIdx = byteCode.getShort(newIdx + 1) & 0xffff;
-            return nullable(getTypeConstant(cpIdx));
+            return nullable(getTypeConstant(cpIdx, TypeParameterContext.of(element)));
         } else {
             throw new IllegalStateException("Invalid variable info tag " + viTag);
         }

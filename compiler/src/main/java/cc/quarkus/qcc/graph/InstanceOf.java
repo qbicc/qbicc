@@ -2,8 +2,9 @@ package cc.quarkus.qcc.graph;
 
 import java.util.Objects;
 
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.type.BooleanType;
-import cc.quarkus.qcc.type.ValueType;
+import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 
 /**
@@ -11,22 +12,29 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
  */
 public final class InstanceOf extends AbstractValue implements InstanceOperation {
     private final Value input;
-    private final ValueType checkType;
+    private final ObjectType checkType;
+    private final int checkDimensions;
     private final BooleanType booleanType;
 
-    InstanceOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, final ValueType checkType, final BooleanType booleanType) {
+    InstanceOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input,
+               final ObjectType checkType, final int checkDimensions, final BooleanType booleanType) {
         super(callSite, element, line, bci);
         this.input = input;
         this.checkType = checkType;
+        this.checkDimensions = checkDimensions;
         this.booleanType = booleanType;
     }
 
-    public ValueType getCheckType() {
+    public ObjectType getCheckType() {
         return checkType;
     }
 
+    public int getCheckDimensions() {
+        return checkDimensions; 
+     }
+
     int calcHashCode() {
-        return Objects.hash(input, checkType);
+        return Objects.hash(input, checkType, checkDimensions);
     }
 
     public boolean equals(final Object other) {
@@ -34,7 +42,7 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
     }
 
     public boolean equals(final InstanceOf other) {
-        return this == other || other != null && input.equals(other.input) && checkType.equals(other.checkType);
+        return this == other || other != null && input.equals(other.input) && checkType.equals(other.checkType) && checkDimensions == other.checkDimensions;
     }
 
     public int getValueDependencyCount() {

@@ -15,6 +15,7 @@ public final class Unistd {
     private Unistd() {
         /* empty */ }
 
+    @incomplete
     public static final class struct_fd_pair extends object {
         public c_long @array_size(2) [] fd;
     }
@@ -34,16 +35,16 @@ public final class Unistd {
     public static native pid_t fork();
 
     // POSIX
-    public static native c_int pipe(c_int @array_size(2) [] fds);
+    public static native c_int pipe(c_int[] fds);
 
     // Alpha, IA-64, MIPS, SuperH, SPARC, SPARC64
     public static native struct_fd_pair pipe();
 
-    public static native c_int unlink(ptr<@c_const c_char> pathname);
+    public static native c_int unlink(const_char_ptr pathname);
 
-    public static native ssize_t write(c_int fd, ptr<@c_const ?> buf, size_t count);
+    public static native ssize_t write(c_int fd, const_void_ptr buf, size_t count);
 
-    public static native ssize_t read(c_int fd, ptr<?> buf, size_t count);
+    public static native ssize_t read(c_int fd, void_ptr buf, size_t count);
 
     public static final c_int R_OK = constant();
     public static final c_int W_OK = constant();
@@ -58,5 +59,5 @@ public final class Unistd {
 
     public static native c_int fcntl(c_int fd, c_int cmd);
 
-    public static native c_int fcntl(c_int fd, c_int cmd, object arg);
+    public static native c_int fcntl(c_int fd, c_int cmd, object... arg);
 }

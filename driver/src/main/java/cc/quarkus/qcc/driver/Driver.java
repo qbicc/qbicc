@@ -42,12 +42,11 @@ import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
 import cc.quarkus.qcc.type.definition.MethodBody;
 import cc.quarkus.qcc.type.definition.ModuleDefinition;
-import cc.quarkus.qcc.type.definition.ResolvedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ElementVisitor;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FunctionElement;
-import cc.quarkus.qcc.type.definition.element.InitializerElement;
 import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
@@ -69,20 +68,22 @@ public class Driver implements Closeable {
     final List<Consumer<? super CompilationContext>> preAddHooks;
     final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> addBuilderFactory;
+    final List<ElementVisitor<CompilationContext, Void>> addElementVisitors;
     final List<Consumer<? super CompilationContext>> postAddHooks;
     // at this point, the phase is switched to ANALYZE
     final List<Consumer<? super CompilationContext>> preAnalyzeHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> addToAnalyzeCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> analyzeBuilderFactory;
+    final List<ElementVisitor<CompilationContext, Void>> analyzeElementVisitors;
     final List<Consumer<? super CompilationContext>> postAnalyzeHooks;
     // at this point, the phase is switched to LOWER
     final List<Consumer<? super CompilationContext>> preLowerHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> analyzeToLowerCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> lowerBuilderFactory;
+    final List<ElementVisitor<CompilationContext, Void>> lowerElementVisitors;
     final List<Consumer<? super CompilationContext>> postLowerHooks;
     // at this point, the phase is switched to GENERATE
     final List<Consumer<? super CompilationContext>> preGenerateHooks;
-    final List<ElementVisitor<CompilationContext, Void>> generateVisitors;
     final List<Consumer<? super CompilationContext>> postGenerateHooks;
     final Map<String, BootModule> bootModules;
     final List<ClassPathElement> bootClassPath;
@@ -156,23 +157,25 @@ public class Driver implements Closeable {
         preAddHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ADD, List.of()));
         // (no copiers)
         addBuilderFactory = constructFactory(builder, Phase.ADD);
+        addElementVisitors = List.copyOf(builder.elementVisitors.getOrDefault(Phase.ADD, List.of()));
         postAddHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ADD, List.of()));
 
         // ANALYZE phase
         preAnalyzeHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ANALYZE, List.of()));
         addToAnalyzeCopiers = constructCopiers(builder, Phase.ANALYZE);
         analyzeBuilderFactory = constructFactory(builder, Phase.ANALYZE);
+        analyzeElementVisitors = List.copyOf(builder.elementVisitors.getOrDefault(Phase.ANALYZE, List.of()));
         postAnalyzeHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ANALYZE, List.of()));
 
         // LOWER phase
         preLowerHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.LOWER, List.of()));
         analyzeToLowerCopiers = constructCopiers(builder, Phase.LOWER);
         lowerBuilderFactory = constructFactory(builder, Phase.LOWER);
+        lowerElementVisitors = List.copyOf(builder.elementVisitors.getOrDefault(Phase.LOWER, List.of()));
         postLowerHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.LOWER, List.of()));
 
         // GENERATE phase
         preGenerateHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.GENERATE, List.of()));
-        generateVisitors = List.copyOf(builder.generateVisitors); // instead of a copier
         // (no builder factory)
         postGenerateHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.GENERATE, List.of()));
 
@@ -278,17 +281,17 @@ public class Driver implements Closeable {
         return compilationContext;
     }
 
-    private ResolvedTypeDefinition loadAndResolveBootstrapClass(String name) {
+    private ValidatedTypeDefinition loadBootstrapClass(String name) {
         DefinedTypeDefinition clazz = compilationContext.getBootstrapClassContext().findDefinedType(name);
         if (clazz == null) {
             compilationContext.error("Required bootstrap class \"%s\" was not found", name);
             return null;
         }
         try {
-            return clazz.validate().resolve();
+            return clazz.validate();
         } catch (Exception ex) {
-            log.error("An exception was thrown while resolving a bootstrap class", ex);
-            compilationContext.error("Failed to resolve bootstrap class \"%s\": %s", name, ex);
+            log.error("An exception was thrown while loading a bootstrap class", ex);
+            compilationContext.error("Failed to load bootstrap class \"%s\": %s", name, ex);
             return null;
         }
     }
@@ -315,15 +318,15 @@ public class Driver implements Closeable {
                 return false;
             }
         }
-        ResolvedTypeDefinition stringClass = loadAndResolveBootstrapClass("java/lang/String");
+        ValidatedTypeDefinition stringClass = loadBootstrapClass("java/lang/String");
         if (stringClass == null) {
             return false;
         }
-        ResolvedTypeDefinition threadClass = loadAndResolveBootstrapClass("java/lang/Thread");
+        ValidatedTypeDefinition threadClass = loadBootstrapClass("java/lang/Thread");
         if (threadClass == null) {
             return false;
         }
-        ResolvedTypeDefinition vmClass = loadAndResolveBootstrapClass("cc/quarkus/qcc/runtime/main/VM");
+        ValidatedTypeDefinition vmClass = loadBootstrapClass("cc/quarkus/qcc/runtime/main/VM");
         if (vmClass == null) {
             return false;
         }
@@ -337,12 +340,6 @@ public class Driver implements Closeable {
 
         ExecutableElement element = compilationContext.dequeue();
         if (element != null) do {
-            // todo: this will be removed once the VM is functional
-            // make sure the initializer is enqueued
-            InitializerElement initializer = element.getEnclosingType().validate().resolve().getInitializer();
-            if (initializer != null) {
-                compilationContext.enqueue(initializer);
-            }
             if (element.hasMethodBody()) {
                 // cause method and field references to be resolved
                 try {
@@ -350,6 +347,14 @@ public class Driver implements Closeable {
                 } catch (Exception e) {
                     log.error("An exception was thrown while constructing a method body", e);
                     compilationContext.error(element, "Exception while constructing method body: %s", e);
+                }
+            }
+            for (ElementVisitor<CompilationContext, Void> elementVisitor : this.addElementVisitors) {
+                try {
+                    element.accept(elementVisitor, compilationContext);
+                } catch (Exception e) {
+                    log.error("An exception was thrown in an element visitor", e);
+                    compilationContext.error(element, "Element visitor threw an exception: %s", e);
                 }
             }
             element = compilationContext.dequeue();
@@ -405,12 +410,6 @@ public class Driver implements Closeable {
 
         element = compilationContext.dequeue();
         if (element != null) do {
-            // todo: this will be removed once the VM is functional
-            // make sure the initializer is enqueued
-            InitializerElement initializer = element.getEnclosingType().validate().resolve().getInitializer();
-            if (initializer != null) {
-                compilationContext.enqueue(initializer);
-            }
             if (element.hasMethodBody()) {
                 // rewrite the method body
                 ClassContext classContext = element.getEnclosingType().getContext();
@@ -420,6 +419,14 @@ public class Driver implements Closeable {
                 BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, addToAnalyzeCopiers);
                 builder.finish();
                 element.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), original.getThisValue(), original.getParameterValues()));
+            }
+            for (ElementVisitor<CompilationContext, Void> elementVisitor : this.analyzeElementVisitors) {
+                try {
+                    element.accept(elementVisitor, compilationContext);
+                } catch (Exception e) {
+                    log.error("An exception was thrown in an element visitor", e);
+                    compilationContext.error(element, "Element visitor threw an exception: %s", e);
+                }
             }
             element = compilationContext.dequeue();
         } while (element != null);
@@ -496,6 +503,15 @@ public class Driver implements Closeable {
                 BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, analyzeToLowerCopiers);
                 builder.finish();
                 function.replaceBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), thisValue, paramValues));
+                element.replaceMethodBody(function.getBody());
+            }
+            for (ElementVisitor<CompilationContext, Void> elementVisitor : this.lowerElementVisitors) {
+                try {
+                    element.accept(elementVisitor, compilationContext);
+                } catch (Exception e) {
+                    log.error("An exception was thrown in an element visitor", e);
+                    compilationContext.error(element, "Element visitor threw an exception: %s", e);
+                }
             }
             element = compilationContext.dequeue();
         }
@@ -533,32 +549,6 @@ public class Driver implements Closeable {
                 // bail out
                 return false;
             }
-        }
-
-        // Visit each reachable node to build the executable program
-
-        for (ExecutableElement entryPoint : compilationContext.getEntryPoints()) {
-            compilationContext.enqueue(entryPoint);
-        }
-
-        List<ElementVisitor<CompilationContext, Void>> generateVisitors = this.generateVisitors;
-
-        element = compilationContext.dequeue();
-        while (element != null) {
-            for (ElementVisitor<CompilationContext, Void> elementVisitor : generateVisitors) {
-                try {
-                    element.accept(elementVisitor, compilationContext);
-                } catch (Exception e) {
-                    log.error("An exception was thrown in an element visitor", e);
-                    compilationContext.error(element, "Element visitor threw an exception: %s", e);
-                }
-            }
-            element = compilationContext.dequeue();
-        }
-
-        if (compilationContext.errors() > 0) {
-            // bail out
-            return false;
         }
 
         // Finalize
@@ -610,7 +600,7 @@ public class Driver implements Closeable {
         final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>();
         final Map<Phase, List<Consumer<? super CompilationContext>>> preHooks = new EnumMap<>(Phase.class);
         final Map<Phase, List<Consumer<? super CompilationContext>>> postHooks = new EnumMap<>(Phase.class);
-        final List<ElementVisitor<CompilationContext, Void>> generateVisitors = new ArrayList<>();
+        final Map<Phase, List<ElementVisitor<CompilationContext, Void>>> elementVisitors = new EnumMap<>(Phase.class);
 
         Path outputDirectory = Path.of(".");
         BaseDiagnosticContext initialContext;
@@ -702,8 +692,9 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Builder addGenerateVisitor(ElementVisitor<CompilationContext, Void> visitor) {
-            generateVisitors.add(Assert.checkNotNullParam("visitor", visitor));
+        public Builder addElementVisitor(Phase phase, ElementVisitor<CompilationContext, Void> visitor) {
+            Assert.checkNotNullParam("visitor", visitor);
+            elementVisitors.computeIfAbsent(phase, Builder::newArrayList).add(visitor);
             return this;
         }
 

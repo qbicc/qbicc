@@ -1,4 +1,4 @@
-name: QCC Docs no-op
+name: qbicc Docs no-op
 on:
   push:
     paths:

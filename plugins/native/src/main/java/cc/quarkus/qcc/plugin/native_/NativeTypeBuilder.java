@@ -28,7 +28,7 @@ public class NativeTypeBuilder implements DefinedTypeDefinition.Builder.Delegati
 
     public void setSuperClassName(final String superClassInternalName) {
         if (superClassInternalName != null) {
-            if (superClassInternalName.equals(Native.OBJECT_INT_NAME) || superClassInternalName.equals(Native.WORD_INT_NAME)) {
+            if (superClassInternalName.equals(Native.OBJECT_INT_NAME) || superClassInternalName.equals(Native.WORD_INT_NAME) || superClassInternalName.equals(Native.PTR_INT_NAME)) {
                 // probe native object type
                 isNative = true;
             }

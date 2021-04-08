@@ -35,6 +35,18 @@ public final class SignedIntegerType extends IntegerType {
         }
     }
 
+    public long truncateValue(final long value) {
+        switch (minBits) {
+            case 8: return (byte) value;
+            case 16: return (short) value;
+            case 32: return (int) value;
+            case 64: return value;
+            default: {
+                throw Assert.impossibleSwitchCase(minBits);
+            }
+        }
+    }
+
     @Override
     public long getMaxValue() {
         return (1L << (minBits - 1)) - 1;

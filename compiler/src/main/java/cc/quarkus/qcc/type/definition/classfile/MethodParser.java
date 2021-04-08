@@ -1,7 +1,7 @@
 package cc.quarkus.qcc.type.definition.classfile;
 
 import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
-import static cc.quarkus.qcc.type.definition.classfile.ClassMethodInfo.*;
+import static cc.quarkus.qcc.type.definition.classfile.ClassMethodInfo.align;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -33,7 +33,6 @@ import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.ObjectType;
 import cc.quarkus.qcc.type.PoisonType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
@@ -43,17 +42,15 @@ import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.InvokableElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
 import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.MethodHandleDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 import io.smallrye.common.constraint.Assert;
 
@@ -69,6 +66,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     private final ClassContext ctxt;
     private final LiteralFactory lf;
     private final TypeSystem ts;
+    private final DefinedTypeDefinition jlo;
     private final DefinedTypeDefinition throwable;
     private int currentbci;
     /**
@@ -101,6 +99,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         gf.setExceptionHandlerPolicy(this);
         int exCnt = info.getExTableLen();
         exceptionHandlers = exCnt == 0 ? List.of() : new ArrayList<>(Collections.nCopies(exCnt, null));
+        jlo = ctxt.findDefinedType("java/lang/Object");
         throwable = ctxt.findDefinedType("java/lang/Throwable");
     }
 
@@ -162,28 +161,33 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 if (exTypeIdx == 0) {
                     exType = throwable.validate().getType().getReference();
                 } else {
-                    exType = (ReferenceType) getClassFile().getTypeConstant(exTypeIdx);
+                    exType = (ReferenceType) getClassFile().getTypeConstant(exTypeIdx, TypeParameterContext.of(gf.getCurrentElement()));
                 }
                 BlockLabel block = getBlockForIndexIfExists(pc);
                 boolean single = block == null;
                 if (single) {
                     block = new BlockLabel();
                 }
-                BasicBlock innerFrom = gf.if_(gf.instanceOf(phi, exType), block, delegate.getHandler());
+                gf.setBytecodeIndex(pc);
+                gf.setLineNumber(info.getLineNumber(pc));
+                // Safe to pass the upperBound as the classFileType to the instanceOf node here as catch blocks can
+                // only catch subclasses of Throwable as enforced by the verifier
+                BasicBlock innerFrom = gf.if_(gf.instanceOf(phi, exType.getUpperBound(), 0), block, delegate.getHandler());
                 // enter the delegate handler
                 delegate.enterHandler(innerFrom, phi);
                 // enter our handler
                 Value[] locals = saveLocals();
                 Value[] stack = saveStack();
                 clearStack();
-                push1(gf.narrow(phi, exType));
                 int pos = buffer.position();
                 buffer.position(pc);
                 if (single) {
                     gf.begin(block);
+                    push1(gf.bitCast(phi, exType));
                     processNewBlock();
                 } else {
-                    processBlock(from);
+                    push1(gf.bitCast(phi, exType));
+                    processBlock(innerFrom);
                 }
                 // restore everything like nothing happened...
                 buffer.position(pos);
@@ -288,8 +292,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         return value;
     }
 
-    Value getConstantValue(int cpIndex) {
-        Literal literal = getClassFile().getConstantValue(cpIndex);
+    Value getConstantValue(int cpIndex, TypeParameterContext paramCtxt) {
+        Literal literal = getClassFile().getConstantValue(cpIndex, paramCtxt);
         if (literal instanceof TypeLiteral) {
             return gf.classOf(literal);
         } else {
@@ -448,7 +452,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_NOP:
                         break;
                     case OP_ACONST_NULL:
-                        push1(lf.literalOfNull());
+                        push1(lf.zeroInitializerLiteralOfType(jlo.validate().getClassType().getReference().asNullable()));
                         break;
                     case OP_ICONST_M1:
                     case OP_ICONST_0:
@@ -479,13 +483,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         push1(lf.literalOf((int) buffer.getShort()));
                         break;
                     case OP_LDC:
-                        push1(getConstantValue(buffer.get() & 0xff));
+                        push1(getConstantValue(buffer.get() & 0xff, TypeParameterContext.of(gf.getCurrentElement())));
                         break;
                     case OP_LDC_W:
-                        push1(getConstantValue(buffer.getShort() & 0xffff));
+                        push1(getConstantValue(buffer.getShort() & 0xffff, TypeParameterContext.of(gf.getCurrentElement())));
                         break;
                     case OP_LDC2_W:
-                        push2(getConstantValue(buffer.getShort() & 0xffff));
+                        push2(getConstantValue(buffer.getShort() & 0xffff, TypeParameterContext.of(gf.getCurrentElement())));
                         break;
                     case OP_ILOAD:
                     case OP_FLOAD:
@@ -526,6 +530,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_ALOAD_3:
                         push1(getLocal(opcode - OP_ALOAD_0));
                         break;
+                    case OP_AALOAD: {
+                        v2 = pop1();
+                        v1 = pop1();
+                        v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
+                        push1(v1);
+                        break;
+                    }
                     case OP_DALOAD:
                     case OP_LALOAD: {
                         v2 = pop1();
@@ -535,7 +546,6 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     }
                     case OP_IALOAD:
-                    case OP_AALOAD:
                     case OP_FALOAD:
                     case OP_BALOAD:
                     case OP_SALOAD:
@@ -588,13 +598,28 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_IASTORE:
                     case OP_FASTORE:
                     case OP_AASTORE:
-                    case OP_BASTORE:
-                    case OP_SASTORE:
-                    case OP_CASTORE:
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
                         gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                        break;
+                    case OP_BASTORE:
+                        v3 = pop1();
+                        v2 = pop1();
+                        v1 = pop1();
+                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger8Type()), MemoryAtomicityMode.UNORDERED);
+                        break;
+                    case OP_SASTORE:
+                        v3 = pop1();
+                        v2 = pop1();
+                        v1 = pop1();
+                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
+                        break;
+                    case OP_CASTORE:
+                        v3 = pop1();
+                        v2 = pop1();
+                        v1 = pop1();
+                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getUnsignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
                         break;
                     case OP_LASTORE:
                     case OP_DASTORE:
@@ -658,9 +683,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         } else {
                             // form 2
                             v1 = pop2();
-                            v2 = pop2();
+                            v2 = pop1();
                             push2(v1);
-                            push2(v2);
+                            push1(v2);
                             push2(v1);
                         }
                         break;
@@ -911,37 +936,34 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_I2S:
                         push1(gf.extend(gf.truncate(pop1(), ts.getSignedInteger16Type()), ts.getSignedInteger32Type()));
                         break;
-                    case OP_LCMP:
+                    case OP_LCMP: {
+                        v2 = pop2();
+                        v1 = pop2();
+                        push1(gf.cmp(v1, v2));
+                        break;
+                    }
                     case OP_DCMPL: {
                         v2 = pop2();
                         v1 = pop2();
-                        v3 = gf.isLt(v1, v2);
-                        v4 = gf.isGt(v1, v2);
-                        push1(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
+                        push1(gf.cmpL(v1, v2));
                         break;
                     }
                     case OP_FCMPL: {
                         v2 = pop1();
                         v1 = pop1();
-                        v3 = gf.isLt(v1, v2);
-                        v4 = gf.isGt(v1, v2);
-                        push1(gf.select(v3, lf.literalOf(- 1), gf.select(v4, lf.literalOf(1), lf.literalOf(0))));
+                        push1(gf.cmpL(v1, v2));
                         break;
                     }
                     case OP_DCMPG: {
                         v2 = pop2();
                         v1 = pop2();
-                        v3 = gf.isLt(v1, v2);
-                        v4 = gf.isGt(v1, v2);
-                        push1(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
+                        push1(gf.cmpG(v1, v2));
                         break;
                     }
                     case OP_FCMPG: {
                         v2 = pop1();
                         v1 = pop1();
-                        v3 = gf.isLt(v1, v2);
-                        v4 = gf.isGt(v1, v2);
-                        push1(gf.select(v4, lf.literalOf(1), gf.select(v3, lf.literalOf(- 1), lf.literalOf(0))));
+                        push1(gf.cmpG(v1, v2));
                         break;
                     }
                     case OP_IFEQ:
@@ -1159,7 +1181,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         return;
                     }
                     case OP_IRETURN: {
-                        FunctionType fnType = gf.getCurrentElement().getType(List.of());
+                        FunctionType fnType = gf.getCurrentElement().getType();
                         ValueType returnType = fnType.getReturnType();
                         gf.return_(gf.truncate(pop1(), (WordType) returnType));
                         // block complete
@@ -1198,7 +1220,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         TypeDescriptor desc = getDescriptorOfFieldRef(fieldRef);
                         String name = getNameOfFieldRef(fieldRef);
                         ValueHandle handle = gf.staticField(owner, name, desc);
-                        gf.store(handle, pop(desc.isClass2()), handle.getDetectedMode());
+                        gf.store(handle, storeTruncate(pop(desc.isClass2()), desc), handle.getDetectedMode());
                         break;
                     }
                     case OP_GETFIELD: {
@@ -1222,7 +1244,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         v2 = pop(desc.isClass2());
                         v1 = pop1();
                         ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(v1), owner, name, desc);
-                        gf.store(handle, v2, handle.getDetectedMode());
+                        gf.store(handle, storeTruncate(v2, desc), handle.getDetectedMode());
                         break;
                     }
                     case OP_INVOKEVIRTUAL:
@@ -1353,7 +1375,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             push1(gf.new_((ClassTypeDescriptor) desc));
                         } else {
                             ctxt.getCompilationContext().error(gf.getLocation(), "Wrong kind of descriptor for `new`: %s", desc);
-                            push1(lf.literalOfNull());
+                            throw new BlockEarlyTermination(gf.unreachable());
                         }
                         break;
                     }
@@ -1370,12 +1392,10 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             case T_LONG: arrayType = ts.getSignedInteger64Type().getPrimitiveArrayObjectType(); break;
                             default: throw new InvalidByteCodeException();
                         }
-                        // todo: check for negative array size
                         push1(gf.newArray(arrayType, pop1()));
                         break;
                     case OP_ANEWARRAY: {
                         TypeDescriptor desc = getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff);
-                        // todo: check for negative array size
                         push1(gf.newArray(ArrayTypeDescriptor.of(ctxt, desc), pop1()));
                         break;
                     }
@@ -1388,7 +1408,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         return;
                     case OP_CHECKCAST: {
                         v1 = pop1();
-                        Value narrowed = gf.narrow(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff));
+                        Value narrowed = gf.checkcast(v1, getClassFile().getClassConstantAsDescriptor(buffer.getShort() & 0xffff));
                         replaceAll(v1, narrowed);
                         push1(narrowed);
                         break;
@@ -1413,14 +1433,21 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         for (int i = dims.length - 1; i >= 0; i --) {
                             dims[i] = pop1();
                         }
-                        push1(gf.multiNewArray(ArrayTypeDescriptor.of(ctxt, desc), List.of(dims)));
+                        if (! (desc instanceof ArrayTypeDescriptor)) {
+                            throw new InvalidByteCodeException();
+                        }
+                        push1(gf.multiNewArray((ArrayTypeDescriptor) desc, List.of(dims)));
                         break;
-                    case OP_IFNULL:
-                        processIf(buffer, gf.isEq(pop1(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
+                    case OP_IFNULL: {
+                        v1 = pop1();
+                        processIf(buffer, gf.isEq(v1, lf.zeroInitializerLiteralOfType(v1.getType())), buffer.getShort() + src, buffer.position());
                         return;
-                    case OP_IFNONNULL:
-                        processIf(buffer, gf.isNe(pop1(), lf.literalOfNull()), buffer.getShort() + src, buffer.position());
+                    }
+                    case OP_IFNONNULL: {
+                        v1 = pop1();
+                        processIf(buffer, gf.isNe(v1, lf.zeroInitializerLiteralOfType(v1.getType())), buffer.getShort() + src, buffer.position());
                         return;
+                    }
                     default:
                         throw new InvalidByteCodeException();
                 }
@@ -1501,6 +1528,20 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         return value;
     }
 
+    private Value storeTruncate(Value v, TypeDescriptor desc) {
+        if (desc.equals(BaseTypeDescriptor.Z)) {
+            return gf.truncate(v, ts.getBooleanType());
+        } else if (desc.equals(BaseTypeDescriptor.B)) {
+            return gf.truncate(v, ts.getSignedInteger8Type());
+        } else if (desc.equals(BaseTypeDescriptor.C)) {
+            return gf.truncate(v, ts.getUnsignedInteger16Type());
+        } else if (desc.equals(BaseTypeDescriptor.S)) {
+            return gf.truncate(v, ts.getSignedInteger16Type());
+        } else {
+            return v;
+        }
+    }
+
     private ClassFileImpl getClassFile() {
         return info.getClassFile();
     }
@@ -1513,66 +1554,12 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         return getClassFile().getFieldrefConstantName(fieldRef);
     }
 
-    private ObjectType getOwnerOfFieldRef(final int fieldRef) {
-        return resolveClass(getClassFile().getFieldrefConstantClassName(fieldRef));
-    }
-
     private String getNameOfMethodRef(final int methodRef) {
         return getClassFile().getMethodrefConstantName(methodRef);
     }
 
-    private boolean nameOfMethodRefEquals(final int methodRef, final String expected) {
-        return getClassFile().methodrefConstantNameEquals(methodRef, expected);
-    }
-
-    private ObjectType getOwnerOfMethodRef(final int methodRef) {
-        ValueType owner = getClassFile().getTypeConstant(getClassFile().getMethodrefConstantClassIndex(methodRef));
-        if (owner instanceof ReferenceType) {
-            return ((ReferenceType) owner).getUpperBound();
-        } else if (owner instanceof ObjectType) {
-            return (ObjectType) owner;
-        }
-        ctxt.getCompilationContext().error(gf.getLocation(), "Owner of method is not a valid object type (%s)", owner);
-        // return *something*
-        return gf.getCurrentElement().getEnclosingType().validate().getType();
-    }
-
     private int getNameAndTypeOfMethodRef(final int methodRef) {
         return getClassFile().getMethodrefNameAndTypeIndex(methodRef);
-    }
-
-    private FieldElement resolveTargetOfFieldRef(final int fieldRef) {
-        ValidatedTypeDefinition definition = getOwnerOfFieldRef(fieldRef).getDefinition().validate();
-        FieldElement field = definition.resolve().resolveField(getDescriptorOfFieldRef(fieldRef), getNameOfFieldRef(fieldRef));
-        if (field == null) {
-            // todo
-            throw new IllegalStateException();
-        }
-        return field;
-    }
-
-    private InvokableElement resolveTargetOfDescriptor(ValidatedTypeDefinition resolved, final MethodDescriptor desc, final int nameAndTypeRef) {
-        boolean ctor = getClassFile().nameAndTypeConstantNameEquals(nameAndTypeRef, "<init>");
-        int idx;
-        if (ctor) {
-            idx = resolved.findConstructorIndex(desc);
-            return idx == -1 ? null : resolved.getConstructor(idx);
-        } else {
-            idx = resolved.findMethodIndex(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), desc);
-            return idx == -1 ? null : resolved.getMethod(idx);
-        }
-    }
-
-    private MethodElement resolveVirtualTargetOfDescriptor(ValidatedTypeDefinition resolved, final MethodDescriptor desc, final int nameAndTypeRef) {
-        return resolved.resolveMethodElementVirtual(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), desc);
-    }
-
-    private MethodElement resolveInterfaceTargetOfDescriptor(ValidatedTypeDefinition resolved, final MethodDescriptor desc, final int nameAndTypeRef) {
-        return resolved.resolveMethodElementInterface(getClassFile().getNameAndTypeConstantName(nameAndTypeRef), desc);
-    }
-
-    private ObjectType resolveClass(String name) {
-        return getClassFile().getClassContext().findDefinedType(name).validate().getType();
     }
 
     private static int getWidenableValue(final ByteBuffer buffer, final boolean wide) {

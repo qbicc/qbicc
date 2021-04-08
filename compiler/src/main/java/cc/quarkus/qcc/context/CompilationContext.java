@@ -10,12 +10,15 @@ import cc.quarkus.qcc.object.Function;
 import cc.quarkus.qcc.object.FunctionDeclaration;
 import cc.quarkus.qcc.object.ProgramModule;
 import cc.quarkus.qcc.object.Section;
+import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.definition.element.FieldElement;
 import cc.quarkus.qcc.type.definition.element.MemberElement;
+import cc.quarkus.qcc.type.definition.element.MethodElement;
 
 /**
  *
@@ -31,6 +34,8 @@ public interface CompilationContext extends DiagnosticContext {
     ClassContext getBootstrapClassContext();
 
     ClassContext constructClassContext(VmObject classLoaderObject);
+
+    MethodElement getVMHelperMethod(String helperName);
 
     void enqueue(ExecutableElement element);
 
@@ -66,6 +71,8 @@ public interface CompilationContext extends DiagnosticContext {
     Section getImplicitSection(DefinedTypeDefinition typeDefinition);
 
     Function getExactFunction(ExecutableElement element);
+
+    FunctionType getFunctionTypeForElement(ExecutableElement element);
 
     FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current);
 

@@ -2,8 +2,10 @@ package cc.quarkus.qcc.graph;
 
 import java.util.List;
 
+import cc.quarkus.qcc.context.Locatable;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
@@ -27,7 +29,7 @@ import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 /**
  * A program graph builder, which builds each basic block in succession and wires them together.
  */
-public interface BasicBlockBuilder {
+public interface BasicBlockBuilder extends Locatable {
     // context
 
     /**
@@ -128,6 +130,16 @@ public interface BasicBlockBuilder {
 
     Value currentThread();
 
+    // sub-value extraction
+
+    Value extractElement(Value array, Value index);
+
+    Value extractMember(Value compound, CompoundType.Member member);
+
+    Value extractInstanceField(Value valueObj, TypeDescriptor owner, String name, TypeDescriptor type);
+
+    Value extractInstanceField(Value valueObj, FieldElement field);
+
     // phi
 
     PhiValue phi(ValueType type, BlockLabel owner);
@@ -178,6 +190,12 @@ public interface BasicBlockBuilder {
 
     Value ror(Value v1, Value v2);
 
+    Value cmp(Value v1, Value v2);
+
+    Value cmpG(Value v1, Value v2);
+
+    Value cmpL(Value v1, Value v2);
+
     // unary
 
     Value negate(Value v); // neg is only needed for FP; ints should use 0-n
@@ -221,20 +239,13 @@ public interface BasicBlockBuilder {
 
     Value valueConvert(Value value, WordType toType);
 
-    Value instanceOf(Value input, ValueType expectedType);
+    Value instanceOf(Value input, ObjectType expectedType, int expectedDimensions);
 
     Value instanceOf(Value input, TypeDescriptor desc);
 
-    /**
-     * Narrow a value with reference type to another (typically more specific) type.
-     *
-     * @param value the value to narrow
-     * @param toType the type to narrow to
-     * @return the narrowed type
-     */
-    Value narrow(Value value, ValueType toType);
+    Value checkcast(Value value, Value toType, Value toDimensions, CheckCast.CastType kind, ReferenceType type);
 
-    Value narrow(Value value, TypeDescriptor desc);
+    Value checkcast(Value value, TypeDescriptor desc);
 
     // memory handles
 
@@ -318,8 +329,6 @@ public interface BasicBlockBuilder {
 
     Node invokeInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
 
-    Node invokeDynamic(MethodElement bootstrapMethod, List<Value> staticArguments, List<Value> arguments);
-
     Value invokeValueStatic(MethodElement target, List<Value> arguments);
 
     Value invokeValueStatic(TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
@@ -327,8 +336,6 @@ public interface BasicBlockBuilder {
     Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
 
     Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
-
-    Value invokeValueDynamic(MethodElement bootstrapMethod, List<Value> staticArguments, ValueType type, List<Value> arguments);
 
     /**
      * Invoke an object instance initializer.  The value returned has an initialized type.  The returned value should

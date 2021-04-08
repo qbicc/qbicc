@@ -1,16 +1,10 @@
 package cc.quarkus.qcc.plugin.trycatch;
 
-import java.util.List;
-
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.NullType;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 
 /**
  * The basic block builder which handles any "local" {@code throw} to a handler in the same method or function.

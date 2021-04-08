@@ -54,4 +54,8 @@ public final class BoundTypeArgument extends TypeArgument {
         }
         return Cache.get(classContext).getBoundTypeArgument(variance, ReferenceTypeSignature.parse(classContext, buf));
     }
+
+    public static BoundTypeArgument synthesize(ClassContext classContext, Variance variance, ReferenceTypeSignature bound) {
+        return Cache.get(classContext).getBoundTypeArgument(variance, bound);
+    }
 }

@@ -24,6 +24,10 @@ import cc.quarkus.qcc.graph.ClassCastErrorNode;
 import cc.quarkus.qcc.graph.ClassNotFoundErrorNode;
 import cc.quarkus.qcc.graph.ClassOf;
 import cc.quarkus.qcc.graph.Clone;
+import cc.quarkus.qcc.graph.Cmp;
+import cc.quarkus.qcc.graph.ExtractElement;
+import cc.quarkus.qcc.graph.ExtractInstanceField;
+import cc.quarkus.qcc.graph.ExtractMember;
 import cc.quarkus.qcc.graph.IsEq;
 import cc.quarkus.qcc.graph.IsGe;
 import cc.quarkus.qcc.graph.IsGt;
@@ -35,8 +39,6 @@ import cc.quarkus.qcc.graph.ConstructorInvocation;
 import cc.quarkus.qcc.graph.Convert;
 import cc.quarkus.qcc.graph.CurrentThreadRead;
 import cc.quarkus.qcc.graph.Div;
-import cc.quarkus.qcc.graph.DynamicInvocation;
-import cc.quarkus.qcc.graph.DynamicInvocationValue;
 import cc.quarkus.qcc.graph.ElementOf;
 import cc.quarkus.qcc.graph.Extend;
 import cc.quarkus.qcc.graph.FunctionCall;
@@ -49,13 +51,15 @@ import cc.quarkus.qcc.graph.InstanceInvocationValue;
 import cc.quarkus.qcc.graph.InstanceOf;
 import cc.quarkus.qcc.graph.Jsr;
 import cc.quarkus.qcc.graph.Load;
+import cc.quarkus.qcc.graph.Max;
 import cc.quarkus.qcc.graph.MemberOf;
+import cc.quarkus.qcc.graph.Min;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.MonitorEnter;
 import cc.quarkus.qcc.graph.MonitorExit;
 import cc.quarkus.qcc.graph.MultiNewArray;
 import cc.quarkus.qcc.graph.Multiply;
-import cc.quarkus.qcc.graph.Narrow;
+import cc.quarkus.qcc.graph.CheckCast;
 import cc.quarkus.qcc.graph.Neg;
 import cc.quarkus.qcc.graph.New;
 import cc.quarkus.qcc.graph.NewArray;
@@ -100,7 +104,6 @@ import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.MethodDescriptorLiteral;
 import cc.quarkus.qcc.graph.literal.MethodHandleLiteral;
-import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.ObjectLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
@@ -167,6 +170,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         this.entryBlock = entryBlock;
     }
 
+    public String visitUnknown(final Appendable param, Value node) {
+        throw new IllegalStateException("Visitor for node " + node.getClass() + " is not implemented");
+    }
+
     public String visit(final Appendable param, final BlockEntry node) {
         String name = register(node);
         appendTo(param, name);
@@ -182,21 +189,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return name;
     }
 
-    public String visit(final Appendable param, final DynamicInvocation node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "label", "invokedynamic");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
-        for (Value arg : node.getArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
-        for (Value arg : node.getStaticArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
-        return name;
+    public String visit(final Appendable param, final Cmp node) {
+        return node(param, "cmp", node);
     }
 
     public String visit(final Appendable param, final ElementOf node) {
@@ -300,6 +294,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, name);
         nl(param);
         attr(param, "label", "static field\\n" + node.getVariableElement().toString());
+        nl(param);
         return name;
     }
 
@@ -557,6 +552,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "array length");
         attr(param, "fixedsize", "shape");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
@@ -627,25 +624,42 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return node(param, "/", node);
     }
 
-    public String visit(final Appendable param, final DynamicInvocationValue node) {
+    public String visit(final Appendable param, final Extend node) {
+        return node(param, "extend", node);
+    }
+
+    public String visit(Appendable param, ExtractElement node) {
         String name = register(node);
         appendTo(param, name);
-        attr(param, "label", "invokedynamic");
+        attr(param, "shape", "circle");
+        attr(param, "label", "extracted element");
         attr(param, "fixedsize", "shape");
         nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
-        for (Value arg : node.getArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
-        for (Value arg : node.getStaticArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
+        addEdge(param, node, node.getIndex(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getArrayValue(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
 
-    public String visit(final Appendable param, final Extend node) {
-        return node(param, "extend", node);
+    public String visit(Appendable param, ExtractInstanceField node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "circle");
+        attr(param, "label", "extracted field \"" + node.getFieldElement().getName() + "\"");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getObjectValue(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(Appendable param, ExtractMember node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "circle");
+        attr(param, "label", "extracted member \"" + node.getMember().getName() + "\"");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getCompoundValue(), EdgeType.VALUE_DEPENDENCY);
+        return name;
     }
 
     public String visit(final Appendable param, final FloatLiteral node) {
@@ -696,7 +710,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "instanceof " + node.getCheckType().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
-        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY, "value");
         return name;
     }
 
@@ -747,6 +761,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return literal(param, node.toString());
     }
 
+    public String visit(final Appendable param, final Max node) {
+        return node(param, "max", node);
+    }
+
+    public String visit(final Appendable param, final Min node) {
+        return node(param, "min", node);
+    }
+
     public String visit(final Appendable param, final Mod node) {
         return node(param, "%", node);
     }
@@ -758,6 +780,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "new multi array\\n" + node.getArrayType().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         for (Value dimension : node.getDimensions()) {
             addEdge(param, node, dimension, EdgeType.VALUE_DEPENDENCY, "dim");
         }
@@ -768,8 +792,18 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return node(param, "*", node);
     }
 
-    public String visit(final Appendable param, final Narrow node) {
-        return node(param, "narrow", node);
+    public String visit(final Appendable param, final CheckCast node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "circle");
+        attr(param, "label", node.getKind() + "→" + node.getType().toString());
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getToType(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getToDimensions(), EdgeType.VALUE_DEPENDENCY);
+        dependencyList.add(name);
+        return name;
     }
 
     public String visit(final Appendable param, final Neg node) {
@@ -783,6 +817,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "new\\n" + node.getType().getUpperBound().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         return name;
     }
 
@@ -793,12 +829,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "new array\\n" + node.getArrayType().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
         return name;
-    }
-
-    public String visit(final Appendable param, final NullLiteral node) {
-        return literal(param, "null");
     }
 
     public String visit(final Appendable param, final ZeroInitializerLiteral node) {

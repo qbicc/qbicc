@@ -32,6 +32,7 @@ import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.definition.ClassContext;
 import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
 import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
+import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.Element;
@@ -170,6 +171,19 @@ final class CompilationContextImpl implements CompilationContext {
         return classLoaderContexts.computeIfAbsent(classLoaderObject, classLoader -> new ClassContextImpl(this, classLoader));
     }
 
+    public MethodElement getVMHelperMethod(String name) {
+        DefinedTypeDefinition dtd = bootstrapClassContext.findDefinedType("cc/quarkus/qcc/runtime/main/VMHelpers");
+        if (dtd == null) {
+            error("Can't find runtime library class: " + "cc/quarkus/qcc/runtime/main/VMHelpers");
+        }
+        ValidatedTypeDefinition helpers = dtd.validate();
+        int idx = helpers.findMethodIndex(e -> name.equals(e.getName()));
+        if (idx == -1) {
+            error("Can't find the runtime helper method %s", name);
+        }
+        return helpers.getMethod(idx);
+    }
+
     public void enqueue(final ExecutableElement element) {
         Set<ExecutableElement> allowedSet = this.allowedSet;
         if (allowedSet != null && ! allowedSet.contains(element)) {
@@ -260,13 +274,12 @@ final class CompilationContextImpl implements CompilationContext {
         }
         return exactFunctions.computeIfAbsent(element, e -> {
             Section implicit = getImplicitSection(element);
+            FunctionType elementType = element.getType();
             if (element instanceof FunctionElement) {
-                return implicit.addFunction(element, ((FunctionElement) element).getName(), element.getType(List.of()));
+                return implicit.addFunction(element, ((FunctionElement) element).getName(), elementType);
             }
-            // look up the thread ID literal - todo: lazy cache?
-            ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
-            FunctionType type = getFunctionTypeForElement(typeSystem, element, threadType);
-            return implicit.addFunction(element, getExactNameForElement(element, type), type);
+            FunctionType functionType = getFunctionTypeForElement(element);
+            return implicit.addFunction(element, getExactNameForElement(element, elementType), functionType);
         });
     }
 
@@ -298,7 +311,7 @@ final class CompilationContextImpl implements CompilationContext {
         ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
         Section implicit = getImplicitSection(element);
         return exactFunctions.computeIfAbsent(element, e -> {
-            FunctionType type = getFunctionTypeForElement(typeSystem, element, threadType);
+            FunctionType type = getFunctionTypeForElement(element, threadType);
             return implicit.addFunction(element, getVirtualNameForElement(element, type), type);
         });
     }
@@ -351,8 +364,8 @@ final class CompilationContextImpl implements CompilationContext {
             b.append(((MethodElement)element).getName()).append('.');
             type.getReturnType().toFriendlyString(b).append('.');
         }
-        b.append(parameterCount - 1);
-        for (int i = 1; i < parameterCount; i ++) {
+        b.append(parameterCount);
+        for (int i = 0; i < parameterCount; i ++) {
             b.append('.');
             type.getParameterType(i).toFriendlyString(b);
         }
@@ -376,13 +389,14 @@ final class CompilationContextImpl implements CompilationContext {
         return b.toString();
     }
 
-    private FunctionType getFunctionTypeForElement(TypeSystem ts, ExecutableElement element, final ClassObjectType threadType) {
+    private FunctionType getFunctionTypeForElement(ExecutableElement element, final ClassObjectType threadType) {
+        TypeSystem ts = typeSystem;
         if (element instanceof InitializerElement) {
             // todo: initializers should not survive the copy
             return ts.getFunctionType(ts.getVoidType());
         }
         assert element instanceof InvokableElement;
-        FunctionType methodType = element.getType(List.of(/*todo*/));
+        FunctionType methodType = element.getType();
         // function type is the same as the method type, except with current thread/receiver first
         int pcnt = methodType.getParameterCount();
         ValueType[] argTypes;
@@ -400,6 +414,12 @@ final class CompilationContextImpl implements CompilationContext {
             argTypes[j] = methodType.getParameterType(i);
         }
         return ts.getFunctionType(methodType.getReturnType(), argTypes);
+    }
+
+    public FunctionType getFunctionTypeForElement(final ExecutableElement element) {
+        // look up the thread ID literal - todo: lazy cache?
+        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
+        return getFunctionTypeForElement(element, threadType);
     }
 
     public Iterable<ExecutableElement> getEntryPoints() {

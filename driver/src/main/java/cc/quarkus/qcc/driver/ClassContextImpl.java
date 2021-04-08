@@ -11,6 +11,7 @@ import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
 import cc.quarkus.qcc.interpreter.VmObject;
+import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
@@ -23,7 +24,7 @@ import cc.quarkus.qcc.type.definition.element.ExecutableElement;
 import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
 import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
 import cc.quarkus.qcc.type.generic.MethodSignature;
-import cc.quarkus.qcc.type.generic.ParameterizedSignature;
+import cc.quarkus.qcc.type.generic.TypeParameterContext;
 import cc.quarkus.qcc.type.generic.TypeSignature;
 
 /**
@@ -128,15 +129,19 @@ final class ClassContextImpl implements ClassContext {
         return descriptorTypeResolver.resolveTypeFromClassName(packageName, internalName);
     }
 
-    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
-        return descriptorTypeResolver.resolveTypeFromDescriptor(descriptor, typeParamCtxt, signature, visibleAnnotations, invisibleAnnotations);
+    public ValueType resolveTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
+        return descriptorTypeResolver.resolveTypeFromDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
     }
 
-    public FunctionType resolveMethodFunctionType(MethodDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisibleAnnotations) {
-        return descriptorTypeResolver.resolveMethodFunctionType(descriptor, typeParamCtxt, signature, returnTypeVisible, visibleAnnotations, returnTypeInvisible, invisibleAnnotations);
+    public ArrayObjectType resolveArrayObjectTypeFromDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visible, final TypeAnnotationList invisible) {
+        return descriptorTypeResolver.resolveArrayObjectTypeFromDescriptor(descriptor, paramCtxt, signature, visible, invisible);
     }
 
-    public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, final List<ParameterizedSignature> typeParamCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
-        return descriptorTypeResolver.resolveTypeFromMethodDescriptor(descriptor, typeParamCtxt, signature, visibleAnnotations, invisibleAnnotations);
+    public FunctionType resolveMethodFunctionType(MethodDescriptor descriptor, TypeParameterContext paramCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisibleAnnotations) {
+        return descriptorTypeResolver.resolveMethodFunctionType(descriptor, paramCtxt, signature, returnTypeVisible, visibleAnnotations, returnTypeInvisible, invisibleAnnotations);
+    }
+
+    public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {
+        return descriptorTypeResolver.resolveTypeFromMethodDescriptor(descriptor, paramCtxt, signature, visibleAnnotations, invisibleAnnotations);
     }
 }

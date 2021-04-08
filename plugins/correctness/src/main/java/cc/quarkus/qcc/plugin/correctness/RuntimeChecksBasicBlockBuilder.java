@@ -3,10 +3,12 @@ package cc.quarkus.qcc.plugin.correctness;
 import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
+import cc.quarkus.qcc.driver.Phase;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
 import cc.quarkus.qcc.graph.BlockEarlyTermination;
 import cc.quarkus.qcc.graph.BlockLabel;
+import cc.quarkus.qcc.graph.CheckCast;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.ElementOf;
@@ -20,16 +22,16 @@ import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.ValueHandleVisitor;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.NullLiteral;
+import cc.quarkus.qcc.plugin.intrinsics.Intrinsics;
+import cc.quarkus.qcc.plugin.layout.Layout;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ArrayType;
 import cc.quarkus.qcc.type.IntegerType;
+import cc.quarkus.qcc.type.ReferenceArrayObjectType;
 import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.UnsignedIntegerType;
 import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
 import cc.quarkus.qcc.type.definition.classfile.ClassFile;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
 import cc.quarkus.qcc.type.definition.element.MethodElement;
@@ -61,8 +63,8 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
-        check(handle);
-        return super.store(handle, value, mode);
+        Value narrowedValue = check(handle, value);
+        return super.store(handle, narrowedValue != null ? narrowedValue : value, mode);
     }
 
     @Override
@@ -85,7 +87,8 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Node invokeStatic(MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+            null == Intrinsics.get(ctxt).getStaticIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
             throwUnsatisfiedLinkError();
             return nop();
         }
@@ -98,20 +101,22 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Value invokeValueStatic(MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+            null == Intrinsics.get(ctxt).getStaticValueIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
             throwUnsatisfiedLinkError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
         if (target.isVirtual()) {
             throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
         return super.invokeValueStatic(target, arguments);
     }
 
     @Override
     public Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+            null == Intrinsics.get(ctxt).getInstanceIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
             throwUnsatisfiedLinkError();
             return nop();
         }
@@ -131,13 +136,14 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+            null == Intrinsics.get(ctxt).getInstanceValueIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
             throwUnsatisfiedLinkError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
         if (target.isStatic()) {
             throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
         nullCheck(instance);
         return super.invokeValueInstance(kind, instance, target, arguments);
@@ -154,7 +160,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         nullCheck(instance);
         if (target.isStatic()) {
             throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         }
         return super.invokeConstructor(instance, target, arguments);
     }
@@ -175,6 +181,12 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     public Node monitorExit(Value obj) {
         nullCheck(obj);
         return super.monitorExit(obj);
+    }
+
+    @Override
+    public Value newArray(final ArrayObjectType arrayType, final Value size) {
+        arraySizeCheck(size);
+        return super.newArray(arrayType, size);
     }
 
     @Override
@@ -205,48 +217,50 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
             if_(isEq(v2, zero), throwIt, goAhead);
             begin(throwIt);
-            ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
-            ValidatedTypeDefinition ae = classContext.findDefinedType("java/lang/ArithmeticException").validate();
-            Value ex = new_(ae.getClassType());
-            ex = invokeConstructor(ex, ae.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-            throw_(ex); // Throw java.lang.ArithmeticException
+            MethodElement helper = ctxt.getVMHelperMethod("raiseArithmeticException");
+            invokeStatic(helper, List.of());
+            unreachable();
             begin(goAhead);
         }
         return super.divide(v1, v2);
     }
 
     private void throwUnsatisfiedLinkError() {
-        throwException("java/lang/UnsatisfiedLinkError");
+        MethodElement helper = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
+        invokeStatic(helper, List.of());
+        throw new BlockEarlyTermination(unreachable());
     }
 
     private void throwIncompatibleClassChangeError() {
-        throwException("java/lang/IncompatibleClassChangeError");
+        MethodElement helper = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
+        invokeStatic(helper, List.of());
+        throw new BlockEarlyTermination(unreachable());
     }
 
-    private void throwException(String exceptionName) {
-        ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
-        ValidatedTypeDefinition ule = classContext.findDefinedType(exceptionName).validate();
-        BasicBlockBuilder builder = getFirstBuilder();
-        Value ex = builder.new_(ule.getClassType());
-        ex = builder.invokeConstructor(ex, ule.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-        throw new BlockEarlyTermination(throw_(ex)); // Throw java.lang.UnsatisfiedLinkError
+    private Value check(ValueHandle handle) {
+        return check(handle, null);
     }
 
-    private void check(ValueHandle handle) {
-        handle.accept(new ValueHandleVisitor<Void, Void>() {
+    private Value check(ValueHandle handle, Value storedValue) {
+        return handle.accept(new ValueHandleVisitor<Void, Value>() {
             @Override
-            public Void visit(Void param, ElementOf node) {
+            public Value visit(Void param, ElementOf node) {
                 ValueHandle arrayHandle = node.getValueHandle();
                 arrayHandle.accept(this, param);
                 ValueType arrayType = arrayHandle.getValueType();
                 if (arrayType instanceof ArrayObjectType) {
                     indexOutOfBoundsCheck(arrayHandle, node.getIndex());
+                    if (arrayType instanceof ReferenceArrayObjectType && storedValue != null) {
+                        Value toTypeId = load(instanceFieldOf(arrayHandle, Layout.get(ctxt).getRefArrayElementTypeIdField()), MemoryAtomicityMode.UNORDERED);
+                        Value toDimensions = ctxt.getLiteralFactory().literalOf(((ReferenceArrayObjectType) arrayType).getDimensionCount() - 1);
+                        return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, ((ReferenceArrayObjectType) arrayType).getElementType());
+                    }
                 }
                 return null;
             }
 
             @Override
-            public Void visit(Void param, InstanceFieldOf node) {
+            public Value visit(Void param, InstanceFieldOf node) {
                 if (node.getVariableElement().isStatic()) {
                     throwIncompatibleClassChangeError();
                 } else {
@@ -256,7 +270,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             }
 
             @Override
-            public Void visit(Void param, StaticField node) {
+            public Value visit(Void param, StaticField node) {
                 if (! node.getVariableElement().isStatic()) {
                     throwIncompatibleClassChangeError();
                 }
@@ -264,7 +278,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             }
 
             @Override
-            public Void visit(Void param, ReferenceHandle node) {
+            public Value visit(Void param, ReferenceHandle node) {
                 nullCheck(node.getReferenceValue());
                 return null;
             }
@@ -279,15 +293,11 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         final BlockLabel throwIt = new BlockLabel();
         final BlockLabel goAhead = new BlockLabel();
         final LiteralFactory lf = ctxt.getLiteralFactory();
-        final NullLiteral nullLiteral = lf.literalOfNull();
-
-        if_(isEq(value, nullLiteral), throwIt, goAhead);
+        if_(isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), throwIt, goAhead);
         begin(throwIt);
-        ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
-        ValidatedTypeDefinition npe = classContext.findDefinedType("java/lang/NullPointerException").validate();
-        Value ex = new_(npe.getClassType());
-        ex = super.invokeConstructor(ex, npe.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-        super.throw_(ex); // Throw java.lang.NullPointerException
+        MethodElement helper = ctxt.getVMHelperMethod("raiseNullPointerException");
+        invokeStatic(helper, List.of());
+        unreachable();
         begin(goAhead);
     }
 
@@ -303,11 +313,21 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         final Value length = arrayLength(array);
         if_(isGe(index, length), throwIt, goAhead);
         begin(throwIt);
-        ClassContext classContext = getCurrentElement().getEnclosingType().getContext();
-        ValidatedTypeDefinition aiobe = classContext.findDefinedType("java/lang/ArrayIndexOutOfBoundsException").validate();
-        Value ex = new_(aiobe.getClassType());
-        ex = invokeConstructor(ex, aiobe.resolveConstructorElement(MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
-        throw_(ex); // Throw java.lang.ArrayIndexOutOfBoundsException
+        MethodElement helper = ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException");
+        invokeStatic(helper, List.of());
+        unreachable();
+        begin(goAhead);
+    }
+
+    private void arraySizeCheck(Value size) {
+        final BlockLabel throwIt = new BlockLabel();
+        final BlockLabel goAhead = new BlockLabel();
+        final IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
+        if_(isLt(size, zero), throwIt, goAhead);
+        begin(throwIt);
+        MethodElement helper = ctxt.getVMHelperMethod("raiseNegativeArraySizeException");
+        invokeStatic(helper, List.of());
+        unreachable();
         begin(goAhead);
     }
 

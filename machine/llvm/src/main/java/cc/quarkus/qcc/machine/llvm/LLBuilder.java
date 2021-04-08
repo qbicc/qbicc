@@ -8,6 +8,7 @@ import cc.quarkus.qcc.machine.llvm.op.Binary;
 import cc.quarkus.qcc.machine.llvm.op.Branch;
 import cc.quarkus.qcc.machine.llvm.op.Call;
 import cc.quarkus.qcc.machine.llvm.op.ExactBinary;
+import cc.quarkus.qcc.machine.llvm.op.ExtractValue;
 import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
 import cc.quarkus.qcc.machine.llvm.op.FastMathUnary;
 import cc.quarkus.qcc.machine.llvm.op.Fence;
@@ -136,6 +137,8 @@ public interface LLBuilder {
     AtomicRmwInstruction atomicrmw();
 
     GetElementPtr getelementptr(LLValue type, LLValue ptrType, LLValue pointer);
+
+    ExtractValue extractvalue(LLValue aggregateType, LLValue aggregate);
 
     Alloca alloca(LLValue type);
 

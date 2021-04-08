@@ -17,4 +17,11 @@ public class Time {
         public time_t tv_sec;
         public c_long tv_nsec;
     }
+
+    public static final class struct_timespec_ptr extends ptr<struct_timespec> {}
+    public static final class const_struct_timespec_ptr extends ptr<@c_const struct_timespec> {}
+    public static final class struct_timespec_ptr_ptr extends ptr<struct_timespec_ptr> {}
+    public static final class const_struct_timespec_ptr_ptr extends ptr<const_struct_timespec_ptr> {}
+    public static final class struct_timespec_ptr_const_ptr extends ptr<@c_const struct_timespec_ptr> {}
+    public static final class const_struct_timespec_ptr_const_ptr extends ptr<@c_const const_struct_timespec_ptr> {}
 }

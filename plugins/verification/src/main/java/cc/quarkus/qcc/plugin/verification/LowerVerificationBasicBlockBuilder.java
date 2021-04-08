@@ -10,6 +10,7 @@ import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.DispatchInvocation;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.Value;
+import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
@@ -82,12 +83,12 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
 
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
         invalidNode("invokeValueStatic");
-        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
         invalidNode("invokeValueInstance");
-        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType(List.of()).getReturnType());
+        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
@@ -101,13 +102,18 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
     }
 
     public Value newArray(final ArrayObjectType arrayType, final Value size) {
-        invalidNode("new");
+        invalidNode("newArray");
         return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
     }
 
     public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
-        invalidNode("new");
+        invalidNode("multiNewArray");
         return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(arrayType.getReference());
+    }
+
+    public Value typeIdOf(ValueHandle valueHandle) {
+        invalidNode("typeIdOf");
+        return ctxt.getLiteralFactory().literalOf(0);
     }
 
     private void invalidNode(String name) {

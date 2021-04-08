@@ -23,22 +23,23 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     private final ValidatedTypeDefinition[] interfaces;
     private final ArrayList<FieldElement> fields;
     private final MethodElement[] methods;
+    private final MethodElement[] instanceMethods;
     private final ConstructorElement[] ctors;
     private final InitializerElement init;
     private final FieldSet staticFieldSet;
     private final FieldSet instanceFieldSet;
     private final NestedClassElement enclosingClass;
     private final NestedClassElement[] enclosedClasses;
-    private volatile ResolvedTypeDefinition resolved;
     private int typeId = -1;
     private int maximumSubtypeId = -1;
 
-    ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
+    ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
         this.delegate = delegate;
         this.superType = superType;
         this.interfaces = interfaces;
         this.fields = fields;
         this.methods = methods;
+        this.instanceMethods = instanceMethods;
         this.ctors = ctors;
         this.init = init;
         this.enclosingClass = enclosingClass;
@@ -84,6 +85,8 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     public ValidatedTypeDefinition[] getInterfaces() {
         return interfaces.clone();
     }
+
+    public MethodElement[] getInstanceMethods() { return instanceMethods; }
 
     public FieldSet getStaticFieldSet() {
         return staticFieldSet;
@@ -134,39 +137,6 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     }
 
     // next stage
-
-    public ResolvedTypeDefinition resolve() throws ResolutionFailedException {
-        ResolvedTypeDefinition resolved = this.resolved;
-        if (resolved != null) {
-            return resolved;
-        }
-        ValidatedTypeDefinition superClass = getSuperClass();
-        if (superClass != null) {
-            superClass.resolve();
-        }
-        int cnt = getInterfaceCount();
-        for (int i = 0; i < cnt; i ++) {
-            getInterface(i).resolve();
-        }
-        cnt = getFieldCount();
-        for (int i = 0; i < cnt; i ++) {
-            fields.get(i).getType(List.of());
-        }
-        cnt = getMethodCount();
-        for (int i = 0; i < cnt; i ++) {
-            MethodElement method = methods[i];
-            method.getType(List.of());
-        }
-        synchronized (this) {
-            resolved = this.resolved;
-            if (resolved != null) {
-                return resolved;
-            }
-            resolved = new ResolvedTypeDefinitionImpl(this);
-            this.resolved = resolved;
-        }
-        return resolved;
-    }
 
     public int getTypeId() {
         return typeId;

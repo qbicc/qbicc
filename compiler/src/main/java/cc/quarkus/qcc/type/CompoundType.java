@@ -1,6 +1,7 @@
 package cc.quarkus.qcc.type;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -70,6 +71,16 @@ public final class CompoundType extends ValueType {
         return getMembers().get(index);
     }
 
+    public Member getMember(String name) {
+        List<Member> members = getMembers();
+        for (Member m : members) {
+            if (m.getName().equals(name)) {
+                return m;
+            }
+        }
+        throw new NoSuchElementException("No member named '" + name + "' found in " + this.toFriendlyString());
+    }
+
     public boolean isComplete() {
         return complete;
     }
@@ -87,7 +98,7 @@ public final class CompoundType extends ValueType {
     }
 
     public boolean equals(final CompoundType other) {
-        return this == other || super.equals(other) && size == other.size && align == other.align && getMembers().equals(other.getMembers());
+        return this == other || super.equals(other) && name.equals(other.name) && size == other.size && align == other.align && getMembers().equals(other.getMembers());
     }
 
     public StringBuilder toString(final StringBuilder b) {

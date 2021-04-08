@@ -15,6 +15,7 @@ public final class NoGc {
     private final CompilationContext ctxt;
     private final MethodElement allocateMethod;
     private final MethodElement copyMethod;
+    private final MethodElement zeroMethod;
     private final ClassObjectType stackObjectType;
 
     private NoGc(final CompilationContext ctxt) {
@@ -35,6 +36,11 @@ public final class NoGc {
             throw methodMissing();
         }
         copyMethod = loaded.getMethod(index);
+        index = loaded.findMethodIndex(e -> e.getName().equals("clear"));
+        if (index == -1) {
+            throw methodMissing();
+        }
+        zeroMethod = loaded.getMethod(index);
         defined = classContext.findDefinedType("cc/quarkus/qcc/runtime/StackObject");
         if (defined == null) {
             throw runtimeMissing();
@@ -63,6 +69,10 @@ public final class NoGc {
 
     public MethodElement getCopyMethod() {
         return copyMethod;
+    }
+
+    public MethodElement getZeroMethod() {
+        return zeroMethod;
     }
 
     public ClassObjectType getStackObjectType() {

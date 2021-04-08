@@ -24,6 +24,9 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
     RuntimePreemption preemption = RuntimePreemption.PREEMPTABLE;
     private int blockCounter;
     private int localCounter;
+    private AbstractValue personalityType = null;
+    private AbstractValue personalityValue = null;
+    private boolean uwtable = false;
 
     FunctionDefinitionImpl(final ModuleImpl module, final String name) {
         super(name);
@@ -42,6 +45,18 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
 
     public FunctionDefinition preemption(final RuntimePreemption preemption) {
         this.preemption = Assert.checkNotNullParam("preemption", preemption);
+        return this;
+    }
+
+    public FunctionDefinition unwindTable() {
+        this.uwtable = true;
+        return this;
+    }
+
+    @Override
+    public FunctionDefinition personality(final LLValue personalityValue, final LLValue personalityType) {
+        this.personalityValue = (AbstractValue) Assert.checkNotNullParam("personalityValue", personalityValue);
+        this.personalityType = (AbstractValue) Assert.checkNotNullParam("personalityType", personalityType);
         return this;
     }
 
@@ -142,7 +157,19 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         super.appendAfterAddressSpace(target);
     }
 
+    void appendAfterParams(final Appendable target) throws IOException {
+        if (uwtable) {
+            target.append(' ').append("uwtable");
+        }
+        super.appendAfterParams(target);
+    }
+
     void appendAfterPrologue(final Appendable target) throws IOException {
+        if (personalityValue != null) {
+            target.append(' ').append("personality").append(' ');
+            personalityType.appendTo(target);
+            personalityValue.appendTo(target);
+        }
         appendMeta(target);
         appendAfterPersonality(target);
     }

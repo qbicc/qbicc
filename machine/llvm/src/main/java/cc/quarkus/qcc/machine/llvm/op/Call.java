@@ -22,6 +22,10 @@ public interface Call extends YieldingInstruction {
 
     // todo ret attrs
 
+    Call signExt();
+
+    Call zeroExt();
+
     Call addrSpace(int num);
 
     Call comment(String comment);

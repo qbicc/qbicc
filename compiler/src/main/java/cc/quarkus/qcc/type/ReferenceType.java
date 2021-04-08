@@ -12,16 +12,12 @@ import java.util.Set;
  * type.  Alternatively, a reference value may be equal to {@code null}.
  */
 public final class ReferenceType extends WordType {
-    private static final VarHandle refArrayTypeHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "refArrayType", VarHandle.class, ReferenceType.class, ReferenceArrayObjectType.class);
-
     private final PhysicalObjectType upperBound;
     private final Set<InterfaceObjectType> interfaceBounds;
     private final int size;
     private final int align;
     private final boolean nullable;
     private final ReferenceType asNullable;
-    @SuppressWarnings("unused")
-    private volatile ReferenceArrayObjectType refArrayType;
 
     ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, Set<InterfaceObjectType> interfaceBounds, final boolean nullable, final int size, final int align) {
         super(typeSystem, ((Objects.hash(upperBound, interfaceBounds) * 19 + size) * 19 + ReferenceType.class.hashCode()) * 19 + Boolean.hashCode(nullable));
@@ -71,26 +67,6 @@ public final class ReferenceType extends WordType {
         return typeSystem.getReferenceSize() * typeSystem.getByteBits();
     }
 
-    /**
-     * Get the referenceArrayObject type to this type.
-     *
-     * @return the referenceArrayObject type
-     */
-    public final ReferenceArrayObjectType getReferenceArrayObject() {
-        ReferenceArrayObjectType refArrayType = this.refArrayType;
-        if (refArrayType != null) {
-            return refArrayType;
-        }
-        ReferenceArrayObjectType newReferenceArrayObjectType = typeSystem.createReferenceArrayObject(this);
-        while (! refArrayTypeHandle.compareAndSet(this, null, newReferenceArrayObjectType)) {
-            refArrayType = this.refArrayType;
-            if (refArrayType != null) {
-                return refArrayType;
-            }
-        }
-        return newReferenceArrayObjectType;
-    }
-
     public int getAlign() {
         return align;
     }
@@ -104,7 +80,7 @@ public final class ReferenceType extends WordType {
     }
 
     public boolean isImplicitlyConvertibleFrom(Type other) {
-        return other instanceof ReferenceType && isImplicitlyConvertibleFrom((ReferenceType) other) || other instanceof NullType && isNullable();
+        return other instanceof ReferenceType && isImplicitlyConvertibleFrom((ReferenceType) other);
     }
 
     public boolean isImplicitlyConvertibleFrom(ReferenceType other) {
@@ -114,8 +90,6 @@ public final class ReferenceType extends WordType {
     public ValueType join(final ValueType other) {
         if (other instanceof ReferenceType) {
             return join(((ReferenceType) other));
-        } else if (other instanceof NullType) {
-            return asNullable();
         } else {
             return super.join(other);
         }
@@ -434,6 +408,17 @@ public final class ReferenceType extends WordType {
     }
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
-        return upperBound.toFriendlyString(b.append("ref").append('.'));
+        Set<InterfaceObjectType> interfaceBounds = this.interfaceBounds;
+        PhysicalObjectType upperBound = this.upperBound;
+        if (upperBound.hasSuperClassType() || interfaceBounds.isEmpty()) {
+            b.append("ref").append('.').append(1 + interfaceBounds.size());
+            upperBound.toFriendlyString(b.append('.'));
+        } else {
+            b.append("ref").append('.').append(interfaceBounds.size());
+        }
+        for (InterfaceObjectType interfaceBound : interfaceBounds) {
+            interfaceBound.toFriendlyString(b.append('.'));
+        }
+        return b;
     }
 }

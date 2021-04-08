@@ -1,7 +1,8 @@
 package cc.quarkus.qcc.plugin.llvm;
 
 import static cc.quarkus.qcc.machine.llvm.Types.*;
-import static cc.quarkus.qcc.machine.llvm.Values.*;
+import static cc.quarkus.qcc.machine.llvm.Values.NULL;
+import static cc.quarkus.qcc.machine.llvm.Values.ZERO;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -18,27 +19,32 @@ import cc.quarkus.qcc.graph.And;
 import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BitCast;
 import cc.quarkus.qcc.graph.BlockEntry;
+import cc.quarkus.qcc.graph.Cmp;
+import cc.quarkus.qcc.graph.CmpG;
+import cc.quarkus.qcc.graph.CmpL;
+import cc.quarkus.qcc.graph.Convert;
+import cc.quarkus.qcc.graph.Div;
+import cc.quarkus.qcc.graph.ElementOf;
+import cc.quarkus.qcc.graph.Extend;
+import cc.quarkus.qcc.graph.ExtractElement;
+import cc.quarkus.qcc.graph.ExtractMember;
+import cc.quarkus.qcc.graph.Fence;
+import cc.quarkus.qcc.graph.FunctionCall;
+import cc.quarkus.qcc.graph.GlobalVariable;
+import cc.quarkus.qcc.graph.Goto;
+import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.IsEq;
 import cc.quarkus.qcc.graph.IsGe;
 import cc.quarkus.qcc.graph.IsGt;
 import cc.quarkus.qcc.graph.IsLe;
 import cc.quarkus.qcc.graph.IsLt;
 import cc.quarkus.qcc.graph.IsNe;
-import cc.quarkus.qcc.graph.Convert;
-import cc.quarkus.qcc.graph.Div;
-import cc.quarkus.qcc.graph.ElementOf;
-import cc.quarkus.qcc.graph.Extend;
-import cc.quarkus.qcc.graph.Fence;
-import cc.quarkus.qcc.graph.FunctionCall;
-import cc.quarkus.qcc.graph.GlobalVariable;
-import cc.quarkus.qcc.graph.Goto;
-import cc.quarkus.qcc.graph.If;
 import cc.quarkus.qcc.graph.Load;
 import cc.quarkus.qcc.graph.MemberOf;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Mod;
 import cc.quarkus.qcc.graph.Multiply;
-import cc.quarkus.qcc.graph.Narrow;
+import cc.quarkus.qcc.graph.CheckCast;
 import cc.quarkus.qcc.graph.Neg;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.NodeVisitor;
@@ -65,7 +71,9 @@ import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.ValueReturn;
 import cc.quarkus.qcc.graph.Xor;
+import cc.quarkus.qcc.graph.literal.SymbolLiteral;
 import cc.quarkus.qcc.graph.schedule.Schedule;
+import cc.quarkus.qcc.machine.llvm.FastMathFlag;
 import cc.quarkus.qcc.machine.llvm.FloatCondition;
 import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
 import cc.quarkus.qcc.machine.llvm.IntCondition;
@@ -80,11 +88,12 @@ import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
 import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
 import cc.quarkus.qcc.machine.llvm.op.Phi;
 import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.plugin.unwind.UnwindHelper;
+import cc.quarkus.qcc.type.BooleanType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.NullType;
 import cc.quarkus.qcc.type.PointerType;
 import cc.quarkus.qcc.type.SignedIntegerType;
 import cc.quarkus.qcc.type.Type;
@@ -112,6 +121,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     final LLBuilder builder;
     final Map<Node, LLValue> inlineLocations = new HashMap<>();
 
+    private boolean personalityAdded;
+
     LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLValue topSubprogram, final LLVMModuleNodeVisitor moduleVisitor, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
         this.module = module;
@@ -124,6 +135,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         this.methodBody = functionObj.getBody();
         entryBlock = methodBody.getEntryBlock();
         builder = LLBuilder.newBuilder(func.getRootBlock());
+        personalityAdded = false;
     }
 
     // begin
@@ -136,9 +148,30 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         }
         for (int i = 0; i < cnt; i ++) {
             ParameterValue value = functionObj.getBody().getParameterValue(i);
-            mappedValues.put(value, func.param(map(value.getType())).name(value.getLabel() + value.getIndex()).asValue());
+            ValueType      type = value.getType();
+            cc.quarkus.qcc.machine.llvm.Function.Parameter param = func.param(map(type)).name(value.getLabel() + value.getIndex());
+            if(type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
+                if(type instanceof SignedIntegerType) {
+                    param.signExt();
+                } else {
+                    param.zeroExt();
+                }
+            } else if(type instanceof BooleanType) {
+                param.zeroExt();
+            }
+            mappedValues.put(value, param.asValue());
         }
-        func.returns(map(funcType.getReturnType()));
+        ValueType retType = funcType.getReturnType();
+        func.returns(map(retType));
+        if(retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
+            if(retType instanceof SignedIntegerType) {
+                func.signExt();
+            } else {
+                func.zeroExt();
+            }
+        } else if(retType instanceof BooleanType) {
+            func.zeroExt();
+        }
         map(entryBlock);
     }
 
@@ -159,7 +192,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         } else {
             ptr = valueHandle.accept(this, null).asLocal();
         }
-        cc.quarkus.qcc.machine.llvm.op.Store storeInsn = builder.store(map(valueHandle.getValueType().getPointer()), map(node.getValue()), map(valueHandle.getValueType()), ptr);
+        cc.quarkus.qcc.machine.llvm.op.Store storeInsn = builder.store(map(node.getValue().getType().getPointer()), map(node.getValue()), map(node.getValue().getType()), ptr);
         storeInsn.align(valueHandle.getValueType().getAlign());
         if (node.getMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
             storeInsn.atomic(OrderingConstraint.seq_cst);
@@ -269,6 +302,80 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         return builder.and(map(node.getType()), llvmLeft, llvmRight).asLocal();
     }
 
+    @Override
+    public LLValue visit(Void param, Cmp node) {
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+
+        IntCondition lessThanCondition = isSigned(left.getType()) ? IntCondition.slt : IntCondition.ult;
+
+        LLValue booleanType = map(ctxt.getTypeSystem().getBooleanType());
+        LLValue integerType = map(ctxt.getTypeSystem().getSignedInteger32Type());
+        return builder.select(
+            booleanType,
+            builder.icmp(lessThanCondition, inputType, llvmLeft, llvmRight).asLocal(),
+            integerType,
+            map(ctxt.getLiteralFactory().literalOf(-1)),
+            builder.select(
+                booleanType,
+                builder.icmp(IntCondition.eq, inputType, llvmLeft, llvmRight).asLocal(),
+                integerType,
+                map(ctxt.getLiteralFactory().literalOf(0)),
+                map(ctxt.getLiteralFactory().literalOf(1))
+            ).asLocal()
+        ).asLocal();
+    }
+
+    @Override
+    public LLValue visit(Void param, CmpG node) {
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+
+        LLValue booleanType = map(ctxt.getTypeSystem().getBooleanType());
+        LLValue integerType = map(ctxt.getTypeSystem().getSignedInteger32Type());
+        return builder.select(
+            booleanType,
+            builder.fcmp(FloatCondition.ugt, inputType, llvmLeft, llvmRight).asLocal(),
+            integerType,
+            map(ctxt.getLiteralFactory().literalOf(1)),
+            builder.select(
+                booleanType,
+                builder.fcmp(FloatCondition.ult, inputType, llvmLeft, llvmRight).withFlags(Set.of(FastMathFlag.nnan)).asLocal(),
+                integerType,
+                map(ctxt.getLiteralFactory().literalOf(-1)),
+                map(ctxt.getLiteralFactory().literalOf(0))
+            ).asLocal()
+        ).asLocal();
+    }
+
+    @Override
+    public LLValue visit(Void param, CmpL node) {
+        Value left = node.getLeftInput();
+        LLValue inputType = map(left.getType());
+        LLValue llvmLeft = map(left);
+        LLValue llvmRight = map(node.getRightInput());
+
+        LLValue booleanType = map(ctxt.getTypeSystem().getBooleanType());
+        LLValue integerType = map(ctxt.getTypeSystem().getSignedInteger32Type());
+        return builder.select(
+            booleanType,
+            builder.fcmp(FloatCondition.ult, inputType, llvmLeft, llvmRight).asLocal(),
+            integerType,
+            map(ctxt.getLiteralFactory().literalOf(-1)),
+            builder.select(
+                booleanType,
+                builder.fcmp(FloatCondition.ugt, inputType, llvmLeft, llvmRight).withFlags(Set.of(FastMathFlag.nnan)).asLocal(),
+                integerType,
+                map(ctxt.getLiteralFactory().literalOf(1)),
+                map(ctxt.getLiteralFactory().literalOf(0))
+            ).asLocal()
+        ).asLocal();
+    }
+
     public LLValue visit(final Void param, final IsEq node) {
         Value left = node.getLeftInput();
         LLValue inputType = map(left.getType());
@@ -296,7 +403,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         LLValue llvmRight = map(node.getRightInput());
         ValueType valueType = node.getLeftInput().getType();
         return isFloating(valueType) ?
-            builder.fcmp(FloatCondition.ult, inputType, llvmLeft, llvmRight).asLocal() :
+            builder.fcmp(FloatCondition.olt, inputType, llvmLeft, llvmRight).asLocal() :
             isSigned(valueType) ?
                 builder.icmp(IntCondition.slt, inputType, llvmLeft, llvmRight).asLocal() :
                 builder.icmp(IntCondition.ult, inputType, llvmLeft, llvmRight).asLocal();
@@ -322,7 +429,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         LLValue llvmRight = map(node.getRightInput());
         ValueType valueType = node.getLeftInput().getType();
         return isFloating(valueType) ?
-            builder.fcmp(FloatCondition.ugt, inputType, llvmLeft, llvmRight).asLocal() :
+            builder.fcmp(FloatCondition.ogt, inputType, llvmLeft, llvmRight).asLocal() :
             isSigned(valueType) ?
                 builder.icmp(IntCondition.sgt, inputType, llvmLeft, llvmRight).asLocal() :
                 builder.icmp(IntCondition.ugt, inputType, llvmLeft, llvmRight).asLocal();
@@ -455,16 +562,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     }
 
     public LLValue visit(final Void param, final BitCast node) {
-        Type javaInputType = node.getInput().getType();
-        Type javaOutputType = node.getType();
-        // skip bitcasts between same types
+        ValueType javaInputType = node.getInput().getType();
+        ValueType javaOutputType = node.getType();
         LLValue llvmInput = map(node.getInput());
-        if (javaInputType instanceof IntegerType && javaOutputType instanceof IntegerType) {
-            IntegerType in = (IntegerType) javaInputType;
-            IntegerType out = (IntegerType) javaOutputType;
-            if (in.getMinBits() == out.getMinBits()) {
-                return llvmInput;
-            }
+        // skip bitcasts between same types
+        if (LLVMModuleNodeVisitor.mapsToSameType(javaInputType, javaOutputType)) {
+            return llvmInput;
         }
         LLValue inputType = map(javaInputType);
         LLValue outputType = map(javaOutputType);
@@ -506,7 +609,21 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
                     builder.zext(inputType, llvmInput, outputType).asLocal();
     }
 
-    public LLValue visit(final Void param, final Narrow node) {
+    public LLValue visit(final Void param, final ExtractElement node) {
+        LLValue arrayType = map(node.getArrayType());
+        LLValue array = map(node.getArrayValue());
+        LLValue index = map(node.getIndex());
+        return builder.extractvalue(arrayType, array).arg(index).asLocal();
+    }
+
+    public LLValue visit(final Void param, final ExtractMember node) {
+        LLValue compType = map(node.getCompoundType());
+        LLValue comp = map(node.getCompoundValue());
+        LLValue index = map(node.getCompoundType(), node.getMember());
+        return builder.extractvalue(compType, comp).arg(index).asLocal();
+    }
+
+    public LLValue visit(final Void param, final CheckCast node) {
         return map(node.getInput());
     }
 
@@ -540,29 +657,32 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         // two scans - once to populate the maps, and then once to emit the call in the right order
         for (int i = 0; i < arguments.size(); i++) {
             ValueType type = arguments.get(i).getType();
-            if (type instanceof NullType) {
-                // it's a null of whatever type the parameter is
-                if (i < functionType.getParameterCount()) {
-                    type = functionType.getParameterType(i);
-                    // else we'll just make it an i8*
-                }
-            }
             map(type);
             map(arguments.get(i));
         }
         Call call = builder.call(llType, llTarget);
         for (int i = 0; i < arguments.size(); i++) {
             ValueType type = arguments.get(i).getType();
-            if (type instanceof NullType) {
-                // it's a null of whatever type the parameter is
-                if (i < functionType.getParameterCount()) {
-                    call.arg(map(functionType.getParameterType(i)), zeroinitializer);
+            Call.Argument arg = call.arg(map(type), map(arguments.get(i)));
+            if (type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
+                if(type instanceof SignedIntegerType) {
+                    arg.signExt();
                 } else {
-                    call.arg(ptrTo(i8), zeroinitializer);
+                    arg.zeroExt();
                 }
-            } else {
-                call.arg(map(type), map(arguments.get(i)));
+            } else if (type instanceof BooleanType) {
+                arg.zeroExt();
             }
+        }
+        ValueType retType = functionType.getReturnType();
+        if(retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
+            if(retType instanceof SignedIntegerType) {
+                call.signExt();
+            } else {
+                call.zeroExt();
+            }
+        } else if(retType instanceof BooleanType) {
+            call.zeroExt();
         }
         return call.asLocal();
     }
@@ -580,7 +700,40 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         }
         Call call = builder.invoke(llType, llTarget, map(try_.getResumeTarget()), mapCatch(try_.getExceptionHandler()));
         for (int i = 0; i < arguments.size(); i++) {
-            call.arg(map(functionType.getParameterType(i)), map(arguments.get(i)));
+            ValueType type = functionType.getParameterType(i);
+            Call.Argument arg = call.arg(map(type), map(arguments.get(i)));
+            if(type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
+                if(type instanceof SignedIntegerType) {
+                    arg.signExt();
+                } else {
+                    arg.zeroExt();
+                }
+            } else if (type instanceof BooleanType) {
+                arg.zeroExt();
+            }
+        }
+        ValueType retType = functionType.getReturnType();
+        if(retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
+            if(retType instanceof SignedIntegerType) {
+                call.signExt();
+            } else {
+                call.zeroExt();
+            }
+        } else if(retType instanceof BooleanType) {
+            call.zeroExt();
+        }
+
+        if (!personalityAdded) {
+            Function personalityFunction = ctxt.getExactFunction(UnwindHelper.get(ctxt).getPersonalityMethod());
+            SymbolLiteral literal = ctxt.getLiteralFactory().literalOfSymbol(personalityFunction.getLiteral().getName(), personalityFunction.getType().getPointer());
+            // clang generates the personality argument like this (by casting the function to i8* using bitcast):
+            //      define dso_local void @_Z7catchitv() #0 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+            // We can also generate it this way using following construct:
+            //      func.personality(Values.bitcastConstant(map(literal), map(literal.getType()), ptrTo(i8)), ptrTo(i8));
+            // but directly specifying the function works as well.
+            func.personality(map(literal), map(literal.getType()));
+            func.unwindTable();
+            personalityAdded = true;
         }
         return call.asLocal();
     }
@@ -715,7 +868,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         // TODO Is it correct to use the call's debug info here?
         LLBasicBlock oldBuilderBlock = builder.moveToBlock(mapped);
 
-        builder.landingpad(ptrTo(i8)).catch_(ptrTo(i8), NULL);
+        builder.landingpad(structType().member(ptrTo(i8)).member(i32)).catch_(ptrTo(i8), NULL);
         LLBasicBlock handler = map(block);
         builder.br(handler);
 
@@ -749,13 +902,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             return value.accept(this, null);
         }
 
-        LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(value));
         LLBasicBlock oldBuilderBlock = builder.moveToBlock(map(schedule.getBlockForNode(value)));
 
-        mapped = value.accept(this, null);
-        mappedValues.put(value, mapped);
+        mapped = mappedValues.get(value);
+        if (mapped == null) {
+            LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(value));
+            mapped = value.accept(this, null);
+            mappedValues.put(value, mapped);
+            builder.setDebugLocation(oldBuilderDebugLocation);
+        }
 
-        builder.setDebugLocation(oldBuilderDebugLocation);
         builder.moveToBlock(oldBuilderBlock);
         return mapped;
     }

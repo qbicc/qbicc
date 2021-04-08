@@ -19,7 +19,6 @@ import cc.quarkus.qcc.graph.literal.FloatLiteral;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.graph.literal.MethodDescriptorLiteral;
 import cc.quarkus.qcc.graph.literal.MethodHandleLiteral;
-import cc.quarkus.qcc.graph.literal.NullLiteral;
 import cc.quarkus.qcc.graph.literal.ObjectLiteral;
 import cc.quarkus.qcc.graph.literal.StringLiteral;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
@@ -127,7 +126,11 @@ public interface Node {
                     if (incomingBlock.isReachable()) {
                         Value val = orig.getValueForInput(incomingTerminator);
                         if (val != null) {
-                            copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copiedTerminators.get(incomingTerminator), copyValue(val));
+                            BasicBlock copiedIncomingBlock = copiedTerminators.get(incomingTerminator);
+                            // if this block is null, that means that the copied block can no longer flow into this block due to transformation
+                            if (copiedIncomingBlock != null) {
+                                copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copiedIncomingBlock, copyValue(val));
+                            }
                         }
                     }
                 }
@@ -298,11 +301,6 @@ public interface Node {
                 return param.getBlockBuilder().getBlockEntry();
             }
 
-            public Node visit(Copier param, DynamicInvocation node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().invokeDynamic(node.getBootstrapMethod(), param.copyValues(node.getStaticArguments()), param.copyValues(node.getArguments()));
-            }
-
             public Node visit(Copier param, InstanceInvocation node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().invokeInstance(node.getKind(), param.copyValue(node.getInstance()), node.getInvocationTarget(), param.copyValues(node.getArguments()));
@@ -417,6 +415,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final ArrayLength node) {
+                param.copyNode(node.getDependency());
                 return param.getBlockBuilder().arrayLength(param.copyValueHandle(node.getInstance()));
             }
 
@@ -436,6 +435,11 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final CheckCast node) {
+                return param.getBlockBuilder().checkcast(param.copyValue(node.getInput()), param.copyValue(node.getToType()),
+                    param.copyValue(node.getToDimensions()), node.getKind(), node.getType());
+            }
+
             public Value visit(final Copier param, final ClassOf node) {
                 return param.getBlockBuilder().classOf(param.copyValue(node.getInput()));
             }
@@ -445,10 +449,22 @@ public interface Node {
                 return param.getBlockBuilder().clone(param.copyValue(node.getInput()));
             }
 
+            public Value visit(Copier param, Cmp node) {
+                return param.getBlockBuilder().cmp(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
             public Value visit(final Copier param, final CmpAndSwap node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().cmpAndSwap(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getExpectedValue()),
                     param.copyValue(node.getUpdateValue()), node.getSuccessAtomicityMode(), node.getFailureAtomicityMode());
+            }
+
+            public Value visit(Copier param, CmpG node) {
+                return param.getBlockBuilder().cmpG(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(Copier param, CmpL node) {
+                return param.getBlockBuilder().cmpL(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
             public Value visit(final Copier param, final CompoundLiteral node) {
@@ -477,9 +493,8 @@ public interface Node {
                 return param.getBlockBuilder().divide(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
-            public Value visit(final Copier param, final DynamicInvocationValue node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().invokeValueDynamic(node.getBootstrapMethod(), param.copyValues(node.getStaticArguments()), node.getType(), param.copyValues(node.getArguments()));
+            public ValueHandle visit(Copier param, ElementOf node) {
+                return param.getBlockBuilder().elementOf(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getIndex()));
             }
 
             public Value visit(final Copier param, final Extend node) {
@@ -540,13 +555,17 @@ public interface Node {
                 return param.getBlockBuilder().getAndSub(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
             }
 
+            public ValueHandle visit(Copier param, GlobalVariable node) {
+                return param.getBlockBuilder().globalVariable(node.getVariableElement());
+            }
+
             public Value visit(final Copier param, final InstanceInvocationValue node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().invokeValueInstance(node.getKind(), param.copyValue(node.getInstance()), node.getInvocationTarget(), param.copyValues(node.getArguments()));
             }
 
             public Value visit(final Copier param, final InstanceOf node) {
-                return param.getBlockBuilder().instanceOf(param.copyValue(node.getInstance()), node.getCheckType());
+                return param.getBlockBuilder().instanceOf(param.copyValue(node.getInstance()), node.getCheckType(), node.getCheckDimensions());
             }
 
             public Value visit(final Copier param, final IntegerLiteral node) {
@@ -577,14 +596,21 @@ public interface Node {
                 return param.getBlockBuilder().isNe(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
-            public Node visit(final Copier param, final Store node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().store(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getValue()), node.getMode());
+            public ValueHandle visit(Copier param, InstanceFieldOf node) {
+                return param.getBlockBuilder().instanceFieldOf(param.copyValueHandle(node.getValueHandle()), node.getVariableElement());
             }
 
             public Value visit(final Copier param, final Load node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().load(param.copyValueHandle(node.getValueHandle()), node.getMode());
+            }
+
+            public ValueHandle visit(Copier param, LocalVariable node) {
+                return param.getBlockBuilder().localVariable(node.getVariableElement());
+            }
+
+            public ValueHandle visit(Copier param, MemberOf node) {
+                return param.getBlockBuilder().memberOf(param.copyValueHandle(node.getValueHandle()), node.getMember());
             }
 
             public Value visit(final Copier param, final MethodDescriptorLiteral node) {
@@ -595,11 +621,20 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final Max node) {
+                return param.getBlockBuilder().max(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(final Copier param, final Min node) {
+                return param.getBlockBuilder().min(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
             public Value visit(final Copier param, final Mod node) {
                 return param.getBlockBuilder().remainder(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
             public Value visit(final Copier param, final MultiNewArray node) {
+                param.copyNode(node.getDependency());
                 return param.getBlockBuilder().multiNewArray(node.getArrayType(), param.copyValues(node.getDimensions()));
             }
 
@@ -607,24 +642,18 @@ public interface Node {
                 return param.getBlockBuilder().multiply(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
-            public Value visit(final Copier param, final Narrow node) {
-                return param.getBlockBuilder().narrow(param.copyValue(node.getInput()), node.getType());
-            }
-
             public Value visit(final Copier param, final Neg node) {
                 return param.getBlockBuilder().negate(param.copyValue(node.getInput()));
             }
 
             public Value visit(final Copier param, final New node) {
+                param.copyNode(node.getDependency());
                 return param.getBlockBuilder().new_(node.getClassObjectType());
             }
 
             public Value visit(final Copier param, final NewArray node) {
+                param.copyNode(node.getDependency());
                 return param.getBlockBuilder().newArray(node.getArrayType(), param.copyValue(node.getSize()));
-            }
-
-            public Value visit(final Copier param, final NullLiteral node) {
-                return node;
             }
 
             public Value visit(final Copier param, final ObjectLiteral node) {
@@ -652,6 +681,14 @@ public interface Node {
                 return param.getBlockBuilder().ror(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
 
+            public ValueHandle visit(Copier param, PointerHandle node) {
+                return param.getBlockBuilder().pointerHandle(param.copyValue(node.getPointerValue()));
+            }
+
+            public ValueHandle visit(Copier param, ReferenceHandle node) {
+                return param.getBlockBuilder().referenceHandle(param.copyValue(node.getReferenceValue()));
+            }
+
             public Value visit(final Copier param, final Select node) {
                 return param.getBlockBuilder().select(param.copyValue(node.getCondition()), param.copyValue(node.getTrueValue()), param.copyValue(node.getFalseValue()));
             }
@@ -668,21 +705,30 @@ public interface Node {
                 return param.getBlockBuilder().stackAllocate(node.getType().getPointeeType(), param.copyValue(node.getCount()), param.copyValue(node.getAlign()));
             }
 
+            public ValueHandle visit(Copier param, StaticField node) {
+                return param.getBlockBuilder().staticField(node.getVariableElement());
+            }
+
             public Value visit(final Copier param, final StaticInvocationValue node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().invokeValueStatic(node.getInvocationTarget(), param.copyValues(node.getArguments()));
+            }
+
+            public Node visit(final Copier param, final Store node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().store(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getValue()), node.getMode());
             }
 
             public Value visit(final Copier param, final StringLiteral node) {
                 return node;
             }
 
-            public Value visit(final Copier param, final SymbolLiteral node) {
-                return node;
-            }
-
             public Value visit(final Copier param, final Sub node) {
                 return param.getBlockBuilder().sub(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
+            }
+
+            public Value visit(final Copier param, final SymbolLiteral node) {
+                return node;
             }
 
             public Value visit(final Copier param, final Truncate node) {
@@ -707,56 +753,6 @@ public interface Node {
 
             public Value visit(final Copier param, final ZeroInitializerLiteral node) {
                 return node;
-            }
-
-            @Override
-            public ValueHandle visit(Copier param, ElementOf node) {
-                return param.getBlockBuilder().elementOf(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getIndex()));
-            }
-
-            @Override
-            public ValueHandle visit(Copier param, GlobalVariable node) {
-                return param.getBlockBuilder().globalVariable(node.getVariableElement());
-            }
-
-            @Override
-            public ValueHandle visit(Copier param, InstanceFieldOf node) {
-                return param.getBlockBuilder().instanceFieldOf(param.copyValueHandle(node.getValueHandle()), node.getVariableElement());
-            }
-
-            @Override
-            public ValueHandle visit(Copier param, LocalVariable node) {
-                return param.getBlockBuilder().localVariable(node.getVariableElement());
-            }
-
-            @Override
-            public ValueHandle visit(Copier param, MemberOf node) {
-                return param.getBlockBuilder().memberOf(param.copyValueHandle(node.getValueHandle()), node.getMember());
-            }
-
-            @Override
-            public ValueHandle visit(Copier param, StaticField node) {
-                return param.getBlockBuilder().staticField(node.getVariableElement());
-            }
-
-            @Override
-            public ValueHandle visit(Copier param, PointerHandle node) {
-                return param.getBlockBuilder().pointerHandle(param.copyValue(node.getPointerValue()));
-            }
-
-            @Override
-            public ValueHandle visit(Copier param, ReferenceHandle node) {
-                return param.getBlockBuilder().referenceHandle(param.copyValue(node.getReferenceValue()));
-            }
-
-            @Override
-            public Value visit(final Copier param, final Min node) {
-                return param.getBlockBuilder().min(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
-            }
-
-            @Override
-            public Value visit(final Copier param, final Max node) {
-                return param.getBlockBuilder().max(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
         }
     }

@@ -1,14 +1,22 @@
 package cc.quarkus.qcc.graph;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.graph.literal.BlockLiteral;
+import cc.quarkus.qcc.graph.literal.IntegerLiteral;
 import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.TypeSystem;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
@@ -107,6 +115,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         }
         if (firstBlock != null) {
             mark(BlockLabel.getTargetOf(firstBlock), null);
+            computeLoops(BlockLabel.getTargetOf(firstBlock), new ArrayList<>(), new HashSet<>(), new HashSet<>(), new HashMap<>());
         }
     }
 
@@ -117,6 +126,60 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             for (int i = 0; i < cnt; i ++) {
                 mark(terminator.getSuccessor(i), block);
             }
+        }
+    }
+
+    private void computeLoops(BasicBlock block, ArrayList<BasicBlock> blocks, HashSet<BasicBlock> blocksSet, HashSet<BasicBlock> visited, Map<Set<BasicBlock.Loop>, Map<BasicBlock.Loop, Set<BasicBlock.Loop>>> cache) {
+        if (! visited.add(block)) {
+            return;
+        }
+        blocks.add(block);
+        blocksSet.add(block);
+        Terminator terminator = block.getTerminator();
+        int cnt = terminator.getSuccessorCount();
+        for (int i = 0; i < cnt; i ++) {
+            BasicBlock successor = terminator.getSuccessor(i);
+            if (blocksSet.contains(successor)) {
+                int idx = blocks.indexOf(successor);
+                assert idx != -1;
+                // all blocks in the span are a part of the new loop
+                BasicBlock.Loop loop = new BasicBlock.Loop(successor, block);
+                for (int j = idx; j < blocks.size(); j ++) {
+                    BasicBlock member = blocks.get(j);
+                    Set<BasicBlock.Loop> oldLoops = member.getLoops();
+                    member.setLoops(cache.computeIfAbsent(oldLoops, SimpleBasicBlockBuilder::newMap).computeIfAbsent(loop, l -> setWith(oldLoops, l)));
+                }
+            } else {
+                // a block we haven't hit yet
+                computeLoops(successor, blocks, blocksSet, visited, cache);
+            }
+        }
+        BasicBlock removed = blocks.remove(blocks.size() - 1);
+        assert removed == block;
+        blocksSet.remove(block);
+    }
+
+    private static <K, V> Map<K, V> newMap(Object arg) {
+        return new HashMap<>();
+    }
+
+    private static <E> Set<E> setWith(Set<E> set, E item) {
+        if (set.contains(item)) {
+            return set;
+        }
+        int size = set.size();
+        if (size == 0) {
+            return Set.of(item);
+        } else if (size == 1) {
+            return Set.of(set.iterator().next(), item);
+        } else if (size == 2) {
+            Iterator<E> iterator = set.iterator();
+            return Set.of(iterator.next(), iterator.next(), item);
+        } else {
+            @SuppressWarnings("unchecked")
+            E[] array = set.toArray((E[]) new Object[size + 1]);
+            array[size] = item;
+            return Set.of(array);
         }
     }
 
@@ -209,6 +272,18 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Ror(callSite, element, line, bci, v1, v2);
     }
 
+    public Value cmp(Value v1, Value v2) {
+        return new Cmp(callSite, element, line, bci, v1, v2, typeSystem.getSignedInteger32Type());
+    }
+
+    public Value cmpG(Value v1, Value v2) {
+        return new CmpG(callSite, element, line, bci, v1, v2, typeSystem.getSignedInteger32Type());
+    }
+
+    public Value cmpL(Value v1, Value v2) {
+        return new CmpL(callSite, element, line, bci, v1, v2, typeSystem.getSignedInteger32Type());
+    }
+
     public Value negate(final Value v) {
         return new Neg(callSite, element, line, bci, v);
     }
@@ -234,7 +309,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value arrayLength(final ValueHandle arrayHandle) {
-        return new ArrayLength(callSite, element, line, bci, arrayHandle, typeSystem.getSignedInteger32Type());
+        return asDependency(new ArrayLength(callSite, element, line, bci, requireDependency(), arrayHandle, typeSystem.getSignedInteger32Type()));
     }
 
     public Value truncate(final Value value, final WordType toType) {
@@ -253,20 +328,32 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new Convert(callSite, element, line, bci, value, toType);
     }
 
-    public Value instanceOf(final Value input, final ValueType expectedType) {
-        return new InstanceOf(callSite, element, line, bci, input, expectedType, typeSystem.getBooleanType());
+    public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {
+        return new InstanceOf(callSite, element, line, bci, input, expectedType, expectedDimensions, typeSystem.getBooleanType());
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
         throw new IllegalStateException("InstanceOf of unresolved type");
     }
 
-    public Value narrow(final Value value, final ValueType toType) {
-        return new Narrow(callSite, element, line, bci, value, toType);
+    public Value checkcast(final Value value, final Value toType, final Value toDimensions, final CheckCast.CastType kind, final ReferenceType type) {
+        ValueType inputType = value.getType();
+        ReferenceType outputType = type;
+        if (inputType instanceof ReferenceType) {
+            outputType = type.meet((ReferenceType) inputType);
+            if (outputType == null) {
+                CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
+                ctxt.warning(getLocation(), "Invalid narrow from %s to %s compiled to raiseCCE()", inputType, type);
+                MethodElement helper = ctxt.getVMHelperMethod("raiseClassCastException");
+                invokeStatic(helper, List.of());
+                throw new BlockEarlyTermination(unreachable());
+            }
+        }
+        return new CheckCast(callSite, element, line, bci, value, toType, toDimensions, kind, outputType);
     }
 
-    public Value narrow(final Value value, final TypeDescriptor desc) {
-        throw new IllegalStateException("Narrow of unresolved type");
+    public Value checkcast(final Value value, final TypeDescriptor desc) {
+        throw new IllegalStateException("CheckCast of unresolved type");
     }
 
     public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {
@@ -286,7 +373,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
-        return new InstanceFieldOf(element, line, bci, field, field.getType(List.of()), instance);
+        return new InstanceFieldOf(element, line, bci, field, field.getType(), instance);
     }
 
     public ValueHandle instanceFieldOf(ValueHandle instance, TypeDescriptor owner, String name, TypeDescriptor type) {
@@ -294,7 +381,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public ValueHandle staticField(FieldElement field) {
-        return new StaticField(element, line, bci, field, field.getType(List.of()));
+        return new StaticField(element, line, bci, field, field.getType());
     }
 
     public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
@@ -302,11 +389,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public ValueHandle globalVariable(GlobalVariableElement variable) {
-        return new GlobalVariable(element, line, bci, variable, variable.getType(List.of()));
+        return new GlobalVariable(element, line, bci, variable, variable.getType());
     }
 
     public ValueHandle localVariable(LocalVariableElement variable) {
-        return new LocalVariable(element, line, bci, variable, variable.getType(List.of()));
+        return new LocalVariable(element, line, bci, variable, variable.getType());
     }
 
     public Value addressOf(ValueHandle handle) {
@@ -323,7 +410,23 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public Value currentThread() {
         ClassObjectType type = element.getEnclosingType().getContext().findDefinedType("java/lang/Thread").validate().getClassType();
-        return new CurrentThreadRead(callSite, element, line, bci, requireDependency(), type.getReference());
+        return asDependency(new CurrentThreadRead(callSite, element, line, bci, requireDependency(), type.getReference()));
+    }
+
+    public Value extractElement(Value array, Value index) {
+        return new ExtractElement(callSite, element, line, bci, array, index);
+    }
+
+    public Value extractMember(Value compound, CompoundType.Member member) {
+        return new ExtractMember(callSite, element, line, bci, compound, member);
+    }
+
+    public Value extractInstanceField(Value valueObj, TypeDescriptor owner, String name, TypeDescriptor type) {
+        throw new IllegalStateException("Field access of unresolved class");
+    }
+
+    public Value extractInstanceField(Value valueObj, FieldElement field) {
+        return new ExtractInstanceField(callSite, element, line, bci, valueObj, field, field.getType());
     }
 
     public PhiValue phi(final ValueType type, final BlockLabel owner) {
@@ -344,7 +447,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value new_(final ClassObjectType type) {
-        return new New(callSite, element, line, bci, type);
+        return asDependency(new New(callSite, element, line, bci, requireDependency(), type));
     }
 
     public Value new_(final ClassTypeDescriptor desc) {
@@ -352,7 +455,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value newArray(final ArrayObjectType arrayType, final Value size) {
-        return new NewArray(callSite, element, line, bci, arrayType, size);
+        return asDependency(new NewArray(callSite, element, line, bci, requireDependency(), arrayType, size));
     }
 
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
@@ -360,7 +463,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value multiNewArray(final ArrayObjectType arrayType, final List<Value> dimensions) {
-        return new MultiNewArray(callSite, element, line, bci, null, arrayType, dimensions);
+        return asDependency(new MultiNewArray(callSite, element, line, bci, requireDependency(), arrayType, dimensions));
     }
 
     public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
@@ -448,7 +551,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             FieldElement exceptionField = ctxt.getExceptionField();
             ValueHandle handle = instanceFieldOf(referenceHandle(thr), exceptionField);
             Value exceptionValue = load(handle, MemoryAtomicityMode.NONE);
-            store(handle, ctxt.getLiteralFactory().literalOfNull(), MemoryAtomicityMode.NONE);
+            store(handle, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(handle.getValueType()), MemoryAtomicityMode.NONE);
             BasicBlock sourceBlock = goto_(handler);
             exceptionHandler.enterHandler(sourceBlock, exceptionValue);
             begin(resume);
@@ -493,12 +596,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("Invoke of unresolved method: " + name);
     }
 
-    public Node invokeDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final List<Value> arguments) {
-        return optionallyTry(new DynamicInvocation(callSite, element, line, bci, requireDependency(), bootstrapMethod, staticArguments, arguments));
-    }
-
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new StaticInvocationValue(callSite, element, line, bci, requireDependency(), target, target.getType(List.of()).getReturnType(), arguments));
+        return optionallyTry(new StaticInvocationValue(callSite, element, line, bci, requireDependency(), target, target.getType().getReturnType(), arguments));
     }
 
     public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
@@ -506,15 +605,11 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new InstanceInvocationValue(callSite, element, line, bci, requireDependency(), kind, instance, target, target.getType(List.of()).getReturnType(), arguments));
+        return optionallyTry(new InstanceInvocationValue(callSite, element, line, bci, requireDependency(), kind, instance, target, target.getType().getReturnType(), arguments));
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         throw new IllegalStateException("Invoke of unresolved method: " + name);
-    }
-
-    public Value invokeValueDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final ValueType type, final List<Value> arguments) {
-        return optionallyTry(new DynamicInvocationValue(callSite, element, line, bci, requireDependency(), bootstrapMethod, staticArguments, type, arguments));
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {

@@ -1,15 +1,14 @@
 package cc.quarkus.qcc.plugin.native_;
 
 import java.io.IOException;
-import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Location;
 import cc.quarkus.qcc.driver.Driver;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.CheckCast;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.Narrow;
 import cc.quarkus.qcc.graph.Node;
 import cc.quarkus.qcc.graph.StaticField;
 import cc.quarkus.qcc.graph.StaticInvocationValue;
@@ -66,8 +65,8 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
     @Override
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
         Value test = value;
-        while (test instanceof Narrow) {
-            test = ((Narrow) test).getInput();
+        while (test instanceof CheckCast) {
+            test = ((CheckCast) test).getInput();
         }
         if (test instanceof StaticInvocationValue) {
             StaticInvocationValue inv = (StaticInvocationValue) test;
@@ -126,7 +125,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         }
         CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
         // compute the type and raw value
-        ValueType type = fieldElement.getType(List.of(/*todo*/));
+        ValueType type = fieldElement.getType();
         Value val;
         // todo: if constant value is actually a symbol ref...
         if (type instanceof IntegerType) {

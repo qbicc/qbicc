@@ -1,6 +1,5 @@
 package cc.quarkus.qcc.main;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -11,8 +10,8 @@ import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.context.Diagnostic;
@@ -20,6 +19,7 @@ import cc.quarkus.qcc.context.DiagnosticContext;
 import cc.quarkus.qcc.driver.BaseDiagnosticContext;
 import cc.quarkus.qcc.driver.BuilderStage;
 import cc.quarkus.qcc.driver.Driver;
+import cc.quarkus.qcc.driver.GraphGenConfig;
 import cc.quarkus.qcc.driver.Phase;
 import cc.quarkus.qcc.driver.plugin.DriverPlugin;
 import cc.quarkus.qcc.machine.arch.Platform;
@@ -34,14 +34,13 @@ import cc.quarkus.qcc.plugin.conversion.NumericalConversionBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.correctness.RuntimeChecksBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.dispatch.DispatchTableEmitter;
-import cc.quarkus.qcc.plugin.dispatch.VTableBuilder;
+import cc.quarkus.qcc.plugin.dispatch.DispatchTableBuilder;
 import cc.quarkus.qcc.plugin.dot.DotGenerator;
 import cc.quarkus.qcc.plugin.gc.nogc.NoGcBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.gc.nogc.NoGcMultiNewArrayBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.gc.nogc.NoGcSetupHook;
 import cc.quarkus.qcc.plugin.gc.nogc.NoGcTypeSystemConfigurator;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
-import cc.quarkus.qcc.plugin.instanceofcheckcast.RegisterHelperBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import cc.quarkus.qcc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.intrinsics.core.CoreIntrinsics;
@@ -54,6 +53,7 @@ import cc.quarkus.qcc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.lowering.StaticFieldLoweringBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.lowering.ThrowExceptionHelper;
 import cc.quarkus.qcc.plugin.lowering.ThrowLoweringBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.lowering.VMHelpersSetupHook;
 import cc.quarkus.qcc.plugin.main_method.AddMainClassHook;
 import cc.quarkus.qcc.plugin.main_method.MainMethod;
 import cc.quarkus.qcc.plugin.native_.ConstTypeResolver;
@@ -63,10 +63,13 @@ import cc.quarkus.qcc.plugin.native_.FunctionTypeResolver;
 import cc.quarkus.qcc.plugin.native_.NativeBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeBuilder;
 import cc.quarkus.qcc.plugin.native_.NativeTypeResolver;
+import cc.quarkus.qcc.plugin.native_.PointerBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.native_.PointerTypeResolver;
 import cc.quarkus.qcc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.opt.FenceAnalyzerVisitor;
 import cc.quarkus.qcc.plugin.opt.GotoRemovingVisitor;
+import cc.quarkus.qcc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.opt.InliningBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.opt.PhiOptimizerVisitor;
 import cc.quarkus.qcc.plugin.opt.SimpleOptBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.reachability.RTAInfo;
@@ -76,6 +79,7 @@ import cc.quarkus.qcc.plugin.threadlocal.ThreadLocalTypeBuilder;
 import cc.quarkus.qcc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.SynchronizedMethodBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.trycatch.ThrowValueBasicBlockBuilder;
+import cc.quarkus.qcc.plugin.unwind.UnwindSetupHook;
 import cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.LowerVerificationBasicBlockBuilder;
 import cc.quarkus.qcc.plugin.verification.MemberResolvingBasicBlockBuilder;
@@ -85,6 +89,9 @@ import io.smallrye.common.constraint.Assert;
 import org.jboss.logmanager.Level;
 import org.jboss.logmanager.LogManager;
 import org.jboss.logmanager.Logger;
+import picocli.CommandLine;
+import picocli.CommandLine.ParameterException;
+import picocli.CommandLine.ParseResult;
 
 /**
  * The main entry point, which can be constructed using a builder or directly invoked.
@@ -96,6 +103,12 @@ public class Main implements Callable<DiagnosticContext> {
     private final String mainClass;
     private final String gc;
     private final boolean isPie;
+    private final GraphGenConfig graphGenConfig;
+    private final boolean optMemoryTracking;
+    private final boolean optPhis;
+    private final boolean optGotos;
+    private final boolean optInlining;
+    private final boolean optFence;
 
     Main(Builder builder) {
         bootModulePath = List.copyOf(builder.bootModulePath);
@@ -105,9 +118,36 @@ public class Main implements Callable<DiagnosticContext> {
         mainClass = Assert.checkNotNullParam("builder.mainClass", builder.mainClass);
         gc = builder.gc;
         isPie = builder.isPie;
+        graphGenConfig = builder.graphGenConfig;
+        optMemoryTracking = builder.optMemoryTracking;
+        optInlining = builder.optInlining;
+        optPhis = builder.optPhis;
+        optGotos = builder.optGotos;
+        optFence = builder.optFence;
     }
 
     public DiagnosticContext call() {
+        AtomicReference<DiagnosticContext> ref = new AtomicReference<>();
+        Thread compilerThread = new Thread(Thread.currentThread().getThreadGroup(), () -> {
+            ref.set(call0());
+        }, "Compiler thread", 64L * 1024 * 1024);
+        compilerThread.start();
+        boolean intr = false;
+        try {
+            for (;;) try {
+                compilerThread.join();
+                return ref.get();
+            } catch (InterruptedException ex) {
+                intr = true;
+            }
+        } finally {
+            if (intr) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    DiagnosticContext call0() {
         final BaseDiagnosticContext initialContext = new BaseDiagnosticContext();
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);
@@ -238,11 +278,13 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, Layout::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
+                                builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
+                                builder.addPreHook(Phase.ADD, new UnwindSetupHook());
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
                                 }
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NoGcMultiNewArrayBasicBlockBuilder::new);
                                 }
@@ -251,51 +293,75 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PointerBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThrowValueBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MethodCallFixupBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
+                                if (optMemoryTracking) {
+                                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, RuntimeChecksBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, RegisterHelperBasicBlockBuilder::new);
+                                builder.addElementVisitor(Phase.ADD, new DotGenerator(Phase.ADD, graphGenConfig));
                                 builder.addPostHook(Phase.ADD, RTAInfo::clear);
 
-                                builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
-                                builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
-                                builder.addCopyFactory(Phase.ANALYZE, FenceAnalyzerVisitor::new);
+                                if (optGotos) {
+                                    builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
+                                }
+                                if (optPhis) {
+                                    builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
+                                }
+                                if (optFence) {
+                                    builder.addCopyFactory(Phase.ANALYZE, FenceAnalyzerVisitor::new);
+                                }
+                                if (optMemoryTracking) {
+                                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.CORRECT, NumericalConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                                if (optInlining) {
+                                    builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                                builder.addPostHook(Phase.ANALYZE, new VTableBuilder());
+                                builder.addElementVisitor(Phase.ANALYZE, new DotGenerator(Phase.ANALYZE, graphGenConfig));
+                                builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
-                                builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
+                                if (optGotos) {
+                                    builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
+                                }
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, NoGcBasicBlockBuilder::new);
                                 }
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForLowerPhase);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldLoweringBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
+                                // InstanceOfCheckCastBB must come before ObjectAccessLoweringBuilder or typeIdOf won't be lowered correctly
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectMonitorBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LLVMCompatibleBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
+                                if (optMemoryTracking) {
+                                    builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
+                                }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
+                                builder.addElementVisitor(Phase.LOWER, new DotGenerator(Phase.LOWER, graphGenConfig));
 
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0));
 
-                                builder.addGenerateVisitor(DotGenerator.genPhase());
-
+                                builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
                                 builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie));
                                 builder.addPostHook(Phase.GENERATE, new LinkStage(isPie));
-
 
                                 CompilationContext ctxt;
                                 try (Driver driver = builder.build()) {
@@ -317,85 +383,34 @@ public class Main implements Callable<DiagnosticContext> {
 
     public static void main(String[] args) {
         System.setProperty("java.util.logging.manager", LogManager.class.getName());
+        CommandLineProcessor optionsProcessor = new CommandLineProcessor();
+        CmdResult result = optionsProcessor.process(args);
+        if (result != CmdResult.CMD_RESULT_OK) {
+            return;
+        }
         Builder mainBuilder = builder();
-        mainBuilder.setDiagnosticsHandler(diagnostics -> {
-            for (Diagnostic diagnostic : diagnostics) {
-                try {
-                    diagnostic.appendTo(System.err);
-                } catch (IOException e) {
-                    // just give up
-                    break;
-                }
-            }
-        });
-        final Iterator<String> argIter = List.of(args).iterator();
-        String mainClass = null;
-        Path outputPath = null;
-        String gc = "none";
-
-        // TODO Detect whether the system uses PIEs by default and match that if possible
-        boolean isPie = false;
-
-        while (argIter.hasNext()) {
-            final String arg = argIter.next();
-            if (arg.startsWith("-")) {
-                if (arg.equals("--boot-module-path")) {
-                    String[] path = argIter.next().split(Pattern.quote(File.pathSeparator));
-                    for (String pathStr : path) {
-                        if (! pathStr.isEmpty()) {
-                            mainBuilder.addBootModulePath(Path.of(pathStr));
-                        }
+        mainBuilder.setBootModulePaths(optionsProcessor.bootPaths)
+            .setOutputPath(optionsProcessor.outputPath)
+            .setMainClass(optionsProcessor.mainClass)
+            .setDiagnosticsHandler(diagnostics -> {
+                for (Diagnostic diagnostic : diagnostics) {
+                    try {
+                        diagnostic.appendTo(System.err);
+                    } catch (IOException e) {
+                        // just give up
+                        break;
                     }
-                } else if (arg.equals("--output-path") || arg.equals("-o")) {
-                    outputPath = Path.of(argIter.next());
-                } else if (arg.equals("--debug")) {
-                    Logger.getLogger("").setLevel(Level.DEBUG);
-                } else if (arg.equals("--debug-devirt")) {
-                    Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.devirt").setLevel(Level.DEBUG);
-                } else if (arg.equals("--debug-vtables")) {
-                    Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.vtables").setLevel(Level.DEBUG);
-                } else if (arg.equals("--debug-rta")) {
-                    Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
-                } else if (arg.equals("--debug-supers")) {
-                    Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
-                } else if (arg.startsWith("--gc=")) {
-                    gc = arg.substring(5);
-                } else if (arg.equals("--gc")) {
-                    gc = argIter.next();
-                } else if (arg.equals("--pie")) {
-                    isPie = true;
-                } else if (arg.equals("--no-pie")) {
-                    isPie = false;
-                } else {
-                    System.err.printf("Unrecognized argument \"%s\"", arg);
-                    System.exit(1);
-                    return;
                 }
-            } else if (mainClass == null) {
-                mainClass = arg;
-            } else {
-                System.err.printf("Extra argument \"%s\"", arg);
-                System.exit(1);
-                break;
-            }
-        }
-        if (mainClass == null) {
-            System.err.println("No main class specified");
-            System.exit(1);
-            return;
-        }
-        if (outputPath == null) {
-            System.err.println("No output path specified");
-            System.exit(1);
-            return;
-        }
-        if (!gc.equals("none")) {
-            System.err.printf("Unknown GC strategy \"%s\"%n", gc);
-            System.exit(1);
-        }
-        mainBuilder.setMainClass(mainClass);
-        mainBuilder.setOutputPath(outputPath);
-        mainBuilder.setIsPie(isPie);
+            })
+            .setGc(optionsProcessor.gc.toString())
+            .setIsPie(optionsProcessor.isPie)
+            .setOptMemoryTracking(optionsProcessor.optArgs.optMemoryTracking)
+            .setOptInlining(optionsProcessor.optArgs.optInlining)
+            .setOptGotos(optionsProcessor.optArgs.optGotos)
+            .setOptPhis(optionsProcessor.optArgs.optPhis)
+            .setOptFence(optionsProcessor.optArgs.optFence)
+            .setGraphGenConfig(optionsProcessor.graphGenConfig);
+
         Main main = mainBuilder.build();
         DiagnosticContext context = main.call();
         int errors = context.errors();
@@ -412,17 +427,153 @@ public class Main implements Callable<DiagnosticContext> {
         System.exit(errors == 0 ? 0 : 1);
     }
 
+    private enum CmdResult {
+        CMD_RESULT_HELP,
+        CMD_RESULT_OK,
+        CMD_RESULT_ERROR,
+        ;
+    }
+
+    @CommandLine.Command(version = "1.0", mixinStandardHelpOptions = true)
+    private static final class CommandLineProcessor {
+        private enum GCType {
+            NONE("none"),
+            ;
+            private final String gcType;
+
+            GCType(String type) {
+                this.gcType = type;
+            }
+            public String toString() {
+                return gcType;
+            }
+        }
+
+        @CommandLine.Option(names = "--boot-module-path", required = true, split=":")
+        private String[] bootPaths;
+        @CommandLine.Option(names = "--output-path", description = "Specify directory where the executable is placed")
+        private Path outputPath;
+        @CommandLine.Option(names = "--debug")
+        private boolean debug;
+        @CommandLine.Option(names = "--debug-vtables")
+        private boolean debugVTables;
+        @CommandLine.Option(names = "--dispatch-stats")
+        private boolean dispatchStats;
+        @CommandLine.Option(names = "--debug-rta")
+        private boolean debugRTA;
+        @CommandLine.Option(names = "--debug-supers")
+        private boolean debugSupers;
+        @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
+        private GCType gc;
+        @CommandLine.Option(names = "--pie", negatable = true, defaultValue = "false", description = "[Disable|Enable] generation of position independent executable")
+        private boolean isPie;
+
+        @CommandLine.Parameters(index="0", arity="1", description = "Application main class")
+        private String mainClass;
+
+        @CommandLine.ArgGroup(exclusive = false, multiplicity = "0..1", heading = "Options for controlling generation of graphs for methods%n")
+        private GraphGenArgs graphGenArgs;
+
+        @CommandLine.ArgGroup(exclusive = false, heading = "Options for controlling optimizations%n")
+        private OptArgs optArgs = new OptArgs();
+
+        private GraphGenConfig graphGenConfig = new GraphGenConfig();
+
+        private static class GraphGenArgs {
+            @CommandLine.Option(names = { "-g", "--gen-graph"}, required = true, description = "Enable generation of graphs")
+            boolean genGraph;
+            @CommandLine.ArgGroup(exclusive=false, multiplicity = "0..*")
+            List<GraphGenMethodsPhases> methodsAndPhases;
+        }
+
+        private static class GraphGenMethodsPhases {
+            @CommandLine.Option(names = { "-m", "--methods"}, required = false, split = ",", defaultValue = GraphGenConfig.ALL_METHODS,
+                                description = "List of methods separated by comma. Default: ${DEFAULT-VALUE}")
+            List<String> methods;
+            @CommandLine.Option(names = { "-p", "--phases" }, required = false, split = ",", defaultValue = GraphGenConfig.ALL_PHASES,
+                                description = "List of phases separated by comma. Default: ${DEFAULT-VALUE}")
+            List<String> phases;
+        }
+
+        static class OptArgs {
+            @CommandLine.Option(names = "--opt-memory-tracking", negatable = true, defaultValue = "false", description = "Enable/disable redundant store/load tracking and elimination")
+            boolean optMemoryTracking;
+            @CommandLine.Option(names = "--opt-inlining", negatable = true, defaultValue = "false", description = "Enable/disable inliner")
+            boolean optInlining;
+            @CommandLine.Option(names = "--opt-phis", negatable = true, defaultValue = "true", description = "Enable/disable `phi` elimination")
+            boolean optPhis;
+            @CommandLine.Option(names = "--opt-gotos", negatable = true, defaultValue = "true", description = "Enable/disable `goto` elimination")
+            boolean optGotos;
+            @CommandLine.Option(names = "--opt-fence", negatable = true, defaultValue = "false", description = "Enable/disable `fence` elimination")
+            boolean optFence;
+        }
+
+        public CmdResult process(String[] args) {
+            try {
+                ParseResult parseResult = new CommandLine(this).parseArgs(args);
+                if (CommandLine.printHelpIfRequested(parseResult)) {
+                    return CmdResult.CMD_RESULT_HELP;
+                }
+            } catch (ParameterException ex) { // command line arguments could not be parsed
+                System.err.println(ex.getMessage());
+                ex.getCommandLine().usage(System.err);
+                return CmdResult.CMD_RESULT_ERROR;
+            }
+
+            if (debug) {
+                Logger.getLogger("").setLevel(Level.DEBUG);
+            }
+            if (debugVTables) {
+                Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.tables").setLevel(Level.DEBUG);
+            }
+            if (dispatchStats) {
+                Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.stats").setLevel(Level.DEBUG);
+            }
+            if (debugRTA) {
+                Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
+            }
+            if (debugSupers) {
+                Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
+            }
+            if (outputPath == null) {
+                outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qcc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));
+            }
+
+            if (graphGenArgs != null && graphGenArgs.genGraph) {
+                if (graphGenArgs.methodsAndPhases == null) {
+                    graphGenConfig.addMethodAndPhase(GraphGenConfig.ALL_METHODS, GraphGenConfig.ALL_PHASES);
+                } else {
+                    for (GraphGenMethodsPhases option : graphGenArgs.methodsAndPhases) {
+                        for (String method : option.methods) {
+                            for (String phase : option.phases) {
+                                graphGenConfig.addMethodAndPhase(method, phase);
+                            }
+                        }
+                    }
+                }
+            }
+            return CmdResult.CMD_RESULT_OK;
+        }
+    }
+
     public static Builder builder() {
         return new Builder();
     }
 
     public static final class Builder {
         private final List<Path> bootModulePath = new ArrayList<>();
-        private Path outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qcc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));
+        private Path outputPath;
         private Consumer<Iterable<Diagnostic>> diagnosticsHandler = diagnostics -> {};
         private String mainClass;
         private String gc = "none";
+        // TODO Detect whether the system uses PIEs by default and match that if possible
         private boolean isPie = false;
+        private boolean optMemoryTracking = false;
+        private boolean optInlining = false;
+        private boolean optPhis = true;
+        private boolean optGotos = true;
+        private boolean optFence = false;
+        private GraphGenConfig graphGenConfig;
 
         Builder() {}
 
@@ -438,9 +589,19 @@ public class Main implements Callable<DiagnosticContext> {
             return this;
         }
 
-        public Builder setOutputPath(Path outputPath) {
-            Assert.checkNotNullParam("outputPath", outputPath);
-            this.outputPath = outputPath;
+        public Builder setBootModulePaths(String[] paths) {
+            Assert.checkNotNullParam("paths", paths);
+            for (String pathStr : paths) {
+                if (! pathStr.isEmpty()) {
+                    addBootModulePath(Path.of(pathStr));
+                }
+            }
+            return this;
+        }
+
+        public Builder setOutputPath(Path path) {
+            Assert.checkNotNullParam("path", path);
+            this.outputPath = path;
             return this;
         }
 
@@ -451,6 +612,7 @@ public class Main implements Callable<DiagnosticContext> {
         }
 
         public Builder setMainClass(String mainClass) {
+            Assert.checkNotNullParam("mainClass", mainClass);
             this.mainClass = mainClass;
             return this;
         }
@@ -462,6 +624,37 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setIsPie(boolean isPie) {
             this.isPie = isPie;
+            return this;
+        }
+
+        public Builder setGraphGenConfig(GraphGenConfig graphGenConfig) {
+            Assert.checkNotNullParam("graphGenConfig", graphGenConfig);
+            this.graphGenConfig = graphGenConfig;
+            return this;
+        }
+
+        public Builder setOptMemoryTracking(boolean optMemoryTracking) {
+            this.optMemoryTracking = optMemoryTracking;
+            return this;
+        }
+
+        public Builder setOptInlining(boolean optInlining) {
+            this.optInlining = optInlining;
+            return this;
+        }
+
+        public Builder setOptPhis(boolean optPhis) {
+            this.optPhis = optPhis;
+            return this;
+        }
+
+        public Builder setOptGotos(boolean optGotos) {
+            this.optGotos = optGotos;
+            return this;
+        }
+        
+        public Builder setOptFence(boolean optFence) {
+            this.optFence = optFence;
             return this;
         }
 

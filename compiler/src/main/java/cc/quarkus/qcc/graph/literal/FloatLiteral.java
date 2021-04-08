@@ -1,5 +1,6 @@
 package cc.quarkus.qcc.graph.literal;
 
+import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueVisitor;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.ValueType;
@@ -48,5 +49,45 @@ public final class FloatLiteral extends Literal {
     public String toString() {
         return type.toString(new StringBuilder()).append(' ').append(value).append(' ')
             .append('(').append(Double.toHexString(value)).append(')').toString();
+    }
+
+    @Override
+    public boolean isDefEq(Value other) {
+        return other instanceof FloatLiteral && value == ((FloatLiteral) other).value && type.equals(((FloatLiteral) other).type);
+    }
+
+    @Override
+    public boolean isDefNe(Value other) {
+        return other instanceof FloatLiteral && value != ((FloatLiteral) other).value && type.equals(((FloatLiteral) other).type);
+    }
+
+    @Override
+    public boolean isDefLt(Value other) {
+        return other instanceof FloatLiteral && value < ((FloatLiteral) other).value && type.equals(((FloatLiteral) other).type);
+    }
+
+    @Override
+    public boolean isDefGt(Value other) {
+        return other instanceof FloatLiteral && value > ((FloatLiteral) other).value && type.equals(((FloatLiteral) other).type);
+    }
+
+    @Override
+    public boolean isDefLe(Value other) {
+        return other instanceof FloatLiteral && value <= ((FloatLiteral) other).value && type.equals(((FloatLiteral) other).type);
+    }
+
+    @Override
+    public boolean isDefGe(Value other) {
+        return other instanceof FloatLiteral && value >= ((FloatLiteral) other).value && type.equals(((FloatLiteral) other).type);
+    }
+
+    @Override
+    public boolean isDefNaN() {
+        return Double.isNaN(value);
+    }
+
+    @Override
+    public boolean isDefNotNaN() {
+        return ! Double.isNaN(value);
     }
 }

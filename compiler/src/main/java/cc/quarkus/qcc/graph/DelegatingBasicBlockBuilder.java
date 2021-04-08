@@ -8,6 +8,7 @@ import cc.quarkus.qcc.type.ArrayObjectType;
 import cc.quarkus.qcc.type.ClassObjectType;
 import cc.quarkus.qcc.type.CompoundType;
 import cc.quarkus.qcc.type.ObjectType;
+import cc.quarkus.qcc.type.ReferenceType;
 import cc.quarkus.qcc.type.ValueType;
 import cc.quarkus.qcc.type.WordType;
 import cc.quarkus.qcc.type.definition.element.ConstructorElement;
@@ -91,12 +92,12 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return delegate;
     }
 
-    public Value narrow(final Value value, final ValueType toType) {
-        return getDelegate().narrow(value, toType);
+    public Value checkcast(final Value value, final Value toType, final Value toDimensions, final CheckCast.CastType kind, final ReferenceType type) {
+        return getDelegate().checkcast(value, toType, toDimensions, kind, type);
     }
 
-    public Value narrow(final Value value, final TypeDescriptor desc) {
-        return getDelegate().narrow(value, desc);
+    public Value checkcast(final Value value, final TypeDescriptor desc) {
+        return getDelegate().checkcast(value, desc);
     }
 
     public ValueHandle memberOf(final ValueHandle structHandle, final CompoundType.Member member) {
@@ -169,6 +170,22 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value currentThread() {
         return getDelegate().currentThread();
+    }
+
+    public Value extractElement(final Value array, final Value index) {
+        return getDelegate().extractElement(array, index);
+    }
+
+    public Value extractMember(final Value compound, final CompoundType.Member member) {
+        return getDelegate().extractMember(compound, member);
+    }
+
+    public Value extractInstanceField(Value valueObj, TypeDescriptor owner, String name, TypeDescriptor type) {
+        return getDelegate().extractInstanceField(valueObj, owner, name, type);
+    }
+
+    public Value extractInstanceField(Value valueObj, FieldElement field) {
+        return getDelegate().extractInstanceField(valueObj, field);
     }
 
     public PhiValue phi(final ValueType type, final BlockLabel owner) {
@@ -287,10 +304,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().invokeInstance(kind, instance, owner, name, descriptor, arguments);
     }
 
-    public Node invokeDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final List<Value> arguments) {
-        return getDelegate().invokeDynamic(bootstrapMethod, staticArguments, arguments);
-    }
-
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
         return getDelegate().invokeValueStatic(target, arguments);
     }
@@ -305,10 +318,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
         return getDelegate().invokeValueInstance(kind, instance, owner, name, descriptor, arguments);
-    }
-
-    public Value invokeValueDynamic(final MethodElement bootstrapMethod, final List<Value> staticArguments, final ValueType type, final List<Value> arguments) {
-        return getDelegate().invokeValueDynamic(bootstrapMethod, staticArguments, type, arguments);
     }
 
     public Node begin(final BlockLabel blockLabel) {
@@ -423,6 +432,18 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().ror(v1, v2);
     }
 
+    public Value cmp(Value v1, Value v2) {
+        return getDelegate().cmp(v1, v2);
+    }
+
+    public Value cmpG(Value v1, Value v2) {
+        return getDelegate().cmpG(v1, v2);
+    }
+
+    public Value cmpL(Value v1, Value v2) {
+        return getDelegate().cmpL(v1, v2);
+    }
+
     public Value negate(final Value v) {
         return getDelegate().negate(v);
     }
@@ -459,8 +480,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().valueConvert(value, toType);
     }
 
-    public Value instanceOf(final Value input, final ValueType expectedType) {
-        return getDelegate().instanceOf(input, expectedType);
+    public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {
+        return getDelegate().instanceOf(input, expectedType, expectedDimensions);
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {

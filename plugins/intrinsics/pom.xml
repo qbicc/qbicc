@@ -23,7 +23,15 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-machine-probe</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qcc-plugin-layout</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-plugin-instanceof-checkcast</artifactId>
         </dependency>
     </dependencies>
 

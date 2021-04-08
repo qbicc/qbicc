@@ -146,6 +146,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qcc-plugin-unwind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qcc-machine-tool-gnu</artifactId>
         </dependency>
         <dependency>
@@ -155,6 +159,10 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>qcc-machine-tool-llvm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jboss.logmanager</groupId>

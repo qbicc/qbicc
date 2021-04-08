@@ -4,14 +4,20 @@ import java.util.List;
 
 import cc.quarkus.qcc.context.CompilationContext;
 import cc.quarkus.qcc.driver.Driver;
+import cc.quarkus.qcc.graph.BasicBlock;
 import cc.quarkus.qcc.graph.BasicBlockBuilder;
+import cc.quarkus.qcc.graph.BlockLabel;
 import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
 import cc.quarkus.qcc.graph.MemoryAtomicityMode;
 import cc.quarkus.qcc.graph.Node;
+import cc.quarkus.qcc.graph.Triable;
 import cc.quarkus.qcc.graph.Value;
 import cc.quarkus.qcc.graph.ValueHandle;
 import cc.quarkus.qcc.graph.literal.IntegerLiteral;
+import cc.quarkus.qcc.graph.literal.Literal;
 import cc.quarkus.qcc.graph.literal.SymbolLiteral;
+import cc.quarkus.qcc.object.Function;
+import cc.quarkus.qcc.plugin.unwind.UnwindHelper;
 import cc.quarkus.qcc.type.FloatType;
 import cc.quarkus.qcc.type.FunctionType;
 import cc.quarkus.qcc.type.IntegerType;
@@ -84,6 +90,14 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
+    public Value extractElement(Value array, Value index) {
+        if (!(index instanceof Literal)) {
+            ctxt.error(getLocation(), "Index of ExtractElement must be constant");
+        }
+        return super.extractElement(array, index);
+    }
+
+    @Override
     public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
         if (mode == MemoryAtomicityMode.VOLATILE) {
             Value loaded = super.load(handle, MemoryAtomicityMode.ACQUIRE);
@@ -102,5 +116,12 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         } else {
             return super.store(handle, value, mode);
         }
+    }
+
+    @Override
+    public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel, final BlockLabel exceptionHandler) {
+        Function personalityFunction = ctxt.getExactFunction(UnwindHelper.get(ctxt).getPersonalityMethod());
+        ctxt.getImplicitSection(getCurrentElement()).declareFunction(null, personalityFunction.getName(), personalityFunction.getType());
+        return super.try_(operation, resumeLabel, exceptionHandler);
     }
 }
