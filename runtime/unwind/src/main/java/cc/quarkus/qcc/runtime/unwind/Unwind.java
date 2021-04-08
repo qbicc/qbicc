@@ -128,8 +128,8 @@ public final class Unwind {
         uint64_t lsda = _Unwind_GetLanguageSpecificData(context);
 
         long offset = ip.longValue() - methodStart.longValue();
-        ptr<uint8_t> lsdaPtr = lsda.cast(ptr.class);
-        long lpOffset = getHandlerOffset(lsdaPtr.asArray(), offset);
+        uint8_t_ptr lsdaPtr = lsda.cast(uint8_t_ptr.class);
+        long lpOffset = getHandlerOffset(lsdaPtr, offset);
         if ((action.intValue() & _UA_SEARCH_PHASE.intValue()) != 0) {
             if (lpOffset == 0) {
                 return _URC_CONTINUE_UNWIND;
@@ -143,15 +143,16 @@ public final class Unwind {
         }
     }
 
-    public static long getHandlerOffset(uint8_t[] lsda, long pcOffset) {
-        int[] offset = new int[1];
+    public static long getHandlerOffset(uint8_t_ptr lsda, long pcOffset) {
+        int[] offset = new int[1]; /* TODO: Avoid using new in these methods. offset should instead be passed as pointer */
         offset[0] = 0;
-        uint8_t header = lsda[offset[0]];   // encoding of landingpad base which is generally DW_EH_PE_omit(0xff)
+        uint8_t header = lsda.get(offset[0]);   // encoding of landingpad base which is generally DW_EH_PE_omit(0xff)
+        int headerValue = header.byteValue();
         offset[0] += 1;
-        uint8_t typeEncodingEncoding = lsda[offset[0]];
+        uint8_t typeEncodingEncoding = lsda.get(offset[0]);
         offset[0] += 1;
         long typeBaseOffset = readULEB(lsda, offset);
-        uint8_t callSiteEncodingEncoding = lsda[offset[0]];
+        uint8_t callSiteEncodingEncoding = lsda.get(offset[0]);
         offset[0] += 1;
         int callSiteEncoding = callSiteEncodingEncoding.byteValue();
         long callSiteTableLength = readULEB(lsda, offset);
@@ -165,19 +166,18 @@ public final class Unwind {
                 return lpOffset;
             }
         }
-        return 0;
+        return headerValue;
     }
 
-    public static long read(uint8_t[] lsda, int[] offset, int callSiteEncoding) {
+    public static long read(uint8_t_ptr lsda, int[] offset, int callSiteEncoding) {
         long result = 0;
         switch(callSiteEncoding) {
             case 0x1:
                 result = readULEB(lsda, offset);
                 break;
             case 0x3:
-                ptr<uint8_t> temp = addr_of(lsda[offset[0]]);
-                ptr<uint32_t> temp32 = temp.cast();
-                result = read32(temp32.asArray());
+                uint32_t_ptr temp32 = lsda.plus(offset[0]).cast(uint32_t_ptr.class);
+                result = temp32.deref().longValue();
                 offset[0] += 4;
                 break;
             default:
@@ -186,16 +186,12 @@ public final class Unwind {
         return result;
     }
 
-    public static long read32(uint32_t[] lsda) {
-        return lsda[0].longValue();
-    }
-
-    public static long readULEB(uint8_t[] lsda, int[] offset) {
+    public static long readULEB(uint8_t_ptr lsda, int[] offset) {
         long result = 0;
         int shift = 0;
         byte singleByte = 0;
         do {
-            singleByte = lsda[offset[0]].byteValue();
+            singleByte = lsda.get(offset[0]).byteValue();
             offset[0] += 1;
             result |= (singleByte & 0x7f) << shift;
             shift += 7;

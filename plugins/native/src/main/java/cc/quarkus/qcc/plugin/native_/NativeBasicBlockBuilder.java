@@ -345,6 +345,9 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         } else if (to instanceof FloatType) {
             return doConvert(input, from, (FloatType) to);
         } else if (to instanceof WordType) {
+            if ((from instanceof PointerType) && (to instanceof PointerType)) {
+                return bitCast(input, (WordType) to);
+            }
             return valueConvert(input, (WordType) to);
         } else {
             ctxt.error(getLocation(), "Unknown conversion from %s to %s", from, to);

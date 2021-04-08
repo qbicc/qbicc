@@ -78,7 +78,13 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             return checkcast(value, cc.getLiteralFactory().literalOfType(toType), cc.getLiteralFactory().literalOf(toDimensions), CheckCast.CastType.Cast, (ReferenceType) castType);
         } else if (castType instanceof WordType) {
             // A checkcast in the bytecodes, but it is actually a WordType coming from some native magic...just bitcast it.
-            return bitCast(value, (WordType) castType);
+            WordType toType = (WordType) castType;
+            WordType fromType = (WordType) value.getType();
+            if (toType.getMinBits() < fromType.getMinBits()) {
+                return super.truncate(value, toType);
+            } else {
+                return super.bitCast(value, (WordType) castType);
+            }
         } else if (value.getType() instanceof PointerType && castType instanceof ArrayType) {
             // narrowing a pointer to an array is actually an array view of a pointer
             return value;
