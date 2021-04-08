@@ -20,8 +20,7 @@ import cc.quarkus.qcc.graph.ValueHandle;
  * A visitor which collects relations among volatile accesses.
  */
 public class FenceAnalyzerVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
-    private static final AttachmentKey<UDChain<Load, Store>> UD_KEY = new AttachmentKey<>();
-    private static final AttachmentKey<Map<Node, Node>> VALUE_MAP_KEY = new AttachmentKey<>();
+    private static final AttachmentKey<FenceAnalyzerVisitor> KEY = new AttachmentKey<>();
 
     private final CompilationContext context;
     private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate;
@@ -34,12 +33,16 @@ public class FenceAnalyzerVisitor implements NodeVisitor.Delegating<Node.Copier,
         ud = new UDChain<Load, Store>();
     }
 
-    public static UDChain<Load, Store> getUDChain(CompilationContext ctxt) {
-        return ctxt.getAttachment(UD_KEY);
+    public static FenceAnalyzerVisitor getAnalyzer(CompilationContext ctxt) {
+        return ctxt.getAttachment(KEY);
     }
 
-    public static Map<Node, Node> getNewValueMap(CompilationContext ctxt) {
-        return ctxt.getAttachment(VALUE_MAP_KEY);
+    public UDChain<Load, Store> getUDChain() {
+        return ud;
+    }
+
+    public Map<Node, Node> getNewValueMap() {
+        return newValues;
     }
 
     public NodeVisitor<Copier, Value, Node, BasicBlock, ValueHandle> getDelegateNodeVisitor() {
@@ -61,7 +64,7 @@ public class FenceAnalyzerVisitor implements NodeVisitor.Delegating<Node.Copier,
 
         if (node.getMode() == MemoryAtomicityMode.VOLATILE) {
             newValues.put(node, stored);
-            context.putAttachment(VALUE_MAP_KEY, newValues);
+            context.putAttachment(KEY, this);
         }
 
         return stored;
@@ -76,8 +79,7 @@ public class FenceAnalyzerVisitor implements NodeVisitor.Delegating<Node.Copier,
         if (node.getMode() == MemoryAtomicityMode.VOLATILE) {
             ud.constructUD(node, addVolatileStore);
             newValues.put(node, loaded);
-            context.putAttachment(UD_KEY, ud);
-            context.putAttachment(VALUE_MAP_KEY, newValues);
+            context.putAttachment(KEY, this);
         }
 
         return loaded;
