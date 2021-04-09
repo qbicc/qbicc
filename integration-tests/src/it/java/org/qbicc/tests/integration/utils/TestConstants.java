@@ -47,9 +47,9 @@ public final class TestConstants {
                     .toString();
 
     public static final String QBICC_RT_LINUX_JAR =
-        Path.of(System.getProperty("user.home"),
-            ".m2", "repository", "cc", "quarkus", "qcc-runtime-linux", "1.0.0-SNAPSHOT", "qcc-runtime-linux-1.0.0-SNAPSHOT.jar")
-            .toString();
+            Path.of(System.getProperty("user.home"),
+                    ".m2", "repository", "org", "qbicc", "qbicc-runtime-linux", "0.1.0-SNAPSHOT", "qbicc-runtime-linux-0.1.0-SNAPSHOT.jar")
+                    .toString();
 
 
 

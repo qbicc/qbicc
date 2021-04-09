@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.tests.integration.utils.Javac;
 import org.qbicc.tests.integration.utils.NativeExecutable;
-import org.qbicc.tests.integration.utils.Qcc;
+import org.qbicc.tests.integration.utils.Qbicc;
 import org.qbicc.tests.integration.utils.SnippetsJUnitProvider;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Tag;
@@ -43,7 +43,7 @@ public class SnippetsTest {
 
         assertTrue(compilationResult, "Compilation should succeed.");
 
-        DiagnosticContext diagnosticContext = Qcc.build(classOutputPath, nativeOutputPath, snippetName, LOGGER);
+        DiagnosticContext diagnosticContext = Qbicc.build(classOutputPath, nativeOutputPath, snippetName, LOGGER);
 
         assertEquals(0, diagnosticContext.errors(), "Native image creation should generate no errors.");
 

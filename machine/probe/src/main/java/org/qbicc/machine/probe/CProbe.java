@@ -67,7 +67,7 @@ public final class CProbe {
             item.appendTo(b);
         }
         inv.setSource(InputSource.from(b));
-        final Path path = Files.createTempFile("qcc-probe-", "." + objectFileProvider.getObjectType().objectSuffix());
+        final Path path = Files.createTempFile("qbicc-probe-", "." + objectFileProvider.getObjectType().objectSuffix());
         try (Closeable c = ProbeUtil.deleting(path)) {
             inv.setOutputPath(path);
             if (errorReporter != null) {

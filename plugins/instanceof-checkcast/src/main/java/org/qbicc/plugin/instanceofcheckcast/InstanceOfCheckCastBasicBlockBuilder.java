@@ -215,7 +215,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             final int mask = tables.getInterfaceBitMask(vtdExpectedType);
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().getCurrentElement());
             Value inputTypeId = typeIdOf(referenceHandle(input));
-            // typeIdStruct = qcc_typeid_array[typeId]
+            // typeIdStruct = qbicc_typeid_array[typeId]
             ValueHandle typeIdStruct = elementOf(globalVariable(typeIdGlobal), inputTypeId);
             // bits = &typeIdStruct.interfaceBits
             ValueHandle bits = memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));

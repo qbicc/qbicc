@@ -63,7 +63,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     public Value checkcast(final Value value, final TypeDescriptor desc) {
         ClassContext cc = getClassContext();
-        // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+        // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
         ValueType castType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
         if (castType instanceof ReferenceType) {
             if (value.getType() instanceof ReferenceType && ((ReferenceType) value.getType()).isNullable()) {
@@ -177,7 +177,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     private MethodElement resolveMethod(final DispatchInvocation.Kind kind, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor) {
         if (owner instanceof ClassTypeDescriptor) {
             DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
-            // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
             MethodElement element;
             if (kind == DispatchInvocation.Kind.EXACT) {
                 element = definedType.validate().resolveMethodElementExact(name, descriptor);
@@ -201,7 +201,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     private ConstructorElement resolveConstructor(final TypeDescriptor owner, final MethodDescriptor descriptor) {
         if (owner instanceof ClassTypeDescriptor) {
             DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
-            // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
             ConstructorElement element = definedType.validate().resolveConstructorElement(descriptor);
             if (element == null) {
                 throw new BlockEarlyTermination(nsme());
@@ -217,7 +217,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     private FieldElement resolveField(final TypeDescriptor owner, final String name, final TypeDescriptor desc) {
         if (owner instanceof ClassTypeDescriptor) {
             DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
-            // it is present else {@link cc.quarkus.qcc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
             FieldElement element = definedType.validate().resolveField(desc, name);
             if (element == null) {
                 throw new BlockEarlyTermination(nsfe());

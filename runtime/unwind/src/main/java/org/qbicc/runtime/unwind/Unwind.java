@@ -65,9 +65,9 @@ public final class Unwind {
     }
 
     /**
-     * The value for QCC's exception class; equal to {@code "QCC\0JAVA"}.
+     * The value for QBICC's exception class; equal to {@code "qbicJAVA"}.
      */
-    public static final uint64_t QCC_EXCEPTION_CLASS = word(0x514343004a415641L);
+    public static final uint64_t QBICC_EXCEPTION_CLASS = word(0x716269634a415641L);
 
     /**
      * The header for a thrown exception.  The runtime is expected to create its own thrown structure which includes
@@ -83,7 +83,7 @@ public final class Unwind {
          * The ABI reports this as {@code uint64}, but GNU appears to use a {@code char[8]} which seems like it would be
          * wrong on big-endian systems...
          * <p>
-         * GCJ uses "GNUCJAVA". We would use "QCC\0JAVA".
+         * GCJ uses "GNUCJAVA". We would use "qbicJAVA".
          */
         public uint64_t exception_class;
         /**

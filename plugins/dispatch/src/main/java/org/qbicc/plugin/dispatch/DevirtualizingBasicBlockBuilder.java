@@ -8,7 +8,7 @@ import org.jboss.logging.Logger;
 import java.util.List;
 
 public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
-    private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.devirt");
+    private static final Logger log = Logger.getLogger("org.qbicc.plugin.dispatch.devirt");
 
     private final CompilationContext ctxt;
 

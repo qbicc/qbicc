@@ -25,7 +25,7 @@ public class ThrowExceptionHelper {
         FieldElement.Builder builder = FieldElement.builder();
         builder.setName("unwindException");
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/unwind/Unwind$struct__Unwind_Exception");
+        ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/unwind/Unwind$struct__Unwind_Exception");
         builder.setDescriptor(desc);
         builder.setSignature(TypeSignature.synthesize(classContext, desc));
         builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
@@ -36,7 +36,7 @@ public class ThrowExceptionHelper {
         unwindExceptionField = field;
 
         /* Get the symbol to Unwind#_Unwind_RaiseException */
-        String unwindClass = "cc/quarkus/qcc/runtime/unwind/Unwind";
+        String unwindClass = "org/qbicc/runtime/unwind/Unwind";
         DefinedTypeDefinition unwindDefined = classContext.findDefinedType(unwindClass);
         if (unwindDefined != null) {
             ValidatedTypeDefinition unwindValidated = unwindDefined.validate();

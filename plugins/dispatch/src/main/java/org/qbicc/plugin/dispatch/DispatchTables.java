@@ -33,8 +33,8 @@ import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 
 public class DispatchTables {
-    private static final Logger slog = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.stats");
-    private static final Logger tlog = Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.tables");
+    private static final Logger slog = Logger.getLogger("org.qbicc.plugin.dispatch.stats");
+    private static final Logger tlog = Logger.getLogger("org.qbicc.plugin.dispatch.tables");
 
     private static final AttachmentKey<DispatchTables> KEY = new AttachmentKey<>();
 
@@ -126,7 +126,7 @@ public class DispatchTables {
 
         // Define the GlobalVariable that will hold the itables[] for this interface.
         GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
-        builder.setName("qcc_itables_array_"+itableType.getName());
+        builder.setName("qbicc_itables_array_"+itableType.getName());
         // Yet another table indexed by typeId (like the VTableGlobal) that will only contain entries for instantiated classes.
         // Use the VTableGlobal to set the size to avoid replicating that logic...
         builder.setType(ctxt.getTypeSystem().getArrayType(itableType.getPointer(), ((ArrayType)vtablesGlobal.getType()).getElementCount()));
@@ -141,7 +141,7 @@ public class DispatchTables {
 
     void buildVTablesGlobal(DefinedTypeDefinition containingType) {
         GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
-        builder.setName("qcc_vtables_array");
+        builder.setName("qbicc_vtables_array");
         // Invariant: typeIds are assigned from 1...N, where N is the number of reachable classes as computed by RTA 
         // plus 18 for 8 primitive types, void, 8 primitive arrays and reference array.
         builder.setType(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getVoidType().getPointer().getPointer(), vtables.size()+19));  //TODO: communicate this +19 better
@@ -232,7 +232,7 @@ public class DispatchTables {
                 FunctionType sigType = ctxt.getFunctionTypeForElement(itable[i]);
                 stubMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(iceeLiteral, sigType.getPointer()));
             }
-            String stubsName = "qcc_itable_icce_stubs_for_"+currentInterface.getInterfaceType().toFriendlyString();
+            String stubsName = "qbicc_itable_icce_stubs_for_"+currentInterface.getInterfaceType().toFriendlyString();
             CompoundLiteral stubsLiteral = lf.literalOf(itableInfo.getType(), stubMap);
             iSection.addData(null, stubsName, stubsLiteral).setLinkage(Linkage.INTERNAL);
             SymbolLiteral stubPtrLiteral = lf.literalOfSymbol(stubsName, itableInfo.getType());
@@ -271,7 +271,7 @@ public class DispatchTables {
                         }
                     }
                     // Emit itable and refer to it in rootTable
-                    String tableName = "qcc_itable_impl_"+cls.getInternalName().replace('/', '.')+"_for_"+itableInfo.getGlobal().getName();
+                    String tableName = "qbicc_itable_impl_"+cls.getInternalName().replace('/', '.')+"_for_"+itableInfo.getGlobal().getName();
                     CompoundLiteral itableLiteral = lf.literalOf(itableInfo.getType(), valueMap);
                     cSection.addData(null, tableName, itableLiteral).setLinkage(Linkage.EXTERNAL);
                     iSection.declareData(null, tableName, itableInfo.getType());

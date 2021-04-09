@@ -9,7 +9,7 @@ import java.util.List;
 
 import static org.qbicc.tests.integration.utils.TestConstants.*;
 
-public class Qcc {
+public class Qbicc {
     public static DiagnosticContext build(Path outputPath, Path nativeOutputPath, String mainClass, Logger logger) {
         return Main.builder()
             .addBootModulePaths(List.of(
@@ -22,7 +22,7 @@ public class Qcc {
                 Path.of(QBICC_RUNTIME_NOGC_JAR),
                 outputPath))
             .setOutputPath(nativeOutputPath)
-            .setDiagnosticsHandler(new QccDiagnosticLogger(logger))
+            .setDiagnosticsHandler(new QbiccDiagnosticLogger(logger))
             .setMainClass(mainClass)
             .build()
             .call();

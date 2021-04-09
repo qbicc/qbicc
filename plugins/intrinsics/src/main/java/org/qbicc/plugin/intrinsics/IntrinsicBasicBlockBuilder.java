@@ -22,7 +22,7 @@ import org.jboss.logging.Logger;
  * parsing).
  */
 public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilder {
-    public static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.intrinsics");
+    public static final Logger log = Logger.getLogger("org.qbicc.plugin.intrinsics");
 
     private final CompilationContext ctxt;
     private final Phase phase;

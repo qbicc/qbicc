@@ -35,8 +35,8 @@ import org.jboss.logging.Logger;
  * including itself.
  */
 public class SupersDisplayTables {
-    private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast");
-    private static final Logger supersLog = Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers");
+    private static final Logger log = Logger.getLogger("org.qbicc.plugin.instanceofcheckcast");
+    private static final Logger supersLog = Logger.getLogger("org.qbicc.plugin.instanceofcheckcast.supers");
 
     private static final AttachmentKey<SupersDisplayTables> KEY = new AttachmentKey<>();
     private static final ValidatedTypeDefinition[] INVALID_DISPLAY = new ValidatedTypeDefinition[0];
@@ -46,7 +46,7 @@ public class SupersDisplayTables {
 
     private final Map<ValidatedTypeDefinition, IdAndRange> typeids = new ConcurrentHashMap<>();
 
-    static final String GLOBAL_TYPEID_ARRAY = "qcc_typeid_array";
+    static final String GLOBAL_TYPEID_ARRAY = "qbicc_typeid_array";
     private GlobalVariableElement typeIdArrayGlobal;
     private CompoundType typeIdStructType;
 
@@ -457,7 +457,7 @@ public class SupersDisplayTables {
     }
 
     /**
-     * Get the GlobalVariableElement reference to the `qcc_typeid_array`.
+     * Get the GlobalVariableElement reference to the `qbicc_typeid_array`.
      * 
      * As part of it getting it, ensure a reference to it has been recorded into
      * the ExecutableElement's section.
@@ -475,7 +475,7 @@ public class SupersDisplayTables {
     }
 
     /**
-     * Get the CompoundType for the GlobalTypeIdArray (`qcc_typeid_array`) 
+     * Get the CompoundType for the GlobalTypeIdArray (`qbicc_typeid_array`)
      * global variable elements.
      * 
      * See #emitTypeIdTable for the definition of the typeid array elements.

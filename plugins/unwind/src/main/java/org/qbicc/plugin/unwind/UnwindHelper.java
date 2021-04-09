@@ -12,7 +12,7 @@ public class UnwindHelper {
     private final MethodElement personalityMethod;
 
     private UnwindHelper(final CompilationContext ctxt) {
-        String unwindClass = "cc/quarkus/qcc/runtime/unwind/Unwind";
+        String unwindClass = "org/qbicc/runtime/unwind/Unwind";
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition unwindDefined = classContext.findDefinedType(unwindClass);
         if (unwindDefined != null) {

@@ -54,7 +54,7 @@ import org.jboss.logging.Logger;
  * A simple driver to run all the stages of compilation.
  */
 public class Driver implements Closeable {
-    private static final Logger log = Logger.getLogger("cc.quarkus.qcc.driver");
+    private static final Logger log = Logger.getLogger("org.qbicc.driver");
 
     static final String MODULE_INFO = "module-info.class";
 
@@ -326,7 +326,7 @@ public class Driver implements Closeable {
         if (threadClass == null) {
             return false;
         }
-        ValidatedTypeDefinition vmClass = loadBootstrapClass("cc/quarkus/qcc/runtime/main/VM");
+        ValidatedTypeDefinition vmClass = loadBootstrapClass("org/qbicc/runtime/main/VM");
         if (vmClass == null) {
             return false;
         }

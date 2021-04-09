@@ -1,7 +1,7 @@
 [id="glossary"]
 = Glossary
 
-This is a glossary of terms which might have meanings that are different and/or more specific in the context of QCC.
+This is a glossary of terms which might have meanings that are different and/or more specific in the context of qbicc.
 It is not an exhaustive guide of all terms used in the field of compilers nor of the Java language.
 
 
@@ -10,7 +10,7 @@ It is not an exhaustive guide of all terms used in the field of compilers nor of
 
 [id="action"]
 action node::
-(within QCC) a <<node>> which does not produce a <<value>>, yet is also not a <<terminator>>.
+(within qbicc) a <<node>> which does not produce a <<value>>, yet is also not a <<terminator>>.
 Examples include invocations on `void`-typed methods and <<function,functions>>, memory writes, and <<entry_node,block entry>>.
 
 [id="b"]
@@ -18,7 +18,7 @@ Examples include invocations on `void`-typed methods and <<function,functions>>,
 
 [id="basic_block"]
 basic block::
-(within QCC) a code sequence without branches, characterized by an <<entry_node,entry node>> and a <<terminator>> node.
+(within qbicc) a code sequence without branches, characterized by an <<entry_node,entry node>> and a <<terminator>> node.
 
 block label::
 see <<label>>.
@@ -28,28 +28,28 @@ see <<label>>.
 
 [id="constant"]
 constant::
-(within QCC) a <<value>> which is computed ahead of time (during build).
+(within qbicc) a <<value>> which is computed ahead of time (during build).
 
 [id="d"]
 == D
 
 [id="driver"]
 driver::
-(within QCC) the part of QCC which executes each configured step in order.
-The driver is configured and built from the `qcc-main` module.
+(within qbicc) the part of qbicc which executes each configured step in order.
+The driver is configured and built from the `qbicc-main` module.
 
 [id="e"]
 == E
 
 [id="element"]
 element::
-(within QCC) a part of a class file being processed.
+(within qbicc) a part of a class file being processed.
 Examples include methods, constructors, fields, method parameters, and local variables.
 Elements may be named, and may have associated annotations.
 
 [id="entry_node"]
 entry node::
-(within QCC) a <<node>> that represents entry to, and is always generated as the first node of, a <<basic_block,basic block>>.
+(within qbicc) a <<node>> that represents entry to, and is always generated as the first node of, a <<basic_block,basic block>>.
 Entry nodes have no dependencies.
 
 [id="f"]
@@ -57,7 +57,7 @@ Entry nodes have no dependencies.
 
 [id="function"]
 function::
-(within QCC) a <<program_object,program object>> which can be natively invoked, or a symbolic reference to such an object.
+(within qbicc) a <<program_object,program object>> which can be natively invoked, or a symbolic reference to such an object.
 Methods are ultimately <<lowering,lowered>> to functions.
 
 [id="i"]
@@ -65,32 +65,32 @@ Methods are ultimately <<lowering,lowered>> to functions.
 
 [id="image"]
 image::
-(within QCC) a compiled program file; typically an executable file of some sort.
+(within qbicc) a compiled program file; typically an executable file of some sort.
 
 [id="l"]
 == L
 
 [id="label"]
 label::
-(within QCC) a reference to a <<basic_block,basic block>> which may or may not be resolved at the time it is created.
+(within qbicc) a reference to a <<basic_block,basic block>> which may or may not be resolved at the time it is created.
 Labels allow supporting forward branches to blocks which are not yet defined.
 All labels must be resolved.
 
 [id="literal"]
 literal::
-(within QCC) a <<constant>> <<value>> which is exactly defined with an immediate value of some sort.
+(within qbicc) a <<constant>> <<value>> which is exactly defined with an immediate value of some sort.
 Literals of a variety of types may be produced.
 
 [id="lowering"]
 lowering::
-(within QCC) the process of transforming higher-level <<node,nodes>> to equivalent nodes that can be more easily translated into the <<target>>'s assembly language.
+(within qbicc) the process of transforming higher-level <<node,nodes>> to equivalent nodes that can be more easily translated into the <<target>>'s assembly language.
 
 [id="n"]
 == N
 
 [id="node"]
 node::
-(within QCC) a single program operation.
+(within qbicc) a single program operation.
 A node may be an <<action>>, a <<value>>, or a <<terminator>>.  Nodes are <<schedule,scheduled>> to <<basic_block,basic blocks>>.
 Some nodes are <<pinned_node,pinned>> to a block.
 A node may have one or more dependency node, and/or one or more dependent node; this depends on the node's type.
@@ -118,7 +118,7 @@ see <<value>>.
 
 [id="optimization"]
 optimization::
-(within QCC) a transformation of a <<node>> graph which yields a smaller or more efficient graph.
+(within qbicc) a transformation of a <<node>> graph which yields a smaller or more efficient graph.
 Optimizations are generally implemented in <<plugin,plugins>>.
 
 [id="p"]
@@ -126,41 +126,41 @@ Optimizations are generally implemented in <<plugin,plugins>>.
 
 [id="phi_node"]
 phi node::
-(within QCC) a <<value>> node which represents a merge of possible values from other <<basic_block,basic blocks>> which transfer control to the basic block of the phi node.
+(within qbicc) a <<value>> node which represents a merge of possible values from other <<basic_block,basic blocks>> which transfer control to the basic block of the phi node.
 
 phi value::
-(within QCC) a synonym for <<phi_node,phi node>>.
+(within qbicc) a synonym for <<phi_node,phi node>>.
 
 [id="pinned_node"]
 pinned node::
-(within QCC) a node which is fixed to a <<basic_block,basic block>> when it is created.  At present, only
+(within qbicc) a node which is fixed to a <<basic_block,basic block>> when it is created.  At present, only
 <<phi_node,phi nodes>> and <<entry_node,entry nodes>> are pinned to a block.
 
 [id="platform"]
 platform::
-(within QCC) a combination of operating system, CPU architecture, and ABI which may be the <<target>> of a compilation operation.
+(within qbicc) a combination of operating system, CPU architecture, and ABI which may be the <<target>> of a compilation operation.
 
 [id="plugin"]
 plugin::
-(within QCC) a module of QCC which extends or implements compilation behavior by making use of a few specific APIs.
+(within qbicc) a module of qbicc which extends or implements compilation behavior by making use of a few specific APIs.
 <<optimization,Optimizations>>, <<lowering>>, and other transformations are implemented as plugins.
 
 [id="probe"]
 probe::
-(within QCC) a C program which is generated and compiled in order to learn information about the <<target>>.
+(within qbicc) a C program which is generated and compiled in order to learn information about the <<target>>.
 The resultant object file is examined to read the information.
 Probes may be used to establish the size and characteristics of types, to determine the value of a constant, etc.
 
 [id="program_object"]
 program object::
-(within QCC) a unit of binary data which can be emitted into the final compiled <<image>>.
+(within qbicc) a unit of binary data which can be emitted into the final compiled <<image>>.
 
 [id="s"]
 == S
 
 [id="schedule"]
 schedule::
-(within QCC) a mapping of <<node,nodes>> to <<basic_block,basic blocks>>.
+(within qbicc) a mapping of <<node,nodes>> to <<basic_block,basic blocks>>.
 <<pinned_node,Pinned nodes>> are always scheduled to the block to which they are pinned.
 
 [id="t"]
@@ -168,28 +168,28 @@ schedule::
 
 [id="terminator"]
 terminator::
-(within QCC) a node which ends a <<basic_block,basic block>>.
+(within qbicc) a node which ends a <<basic_block,basic block>>.
 A terminator may transfer control flow to another basic block, or may return from the method or <<function>>, or may throw an exception.
 A terminator node has no dependents.
 
 [id="target"]
 target::
-(within QCC) the <<platform>> for which a program is being compiled.
+(within qbicc) the <<platform>> for which a program is being compiled.
 
 [id="tool"]
 tool::
-(within QCC) an external program that is executed to perform some compilation step.
+(within qbicc) an external program that is executed to perform some compilation step.
 Examples include C compilers, linkers, assemblers, etc.
 
 [id="toolchain"]
 toolchain::
-(within QCC) a collection of specifically related <<tool,tools>>.
+(within qbicc) a collection of specifically related <<tool,tools>>.
 For example, a toolchain might contain the GCC compiler and linker together,
 but not, say, the GCC compiler and Clang linker together.
 
 [id="type_system"]
 type system::
-(within QCC) a concrete object which contains information about the basic types of the <<target>>,
+(within qbicc) a concrete object which contains information about the basic types of the <<target>>,
 as well as configured information about program types such as references.
 The type system is generated using a combination of configuration and <<probe,probing>>.
 
@@ -198,4 +198,4 @@ The type system is generated using a combination of configuration and <<probe,pr
 
 [id="value"]
 value node::
-(within QCC) a node which reflects a value, including (but not limited to) <<literal,literals>>, unary and binary operators, invocations which return a value, etc.
+(within qbicc) a node which reflects a value, including (but not limited to) <<literal,literals>>, unary and binary operators, invocations which return a value, etc.

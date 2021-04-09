@@ -30,7 +30,7 @@ import org.jboss.logging.Logger;
  * the set of reachable call sites and instantiated types.
  */
 public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
-    static final Logger rtaLog = Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta");
+    static final Logger rtaLog = Logger.getLogger("org.qbicc.plugin.reachability.rta");
 
     private final CompilationContext ctxt;
     private final ExecutableElement originalElement;

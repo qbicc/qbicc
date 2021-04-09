@@ -21,7 +21,7 @@ public final class NoGc {
     private NoGc(final CompilationContext ctxt) {
         this.ctxt = ctxt;
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        DefinedTypeDefinition defined = classContext.findDefinedType("cc/quarkus/qcc/runtime/gc/nogc/NoGcHelpers");
+        DefinedTypeDefinition defined = classContext.findDefinedType("org/qbicc/runtime/gc/nogc/NoGcHelpers");
         if (defined == null) {
             throw runtimeMissing();
         }
@@ -41,7 +41,7 @@ public final class NoGc {
             throw methodMissing();
         }
         zeroMethod = loaded.getMethod(index);
-        defined = classContext.findDefinedType("cc/quarkus/qcc/runtime/StackObject");
+        defined = classContext.findDefinedType("org/qbicc/runtime/StackObject");
         if (defined == null) {
             throw runtimeMissing();
         }

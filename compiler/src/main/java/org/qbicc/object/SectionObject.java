@@ -16,7 +16,7 @@ public abstract class SectionObject extends ProgramObject {
 
     /**
      * The program-level element that caused this SectionObject to be generated.
-     * If the SectionObject is synthetic (injected by/for the Qcc runtime) originalElement will be null
+     * If the SectionObject is synthetic (injected by/for the qbicc runtime) originalElement will be null
      */
     public Element getOriginalElement() {
         return originalElement;

@@ -1,6 +1,6 @@
-= QCC: Overview
+= qbicc: Overview
 
-There are several important components to the QCC system that play a part in the generation of a native executable application.
+There are several important components to the qbicc system that play a part in the generation of a native executable application.
 
 
 == Graph
@@ -41,7 +41,7 @@ In this way, the _generation_ phase has access to a linear sequence of instructi
 
 == Driver
 
-The QCC compilation process flows through two _phases_: _add_ and _generate_.
+The qbicc compilation process flows through two _phases_: _add_ and _generate_.
 Each phase comprises multiple steps of processing.
 Broadly, the _add_ phase is when classes are loaded and initialized, and the _generate_ phase is when the loaded classes are traversed to emit the final image.
 

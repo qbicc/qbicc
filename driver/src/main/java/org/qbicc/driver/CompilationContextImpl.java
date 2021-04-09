@@ -63,7 +63,7 @@ final class CompilationContextImpl implements CompilationContext {
     private final Path outputDir;
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
     private final AtomicReference<FieldElement> exceptionFieldHolder = new AtomicReference<>();
-    private final SymbolLiteral qccBoundThread;
+    private final SymbolLiteral qbiccBoundThread;
 
     // mutable state
     private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
@@ -76,7 +76,7 @@ final class CompilationContextImpl implements CompilationContext {
         this.outputDir = outputDir;
         this.resolverFactories = resolverFactories;
         bootstrapClassContext = new ClassContextImpl(this, null);
-        qccBoundThread = getLiteralFactory().literalOfSymbol("_qcc_bound_thread", getTypeSystem().getVoidType().getPointer().getPointer());
+        qbiccBoundThread = getLiteralFactory().literalOfSymbol("_qbicc_bound_thread", getTypeSystem().getVoidType().getPointer().getPointer());
     }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {
@@ -172,9 +172,9 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public MethodElement getVMHelperMethod(String name) {
-        DefinedTypeDefinition dtd = bootstrapClassContext.findDefinedType("cc/quarkus/qcc/runtime/main/VMHelpers");
+        DefinedTypeDefinition dtd = bootstrapClassContext.findDefinedType("org/qbicc/runtime/main/VMHelpers");
         if (dtd == null) {
-            error("Can't find runtime library class: " + "cc/quarkus/qcc/runtime/main/VMHelpers");
+            error("Can't find runtime library class: " + "org/qbicc/runtime/main/VMHelpers");
         }
         ValidatedTypeDefinition helpers = dtd.validate();
         int idx = helpers.findMethodIndex(e -> name.equals(e.getName()));
@@ -317,7 +317,7 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public SymbolLiteral getCurrentThreadLocalSymbolLiteral() {
-        return qccBoundThread;
+        return qbiccBoundThread;
     }
 
     public FieldElement getExceptionField() {

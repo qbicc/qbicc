@@ -42,7 +42,7 @@ import org.jboss.logging.Logger;
  * A delegating type builder which handles interactions with {@code @extern} and {@code @export} methods and fields.
  */
 public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
-    private static final Logger log = Logger.getLogger("cc.quarkus.qcc.plugin.native_");
+    private static final Logger log = Logger.getLogger("org.qbicc.plugin.native_");
 
     private final ClassContext classCtxt;
     private final CompilationContext ctxt;

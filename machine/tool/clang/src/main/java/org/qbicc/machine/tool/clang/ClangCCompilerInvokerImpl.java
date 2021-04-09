@@ -16,7 +16,7 @@ final class ClangCCompilerInvokerImpl extends AbstractClangInvoker implements Cl
     private final List<Path> includePaths = new ArrayList<>(1);
     private final List<String> definedSymbols = new ArrayList<>(2);
     private InputSource inputSource = InputSource.empty();
-    private Path outputPath = TMP.resolve("qcc-output." + getTool().getPlatform().getObjectType().objectSuffix());
+    private Path outputPath = TMP.resolve("qbicc-output." + getTool().getPlatform().getObjectType().objectSuffix());
     private SourceLanguage sourceLanguage = SourceLanguage.C;
 
     ClangCCompilerInvokerImpl(final ClangToolChainImpl tool) {

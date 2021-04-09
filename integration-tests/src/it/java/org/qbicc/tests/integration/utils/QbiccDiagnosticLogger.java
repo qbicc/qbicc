@@ -5,10 +5,10 @@ import java.util.function.Consumer;
 import org.qbicc.context.Diagnostic;
 import org.jboss.logging.Logger;
 
-public class QccDiagnosticLogger implements Consumer<Iterable<Diagnostic>> {
+public class QbiccDiagnosticLogger implements Consumer<Iterable<Diagnostic>> {
     private final Logger logger;
 
-    public QccDiagnosticLogger(Logger logger) {
+    public QbiccDiagnosticLogger(Logger logger) {
         this.logger = logger;
     }
 

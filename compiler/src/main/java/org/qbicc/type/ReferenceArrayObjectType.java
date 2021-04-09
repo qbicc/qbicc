@@ -3,7 +3,7 @@ package org.qbicc.type;
 /**
  * An object type whose elements are references to some ObjectType.
  * For any given program, there is a large, but finite, set of possible
- * ReferenceArrayObjectTypes.  However, in Qcc we use a single runtime
+ * ReferenceArrayObjectTypes.  However, in qbicc we use a single runtime
  * typeId for all of these logically distinct runtime types and encode
  * the details using "instance fields" containing the typeId of the element
  * ObjectType and the dimension count.

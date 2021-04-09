@@ -9,5 +9,5 @@ final class Llvm {
 
     private Llvm() {}
 
-    static final Logger log = Logger.getLogger("cc.quarkus.qcc.tool.llvm");
+    static final Logger log = Logger.getLogger("org.qbicc.tool.llvm");
 }

@@ -39,7 +39,7 @@ public class ThreadLocalTypeBuilder implements DefinedTypeDefinition.Builder.Del
                 List<Annotation> annotations = resolved.getVisibleAnnotations();
                 for (Annotation annotation : annotations) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();
-                    if (desc.getPackageName().equals("cc/quarkus/qcc/runtime") && desc.getClassName().equals("ThreadScoped")) {
+                    if (desc.getPackageName().equals("org/qbicc/runtime") && desc.getClassName().equals("ThreadScoped")) {
                         if (! resolved.isStatic()) {
                             ctxt.error(resolved, "Thread-local fields must be `static`");
                         } else if (resolved.isVolatile()) {

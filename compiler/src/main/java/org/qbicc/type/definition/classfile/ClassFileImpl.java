@@ -668,7 +668,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 Annotation[] annotations = new Annotation[ac];
                 for (int j = 0; j < ac; j++) {
                     annotations[j] = Annotation.parse(this, ctxt, data);
-                    if (annotations[j].getDescriptor().packageAndClassNameEquals("cc/quarkus/qcc/runtime", "Pinned")) {
+                    if (annotations[j].getDescriptor().packageAndClassNameEquals("org/qbicc/runtime", "Pinned")) {
                         if ((access & ACC_INTERFACE) != 0) {
                             ctxt.getCompilationContext().error(Location.builder().setClassInternalName(internalName).build(), "Interfaces cannot be pinned");
                         } else if ((access & ACC_FINAL) == 0) {

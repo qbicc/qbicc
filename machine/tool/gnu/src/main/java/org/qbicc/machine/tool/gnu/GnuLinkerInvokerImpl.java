@@ -13,7 +13,7 @@ final class GnuLinkerInvokerImpl extends AbstractGccInvoker implements GnuLinker
     private final List<Path> libraryPaths = new ArrayList<>(4);
     private final List<String> libraries = new ArrayList<>(4);
     private final List<Path> objectFiles = new ArrayList<>(4);
-    private Path outputPath = TMP.resolve("qcc-output-image");
+    private Path outputPath = TMP.resolve("qbicc-output-image");
     private boolean isPie = false;
 
     GnuLinkerInvokerImpl(final GccToolChainImpl tool) {

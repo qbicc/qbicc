@@ -515,19 +515,19 @@ public class Main implements Callable<DiagnosticContext> {
                 Logger.getLogger("").setLevel(Level.DEBUG);
             }
             if (debugVTables) {
-                Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.tables").setLevel(Level.DEBUG);
+                Logger.getLogger("org.qbicc.plugin.dispatch.tables").setLevel(Level.DEBUG);
             }
             if (dispatchStats) {
-                Logger.getLogger("cc.quarkus.qcc.plugin.dispatch.stats").setLevel(Level.DEBUG);
+                Logger.getLogger("org.qbicc.plugin.dispatch.stats").setLevel(Level.DEBUG);
             }
             if (debugRTA) {
-                Logger.getLogger("cc.quarkus.qcc.plugin.reachability.rta").setLevel(Level.DEBUG);
+                Logger.getLogger("org.qbicc.plugin.reachability.rta").setLevel(Level.DEBUG);
             }
             if (debugSupers) {
-                Logger.getLogger("cc.quarkus.qcc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
+                Logger.getLogger("org.qbicc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
             }
             if (outputPath == null) {
-                outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qcc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));
+                outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qbicc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));
             }
 
             if (graphGenArgs != null && graphGenArgs.genGraph) {

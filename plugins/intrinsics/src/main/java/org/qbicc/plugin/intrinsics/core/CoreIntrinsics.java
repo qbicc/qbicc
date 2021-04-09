@@ -64,12 +64,12 @@ public final class CoreIntrinsics {
         registerJavaLangObjectIntrinsics(ctxt);
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
-        registerCcQuarkusQccRuntimeCNativeIntrinsics(ctxt);
-        registerCcQuarkusQccObjectModelIntrinsics(ctxt);
-        registerCcQuarkusQccRuntimeMainIntrinsics(ctxt);
-        registerCcQuarkusQccRuntimeValuesIntrinsics(ctxt);
+        registerOrgQbiccRuntimeCNativeIntrinsics(ctxt);
+        registerOrgQbiccObjectModelIntrinsics(ctxt);
+        registerOrgQbiccRuntimeMainIntrinsics(ctxt);
+        registerOrgQbiccRuntimeValuesIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
-        registerCCQuarkusQccPosixPthreadCastPtr(ctxt);
+        registerOrgQbiccRuntimePosixPthreadCastPtr(ctxt);
     }
 
     private static StaticIntrinsic setVolatile(FieldElement field) {
@@ -200,7 +200,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor systemDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/System");
         ValidatedTypeDefinition jls = classContext.findDefinedType("java/lang/System").validate();
         ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
-        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/VM");
+        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VM");
 
         MethodDescriptor objectToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jloDesc));
 
@@ -405,31 +405,31 @@ public final class CoreIntrinsics {
         return ctxt.getLiteralFactory().literalOf(v);
     }
 
-    static void registerCcQuarkusQccRuntimeCNativeIntrinsics(final CompilationContext ctxt) {
+    static void registerOrgQbiccRuntimeCNativeIntrinsics(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
-        ClassTypeDescriptor cNativeDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative");
-        ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$type_id");
+        ClassTypeDescriptor cNativeDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative");
+        ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$type_id");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ArrayTypeDescriptor objArrayDesc = ArrayTypeDescriptor.of(classContext, objDesc);
-        ClassTypeDescriptor nObjDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$object");
-        ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$ptr");
+        ClassTypeDescriptor nObjDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$object");
+        ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$ptr");
         ClassTypeDescriptor tgDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadGroup");
         ClassTypeDescriptor thrDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
         ClassTypeDescriptor strDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
 
-        ClassTypeDescriptor boolPtrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$_Bool_ptr");
+        ClassTypeDescriptor boolPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$_Bool_ptr");
 
-        ClassTypeDescriptor float32ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$_Float32_ptr");
-        ClassTypeDescriptor float64ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$_Float64_ptr");
+        ClassTypeDescriptor float32ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$_Float32_ptr");
+        ClassTypeDescriptor float64ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$_Float64_ptr");
 
-        ClassTypeDescriptor uint16ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/stdc/Stdint$uint16_t_ptr");
+        ClassTypeDescriptor uint16ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$uint16_t_ptr");
 
-        ClassTypeDescriptor int8ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/stdc/Stdint$int8_t_ptr");
-        ClassTypeDescriptor int16ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/stdc/Stdint$int16_t_ptr");
-        ClassTypeDescriptor int32ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/stdc/Stdint$int32_t_ptr");
-        ClassTypeDescriptor int64ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/stdc/Stdint$int64_t_ptr");
+        ClassTypeDescriptor int8ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$int8_t_ptr");
+        ClassTypeDescriptor int16ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$int16_t_ptr");
+        ClassTypeDescriptor int32ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$int32_t_ptr");
+        ClassTypeDescriptor int64ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$int64_t_ptr");
 
         MethodDescriptor objTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objDesc));
         MethodDescriptor objArrayTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objArrayDesc));
@@ -503,15 +503,15 @@ public final class CoreIntrinsics {
         )), attachNewThread);
     }
 
-    static void registerCcQuarkusQccObjectModelIntrinsics(final CompilationContext ctxt) {
+    static void registerOrgQbiccObjectModelIntrinsics(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
         Layout layout = Layout.get(ctxt);
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
         LiteralFactory lf = ctxt.getLiteralFactory();
 
-        ClassTypeDescriptor objModDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/ObjectModel");
-        ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$type_id");
+        ClassTypeDescriptor objModDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/ObjectModel");
+        ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$type_id");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor clsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
 
@@ -619,13 +619,13 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_type_id_from_class", clsTypeId, getTypeIdFromClass);
     }
 
-    static void registerCcQuarkusQccRuntimeValuesIntrinsics(final CompilationContext ctxt) {
+    static void registerOrgQbiccRuntimeValuesIntrinsics(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         // descriptors
 
-        ClassTypeDescriptor valsDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/Values");
+        ClassTypeDescriptor valsDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/Values");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
 
         MethodDescriptor objBoolDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc));
@@ -773,10 +773,10 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(valsDesc, "getRelaxed", objObjDescriptor, getRelaxed);
     }
 
-    static void registerCcQuarkusQccRuntimeMainIntrinsics(final CompilationContext ctxt) {
+    static void registerOrgQbiccRuntimeMainIntrinsics(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        ClassTypeDescriptor mainDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/main/Main");
+        ClassTypeDescriptor mainDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/Main");
 
         ClassTypeDescriptor tgDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ThreadGroup");
         MethodDescriptor voidVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
@@ -849,12 +849,12 @@ public final class CoreIntrinsics {
     }
 
     /* Temporary workaround for casting in VMHelpers */
-    static void registerCCQuarkusQccPosixPthreadCastPtr(final CompilationContext ctxt) {
+    static void registerOrgQbiccRuntimePosixPthreadCastPtr(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
-        ClassTypeDescriptor cnativeDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative");
-        ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "cc/quarkus/qcc/runtime/CNative$ptr");
+        ClassTypeDescriptor cnativeDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative");
+        ClassTypeDescriptor ptrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$ptr");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
 
         /* intrinsic implementation */

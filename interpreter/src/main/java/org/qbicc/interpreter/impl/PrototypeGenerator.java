@@ -33,8 +33,8 @@ public class PrototypeGenerator {
         ObjectType classType = verified.getType();
         String className = verified.getInternalName();
 
-        // prepend qcc so they're isolated from containing VM
-        className = "qcc/" + className;
+        // prepend qbicc so they're isolated from containing VM
+        className = "qbicc/" + className;
 
         ClassObjectType superType = classType instanceof PhysicalObjectType ? ((PhysicalObjectType) classType).getSuperClassType() : null;
         String superName;

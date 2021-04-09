@@ -10,7 +10,7 @@ import org.qbicc.context.DiagnosticContext;
 import org.qbicc.tests.integration.utils.TestConstants;
 import org.qbicc.tests.integration.utils.Javac;
 import org.qbicc.tests.integration.utils.NativeExecutable;
-import org.qbicc.tests.integration.utils.Qcc;
+import org.qbicc.tests.integration.utils.Qbicc;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ public class SimpleAppTest {
 
         assertTrue(compilationResult, "Compilation should succeed.");
 
-        DiagnosticContext diagnosticContext = Qcc.build(outputPath, nativeOutputPath, mainClass, LOGGER);
+        DiagnosticContext diagnosticContext = Qbicc.build(outputPath, nativeOutputPath, mainClass, LOGGER);
 
         assertEquals(0, diagnosticContext.errors(), "Native image creation should generate no errors.");
 
@@ -69,7 +69,7 @@ public class SimpleAppTest {
 
         assertTrue(compilationResult, "Compilation should succeed.");
 
-        DiagnosticContext diagnosticContext = Qcc.build(outputPath, nativeOutputPath, mainClass, LOGGER);
+        DiagnosticContext diagnosticContext = Qbicc.build(outputPath, nativeOutputPath, mainClass, LOGGER);
 
         assertEquals(0, diagnosticContext.errors(), "Native image creation should generate no errors.");
 
