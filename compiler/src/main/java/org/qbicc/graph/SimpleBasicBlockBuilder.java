@@ -408,7 +408,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value currentThread() {
-        ClassObjectType type = element.getEnclosingType().getContext().findDefinedType("java/lang/Thread").validate().getClassType();
+        ClassObjectType type = element.getEnclosingType().getContext().findDefinedType("java/lang/Thread").load().getClassType();
         return asDependency(new CurrentThreadRead(callSite, element, line, bci, requireDependency(), type.getReference()));
     }
 
@@ -441,7 +441,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value classOf(final Value typeId) {
-        ClassObjectType type = element.getEnclosingType().getContext().findDefinedType("java/lang/Class").validate().getClassType();
+        ClassObjectType type = element.getEnclosingType().getContext().findDefinedType("java/lang/Class").load().getClassType();
         return new ClassOf(callSite, element, line, bci, typeId, type.getReference());
     }
 
@@ -564,7 +564,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         PhiValue exceptionPhi = this.exceptionPhi;
         if (exceptionPhi == null) {
             // first time called
-            ClassObjectType typeId = getCurrentElement().getEnclosingType().getContext().findDefinedType("java/lang/Throwable").validate().getClassType();
+            ClassObjectType typeId = getCurrentElement().getEnclosingType().getContext().findDefinedType("java/lang/Throwable").load().getClassType();
             exceptionPhi = this.exceptionPhi = phi(typeId.getReference(), new BlockLabel());
         }
         return exceptionPhi.getPinnedBlockLabel();

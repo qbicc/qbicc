@@ -51,7 +51,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             FieldElement fieldElement = ((StaticField) handle).getVariableElement();
             if (fieldElement.isReallyFinal()) {
                 // initialize the constant if any
-                InitializerElement initializerElement = fieldElement.getEnclosingType().validate().getInitializer();
+                InitializerElement initializerElement = fieldElement.getEnclosingType().load().getInitializer();
                 if (NativeInfo.get(ctxt).registerInitializer(initializerElement)) {
                     if (initializerElement.hasMethodBody()) {
                         initializerElement.getOrCreateMethodBody();

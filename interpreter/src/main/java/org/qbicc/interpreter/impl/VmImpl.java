@@ -33,7 +33,7 @@ public final class VmImpl implements Vm {
         this.ctxt = ctxt;
         ClassContext bcc = ctxt.getBootstrapClassContext();
         loadClass = bcc.findDefinedType("java/lang/ClassLoader")
-            .validate()
+            .load()
             .resolveMethodElementExact("loadClass",
                 MethodDescriptor.synthesize(bcc, ClassTypeDescriptor.synthesize(bcc, "java/lang/String"),
                                             List.of(ClassTypeDescriptor.synthesize(bcc, "java/lang/Class"))));

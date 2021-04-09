@@ -6,7 +6,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 
 public class DispatchTableEmitter implements Consumer<CompilationContext>  {
 
@@ -18,7 +18,7 @@ public class DispatchTableEmitter implements Consumer<CompilationContext>  {
         // Walk down the live class hierarchy and emit vtables for each class
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
-        ValidatedTypeDefinition jlo = jloDef.validate();
+        LoadedTypeDefinition jlo = jloDef.load();
         tables.emitVTable(jlo);
         info.visitLiveSubclassesPreOrder(jlo, cls -> tables.emitVTable(cls));
 

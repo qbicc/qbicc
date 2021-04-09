@@ -24,7 +24,7 @@ import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
@@ -39,8 +39,8 @@ public class DispatchTables {
     private static final AttachmentKey<DispatchTables> KEY = new AttachmentKey<>();
 
     private final CompilationContext ctxt;
-    private final Map<ValidatedTypeDefinition, VTableInfo> vtables = new ConcurrentHashMap<>();
-    private final Map<ValidatedTypeDefinition, ITableInfo> itables = new ConcurrentHashMap<>();
+    private final Map<LoadedTypeDefinition, VTableInfo> vtables = new ConcurrentHashMap<>();
+    private final Map<LoadedTypeDefinition, ITableInfo> itables = new ConcurrentHashMap<>();
     private GlobalVariableElement vtablesGlobal;
 
     // Used to accumulate statistics
@@ -68,13 +68,13 @@ public class DispatchTables {
         return dt;
     }
 
-    public VTableInfo getVTableInfo(ValidatedTypeDefinition cls) {
+    public VTableInfo getVTableInfo(LoadedTypeDefinition cls) {
         return vtables.get(cls);
     }
 
-    public ITableInfo getITableInfo(ValidatedTypeDefinition cls) { return itables.get(cls); }
+    public ITableInfo getITableInfo(LoadedTypeDefinition cls) { return itables.get(cls); }
 
-    void buildFilteredVTable(ValidatedTypeDefinition cls) {
+    void buildFilteredVTable(LoadedTypeDefinition cls) {
         tlog.debugf("Building VTable for %s", cls.getDescriptor());
 
         ArrayList<MethodElement> vtableVector = new ArrayList<>();
@@ -101,7 +101,7 @@ public class DispatchTables {
         vtables.put(cls,new VTableInfo(vtable, vtableType, vtableSymbol));
     }
 
-    void buildFilteredITableForInterface(ValidatedTypeDefinition cls) {
+    void buildFilteredITableForInterface(LoadedTypeDefinition cls) {
         tlog.debugf("Building ITable for %s", cls.getDescriptor());
 
         ArrayList<MethodElement> itableVector = new ArrayList<>();
@@ -152,7 +152,7 @@ public class DispatchTables {
         vtablesGlobal = builder.build();
     }
 
-    void emitVTable(ValidatedTypeDefinition cls) {
+    void emitVTable(LoadedTypeDefinition cls) {
         if (!cls.isAbstract()) {
             VTableInfo info = getVTableInfo(cls);
             MethodElement[] vtable = info.getVtable();
@@ -168,7 +168,7 @@ public class DispatchTables {
                     valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getFunctionTypeForElement(vtable[i]).getPointer()));
                 } else {
                     Function impl = ctxt.getExactFunction(vtable[i]);
-                    if (!vtable[i].getEnclosingType().validate().equals(cls)) {
+                    if (!vtable[i].getEnclosingType().load().equals(cls)) {
                         section.declareFunction(vtable[i], impl.getName(), funType);
                     }
                     valueMap.put(info.getType().getMember(i), impl.getLiteral());
@@ -181,14 +181,14 @@ public class DispatchTables {
         }
     }
 
-    void emitVTableTable(ValidatedTypeDefinition jlo) {
+    void emitVTableTable(LoadedTypeDefinition jlo) {
         ArrayType vtablesGlobalType = ((ArrayType)vtablesGlobal.getType());
         Section section = ctxt.getImplicitSection(jlo);
         Literal[] vtableLiterals = new Literal[(int)vtablesGlobalType.getElementCount()];
         Literal zeroLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(vtablesGlobalType.getElementType());
         Arrays.fill(vtableLiterals, zeroLiteral);
-        for (Map.Entry<ValidatedTypeDefinition, VTableInfo> e: vtables.entrySet()) {
-            ValidatedTypeDefinition cls = e.getKey();
+        for (Map.Entry<LoadedTypeDefinition, VTableInfo> e: vtables.entrySet()) {
+            LoadedTypeDefinition cls = e.getKey();
             if (!cls.isAbstract()) {
                 if (!cls.equals(jlo)) {
                     section.declareData(null, e.getValue().getSymbol().getName(), e.getValue().getType());
@@ -215,8 +215,8 @@ public class DispatchTables {
         Function ameImpl = ctxt.getExactFunction(ameStub);
         SymbolLiteral ameLiteral = lf.literalOfSymbol(ameImpl.getLiteral().getName(), ameImpl.getLiteral().getType().getPointer());
         final int pointerSize = ctxt.getTypeSystem().getPointerSize();
-        for (Map.Entry<ValidatedTypeDefinition, ITableInfo> entry: itables.entrySet()) {
-            ValidatedTypeDefinition currentInterface = entry.getKey();
+        for (Map.Entry<LoadedTypeDefinition, ITableInfo> entry: itables.entrySet()) {
+            LoadedTypeDefinition currentInterface = entry.getKey();
             Section iSection = ctxt.getImplicitSection(currentInterface);
             ITableInfo itableInfo= entry.getValue();
             MethodElement[] itable = itableInfo.getItable();
@@ -264,7 +264,7 @@ public class DispatchTables {
                             valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(ameLiteral, implType.getPointer()));
                         } else {
                             Function impl = ctxt.getExactFunction(methImpl);
-                            if (!methImpl.getEnclosingType().validate().equals(cls)) {
+                            if (!methImpl.getEnclosingType().load().equals(cls)) {
                                 cSection.declareFunction(methImpl, impl.getName(), implType);
                             }
                             valueMap.put(itableInfo.getType().getMember(i), impl.getLiteral());
@@ -293,7 +293,7 @@ public class DispatchTables {
 
 
     public int getVTableIndex(MethodElement target) {
-        ValidatedTypeDefinition definingType = target.getEnclosingType().validate();
+        LoadedTypeDefinition definingType = target.getEnclosingType().load();
         VTableInfo info = getVTableInfo(definingType);
         if (info != null) {
             MethodElement[] vtable = info.getVtable();
@@ -308,7 +308,7 @@ public class DispatchTables {
     }
 
     public int getITableIndex(MethodElement target) {
-        ValidatedTypeDefinition definingType = target.getEnclosingType().validate();
+        LoadedTypeDefinition definingType = target.getEnclosingType().load();
         ITableInfo info = getITableInfo(definingType);
         if (info != null) {
             MethodElement[] itable = info.getItable();
@@ -339,19 +339,19 @@ public class DispatchTables {
     }
 
     public static final class ITableInfo {
-        private final ValidatedTypeDefinition myInterface;
+        private final LoadedTypeDefinition myInterface;
         private final MethodElement[] itable;
         private final CompoundType type;
         private final GlobalVariableElement global;
 
-        ITableInfo(MethodElement[] itable, CompoundType type, ValidatedTypeDefinition myInterface, GlobalVariableElement global) {
+        ITableInfo(MethodElement[] itable, CompoundType type, LoadedTypeDefinition myInterface, GlobalVariableElement global) {
             this.myInterface = myInterface;
             this.itable = itable;
             this.type = type;
             this.global = global;
         }
 
-        public ValidatedTypeDefinition getInterface() { return myInterface; }
+        public LoadedTypeDefinition getInterface() { return myInterface; }
         public MethodElement[] getItable() { return itable; }
         public CompoundType getType() { return type; }
         public GlobalVariableElement getGlobal() { return global; }

@@ -7,7 +7,7 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 
 /**
  * Build Cohen's Display for Super types for all classes present in
@@ -28,7 +28,7 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         // marks the class as live
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
-        ValidatedTypeDefinition jlo = jloDef.validate();
+        LoadedTypeDefinition jlo = jloDef.load();
         tables.buildSupersDisplay(jlo);
         info.visitLiveSubclassesPreOrder(jlo, tables::buildSupersDisplay);
         // Assign typeIDs to classes
@@ -50,23 +50,23 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         // arrays, including reference array
         Layout layout = Layout.get(ctxt);
         // [Object + 1] boolean[].class
-        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[Z"));
+        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[Z"));
         // [Object + 2] byte[].class
-        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[B"));
+        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[B"));
         // [Object + 3] short[].class
-        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[S"));
+        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[S"));
         // [Object + 4] char[].class
-        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[C"));
+        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[C"));
         // [Object + 5] int[].class
-        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[I"));
+        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[I"));
         // [Object + 6] float[].class
-        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[F"));
+        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[F"));
         // [Object + 7] long[].class
-        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[J"));
+        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[J"));
         // [Object + 8] double[].class
-        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[D"));
+        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[D"));
         // [Object + 9] Reference[]
-        tables.assignTypeID(layout.getArrayValidatedTypeDefinition("[ref"));
+        tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[ref"));
 
         // subclasses of object
         info.visitLiveSubclassesPreOrder(jlo, tables::assignTypeID);

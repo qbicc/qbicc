@@ -36,7 +36,7 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
         if (definedType == null) {
             return null;
         } else {
-            return definedType.validate().getType().getReference();
+            return definedType.load().getType().getReference();
         }
     }
 

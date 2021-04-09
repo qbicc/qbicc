@@ -171,7 +171,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (definedType == null) {
             return false;
         }
-        definedType.validate();
+        definedType.load();
         return true;
     }
 

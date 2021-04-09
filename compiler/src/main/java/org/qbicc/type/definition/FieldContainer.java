@@ -4,11 +4,11 @@ import org.qbicc.interpreter.VmObject;
 import io.smallrye.common.constraint.Assert;
 
 public interface FieldContainer {
-    static FieldContainer forInstanceFieldsOf(ValidatedTypeDefinition definition) {
+    static FieldContainer forInstanceFieldsOf(LoadedTypeDefinition definition) {
         return new FieldContainerImpl(Assert.checkNotNullParam("definition", definition), false);
     }
 
-    static FieldContainer forStaticFieldsOf(ValidatedTypeDefinition definition) {
+    static FieldContainer forStaticFieldsOf(LoadedTypeDefinition definition) {
         return new FieldContainerImpl(Assert.checkNotNullParam("definition", definition), true);
     }
 

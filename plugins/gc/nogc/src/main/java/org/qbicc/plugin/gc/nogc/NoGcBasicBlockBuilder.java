@@ -20,7 +20,7 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 
 /**
@@ -52,7 +52,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         ValueHandle oopHandle = referenceHandle(oop);
 
         // zero initialize the object's instance fields (but not the header fields that are defined in java.lang.Object)
-        ValidatedTypeDefinition curClass = type.getDefinition().validate();
+        LoadedTypeDefinition curClass = type.getDefinition().load();
         while (curClass.hasSuperClass()) {
             curClass.eachField(f -> {
                 if (!f.isStatic()) {
@@ -63,7 +63,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
 
         // now initialize the object header (aka fields of java.lang.Object)
-        initializeObjectHeader(oopHandle, layout, type.getDefinition().validate().getType());
+        initializeObjectHeader(oopHandle, layout, type.getDefinition().load().getType());
 
         return oop;
     }
@@ -88,7 +88,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         Value arrayPtr = valueConvert(ptrVal, arrayType.getReference());
         ValueHandle arrayHandle = referenceHandle(arrayPtr);
 
-        initializeObjectHeader(arrayHandle, layout, arrayContentField.getEnclosingType().validate().getType());
+        initializeObjectHeader(arrayHandle, layout, arrayContentField.getEnclosingType().load().getType());
 
         store(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), truncate(size, ctxt.getTypeSystem().getSignedInteger32Type()), MemoryAtomicityMode.UNORDERED);
         if (arrayType instanceof ReferenceArrayObjectType) {

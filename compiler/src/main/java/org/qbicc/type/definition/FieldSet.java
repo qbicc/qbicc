@@ -12,7 +12,7 @@ public final class FieldSet {
     final Map<String, Integer> fieldIndices = new HashMap<>();
     final FieldElement[] sortedFields;
 
-    public FieldSet(ValidatedTypeDefinition type, boolean statics) {
+    public FieldSet(LoadedTypeDefinition type, boolean statics) {
         int cnt = type.getFieldCount();
         List<FieldElement> fields = new ArrayList<>(cnt);
         type.eachField((field) -> {

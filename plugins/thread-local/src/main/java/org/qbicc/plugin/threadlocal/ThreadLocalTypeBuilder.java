@@ -63,7 +63,7 @@ public class ThreadLocalTypeBuilder implements DefinedTypeDefinition.Builder.Del
                             injectedFieldBuilder.setSignature(resolved.getTypeSignature());
                             injectedFieldBuilder.setEnclosingType(jlt);
                             FieldElement injectedField = injectedFieldBuilder.build();
-                            jlt.validate().injectField(injectedField);
+                            jlt.load().injectField(injectedField);
                             ThreadLocals.get(ctxt).registerThreadLocalField(resolved, injectedField);
                         }
                     }

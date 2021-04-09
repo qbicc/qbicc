@@ -327,7 +327,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
         switch (constantType) {
             case CONSTANT_Class: return setIfNull(literals, idx, literalFactory.literalOfType(getTypeConstant(idx, paramCtxt)));
             case CONSTANT_String:
-                return setIfNull(literals, idx, literalFactory.literalOf(getStringConstant(idx), ctxt.findDefinedType("java/lang/String").validate().getType().getReference()));
+                return setIfNull(literals, idx, literalFactory.literalOf(getStringConstant(idx), ctxt.findDefinedType("java/lang/String").load().getType().getReference()));
             case CONSTANT_Integer:
                 return setIfNull(literals, idx, literalFactory.literalOf(getIntConstant(idx)));
             case CONSTANT_Float:
@@ -1205,7 +1205,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             int j = 0;
             if (nonStatic) {
                 // instance method or constructor
-                thisValue = gf.parameter(enclosing.validate().getType().getReference().asNullable(), "this", 0);
+                thisValue = gf.parameter(enclosing.load().getType().getReference().asNullable(), "this", 0);
                 currentVarTypes[j] = thisValue.getType();
                 methodParser.setLocal1(j++, thisValue);
             } else {
@@ -1401,9 +1401,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             return ts.getSignedInteger64Type();
         } else if (viTag == 5) { // null
             // todo: bottom object type?
-            return ctxt.findDefinedType("java/lang/Object").validate().getClassType().getReference().asNullable();
+            return ctxt.findDefinedType("java/lang/Object").load().getClassType().getReference().asNullable();
         } else if (viTag == 6) { // uninitialized this
-            return element.getEnclosingType().validate().getType().getReference().asNullable();
+            return element.getEnclosingType().load().getType().getReference().asNullable();
         } else if (viTag == 7) { // object
             int cpIdx = sm.getShort() & 0xffff;
             return nullable(getTypeConstant(cpIdx, TypeParameterContext.of(element)));

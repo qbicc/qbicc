@@ -30,7 +30,7 @@ public interface DefinedTypeDefinition extends FieldResolver,
                                                TypeParameterContext,
                                                Locatable {
 
-    ValidatedTypeDefinition validate() throws VerifyFailedException;
+    LoadedTypeDefinition load() throws VerifyFailedException;
 
     ClassContext getContext();
 
@@ -155,7 +155,7 @@ public interface DefinedTypeDefinition extends FieldResolver,
     }
 
     default FieldElement resolveField(int index, final DefinedTypeDefinition enclosing) {
-        return validate().getField(index);
+        return load().getField(index);
     }
 
     // ==================
@@ -172,7 +172,7 @@ public interface DefinedTypeDefinition extends FieldResolver,
     }
 
     default MethodElement resolveMethod(int index, final DefinedTypeDefinition enclosing) {
-        return validate().getMethod(index);
+        return load().getMethod(index);
     }
 
     // ==================
@@ -189,7 +189,7 @@ public interface DefinedTypeDefinition extends FieldResolver,
     }
 
     default ConstructorElement resolveConstructor(int index, final DefinedTypeDefinition enclosing) {
-        return validate().getConstructor(index);
+        return load().getConstructor(index);
     }
 
     // ==================
@@ -197,7 +197,7 @@ public interface DefinedTypeDefinition extends FieldResolver,
     // ==================
 
     default InitializerElement resolveInitializer(int index, final DefinedTypeDefinition enclosing) {
-        return validate().getInitializer();
+        return load().getInitializer();
     }
 
     // ==================

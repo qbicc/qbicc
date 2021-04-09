@@ -80,7 +80,7 @@ public final class InterfaceObjectType extends ObjectType {
 
     private PhysicalObjectType getRootType() {
         // todo: this could be done more elegantly
-        return (PhysicalObjectType) definition.getContext().findDefinedType("java/lang/Object").validate().getType();
+        return (PhysicalObjectType) definition.getContext().findDefinedType("java/lang/Object").load().getType();
     }
 
     public StringBuilder toString(final StringBuilder b) {

@@ -2,7 +2,7 @@ package org.qbicc.plugin.reachability;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -15,9 +15,9 @@ public class RTAInfo {
     private static final AttachmentKey<RTAInfo> KEY = new AttachmentKey<>();
 
     // Tracks reachable classes and their (direct) reachable subclasses
-    private final Map<ValidatedTypeDefinition, Set<ValidatedTypeDefinition>> classHierarchy = new ConcurrentHashMap<>();
+    private final Map<LoadedTypeDefinition, Set<LoadedTypeDefinition>> classHierarchy = new ConcurrentHashMap<>();
     // Tracks reachable interfaces and their (direct) reachable implementors
-    private final Map<ValidatedTypeDefinition, Set<ValidatedTypeDefinition>> interfaceHierarchy = new ConcurrentHashMap<>();
+    private final Map<LoadedTypeDefinition, Set<LoadedTypeDefinition>> interfaceHierarchy = new ConcurrentHashMap<>();
 
     private final CompilationContext ctxt;
 
@@ -44,50 +44,50 @@ public class RTAInfo {
         info.interfaceHierarchy.clear();
     }
 
-    public boolean isLiveClass(ValidatedTypeDefinition type) {
+    public boolean isLiveClass(LoadedTypeDefinition type) {
         return classHierarchy.containsKey(type);
     }
 
-    public void addLiveClass(ValidatedTypeDefinition type) {
+    public void addLiveClass(LoadedTypeDefinition type) {
         if (isLiveClass(type)) return;
         classHierarchy.computeIfAbsent(type, t -> ConcurrentHashMap.newKeySet());
-        ValidatedTypeDefinition superClass = type.getSuperClass();
+        LoadedTypeDefinition superClass = type.getSuperClass();
         if (superClass != null) {
             addLiveClass(superClass);
             classHierarchy.get(superClass).add(type);
         }
     }
 
-    public boolean isLiveInterface(ValidatedTypeDefinition type) { return interfaceHierarchy.containsKey(type); }
+    public boolean isLiveInterface(LoadedTypeDefinition type) { return interfaceHierarchy.containsKey(type); }
 
-    public void makeInterfaceLive(ValidatedTypeDefinition type) {
+    public void makeInterfaceLive(LoadedTypeDefinition type) {
         interfaceHierarchy.computeIfAbsent(type, t -> ConcurrentHashMap.newKeySet());
     }
 
-    public void addInterfaceEdge(ValidatedTypeDefinition child, ValidatedTypeDefinition parent) {
+    public void addInterfaceEdge(LoadedTypeDefinition child, LoadedTypeDefinition parent) {
         interfaceHierarchy.computeIfAbsent(parent, t -> ConcurrentHashMap.newKeySet()).add(child);
     }
 
-    public void visitLiveInterfaces(Consumer<ValidatedTypeDefinition> function) {
-        for (ValidatedTypeDefinition i: interfaceHierarchy.keySet()) {
+    public void visitLiveInterfaces(Consumer<LoadedTypeDefinition> function) {
+        for (LoadedTypeDefinition i: interfaceHierarchy.keySet()) {
             function.accept(i);
         }
     }
 
-    public void visitLiveImplementors(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {
-        Set<ValidatedTypeDefinition> implementors = interfaceHierarchy.get(type);
+    public void visitLiveImplementors(LoadedTypeDefinition type, Consumer<LoadedTypeDefinition> function) {
+        Set<LoadedTypeDefinition> implementors = interfaceHierarchy.get(type);
         if (implementors == null) return;
-        Set<ValidatedTypeDefinition> toProcess = new HashSet<>();
+        Set<LoadedTypeDefinition> toProcess = new HashSet<>();
         collectImplementors(type, toProcess);
-        for (ValidatedTypeDefinition cls : toProcess) {
+        for (LoadedTypeDefinition cls : toProcess) {
             function.accept(cls);
         }
     }
 
-    private void collectImplementors(ValidatedTypeDefinition type, Set<ValidatedTypeDefinition> toProcess) {
-        Set<ValidatedTypeDefinition> implementors = interfaceHierarchy.get(type);
+    private void collectImplementors(LoadedTypeDefinition type, Set<LoadedTypeDefinition> toProcess) {
+        Set<LoadedTypeDefinition> implementors = interfaceHierarchy.get(type);
         if (implementors == null) return;
-        for (ValidatedTypeDefinition child: implementors) {
+        for (LoadedTypeDefinition child: implementors) {
             toProcess.add(child);
             if (child.isInterface()) {
                 collectImplementors(child, toProcess);
@@ -97,19 +97,19 @@ public class RTAInfo {
         }
     }
 
-    public void visitLiveSubclassesPreOrder(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {
-        Set<ValidatedTypeDefinition> subclasses = classHierarchy.get(type);
+    public void visitLiveSubclassesPreOrder(LoadedTypeDefinition type, Consumer<LoadedTypeDefinition> function) {
+        Set<LoadedTypeDefinition> subclasses = classHierarchy.get(type);
         if (subclasses == null) return;
-        for (ValidatedTypeDefinition sc: subclasses) {
+        for (LoadedTypeDefinition sc: subclasses) {
             function.accept(sc);
             visitLiveSubclassesPreOrder(sc, function);
         }
     }
 
-    public void visitLiveSubclassesPostOrder(ValidatedTypeDefinition type, Consumer<ValidatedTypeDefinition> function) {
-        Set<ValidatedTypeDefinition> subclasses = classHierarchy.get(type);
+    public void visitLiveSubclassesPostOrder(LoadedTypeDefinition type, Consumer<LoadedTypeDefinition> function) {
+        Set<LoadedTypeDefinition> subclasses = classHierarchy.get(type);
         if (subclasses == null) return;
-        for (ValidatedTypeDefinition sc: subclasses) {
+        for (LoadedTypeDefinition sc: subclasses) {
             visitLiveSubclassesPostOrder(sc, function);
             function.accept(sc);
         }

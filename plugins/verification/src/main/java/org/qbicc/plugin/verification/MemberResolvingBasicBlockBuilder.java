@@ -107,7 +107,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             ClassTypeDescriptor classDesc = (ClassTypeDescriptor) desc;
             String className = (classDesc.getPackageName() != "" ? classDesc.getPackageName() + "/" : "") + classDesc.getClassName();
             DefinedTypeDefinition definedType = cc.findDefinedType(className);
-            ot = definedType.validate().getType();
+            ot = definedType.load().getType();
         } else {
             // this comes from the classfile - it better be something the verifier allows in instanceof/checkcast expressions
             throw Assert.unreachableCode();
@@ -180,12 +180,12 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
             MethodElement element;
             if (kind == DispatchInvocation.Kind.EXACT) {
-                element = definedType.validate().resolveMethodElementExact(name, descriptor);
+                element = definedType.load().resolveMethodElementExact(name, descriptor);
             } else if (kind == DispatchInvocation.Kind.VIRTUAL) {
-                element = definedType.validate().resolveMethodElementVirtual(name, descriptor);
+                element = definedType.load().resolveMethodElementVirtual(name, descriptor);
             } else {
                 assert kind == DispatchInvocation.Kind.INTERFACE;
-                element = definedType.validate().resolveMethodElementInterface(name, descriptor);
+                element = definedType.load().resolveMethodElementInterface(name, descriptor);
             }
             if (element == null) {
                 throw new BlockEarlyTermination(nsme());
@@ -202,7 +202,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         if (owner instanceof ClassTypeDescriptor) {
             DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-            ConstructorElement element = definedType.validate().resolveConstructorElement(descriptor);
+            ConstructorElement element = definedType.load().resolveConstructorElement(descriptor);
             if (element == null) {
                 throw new BlockEarlyTermination(nsme());
             } else {
@@ -218,7 +218,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         if (owner instanceof ClassTypeDescriptor) {
             DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-            FieldElement element = definedType.validate().resolveField(desc, name);
+            FieldElement element = definedType.load().resolveField(desc, name);
             if (element == null) {
                 throw new BlockEarlyTermination(nsfe());
             } else {

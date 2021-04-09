@@ -5,7 +5,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -25,7 +25,7 @@ public final class NoGc {
         if (defined == null) {
             throw runtimeMissing();
         }
-        ValidatedTypeDefinition loaded = defined.validate();
+        LoadedTypeDefinition loaded = defined.load();
         int index = loaded.findMethodIndex(e -> e.getName().equals("allocate"));
         if (index == -1) {
             throw methodMissing();
@@ -45,7 +45,7 @@ public final class NoGc {
         if (defined == null) {
             throw runtimeMissing();
         }
-        loaded = defined.validate();
+        loaded = defined.load();
         stackObjectType = loaded.getClassType();
     }
 
