@@ -43,10 +43,10 @@ jobs:
         id: cache
         with:
           path: |
-            ~/.m2/repository/org/qbicc/qccrt-annotation
+            ~/.m2/repository/org/qbicc/rt/qbicc-rt-annotation
             ~/.m2/repository/org/qbicc/rt/qbicc-rt-java.base
             ~/.m2/repository/org/qbicc/rt/qbicc-rt-openjdk-build-tools-maven-plugin
-            ~/.m2/repository/org/qbicc/qccrt-parent
+            ~/.m2/repository/org/qbicc/rt/qbicc-rt-parent
           key: ${{ steps.qbicc-class-library-head.outputs.head }}
 
       - name: Clone qbicc Class Library

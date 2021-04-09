@@ -1,6 +1,6 @@
 package mypackage;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
+import static org.qbicc.runtime.CNative.*;
 
 public class Main {
     @extern

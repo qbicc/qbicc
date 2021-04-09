@@ -1,0 +1,60 @@
+package org.qbicc.graph;
+
+import java.util.Objects;
+
+import org.qbicc.type.definition.element.ExecutableElement;
+
+/**
+ * A terminator which designates a subsequent block for normal execution.
+ */
+public final class Goto extends AbstractTerminator implements Resume {
+    private final Node dependency;
+    private final BlockLabel targetLabel;
+    private final BasicBlock terminatedBlock;
+
+    Goto(final Node callSite, final ExecutableElement element, final int line, final int bci, final BlockEntry blockEntry, Node dependency, BlockLabel targetLabel) {
+        super(callSite, element, line, bci);
+        terminatedBlock = new BasicBlock(blockEntry, this);
+        this.dependency = dependency;
+        this.targetLabel = targetLabel;
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return terminatedBlock;
+    }
+
+    public BlockLabel getResumeTargetLabel() {
+        return targetLabel;
+    }
+
+    @Override
+    public Node getDependency() {
+        return dependency;
+    }
+
+    public int getSuccessorCount() {
+        return 1;
+    }
+
+    public BasicBlock getSuccessor(final int index) {
+        return index == 0 ? getResumeTarget() : Util.throwIndexOutOfBounds(index);
+    }
+
+    public <T, R> R accept(final TerminatorVisitor<T, R> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
+
+    int calcHashCode() {
+        return Objects.hash(Goto.class, dependency, targetLabel);
+    }
+
+    public boolean equals(final Object other) {
+        return other instanceof Goto && equals((Goto) other);
+    }
+
+    public boolean equals(final Goto other) {
+        return this == other || other != null
+            && dependency.equals(other.dependency)
+            && targetLabel.equals(other.targetLabel);
+    }
+}

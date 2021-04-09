@@ -1,4 +1,4 @@
-= QCC: Object Model Implementation
+= qbicc: Object Model Implementation
 
 == Background
 
@@ -79,7 +79,7 @@ operations "early" by hoisting them out of loops.
 Not surprisingly, there is a rich history of object model innovation.
 
 Here are some ideas from prior work that are perhaps less well known
-and most relevant to QCC.
+and most relevant to qbicc.
 
 ==== Type pointers vs type ids
 
@@ -160,7 +160,7 @@ implementation of this idea is to construct in some form the full
 two dimensional array that is indexed by (typeId, selector).  Usually
 this array would be extremely sparse, therefore it is amenable to
 various forms of compression and hashing (aka selector coloring).
-In the context of QCC where the entire class hierarchy of the program
+In the context of qbicc where the entire class hierarchy of the program
 is known statically, table compression techniques could be applied
 without the normal Java complication of dynamic class loading
 invalidating the compression algorithm.
@@ -182,9 +182,9 @@ primary derived type specific information (for example vtable style
 dispatching, itables, access to VMClass, access to java.lang.Class, etc).
 
 
-=== QCC Base Assumptions
+=== qbicc Base Assumptions
 
-QCC operates under a strong closed world assumption.  All program
+qbicc operates under a strong closed world assumption.  All program
 classes are statically available when the program is compiled. This
 enables the compiler to apply whole program analysis and generate
 optimized data structures to implement method dispatch and dynamic
@@ -195,9 +195,9 @@ compile-time complexity.
 
 We want either a 32-bit or 64-bit object header.
 
-== Potential QCC Object Headers
+== Potential qbicc Object Headers
 
-=== A 32 bit header for QCC
+=== A 32 bit header for qbicc
 
 Almost certainly, a 32-bit header implies using a typeId as the
 primary runtime type identifier for an object.
@@ -223,7 +223,7 @@ potentially optimal 32 bit header would contain:
 * 14 bit default hash code
 * 2 bits for the GC
 
-=== A 64 bit typeId-based header for QCC
+=== A 64 bit typeId-based header for qbicc
 
 We use 20-24 bits of the header for a type id. This effectively
 removes any limitation on supported program size. 
@@ -248,7 +248,7 @@ and `monitorexit` bytecodes.
 operations on arrays (store dimensionality for example). 
 * Other stuff...
 
-=== A 64 bit pointer-based header for QCC
+=== A 64 bit pointer-based header for qbicc
 
 The object header is a VMClass pointer with some bottom bits being
 stolen for use as a bit field. 
@@ -264,7 +264,7 @@ We use a lock nursery.
 We use address based hashing and hash-and-moved scheme. 
 
 
-== QCC 0.1 Object Header
+== qbicc 0.1 Object Header
 
 Our initial design point is for a compact typeId based header. The
 object header common to all heap allocated objects contains:
@@ -306,7 +306,7 @@ dependent loads and an indirect call.
   %L7 = getelementptr %T.test.InvokeVirtual$Data, %T.test.InvokeVirtual$Data* %L1, i32 0, i32 0
   %L8 = load i32, i32* %L7, align 4, !dbg !24
   # Load the object's vtable for vtable[typeId]
-  %L9 = getelementptr [58 x i8**], [58 x i8**]* @qcc_vtables_array, i32 0, i32 %L8
+  %L9 = getelementptr [58 x i8**], [58 x i8**]* @qbicc_vtables_array, i32 0, i32 %L8
   %LA = load i8**, i8*** %L9, align 8, !dbg !23
   # Load function pointer from vtable[selector]
   %LB = bitcast i8** %LA to %T.struct.vtable-test.InvokeVirtual$Data*, !dbg !33
@@ -339,7 +339,7 @@ dependent loads and an indirect call.
   %L2 = getelementptr %T.java.lang.Object, %T.java.lang.Object* %L1, i32 0, i32 0
   %L3 = load i32, i32* %L2, align 4, !dbg !24
   # Load the object's itable from itables[typeId]
-  %L4 = getelementptr [58 x %T.struct.itable-test.InvokeInterface$I*], [58 x %T.struct.itable-test.InvokeInterface$I*]* @qcc_itables_array_itable-test.InvokeInterface$I, i32 0, i32 %L3
+  %L4 = getelementptr [58 x %T.struct.itable-test.InvokeInterface$I*], [58 x %T.struct.itable-test.InvokeInterface$I*]* @qbicc_itables_array_itable-test.InvokeInterface$I, i32 0, i32 %L3
   %L5 = load %T.struct.itable-test.InvokeInterface$I*, %T.struct.itable-test.InvokeInterface$I** %L4, align 8, !dbg !23
   # Load function pointer from itable[selector]
   %L6 = getelementptr %T.struct.itable-test.InvokeInterface$I, %T.struct.itable-test.InvokeInterface$I* %L5, i32 0, i32 2
@@ -459,7 +459,7 @@ B0:
 B1:
   %L2 = getelementptr %T.java.lang.Object, %T.java.lang.Object* %L1, i32 0, i32 0
   %L3 = load i32, i32* %L2, align 4, !dbg !99
-  %L4 = getelementptr [74 x %T.struct.typeIds], [74 x %T.struct.typeIds]* @qcc_typeid_array, i32 0, i32 %L3, i32 2, i32 0
+  %L4 = getelementptr [74 x %T.struct.typeIds], [74 x %T.struct.typeIds]* @qbicc_typeid_array, i32 0, i32 %L3, i32 2, i32 0
   %L5 = load i8, i8* %L4, align 1, !dbg !98
   %L7 = and i8 %L5, 1, !dbg !106
   %L8 = icmp eq i8 %L7, 1, !dbg !105
@@ -482,7 +482,7 @@ TODO: Implement and document
 TODO: Implement and document
 
 
-== Future QCC Object Model Ideas
+== Future qbicc Object Model Ideas
 
 This section is an attempt to capture as many of the possible future
 design options that have been raised in chat/discussion.  Not all of

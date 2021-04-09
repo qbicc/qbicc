@@ -1,5 +1,5 @@
-// https://github.com/quarkuscc/qcc/pull/219
-import static cc.quarkus.qcc.runtime.CNative.*;
+// https://github.com/qbicc/qbicc/pull/219
+import static org.qbicc.runtime.CNative.*;
 
 public class ArithmeticNegation {
     @extern
