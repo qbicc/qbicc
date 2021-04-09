@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.object;
+package org.qbicc.object;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
 /**

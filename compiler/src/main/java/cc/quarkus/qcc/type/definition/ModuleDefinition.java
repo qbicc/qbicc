@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
 import java.nio.ByteBuffer;
 
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.classfile.ClassFile;
 
 /**
  * A module definition.

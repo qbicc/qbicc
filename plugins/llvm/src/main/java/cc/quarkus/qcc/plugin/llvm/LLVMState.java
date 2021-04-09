@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.plugin.llvm;
+package org.qbicc.plugin.llvm;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import cc.quarkus.qcc.context.AttachmentKey;
+import org.qbicc.context.AttachmentKey;
 
 /**
  *

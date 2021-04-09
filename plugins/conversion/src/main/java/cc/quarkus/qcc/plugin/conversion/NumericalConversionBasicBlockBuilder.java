@@ -1,25 +1,25 @@
-package cc.quarkus.qcc.plugin.conversion;
+package org.qbicc.plugin.conversion;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.PhiValue;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.FloatLiteral;
-import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.graph.literal.Literal;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
-import cc.quarkus.qcc.type.BooleanType;
-import cc.quarkus.qcc.type.FloatType;
-import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.PointerType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.SignedIntegerType;
-import cc.quarkus.qcc.type.UnsignedIntegerType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.WordType;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.type.BooleanType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.WordType;
 
 /**
  * This builder fixes up mismatched numerical conversions in order to avoid duplicating this kind of logic in other

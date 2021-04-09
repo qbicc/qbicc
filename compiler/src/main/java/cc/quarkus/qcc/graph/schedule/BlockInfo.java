@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.graph.schedule;
+package org.qbicc.graph.schedule;
 
 import java.util.BitSet;
 import java.util.Map;
 
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.Terminator;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.Terminator;
 import io.smallrye.common.constraint.Assert;
 
 final class BlockInfo {

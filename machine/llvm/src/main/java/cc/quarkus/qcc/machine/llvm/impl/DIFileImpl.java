@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIFile;
+import org.qbicc.machine.llvm.debuginfo.DIFile;
 
 import java.io.IOException;
 

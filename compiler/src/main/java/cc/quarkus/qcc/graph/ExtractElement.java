@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.ArrayType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.ArrayType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * An extracted element of an array value.

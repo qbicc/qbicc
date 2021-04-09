@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.tool;
+package org.qbicc.machine.tool;
 
 import java.io.IOException;
 

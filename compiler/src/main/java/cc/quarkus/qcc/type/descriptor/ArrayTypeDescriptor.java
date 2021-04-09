@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.type.descriptor;
+package org.qbicc.type.descriptor;
 
 import java.nio.ByteBuffer;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
+import org.qbicc.type.definition.ClassContext;
 
 /**
  * A type descriptor which represents an array type.

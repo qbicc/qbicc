@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
-import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
-import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A {@code new} allocation operation.

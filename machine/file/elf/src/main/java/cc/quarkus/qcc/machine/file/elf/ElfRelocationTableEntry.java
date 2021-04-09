@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.machine.file.elf;
+package org.qbicc.machine.file.elf;
 
-import cc.quarkus.qcc.machine.file.bin.BinaryBuffer;
+import org.qbicc.machine.file.bin.BinaryBuffer;
 
 /**
  *

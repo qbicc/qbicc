@@ -1,7 +1,7 @@
-package cc.quarkus.qcc.machine.llvm.debuginfo;
+package org.qbicc.machine.llvm.debuginfo;
 
-import cc.quarkus.qcc.machine.llvm.Commentable;
-import cc.quarkus.qcc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.Commentable;
+import org.qbicc.machine.llvm.LLValue;
 
 /**
  *

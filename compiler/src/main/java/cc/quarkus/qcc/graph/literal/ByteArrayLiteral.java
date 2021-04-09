@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
 import java.util.Arrays;
 import java.util.Objects;
 
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.type.ArrayType;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.type.ArrayType;
 
 /**
  * A literal array of bytes.  This is not a Java array object literal (use {@code ObjectLiteral}).

@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.Commentable;
+import org.qbicc.machine.llvm.Commentable;
 import io.smallrye.common.constraint.Assert;
 
 abstract class AbstractCommentable extends AbstractEmittable implements Commentable {

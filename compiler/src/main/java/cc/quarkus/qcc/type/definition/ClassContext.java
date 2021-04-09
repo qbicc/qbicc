@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -12,25 +12,25 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.interpreter.VmObject;
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.InterfaceObjectType;
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.generic.MethodSignature;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
-import cc.quarkus.qcc.type.generic.TypeSignature;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.MethodSignature;
+import org.qbicc.type.generic.TypeParameterContext;
+import org.qbicc.type.generic.TypeSignature;
 import io.smallrye.common.constraint.Assert;
 
 /**

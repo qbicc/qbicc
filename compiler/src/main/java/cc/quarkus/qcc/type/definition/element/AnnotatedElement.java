@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.type.definition.element;
+package org.qbicc.type.definition.element;
 
 import java.util.List;
 
-import cc.quarkus.qcc.type.annotation.Annotation;
+import org.qbicc.type.annotation.Annotation;
 import io.smallrye.common.constraint.Assert;
 
 /**

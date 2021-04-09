@@ -1,22 +1,22 @@
-package cc.quarkus.qcc.plugin.llvm;
+package org.qbicc.plugin.llvm;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.driver.Driver;
-import cc.quarkus.qcc.machine.tool.CCompilerInvoker;
-import cc.quarkus.qcc.machine.tool.CToolChain;
-import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
-import cc.quarkus.qcc.machine.tool.process.InputSource;
-import cc.quarkus.qcc.machine.tool.process.OutputDestination;
-import cc.quarkus.qcc.plugin.linker.Linker;
-import cc.quarkus.qcc.tool.llvm.LlcInvoker;
-import cc.quarkus.qcc.tool.llvm.LlvmToolChain;
-import cc.quarkus.qcc.tool.llvm.OutputFormat;
-import cc.quarkus.qcc.tool.llvm.RelocationModel;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.context.Location;
+import org.qbicc.driver.Driver;
+import org.qbicc.machine.tool.CCompilerInvoker;
+import org.qbicc.machine.tool.CToolChain;
+import org.qbicc.machine.tool.ToolMessageHandler;
+import org.qbicc.machine.tool.process.InputSource;
+import org.qbicc.machine.tool.process.OutputDestination;
+import org.qbicc.plugin.linker.Linker;
+import org.qbicc.tool.llvm.LlcInvoker;
+import org.qbicc.tool.llvm.LlvmToolChain;
+import org.qbicc.tool.llvm.OutputFormat;
+import org.qbicc.tool.llvm.RelocationModel;
 
 public class LLVMCompileStage implements Consumer<CompilationContext> {
     private final boolean isPie;

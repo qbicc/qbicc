@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 import java.util.Set;
 
-import cc.quarkus.qcc.machine.llvm.FastMathFlag;
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.op.FastMathBinary;
+import org.qbicc.machine.llvm.FastMathFlag;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.op.FastMathBinary;
 import io.smallrye.common.constraint.Assert;
 
 abstract class AbstractFastMathBinary extends AbstractBinary implements FastMathBinary {

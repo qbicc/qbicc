@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.type.descriptor;
+package org.qbicc.type.descriptor;
 
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
+import org.qbicc.type.definition.ClassContext;
 
 /**
  *

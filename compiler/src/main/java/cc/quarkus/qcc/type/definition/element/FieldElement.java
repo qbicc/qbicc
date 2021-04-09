@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.type.definition.element;
+package org.qbicc.type.definition.element;
 
-import cc.quarkus.qcc.graph.literal.Literal;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.generic.TypeParameterContext;
 
 /**
  *

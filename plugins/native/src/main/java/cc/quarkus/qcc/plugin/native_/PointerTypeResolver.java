@@ -1,36 +1,36 @@
-package cc.quarkus.qcc.plugin.native_;
+package org.qbicc.plugin.native_;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
+import static org.qbicc.runtime.CNative.*;
 
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.ArrayType;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.PointerType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.WordType;
-import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.annotation.IntAnnotationValue;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotation;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
-import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.generic.AnyTypeArgument;
-import cc.quarkus.qcc.type.generic.ArrayTypeSignature;
-import cc.quarkus.qcc.type.generic.BaseTypeSignature;
-import cc.quarkus.qcc.type.generic.BoundTypeArgument;
-import cc.quarkus.qcc.type.generic.ClassTypeSignature;
-import cc.quarkus.qcc.type.generic.ReferenceTypeSignature;
-import cc.quarkus.qcc.type.generic.TypeArgument;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
-import cc.quarkus.qcc.type.generic.TypeSignature;
-import cc.quarkus.qcc.type.generic.Variance;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.ArrayType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.WordType;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.IntAnnotationValue;
+import org.qbicc.type.annotation.type.TypeAnnotation;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DescriptorTypeResolver;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.AnyTypeArgument;
+import org.qbicc.type.generic.ArrayTypeSignature;
+import org.qbicc.type.generic.BaseTypeSignature;
+import org.qbicc.type.generic.BoundTypeArgument;
+import org.qbicc.type.generic.ClassTypeSignature;
+import org.qbicc.type.generic.ReferenceTypeSignature;
+import org.qbicc.type.generic.TypeArgument;
+import org.qbicc.type.generic.TypeParameterContext;
+import org.qbicc.type.generic.TypeSignature;
+import org.qbicc.type.generic.Variance;
 
 /**
  * This type resolver is responsible for translating pointer types from reference types to actual pointer types.

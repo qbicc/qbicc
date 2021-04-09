@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.tool.clang;
+package org.qbicc.machine.tool.clang;
 
 import java.nio.file.Path;
 import java.util.ArrayList;

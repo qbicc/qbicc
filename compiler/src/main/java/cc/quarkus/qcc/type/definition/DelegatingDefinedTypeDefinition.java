@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
 import java.util.List;
 
-import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
-import cc.quarkus.qcc.type.definition.classfile.BootstrapMethod;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.generic.ClassSignature;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.classfile.BootstrapMethod;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.generic.ClassSignature;
 
 /**
  *

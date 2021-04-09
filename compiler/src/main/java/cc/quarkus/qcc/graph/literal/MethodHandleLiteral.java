@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.type.MethodHandleType;
-import cc.quarkus.qcc.type.ValueType;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.type.MethodHandleType;
+import org.qbicc.type.ValueType;
 
 /**
  * A literal representing a method handle.

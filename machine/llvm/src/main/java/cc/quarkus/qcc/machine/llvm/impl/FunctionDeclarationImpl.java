@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 final class FunctionDeclarationImpl extends AbstractFunction {
     FunctionDeclarationImpl(final String name) {

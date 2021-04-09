@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
 import java.util.List;
 
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.ParameterValue;
-import cc.quarkus.qcc.graph.schedule.Schedule;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.ParameterValue;
+import org.qbicc.graph.schedule.Schedule;
 
 /**
  *

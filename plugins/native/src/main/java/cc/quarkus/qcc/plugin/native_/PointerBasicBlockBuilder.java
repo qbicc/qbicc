@@ -1,15 +1,13 @@
-package cc.quarkus.qcc.plugin.native_;
+package org.qbicc.plugin.native_;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockEarlyTermination;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
-import cc.quarkus.qcc.type.ArrayType;
-import cc.quarkus.qcc.type.PointerType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.ValueType;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockEarlyTermination;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.type.ArrayType;
+import org.qbicc.type.PointerType;
 
 /**
  * A basic block builder which handles pointer type manipulations.

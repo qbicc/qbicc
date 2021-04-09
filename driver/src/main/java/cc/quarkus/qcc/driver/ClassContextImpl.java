@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.driver;
+package org.qbicc.driver;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -7,25 +7,25 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.interpreter.VmObject;
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefineFailedException;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.generic.MethodSignature;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
-import cc.quarkus.qcc.type.generic.TypeSignature;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DefineFailedException;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.DescriptorTypeResolver;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.MethodSignature;
+import org.qbicc.type.generic.TypeParameterContext;
+import org.qbicc.type.generic.TypeSignature;
 
 /**
  *

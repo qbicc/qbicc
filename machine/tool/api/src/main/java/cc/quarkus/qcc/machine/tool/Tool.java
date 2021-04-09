@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.machine.tool;
+package org.qbicc.machine.tool;
 
-import cc.quarkus.qcc.machine.arch.Platform;
+import org.qbicc.machine.arch.Platform;
 
 /**
  * An invokable tool which may support specific target environments.

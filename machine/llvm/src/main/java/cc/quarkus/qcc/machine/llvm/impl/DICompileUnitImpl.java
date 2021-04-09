@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DICompileUnit;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.debuginfo.DICompileUnit;
+import org.qbicc.machine.llvm.debuginfo.DebugEmissionKind;
 
 import java.io.IOException;
 

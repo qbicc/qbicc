@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.plugin.lowering;
+package org.qbicc.plugin.lowering;
 
-import cc.quarkus.qcc.context.CompilationContext;
+import org.qbicc.context.CompilationContext;
 
 import java.util.function.Consumer;
 

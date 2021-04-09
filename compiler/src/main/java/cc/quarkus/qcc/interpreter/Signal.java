@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.interpreter;
+package org.qbicc.interpreter;
 
 /**
  * The set of possible signals that can be sent to a hosted VM.  This is a subset of the set of signals

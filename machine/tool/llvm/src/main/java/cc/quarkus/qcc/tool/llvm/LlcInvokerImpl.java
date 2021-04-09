@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.tool.llvm;
+package org.qbicc.tool.llvm;
 
 import java.nio.file.Path;
 import java.util.List;

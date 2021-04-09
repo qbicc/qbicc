@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.context;
+package org.qbicc.context;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.type.definition.element.Element;
+import org.qbicc.graph.Node;
+import org.qbicc.type.definition.element.Element;
 
 /**
  *

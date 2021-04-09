@@ -1,27 +1,27 @@
-package cc.quarkus.qcc.interpreter.impl;
+package org.qbicc.interpreter.impl;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.interpreter.Signal;
-import cc.quarkus.qcc.interpreter.Thrown;
-import cc.quarkus.qcc.interpreter.Vm;
-import cc.quarkus.qcc.interpreter.VmArray;
-import cc.quarkus.qcc.interpreter.VmClass;
-import cc.quarkus.qcc.interpreter.VmObject;
-import cc.quarkus.qcc.interpreter.VmThread;
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.interpreter.Signal;
+import org.qbicc.interpreter.Thrown;
+import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmArray;
+import org.qbicc.interpreter.VmClass;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmThread;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 public final class VmImpl implements Vm {

@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 public final class GetAndBitwiseXor extends AbstractReadModifyWriteValue {
     GetAndBitwiseXor(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final ValueHandle target, final Value updateValue, final MemoryAtomicityMode atomicityMode) {

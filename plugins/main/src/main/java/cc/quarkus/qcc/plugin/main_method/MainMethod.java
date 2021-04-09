@@ -1,7 +1,7 @@
-package cc.quarkus.qcc.plugin.main_method;
+package org.qbicc.plugin.main_method;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
 
 /**
  * The main method attachment.

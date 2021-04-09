@@ -1,13 +1,12 @@
-package cc.quarkus.qcc.type.definition.element;
+package org.qbicc.type.definition.element;
 
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.MethodBody;
-import cc.quarkus.qcc.type.definition.MethodBodyFactory;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.generic.MethodSignature;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.MethodBody;
+import org.qbicc.type.definition.MethodBodyFactory;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.generic.MethodSignature;
 import io.smallrye.common.constraint.Assert;
 
 /**

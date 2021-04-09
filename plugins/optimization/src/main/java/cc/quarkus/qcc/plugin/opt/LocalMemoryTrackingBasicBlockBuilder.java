@@ -1,23 +1,23 @@
-package cc.quarkus.qcc.plugin.opt;
+package org.qbicc.plugin.opt;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.ElementOf;
-import cc.quarkus.qcc.graph.MemberOf;
-import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
-import cc.quarkus.qcc.graph.ValueHandleVisitor;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.DispatchInvocation;
+import org.qbicc.graph.ElementOf;
+import org.qbicc.graph.MemberOf;
+import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.MethodElement;
 
 /**
  *

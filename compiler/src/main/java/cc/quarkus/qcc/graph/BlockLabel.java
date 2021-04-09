@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 public final class BlockLabel {
     private Object target;

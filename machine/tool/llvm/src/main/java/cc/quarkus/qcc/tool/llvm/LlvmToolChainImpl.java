@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.tool.llvm;
+package org.qbicc.tool.llvm;
 
 import java.nio.file.Path;
 
-import cc.quarkus.qcc.machine.arch.Platform;
+import org.qbicc.machine.arch.Platform;
 import io.smallrye.common.version.VersionScheme;
 
 final class LlvmToolChainImpl implements LlvmToolChain {

@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.op.ExactBinary;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.op.ExactBinary;
 
 abstract class AbstractExactBinary extends AbstractBinary implements ExactBinary {
     boolean exact;

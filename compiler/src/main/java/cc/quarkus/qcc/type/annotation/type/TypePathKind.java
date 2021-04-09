@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type.annotation.type;
+package org.qbicc.type.annotation.type;
 
 /**
  *

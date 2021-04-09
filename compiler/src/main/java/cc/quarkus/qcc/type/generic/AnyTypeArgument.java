@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.type.generic;
+package org.qbicc.type.generic;
 
-import static cc.quarkus.qcc.type.generic.Signature.*;
+import static org.qbicc.type.generic.Signature.*;
 
 import java.nio.ByteBuffer;
 

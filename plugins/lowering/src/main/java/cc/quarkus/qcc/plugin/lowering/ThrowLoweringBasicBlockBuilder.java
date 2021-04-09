@@ -1,13 +1,13 @@
-package cc.quarkus.qcc.plugin.lowering;
+package org.qbicc.plugin.lowering;
 
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.FunctionType;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Value;
+import org.qbicc.type.FunctionType;
 
 public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;

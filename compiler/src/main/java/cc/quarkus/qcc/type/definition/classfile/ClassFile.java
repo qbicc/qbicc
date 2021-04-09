@@ -1,18 +1,18 @@
-package cc.quarkus.qcc.type.definition.classfile;
+package org.qbicc.type.definition.classfile;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.ClassFileUtil;
-import cc.quarkus.qcc.type.definition.ConstructorResolver;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.FieldResolver;
-import cc.quarkus.qcc.type.definition.InitializerResolver;
-import cc.quarkus.qcc.type.definition.MethodResolver;
-import cc.quarkus.qcc.type.descriptor.Descriptor;
-import cc.quarkus.qcc.type.descriptor.MethodHandleDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.ClassFileUtil;
+import org.qbicc.type.definition.ConstructorResolver;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.FieldResolver;
+import org.qbicc.type.definition.InitializerResolver;
+import org.qbicc.type.definition.MethodResolver;
+import org.qbicc.type.descriptor.Descriptor;
+import org.qbicc.type.descriptor.MethodHandleDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  * A class file that was defined, with basic validation performed.  The constant pool is available.

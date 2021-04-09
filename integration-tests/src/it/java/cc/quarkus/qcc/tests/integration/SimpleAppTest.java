@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.tests.integration;
+package org.qbicc.tests.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -6,11 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import cc.quarkus.qcc.context.DiagnosticContext;
-import cc.quarkus.qcc.tests.integration.utils.TestConstants;
-import cc.quarkus.qcc.tests.integration.utils.Javac;
-import cc.quarkus.qcc.tests.integration.utils.NativeExecutable;
-import cc.quarkus.qcc.tests.integration.utils.Qcc;
+import org.qbicc.context.DiagnosticContext;
+import org.qbicc.tests.integration.utils.TestConstants;
+import org.qbicc.tests.integration.utils.Javac;
+import org.qbicc.tests.integration.utils.NativeExecutable;
+import org.qbicc.tests.integration.utils.Qcc;
 import org.jboss.logging.Logger;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

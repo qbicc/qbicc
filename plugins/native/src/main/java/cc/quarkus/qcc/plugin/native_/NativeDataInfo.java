@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.plugin.native_;
+package org.qbicc.plugin.native_;
 
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.element.FieldElement;
 
 /**
  *

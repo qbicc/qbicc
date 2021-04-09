@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
-import cc.quarkus.qcc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.MethodElement;
 
 /**
  *

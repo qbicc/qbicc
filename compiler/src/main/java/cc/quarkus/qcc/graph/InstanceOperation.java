@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 /**
  * An operation which dereferences an object instance.  After the operation, the value is guaranteed to be non-{@code null}.

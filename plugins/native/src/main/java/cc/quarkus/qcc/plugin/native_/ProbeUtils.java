@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.plugin.native_;
+package org.qbicc.plugin.native_;
 
-import cc.quarkus.qcc.machine.probe.CProbe;
-import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.annotation.ArrayAnnotationValue;
-import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.machine.probe.CProbe;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.ArrayAnnotationValue;
+import org.qbicc.type.annotation.StringAnnotationValue;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 final class ProbeUtils {
     private ProbeUtils() {}

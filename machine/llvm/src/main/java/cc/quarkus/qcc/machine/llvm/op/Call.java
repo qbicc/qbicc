@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.machine.llvm.op;
+package org.qbicc.machine.llvm.op;
 
 import java.util.Set;
 
-import cc.quarkus.qcc.machine.llvm.CallingConvention;
-import cc.quarkus.qcc.machine.llvm.FastMathFlag;
-import cc.quarkus.qcc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.CallingConvention;
+import org.qbicc.machine.llvm.FastMathFlag;
+import org.qbicc.machine.llvm.LLValue;
 
 /**
  *

@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.plugin.native_;
+package org.qbicc.plugin.native_;
 
-import cc.quarkus.qcc.graph.literal.Literal;
+import org.qbicc.graph.literal.Literal;
 
 final class ConstantInfo {
     final boolean defined;

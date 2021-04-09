@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.plugin.constants;
+package org.qbicc.plugin.constants;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.Value;
+import org.qbicc.type.definition.element.FieldElement;
 
 /**
  *

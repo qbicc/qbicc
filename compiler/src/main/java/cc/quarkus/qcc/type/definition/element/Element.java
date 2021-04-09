@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.type.definition.element;
+package org.qbicc.type.definition.element;
 
-import cc.quarkus.qcc.context.Locatable;
-import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import org.qbicc.context.Locatable;
+import org.qbicc.context.Location;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 
 /**
  *

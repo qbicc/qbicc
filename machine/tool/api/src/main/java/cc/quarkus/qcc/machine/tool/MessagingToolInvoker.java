@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.tool;
+package org.qbicc.machine.tool;
 
 /**
  * A tool invoker which invokes a tool that produces messages.

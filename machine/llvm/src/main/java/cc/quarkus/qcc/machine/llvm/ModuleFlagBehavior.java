@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.llvm;
+package org.qbicc.machine.llvm;
 
 public enum ModuleFlagBehavior {
     Error(1),

@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.context;
+package org.qbicc.context;
 
 /**
  * An attachment key.

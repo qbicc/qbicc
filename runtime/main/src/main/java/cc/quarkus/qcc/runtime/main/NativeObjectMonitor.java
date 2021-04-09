@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.runtime.main;
+package org.qbicc.runtime.main;
 
-import cc.quarkus.qcc.runtime.posix.PThread.pthread_mutex_t_ptr;
+import org.qbicc.runtime.posix.PThread.pthread_mutex_t_ptr;
 
 /* object wrapper for native objectmonitor mutex. */
 public class NativeObjectMonitor {

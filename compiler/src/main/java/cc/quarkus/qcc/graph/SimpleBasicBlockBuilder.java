@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,29 +8,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.graph.literal.BlockLiteral;
-import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.CompoundType;
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.WordType;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
-import cc.quarkus.qcc.type.definition.element.LocalVariableElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.context.Location;
+import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.CompoundType;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.WordType;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.LocalVariableElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import io.smallrye.common.constraint.Assert;
 
 final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuilder.ExceptionHandler {

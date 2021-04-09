@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type.descriptor;
+package org.qbicc.type.descriptor;
 
 /**
  * The kind of method handle.

@@ -1,16 +1,16 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.type.InterfaceObjectType;
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.InitializerElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.NestedClassElement;
+import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.NestedClassElement;
 import io.smallrye.common.constraint.Assert;
 
 /**

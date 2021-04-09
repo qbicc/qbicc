@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 /**
  * A node which represents an action whose side-effects are not captured as a value.

@@ -1,14 +1,14 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.util.List;
 
-import cc.quarkus.qcc.machine.llvm.Array;
-import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
-import cc.quarkus.qcc.machine.llvm.LLBuilder;
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.Module;
-import cc.quarkus.qcc.machine.llvm.Struct;
-import cc.quarkus.qcc.machine.llvm.StructType;
+import org.qbicc.machine.llvm.Array;
+import org.qbicc.machine.llvm.LLBasicBlock;
+import org.qbicc.machine.llvm.LLBuilder;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.Module;
+import org.qbicc.machine.llvm.Struct;
+import org.qbicc.machine.llvm.StructType;
 
 /**
  *

@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package org.qbicc.type;
 
 /**
  * The type representing method descriptor literals, which are always {@code const}, have no size and are incomplete.

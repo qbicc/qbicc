@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.Arrays;
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  *

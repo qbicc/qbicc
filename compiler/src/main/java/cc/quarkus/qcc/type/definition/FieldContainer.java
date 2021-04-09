@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
-import cc.quarkus.qcc.interpreter.VmObject;
+import org.qbicc.interpreter.VmObject;
 import io.smallrye.common.constraint.Assert;
 
 public interface FieldContainer {

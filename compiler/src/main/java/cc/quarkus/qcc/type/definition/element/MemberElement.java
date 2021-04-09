@@ -1,7 +1,6 @@
-package cc.quarkus.qcc.type.definition.element;
+package org.qbicc.type.definition.element;
 
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.classfile.ClassFile;
 
 /**
  * An element which is a member of a type.

@@ -1,18 +1,18 @@
-package cc.quarkus.qcc.plugin.main_method;
+package org.qbicc.plugin.main_method;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  *

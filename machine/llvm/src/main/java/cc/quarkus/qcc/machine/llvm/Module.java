@@ -1,22 +1,22 @@
-package cc.quarkus.qcc.machine.llvm;
+package org.qbicc.machine.llvm;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIBasicType;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DICompileUnit;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DICompositeType;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIDerivedType;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIEncoding;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIFile;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DILocation;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISubrange;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISubroutineType;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DITag;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
-import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataTuple;
-import cc.quarkus.qcc.machine.llvm.impl.LLVM;
+import org.qbicc.machine.llvm.debuginfo.DIBasicType;
+import org.qbicc.machine.llvm.debuginfo.DICompileUnit;
+import org.qbicc.machine.llvm.debuginfo.DICompositeType;
+import org.qbicc.machine.llvm.debuginfo.DIDerivedType;
+import org.qbicc.machine.llvm.debuginfo.DIEncoding;
+import org.qbicc.machine.llvm.debuginfo.DIFile;
+import org.qbicc.machine.llvm.debuginfo.DILocation;
+import org.qbicc.machine.llvm.debuginfo.DISubprogram;
+import org.qbicc.machine.llvm.debuginfo.DISubrange;
+import org.qbicc.machine.llvm.debuginfo.DISubroutineType;
+import org.qbicc.machine.llvm.debuginfo.DITag;
+import org.qbicc.machine.llvm.debuginfo.DebugEmissionKind;
+import org.qbicc.machine.llvm.debuginfo.MetadataTuple;
+import org.qbicc.machine.llvm.impl.LLVM;
 
 /**
  *

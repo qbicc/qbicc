@@ -1,14 +1,14 @@
-package cc.quarkus.qcc.plugin.lowering;
+package org.qbicc.plugin.lowering;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.ValueHandle;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.object.Section;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.object.Section;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.element.FieldElement;
 
 /**
  *

@@ -38,7 +38,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>./lib</classpathPrefix>
-                            <mainClass>cc.quarkus.qcc.main.Main</mainClass>
+                            <mainClass>org.qbicc.main.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

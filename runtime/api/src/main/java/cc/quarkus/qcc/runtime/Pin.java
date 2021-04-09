@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.runtime;
+package org.qbicc.runtime;
 
 /**
  * A pin of a GC-able reference object. Holds the object in one memory location for the duration of the pin.

@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.plugin.constants;
+package org.qbicc.plugin.constants;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.StaticField;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.StaticField;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
 
 /**
  * A basic block builder which substitutes reads from constant static fields with the constant value of the field.

@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.machine.tool.gnu;
+package org.qbicc.machine.tool.gnu;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import cc.quarkus.qcc.machine.tool.process.InputSource;
+import org.qbicc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
 
 final class GnuCCompilerInvokerImpl extends AbstractGccInvoker implements GnuCCompilerInvoker {

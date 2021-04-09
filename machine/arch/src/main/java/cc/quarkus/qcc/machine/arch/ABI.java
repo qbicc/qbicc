@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.arch;
+package org.qbicc.machine.arch;
 
 import java.util.Locale;
 import java.util.Map;

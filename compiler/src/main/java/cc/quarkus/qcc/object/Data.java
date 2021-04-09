@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.object;
+package org.qbicc.object;
 
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.type.definition.element.Element;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.type.definition.element.Element;
 
 /**
  * A data object definition.

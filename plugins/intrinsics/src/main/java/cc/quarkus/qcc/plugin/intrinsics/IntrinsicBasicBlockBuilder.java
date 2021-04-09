@@ -1,17 +1,17 @@
-package cc.quarkus.qcc.plugin.intrinsics;
+package org.qbicc.plugin.intrinsics;
 
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.driver.Phase;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.driver.Phase;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.DispatchInvocation;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.Value;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 import org.jboss.logging.Logger;
 
 /**

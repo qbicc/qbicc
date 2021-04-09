@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.probe;
+package org.qbicc.machine.probe;
 
 /**
  *

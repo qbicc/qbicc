@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.type.annotation.type;
+package org.qbicc.type.annotation.type;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.classfile.ClassFile;
 
 /**
  * A type annotation.

@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIFlags;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISPFlags;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
-import cc.quarkus.qcc.machine.llvm.debuginfo.Virtuality;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.debuginfo.DIFlags;
+import org.qbicc.machine.llvm.debuginfo.DISPFlags;
+import org.qbicc.machine.llvm.debuginfo.DISubprogram;
+import org.qbicc.machine.llvm.debuginfo.Virtuality;
 import io.smallrye.common.constraint.Assert;
 
 import java.io.IOException;

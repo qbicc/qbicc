@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISubrange;
+import org.qbicc.machine.llvm.debuginfo.DISubrange;
 
 import java.io.IOException;
 

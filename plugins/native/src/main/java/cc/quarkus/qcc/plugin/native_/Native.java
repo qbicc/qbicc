@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.plugin.native_;
+package org.qbicc.plugin.native_;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
+import static org.qbicc.runtime.CNative.*;
 
 import java.util.List;
 import java.util.function.IntFunction;
 
-import cc.quarkus.qcc.runtime.CNative;
+import org.qbicc.runtime.CNative;
 
 final class Native {
     static final String C_NATIVE = className(CNative.class);

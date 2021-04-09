@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.probe;
+package org.qbicc.machine.probe;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -15,16 +15,16 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-import cc.quarkus.qcc.context.DiagnosticContext;
-import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.machine.object.ObjectFile;
-import cc.quarkus.qcc.machine.object.ObjectFileProvider;
-import cc.quarkus.qcc.machine.tool.CCompilerInvoker;
-import cc.quarkus.qcc.machine.tool.CToolChain;
-import cc.quarkus.qcc.machine.tool.CompilationFailureException;
-import cc.quarkus.qcc.machine.tool.ToolInvoker;
-import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
-import cc.quarkus.qcc.machine.tool.process.InputSource;
+import org.qbicc.context.DiagnosticContext;
+import org.qbicc.context.Location;
+import org.qbicc.machine.object.ObjectFile;
+import org.qbicc.machine.object.ObjectFileProvider;
+import org.qbicc.machine.tool.CCompilerInvoker;
+import org.qbicc.machine.tool.CToolChain;
+import org.qbicc.machine.tool.CompilationFailureException;
+import org.qbicc.machine.tool.ToolInvoker;
+import org.qbicc.machine.tool.ToolMessageHandler;
+import org.qbicc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
 
 /**

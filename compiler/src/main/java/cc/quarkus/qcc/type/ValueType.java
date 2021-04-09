@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package org.qbicc.type;
 
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;

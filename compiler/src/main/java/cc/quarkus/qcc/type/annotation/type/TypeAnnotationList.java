@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.type.annotation.type;
+package org.qbicc.type.annotation.type;
 
-import static cc.quarkus.qcc.type.annotation.type.TypeAnnotation.*;
+import static org.qbicc.type.annotation.type.TypeAnnotation.*;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -8,8 +8,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Predicate;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.classfile.ClassFile;
 
 /**
  * A hierarchical type annotation list.

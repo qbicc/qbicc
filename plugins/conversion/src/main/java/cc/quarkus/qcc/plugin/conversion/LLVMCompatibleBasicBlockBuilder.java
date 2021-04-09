@@ -1,30 +1,30 @@
-package cc.quarkus.qcc.plugin.conversion;
+package org.qbicc.plugin.conversion;
 
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.driver.Driver;
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.Triable;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
-import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.graph.literal.Literal;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.plugin.unwind.UnwindHelper;
-import cc.quarkus.qcc.type.FloatType;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.NumericType;
-import cc.quarkus.qcc.type.SignedIntegerType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.UnsignedIntegerType;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.driver.Driver;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.Triable;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.object.Function;
+import org.qbicc.plugin.unwind.UnwindHelper;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.NumericType;
+import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.UnsignedIntegerType;
 
 public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;

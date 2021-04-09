@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.op.Binary;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.op.Binary;
 
 abstract class AbstractBinary extends AbstractYieldingInstruction implements Binary {
     final AbstractValue type;

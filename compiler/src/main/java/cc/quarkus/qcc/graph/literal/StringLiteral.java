@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.type.ReferenceType;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.type.ReferenceType;
 
 /**
  *

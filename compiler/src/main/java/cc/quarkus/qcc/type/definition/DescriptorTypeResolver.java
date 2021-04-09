@@ -1,16 +1,16 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
 import java.util.List;
 
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.generic.MethodSignature;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
-import cc.quarkus.qcc.type.generic.TypeSignature;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.MethodSignature;
+import org.qbicc.type.generic.TypeParameterContext;
+import org.qbicc.type.generic.TypeSignature;
 
 /**
  * A resolver which converts descriptors into usable types.

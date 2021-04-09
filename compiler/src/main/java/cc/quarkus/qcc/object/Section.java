@@ -1,16 +1,16 @@
-package cc.quarkus.qcc.object;
+package org.qbicc.object;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.MemberElement;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.MemberElement;
 import io.smallrye.common.constraint.Assert;
 
 /**

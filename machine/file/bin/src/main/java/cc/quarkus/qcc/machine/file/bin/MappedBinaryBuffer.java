@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.file.bin;
+package org.qbicc.machine.file.bin;
 
 import java.nio.MappedByteBuffer;
 

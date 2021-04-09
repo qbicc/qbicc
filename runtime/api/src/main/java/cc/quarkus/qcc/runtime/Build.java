@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.runtime;
+package org.qbicc.runtime;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
+import static org.qbicc.runtime.CNative.*;
 
 import java.util.Locale;
 import java.util.function.BooleanSupplier;

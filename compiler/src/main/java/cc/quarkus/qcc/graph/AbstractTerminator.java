@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 abstract class AbstractTerminator extends AbstractNode implements Terminator {
     private Map<PhiValue, Value> outboundValues = Map.of();

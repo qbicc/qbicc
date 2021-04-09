@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.machine.tool.clang;
+package org.qbicc.machine.tool.clang;
 
 import java.nio.file.Path;
 
-import cc.quarkus.qcc.machine.arch.Platform;
+import org.qbicc.machine.arch.Platform;
 import io.smallrye.common.version.VersionScheme;
 
 final class ClangToolChainImpl implements ClangToolChain {

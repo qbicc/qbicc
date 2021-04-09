@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
-import cc.quarkus.qcc.machine.llvm.op.Store;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.op.OrderingConstraint;
+import org.qbicc.machine.llvm.op.Store;
 import io.smallrye.common.constraint.Assert;
 
 final class StoreImpl extends AbstractInstruction implements Store {

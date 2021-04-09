@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.object;
+package org.qbicc.object;
 
 /**
  *

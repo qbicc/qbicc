@@ -1,16 +1,16 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.AddressNaming;
-import cc.quarkus.qcc.machine.llvm.CallingConvention;
-import cc.quarkus.qcc.machine.llvm.DllStorageClass;
-import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
-import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.Linkage;
-import cc.quarkus.qcc.machine.llvm.RuntimePreemption;
-import cc.quarkus.qcc.machine.llvm.Visibility;
+import org.qbicc.machine.llvm.AddressNaming;
+import org.qbicc.machine.llvm.CallingConvention;
+import org.qbicc.machine.llvm.DllStorageClass;
+import org.qbicc.machine.llvm.FunctionDefinition;
+import org.qbicc.machine.llvm.LLBasicBlock;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.Linkage;
+import org.qbicc.machine.llvm.RuntimePreemption;
+import org.qbicc.machine.llvm.Visibility;
 import io.smallrye.common.constraint.Assert;
 
 /**

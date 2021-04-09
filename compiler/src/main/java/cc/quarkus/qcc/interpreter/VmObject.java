@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.interpreter;
+package org.qbicc.interpreter;
 
-import cc.quarkus.qcc.type.PhysicalObjectType;
+import org.qbicc.type.PhysicalObjectType;
 
 /**
  * A Java object handle.

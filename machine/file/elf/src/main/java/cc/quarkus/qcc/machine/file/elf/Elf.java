@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.machine.file.elf;
+package org.qbicc.machine.file.elf;
 
 import java.nio.ByteOrder;
 import java.util.Objects;
 
-import cc.quarkus.qcc.machine.arch.Cpu;
+import org.qbicc.machine.arch.Cpu;
 
 /**
  *

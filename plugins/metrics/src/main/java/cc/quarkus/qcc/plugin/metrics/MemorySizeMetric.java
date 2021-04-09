@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.plugin.metrics;
+package org.qbicc.plugin.metrics;
 
 public final class MemorySizeMetric extends Metric<MemorySizeMetric> {
 

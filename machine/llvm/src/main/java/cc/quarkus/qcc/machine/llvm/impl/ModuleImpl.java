@@ -1,32 +1,32 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.machine.llvm.Function;
-import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
-import cc.quarkus.qcc.machine.llvm.Global;
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.Module;
-import cc.quarkus.qcc.machine.llvm.IdentifiedType;
-import cc.quarkus.qcc.machine.llvm.ModuleFlagBehavior;
-import cc.quarkus.qcc.machine.llvm.Types;
-import cc.quarkus.qcc.machine.llvm.Values;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIBasicType;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DICompileUnit;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DICompositeType;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIDerivedType;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIEncoding;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIFile;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DILocation;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISubprogram;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISubrange;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISubroutineType;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DITag;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DebugEmissionKind;
-import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataTuple;
+import org.qbicc.machine.llvm.Function;
+import org.qbicc.machine.llvm.FunctionDefinition;
+import org.qbicc.machine.llvm.Global;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.Module;
+import org.qbicc.machine.llvm.IdentifiedType;
+import org.qbicc.machine.llvm.ModuleFlagBehavior;
+import org.qbicc.machine.llvm.Types;
+import org.qbicc.machine.llvm.Values;
+import org.qbicc.machine.llvm.debuginfo.DIBasicType;
+import org.qbicc.machine.llvm.debuginfo.DICompileUnit;
+import org.qbicc.machine.llvm.debuginfo.DICompositeType;
+import org.qbicc.machine.llvm.debuginfo.DIDerivedType;
+import org.qbicc.machine.llvm.debuginfo.DIEncoding;
+import org.qbicc.machine.llvm.debuginfo.DIFile;
+import org.qbicc.machine.llvm.debuginfo.DILocation;
+import org.qbicc.machine.llvm.debuginfo.DISubprogram;
+import org.qbicc.machine.llvm.debuginfo.DISubrange;
+import org.qbicc.machine.llvm.debuginfo.DISubroutineType;
+import org.qbicc.machine.llvm.debuginfo.DITag;
+import org.qbicc.machine.llvm.debuginfo.DebugEmissionKind;
+import org.qbicc.machine.llvm.debuginfo.MetadataTuple;
 import io.smallrye.common.constraint.Assert;
 
 /**

@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.llvm.op;
+package org.qbicc.machine.llvm.op;
 
 /**
  *

@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.type.CompoundType;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.type.CompoundType;
 
 /**
  *

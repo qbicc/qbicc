@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.runtime.posix;
+package org.qbicc.runtime.posix;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
-import static cc.quarkus.qcc.runtime.stdc.Signal.*;
-import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
+import static org.qbicc.runtime.CNative.*;
+import static org.qbicc.runtime.stdc.Signal.*;
+import static org.qbicc.runtime.stdc.Stddef.*;
 
 import java.util.function.UnaryOperator;
 
-import cc.quarkus.qcc.runtime.NoReturn;
+import org.qbicc.runtime.NoReturn;
 
 /**
  *

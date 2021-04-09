@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.tool;
+package org.qbicc.machine.tool;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -8,8 +8,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
-import cc.quarkus.qcc.machine.arch.Platform;
-import cc.quarkus.qcc.machine.tool.process.InputSource;
+import org.qbicc.machine.arch.Platform;
+import org.qbicc.machine.tool.process.InputSource;
 
 /**
  *

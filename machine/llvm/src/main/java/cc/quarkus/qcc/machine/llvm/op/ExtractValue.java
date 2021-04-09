@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.machine.llvm.op;
+package org.qbicc.machine.llvm.op;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.LLValue;
 
 /**
  * Mapping of the LLVM {@code extractvalue} instruction.

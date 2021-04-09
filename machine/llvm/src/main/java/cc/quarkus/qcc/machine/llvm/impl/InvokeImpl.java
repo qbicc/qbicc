@@ -1,15 +1,15 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 import java.util.Set;
 
-import cc.quarkus.qcc.machine.llvm.CallingConvention;
-import cc.quarkus.qcc.machine.llvm.FastMathFlag;
-import cc.quarkus.qcc.machine.llvm.SignExtension;
-import cc.quarkus.qcc.machine.llvm.TailType;
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.Types;
-import cc.quarkus.qcc.machine.llvm.op.Call;
+import org.qbicc.machine.llvm.CallingConvention;
+import org.qbicc.machine.llvm.FastMathFlag;
+import org.qbicc.machine.llvm.SignExtension;
+import org.qbicc.machine.llvm.TailType;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.Types;
+import org.qbicc.machine.llvm.op.Call;
 import io.smallrye.common.constraint.Assert;
 
 final class InvokeImpl extends AbstractYieldingInstruction implements Call {

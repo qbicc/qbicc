@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 /**
  * A node which may be triable if an exception handling context is active.

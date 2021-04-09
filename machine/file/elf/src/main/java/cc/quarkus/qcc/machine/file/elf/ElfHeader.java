@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.machine.file.elf;
+package org.qbicc.machine.file.elf;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import cc.quarkus.qcc.machine.file.bin.BinaryBuffer;
+import org.qbicc.machine.file.bin.BinaryBuffer;
 
 /**
  *

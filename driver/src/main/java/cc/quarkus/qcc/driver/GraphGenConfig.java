@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.driver;
+package org.qbicc.driver;
 
-import cc.quarkus.qcc.type.definition.element.Element;
+import org.qbicc.type.definition.element.Element;
 
 import java.util.ArrayList;
 import java.util.Arrays;

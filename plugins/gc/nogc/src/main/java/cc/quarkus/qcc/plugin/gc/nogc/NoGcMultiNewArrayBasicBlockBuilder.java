@@ -1,24 +1,20 @@
-package cc.quarkus.qcc.plugin.gc.nogc;
+package org.qbicc.plugin.gc.nogc;
 
 import java.util.Iterator;
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockEarlyTermination;
-import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.PhiValue;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.Descriptor;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockEarlyTermination;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.Descriptor;
 
 /**
  *

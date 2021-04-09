@@ -1,13 +1,13 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOError;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIFlags;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DISPFlags;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.debuginfo.DIFlags;
+import org.qbicc.machine.llvm.debuginfo.DISPFlags;
 
 abstract class AbstractEmittable implements Emittable {
     public abstract Appendable appendTo(Appendable target) throws IOException;

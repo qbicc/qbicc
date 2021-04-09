@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.runtime.linux;
+package org.qbicc.runtime.linux;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
-import static cc.quarkus.qcc.runtime.stdc.Signal.*;
-import static cc.quarkus.qcc.runtime.stdc.Stdint.*;
+import static org.qbicc.runtime.CNative.*;
+import static org.qbicc.runtime.stdc.Signal.*;
+import static org.qbicc.runtime.stdc.Stdint.*;
 
 /**
  *

@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.FloatCondition;
+import org.qbicc.machine.llvm.FloatCondition;
 
 final class FCmpImpl extends AbstractFastMathBinary {
     private final FloatCondition cond;

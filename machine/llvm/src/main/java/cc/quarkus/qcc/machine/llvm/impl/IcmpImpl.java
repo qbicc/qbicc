@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.IntCondition;
+import org.qbicc.machine.llvm.IntCondition;
 
 final class IcmpImpl extends AbstractBinary {
     private final IntCondition cond;

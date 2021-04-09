@@ -1,33 +1,33 @@
-package cc.quarkus.qcc.plugin.native_;
+package org.qbicc.plugin.native_;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.driver.Driver;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.CheckCast;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.StaticField;
-import cc.quarkus.qcc.graph.StaticInvocationValue;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.machine.probe.CProbe;
-import cc.quarkus.qcc.plugin.constants.Constants;
-import cc.quarkus.qcc.runtime.CNative;
-import cc.quarkus.qcc.type.FloatType;
-import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.annotation.StringAnnotationValue;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.InitializerElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.context.Location;
+import org.qbicc.driver.Driver;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.CheckCast;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.StaticField;
+import org.qbicc.graph.StaticInvocationValue;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.machine.probe.CProbe;
+import org.qbicc.plugin.constants.Constants;
+import org.qbicc.runtime.CNative;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.StringAnnotationValue;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 /**
  * This block builder replaces calls to the {@link CNative#constant()} method with a registration of the constant

@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
 import java.nio.ByteBuffer;
 

@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.HashSet;
 import java.util.Objects;

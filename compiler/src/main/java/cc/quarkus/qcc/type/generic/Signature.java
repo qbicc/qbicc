@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type.generic;
+package org.qbicc.type.generic;
 
 import java.nio.ByteBuffer;
 

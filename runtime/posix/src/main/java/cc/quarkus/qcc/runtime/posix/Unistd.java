@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.runtime.posix;
+package org.qbicc.runtime.posix;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
-import static cc.quarkus.qcc.runtime.posix.SysTypes.*;
-import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
+import static org.qbicc.runtime.CNative.*;
+import static org.qbicc.runtime.posix.SysTypes.*;
+import static org.qbicc.runtime.stdc.Stddef.*;
 
-import cc.quarkus.qcc.runtime.Build;
+import org.qbicc.runtime.Build;
 
 /**
  *

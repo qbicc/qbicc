@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.machine.tool.process;
+package org.qbicc.machine.tool.process;
 
-import static cc.quarkus.qcc.machine.tool.process.InputSource.*;
+import static org.qbicc.machine.tool.process.InputSource.*;
 
 import java.io.Closeable;
 import java.io.IOException;

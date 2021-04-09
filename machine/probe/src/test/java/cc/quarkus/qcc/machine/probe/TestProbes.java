@@ -1,16 +1,16 @@
-package cc.quarkus.qcc.machine.probe;
+package org.qbicc.machine.probe;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Iterator;
 import java.util.List;
 
-import cc.quarkus.qcc.machine.arch.ObjectType;
-import cc.quarkus.qcc.machine.arch.Platform;
-import cc.quarkus.qcc.machine.object.ObjectFileProvider;
-import cc.quarkus.qcc.machine.tool.CToolChain;
-import cc.quarkus.qcc.machine.tool.ToolProvider;
-import cc.quarkus.qcc.machine.tool.ToolUtil;
+import org.qbicc.machine.arch.ObjectType;
+import org.qbicc.machine.arch.Platform;
+import org.qbicc.machine.object.ObjectFileProvider;
+import org.qbicc.machine.tool.CToolChain;
+import org.qbicc.machine.tool.ToolProvider;
+import org.qbicc.machine.tool.ToolUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

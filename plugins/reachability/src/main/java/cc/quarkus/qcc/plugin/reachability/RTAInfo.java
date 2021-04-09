@@ -1,17 +1,14 @@
-package cc.quarkus.qcc.plugin.reachability;
+package org.qbicc.plugin.reachability;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.InterfaceObjectType;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.definition.ValidatedTypeDefinition;
 
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 
 public class RTAInfo {

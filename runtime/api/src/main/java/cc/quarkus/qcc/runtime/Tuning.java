@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.runtime;
+package org.qbicc.runtime;
 
 /**
  *

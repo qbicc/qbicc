@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.context;
+package org.qbicc.context;
 
 /**
  * A context or element which can yield a location for diagnostic reporting.

@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.plugin.llvm;
+package org.qbicc.plugin.llvm;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -7,34 +7,34 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.graph.literal.Literal;
-import cc.quarkus.qcc.graph.schedule.Schedule;
-import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
-import cc.quarkus.qcc.machine.llvm.Global;
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.Linkage;
-import cc.quarkus.qcc.machine.llvm.Module;
-import cc.quarkus.qcc.machine.llvm.ModuleFlagBehavior;
-import cc.quarkus.qcc.machine.llvm.ThreadLocalStorageModel;
-import cc.quarkus.qcc.machine.llvm.Types;
-import cc.quarkus.qcc.machine.llvm.Values;
-import cc.quarkus.qcc.object.Data;
-import cc.quarkus.qcc.object.DataDeclaration;
-import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.object.FunctionDeclaration;
-import cc.quarkus.qcc.object.ProgramModule;
-import cc.quarkus.qcc.object.ProgramObject;
-import cc.quarkus.qcc.object.Section;
-import cc.quarkus.qcc.object.ThreadLocalMode;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.VariadicType;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.MethodBody;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.schedule.Schedule;
+import org.qbicc.machine.llvm.FunctionDefinition;
+import org.qbicc.machine.llvm.Global;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.Linkage;
+import org.qbicc.machine.llvm.Module;
+import org.qbicc.machine.llvm.ModuleFlagBehavior;
+import org.qbicc.machine.llvm.ThreadLocalStorageModel;
+import org.qbicc.machine.llvm.Types;
+import org.qbicc.machine.llvm.Values;
+import org.qbicc.object.Data;
+import org.qbicc.object.DataDeclaration;
+import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
+import org.qbicc.object.ProgramModule;
+import org.qbicc.object.ProgramObject;
+import org.qbicc.object.Section;
+import org.qbicc.object.ThreadLocalMode;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.VariadicType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.MethodBody;
+import org.qbicc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 /**
@@ -97,7 +97,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                         nodeVisitor.execute();
                     } else if (item instanceof FunctionDeclaration) {
                         FunctionDeclaration fn = (FunctionDeclaration) item;
-                        cc.quarkus.qcc.machine.llvm.Function decl = module.declare(name).linkage(linkage);
+                        org.qbicc.machine.llvm.Function decl = module.declare(name).linkage(linkage);
                         FunctionType fnType = fn.getType();
                         decl.returns(moduleVisitor.map(fnType.getReturnType()));
                         int cnt = fnType.getParameterCount();
@@ -159,7 +159,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
         }
     }
 
-    Linkage map(cc.quarkus.qcc.object.Linkage linkage) {
+    Linkage map(org.qbicc.object.Linkage linkage) {
         switch (linkage) {
             case COMMON: return Linkage.COMMON;
             case INTERNAL: return Linkage.INTERNAL;

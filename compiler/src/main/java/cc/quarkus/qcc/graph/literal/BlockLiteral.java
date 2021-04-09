@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.type.BlockType;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.type.BlockType;
 
 public final class BlockLiteral extends Literal {
     private final BlockType type;

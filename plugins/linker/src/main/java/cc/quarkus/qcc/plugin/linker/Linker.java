@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.plugin.linker;
+package org.qbicc.plugin.linker;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -6,8 +6,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
 
 /**
  * The image linker API.

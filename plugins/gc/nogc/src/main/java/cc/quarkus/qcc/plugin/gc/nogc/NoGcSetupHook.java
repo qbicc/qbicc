@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.plugin.gc.nogc;
+package org.qbicc.plugin.gc.nogc;
 
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.context.CompilationContext;
+import org.qbicc.context.CompilationContext;
 
 /**
  *

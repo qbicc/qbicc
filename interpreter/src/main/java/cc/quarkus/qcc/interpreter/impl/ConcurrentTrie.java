@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.interpreter.impl;
+package org.qbicc.interpreter.impl;
 
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;

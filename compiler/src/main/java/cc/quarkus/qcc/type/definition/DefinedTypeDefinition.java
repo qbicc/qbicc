@@ -1,23 +1,23 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.ObjIntConsumer;
 
-import cc.quarkus.qcc.context.Locatable;
-import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
-import cc.quarkus.qcc.type.definition.classfile.BootstrapMethod;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.InitializerElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.generic.ClassSignature;
-import cc.quarkus.qcc.type.generic.TypeParameter;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
+import org.qbicc.context.Locatable;
+import org.qbicc.context.Location;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.classfile.BootstrapMethod;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.generic.ClassSignature;
+import org.qbicc.type.generic.TypeParameter;
+import org.qbicc.type.generic.TypeParameterContext;
 
 /**
  *

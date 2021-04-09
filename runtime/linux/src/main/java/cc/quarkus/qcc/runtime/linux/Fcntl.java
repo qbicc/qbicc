@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.runtime.linux;
+package org.qbicc.runtime.linux;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
-import static cc.quarkus.qcc.runtime.posix.SysTypes.*;
-import static cc.quarkus.qcc.runtime.posix.SysUio.*;
-import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
+import static org.qbicc.runtime.CNative.*;
+import static org.qbicc.runtime.posix.SysTypes.*;
+import static org.qbicc.runtime.posix.SysUio.*;
+import static org.qbicc.runtime.stdc.Stddef.*;
 
 /**
  *

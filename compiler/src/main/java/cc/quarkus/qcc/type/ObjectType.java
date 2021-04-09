@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.type;
+package org.qbicc.type;
 
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 
 /**
  * A value type which refers to something that can be referred to by {@linkplain ReferenceType reference}.

@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.type;
+package org.qbicc.type;
 
-import cc.quarkus.qcc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
 
 /**
  * An integer type.

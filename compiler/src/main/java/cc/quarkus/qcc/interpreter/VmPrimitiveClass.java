@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.interpreter;
+package org.qbicc.interpreter;
 
-import cc.quarkus.qcc.type.ValueType;
+import org.qbicc.type.ValueType;
 
 /**
  * A primitive class (or {@code void}).

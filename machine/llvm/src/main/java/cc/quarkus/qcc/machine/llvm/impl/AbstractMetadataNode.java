@@ -1,7 +1,7 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.debuginfo.MetadataNode;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.debuginfo.MetadataNode;
 
 import java.io.IOException;
 

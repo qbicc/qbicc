@@ -1,13 +1,13 @@
-package cc.quarkus.qcc.type.generic;
+package org.qbicc.type.generic;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  *

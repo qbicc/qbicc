@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.plugin.dispatch;
+package org.qbicc.plugin.dispatch;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.*;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.*;
+import org.qbicc.type.definition.element.MethodElement;
 import org.jboss.logging.Logger;
 
 import java.util.List;

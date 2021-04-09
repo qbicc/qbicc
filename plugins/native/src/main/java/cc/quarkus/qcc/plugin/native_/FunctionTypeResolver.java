@@ -1,27 +1,27 @@
-package cc.quarkus.qcc.plugin.native_;
+package org.qbicc.plugin.native_;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
+import static org.qbicc.runtime.CNative.*;
 
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.generic.AnyTypeArgument;
-import cc.quarkus.qcc.type.generic.BoundTypeArgument;
-import cc.quarkus.qcc.type.generic.ClassTypeSignature;
-import cc.quarkus.qcc.type.generic.ReferenceTypeSignature;
-import cc.quarkus.qcc.type.generic.TypeArgument;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
-import cc.quarkus.qcc.type.generic.TypeSignature;
-import cc.quarkus.qcc.type.generic.Variance;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.DescriptorTypeResolver;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.AnyTypeArgument;
+import org.qbicc.type.generic.BoundTypeArgument;
+import org.qbicc.type.generic.ClassTypeSignature;
+import org.qbicc.type.generic.ReferenceTypeSignature;
+import org.qbicc.type.generic.TypeArgument;
+import org.qbicc.type.generic.TypeParameterContext;
+import org.qbicc.type.generic.TypeSignature;
+import org.qbicc.type.generic.Variance;
 
 /**
  * A type resolver which resolves function types.

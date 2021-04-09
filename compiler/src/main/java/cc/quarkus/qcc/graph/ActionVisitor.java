@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 /**
  * A visitor over a graph of non-value action nodes.  Non-value action nodes form a directed acyclic graph (DAG).

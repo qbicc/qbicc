@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.PhysicalObjectType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
+import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
 
 /**
  * An extracted field value of an object value (not a reference).

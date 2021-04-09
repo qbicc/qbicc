@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.type;
+package org.qbicc.type;
 
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 
 /**
  * A physical object that is some kind of array.

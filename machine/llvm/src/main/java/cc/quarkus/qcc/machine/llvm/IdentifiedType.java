@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.llvm;
+package org.qbicc.machine.llvm;
 
 public interface IdentifiedType extends Commentable {
     LLValue asTypeRef();

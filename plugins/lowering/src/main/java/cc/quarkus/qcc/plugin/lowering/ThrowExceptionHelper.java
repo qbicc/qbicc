@@ -1,15 +1,15 @@
-package cc.quarkus.qcc.plugin.lowering;
+package org.qbicc.plugin.lowering;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.generic.TypeSignature;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.generic.TypeSignature;
 
 public class ThrowExceptionHelper {
     private static final AttachmentKey<ThrowExceptionHelper> KEY = new AttachmentKey<>();

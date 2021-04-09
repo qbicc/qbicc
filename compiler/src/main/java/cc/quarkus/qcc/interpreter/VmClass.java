@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.interpreter;
+package org.qbicc.interpreter;
 
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.ValidatedTypeDefinition;
 
 /**
  *

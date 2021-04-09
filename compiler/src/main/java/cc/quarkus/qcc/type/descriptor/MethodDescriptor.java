@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type.descriptor;
+package org.qbicc.type.descriptor;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
+import org.qbicc.type.definition.ClassContext;
 
 /**
  *
@@ -96,7 +96,7 @@ public final class MethodDescriptor extends Descriptor {
     }
 
     public static MethodDescriptor synthesize(ClassContext classContext, TypeDescriptor returnType, List<TypeDescriptor> paramTypes) {
-        return cc.quarkus.qcc.type.descriptor.Cache.get(classContext).getMethodDescriptor(paramTypes, returnType);
+        return org.qbicc.type.descriptor.Cache.get(classContext).getMethodDescriptor(paramTypes, returnType);
     }
 
     public static final MethodDescriptor VOID_METHOD_DESCRIPTOR = new MethodDescriptor(List.of(), BaseTypeDescriptor.V);

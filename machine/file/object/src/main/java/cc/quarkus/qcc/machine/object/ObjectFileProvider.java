@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.object;
+package org.qbicc.machine.object;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 
-import cc.quarkus.qcc.machine.arch.ObjectType;
+import org.qbicc.machine.arch.ObjectType;
 import io.smallrye.common.constraint.Assert;
 
 /**

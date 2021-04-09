@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
-import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
+import org.qbicc.machine.llvm.FunctionDefinition;
+import org.qbicc.machine.llvm.LLBasicBlock;
 import io.smallrye.common.constraint.Assert;
 
 /**

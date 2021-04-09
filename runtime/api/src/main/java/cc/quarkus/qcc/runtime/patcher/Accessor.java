@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.runtime.patcher;
+package org.qbicc.runtime.patcher;
 
 /**
  * A replacement accessor for some field. The implemented accessor method should match the type of the field.

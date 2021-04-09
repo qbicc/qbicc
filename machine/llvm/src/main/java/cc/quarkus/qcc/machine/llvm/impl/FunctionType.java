@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.LLValue;
 
 final class FunctionType extends AbstractValue {
     final LLValue returnType;

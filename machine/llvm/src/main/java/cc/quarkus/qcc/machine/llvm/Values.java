@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.machine.llvm;
+package org.qbicc.machine.llvm;
 
-import cc.quarkus.qcc.machine.llvm.impl.LLVM;
+import org.qbicc.machine.llvm.impl.LLVM;
 
 /**
  *

@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.type.generic;
+package org.qbicc.type.generic;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 /**
  * Some class (or interface).  Does not specify whether the class is accessed by reference or by value.

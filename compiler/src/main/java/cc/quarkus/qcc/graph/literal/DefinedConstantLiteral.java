@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.type.ValueType;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.type.ValueType;
 
 /**
  * A constant that is defined.  The value of the constant may be a literal, a symbol reference, or even a complex

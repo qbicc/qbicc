@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.driver;
+package org.qbicc.driver;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

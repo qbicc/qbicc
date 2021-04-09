@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.runtime.main;
+package org.qbicc.runtime.main;
 
-import cc.quarkus.qcc.runtime.CNative;
+import org.qbicc.runtime.CNative;
 
 /**
  * Intrinsics for accessing implementation-dependent object header fields

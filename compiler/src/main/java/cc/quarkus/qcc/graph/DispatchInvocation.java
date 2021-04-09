@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.Locale;
 
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.classfile.ClassFile;
 
 /**
  *

@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.SignedIntegerType;
-import cc.quarkus.qcc.type.ValueType;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.ValueType;
 
 public final class IntegerLiteral extends Literal {
     private final long value;

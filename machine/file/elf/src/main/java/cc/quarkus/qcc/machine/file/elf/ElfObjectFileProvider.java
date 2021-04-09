@@ -1,15 +1,15 @@
-package cc.quarkus.qcc.machine.file.elf;
+package org.qbicc.machine.file.elf;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.NoSuchElementException;
 
-import cc.quarkus.qcc.machine.arch.Cpu;
-import cc.quarkus.qcc.machine.arch.ObjectType;
-import cc.quarkus.qcc.machine.file.bin.BinaryBuffer;
-import cc.quarkus.qcc.machine.object.ObjectFile;
-import cc.quarkus.qcc.machine.object.ObjectFileProvider;
+import org.qbicc.machine.arch.Cpu;
+import org.qbicc.machine.arch.ObjectType;
+import org.qbicc.machine.file.bin.BinaryBuffer;
+import org.qbicc.machine.object.ObjectFile;
+import org.qbicc.machine.object.ObjectFileProvider;
 import io.smallrye.common.constraint.Assert;
 
 /**

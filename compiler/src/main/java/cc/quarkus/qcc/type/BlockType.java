@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package org.qbicc.type;
 
 /**
  * A special type representing a return address for bytecode {@code jsr}/{@code ret} processing.

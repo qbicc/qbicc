@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.llvm.debuginfo;
+package org.qbicc.machine.llvm.debuginfo;
 
 public enum Virtuality {
     None("DW_VIRTUALITY_none"),

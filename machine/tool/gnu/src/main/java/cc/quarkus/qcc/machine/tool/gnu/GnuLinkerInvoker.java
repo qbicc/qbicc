@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.machine.tool.gnu;
+package org.qbicc.machine.tool.gnu;
 
-import cc.quarkus.qcc.machine.tool.LinkerInvoker;
+import org.qbicc.machine.tool.LinkerInvoker;
 
 /**
  *

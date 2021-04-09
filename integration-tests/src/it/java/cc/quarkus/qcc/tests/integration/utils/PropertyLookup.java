@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.tests.integration.utils;
+package org.qbicc.tests.integration.utils;
 
 import java.io.File;
 

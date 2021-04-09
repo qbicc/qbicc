@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.driver;
+package org.qbicc.driver;
 
 /**
  * The overall build phase.  Each phase contains multiple {@linkplain BuilderStage stages}, with the exception

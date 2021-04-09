@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.type;
+package org.qbicc.type;
 
 import java.util.List;
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 
 /**
  * A type which represents a class (<em>not</em> a reference to a class).

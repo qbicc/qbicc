@@ -1,13 +1,13 @@
-package cc.quarkus.qcc.runtime.main;
+package org.qbicc.runtime.main;
 
-import cc.quarkus.qcc.runtime.stdc.Stddef;
+import org.qbicc.runtime.stdc.Stddef;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
-import static cc.quarkus.qcc.runtime.posix.PThread.*;
-import static cc.quarkus.qcc.runtime.stdc.Stdlib.*;
+import static org.qbicc.runtime.CNative.*;
+import static org.qbicc.runtime.posix.PThread.*;
+import static org.qbicc.runtime.stdc.Stdlib.*;
 
 /**
  * Runtime Helpers to support the operation of the compiled code.

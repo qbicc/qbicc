@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.tests.integration.utils;
+package org.qbicc.tests.integration.utils;
 
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.context.Diagnostic;
+import org.qbicc.context.Diagnostic;
 import org.jboss.logging.Logger;
 
 public class QccDiagnosticLogger implements Consumer<Iterable<Diagnostic>> {

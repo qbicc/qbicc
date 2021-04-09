@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.Unschedulable;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.Unschedulable;
+import org.qbicc.graph.Value;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A literal is a value that was directly specified in a program.

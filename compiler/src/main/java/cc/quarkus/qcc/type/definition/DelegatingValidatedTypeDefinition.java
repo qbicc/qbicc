@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.InitializerElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.NestedClassElement;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.NestedClassElement;
 
 /**
  *

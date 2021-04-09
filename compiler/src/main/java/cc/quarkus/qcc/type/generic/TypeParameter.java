@@ -1,13 +1,13 @@
-package cc.quarkus.qcc.type.generic;
+package org.qbicc.type.generic;
 
-import static cc.quarkus.qcc.type.generic.Signature.*;
+import static org.qbicc.type.generic.Signature.*;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
+import org.qbicc.type.definition.ClassContext;
 
 /**
  *

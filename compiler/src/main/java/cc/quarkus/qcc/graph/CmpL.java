@@ -1,7 +1,7 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
-import cc.quarkus.qcc.type.SignedIntegerType;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 public class CmpL extends AbstractBinaryValue implements NonCommutativeBinaryValue {
     private final SignedIntegerType integerType;

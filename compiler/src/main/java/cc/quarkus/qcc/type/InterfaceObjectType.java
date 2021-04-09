@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.type;
+package org.qbicc.type;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 
 /**
  *

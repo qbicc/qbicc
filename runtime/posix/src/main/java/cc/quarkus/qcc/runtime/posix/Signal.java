@@ -1,18 +1,18 @@
-package cc.quarkus.qcc.runtime.posix;
+package org.qbicc.runtime.posix;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
-import static cc.quarkus.qcc.runtime.posix.SysTypes.*;
-import static cc.quarkus.qcc.runtime.stdc.Signal.*;
-import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
-import static cc.quarkus.qcc.runtime.stdc.Time.*;
+import static org.qbicc.runtime.CNative.*;
+import static org.qbicc.runtime.posix.SysTypes.*;
+import static org.qbicc.runtime.stdc.Signal.*;
+import static org.qbicc.runtime.stdc.Stddef.*;
+import static org.qbicc.runtime.stdc.Time.*;
 
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.runtime.Build;
+import org.qbicc.runtime.Build;
 
 /**
  *
- * @see cc.quarkus.qcc.runtime.stdc.Signal
+ * @see org.qbicc.runtime.stdc.Signal
  */
 @include("<signal.h>")
 @define(value = "_POSIX_C_SOURCE", as = "200809L")

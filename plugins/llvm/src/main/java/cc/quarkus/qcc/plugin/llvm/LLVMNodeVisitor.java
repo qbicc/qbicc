@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.plugin.llvm;
+package org.qbicc.plugin.llvm;
 
-import static cc.quarkus.qcc.machine.llvm.Types.*;
-import static cc.quarkus.qcc.machine.llvm.Values.NULL;
-import static cc.quarkus.qcc.machine.llvm.Values.ZERO;
+import static org.qbicc.machine.llvm.Types.*;
+import static org.qbicc.machine.llvm.Values.NULL;
+import static org.qbicc.machine.llvm.Values.ZERO;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,97 +10,97 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.graph.Action;
-import cc.quarkus.qcc.graph.Add;
-import cc.quarkus.qcc.graph.AddressOf;
-import cc.quarkus.qcc.graph.And;
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.BitCast;
-import cc.quarkus.qcc.graph.BlockEntry;
-import cc.quarkus.qcc.graph.Cmp;
-import cc.quarkus.qcc.graph.CmpG;
-import cc.quarkus.qcc.graph.CmpL;
-import cc.quarkus.qcc.graph.Convert;
-import cc.quarkus.qcc.graph.Div;
-import cc.quarkus.qcc.graph.ElementOf;
-import cc.quarkus.qcc.graph.Extend;
-import cc.quarkus.qcc.graph.ExtractElement;
-import cc.quarkus.qcc.graph.ExtractMember;
-import cc.quarkus.qcc.graph.Fence;
-import cc.quarkus.qcc.graph.FunctionCall;
-import cc.quarkus.qcc.graph.GlobalVariable;
-import cc.quarkus.qcc.graph.Goto;
-import cc.quarkus.qcc.graph.If;
-import cc.quarkus.qcc.graph.IsEq;
-import cc.quarkus.qcc.graph.IsGe;
-import cc.quarkus.qcc.graph.IsGt;
-import cc.quarkus.qcc.graph.IsLe;
-import cc.quarkus.qcc.graph.IsLt;
-import cc.quarkus.qcc.graph.IsNe;
-import cc.quarkus.qcc.graph.Load;
-import cc.quarkus.qcc.graph.MemberOf;
-import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.Mod;
-import cc.quarkus.qcc.graph.Multiply;
-import cc.quarkus.qcc.graph.CheckCast;
-import cc.quarkus.qcc.graph.Neg;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.NodeVisitor;
-import cc.quarkus.qcc.graph.Or;
-import cc.quarkus.qcc.graph.ParameterValue;
-import cc.quarkus.qcc.graph.PhiValue;
-import cc.quarkus.qcc.graph.PointerHandle;
-import cc.quarkus.qcc.graph.Return;
-import cc.quarkus.qcc.graph.Select;
-import cc.quarkus.qcc.graph.Shl;
-import cc.quarkus.qcc.graph.Shr;
-import cc.quarkus.qcc.graph.StackAllocation;
-import cc.quarkus.qcc.graph.Store;
-import cc.quarkus.qcc.graph.Sub;
-import cc.quarkus.qcc.graph.Switch;
-import cc.quarkus.qcc.graph.Terminator;
-import cc.quarkus.qcc.graph.Triable;
-import cc.quarkus.qcc.graph.TriableVisitor;
-import cc.quarkus.qcc.graph.Truncate;
-import cc.quarkus.qcc.graph.Try;
-import cc.quarkus.qcc.graph.Unreachable;
-import cc.quarkus.qcc.graph.Unschedulable;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
-import cc.quarkus.qcc.graph.ValueReturn;
-import cc.quarkus.qcc.graph.Xor;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.graph.schedule.Schedule;
-import cc.quarkus.qcc.machine.llvm.FastMathFlag;
-import cc.quarkus.qcc.machine.llvm.FloatCondition;
-import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
-import cc.quarkus.qcc.machine.llvm.IntCondition;
-import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
-import cc.quarkus.qcc.machine.llvm.LLBuilder;
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.Module;
-import cc.quarkus.qcc.machine.llvm.Values;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DILocation;
-import cc.quarkus.qcc.machine.llvm.op.Call;
-import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
-import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
-import cc.quarkus.qcc.machine.llvm.op.Phi;
-import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.plugin.unwind.UnwindHelper;
-import cc.quarkus.qcc.type.BooleanType;
-import cc.quarkus.qcc.type.CompoundType;
-import cc.quarkus.qcc.type.FloatType;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.PointerType;
-import cc.quarkus.qcc.type.SignedIntegerType;
-import cc.quarkus.qcc.type.Type;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.VoidType;
-import cc.quarkus.qcc.type.definition.MethodBody;
-import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.context.Location;
+import org.qbicc.graph.Action;
+import org.qbicc.graph.Add;
+import org.qbicc.graph.AddressOf;
+import org.qbicc.graph.And;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.BitCast;
+import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.Cmp;
+import org.qbicc.graph.CmpG;
+import org.qbicc.graph.CmpL;
+import org.qbicc.graph.Convert;
+import org.qbicc.graph.Div;
+import org.qbicc.graph.ElementOf;
+import org.qbicc.graph.Extend;
+import org.qbicc.graph.ExtractElement;
+import org.qbicc.graph.ExtractMember;
+import org.qbicc.graph.Fence;
+import org.qbicc.graph.FunctionCall;
+import org.qbicc.graph.GlobalVariable;
+import org.qbicc.graph.Goto;
+import org.qbicc.graph.If;
+import org.qbicc.graph.IsEq;
+import org.qbicc.graph.IsGe;
+import org.qbicc.graph.IsGt;
+import org.qbicc.graph.IsLe;
+import org.qbicc.graph.IsLt;
+import org.qbicc.graph.IsNe;
+import org.qbicc.graph.Load;
+import org.qbicc.graph.MemberOf;
+import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.Mod;
+import org.qbicc.graph.Multiply;
+import org.qbicc.graph.CheckCast;
+import org.qbicc.graph.Neg;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.NodeVisitor;
+import org.qbicc.graph.Or;
+import org.qbicc.graph.ParameterValue;
+import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.Return;
+import org.qbicc.graph.Select;
+import org.qbicc.graph.Shl;
+import org.qbicc.graph.Shr;
+import org.qbicc.graph.StackAllocation;
+import org.qbicc.graph.Store;
+import org.qbicc.graph.Sub;
+import org.qbicc.graph.Switch;
+import org.qbicc.graph.Terminator;
+import org.qbicc.graph.Triable;
+import org.qbicc.graph.TriableVisitor;
+import org.qbicc.graph.Truncate;
+import org.qbicc.graph.Try;
+import org.qbicc.graph.Unreachable;
+import org.qbicc.graph.Unschedulable;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.ValueReturn;
+import org.qbicc.graph.Xor;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.graph.schedule.Schedule;
+import org.qbicc.machine.llvm.FastMathFlag;
+import org.qbicc.machine.llvm.FloatCondition;
+import org.qbicc.machine.llvm.FunctionDefinition;
+import org.qbicc.machine.llvm.IntCondition;
+import org.qbicc.machine.llvm.LLBasicBlock;
+import org.qbicc.machine.llvm.LLBuilder;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.Module;
+import org.qbicc.machine.llvm.Values;
+import org.qbicc.machine.llvm.debuginfo.DILocation;
+import org.qbicc.machine.llvm.op.Call;
+import org.qbicc.machine.llvm.op.GetElementPtr;
+import org.qbicc.machine.llvm.op.OrderingConstraint;
+import org.qbicc.machine.llvm.op.Phi;
+import org.qbicc.object.Function;
+import org.qbicc.plugin.unwind.UnwindHelper;
+import org.qbicc.type.BooleanType;
+import org.qbicc.type.CompoundType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.Type;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.VoidType;
+import org.qbicc.type.definition.MethodBody;
+import org.qbicc.type.definition.element.GlobalVariableElement;
 
 final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, GetElementPtr> {
     final CompilationContext ctxt;
@@ -149,7 +149,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         for (int i = 0; i < cnt; i ++) {
             ParameterValue value = functionObj.getBody().getParameterValue(i);
             ValueType      type = value.getType();
-            cc.quarkus.qcc.machine.llvm.Function.Parameter param = func.param(map(type)).name(value.getLabel() + value.getIndex());
+            org.qbicc.machine.llvm.Function.Parameter param = func.param(map(type)).name(value.getLabel() + value.getIndex());
             if(type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
                 if(type instanceof SignedIntegerType) {
                     param.signExt();
@@ -192,7 +192,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         } else {
             ptr = valueHandle.accept(this, null).asLocal();
         }
-        cc.quarkus.qcc.machine.llvm.op.Store storeInsn = builder.store(map(node.getValue().getType().getPointer()), map(node.getValue()), map(node.getValue().getType()), ptr);
+        org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(node.getValue().getType().getPointer()), map(node.getValue()), map(node.getValue().getType()), ptr);
         storeInsn.align(valueHandle.getValueType().getAlign());
         if (node.getMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
             storeInsn.atomic(OrderingConstraint.seq_cst);
@@ -249,7 +249,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
 
     public Void visit(final Void param, final Switch node) {
         map(node.getDependency());
-        cc.quarkus.qcc.machine.llvm.op.Switch switchInst = builder.switch_(i32, map(node.getSwitchValue()), map(node.getDefaultTarget()));
+        org.qbicc.machine.llvm.op.Switch switchInst = builder.switch_(i32, map(node.getSwitchValue()), map(node.getDefaultTarget()));
 
         for (int i = 0; i < node.getNumberOfValues(); i++)
             switchInst.case_(Values.intConstant(node.getValueForIndex(i)), map(node.getTargetForIndex(i)));
@@ -501,7 +501,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         } else {
             ptr = valueHandle.accept(this, null).asLocal();
         }
-        cc.quarkus.qcc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getValueType().getPointer()), map(valueHandle.getValueType()), ptr);
+        org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getValueType().getPointer()), map(valueHandle.getValueType()), ptr);
         loadInsn.align(node.getType().getAlign());
         if (node.getMode() == MemoryAtomicityMode.ACQUIRE) {
             loadInsn.atomic(OrderingConstraint.acquire);

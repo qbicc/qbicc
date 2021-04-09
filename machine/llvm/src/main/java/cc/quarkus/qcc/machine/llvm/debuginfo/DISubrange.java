@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.llvm.debuginfo;
+package org.qbicc.machine.llvm.debuginfo;
 
 public interface DISubrange extends MetadataNode {
     DISubrange comment(String comment);

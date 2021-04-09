@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import cc.quarkus.qcc.machine.llvm.Array;
-import cc.quarkus.qcc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.Array;
+import org.qbicc.machine.llvm.LLValue;
 
 final class ArrayImpl extends AbstractValue implements Array {
     final AbstractValue elementType;

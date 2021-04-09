@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.machine.tool.process;
+package org.qbicc.machine.tool.process;
 
 import java.io.Closeable;
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.tool.ToolExecutionFailureException;
+import org.qbicc.machine.tool.ToolExecutionFailureException;
 import io.smallrye.common.function.ExceptionConsumer;
 import io.smallrye.common.function.ExceptionRunnable;
 

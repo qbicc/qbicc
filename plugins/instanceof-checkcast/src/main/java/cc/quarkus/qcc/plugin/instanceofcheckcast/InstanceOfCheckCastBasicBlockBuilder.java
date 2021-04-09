@@ -1,35 +1,35 @@
-package cc.quarkus.qcc.plugin.instanceofcheckcast;
+package org.qbicc.plugin.instanceofcheckcast;
 
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockEarlyTermination;
-import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.CheckCast;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.PhiValue;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
-import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.graph.literal.Literal;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.TypeLiteral;
-import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
-import cc.quarkus.qcc.plugin.layout.Layout;
-import cc.quarkus.qcc.plugin.reachability.RTAInfo;
-import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.InterfaceObjectType;
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.PrimitiveArrayObjectType;
-import cc.quarkus.qcc.type.ReferenceArrayObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockEarlyTermination;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.CheckCast;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.reachability.RTAInfo;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.PrimitiveArrayObjectType;
+import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.MethodElement;
 
 /**
  * A BasicBlockBuilder which replaces instanceof/checkcast operations with

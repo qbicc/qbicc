@@ -1,15 +1,15 @@
-package cc.quarkus.qcc.plugin.threadlocal;
+package org.qbicc.plugin.threadlocal;
 
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.FieldResolver;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.FieldResolver;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 /**
  *

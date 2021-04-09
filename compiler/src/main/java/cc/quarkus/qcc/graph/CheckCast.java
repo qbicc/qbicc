@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * Validate the soundness of a casting operation on a reference type, raising a runtime exception if unsound.

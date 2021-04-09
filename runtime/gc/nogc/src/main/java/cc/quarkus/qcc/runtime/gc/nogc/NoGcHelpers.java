@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.runtime.gc.nogc;
+package org.qbicc.runtime.gc.nogc;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
-import static cc.quarkus.qcc.runtime.posix.Stdlib.*;
-import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
-import static cc.quarkus.qcc.runtime.stdc.Stdlib.*;
-import static cc.quarkus.qcc.runtime.stdc.String.*;
+import static org.qbicc.runtime.CNative.*;
+import static org.qbicc.runtime.posix.Stdlib.*;
+import static org.qbicc.runtime.stdc.Stddef.*;
+import static org.qbicc.runtime.stdc.Stdlib.*;
+import static org.qbicc.runtime.stdc.String.*;
 
-import cc.quarkus.qcc.runtime.Build;
+import org.qbicc.runtime.Build;
 
 /**
  *

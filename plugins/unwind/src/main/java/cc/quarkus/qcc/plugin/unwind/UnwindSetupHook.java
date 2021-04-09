@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.plugin.unwind;
+package org.qbicc.plugin.unwind;
 
-import cc.quarkus.qcc.context.CompilationContext;
+import org.qbicc.context.CompilationContext;
 
 import java.util.function.Consumer;
 

@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.tool.llvm;
+package org.qbicc.tool.llvm;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 
-import cc.quarkus.qcc.machine.arch.Platform;
-import cc.quarkus.qcc.machine.tool.Tool;
-import cc.quarkus.qcc.machine.tool.ToolUtil;
-import cc.quarkus.qcc.machine.tool.process.InputSource;
-import cc.quarkus.qcc.machine.tool.process.OutputDestination;
+import org.qbicc.machine.arch.Platform;
+import org.qbicc.machine.tool.Tool;
+import org.qbicc.machine.tool.ToolUtil;
+import org.qbicc.machine.tool.process.InputSource;
+import org.qbicc.machine.tool.process.OutputDestination;
 
 /**
  *

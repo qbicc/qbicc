@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.plugin.metrics;
+package org.qbicc.plugin.metrics;
 
 import java.time.Duration;
 import java.util.Locale;

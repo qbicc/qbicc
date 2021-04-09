@@ -1,18 +1,18 @@
-package cc.quarkus.qcc.plugin.opt;
+package org.qbicc.plugin.opt;
 
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.BlockEntry;
-import cc.quarkus.qcc.graph.Goto;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.NodeVisitor;
-import cc.quarkus.qcc.graph.PhiValue;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.Goto;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.NodeVisitor;
+import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
 
 /**
  * A copier which removes all goto nodes that are only entered by one entry block.

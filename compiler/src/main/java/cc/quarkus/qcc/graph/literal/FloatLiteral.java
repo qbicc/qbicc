@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.type.FloatType;
-import cc.quarkus.qcc.type.ValueType;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.ValueType;
 
 public final class FloatLiteral extends Literal {
     private final FloatType type;

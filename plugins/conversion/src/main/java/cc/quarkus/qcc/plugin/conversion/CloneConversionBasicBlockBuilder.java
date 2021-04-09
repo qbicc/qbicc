@@ -1,20 +1,20 @@
-package cc.quarkus.qcc.plugin.conversion;
+package org.qbicc.plugin.conversion;
 
 import java.util.List;
 import java.util.function.Supplier;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.DispatchInvocation;
+import org.qbicc.graph.Value;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  *

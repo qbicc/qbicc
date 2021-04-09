@@ -12,7 +12,7 @@
 //DEPS cc.quarkus:qcc-runtime-api:1.0.0-SNAPSHOT
 package hello.world;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
+import static org.qbicc.runtime.CNative.*;
 
 /**
  *

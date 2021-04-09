@@ -1,7 +1,7 @@
-package cc.quarkus.qcc.object;
+package org.qbicc.object;
 
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.type.definition.element.Element;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.type.definition.element.Element;
 
 /**
  * A declaration of some global data item.

@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 public class Fence extends AbstractNode implements Action, OrderedNode {
     private final Node dependency;

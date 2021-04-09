@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.type.generic;
+package org.qbicc.type.generic;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
+import org.qbicc.type.definition.ClassContext;
 import org.junit.jupiter.api.Test;
 
 /**

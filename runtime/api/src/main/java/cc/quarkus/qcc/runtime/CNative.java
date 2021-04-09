@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.runtime;
+package org.qbicc.runtime;
 
-import static cc.quarkus.qcc.runtime.stdc.Stddef.*;
-import static cc.quarkus.qcc.runtime.stdc.Stdint.*;
-import static cc.quarkus.qcc.runtime.stdc.String.*;
+import static org.qbicc.runtime.stdc.Stddef.*;
+import static org.qbicc.runtime.stdc.Stdint.*;
+import static org.qbicc.runtime.stdc.String.*;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
 import java.nio.charset.StandardCharsets;
 import java.util.function.BooleanSupplier;
 
-import cc.quarkus.qcc.runtime.stdc.Stdlib;
+import org.qbicc.runtime.stdc.Stdlib;
 
 /**
  * Types, constants, variables, and methods that pertain to the <em>target</em> native environment from the perspective

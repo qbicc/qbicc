@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A {@code new} allocation operation for array objects.

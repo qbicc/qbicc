@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.context;
+package org.qbicc.context;
 
 import java.io.IOException;
 import java.util.ArrayList;

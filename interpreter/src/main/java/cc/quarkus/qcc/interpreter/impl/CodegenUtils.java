@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.interpreter.impl;
+package org.qbicc.interpreter.impl;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Type;

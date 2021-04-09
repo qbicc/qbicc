@@ -1,27 +1,27 @@
-package cc.quarkus.qcc.plugin.gc.nogc;
+package org.qbicc.plugin.gc.nogc;
 
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockEarlyTermination;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
-import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.plugin.layout.Layout;
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.CompoundType;
-import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.ReferenceArrayObjectType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.WordType;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockEarlyTermination;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.plugin.layout.Layout;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.CompoundType;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.WordType;
+import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.element.FieldElement;
 
 /**
  *

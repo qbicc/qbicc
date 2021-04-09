@@ -1,5 +1,5 @@
 // https://github.com/quarkuscc/qcc/pull/219
-import static cc.quarkus.qcc.runtime.CNative.*;
+import static org.qbicc.runtime.CNative.*;
 
 public class ArithmeticCompare {
     @extern

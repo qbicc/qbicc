@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type.generic;
+package org.qbicc.type.generic;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -8,34 +8,34 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.context.Diagnostic;
-import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.interpreter.VmObject;
-import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.object.FunctionDeclaration;
-import cc.quarkus.qcc.object.ProgramModule;
-import cc.quarkus.qcc.object.Section;
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.Element;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.MemberElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.context.Diagnostic;
+import org.qbicc.context.Location;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
+import org.qbicc.object.ProgramModule;
+import org.qbicc.object.Section;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.element.Element;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.MemberElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  *

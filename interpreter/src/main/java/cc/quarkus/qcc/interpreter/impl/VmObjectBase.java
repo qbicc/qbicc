@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.interpreter.impl;
+package org.qbicc.interpreter.impl;
 
-import cc.quarkus.qcc.interpreter.VmClass;
-import cc.quarkus.qcc.interpreter.VmObject;
-import cc.quarkus.qcc.type.PhysicalObjectType;
+import org.qbicc.interpreter.VmClass;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.type.PhysicalObjectType;
 
 abstract class VmObjectBase implements VmObject {
     final VmClass clazz;

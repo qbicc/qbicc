@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.runtime.main;
+package org.qbicc.runtime.main;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
+import static org.qbicc.runtime.CNative.*;
 
-import cc.quarkus.qcc.runtime.ThreadScoped;
+import org.qbicc.runtime.ThreadScoped;
 
 /**
  * VM Utilities.

@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.List;
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.PointerType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  *

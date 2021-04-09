@@ -1,6 +1,4 @@
-package cc.quarkus.qcc.machine.llvm;
-
-import cc.quarkus.qcc.machine.llvm.op.Call;
+package org.qbicc.machine.llvm;
 
 /**
  *

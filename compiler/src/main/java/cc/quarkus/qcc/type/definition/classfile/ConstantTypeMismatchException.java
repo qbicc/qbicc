@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type.definition.classfile;
+package org.qbicc.type.definition.classfile;
 
 /**
  * Exception thrown when a class file constant type does not match what was expected.

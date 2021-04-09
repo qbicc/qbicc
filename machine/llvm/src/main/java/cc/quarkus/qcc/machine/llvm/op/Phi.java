@@ -1,7 +1,7 @@
-package cc.quarkus.qcc.machine.llvm.op;
+package org.qbicc.machine.llvm.op;
 
-import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
-import cc.quarkus.qcc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.LLBasicBlock;
+import org.qbicc.machine.llvm.LLValue;
 
 /**
  *

@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.type.definition.classfile;
+package org.qbicc.type.definition.classfile;
 
 import java.nio.ByteBuffer;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
+import org.qbicc.type.definition.ClassContext;
 
 /**
  * A BootstrapMethod contains the cpIndex data from a single

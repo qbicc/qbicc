@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.type.definition.element;
+package org.qbicc.type.definition.element;
 
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
+import org.qbicc.type.generic.TypeParameterContext;
 
 /**
  * A global variable.

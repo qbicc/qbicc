@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.type.generic;
+package org.qbicc.type.generic;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.definition.ClassContext;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.definition.ClassContext;
 
 /**
  *

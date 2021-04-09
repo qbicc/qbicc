@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.plugin.intrinsics;
+package org.qbicc.plugin.intrinsics;
 
 import java.util.List;
 
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.Value;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  * A static intrinsic method which returns a value.

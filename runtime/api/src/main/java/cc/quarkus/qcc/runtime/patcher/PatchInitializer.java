@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.runtime.patcher;
+package org.qbicc.runtime.patcher;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.type.BooleanType;
-import cc.quarkus.qcc.type.ValueType;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.type.BooleanType;
+import org.qbicc.type.ValueType;
 
 public final class BooleanLiteral extends Literal {
     private final BooleanType type;

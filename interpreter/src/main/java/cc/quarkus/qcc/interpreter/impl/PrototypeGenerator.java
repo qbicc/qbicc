@@ -1,22 +1,22 @@
-package cc.quarkus.qcc.interpreter.impl;
+package org.qbicc.interpreter.impl;
 
-import static cc.quarkus.qcc.interpreter.impl.CodegenUtils.*;
+import static org.qbicc.interpreter.impl.CodegenUtils.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import cc.quarkus.qcc.type.BooleanType;
-import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.FloatType;
-import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.PhysicalObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.Type;
-import cc.quarkus.qcc.type.WordType;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.FieldContainer;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.BooleanType;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.Type;
+import org.qbicc.type.WordType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.FieldContainer;
+import org.qbicc.type.definition.ValidatedTypeDefinition;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 

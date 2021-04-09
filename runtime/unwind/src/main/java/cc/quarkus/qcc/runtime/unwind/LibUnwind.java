@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.runtime.unwind;
+package org.qbicc.runtime.unwind;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
+import static org.qbicc.runtime.CNative.*;
 
 /**
  * The libunwind library API @ <a href="https://www.nongnu.org/libunwind/docs.html">https://www.nongnu.org/libunwind/docs.html</a>

@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 abstract class AbstractUnaryValue extends AbstractValue implements UnaryValue {
     final Value input;

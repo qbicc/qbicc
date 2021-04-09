@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.tests.integration.utils;
+package org.qbicc.tests.integration.utils;
 
-import static cc.quarkus.qcc.tests.integration.utils.PropertyLookup.getProperty;
+import static org.qbicc.tests.integration.utils.PropertyLookup.getProperty;
 
 import java.nio.file.Path;
 

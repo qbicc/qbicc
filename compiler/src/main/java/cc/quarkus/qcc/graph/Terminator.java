@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 /**
  * A construct which terminates a block.  It holds a dependency on the preceding sequence of inter-thread actions.

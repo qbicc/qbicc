@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package org.qbicc.type;
 
 /**
  * A pointer to another type.  The size and behavior of a pointer type may depend on the target platform.

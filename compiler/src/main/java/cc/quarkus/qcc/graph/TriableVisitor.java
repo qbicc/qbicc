@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 /**
  * A visitor over a graph of triable nodes.  Triable nodes can be actions or values, so classes which

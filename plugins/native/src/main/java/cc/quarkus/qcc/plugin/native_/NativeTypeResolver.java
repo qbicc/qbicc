@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.plugin.native_;
+package org.qbicc.plugin.native_;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.DescriptorTypeResolver;
 
 /**
  * This type resolver is responsible for translating Java reference types such as {@code CNative.c_int} into the

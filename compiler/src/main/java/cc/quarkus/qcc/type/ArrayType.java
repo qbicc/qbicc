@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package org.qbicc.type;
 
 /**
  * A fixed-size value array type.

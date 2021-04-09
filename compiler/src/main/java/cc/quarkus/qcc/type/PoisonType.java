@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type;
+package org.qbicc.type;
 
 /**
  * A type representing an invalid join or a value which cannot be used.

@@ -1,13 +1,13 @@
-package cc.quarkus.qcc.plugin.intrinsics;
+package org.qbicc.plugin.intrinsics;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.driver.Phase;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.driver.Phase;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  * The intrinsics registry.  Registering all intrinsic methods here is more efficient than iterating a list of plugins.

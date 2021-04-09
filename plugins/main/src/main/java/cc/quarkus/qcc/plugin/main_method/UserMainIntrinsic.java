@@ -1,21 +1,21 @@
-package cc.quarkus.qcc.plugin.main_method;
+package org.qbicc.plugin.main_method;
 
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.driver.Phase;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.plugin.intrinsics.Intrinsics;
-import cc.quarkus.qcc.plugin.intrinsics.StaticIntrinsic;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.driver.Phase;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.Value;
+import org.qbicc.plugin.intrinsics.Intrinsics;
+import org.qbicc.plugin.intrinsics.StaticIntrinsic;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  *

@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.tool.llvm;
+package org.qbicc.tool.llvm;
 
 public enum RelocationModel {
     Static("static"),

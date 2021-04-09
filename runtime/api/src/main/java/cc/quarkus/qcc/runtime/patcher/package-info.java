@@ -5,4 +5,4 @@
  * specifying various transformations that are applied to that class as it is defined.
  */
 
-package cc.quarkus.qcc.runtime.patcher;
+package org.qbicc.runtime.patcher;

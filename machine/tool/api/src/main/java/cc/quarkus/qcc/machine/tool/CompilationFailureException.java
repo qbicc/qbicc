@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.tool;
+package org.qbicc.machine.tool;
 
 /**
  * An exception thrown when a compilation process executes but exits with a non-zero status.

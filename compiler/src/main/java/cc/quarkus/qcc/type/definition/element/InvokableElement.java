@@ -1,19 +1,19 @@
-package cc.quarkus.qcc.type.definition.element;
+package org.qbicc.type.definition.element;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.MethodBody;
-import cc.quarkus.qcc.type.definition.MethodBodyFactory;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.generic.MethodSignature;
-import cc.quarkus.qcc.type.generic.TypeParameter;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.MethodBody;
+import org.qbicc.type.definition.MethodBodyFactory;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.generic.MethodSignature;
+import org.qbicc.type.generic.TypeParameter;
+import org.qbicc.type.generic.TypeParameterContext;
 import io.smallrye.common.constraint.Assert;
 
 /**

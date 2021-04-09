@@ -1,7 +1,7 @@
-package cc.quarkus.qcc.machine.tool;
+package org.qbicc.machine.tool;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.context.Location;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.context.Location;
 
 /**
  *

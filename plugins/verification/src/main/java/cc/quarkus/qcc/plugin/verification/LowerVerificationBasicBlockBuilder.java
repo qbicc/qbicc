@@ -1,23 +1,23 @@
-package cc.quarkus.qcc.plugin.verification;
+package org.qbicc.plugin.verification;
 
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
-import cc.quarkus.qcc.graph.literal.BlockLiteral;
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.DispatchInvocation;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  * A block builder that forbids lowering of high-level (first phase) nodes in order to keep the back end(s) as simple

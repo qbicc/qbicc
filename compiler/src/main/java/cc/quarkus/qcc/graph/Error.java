@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 /**
  * A runtime error terminator; generally translates into a thrown {@code Error} of some sort.

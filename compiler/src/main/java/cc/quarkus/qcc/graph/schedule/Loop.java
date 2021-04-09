@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph.schedule;
+package org.qbicc.graph.schedule;
 
 import java.util.BitSet;
 import java.util.HashSet;

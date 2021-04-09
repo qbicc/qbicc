@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.file.macho;
+package org.qbicc.machine.file.macho;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -12,10 +12,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.IntFunction;
 
-import cc.quarkus.qcc.machine.arch.Cpu;
-import cc.quarkus.qcc.machine.arch.ObjectType;
-import cc.quarkus.qcc.machine.file.bin.BinaryBuffer;
-import cc.quarkus.qcc.machine.object.ObjectFile;
+import org.qbicc.machine.arch.Cpu;
+import org.qbicc.machine.arch.ObjectType;
+import org.qbicc.machine.file.bin.BinaryBuffer;
+import org.qbicc.machine.object.ObjectFile;
 import io.smallrye.common.constraint.Assert;
 
 /**

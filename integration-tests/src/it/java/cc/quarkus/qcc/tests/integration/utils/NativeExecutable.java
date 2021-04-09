@@ -1,7 +1,7 @@
-package cc.quarkus.qcc.tests.integration.utils;
+package org.qbicc.tests.integration.utils;
 
-import cc.quarkus.qcc.machine.tool.process.InputSource;
-import cc.quarkus.qcc.machine.tool.process.OutputDestination;
+import org.qbicc.machine.tool.process.InputSource;
+import org.qbicc.machine.tool.process.OutputDestination;
 import org.jboss.logging.Logger;
 
 import java.io.IOException;

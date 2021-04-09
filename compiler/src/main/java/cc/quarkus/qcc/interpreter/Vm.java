@@ -1,13 +1,13 @@
-package cc.quarkus.qcc.interpreter;
+package org.qbicc.interpreter;
 
 import java.nio.ByteBuffer;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.MethodElement;
 import io.smallrye.common.constraint.Assert;
 
 /**

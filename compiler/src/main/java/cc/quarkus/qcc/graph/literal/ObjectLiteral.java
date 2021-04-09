@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.interpreter.VmObject;
-import cc.quarkus.qcc.type.PhysicalObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.ValueType;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.ValueType;
 
 /**
  *

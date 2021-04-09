@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.ConstructorElement;
 
 /**
  *

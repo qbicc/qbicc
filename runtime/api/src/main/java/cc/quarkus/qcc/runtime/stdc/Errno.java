@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.runtime.stdc;
+package org.qbicc.runtime.stdc;
 
-import static cc.quarkus.qcc.runtime.CNative.*;
+import static org.qbicc.runtime.CNative.*;
 
-import cc.quarkus.qcc.runtime.patcher.AccessWith;
-import cc.quarkus.qcc.runtime.patcher.Accessor;
-import cc.quarkus.qcc.runtime.Build;
+import org.qbicc.runtime.patcher.AccessWith;
+import org.qbicc.runtime.patcher.Accessor;
+import org.qbicc.runtime.Build;
 
 /**
  *

@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.type.definition.element;
+package org.qbicc.type.definition.element;
 
 import java.util.List;
 
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.annotation.Annotation;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
 import io.smallrye.common.constraint.Assert;
 
 /**

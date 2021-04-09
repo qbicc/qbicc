@@ -1,24 +1,23 @@
-package cc.quarkus.qcc.context;
+package org.qbicc.context;
 
 import java.nio.file.Path;
 import java.util.List;
 
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.interpreter.VmObject;
-import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.object.FunctionDeclaration;
-import cc.quarkus.qcc.object.ProgramModule;
-import cc.quarkus.qcc.object.Section;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.MemberElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
+import org.qbicc.object.ProgramModule;
+import org.qbicc.object.Section;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.MemberElement;
+import org.qbicc.type.definition.element.MethodElement;
 
 /**
  *
@@ -46,7 +45,7 @@ public interface CompilationContext extends DiagnosticContext {
     /**
      * EntryPoints form the "root set" of methods that must be included
      * in the final image.  The initial set of EntryPoints must be added
-     * prior to the start of the {@link cc.quarkus.qcc.driver.Phase#ADD}.
+     * prior to the start of the {@link org.qbicc.driver.Phase#ADD}.
      * After that, only `method`s that have been previously processed
      * during the ADD Phase can be included in the root set.
      *

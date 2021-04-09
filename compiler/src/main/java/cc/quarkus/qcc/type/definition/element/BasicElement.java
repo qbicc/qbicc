@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.type.definition.element;
+package org.qbicc.type.definition.element;
 
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
 /**

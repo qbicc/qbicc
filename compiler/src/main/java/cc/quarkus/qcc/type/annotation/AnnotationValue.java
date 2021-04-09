@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.type.annotation;
+package org.qbicc.type.annotation;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.classfile.InvalidAnnotationValueException;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.classfile.InvalidAnnotationValueException;
 import io.smallrye.common.constraint.Assert;
 
 /**

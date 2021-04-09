@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.arch;
+package org.qbicc.machine.arch;
 
 import java.util.Set;
 

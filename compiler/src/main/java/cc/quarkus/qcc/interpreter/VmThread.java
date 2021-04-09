@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.interpreter;
+package org.qbicc.interpreter;
 
 /**
  * A thread in the inner VM.

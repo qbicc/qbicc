@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.plugin.metrics;
+package org.qbicc.plugin.metrics;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
 import io.smallrye.common.constraint.Assert;
 
 /**

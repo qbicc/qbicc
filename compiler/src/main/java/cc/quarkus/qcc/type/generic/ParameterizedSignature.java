@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.type.generic;
+package org.qbicc.type.generic;
 
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
+import org.qbicc.type.definition.ClassContext;
 
 /**
  *

@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.Types;
+import org.qbicc.machine.llvm.Types;
 
 final class ConditionalBranchImpl extends AbstractBranch {
     private final AbstractValue cond;

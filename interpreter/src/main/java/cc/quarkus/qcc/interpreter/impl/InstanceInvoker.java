@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.interpreter.impl;
+package org.qbicc.interpreter.impl;
 
-import cc.quarkus.qcc.interpreter.VmObject;
+import org.qbicc.interpreter.VmObject;
 
 /**
  *

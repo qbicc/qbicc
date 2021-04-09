@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.plugin.dot;
+package org.qbicc.plugin.dot;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -9,24 +9,24 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.context.Diagnostic;
-import cc.quarkus.qcc.driver.GraphGenConfig;
-import cc.quarkus.qcc.driver.GraphGenFilter;
-import cc.quarkus.qcc.driver.Phase;
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.object.ProgramModule;
-import cc.quarkus.qcc.object.ProgramObject;
-import cc.quarkus.qcc.object.Section;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.MethodBody;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.element.BasicElement;
-import cc.quarkus.qcc.type.definition.element.Element;
-import cc.quarkus.qcc.type.definition.element.ElementVisitor;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.MemberElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.context.Diagnostic;
+import org.qbicc.driver.GraphGenConfig;
+import org.qbicc.driver.GraphGenFilter;
+import org.qbicc.driver.Phase;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.object.Function;
+import org.qbicc.object.ProgramModule;
+import org.qbicc.object.ProgramObject;
+import org.qbicc.object.Section;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.MethodBody;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.BasicElement;
+import org.qbicc.type.definition.element.Element;
+import org.qbicc.type.definition.element.ElementVisitor;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.MemberElement;
 
 /**
  *

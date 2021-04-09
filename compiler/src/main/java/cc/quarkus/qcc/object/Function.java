@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.object;
+package org.qbicc.object;
 
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.definition.MethodBody;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.definition.MethodBody;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A function definition.

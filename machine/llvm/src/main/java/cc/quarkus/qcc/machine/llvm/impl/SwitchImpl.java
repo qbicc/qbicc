@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
-import cc.quarkus.qcc.machine.llvm.LLBasicBlock;
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.op.Switch;
+import org.qbicc.machine.llvm.LLBasicBlock;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.op.Switch;
 
 import java.io.IOException;
 

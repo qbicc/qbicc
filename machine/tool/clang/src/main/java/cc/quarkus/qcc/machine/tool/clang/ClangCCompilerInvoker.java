@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.machine.tool.clang;
+package org.qbicc.machine.tool.clang;
 
-import cc.quarkus.qcc.machine.tool.CCompilerInvoker;
+import org.qbicc.machine.tool.CCompilerInvoker;
 
 /**
  *

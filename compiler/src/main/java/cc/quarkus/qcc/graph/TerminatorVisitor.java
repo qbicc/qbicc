@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 /**
  * A visitor over a graph of terminator nodes.  Terminator nodes form a directed graph which may contain cycles.

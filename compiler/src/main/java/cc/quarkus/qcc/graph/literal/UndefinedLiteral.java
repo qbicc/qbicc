@@ -1,7 +1,7 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
-import cc.quarkus.qcc.graph.ValueVisitor;
-import cc.quarkus.qcc.type.PoisonType;
+import org.qbicc.graph.ValueVisitor;
+import org.qbicc.type.PoisonType;
 
 /**
  * The undefined value.  Usage of an undefined value results in a compilation error.

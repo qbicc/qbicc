@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.llvm;
+package org.qbicc.machine.llvm;
 
 /**
  * Something which can receive LLVM source comments.

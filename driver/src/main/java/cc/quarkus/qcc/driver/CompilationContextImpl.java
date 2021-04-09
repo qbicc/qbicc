@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.driver;
+package org.qbicc.driver;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
@@ -13,38 +13,38 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.context.Diagnostic;
-import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.literal.LiteralFactory;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.interpreter.VmObject;
-import cc.quarkus.qcc.object.FunctionDeclaration;
-import cc.quarkus.qcc.object.ProgramModule;
-import cc.quarkus.qcc.object.Section;
-import cc.quarkus.qcc.type.ClassObjectType;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.Element;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.FunctionElement;
-import cc.quarkus.qcc.type.definition.element.InitializerElement;
-import cc.quarkus.qcc.type.definition.element.InvokableElement;
-import cc.quarkus.qcc.type.definition.element.MemberElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.generic.TypeSignature;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.context.Diagnostic;
+import org.qbicc.context.Location;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.object.FunctionDeclaration;
+import org.qbicc.object.ProgramModule;
+import org.qbicc.object.Section;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.DescriptorTypeResolver;
+import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.Element;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.FunctionElement;
+import org.qbicc.type.definition.element.InitializerElement;
+import org.qbicc.type.definition.element.InvokableElement;
+import org.qbicc.type.definition.element.MemberElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.generic.TypeSignature;
 
 final class CompilationContextImpl implements CompilationContext {
     private final TypeSystem typeSystem;
@@ -58,8 +58,8 @@ final class CompilationContextImpl implements CompilationContext {
     final ClassContext bootstrapClassContext;
     private final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
     private final ConcurrentMap<DefinedTypeDefinition, ProgramModule> programModules = new ConcurrentHashMap<>();
-    private final ConcurrentMap<ExecutableElement, cc.quarkus.qcc.object.Function> exactFunctions = new ConcurrentHashMap<>();
-    private final ConcurrentMap<MethodElement, cc.quarkus.qcc.object.Function> virtualFunctions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<ExecutableElement, org.qbicc.object.Function> exactFunctions = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MethodElement, org.qbicc.object.Function> virtualFunctions = new ConcurrentHashMap<>();
     private final Path outputDir;
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
     private final AtomicReference<FieldElement> exceptionFieldHolder = new AtomicReference<>();
@@ -266,9 +266,9 @@ final class CompilationContextImpl implements CompilationContext {
         return List.of(programModules.values().toArray(ProgramModule[]::new));
     }
 
-    public cc.quarkus.qcc.object.Function getExactFunction(final ExecutableElement element) {
+    public org.qbicc.object.Function getExactFunction(final ExecutableElement element) {
         // optimistic
-        cc.quarkus.qcc.object.Function function = exactFunctions.get(element);
+        org.qbicc.object.Function function = exactFunctions.get(element);
         if (function != null) {
             return function;
         }
@@ -292,7 +292,7 @@ final class CompilationContextImpl implements CompilationContext {
         return programModule.getOrAddSection(CompilationContext.IMPLICIT_SECTION_NAME);
     }
 
-    public FunctionDeclaration declareForeignFunction(final ExecutableElement target, final cc.quarkus.qcc.object.Function function, final ExecutableElement current) {
+    public FunctionDeclaration declareForeignFunction(final ExecutableElement target, final org.qbicc.object.Function function, final ExecutableElement current) {
         if (target.getEnclosingType().equals(current.getEnclosingType())) {
             return null;
         }
@@ -301,9 +301,9 @@ final class CompilationContextImpl implements CompilationContext {
             .declareFunction(target, function.getName(), function.getType());
     }
 
-    public cc.quarkus.qcc.object.Function getVirtualFunction(final MethodElement element) {
+    public org.qbicc.object.Function getVirtualFunction(final MethodElement element) {
         // optimistic
-        cc.quarkus.qcc.object.Function function = virtualFunctions.get(element);
+        org.qbicc.object.Function function = virtualFunctions.get(element);
         if (function != null) {
             return function;
         }

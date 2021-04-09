@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.plugin.threadlocal;
+package org.qbicc.plugin.threadlocal;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.definition.element.FieldElement;
 
 /**
  *

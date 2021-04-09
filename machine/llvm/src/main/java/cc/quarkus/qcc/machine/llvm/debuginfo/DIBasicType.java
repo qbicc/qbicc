@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.machine.llvm.debuginfo;
+package org.qbicc.machine.llvm.debuginfo;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.LLValue;
 
 public interface DIBasicType extends MetadataNode {
     DIBasicType name(String name);

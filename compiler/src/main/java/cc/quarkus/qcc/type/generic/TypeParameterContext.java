@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.type.generic;
+package org.qbicc.type.generic;
 
 import java.util.NoSuchElementException;
 
-import cc.quarkus.qcc.type.definition.element.Element;
-import cc.quarkus.qcc.type.definition.element.InvokableElement;
-import cc.quarkus.qcc.type.definition.element.LocalVariableElement;
-import cc.quarkus.qcc.type.definition.element.ParameterElement;
+import org.qbicc.type.definition.element.Element;
+import org.qbicc.type.definition.element.InvokableElement;
+import org.qbicc.type.definition.element.LocalVariableElement;
+import org.qbicc.type.definition.element.ParameterElement;
 import io.smallrye.common.constraint.Assert;
 
 /**

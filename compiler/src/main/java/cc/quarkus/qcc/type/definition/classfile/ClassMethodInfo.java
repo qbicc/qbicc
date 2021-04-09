@@ -1,19 +1,19 @@
-package cc.quarkus.qcc.type.definition.classfile;
+package org.qbicc.type.definition.classfile;
 
-import static cc.quarkus.qcc.type.definition.classfile.ClassFile.*;
+import static org.qbicc.type.definition.classfile.ClassFile.*;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.BitSet;
 
-import cc.quarkus.qcc.type.Type;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.InvokableElement;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
-import cc.quarkus.qcc.type.generic.TypeSignature;
+import org.qbicc.type.Type;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.InvokableElement;
+import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.TypeParameterContext;
+import org.qbicc.type.generic.TypeSignature;
 
 /**
  * The defined method information.

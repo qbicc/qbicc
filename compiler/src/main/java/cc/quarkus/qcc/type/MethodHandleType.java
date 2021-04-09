@@ -1,6 +1,4 @@
-package cc.quarkus.qcc.type;
-
-import io.smallrye.common.constraint.Assert;
+package org.qbicc.type;
 
 /**
  * The type representing method handle literals, which are always {@code const}, have no size and are incomplete.

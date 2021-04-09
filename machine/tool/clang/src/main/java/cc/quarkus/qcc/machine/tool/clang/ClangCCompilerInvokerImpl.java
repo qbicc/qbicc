@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.machine.tool.clang;
+package org.qbicc.machine.tool.clang;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import cc.quarkus.qcc.machine.arch.Platform;
-import cc.quarkus.qcc.machine.tool.process.InputSource;
+import org.qbicc.machine.arch.Platform;
+import org.qbicc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
 
 /**

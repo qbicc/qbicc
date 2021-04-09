@@ -1,15 +1,15 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
-import static cc.quarkus.qcc.machine.llvm.Types.*;
+import static org.qbicc.machine.llvm.Types.*;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 
-import cc.quarkus.qcc.machine.llvm.FunctionDefinition;
-import cc.quarkus.qcc.machine.llvm.LLBuilder;
-import cc.quarkus.qcc.machine.llvm.Module;
-import cc.quarkus.qcc.machine.llvm.Values;
+import org.qbicc.machine.llvm.FunctionDefinition;
+import org.qbicc.machine.llvm.LLBuilder;
+import org.qbicc.machine.llvm.Module;
+import org.qbicc.machine.llvm.Values;
 import org.junit.jupiter.api.Test;
 
 /**

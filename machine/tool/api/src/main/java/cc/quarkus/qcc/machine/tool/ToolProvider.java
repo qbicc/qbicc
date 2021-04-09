@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.tool;
+package org.qbicc.machine.tool;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -8,7 +8,7 @@ import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.function.Predicate;
 
-import cc.quarkus.qcc.machine.arch.Platform;
+import org.qbicc.machine.arch.Platform;
 
 /**
  *

@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.driver.plugin;
+package org.qbicc.driver.plugin;
 
-import cc.quarkus.qcc.driver.Driver;
+import org.qbicc.driver.Driver;
 
 /**
  * A plugin to customize the driver build.

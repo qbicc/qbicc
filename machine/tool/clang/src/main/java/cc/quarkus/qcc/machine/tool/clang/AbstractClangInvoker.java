@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.tool.clang;
+package org.qbicc.machine.tool.clang;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -11,11 +11,11 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import cc.quarkus.qcc.machine.tool.CompilationFailureException;
-import cc.quarkus.qcc.machine.tool.MessagingToolInvoker;
-import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
-import cc.quarkus.qcc.machine.tool.process.InputSource;
-import cc.quarkus.qcc.machine.tool.process.OutputDestination;
+import org.qbicc.machine.tool.CompilationFailureException;
+import org.qbicc.machine.tool.MessagingToolInvoker;
+import org.qbicc.machine.tool.ToolMessageHandler;
+import org.qbicc.machine.tool.process.InputSource;
+import org.qbicc.machine.tool.process.OutputDestination;
 import io.smallrye.common.constraint.Assert;
 
 abstract class AbstractClangInvoker implements MessagingToolInvoker {

@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.tool.llvm;
+package org.qbicc.tool.llvm;
 
-import cc.quarkus.qcc.machine.tool.MessagingToolInvoker;
-import cc.quarkus.qcc.machine.tool.process.InputSource;
-import cc.quarkus.qcc.machine.tool.process.OutputDestination;
+import org.qbicc.machine.tool.MessagingToolInvoker;
+import org.qbicc.machine.tool.process.InputSource;
+import org.qbicc.machine.tool.process.OutputDestination;
 
 /**
  *

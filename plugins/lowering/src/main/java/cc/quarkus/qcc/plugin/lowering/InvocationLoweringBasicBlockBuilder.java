@@ -1,29 +1,29 @@
-package cc.quarkus.qcc.plugin.lowering;
+package org.qbicc.plugin.lowering;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockEarlyTermination;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.DispatchInvocation;
-import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.object.Function;
-import cc.quarkus.qcc.object.Section;
-import cc.quarkus.qcc.object.ThreadLocalMode;
-import cc.quarkus.qcc.plugin.dispatch.DispatchTables;
-import cc.quarkus.qcc.plugin.layout.Layout;
-import cc.quarkus.qcc.type.PointerType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.FunctionElement;
-import cc.quarkus.qcc.type.definition.element.GlobalVariableElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockEarlyTermination;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.DispatchInvocation;
+import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.object.Function;
+import org.qbicc.object.Section;
+import org.qbicc.object.ThreadLocalMode;
+import org.qbicc.plugin.dispatch.DispatchTables;
+import org.qbicc.plugin.layout.Layout;
+import org.qbicc.type.PointerType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.FunctionElement;
+import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.MethodElement;
 
 /**
  *

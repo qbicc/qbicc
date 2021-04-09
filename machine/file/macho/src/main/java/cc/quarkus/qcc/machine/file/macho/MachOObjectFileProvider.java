@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.machine.file.macho;
+package org.qbicc.machine.file.macho;
 
 import java.io.IOException;
 import java.nio.file.Path;
 
-import cc.quarkus.qcc.machine.arch.ObjectType;
-import cc.quarkus.qcc.machine.file.bin.BinaryBuffer;
-import cc.quarkus.qcc.machine.object.ObjectFile;
-import cc.quarkus.qcc.machine.object.ObjectFileProvider;
+import org.qbicc.machine.arch.ObjectType;
+import org.qbicc.machine.file.bin.BinaryBuffer;
+import org.qbicc.machine.object.ObjectFile;
+import org.qbicc.machine.object.ObjectFileProvider;
 
 /**
  *

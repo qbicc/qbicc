@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.machine.tool.process;
+package org.qbicc.machine.tool.process;
 
 import java.io.Closeable;
 import java.io.IOException;

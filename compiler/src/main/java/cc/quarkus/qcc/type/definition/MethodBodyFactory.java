@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A factory for producing the method body for a given executable element.

@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -9,23 +9,23 @@ import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.function.BiFunction;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.literal.ArrayLiteral;
-import cc.quarkus.qcc.graph.literal.BlockLiteral;
-import cc.quarkus.qcc.graph.literal.BooleanLiteral;
-import cc.quarkus.qcc.graph.literal.CompoundLiteral;
-import cc.quarkus.qcc.graph.literal.DefinedConstantLiteral;
-import cc.quarkus.qcc.graph.literal.FloatLiteral;
-import cc.quarkus.qcc.graph.literal.IntegerLiteral;
-import cc.quarkus.qcc.graph.literal.MethodDescriptorLiteral;
-import cc.quarkus.qcc.graph.literal.MethodHandleLiteral;
-import cc.quarkus.qcc.graph.literal.ObjectLiteral;
-import cc.quarkus.qcc.graph.literal.StringLiteral;
-import cc.quarkus.qcc.graph.literal.SymbolLiteral;
-import cc.quarkus.qcc.graph.literal.TypeLiteral;
-import cc.quarkus.qcc.graph.literal.UndefinedLiteral;
-import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.literal.ArrayLiteral;
+import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.DefinedConstantLiteral;
+import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.IntegerLiteral;
+import org.qbicc.graph.literal.MethodDescriptorLiteral;
+import org.qbicc.graph.literal.MethodHandleLiteral;
+import org.qbicc.graph.literal.ObjectLiteral;
+import org.qbicc.graph.literal.StringLiteral;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.graph.literal.TypeLiteral;
+import org.qbicc.graph.literal.UndefinedLiteral;
+import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 /**

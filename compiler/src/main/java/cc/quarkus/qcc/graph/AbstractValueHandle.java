@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 abstract class AbstractValueHandle extends AbstractNode implements ValueHandle {
     AbstractValueHandle(final Node callSite, final ExecutableElement element, final int line, final int bci) {

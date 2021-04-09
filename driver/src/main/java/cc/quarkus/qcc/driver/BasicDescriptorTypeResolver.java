@@ -1,28 +1,28 @@
-package cc.quarkus.qcc.driver;
+package org.qbicc.driver;
 
 import java.util.List;
 
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.FunctionType;
-import cc.quarkus.qcc.type.InterfaceObjectType;
-import cc.quarkus.qcc.type.PhysicalObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.annotation.type.TypeAnnotationList;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.DescriptorTypeResolver;
-import cc.quarkus.qcc.type.definition.ResolutionFailedException;
-import cc.quarkus.qcc.type.descriptor.ArrayTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.BaseTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
-import cc.quarkus.qcc.type.descriptor.TypeDescriptor;
-import cc.quarkus.qcc.type.generic.ArrayTypeSignature;
-import cc.quarkus.qcc.type.generic.MethodSignature;
-import cc.quarkus.qcc.type.generic.TypeParameterContext;
-import cc.quarkus.qcc.type.generic.TypeSignature;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.DescriptorTypeResolver;
+import org.qbicc.type.definition.ResolutionFailedException;
+import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.ArrayTypeSignature;
+import org.qbicc.type.generic.MethodSignature;
+import org.qbicc.type.generic.TypeParameterContext;
+import org.qbicc.type.generic.TypeSignature;
 
 final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
     private final ClassContext classContext;

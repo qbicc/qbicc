@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
  *

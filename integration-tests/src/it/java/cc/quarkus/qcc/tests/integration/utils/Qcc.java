@@ -1,13 +1,13 @@
-package cc.quarkus.qcc.tests.integration.utils;
+package org.qbicc.tests.integration.utils;
 
-import cc.quarkus.qcc.context.DiagnosticContext;
-import cc.quarkus.qcc.main.Main;
+import org.qbicc.context.DiagnosticContext;
+import org.qbicc.main.Main;
 import org.jboss.logging.Logger;
 
 import java.nio.file.Path;
 import java.util.List;
 
-import static cc.quarkus.qcc.tests.integration.utils.TestConstants.*;
+import static org.qbicc.tests.integration.utils.TestConstants.*;
 
 public class Qcc {
     public static DiagnosticContext build(Path outputPath, Path nativeOutputPath, String mainClass, Logger logger) {

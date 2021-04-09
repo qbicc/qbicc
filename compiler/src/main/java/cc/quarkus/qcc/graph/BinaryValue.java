@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
-import cc.quarkus.qcc.type.ValueType;
+import org.qbicc.type.ValueType;
 
 /**
  *

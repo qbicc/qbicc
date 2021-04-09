@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.op.GetElementPtr;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.op.GetElementPtr;
 import io.smallrye.common.constraint.Assert;
 
 /**

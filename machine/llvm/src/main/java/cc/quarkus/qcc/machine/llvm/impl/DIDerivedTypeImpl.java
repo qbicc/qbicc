@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIDerivedType;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIFlags;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DITag;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.debuginfo.DIDerivedType;
+import org.qbicc.machine.llvm.debuginfo.DIFlags;
+import org.qbicc.machine.llvm.debuginfo.DITag;
 import io.smallrye.common.constraint.Assert;
 
 import java.io.IOException;

@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
 import java.util.Objects;
 
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
-import cc.quarkus.qcc.type.definition.element.VariableElement;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.VariableElement;
 
 /**
  *

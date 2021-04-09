@@ -1,19 +1,19 @@
-package cc.quarkus.qcc.graph.schedule;
+package org.qbicc.graph.schedule;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.OrderedNode;
-import cc.quarkus.qcc.graph.Unschedulable;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.PhiValue;
-import cc.quarkus.qcc.graph.PinnedNode;
-import cc.quarkus.qcc.graph.Terminator;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.context.Location;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.OrderedNode;
+import org.qbicc.graph.Unschedulable;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.PinnedNode;
+import org.qbicc.graph.Terminator;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
 import io.smallrye.common.constraint.Assert;
 
 /**

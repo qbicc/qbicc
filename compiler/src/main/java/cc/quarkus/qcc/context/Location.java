@@ -1,14 +1,14 @@
-package cc.quarkus.qcc.context;
+package org.qbicc.context;
 
 import static java.lang.Math.*;
 
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.type.definition.element.BasicElement;
-import cc.quarkus.qcc.type.definition.element.ConstructorElement;
-import cc.quarkus.qcc.type.definition.element.Element;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
-import cc.quarkus.qcc.type.definition.element.NamedElement;
+import org.qbicc.graph.Node;
+import org.qbicc.type.definition.element.BasicElement;
+import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.Element;
+import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.definition.element.NamedElement;
 import io.smallrye.common.constraint.Assert;
 
 /**

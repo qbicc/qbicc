@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.interpreter.impl;
+package org.qbicc.interpreter.impl;
 
-import cc.quarkus.qcc.type.definition.FieldContainer;
+import org.qbicc.type.definition.FieldContainer;
 
 public interface Prototype {
     byte[] getBytecode();

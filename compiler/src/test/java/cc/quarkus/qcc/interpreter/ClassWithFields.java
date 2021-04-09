@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.interpreter;
+package org.qbicc.interpreter;
 
 public class ClassWithFields {
     public boolean instanceBoolean;

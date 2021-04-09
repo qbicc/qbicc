@@ -1,13 +1,13 @@
-package cc.quarkus.qcc.type.annotation;
+package org.qbicc.type.annotation;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 /**
  * An annotation.

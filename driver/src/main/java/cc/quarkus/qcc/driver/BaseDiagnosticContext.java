@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.driver;
+package org.qbicc.driver;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -8,12 +8,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import cc.quarkus.qcc.context.AttachmentKey;
-import cc.quarkus.qcc.context.Diagnostic;
-import cc.quarkus.qcc.context.DiagnosticContext;
-import cc.quarkus.qcc.context.Location;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.type.definition.element.Element;
+import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.Diagnostic;
+import org.qbicc.context.DiagnosticContext;
+import org.qbicc.context.Location;
+import org.qbicc.graph.Node;
+import org.qbicc.type.definition.element.Element;
 
 public final class BaseDiagnosticContext implements DiagnosticContext  {
     final ConcurrentHashMap<AttachmentKey<?>, Object> attachmentsMap = new ConcurrentHashMap<AttachmentKey<?>, Object>();

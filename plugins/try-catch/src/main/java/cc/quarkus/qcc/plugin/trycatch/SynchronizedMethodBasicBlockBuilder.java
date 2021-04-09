@@ -1,20 +1,20 @@
-package cc.quarkus.qcc.plugin.trycatch;
+package org.qbicc.plugin.trycatch;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlock;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.PhiValue;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Value;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A basic block builder which adds a monitor acquire to the start of the subprogram and adds a monitor release

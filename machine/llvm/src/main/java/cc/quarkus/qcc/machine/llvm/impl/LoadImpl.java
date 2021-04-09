@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.op.Load;
-import cc.quarkus.qcc.machine.llvm.op.OrderingConstraint;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.op.Load;
+import org.qbicc.machine.llvm.op.OrderingConstraint;
 import io.smallrye.common.constraint.Assert;
 
 final class LoadImpl extends AbstractYieldingInstruction implements Load {

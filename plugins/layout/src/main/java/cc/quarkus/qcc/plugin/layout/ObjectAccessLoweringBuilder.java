@@ -1,23 +1,23 @@
-package cc.quarkus.qcc.plugin.layout;
+package org.qbicc.plugin.layout;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.ElementOf;
-import cc.quarkus.qcc.graph.InstanceFieldOf;
-import cc.quarkus.qcc.graph.MemoryAtomicityMode;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.ReferenceHandle;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.graph.ValueHandle;
-import cc.quarkus.qcc.graph.ValueHandleVisitor;
-import cc.quarkus.qcc.type.ArrayObjectType;
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.PrimitiveArrayObjectType;
-import cc.quarkus.qcc.type.ReferenceArrayObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.FieldElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.ElementOf;
+import org.qbicc.graph.InstanceFieldOf;
+import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.ReferenceHandle;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.PrimitiveArrayObjectType;
+import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.element.FieldElement;
 
 /**
  *

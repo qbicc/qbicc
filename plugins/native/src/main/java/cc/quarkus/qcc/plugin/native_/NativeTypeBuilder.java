@@ -1,11 +1,11 @@
-package cc.quarkus.qcc.plugin.native_;
+package org.qbicc.plugin.native_;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.ConstructorResolver;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.ConstructorResolver;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 
 /**
  *

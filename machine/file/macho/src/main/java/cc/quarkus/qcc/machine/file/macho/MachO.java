@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.machine.file.macho;
+package org.qbicc.machine.file.macho;
 
-import cc.quarkus.qcc.machine.arch.Cpu;
+import org.qbicc.machine.arch.Cpu;
 
 /**
  *

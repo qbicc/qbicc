@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.plugin.dispatch;
+package org.qbicc.plugin.dispatch;
 
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.plugin.reachability.RTAInfo;
-import cc.quarkus.qcc.type.definition.ClassContext;
-import cc.quarkus.qcc.type.definition.DefinedTypeDefinition;
-import cc.quarkus.qcc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.plugin.reachability.RTAInfo;
+import org.qbicc.type.definition.ClassContext;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.ValidatedTypeDefinition;
 
 public class DispatchTableEmitter implements Consumer<CompilationContext>  {
 

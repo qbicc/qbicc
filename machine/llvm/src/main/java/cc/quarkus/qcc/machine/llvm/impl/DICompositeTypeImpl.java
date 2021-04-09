@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.machine.llvm.impl;
+package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 import java.util.EnumSet;
 
-import cc.quarkus.qcc.machine.llvm.LLValue;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DICompositeType;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DIFlags;
-import cc.quarkus.qcc.machine.llvm.debuginfo.DITag;
+import org.qbicc.machine.llvm.LLValue;
+import org.qbicc.machine.llvm.debuginfo.DICompositeType;
+import org.qbicc.machine.llvm.debuginfo.DIFlags;
+import org.qbicc.machine.llvm.debuginfo.DITag;
 import io.smallrye.common.constraint.Assert;
 
 public class DICompositeTypeImpl extends AbstractMetadataNode implements DICompositeType {

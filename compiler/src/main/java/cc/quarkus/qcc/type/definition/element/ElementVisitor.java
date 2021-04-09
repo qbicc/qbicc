@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.type.definition.element;
+package org.qbicc.type.definition.element;
 
 /**
  *

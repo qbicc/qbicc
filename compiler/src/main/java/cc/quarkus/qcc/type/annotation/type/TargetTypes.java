@@ -1,6 +1,6 @@
-package cc.quarkus.qcc.type.annotation.type;
+package org.qbicc.type.annotation.type;
 
-import static cc.quarkus.qcc.type.annotation.type.TypeAnnotation.*;
+import static org.qbicc.type.annotation.type.TypeAnnotation.*;
 
 /**
  * The possible target types of a type annotation.

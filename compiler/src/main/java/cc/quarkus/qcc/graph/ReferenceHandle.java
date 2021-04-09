@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
-import cc.quarkus.qcc.type.ObjectType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A value handle for the target of an object reference value.

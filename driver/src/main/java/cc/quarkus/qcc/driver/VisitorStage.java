@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.driver;
+package org.qbicc.driver;
 
 /**
  * The visitor operation stage within a {@linkplain Phase build phase}.

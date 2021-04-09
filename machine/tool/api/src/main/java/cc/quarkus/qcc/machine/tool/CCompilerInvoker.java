@@ -1,8 +1,8 @@
-package cc.quarkus.qcc.machine.tool;
+package org.qbicc.machine.tool;
 
 import java.nio.file.Path;
 
-import cc.quarkus.qcc.machine.tool.process.InputSource;
+import org.qbicc.machine.tool.process.InputSource;
 
 /**
  * An invoker for a C compiler.

@@ -1,12 +1,12 @@
-package cc.quarkus.qcc.plugin.objectmonitor;
+package org.qbicc.plugin.objectmonitor;
 import java.util.List;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.BasicBlockBuilder;
-import cc.quarkus.qcc.graph.DelegatingBasicBlockBuilder;
-import cc.quarkus.qcc.graph.Node;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.type.definition.element.MethodElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.Value;
+import org.qbicc.type.definition.element.MethodElement;
 
 /**
  * A graph factory which generates calls to runtime helpers for object monitor

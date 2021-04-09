@@ -1,10 +1,10 @@
-package cc.quarkus.qcc.graph;
+package org.qbicc.graph;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.graph.literal.ZeroInitializerLiteral;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.definition.element.Element;
-import cc.quarkus.qcc.type.definition.element.ExecutableElement;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.element.Element;
+import org.qbicc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 public final class PhiValue extends AbstractValue implements PinnedNode {

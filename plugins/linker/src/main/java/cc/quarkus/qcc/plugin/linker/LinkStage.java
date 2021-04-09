@@ -1,13 +1,13 @@
-package cc.quarkus.qcc.plugin.linker;
+package org.qbicc.plugin.linker;
 
 import java.io.IOException;
 import java.util.function.Consumer;
 
-import cc.quarkus.qcc.context.CompilationContext;
-import cc.quarkus.qcc.driver.Driver;
-import cc.quarkus.qcc.machine.tool.CToolChain;
-import cc.quarkus.qcc.machine.tool.LinkerInvoker;
-import cc.quarkus.qcc.machine.tool.ToolMessageHandler;
+import org.qbicc.context.CompilationContext;
+import org.qbicc.driver.Driver;
+import org.qbicc.machine.tool.CToolChain;
+import org.qbicc.machine.tool.LinkerInvoker;
+import org.qbicc.machine.tool.ToolMessageHandler;
 
 /**
  *

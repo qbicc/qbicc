@@ -1,4 +1,4 @@
-package cc.quarkus.qcc.graph.literal;
+package org.qbicc.graph.literal;
 
 import java.util.List;
 import java.util.Map;
@@ -6,17 +6,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
-import cc.quarkus.qcc.graph.BlockLabel;
-import cc.quarkus.qcc.graph.Value;
-import cc.quarkus.qcc.interpreter.VmObject;
-import cc.quarkus.qcc.type.ArrayType;
-import cc.quarkus.qcc.type.CompoundType;
-import cc.quarkus.qcc.type.FloatType;
-import cc.quarkus.qcc.type.IntegerType;
-import cc.quarkus.qcc.type.ReferenceType;
-import cc.quarkus.qcc.type.TypeSystem;
-import cc.quarkus.qcc.type.ValueType;
-import cc.quarkus.qcc.type.WordType;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.Value;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.type.ArrayType;
+import org.qbicc.type.CompoundType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.WordType;
 import io.smallrye.common.constraint.Assert;
 
 /**

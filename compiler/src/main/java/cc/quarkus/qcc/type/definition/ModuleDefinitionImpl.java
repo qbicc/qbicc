@@ -1,9 +1,9 @@
-package cc.quarkus.qcc.type.definition;
+package org.qbicc.type.definition;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import cc.quarkus.qcc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.classfile.ClassFile;
 
 final class ModuleDefinitionImpl implements ModuleDefinition {
     final String name;
