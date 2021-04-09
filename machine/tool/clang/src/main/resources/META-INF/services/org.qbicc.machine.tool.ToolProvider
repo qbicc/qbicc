@@ -1,1 +1,1 @@
-cc.quarkus.qcc.machine.tool.clang.ClangToolProvider
+org.qbicc.machine.tool.clang.ClangToolProvider

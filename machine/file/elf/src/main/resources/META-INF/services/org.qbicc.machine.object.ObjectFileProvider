@@ -1,1 +1,1 @@
-cc.quarkus.qcc.machine.file.elf.ElfObjectFileProvider
+org.qbicc.machine.file.elf.ElfObjectFileProvider
