@@ -5,17 +5,17 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-runtime-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <groupId>org.qbicc</groupId>
+        <artifactId>qbicc-runtime-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-runtime-posix</artifactId>
+    <artifactId>qbicc-runtime-posix</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-runtime-api</artifactId>
+            <artifactId>qbicc-runtime-api</artifactId>
         </dependency>
     </dependencies>
 </project>

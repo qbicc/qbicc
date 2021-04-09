@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Cleanup
         run: |
-          rm -rf ~/.m2/repository/cc/quarkus/
+          rm -rf ~/.m2/repository/org/qbicc
           rm -rf ./*
 
       - name: Clone qbicc
@@ -43,10 +43,10 @@ jobs:
         id: cache
         with:
           path: |
-            ~/.m2/repository/cc/quarkus/qccrt-annotation
-            ~/.m2/repository/cc/quarkus/qccrt-java.base
-            ~/.m2/repository/cc/quarkus/qccrt-openjdk-build-tools-maven-plugin
-            ~/.m2/repository/cc/quarkus/qccrt-parent
+            ~/.m2/repository/org/qbicc/qccrt-annotation
+            ~/.m2/repository/org/qbicc/rt/qbicc-rt-java.base
+            ~/.m2/repository/org/qbicc/rt/qbicc-rt-openjdk-build-tools-maven-plugin
+            ~/.m2/repository/org/qbicc/qccrt-parent
           key: ${{ steps.qbicc-class-library-head.outputs.head }}
 
       - name: Clone qbicc Class Library

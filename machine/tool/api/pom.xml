@@ -5,21 +5,21 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>cc.quarkus</groupId>
-        <artifactId>qcc-machine-tool-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <groupId>org.qbicc</groupId>
+        <artifactId>qbicc-machine-tool-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qcc-machine-tool-api</artifactId>
+    <artifactId>qbicc-machine-tool-api</artifactId>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-machine-arch</artifactId>
+            <artifactId>qbicc-machine-arch</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qcc-compiler</artifactId>
+            <artifactId>qbicc-compiler</artifactId>
         </dependency>
         <dependency>
             <groupId>io.smallrye.common</groupId>

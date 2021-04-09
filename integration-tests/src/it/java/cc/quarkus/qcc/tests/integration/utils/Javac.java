@@ -19,7 +19,7 @@ public class Javac {
         List<String> options = List.of(
             "--release", TestConstants.MAVEN_COMPILER_RELEASE,
             "-d", outputPath.toString(),
-            "-cp", TestConstants.QCC_RUNTIME_API_JAR);
+            "-cp", TestConstants.QBICC_RUNTIME_API_JAR);
 
         JavaCompiler.CompilationTask task =
             javac.getTask(
