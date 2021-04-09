@@ -39,7 +39,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     }
 
     public Value currentThread() {
-        ReferenceType type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").validate().getClassType().getReference();
+        ReferenceType type = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Thread").load().getClassType().getReference();
         if (originalElement instanceof FunctionElement) {
             SymbolLiteral sym = ctxt.getCurrentThreadLocalSymbolLiteral();
             Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
@@ -128,7 +128,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     private Value expandVirtualDispatch(Value instance, MethodElement target) {
         DispatchTables dt = DispatchTables.get(ctxt);
-        DispatchTables.VTableInfo info = dt.getVTableInfo(target.getEnclosingType().validate());
+        DispatchTables.VTableInfo info = dt.getVTableInfo(target.getEnclosingType().load());
         if (info == null) {
             // No realized invocation targets are possible for this method!
             throw new BlockEarlyTermination(unreachable());
@@ -150,7 +150,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
     // so we do not need an explicit test at the call site.
     private Value expandInterfaceDispatch(Value instance, MethodElement target) {
         DispatchTables dt = DispatchTables.get(ctxt);
-        DispatchTables.ITableInfo info = dt.getITableInfo(target.getEnclosingType().validate());
+        DispatchTables.ITableInfo info = dt.getITableInfo(target.getEnclosingType().load());
         if (info == null) {
             // No realized invocation targets are possible for this method!
             invokeStatic(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError"), List.of());

@@ -5,12 +5,12 @@ import org.qbicc.interpreter.VmObject;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 final class FieldContainerImpl implements FieldContainer {
-    private final ValidatedTypeDefinition type;
+    private final LoadedTypeDefinition type;
     final FieldSet fieldSet;
     // todo: autoboxing is really a terrible idea
     final AtomicReferenceArray<Object> objects;
 
-    FieldContainerImpl(ValidatedTypeDefinition type, final boolean statics) {
+    FieldContainerImpl(LoadedTypeDefinition type, final boolean statics) {
         this.type = type;
         if (statics) {
             this.fieldSet = type.getStaticFieldSet();

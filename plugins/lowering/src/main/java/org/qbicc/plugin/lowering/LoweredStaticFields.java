@@ -11,7 +11,7 @@ import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 

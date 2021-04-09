@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.classfile.BootstrapMethod;
@@ -52,7 +53,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
     private final int[] enclosedClassResolverIndexes;
     private final DefinedTypeDefinition superClass;
 
-    private volatile DefinedTypeDefinition validated;
+    private volatile DefinedTypeDefinition loaded;
 
     private static final String[] NO_INTERFACES = new String[0];
     private static final int[] NO_INTS = new int[0];
@@ -163,27 +164,27 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         return getInterfaceInternalName(index).equals(internalName);
     }
 
-    public ValidatedTypeDefinition validate() throws VerifyFailedException {
-        DefinedTypeDefinition validated = this.validated;
+    public LoadedTypeDefinition load() throws VerifyFailedException {
+        DefinedTypeDefinition validated = this.loaded;
         if (validated != null) {
-            return validated.validate();
+            return validated.load();
         }
-        ValidatedTypeDefinition superType;
+        LoadedTypeDefinition superType;
         if (superClass != null) {
-            superType = superClass.validate();
+            superType = superClass.load();
         } else if (superClassName != null) {
             DefinedTypeDefinition definedSuperType = context.findDefinedType(superClassName);
             if (definedSuperType == null) {
                 throw new VerifyFailedException("Failed to load super class " + superClassName);
             }
-            superType = definedSuperType.validate();
+            superType = definedSuperType.load();
         } else {
             superType = null;
         }
         int cnt = getInterfaceCount();
-        ValidatedTypeDefinition[] interfaces = new ValidatedTypeDefinition[cnt];
+        LoadedTypeDefinition[] interfaces = new LoadedTypeDefinition[cnt];
         for (int i = 0; i < cnt; i ++) {
-            interfaces[i] = context.findDefinedType(getInterfaceInternalName(i)).validate();
+            interfaces[i] = context.findDefinedType(getInterfaceInternalName(i)).load();
         }
         cnt = getFieldCount();
         ArrayList<FieldElement> fields = new ArrayList<>(cnt);
@@ -210,7 +211,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             // (i) all instance methods of my superclass
             instanceMethods.addAll(List.of(superType.getInstanceMethods()));
         }
-        for (ValidatedTypeDefinition i: interfaces) {
+        for (LoadedTypeDefinition i: interfaces) {
             outer: for (MethodElement im: i.getInstanceMethods()) {
                 for (MethodElement already : instanceMethods) {
                     if (already.getName().equals(im.getName()) && already.getDescriptor().equals(im.getDescriptor())) {
@@ -236,20 +237,20 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
         }
         MethodElement[] instMethods = instanceMethods.toArray(new MethodElement[instanceMethods.size()]);
         synchronized (this) {
-            validated = this.validated;
+            validated = this.loaded;
             if (validated != null) {
-                return validated.validate();
+                return validated.load();
             }
             try {
-                validated = new ValidatedTypeDefinitionImpl(this, superType, interfaces, fields, methods, instMethods, ctors, init, enclosingClass, enclosedClasses);
+                validated = new LoadedTypeDefinitionImpl(this, superType, interfaces, fields, methods, instMethods, ctors, init, enclosingClass, enclosedClasses);
             } catch (VerifyFailedException e) {
-                this.validated = new VerificationFailedDefinitionImpl(this, e.getMessage(), e.getCause());
+                this.loaded = new VerificationFailedDefinitionImpl(this, e.getMessage(), e.getCause());
                 throw e;
             }
             // replace in the map *first*, *then* replace our local ref
             // definingLoader.replaceTypeDefinition(name, this, verified);
-            this.validated = validated;
-            return validated.validate();
+            this.loaded = validated;
+            return validated.load();
         }
     }
 

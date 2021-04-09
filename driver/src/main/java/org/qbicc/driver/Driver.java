@@ -37,12 +37,12 @@ import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.object.Function;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.ModuleDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ElementVisitor;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -281,14 +281,14 @@ public class Driver implements Closeable {
         return compilationContext;
     }
 
-    private ValidatedTypeDefinition loadBootstrapClass(String name) {
+    private LoadedTypeDefinition loadBootstrapClass(String name) {
         DefinedTypeDefinition clazz = compilationContext.getBootstrapClassContext().findDefinedType(name);
         if (clazz == null) {
             compilationContext.error("Required bootstrap class \"%s\" was not found", name);
             return null;
         }
         try {
-            return clazz.validate();
+            return clazz.load();
         } catch (Exception ex) {
             log.error("An exception was thrown while loading a bootstrap class", ex);
             compilationContext.error("Failed to load bootstrap class \"%s\": %s", name, ex);
@@ -318,15 +318,15 @@ public class Driver implements Closeable {
                 return false;
             }
         }
-        ValidatedTypeDefinition stringClass = loadBootstrapClass("java/lang/String");
+        LoadedTypeDefinition stringClass = loadBootstrapClass("java/lang/String");
         if (stringClass == null) {
             return false;
         }
-        ValidatedTypeDefinition threadClass = loadBootstrapClass("java/lang/Thread");
+        LoadedTypeDefinition threadClass = loadBootstrapClass("java/lang/Thread");
         if (threadClass == null) {
             return false;
         }
-        ValidatedTypeDefinition vmClass = loadBootstrapClass("org/qbicc/runtime/main/VM");
+        LoadedTypeDefinition vmClass = loadBootstrapClass("org/qbicc/runtime/main/VM");
         if (vmClass == null) {
             return false;
         }

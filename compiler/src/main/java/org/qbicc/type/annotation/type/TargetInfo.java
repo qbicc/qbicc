@@ -4,7 +4,7 @@ import static org.qbicc.type.annotation.type.TypeAnnotation.*;
 
 import java.nio.ByteBuffer;
 
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.classfile.ClassFile;
 
 /**

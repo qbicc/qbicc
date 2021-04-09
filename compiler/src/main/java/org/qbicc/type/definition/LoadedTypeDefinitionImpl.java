@@ -16,11 +16,11 @@ import io.smallrye.common.constraint.Assert;
 /**
  *
  */
-final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition implements ValidatedTypeDefinition {
+final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition implements LoadedTypeDefinition {
     private final ObjectType type;
     private final DefinedTypeDefinitionImpl delegate;
-    private final ValidatedTypeDefinition superType;
-    private final ValidatedTypeDefinition[] interfaces;
+    private final LoadedTypeDefinition superType;
+    private final LoadedTypeDefinition[] interfaces;
     private final ArrayList<FieldElement> fields;
     private final MethodElement[] methods;
     private final MethodElement[] instanceMethods;
@@ -33,7 +33,7 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
     private int typeId = -1;
     private int maximumSubtypeId = -1;
 
-    ValidatedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final ValidatedTypeDefinition superType, final ValidatedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
+    LoadedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final LoadedTypeDefinition superType, final LoadedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
         this.delegate = delegate;
         this.superType = superType;
         this.interfaces = interfaces;
@@ -64,7 +64,7 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
         return delegate;
     }
 
-    public ValidatedTypeDefinition validate() {
+    public LoadedTypeDefinition load() {
         return this;
     }
 
@@ -74,15 +74,15 @@ final class ValidatedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition 
         return type;
     }
 
-    public ValidatedTypeDefinition getSuperClass() {
+    public LoadedTypeDefinition getSuperClass() {
         return superType;
     }
 
-    public ValidatedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
+    public LoadedTypeDefinition getInterface(final int index) throws IndexOutOfBoundsException {
         return interfaces[index];
     }
 
-    public ValidatedTypeDefinition[] getInterfaces() {
+    public LoadedTypeDefinition[] getInterfaces() {
         return interfaces.clone();
     }
 

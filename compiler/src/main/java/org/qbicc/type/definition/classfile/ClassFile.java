@@ -3,7 +3,7 @@ package org.qbicc.type.definition.classfile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.ClassFileUtil;
 import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;

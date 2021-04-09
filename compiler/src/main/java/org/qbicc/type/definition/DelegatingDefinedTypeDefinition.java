@@ -2,6 +2,7 @@ package org.qbicc.type.definition;
 
 import java.util.List;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.classfile.BootstrapMethod;
@@ -16,8 +17,8 @@ public abstract class DelegatingDefinedTypeDefinition implements DefinedTypeDefi
 
     protected abstract DefinedTypeDefinition getDelegate();
 
-    public ValidatedTypeDefinition validate() throws VerifyFailedException {
-        return getDelegate().validate();
+    public LoadedTypeDefinition load() throws VerifyFailedException {
+        return getDelegate().load();
     }
 
     public ClassContext getContext() {

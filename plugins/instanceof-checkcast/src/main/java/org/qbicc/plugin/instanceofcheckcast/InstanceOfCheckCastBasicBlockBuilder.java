@@ -27,7 +27,7 @@ import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -134,7 +134,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         // instanceof it at runtime. Transform all such instanceofs to false
         RTAInfo info = RTAInfo.get(ctxt);
         if (expectedType instanceof ClassObjectType || expectedType instanceof InterfaceObjectType) {
-            ValidatedTypeDefinition vtd = expectedType.getDefinition().validate();
+            LoadedTypeDefinition vtd = expectedType.getDefinition().load();
             if (vtd.isInterface()) {
                 if (!info.isLiveInterface(vtd)) {
                     return ctxt.getLiteralFactory().literalOf(false);
@@ -203,14 +203,14 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
 
         if (toType instanceof PrimitiveArrayObjectType) {
             DefinedTypeDefinition dtd = Layout.get(ctxt).getArrayContentField(toType).getEnclosingType();
-            ValidatedTypeDefinition arrayVTD = dtd.validate();
+            LoadedTypeDefinition arrayVTD = dtd.load();
             final int primArrayTypeId = arrayVTD.getTypeId();
             Value inputTypeId = typeIdOf(referenceHandle(input));
             if_(isEq(inputTypeId, lf.literalOf(primArrayTypeId)), pass, fail);
         } else if (toType instanceof InterfaceObjectType) {
             // 2 - expectedType statically known to be an interface
             SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
-            ValidatedTypeDefinition vtdExpectedType = toType.getDefinition().validate();
+            LoadedTypeDefinition vtdExpectedType = toType.getDefinition().load();
             final int byteIndex = tables.getInterfaceByteIndex(vtdExpectedType);
             final int mask = tables.getInterfaceBitMask(vtdExpectedType);
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(getDelegate().getCurrentElement());
@@ -230,7 +230,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             // A - leaf classes that have no subclasses can be a direct compare
             // B - non-leaf classes need a subtract + compare
             ClassObjectType cotExpectedType = (ClassObjectType) toType;
-            ValidatedTypeDefinition vtdExpectedType = cotExpectedType.getDefinition().validate();
+            LoadedTypeDefinition vtdExpectedType = cotExpectedType.getDefinition().load();
             Value inputTypeId = typeIdOf(referenceHandle(input));
             final int typeId = vtdExpectedType.getTypeId();
             final int maxSubId = vtdExpectedType.getMaximumSubtypeId();
@@ -299,7 +299,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             return false;
         }
         // A class is effectively final if it has no live subclasses.
-        ValidatedTypeDefinition vtd = type.getDefinition().validate();
+        LoadedTypeDefinition vtd = type.getDefinition().load();
         final int typeId = vtd.getTypeId();
         final int maxSubId = vtd.getMaximumSubtypeId();
         return typeId == maxSubId;

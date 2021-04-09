@@ -2,7 +2,7 @@ package org.qbicc.plugin.native_;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 
@@ -28,7 +28,7 @@ public class NativeTypeResolver implements DescriptorTypeResolver.Delegating {
     public ValueType resolveTypeFromClassName(final String packageName, final String internalName) {
         if (packageName.equals(Native.NATIVE_PKG)) {
             if (internalName.equals(Native.TYPE_ID)) {
-                return classCtxt.findDefinedType("java/lang/Object").validate().getClassType().getReference().getTypeType();
+                return classCtxt.findDefinedType("java/lang/Object").load().getClassType().getReference().getTypeType();
             } else if (internalName.equals(Native.VOID)) {
                 return ctxt.getTypeSystem().getVoidType();
             } else if (internalName.equals(Native.PTR)) {

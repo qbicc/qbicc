@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.annotation.Annotation;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -63,7 +63,7 @@ public class ThreadLocalTypeBuilder implements DefinedTypeDefinition.Builder.Del
                             injectedFieldBuilder.setSignature(resolved.getTypeSignature());
                             injectedFieldBuilder.setEnclosingType(jlt);
                             FieldElement injectedField = injectedFieldBuilder.build();
-                            jlt.validate().injectField(injectedField);
+                            jlt.load().injectField(injectedField);
                             ThreadLocals.get(ctxt).registerThreadLocalField(resolved, injectedField);
                         }
                     }

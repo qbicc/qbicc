@@ -15,7 +15,7 @@ import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -33,7 +33,7 @@ public final class VmImpl implements Vm {
         this.ctxt = ctxt;
         ClassContext bcc = ctxt.getBootstrapClassContext();
         loadClass = bcc.findDefinedType("java/lang/ClassLoader")
-            .validate()
+            .load()
             .resolveMethodElementExact("loadClass",
                 MethodDescriptor.synthesize(bcc, ClassTypeDescriptor.synthesize(bcc, "java/lang/String"),
                                             List.of(ClassTypeDescriptor.synthesize(bcc, "java/lang/Class"))));

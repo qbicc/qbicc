@@ -40,7 +40,7 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -141,7 +141,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         ExceptionHandlerImpl(final int index, final BasicBlockBuilder.ExceptionHandler delegate) {
             this.index = index;
             this.delegate = delegate;
-            this.phi = gf.phi(throwable.validate().getType().getReference().asNullable(), new BlockLabel());
+            this.phi = gf.phi(throwable.load().getType().getReference().asNullable(), new BlockLabel());
         }
 
         public BlockLabel getHandler() {
@@ -159,7 +159,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 int exTypeIdx = info.getExTableEntryTypeIdx(index);
                 ReferenceType exType;
                 if (exTypeIdx == 0) {
-                    exType = throwable.validate().getType().getReference();
+                    exType = throwable.load().getType().getReference();
                 } else {
                     exType = (ReferenceType) getClassFile().getTypeConstant(exTypeIdx, TypeParameterContext.of(gf.getCurrentElement()));
                 }
@@ -452,7 +452,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_NOP:
                         break;
                     case OP_ACONST_NULL:
-                        push1(lf.zeroInitializerLiteralOfType(jlo.validate().getClassType().getReference().asNullable()));
+                        push1(lf.zeroInitializerLiteralOfType(jlo.load().getClassType().getReference().asNullable()));
                         break;
                     case OP_ICONST_M1:
                     case OP_ICONST_0:
@@ -1335,7 +1335,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         callSiteBuilder.setEnclosingType(enclosingType);
                         FieldElement callSiteHolder = callSiteBuilder.build();
                         // inject a new field for the call site
-                        enclosingType.validate().injectField(callSiteHolder);
+                        enclosingType.load().injectField(callSiteHolder);
                         // TODO: inject code into the initializer to initialize the call site object by calling the bootstrap
                         // ...
                         // Get the call site

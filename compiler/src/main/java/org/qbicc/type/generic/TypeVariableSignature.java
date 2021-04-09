@@ -3,7 +3,7 @@ package org.qbicc.type.generic;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 

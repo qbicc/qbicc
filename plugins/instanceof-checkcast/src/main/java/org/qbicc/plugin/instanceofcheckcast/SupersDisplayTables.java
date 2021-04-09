@@ -21,7 +21,7 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
@@ -39,12 +39,12 @@ public class SupersDisplayTables {
     private static final Logger supersLog = Logger.getLogger("org.qbicc.plugin.instanceofcheckcast.supers");
 
     private static final AttachmentKey<SupersDisplayTables> KEY = new AttachmentKey<>();
-    private static final ValidatedTypeDefinition[] INVALID_DISPLAY = new ValidatedTypeDefinition[0];
+    private static final LoadedTypeDefinition[] INVALID_DISPLAY = new LoadedTypeDefinition[0];
 
     private final CompilationContext ctxt;
-    private final Map<ValidatedTypeDefinition, ValidatedTypeDefinition[]> supers = new ConcurrentHashMap<>();
+    private final Map<LoadedTypeDefinition, LoadedTypeDefinition[]> supers = new ConcurrentHashMap<>();
 
-    private final Map<ValidatedTypeDefinition, IdAndRange> typeids = new ConcurrentHashMap<>();
+    private final Map<LoadedTypeDefinition, IdAndRange> typeids = new ConcurrentHashMap<>();
 
     static final String GLOBAL_TYPEID_ARRAY = "qbicc_typeid_array";
     private GlobalVariableElement typeIdArrayGlobal;
@@ -179,27 +179,27 @@ public class SupersDisplayTables {
         return dt;
     }
 
-    public ValidatedTypeDefinition[] getSupersDisplay(ValidatedTypeDefinition cls) {
+    public LoadedTypeDefinition[] getSupersDisplay(LoadedTypeDefinition cls) {
         if (cls.getSuperClass() == null) {
             // java/lang/Object case
-            return supers.computeIfAbsent(cls, theCls -> new ValidatedTypeDefinition[] { theCls });
+            return supers.computeIfAbsent(cls, theCls -> new LoadedTypeDefinition[] { theCls });
         } else if (cls.isInterface()) {
             // Interfaces only have Object as their superclass
             // TODO: Should the interface be in the display? no for the Click paper
-            return supers.computeIfAbsent(cls, theCls -> new ValidatedTypeDefinition[] { theCls });
+            return supers.computeIfAbsent(cls, theCls -> new LoadedTypeDefinition[] { theCls });
         }
         // Display should have been built before this point so return the built one
         // or an easy to identify invalid one.
         return supers.getOrDefault(cls, INVALID_DISPLAY);
     }
 
-    void buildSupersDisplay(ValidatedTypeDefinition cls) {
+    void buildSupersDisplay(LoadedTypeDefinition cls) {
         log.debug("Building SupersDisplay for: " + cls.getDescriptor());
-        ValidatedTypeDefinition[] supersArray = getSupersDisplay(cls);
+        LoadedTypeDefinition[] supersArray = getSupersDisplay(cls);
         if (supersArray == INVALID_DISPLAY) {
             RTAInfo info = RTAInfo.get(ctxt);
-            ArrayList<ValidatedTypeDefinition> superDisplay = new ArrayList<>();
-            ValidatedTypeDefinition next = cls;
+            ArrayList<LoadedTypeDefinition> superDisplay = new ArrayList<>();
+            LoadedTypeDefinition next = cls;
             do {
                 superDisplay.add(next);
                 if (!info.isLiveClass(next)) {
@@ -245,7 +245,7 @@ public class SupersDisplayTables {
         typeids.entrySet().stream()
             .sorted((a, b) -> a.getValue().typeid - b.getValue().typeid)
             .forEach(es -> {            
-                ValidatedTypeDefinition vtd = es.getKey();
+                LoadedTypeDefinition vtd = es.getKey();
                 IdAndRange idRange = es.getValue();
                 supersLog.debug(idRange.toString() + " " + vtd.getInternalName());
             }
@@ -258,15 +258,15 @@ public class SupersDisplayTables {
         supersLog.debug("Interface bits[] space (in bytes): " + (typeids.size() * bytesPerClass));
     }
 
-    void assignTypeID(ValidatedTypeDefinition cls) {
+    void assignTypeID(LoadedTypeDefinition cls) {
         IdAndRange myID = typeids.computeIfAbsent(cls, theCls -> idAndRange.nextID());
         log.debug("[" + myID.typeid + "] Class: " + cls.getInternalName());
     }
 
-    void assignMaximumSubtypeId(ValidatedTypeDefinition cls) {
+    void assignMaximumSubtypeId(LoadedTypeDefinition cls) {
         IdAndRange myID = typeids.get(cls);
         log.debug("Visiting: " + cls.getInternalName() + " " + myID.toString());
-        ValidatedTypeDefinition superclass = cls.getSuperClass();
+        LoadedTypeDefinition superclass = cls.getSuperClass();
         if (superclass != null) {
             IdAndRange superID = typeids.getOrDefault(superclass, null);
             if (superID != null) {
@@ -276,12 +276,12 @@ public class SupersDisplayTables {
         }
     }
 
-    void assignInterfaceId(ValidatedTypeDefinition cls) {
+    void assignInterfaceId(LoadedTypeDefinition cls) {
         Assert.assertTrue(cls.isInterface());
         typeids.computeIfAbsent(cls, theInterface -> idAndRange.nextInterfaceID());
     }
 
-    void updateJLORange(ValidatedTypeDefinition jlo) {
+    void updateJLORange(LoadedTypeDefinition jlo) {
         Assert.assertTrue(jlo.getSuperClass() == null);
         IdAndRange r = typeids.get(jlo);
         // typeid_index is incremented after use so we need
@@ -296,7 +296,7 @@ public class SupersDisplayTables {
 
     void writeTypeIdToClasses() {
         typeids.entrySet().stream().forEach(es -> {
-            ValidatedTypeDefinition vtd = es.getKey();
+            LoadedTypeDefinition vtd = es.getKey();
             IdAndRange idRange = es.getValue();
             vtd.assignTypeId(idRange.typeid);
             vtd.assignMaximumSubtypeId(idRange.maximumSubtypeId);
@@ -317,20 +317,20 @@ public class SupersDisplayTables {
         return (numInterfaces + Factory.interfaces_per_byte - 1) / Factory.interfaces_per_byte;
     }
 
-    byte[] getImplementedInterfaceBits(ValidatedTypeDefinition cls) {
+    byte[] getImplementedInterfaceBits(LoadedTypeDefinition cls) {
         byte[] setBits = new byte[getNumberOfBytesInInterfaceBitsArray()];
-        ArrayDeque<ValidatedTypeDefinition> worklist = new ArrayDeque<>();
+        ArrayDeque<LoadedTypeDefinition> worklist = new ArrayDeque<>();
         if (cls.isInterface()) {
             worklist.add(cls);
         } else {
-            ValidatedTypeDefinition cur = cls;
+            LoadedTypeDefinition cur = cls;
             while (cur != null) {
                 worklist.addAll(List.of(cur.getInterfaces()));
                 cur = cur.getSuperClass();
             }
         }
         while (!worklist.isEmpty()) {
-            ValidatedTypeDefinition i = worklist.pop();
+            LoadedTypeDefinition i = worklist.pop();
             worklist.addAll(List.of(i.getInterfaces()));
             IdAndRange idRange = typeids.get(i);
             if (idRange != null) {
@@ -342,13 +342,13 @@ public class SupersDisplayTables {
         return setBits;
     }
 
-    public int getInterfaceByteIndex(ValidatedTypeDefinition cls) {
+    public int getInterfaceByteIndex(LoadedTypeDefinition cls) {
         Assert.assertTrue(cls.isInterface());
         IdAndRange idRange = typeids.get(cls);
         return idRange.implementedInterfaceByteIndex();
     }
 
-    public int getInterfaceBitMask(ValidatedTypeDefinition cls) {
+    public int getInterfaceBitMask(LoadedTypeDefinition cls) {
         Assert.assertTrue(cls.isInterface());
         IdAndRange idRange = typeids.get(cls);
         return idRange.implementedInterfaceBitMask();
@@ -362,7 +362,7 @@ public class SupersDisplayTables {
         return List.of(literals);
     }
 
-    void emitTypeIdTable(ValidatedTypeDefinition jlo) {
+    void emitTypeIdTable(LoadedTypeDefinition jlo) {
         TypeSystem ts = ctxt.getTypeSystem();
         UnsignedIntegerType u8 = ts.getUnsignedInteger8Type();
         int typeIdSize = ts.getTypeIdSize();
@@ -429,8 +429,8 @@ public class SupersDisplayTables {
                 )
             );
         }
-        for (Map.Entry<ValidatedTypeDefinition, IdAndRange> e : typeids.entrySet()) {
-            ValidatedTypeDefinition vtd = e.getKey();
+        for (Map.Entry<LoadedTypeDefinition, IdAndRange> e : typeids.entrySet()) {
+            LoadedTypeDefinition vtd = e.getKey();
             IdAndRange idRange = e.getValue();
             typeIdTable[vtd.getTypeId()] = literalFactory.literalOf(typeIdStruct, 
                 Map.of(

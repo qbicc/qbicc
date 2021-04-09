@@ -16,7 +16,7 @@ import org.qbicc.type.Type;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldContainer;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 
@@ -29,7 +29,7 @@ public class PrototypeGenerator {
     }
 
     private static Prototype generate(DefinedTypeDefinition defined) {
-        ValidatedTypeDefinition verified = defined.validate();
+        LoadedTypeDefinition verified = defined.load();
         ObjectType classType = verified.getType();
         String className = verified.getInternalName();
 

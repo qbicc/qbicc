@@ -9,7 +9,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;

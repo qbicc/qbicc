@@ -16,7 +16,7 @@ import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -43,7 +43,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
         // cause the class to be initialized
-        InitializerElement initializer = target.getEnclosingType().validate().getInitializer();
+        InitializerElement initializer = target.getEnclosingType().load().getInitializer();
         if (initializer != null) {
             ctxt.enqueue(initializer);
         }
@@ -62,7 +62,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
         // cause the class to be initialized
-        InitializerElement initializer = target.getEnclosingType().validate().getInitializer();
+        InitializerElement initializer = target.getEnclosingType().load().getInitializer();
         if (initializer != null) {
             ctxt.enqueue(initializer);
         }
@@ -81,11 +81,11 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
         // cause the class to be initialized
-        InitializerElement initializer = target.getEnclosingType().validate().getInitializer();
+        InitializerElement initializer = target.getEnclosingType().load().getInitializer();
         if (initializer != null) {
             ctxt.enqueue(initializer);
         }
-        processInstantiatedClass(target.getEnclosingType().validate(), true, false);
+        processInstantiatedClass(target.getEnclosingType().load(), true, false);
         ctxt.enqueue(target);
         return super.invokeConstructor(instance, target, arguments);
     }
@@ -96,12 +96,12 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
             // force the array's leaf element type to be resolved (and thus assigned a typeId).
             ObjectType elemType = ((ReferenceArrayObjectType)arrayType).getLeafElementType();
             if (elemType instanceof ClassObjectType) {
-                processInstantiatedClass(elemType.getDefinition().validate(), false, true);
+                processInstantiatedClass(elemType.getDefinition().load(), false, true);
             } else if (elemType instanceof InterfaceObjectType) {
-                processInstantiatedInterface(RTAInfo.get(ctxt), elemType.getDefinition().validate(), true);
+                processInstantiatedInterface(RTAInfo.get(ctxt), elemType.getDefinition().load(), true);
             }
         }
-        processInstantiatedClass(Layout.get(ctxt).getArrayContentField(arrayType).getEnclosingType().validate(), true, false);
+        processInstantiatedClass(Layout.get(ctxt).getArrayContentField(arrayType).getEnclosingType().load(), true, false);
         return super.newArray(arrayType, size);
     }
 
@@ -111,9 +111,9 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
             // force the array's leaf element type to be resolved (and thus assigned a typeId).
             ObjectType elemType = ((ReferenceArrayObjectType) arrayType).getLeafElementType();
             if (elemType instanceof ClassObjectType) {
-                processInstantiatedClass(elemType.getDefinition().validate(), false, true);
+                processInstantiatedClass(elemType.getDefinition().load(), false, true);
             } else if (elemType instanceof InterfaceObjectType) {
-                processInstantiatedInterface(RTAInfo.get(ctxt), elemType.getDefinition().validate(), true);
+                processInstantiatedInterface(RTAInfo.get(ctxt), elemType.getDefinition().load(), true);
             }
         }
         return super.multiNewArray(arrayType, dimensions);
@@ -123,7 +123,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     public ValueHandle staticField(FieldElement field) {
         DefinedTypeDefinition enclosingType = field.getEnclosingType();
         // initialize referenced field
-        ctxt.enqueue(enclosingType.validate().getInitializer());
+        ctxt.enqueue(enclosingType.load().getInitializer());
         return super.staticField(field);
     }
 
@@ -134,7 +134,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.classOf(typeId);
     }
 
-    private void processInstantiatedClass(final ValidatedTypeDefinition type, boolean directlyInstantiated, boolean arrayElement) {
+    private void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, boolean arrayElement) {
         RTAInfo info = RTAInfo.get(ctxt);
         if (!info.isLiveClass(type)) {
             if (directlyInstantiated) {
@@ -162,13 +162,13 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
             }
 
             // Extend the interface hierarchy
-            for (ValidatedTypeDefinition i: type.getInterfaces()) {
+            for (LoadedTypeDefinition i: type.getInterfaces()) {
                 processInstantiatedInterface(info, i, false);
                 info.addInterfaceEdge(type, i);
             }
 
             // For every enqueued interface method, make sure my implementation of that method is also enqueued.
-            for (ValidatedTypeDefinition i: type.getInterfaces()) {
+            for (LoadedTypeDefinition i: type.getInterfaces()) {
                 for (MethodElement sig: i.getInstanceMethods()) {
                     if (ctxt.wasEnqueued((sig))) {
                         MethodElement impl = type.resolveMethodElementVirtual(sig.getName(), sig.getDescriptor());
@@ -182,7 +182,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         }
     }
 
-    private void processInstantiatedInterface(RTAInfo info, final ValidatedTypeDefinition type, boolean arrayElement) {
+    private void processInstantiatedInterface(RTAInfo info, final LoadedTypeDefinition type, boolean arrayElement) {
         if (!info.isLiveInterface(type)) {
             info.makeInterfaceLive(type);
             if (arrayElement) {
@@ -190,7 +190,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
             } else {
                 rtaLog.debugf("\tadding implemented interface: %s", type.getDescriptor().getClassName());
             }
-            for (ValidatedTypeDefinition i: type.getInterfaces()) {
+            for (LoadedTypeDefinition i: type.getInterfaces()) {
                 processInstantiatedInterface(info, i, false);
                 info.addInterfaceEdge(type, i);
             }
@@ -199,7 +199,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
             // check to see if it has the same selector as an enqueued super-interface method and thus should be enqueued.
             outer: for (MethodElement im: type.getInstanceMethods()) {
                 if (!ctxt.wasEnqueued(im)) {
-                    for (ValidatedTypeDefinition si : type.getInterfaces()) {
+                    for (LoadedTypeDefinition si : type.getInterfaces()) {
                         MethodElement sm = si.resolveMethodElementInterface(im.getName(), im.getDescriptor());
                         if (sm != null && ctxt.wasEnqueued(sm)) {
                             rtaLog.debugf("\tnewly reachable interface: enqueued implementing method:  %s", im);
@@ -214,7 +214,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private void processInvokeTarget(final MethodElement target) {
         RTAInfo info = RTAInfo.get(ctxt);
-        ValidatedTypeDefinition definingClass = target.getEnclosingType().validate();
+        LoadedTypeDefinition definingClass = target.getEnclosingType().load();
 
         if (definingClass.isInterface()) {
             // Traverse the instantiated extenders and implementors and handle as-if we just saw

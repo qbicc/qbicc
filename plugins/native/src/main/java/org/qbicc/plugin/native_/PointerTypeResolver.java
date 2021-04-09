@@ -15,7 +15,7 @@ import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.IntAnnotationValue;
 import org.qbicc.type.annotation.type.TypeAnnotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;

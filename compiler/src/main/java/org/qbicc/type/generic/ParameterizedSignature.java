@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 
 /**
  *

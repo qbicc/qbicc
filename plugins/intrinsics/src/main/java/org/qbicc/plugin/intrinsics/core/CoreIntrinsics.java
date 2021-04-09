@@ -37,9 +37,9 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
@@ -104,7 +104,7 @@ public final class CoreIntrinsics {
 
             // Generics erasure issue. The return type of Class<T>.cast is T, but it gets wiped to Object.
             // If the result of this cast is actually used as a T, there will be a (redundant) checkcast bytecode following this operation.
-            ReferenceType jlot = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").validate().getType().getReference();
+            ReferenceType jlot = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load().getType().getReference();
             return builder.bitCast(arguments.get(0), jlot);
         };
 
@@ -198,7 +198,7 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         ClassTypeDescriptor systemDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/System");
-        ValidatedTypeDefinition jls = classContext.findDefinedType("java/lang/System").validate();
+        LoadedTypeDefinition jls = classContext.findDefinedType("java/lang/System").load();
         ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VM");
 
@@ -482,7 +482,7 @@ public final class CoreIntrinsics {
             builder.store(builder.pointerHandle(ctxt.getCurrentThreadLocalSymbolLiteral()), builder.valueConvert(thread, voidPtr), MemoryAtomicityMode.NONE);
             // now start initializing
             DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
-            ValidatedTypeDefinition jltVal = jlt.validate();
+            LoadedTypeDefinition jltVal = jlt.load();
             // find all the fields
             FieldElement nameFld = jltVal.findField("name");
             FieldElement tidFld = jltVal.findField("tid");
@@ -529,14 +529,14 @@ public final class CoreIntrinsics {
 
         FieldElement elementTypeField = layout.getRefArrayElementTypeIdField();
         StaticValueIntrinsic elementTypeOf = (builder, owner, name, descriptor, arguments) -> {
-            ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), elementTypeField.getEnclosingType().validate().getType().getReference()));
+            ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), elementTypeField.getEnclosingType().load().getType().getReference()));
             return builder.load(builder.instanceFieldOf(handle, elementTypeField), MemoryAtomicityMode.UNORDERED);
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "element_type_id_of", objTypeIdDesc, elementTypeOf);
 
         FieldElement dimensionsField = layout.getRefArrayDimensionsField();
         StaticValueIntrinsic dimensionsOf = (builder, owner, name, descriptor, arguments) -> {
-            ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), dimensionsField.getEnclosingType().validate().getType().getReference()));
+            ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), dimensionsField.getEnclosingType().load().getType().getReference()));
             return builder.load(builder.instanceFieldOf(handle, dimensionsField), MemoryAtomicityMode.UNORDERED);
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "dimensions_of", objIntDesc, dimensionsOf);
@@ -549,26 +549,26 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "max_subclass_type_id_of", typeIdTypeIdDesc, maxSubclassId);
 
         StaticValueIntrinsic isObject = (builder, owner, name, descriptor, arguments) -> {
-            ValidatedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").validate();
+            LoadedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").load();
             return builder.isEq(arguments.get(0), lf.literalOfType(jlo.getType()));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_java_lang_object", typeIdBooleanDesc, isObject);
 
         StaticValueIntrinsic isCloneable = (builder, owner, name, descriptor, arguments) -> {
-            ValidatedTypeDefinition jlc = classContext.findDefinedType("java/lang/Cloneable").validate();
+            LoadedTypeDefinition jlc = classContext.findDefinedType("java/lang/Cloneable").load();
             return builder.isEq(arguments.get(0), lf.literalOfType(jlc.getType()));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_java_lang_cloneable", typeIdBooleanDesc, isCloneable);
 
         StaticValueIntrinsic isSerializable = (builder, owner, name, descriptor, arguments) -> {
-            ValidatedTypeDefinition jis = classContext.findDefinedType("java/io/Serializable").validate();
+            LoadedTypeDefinition jis = classContext.findDefinedType("java/io/Serializable").load();
             return builder.isEq(arguments.get(0), lf.literalOfType(jis.getType()));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_java_io_serializable", typeIdBooleanDesc, isSerializable);
 
         StaticValueIntrinsic isClass = (builder, owner, name, descriptor, arguments) -> {
-            ValidatedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").validate();
-            ValueType refArray = layout.getArrayValidatedTypeDefinition("[ref").getType();
+            LoadedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").load();
+            ValueType refArray = layout.getArrayLoadedTypeDefinition("[ref").getType();
             Value isObj = builder.isEq(arguments.get(0), lf.literalOfType(jlo.getType()));
             Value isAboveRef = builder.isLt(lf.literalOfType(refArray), arguments.get(0));
             Value isNotInterface = builder.isLt(arguments.get(0), lf.literalOf(tables.getFirstInterfaceTypeId()));
@@ -582,15 +582,15 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_interface", typeIdBooleanDesc, isInterface);
 
         StaticValueIntrinsic isPrimArray = (builder, owner, name, descriptor, arguments) -> {
-            ValueType firstPrimArray = layout.getArrayValidatedTypeDefinition("[Z").getType();
-            ValueType lastPrimArray = layout.getArrayValidatedTypeDefinition("[D").getType();
+            ValueType firstPrimArray = layout.getArrayLoadedTypeDefinition("[Z").getType();
+            ValueType lastPrimArray = layout.getArrayLoadedTypeDefinition("[D").getType();
             return builder.and(builder.isLe(lf.literalOfType(firstPrimArray), arguments.get(0)),
                 builder.isGe(arguments.get(0), lf.literalOfType(lastPrimArray)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_prim_array", typeIdBooleanDesc, isPrimArray);
 
         StaticValueIntrinsic isRefArray = (builder, owner, name, descriptor, arguments) -> {
-            ValueType refArray = layout.getArrayValidatedTypeDefinition("[ref").getType();
+            ValueType refArray = layout.getArrayLoadedTypeDefinition("[ref").getType();
             return builder.isEq(arguments.get(0), lf.literalOfType(refArray));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_reference_array", typeIdBooleanDesc, isRefArray);

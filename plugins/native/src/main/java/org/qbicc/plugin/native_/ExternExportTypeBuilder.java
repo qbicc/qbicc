@@ -21,13 +21,13 @@ import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.definition.MethodResolver;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -183,7 +183,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                         DefinedTypeDefinition nativeType = classCtxt.findDefinedType(internalName + "$_native");
                         if (nativeType != null) {
                             // found it
-                            ValidatedTypeDefinition loadedNativeType = nativeType.validate();
+                            LoadedTypeDefinition loadedNativeType = nativeType.load();
                             boolean isStatic = origMethod.hasAllModifiersOf(ClassFile.ACC_STATIC);
                             // bound native methods are always static, but bindings for instance methods take
                             //   the receiver as the first argument

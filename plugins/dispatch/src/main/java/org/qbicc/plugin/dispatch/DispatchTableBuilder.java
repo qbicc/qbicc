@@ -2,9 +2,9 @@ package org.qbicc.plugin.dispatch;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.reachability.RTAInfo;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 
 import java.util.function.Consumer;
 
@@ -18,7 +18,7 @@ public class DispatchTableBuilder implements Consumer<CompilationContext>  {
         //  compute vtable layouts that contain just the methods where ctxt.wasEnqueued is true.
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
-        ValidatedTypeDefinition jlo = jloDef.validate();
+        LoadedTypeDefinition jlo = jloDef.load();
         tables.buildFilteredVTable(jlo);
         info.visitLiveSubclassesPreOrder(jlo, cls -> tables.buildFilteredVTable(cls));
 

@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.junit.jupiter.api.Test;
 
 /**

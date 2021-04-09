@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
@@ -31,7 +31,7 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
             String mainType = mainClass.replace('.', '/');
             DefinedTypeDefinition definedMainClass = ctxt.getBootstrapClassContext().findDefinedType(mainType);
             if (definedMainClass != null) {
-                ValidatedTypeDefinition resolvedMainClass = definedMainClass.validate();
+                LoadedTypeDefinition resolvedMainClass = definedMainClass.load();
                 int idx = resolvedMainClass.findMethodIndex(e -> {
                     // todo: maybe we could simplify this a little...?
                     MethodDescriptor desc = e.getDescriptor();
@@ -69,7 +69,7 @@ public class AddMainClassHook implements Consumer<CompilationContext> {
                 if (runtimeMain == null) {
                     ctxt.error("Unable to find runtime main class \"%s\"", MAIN_CLASS);
                 } else {
-                    runtimeMain.validate();
+                    runtimeMain.load();
                 }
             }
         }

@@ -3,7 +3,7 @@ package org.qbicc.plugin.native_;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;

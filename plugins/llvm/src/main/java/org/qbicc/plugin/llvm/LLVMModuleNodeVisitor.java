@@ -330,9 +330,9 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     public LLValue visit(Void param, TypeLiteral node) {
         ObjectType type = (ObjectType)node.getValue();
         if  (type instanceof ArrayObjectType) {
-            return Values.intConstant(Layout.get(ctxt).getArrayContentField(type).getEnclosingType().validate().getTypeId());
+            return Values.intConstant(Layout.get(ctxt).getArrayContentField(type).getEnclosingType().load().getTypeId());
         } else {
-            return Values.intConstant(type.getDefinition().validate().getTypeId());
+            return Values.intConstant(type.getDefinition().load().getTypeId());
         }
     }
 
@@ -378,7 +378,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             CompoundType baType = ts.getCompoundType(CompoundType.Tag.NONE, "ba" + id, 0, 1, () -> List.of(typeIdMem, lengthMem, realContentMem));
 
             CompoundLiteral baLit = lf.literalOf(baType, Map.of(
-                typeIdMem, lf.literalOfType(ba.validate().getType()),
+                typeIdMem, lf.literalOfType(ba.load().getType()),
                 lengthMem, lf.literalOf(bytes.length),
                 realContentMem, lf.literalOf(s8ArrayType, bytes)
             ));
@@ -386,16 +386,16 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
 
             DefinedTypeDefinition jls = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String");
             Layout.LayoutInfo jlsLayout = layout.getInstanceLayoutInfo(jls);
-            CompoundType.Member coderMem = jlsLayout.getMember(jls.validate().findField("coder"));
-            CompoundType.Member valueMem = jlsLayout.getMember(jls.validate().findField("value"));
+            CompoundType.Member coderMem = jlsLayout.getMember(jls.load().findField("coder"));
+            CompoundType.Member valueMem = jlsLayout.getMember(jls.load().findField("value"));
             CompoundType stringType = ts.getCompoundType(CompoundType.Tag.NONE, "str" + id, 0, 1, () -> List.of(typeIdMem, coderMem, valueMem));
             CompoundLiteral lit = lf.literalOf(stringType, Map.of(
-                typeIdMem, lf.literalOfType(jls.validate().getType()),
+                typeIdMem, lf.literalOfType(jls.load().getType()),
                 coderMem, lf.literalOf(node.isLatin1() ? 0 : 1),
-                valueMem, lf.valueConvertLiteral(lf.literalOfSymbol("ba" + id, baType.getPointer()), jls.validate().getType().getReference())
+                valueMem, lf.valueConvertLiteral(lf.literalOfSymbol("ba" + id, baType.getPointer()), jls.load().getType().getReference())
             ));
             module.constant(map(stringType)).value(visit(param, lit)).linkage(Linkage.PRIVATE).asGlobal("str" + id);
-            TEMPORARY_stringLiterals.put(value, v = map(lf.valueConvertLiteral(lf.literalOfSymbol("str" + id, lit.getType().getPointer()), jls.validate().getClassType().getReference())));
+            TEMPORARY_stringLiterals.put(value, v = map(lf.valueConvertLiteral(lf.literalOfSymbol("str" + id, lit.getType().getPointer()), jls.load().getClassType().getReference())));
         }
         return v;
     }

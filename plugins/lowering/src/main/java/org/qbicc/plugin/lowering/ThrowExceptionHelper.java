@@ -2,9 +2,9 @@ package org.qbicc.plugin.lowering;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -32,14 +32,14 @@ public class ThrowExceptionHelper {
         DefinedTypeDefinition jltDefined = classContext.findDefinedType("java/lang/Thread");
         builder.setEnclosingType(jltDefined);
         FieldElement field = builder.build();
-        jltDefined.validate().injectField(field);
+        jltDefined.load().injectField(field);
         unwindExceptionField = field;
 
         /* Get the symbol to Unwind#_Unwind_RaiseException */
         String unwindClass = "org/qbicc/runtime/unwind/Unwind";
         DefinedTypeDefinition unwindDefined = classContext.findDefinedType(unwindClass);
         if (unwindDefined != null) {
-            ValidatedTypeDefinition unwindValidated = unwindDefined.validate();
+            LoadedTypeDefinition unwindValidated = unwindDefined.load();
             int index = unwindValidated.findMethodIndex(e -> e.getName().equals("_Unwind_RaiseException"));
             raiseExceptionMethod = unwindValidated.getMethod(index);
         } else {

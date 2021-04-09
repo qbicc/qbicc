@@ -19,8 +19,8 @@ import io.smallrye.common.constraint.Assert;
 /**
  *
  */
-public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
-    default ValidatedTypeDefinition validate() {
+public interface LoadedTypeDefinition extends DefinedTypeDefinition {
+    default LoadedTypeDefinition load() {
         return this;
     }
 
@@ -34,13 +34,13 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
         return (InterfaceObjectType) getType();
     }
 
-    ValidatedTypeDefinition getSuperClass();
+    LoadedTypeDefinition getSuperClass();
 
-    ValidatedTypeDefinition getInterface(int index) throws IndexOutOfBoundsException;
+    LoadedTypeDefinition getInterface(int index) throws IndexOutOfBoundsException;
 
-    ValidatedTypeDefinition[] getInterfaces();
+    LoadedTypeDefinition[] getInterfaces();
 
-    default boolean isSubtypeOf(ValidatedTypeDefinition other) {
+    default boolean isSubtypeOf(LoadedTypeDefinition other) {
         return getType().isSubtypeOf(other.getType());
     }
 
@@ -96,7 +96,7 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
 
         int interfaceCount = getInterfaceCount();
         for (int i = 0; i < interfaceCount; i ++) {
-            ValidatedTypeDefinition each = getInterface(i);
+            LoadedTypeDefinition each = getInterface(i);
             FieldElement candidate = each.resolveField(descriptor, name);
             if ( candidate != null ) {
                 return candidate;
@@ -105,7 +105,7 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
 
         // 3. Otherwise, if C has a superclass S, field lookup is applied recursively to S.
 
-        ValidatedTypeDefinition superType = getSuperClass();
+        LoadedTypeDefinition superType = getSuperClass();
         return superType != null ? superType.resolveField(descriptor, name) : null;
     }
 
@@ -204,7 +204,7 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
         // 2.c Otherwise, if C has a superclass, step 2 of method resolution is recursively
         // invoked on the direct superclass of C.
 
-        ValidatedTypeDefinition superClass = getSuperClass();
+        LoadedTypeDefinition superClass = getSuperClass();
         if ( superClass != null ) {
             MethodElement superCandidate = superClass.resolveMethodElementVirtual(name, descriptor);
             if ( superCandidate != null ) {
@@ -250,7 +250,7 @@ public interface ValidatedTypeDefinition extends DefinedTypeDefinition {
         // specified by the interface method reference, which has its ACC_PUBLIC flag set
         // and does not have its ACC_STATIC flag set, method lookup succeeds.
         if (! virtualOnly) {
-            ValidatedTypeDefinition object = getContext().findDefinedType("java/lang/Object").validate();
+            LoadedTypeDefinition object = getContext().findDefinedType("java/lang/Object").load();
             result = object.findMethodIndex(name, descriptor);
             if (result != -1) {
                 MethodElement method = object.getMethod(result);

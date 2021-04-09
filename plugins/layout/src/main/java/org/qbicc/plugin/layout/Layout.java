@@ -20,10 +20,10 @@ import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.InitializerResolver;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
@@ -50,7 +50,7 @@ public final class Layout {
     private static final TypeDescriptor typeTypeDescriptor = BaseTypeDescriptor.V; // TODO: Should be C (16 bit unsigned)
     private static final TypeSignature typeTypeSignature = BaseTypeSignature.V;    // TODO: Should be C (16 bit unsigned)
 
-    private final Map<ValidatedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
+    private final Map<LoadedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
     private final FieldElement objectTypeIdField;
     private final FieldElement classTypeIdField;
@@ -79,8 +79,8 @@ public final class Layout {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         DefinedTypeDefinition jlcDef = classContext.findDefinedType("java/lang/Class");
-        ValidatedTypeDefinition jlo = jloDef.validate();
-        ValidatedTypeDefinition jlc = jlcDef.validate();
+        LoadedTypeDefinition jlo = jloDef.load();
+        LoadedTypeDefinition jlc = jlcDef.load();
 
         // inject a field to hold the object typeId
         // TODO: This should be a 16 bit unsigned field.  It is being generated as an i32 currently.
@@ -143,25 +143,25 @@ public final class Layout {
         typeBuilder.setInitializer(EMPTY_INIT, 0);
         DefinedTypeDefinition baseType = typeBuilder.build();
 
-        arrayLengthField = baseType.validate().getField(0);
+        arrayLengthField = baseType.load().getField(0);
 
         // primitives first
         // booleans are special
-        booleanArrayContentField = defineArrayType(classContext, baseType, ts.getUnsignedInteger8Type(), "[Z").validate().getField(0);
+        booleanArrayContentField = defineArrayType(classContext, baseType, ts.getUnsignedInteger8Type(), "[Z").load().getField(0);
 
-        byteArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger8Type(), "[B").validate().getField(0);
-        shortArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger16Type(), "[S").validate().getField(0);
-        intArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger32Type(), "[I").validate().getField(0);
-        longArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger64Type(), "[J").validate().getField(0);
+        byteArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger8Type(), "[B").load().getField(0);
+        shortArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger16Type(), "[S").load().getField(0);
+        intArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger32Type(), "[I").load().getField(0);
+        longArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger64Type(), "[J").load().getField(0);
 
-        charArrayContentField = defineArrayType(classContext, baseType, ts.getUnsignedInteger16Type(), "[C").validate().getField(0);
+        charArrayContentField = defineArrayType(classContext, baseType, ts.getUnsignedInteger16Type(), "[C").load().getField(0);
 
-        floatArrayContentField = defineArrayType(classContext, baseType, ts.getFloat32Type(), "[F").validate().getField(0);
-        doubleArrayContentField = defineArrayType(classContext, baseType, ts.getFloat64Type(), "[D").validate().getField(0);
+        floatArrayContentField = defineArrayType(classContext, baseType, ts.getFloat32Type(), "[F").load().getField(0);
+        doubleArrayContentField = defineArrayType(classContext, baseType, ts.getFloat64Type(), "[D").load().getField(0);
 
         // now the reference array class
 
-        ValidatedTypeDefinition refArrayType = defineArrayType(classContext, baseType, jlo.getClassType().getReference().asNullable(), "[L").validate();
+        LoadedTypeDefinition refArrayType = defineArrayType(classContext, baseType, jlo.getClassType().getReference().asNullable(), "[L").load();
         refArrayDimensionsField = refArrayType.getField(0);
         refArrayElementTypeIdField = refArrayType.getField(1);
         refArrayContentField = refArrayType.getField(2);
@@ -226,7 +226,7 @@ public final class Layout {
         fieldBuilder.setSignature(typeTypeSignature);
         fieldBuilder.setIndex(index);
         fieldBuilder.setName("elementType");
-        fieldBuilder.setType(jlo.validate().getClassType().getReference().getTypeType());
+        fieldBuilder.setType(jlo.load().getClassType().getReference().getTypeType());
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
         return fieldBuilder.build();
     }
@@ -306,26 +306,26 @@ public final class Layout {
         }
     }
 
-    public ValidatedTypeDefinition getArrayValidatedTypeDefinition(String arrayType) {
+    public LoadedTypeDefinition getArrayLoadedTypeDefinition(String arrayType) {
         switch(arrayType) {
         case "[Z":
-            return booleanArrayContentField.getEnclosingType().validate();
+            return booleanArrayContentField.getEnclosingType().load();
         case "[B":
-            return byteArrayContentField.getEnclosingType().validate();
+            return byteArrayContentField.getEnclosingType().load();
         case "[S":
-            return shortArrayContentField.getEnclosingType().validate();
+            return shortArrayContentField.getEnclosingType().load();
         case "[C":
-            return charArrayContentField.getEnclosingType().validate();
+            return charArrayContentField.getEnclosingType().load();
         case "[I":
-            return intArrayContentField.getEnclosingType().validate();
+            return intArrayContentField.getEnclosingType().load();
         case "[F":
-            return floatArrayContentField.getEnclosingType().validate();
+            return floatArrayContentField.getEnclosingType().load();
         case "[J":
-            return longArrayContentField.getEnclosingType().validate();
+            return longArrayContentField.getEnclosingType().load();
         case "[D":
-            return doubleArrayContentField.getEnclosingType().validate();
+            return doubleArrayContentField.getEnclosingType().load();
         case "[ref":
-            return refArrayContentField.getEnclosingType().validate();
+            return refArrayContentField.getEnclosingType().load();
         default:
             throw Assert.impossibleSwitchCase("arrayType");
         }
@@ -405,12 +405,12 @@ public final class Layout {
         if (type.isInterface()) {
             throw new IllegalArgumentException("Interfaces have no instance layout");
         }
-        ValidatedTypeDefinition validated = type.validate();
+        LoadedTypeDefinition validated = type.load();
         LayoutInfo layoutInfo = instanceLayouts.get(validated);
         if (layoutInfo != null) {
             return layoutInfo;
         }
-        ValidatedTypeDefinition superClass = validated.getSuperClass();
+        LoadedTypeDefinition superClass = validated.getSuperClass();
         LayoutInfo superLayout;
         if (superClass != null) {
             superLayout = getInstanceLayoutInfo(superClass);

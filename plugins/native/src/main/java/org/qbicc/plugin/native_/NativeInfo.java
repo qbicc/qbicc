@@ -26,9 +26,9 @@ import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.annotation.type.TypeAnnotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -139,7 +139,7 @@ final class NativeInfo {
                             }
                         }
                         // begin the real work
-                        ValidatedTypeDefinition vt = definedType.validate();
+                        LoadedTypeDefinition vt = definedType.load();
                         int fc = vt.getFieldCount();
                         TypeSystem ts = ctxt.getTypeSystem();
                         CProbe.Type.Builder tb = CProbe.Type.builder();
@@ -284,7 +284,7 @@ final class NativeInfo {
             return element;
         }
         try {
-            element = computeFunctionalInterfaceMethod(definedType.validate(), new HashSet<>(), null);
+            element = computeFunctionalInterfaceMethod(definedType.load(), new HashSet<>(), null);
         } catch (IllegalArgumentException ignored) {
         }
         if (element != null) {
@@ -298,7 +298,7 @@ final class NativeInfo {
         return element;
     }
 
-    private MethodElement computeFunctionalInterfaceMethod(final ValidatedTypeDefinition type, final HashSet<ValidatedTypeDefinition> visited, MethodElement found) {
+    private MethodElement computeFunctionalInterfaceMethod(final LoadedTypeDefinition type, final HashSet<LoadedTypeDefinition> visited, MethodElement found) {
         if (visited.add(type)) {
             int methodCount = type.getMethodCount();
             for (int i = 0; i < methodCount; i ++) {

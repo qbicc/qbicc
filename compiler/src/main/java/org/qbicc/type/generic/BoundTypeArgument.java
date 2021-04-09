@@ -5,7 +5,7 @@ import static org.qbicc.type.generic.Signature.*;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 
 /**
  *

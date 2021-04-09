@@ -29,10 +29,10 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.Element;
@@ -176,7 +176,7 @@ final class CompilationContextImpl implements CompilationContext {
         if (dtd == null) {
             error("Can't find runtime library class: " + "org/qbicc/runtime/main/VMHelpers");
         }
-        ValidatedTypeDefinition helpers = dtd.validate();
+        LoadedTypeDefinition helpers = dtd.load();
         int idx = helpers.findMethodIndex(e -> name.equals(e.getName()));
         if (idx == -1) {
             error("Can't find the runtime helper method %s", name);
@@ -308,7 +308,7 @@ final class CompilationContextImpl implements CompilationContext {
             return function;
         }
         // look up the thread ID literal - todo: lazy cache?
-        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
+        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").load().getClassType();
         Section implicit = getImplicitSection(element);
         return exactFunctions.computeIfAbsent(element, e -> {
             FunctionType type = getFunctionTypeForElement(element, threadType);
@@ -337,7 +337,7 @@ final class CompilationContextImpl implements CompilationContext {
                     builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
                     builder.setEnclosingType(jlt);
                     fieldElement = builder.build();
-                    jlt.validate().injectField(fieldElement);
+                    jlt.load().injectField(fieldElement);
                     exceptionFieldHolder.set(fieldElement);
                 }
             }
@@ -406,7 +406,7 @@ final class CompilationContextImpl implements CompilationContext {
             j = 1;
         } else {
             argTypes = new ValueType[pcnt + 2];
-            argTypes[1] = element.getEnclosingType().validate().getType().getReference();
+            argTypes[1] = element.getEnclosingType().load().getType().getReference();
             j = 2;
         }
         argTypes[0] = threadType.getReference();
@@ -418,7 +418,7 @@ final class CompilationContextImpl implements CompilationContext {
 
     public FunctionType getFunctionTypeForElement(final ExecutableElement element) {
         // look up the thread ID literal - todo: lazy cache?
-        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").validate().getClassType();
+        ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").load().getClassType();
         return getFunctionTypeForElement(element, threadType);
     }
 

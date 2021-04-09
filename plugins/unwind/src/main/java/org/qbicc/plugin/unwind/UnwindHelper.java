@@ -2,9 +2,9 @@ package org.qbicc.plugin.unwind;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import org.qbicc.type.definition.ValidatedTypeDefinition;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
 
 public class UnwindHelper {
@@ -16,7 +16,7 @@ public class UnwindHelper {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition unwindDefined = classContext.findDefinedType(unwindClass);
         if (unwindDefined != null) {
-            ValidatedTypeDefinition unwindValidated = unwindDefined.validate();
+            LoadedTypeDefinition unwindValidated = unwindDefined.load();
             int index = unwindValidated.findMethodIndex(e -> e.getName().equals("personality"));
             personalityMethod = unwindValidated.getMethod(index);
         } else {

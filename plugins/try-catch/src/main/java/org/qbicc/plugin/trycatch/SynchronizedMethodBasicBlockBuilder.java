@@ -34,11 +34,11 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
         ExecutableElement element = getCurrentElement();
         DefinedTypeDefinition enclosing = element.getEnclosingType();
         if (element.isStatic()) {
-            monitor = classOf(ctxt.getLiteralFactory().literalOfType(enclosing.validate().getType()));
+            monitor = classOf(ctxt.getLiteralFactory().literalOfType(enclosing.load().getType()));
         } else {
-            monitor = parameter(enclosing.validate().getType().getReference().asNullable(), "this", 0);
+            monitor = parameter(enclosing.load().getType().getReference().asNullable(), "this", 0);
         }
-        throwable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Throwable").validate().getClassType().getReference();
+        throwable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Throwable").load().getClassType().getReference();
     }
 
     public void setExceptionHandlerPolicy(final ExceptionHandlerPolicy policy) {
