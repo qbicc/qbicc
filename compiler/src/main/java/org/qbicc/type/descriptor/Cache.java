@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 
 /**
  *

@@ -3,7 +3,7 @@ package org.qbicc.plugin.native_;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.ConstructorResolver;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 

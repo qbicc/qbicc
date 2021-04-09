@@ -3,7 +3,7 @@ package org.qbicc.type.annotation;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.classfile.InvalidAnnotationValueException;
 import io.smallrye.common.constraint.Assert;

@@ -1,5 +1,6 @@
 package org.qbicc.type.definition;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;

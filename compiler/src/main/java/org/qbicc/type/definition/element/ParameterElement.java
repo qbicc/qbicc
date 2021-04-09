@@ -1,7 +1,7 @@
 package org.qbicc.type.definition.element;
 
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.generic.TypeParameterContext;
 
 /**

@@ -2,7 +2,7 @@ package org.qbicc.plugin.native_;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
 

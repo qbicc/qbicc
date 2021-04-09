@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 
 /**
  * Any kind of type argument.

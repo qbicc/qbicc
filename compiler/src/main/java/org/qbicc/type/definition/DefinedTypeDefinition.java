@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.ObjIntConsumer;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
 import org.qbicc.type.annotation.Annotation;

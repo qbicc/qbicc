@@ -12,7 +12,6 @@ import org.qbicc.object.ProgramModule;
 import org.qbicc.object.Section;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.type.definition.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;

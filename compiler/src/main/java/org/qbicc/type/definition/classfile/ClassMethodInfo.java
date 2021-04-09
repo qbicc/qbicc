@@ -8,7 +8,7 @@ import java.util.BitSet;
 
 import org.qbicc.type.Type;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.descriptor.TypeDescriptor;

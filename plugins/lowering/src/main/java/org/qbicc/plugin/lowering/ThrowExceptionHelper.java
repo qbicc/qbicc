@@ -2,7 +2,7 @@ package org.qbicc.plugin.lowering;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.ValidatedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;

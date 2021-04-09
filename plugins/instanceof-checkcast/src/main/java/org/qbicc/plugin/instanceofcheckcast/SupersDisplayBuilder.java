@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.reachability.RTAInfo;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.ValidatedTypeDefinition;
 

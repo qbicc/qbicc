@@ -1,4 +1,4 @@
-package org.qbicc.type.definition;
+package org.qbicc.context;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -12,7 +12,6 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
-import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.VmObject;
@@ -24,6 +23,9 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
+import org.qbicc.type.definition.DefineFailedException;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.DescriptorTypeResolver;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.descriptor.MethodDescriptor;

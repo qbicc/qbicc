@@ -21,7 +21,7 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.ClassFileUtil;
 import org.qbicc.type.definition.DefineFailedException;
 import org.qbicc.type.definition.DefinedTypeDefinition;

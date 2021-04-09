@@ -6,7 +6,7 @@ import java.util.NoSuchElementException;
 
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.definition.classfile.ClassFile;

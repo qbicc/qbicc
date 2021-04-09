@@ -2,7 +2,7 @@ package org.qbicc.type.descriptor;
 
 import java.nio.ByteBuffer;
 
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 
 /**
  * Any JVM descriptor.

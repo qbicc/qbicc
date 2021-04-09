@@ -3,7 +3,7 @@ package org.qbicc.plugin.gc.nogc;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ClassObjectType;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.ValidatedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;

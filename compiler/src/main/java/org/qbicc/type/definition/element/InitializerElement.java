@@ -2,7 +2,7 @@ package org.qbicc.type.definition.element;
 
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.type.definition.ClassContext;
+import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.descriptor.MethodDescriptor;
