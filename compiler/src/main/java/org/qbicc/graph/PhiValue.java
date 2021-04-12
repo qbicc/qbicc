@@ -8,7 +8,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 public final class PhiValue extends AbstractValue implements PinnedNode {
-    private ValueType type;
+    private final ValueType type;
     private final BlockLabel blockLabel;
 
     PhiValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueType type, final BlockLabel blockLabel) {
