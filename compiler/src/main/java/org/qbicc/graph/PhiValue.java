@@ -1,5 +1,8 @@
 package org.qbicc.graph;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.type.ValueType;
@@ -8,7 +11,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
 public final class PhiValue extends AbstractValue implements PinnedNode {
-    private ValueType type;
+    private final ValueType type;
     private final BlockLabel blockLabel;
 
     PhiValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueType type, final BlockLabel blockLabel) {
@@ -44,6 +47,34 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
 
     public void setValueForBlock(final CompilationContext ctxt, final Element element, final BlockLabel input, final Value value) {
         setValueForBlock(ctxt, element, BlockLabel.getTargetOf(input), value);
+    }
+
+    /**
+     * Get all of the possible non-phi values for this phi.
+     *
+     * @return the set of possible values (not {@code null})
+     */
+    public Set<Value> getPossibleValues() {
+        HashSet<Value> possibleValues = new HashSet<>();
+        getPossibleValues(possibleValues, new HashSet<>());
+        return possibleValues;
+    }
+
+    private void getPossibleValues(Set<Value> current, Set<PhiValue> visited) {
+        if (visited.add(this)) {
+            BasicBlock pinnedBlock = getPinnedBlock();
+            Set<BasicBlock> incoming = pinnedBlock.getIncoming();
+            for (BasicBlock basicBlock : incoming) {
+                if (basicBlock.isReachable()) {
+                    Value value = getValueForInput(basicBlock.getTerminator());
+                    if (value instanceof PhiValue) {
+                        ((PhiValue) value).getPossibleValues(current, visited);
+                    } else {
+                        current.add(value);
+                    }
+                }
+            }
+        }
     }
 
     public ValueType getType() {
