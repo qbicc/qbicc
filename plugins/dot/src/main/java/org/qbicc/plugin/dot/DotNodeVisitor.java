@@ -25,9 +25,12 @@ import org.qbicc.graph.ClassNotFoundErrorNode;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Clone;
 import org.qbicc.graph.Cmp;
+import org.qbicc.graph.CmpG;
+import org.qbicc.graph.CmpL;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractInstanceField;
 import org.qbicc.graph.ExtractMember;
+import org.qbicc.graph.Fence;
 import org.qbicc.graph.IsEq;
 import org.qbicc.graph.IsGe;
 import org.qbicc.graph.IsGt;
@@ -191,6 +194,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final Cmp node) {
         return node(param, "cmp", node);
+    }
+
+    public String visit(final Appendable param, final CmpL node) {
+        return node(param, "cmpl", node);
+    }
+
+    public String visit(final Appendable param, final CmpG node) {
+        return node(param, "cmpg", node);
     }
 
     public String visit(final Appendable param, final ElementOf node) {
@@ -582,7 +593,15 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final Clone node) {
-        return node(param, "clone", node);
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "rectangle");
+        attr(param, "label", "clone");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
+        return name;
     }
 
     public String visit(final Appendable param, final ConstructorInvocation node) {
@@ -659,6 +678,18 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         addEdge(param, node, node.getCompoundValue(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(Appendable param, Fence node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "rectangle");
+        attr(param, "label", "fence");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         return name;
     }
 
@@ -802,7 +833,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getToType(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getToDimensions(), EdgeType.VALUE_DEPENDENCY);
-        dependencyList.add(name);
         return name;
     }
 
@@ -1232,7 +1262,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     void processPhiQueue(Appendable param) {
-        for (PhiValue phi : phiQueue) {
+        PhiValue phi;
+        while ((phi = phiQueue.poll()) != null) {
             for (BasicBlock block : phi.getPinnedBlock().getIncoming()) {
                 Value value = phi.getValueForInput(block.getTerminator());
                 if (block.isReachable()) {
