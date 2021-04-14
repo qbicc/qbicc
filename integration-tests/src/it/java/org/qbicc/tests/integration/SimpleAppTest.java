@@ -28,7 +28,7 @@ public class SimpleAppTest {
         String appName = "helloworld";
         Path appPath = Path.of(TestConstants.BASE_DIR).resolve("examples").resolve(appName);
         Path targetPath = Path.of(".").resolve("target");
-        Path baseOutputPath = targetPath.resolve(appName);
+        Path baseOutputPath = targetPath.resolve("it").resolve(appName);
         Path outputPath = baseOutputPath.resolve("classes");
         Path nativeOutputPath = baseOutputPath.resolve("native");
         Path source = appPath.resolve("hello/world/Main.java");
@@ -55,9 +55,9 @@ public class SimpleAppTest {
     @Test
     public void branches() throws IOException {
         String appName = "branches";
-        Path appPath = Path.of(".").resolve("apps").resolve(appName);
+        Path appPath = Path.of(".").resolve("src/it-in/apps").resolve(appName);
         Path targetPath = Path.of(".").resolve("target");
-        Path baseOutputPath = targetPath.resolve(appName);
+        Path baseOutputPath = targetPath.resolve("it").resolve(appName);
         Path outputPath = baseOutputPath.resolve("classes");
         Path nativeOutputPath = baseOutputPath.resolve("native");
         Path source = appPath.resolve("mypackage/Main.java");

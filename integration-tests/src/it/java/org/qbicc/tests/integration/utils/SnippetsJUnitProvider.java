@@ -33,7 +33,8 @@ public class SnippetsJUnitProvider implements ArgumentsProvider {
     private final List<Arguments> snippets = new ArrayList<>();
 
     public SnippetsJUnitProvider() {
-        final Path rootPath = FileSystems.getDefault().getPath(BASE_DIR, "integration-tests", "snippets");
+        final Path rootPath = FileSystems.getDefault()
+            .getPath(BASE_DIR, "integration-tests", "src", "it-in", "snippets");
         try {
             Files.walkFileTree(rootPath, new SimpleFileVisitor<>() {
                 @Override
