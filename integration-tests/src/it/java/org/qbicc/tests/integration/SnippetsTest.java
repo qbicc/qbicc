@@ -33,7 +33,7 @@ public class SnippetsTest {
         final String snippetName = snippet.getFileName().toString().replace(".java", "");
 
         Path targetPath = Path.of(".").resolve("target");
-        Path baseOutputPath = targetPath.resolve("snippets").resolve(snippetName);
+        Path baseOutputPath = targetPath.resolve("it/snippets").resolve(snippetName);
         Path classOutputPath = baseOutputPath.resolve("classes");
         Path nativeOutputPath = baseOutputPath.resolve("native");
         Path outputExecutable = nativeOutputPath.resolve("a.out");
