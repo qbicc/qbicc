@@ -34,8 +34,14 @@ public final class FunctionElement extends InvokableElement implements NamedElem
         return "function " + getName();
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
     public static final class Builder extends InvokableElement.Builder implements NamedElement.Builder {
         private String name;
+
+        Builder() {}
 
         @Override
         public void setName(String name) {
