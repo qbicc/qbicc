@@ -126,14 +126,18 @@ public class Main implements Callable<DiagnosticContext> {
     public DiagnosticContext call() {
         AtomicReference<DiagnosticContext> ref = new AtomicReference<>();
         Thread compilerThread = new Thread(Thread.currentThread().getThreadGroup(), () -> {
-            ref.set(call0());
+            BaseDiagnosticContext ctxt = new BaseDiagnosticContext();
+            ref.set(ctxt);
+            call0(ctxt);
         }, "Compiler thread", 64L * 1024 * 1024);
         compilerThread.start();
         boolean intr = false;
         try {
             for (;;) try {
                 compilerThread.join();
-                return ref.get();
+                DiagnosticContext ctxt = ref.get();
+                diagnosticsHandler.accept(ctxt.getDiagnostics());
+                return ctxt;
             } catch (InterruptedException ex) {
                 intr = true;
             }
@@ -144,8 +148,7 @@ public class Main implements Callable<DiagnosticContext> {
         }
     }
 
-    DiagnosticContext call0() {
-        final BaseDiagnosticContext initialContext = new BaseDiagnosticContext();
+    DiagnosticContext call0(BaseDiagnosticContext initialContext) {
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);
         boolean nogc = gc.equals("none");
@@ -371,7 +374,6 @@ public class Main implements Callable<DiagnosticContext> {
                 }
             }
         }
-        diagnosticsHandler.accept(initialContext.getDiagnostics());
         return initialContext;
     }
 
