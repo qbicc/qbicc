@@ -38,7 +38,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return super.instanceFieldOf(instance, owner, name, type);
         }
         // no need to continue
-        throw new BlockEarlyTermination(noClassDefFound());
+        throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
     public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
@@ -46,7 +46,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return super.staticField(owner, name, type);
         }
         // no need to continue
-        throw new BlockEarlyTermination(noClassDefFound());
+        throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
     public Value checkcast(final Value value, TypeDescriptor desc) {
@@ -57,7 +57,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (desc instanceof ClassTypeDescriptor) {
             if (! loadClass((ClassTypeDescriptor) desc)) {
                 // no need to continue
-                throw new BlockEarlyTermination(noClassDefFound());
+                throw new BlockEarlyTermination(noClassDefFound(desc));
             }
         }
         return super.checkcast(value, orig);
@@ -71,7 +71,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (baseDescriptor instanceof ClassTypeDescriptor) {
             if (! loadClass((ClassTypeDescriptor) baseDescriptor)) {
                 // no need to continue
-                throw new BlockEarlyTermination(noClassDefFound());
+                throw new BlockEarlyTermination(noClassDefFound(desc));
             }
         }
         return super.instanceOf(input, desc);
@@ -82,7 +82,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return super.new_(desc);
         } else {
             // no need to continue
-            throw new BlockEarlyTermination(noClassDefFound());
+            throw new BlockEarlyTermination(noClassDefFound(desc));
         }
     }
 
@@ -95,7 +95,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return super.newArray(desc, size);
         } else {
             // no need to continue
-            throw new BlockEarlyTermination(noClassDefFound());
+            throw new BlockEarlyTermination(noClassDefFound(elemDesc));
         }
     }
 
@@ -108,7 +108,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return super.multiNewArray(desc, dimensions);
         } else {
             // no need to continue
-            throw new BlockEarlyTermination(noClassDefFound());
+            throw new BlockEarlyTermination(noClassDefFound(elemDesc));
         }
     }
 
@@ -117,7 +117,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return super.invokeStatic(owner, name, descriptor, arguments);
         } else {
             // no need to continue
-            throw new BlockEarlyTermination(noClassDefFound());
+            throw new BlockEarlyTermination(noClassDefFound(owner));
         }
     }
 
@@ -126,7 +126,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return super.invokeInstance(kind, instance, owner, name, descriptor, arguments);
         } else {
             // no need to continue
-            throw new BlockEarlyTermination(noClassDefFound());
+            throw new BlockEarlyTermination(noClassDefFound(owner));
         }
     }
 
@@ -135,7 +135,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return super.invokeValueStatic(owner, name, descriptor, arguments);
         } else {
             // no need to continue
-            throw new BlockEarlyTermination(noClassDefFound());
+            throw new BlockEarlyTermination(noClassDefFound(owner));
         }
     }
 
@@ -144,11 +144,12 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return super.invokeValueInstance(kind, instance, owner, name, descriptor, arguments);
         } else {
             // no need to continue
-            throw new BlockEarlyTermination(noClassDefFound());
+            throw new BlockEarlyTermination(noClassDefFound(owner));
         }
     }
 
-    private BasicBlock noClassDefFound() {
+    private BasicBlock noClassDefFound(TypeDescriptor desc) {
+        ctxt.warning(getLocation(), "Reference to %s always produces NoClassDefFoundError", desc);
         Info info = Info.get(ctxt);
         ClassTypeDescriptor ncdfeClass = info.ncdfeClass;
         // todo: add class name to exception string
