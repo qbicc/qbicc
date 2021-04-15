@@ -393,7 +393,7 @@ final class CompilationContextImpl implements CompilationContext {
         TypeSystem ts = typeSystem;
         if (element instanceof InitializerElement) {
             // todo: initializers should not survive the copy
-            return ts.getFunctionType(ts.getVoidType());
+            return ts.getFunctionType(ts.getVoidType(), threadType.getReference());
         }
         assert element instanceof InvokableElement;
         FunctionType methodType = element.getType();
