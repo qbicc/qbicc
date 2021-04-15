@@ -235,6 +235,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 }
                 FunctionElement.Builder builder = FunctionElement.builder();
                 builder.setName(name);
+                builder.setModifiers(origMethod.getModifiers());
                 builder.setEnclosingType(origMethod.getEnclosingType());
                 builder.setDescriptor(origMethod.getDescriptor());
                 builder.setSignature(origMethod.getSignature());

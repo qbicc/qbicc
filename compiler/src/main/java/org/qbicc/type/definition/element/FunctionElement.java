@@ -59,11 +59,6 @@ public final class FunctionElement extends InvokableElement implements NamedElem
         }
 
         @Override
-        public void setModifiers(int modifiers) {
-            throw new UnsupportedOperationException("Functions do not support modifiers");
-        }
-
-        @Override
         public void setVisibleAnnotations(List<Annotation> annotations) {
             throw new UnsupportedOperationException("Functions do not support annotations");
         }
