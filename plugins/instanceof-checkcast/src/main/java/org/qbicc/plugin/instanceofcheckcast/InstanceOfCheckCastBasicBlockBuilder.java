@@ -195,10 +195,6 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                 ctxt.error(getLocation(), "Class of reference type");
                 return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(methodElement.getType().getReturnType());
             }
-            if (!(valueType instanceof ObjectType)) {
-                ctxt.warning(getLocation(), "Lowering classOf to incomplete direct primitive class lookup");
-                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(methodElement.getType().getReturnType());
-            }
         }
 
         ctxt.warning(getLocation(), "Lowering classOf to incomplete VMHelper stub");
