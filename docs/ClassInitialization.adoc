@@ -1,0 +1,277 @@
+= QBICC: Class Initialization
+
+== Background
+
+=== When is it needed?
+
+A class must be initialized when:
+
+* A static field is accessed (`getstatic` / `putstatic`) - the class that **declares** the resolved field
+* A static method is called (`invokestatic`) - the class that **declares** the resolved method
+* An instance is allocated (`new`)
+* First invocation of a MethodHandle of `kind` {`getStatic, `putstatic`, `invokestatic`, `newInvokeSpecial`} created by MethodHandle resolution.
+* Invocation of reflection methods on its `Class` or using `java.lang.reflect` operations
+* If it's a class and one of its subclasses is initialized
+* If it's an interface that has a non-abstract, non-static method, and a class that implements it directly or indirectly is initialized
+
+=== Process as per JVMS section 5.5
+Each class, `C`, has a unique initialization lock `LC`.  To initialize the class, the following process is used:
+
+1. Synchronize on `LC`.  Wait until current thread acquires `LC`
+2. If `C` is being initialized by another thread, release `LC` and wait on it
+3. If `C` is being initialized by this thread, release `LC` and complete normally
+4. If `C` is already initialized, then release `LC` and complete normally
+5. If `C` failed initialization previously, then release `LC` and throw `NoClassDefFoundError`
+6. Record in progress state by current thread, and release `LC`.  Initialize each `final static` with a constant value in the `ConstantValue` attribute.
+7. If `C` is a class, then apply this procedure for each super class of `C`.  Then apply it for each super interface that declares a non-abstract, non-static method.
+If the process fails, record `C` as erronous, notify any waiting threads, and throw the exception.
+8.  Determine assertion status from `C's` classloader
+9.  Execute the `<clinit>` method
+10. If it completes normally, acquire `LC`, mark `C` as initialized, and notify any waiting threads, release `LC` and complete normally
+11. Otherwise, same as 10 but mark erronous and throw the exception.
+
+== Initialization status
+The above procedure defines the following states:
+
+* Uninitialized
+* In-progress
+* Failed
+* Initialized
+
+=== Note:
+There are two additional states for a dynamic JVM that can be ignored for a native image - {`unverified`, `prepared`}.
+
+Verification can be assumed to be done by the dynamic JVM or can be viewed as part of the image build.  This ignores the
+need to validate that types are compatible (as done by the verifier) and the class loader constraint issues.
+
+Preperation handles creating space for static fields and assigning their default values.  No byte code execution is required
+for assigning these fields as anything with an explicit initializer is handled as part of the `<clinit>`, note that Strings 
+can be allocated here.
+
+
+To those states, we add two other final states to record whether it was a build or runtime init:
+
+* BuildTimeInitialized
+* BuildTimeFailed
+
+When lowering the state to our runtime data structures, the `BuildTimeX` versions decay to the equivalent runtime ones.
+
+== Existing approaches to class initialization
+
+To record initialization status, we need somewhere to track the initialization status, the current thread doing the initialization, and be able
+to walk the super class heirarchy & superinterface heirarchy.
+
+=== OpenJ9
+OpenJ9 adds a word of storage to the `J9Class` to handle the `initializeStatus` of the class.  The status starts as `0` (Uninitialized) and
+is eventually `1` for Initialized.  Along the way, the native thread pointer is stored in this word, tagged with the `in-progress` state to
+indicate which thread is doing the initialization.
+
+A special lock object is added to the `java.lang.Class` to act as the `LC`.  This is different than using the Class as the `LC` to avoid
+deadlocks between the runtime and the application code which can already be locking on the Class object.
+
+=== Hotspot
+Hotspot take a similar approach and stores both an `_init_state` and `_init_thread` on their `InstanceKlass`.  It appears to use the 
+`java.lang.Class` as the `LC`.
+
+=== SubstrateVM
+Adds an object to the class to track init state and init thread and holds a function pointer to the `<clinit>`` method.  This uses all the same
+information but keeps it all on the java heap rather than split between native and heap memory.
+
+SubstrateVM also runs some `<clinit>'s` at build time.  A `<clinit>`` is run at build time if it's for:
+
+* a primitive classes
+* a array class
+* an Annotation 
+* an Enum referenced from an Annotation
+* a Proxy classes for an Annotation
+
+Other classes can be safely initialized at build time.  Two trivial cases, which can be applied assuming the parent class and superinterfaces
+are already initialized, are:
+
+* No clinit
+* Empty clinit
+
+If a Class has a `<clinit>`, then SubstrateVM applies some simple heuristics to determine if it can be safely initialized at buildtime.  These
+heuristics depend on the inliner having already run on the method to remove all non-virtual calls.  If calls remain, including calls to native
+methods, then this isn't a safe init as the side effects of those calls are unknown.  All static field access must be to the current class
+or its not considered safe. Instance field access can be ignored as, if the above restrictions hold, then all instance field accesses must be
+from newly allocated objects.  These allocations can cause the clinit of other classes so this is actually an interproducural analysis and
+circularity needs to be detected.
+
+== Runtime class initialization
+A conservatively correct solution initializes all classes at runtime.  It does this by inserting ClassInitialization checks
+(a special node type?) before accesses to static fields, calls to static methods, new allocations - basically, the points listed above
+in the "Where it's needed" section.
+
+Placing a check in front of every such access would result in a lot of overhead.  We can use some basic heuristics to limit where the init
+checks are needed.
+
+Heuristics:
+
+* If the class is already initialized at build time, we can omit the checks at runtime.
+* In both static and instance methods, we can elide checks on the current class, its superclasses, its superinterfaces that have 
+default methods.  But checks of static fields on an interface without default methods cannot be elided. 
+* Only the first access along any flow of execution in a method requires the init checks.  Possibly better handled by a data flow optimization.
+* A check against a subclass in the current method dominates checks against superclasses on the same execution flow.
+* A method that takes a paramater of Class X can elide class init checks on any path where the parameter cannot be null.
+
+More complex optimizations are possible using the closed world, if we are able to determine which methods are targets of reflection / methodhandles.
+
+== Additional Required State
+In addition to tracking {`initializeStatus`, `initializerThread`} for each class, the system also needs to be able to walk its superclass
+heirarchy, its super interface heirarchy, and determine which interfaces have non-abstract, non-static methods.
+
+== Initialization Check
+
+The initialization status, in particular, needs to be very fast to check for all the cases where the check cannot be elided.  We can either
+put this information on the Class object or in native memory.
+
+=== Option: On j.l.Class
+
+Given most of the instructions that need class initialization checks know the class to be initialized at compile time (it's from the
+constantpool), if we put the initialization status on the j.l.Class, we'll need more instructions to generate the check:
+
+Pseudo-code:
+```
+Class C = qbicc_classes[type_id];
+if (C.isInitialized != INITIALIZED) {
+	C.initialize();
+}
+```
+
+=== Option: non-heap memory
+
+Alternatively, keeping the intialization state in non-heap memory would be preferable as it will be a more efficient check, requiring one
+less load:
+```
+if (qbicc_initialized_state[typeid] != INITIALIZED) {
+	Class C = qbicc_classes[type_id];
+	C.initialize();
+}
+```
+This will generate more instructions at each check site, but the body of the init check can be scheduled outside the hotpath and will have less effect on
+the instruction cache.
+
+=== Option: code patching
+
+Another alternative is to generate self-modifying code that patches the init check out after the first call.  This would result in something
+very roughly like (though taking into account proper ways to patch in a thread safe way):
+```
+jump _init_landing_pad_1
+_post_landing_pad_1
+....
+....
+
+_init_landing_pad_1:
+   C.initialize();
+   <patch jmp _init_landing_pad_1 to jmp _post_landing_pad_1>
+   jump _post_landing_pad_1
+```
+This destroys the shareability of the code though, which defeats some of the footprint benefits that `qbicc` brings.
+
+== Suggested approach
+
+I suggest we proceed with the "non-heap memory" option as it has fewer indrections to get to the relevant value.  As the init state must be
+mutable to support the initialization state changes, we should keep this data separate from the other `typeid` based information that is not
+modifiable at runtime.  This suggests a similar ROM (only updated by the linker) / RAM (updated by the runtime) split would be beneficial.
+
+== Accessing superclass and implemented interfaces
+
+The class initialization process needs to be able to access the superclass hierarchy and the implemented interfaces.  So far, qbicc hasn't
+committed to having a `j.l.Class` object for all Classes in the system so we cannot rely on `j.l.Class` holding the state.  A new field
+can be added to the `qbicc_typeid_array` to represent the superclass's `typeid`.  This will also allow implementing the `Class#getSuperClass()`.
+
+The implemented interfaces for a given `typeid` can be found by walking the `qbicc_typeid_array[typeid].interfaceBits[]` with each set bit
+given an index from the `getFirstInterfaceTypeId()` id:
+
+```
+u8[] interfaceBits = qbicc_typeid_array[typeid].interfaceBits[];
+typeid interfaceId = getFirstInterfaceTypeId();
+for (int i = 0; i < getNumberOfBytesInInterfaceBitsArray(); i++) {
+	if (interfaceBits[i] == 0) {
+		// no interfaces in this byte
+		interfaceId += 8;
+	} else {
+		// walk the byte to find the interfaces
+		byte b = interfaceBits[i];
+		for (int j = 0; j < 8; j++) {
+			if ((b & 1) == 1) {
+				initialize(qbicc_typeid_array[interfaceId]);
+			}
+			b = b >> 1;
+			interfaceId += 1;
+		}
+	}
+}
+```
+
+For interfaces, we also need to track if they have non-static, non-abstract methods.  Two pieces of information are necessary:
+
+* Declares such methods: Indicates whether this interface declares such methods or not.
+* Inherits such methods: Indicates whether this interface inherits default methods so we know whether to walk the super interfaces or not
+
+Ideally, classes would also indicate whether they have interfaces with default methods or not as this would allow skipping the interface checks
+entirely in those cases.
+
+A change from dynamic JVMs is that we don't need to track at runtime whether a class's fields have CONSTANT_Value attributes (JVMS 4.7.2) as
+these initial values can be assigned at image build time.
+
+Classes & interfaces will need to indicate whether they have a `<clinit>` method or not.  Classes / interfaces that have supers that are runtime
+initialized can't be marked as initialized at build time even if they don't have a `<clinit>` so a quick way to check for these methods is needed.
+
+This implies that there should be bit field on the `typeid` structure that holds the following flags:
+
+* `declaresDefaultMethods`
+* `hasDefaultMethods`
+* `hasClinit`
+
+And will likely grow this set of flags so reserving at least a `u32` now makes sense.
+
+
+== Build time initialization
+
+This section assumes that all fields with CONSTANT_Value attributes will be initialized at build time and the class initialization
+sequence at runtime doesn't have to handle initializing these fields.
+
+=== Interfaces
+An interface with no non-static, non-abstract methods
+
+* doesn't need to be initialized with classes that implement it.
+* still needs to be initialized when accessing a static field or calling a static method.  "New" doesn't apply to interfaces.
+
+An interface can be locally initialized if:
+
+* It has no super interfaces or all its super interfaces are locally initialized
+* It has no `<clinit>` method.
+* It has a `<clinit>` method that can be run safely at build time.
+
+An interface with no `<clinit>`` is locally initialized, but still needs to run the init sequence on superinterfaces.
+
+=== Classes
+
+A class can be locally initialized if:
+
+* It has no supers other than Object or its supers can be safely build time initialized
+* All its interfaces with `default` methods can be safely build time initialized
+* It has no `<clinit>` method.
+* It has a `<clinit>` method that can be run safely at build time.
+
+=== Safe `<clinit>`
+
+TODO: define safe build time `<clinit>` rules
+
+Think thru these cases:
+
+* Singleton creation in <clinit>
+* enums - always allocate the array and each of the instances
+* array allocation
+* Switch over enum generates a class
+* allocating state - ie: maps, etc
+* Class.forName()
+* ldc class
+* MethodHandle / VarHandle / ConstantDynamic
+* Loggers
+
+
+See also https://github.com/vjovanov/taming-build-time-initalization
+
