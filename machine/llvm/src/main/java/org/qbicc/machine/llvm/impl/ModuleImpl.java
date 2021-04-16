@@ -4,6 +4,8 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.machine.llvm.Function;
 import org.qbicc.machine.llvm.FunctionDefinition;
@@ -109,9 +111,44 @@ final class ModuleImpl implements Module {
         return add(meta, new DIFileImpl(nextMetadataNodeId(), filename, directory));
     }
 
+    static final class LineColumn {
+        final int line;
+        final int column;
+
+        LineColumn(int line, int column) {
+            this.line = line;
+            this.column = column;
+        }
+
+        @Override
+        public int hashCode() {
+            return column * 43987 + line;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof LineColumn && equals((LineColumn) obj);
+        }
+
+        boolean equals(LineColumn other) {
+            return this == other || other != null && line == other.line && column == other.column;
+        }
+    }
+
+    private final Map<AbstractValue, Map<AbstractValue, Map<LineColumn, DILocation>>> locationCache = new ConcurrentHashMap<>();
+    private final Map<AbstractValue, Map<LineColumn, DILocation>> locationCacheNoInlinedAt = new ConcurrentHashMap<>();
+
     public DILocation diLocation(final int line, final int column, final LLValue scope, final LLValue inlinedAt) {
         Assert.checkNotNullParam("file", scope);
-        return add(meta, new DILocationImpl(nextMetadataNodeId(), line, column, (AbstractValue)scope, (AbstractValue)inlinedAt));
+        AbstractValue scopeVal = (AbstractValue) scope;
+        AbstractValue inlinedAtVal = (AbstractValue) inlinedAt;
+        Map<AbstractValue, Map<LineColumn, DILocation>> map1 = inlinedAtVal == null ? locationCacheNoInlinedAt : locationCache.computeIfAbsent(inlinedAtVal, ModuleImpl::newMap);
+        Map<LineColumn, DILocation> map2 = map1.computeIfAbsent(scopeVal, ModuleImpl::newMap);
+        return map2.computeIfAbsent(new LineColumn(line, column), lineColumn -> add(meta, new DILocationImpl(nextMetadataNodeId(), line, column, scopeVal, inlinedAtVal)));
+    }
+
+    private static <K, V> Map<K, V> newMap(Object ignored) {
+        return new ConcurrentHashMap<>();
     }
 
     public DISubprogram diSubprogram(final String name, final LLValue type, final LLValue unit) {
