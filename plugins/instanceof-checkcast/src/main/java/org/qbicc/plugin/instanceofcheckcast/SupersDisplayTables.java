@@ -398,9 +398,10 @@ public class SupersDisplayTables {
         CompoundType.Member[] members = new CompoundType.Member[] {
             ts.getCompoundTypeMember("typeId", uTypeId, 0, uTypeId.getAlign()),
             ts.getCompoundTypeMember("maxSubTypeId", uTypeId, (int)uTypeId.getSize(), uTypeId.getAlign()),
-            ts.getCompoundTypeMember("interfaceBits", interfaceBitsType, (int)uTypeId.getSize() * 2, interfaceBitsType.getAlign())
+            ts.getCompoundTypeMember("superTypeId", uTypeId, (int)uTypeId.getSize() * 2, uTypeId.getAlign()),
+            ts.getCompoundTypeMember("interfaceBits", interfaceBitsType, (int)uTypeId.getSize() * 3, interfaceBitsType.getAlign())
         };
-        int memberSize = (int)(uTypeId.getSize() * 2 + interfaceBitsType.getSize());
+        int memberSize = (int)(uTypeId.getSize() * 3 + interfaceBitsType.getSize());
         CompoundType typeIdStruct = ts.getCompoundType(
             CompoundType.Tag.STRUCT, 
             "typeIds", 
@@ -425,18 +426,25 @@ public class SupersDisplayTables {
                 Map.of(
                     members[0], literalFactory.literalOf(uTypeId, i),
                     members[1], literalFactory.literalOf(uTypeId, i),
-                    members[2], literalFactory.literalOf(interfaceBitsType, primitivesInterfaceBits)
+                    members[2], literalFactory.literalOf(uTypeId, 0),  /* Set super for prims to posion */
+                    members[3], literalFactory.literalOf(interfaceBitsType, primitivesInterfaceBits)
                 )
             );
         }
         for (Map.Entry<LoadedTypeDefinition, IdAndRange> e : typeids.entrySet()) {
             LoadedTypeDefinition vtd = e.getKey();
             IdAndRange idRange = e.getValue();
+            int superTypeId = 0;
+            if (vtd.hasSuperClass()) {
+                IdAndRange superRange = typeids.get(vtd.getSuperClass());
+                superTypeId = superRange.typeid;
+            }
             typeIdTable[vtd.getTypeId()] = literalFactory.literalOf(typeIdStruct, 
                 Map.of(
                     members[0], literalFactory.literalOf(uTypeId, idRange.typeid),
                     members[1], literalFactory.literalOf(uTypeId, idRange.maximumSubtypeId),
-                    members[2], literalFactory.literalOf(interfaceBitsType, convertByteArrayToValuesList(literalFactory, getImplementedInterfaceBits(vtd)))
+                    members[2], literalFactory.literalOf(uTypeId, superTypeId),
+                    members[3], literalFactory.literalOf(interfaceBitsType, convertByteArrayToValuesList(literalFactory, getImplementedInterfaceBits(vtd)))
                 )
             );
         }
