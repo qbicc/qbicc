@@ -32,6 +32,8 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     private final NestedClassElement[] enclosedClasses;
     private int typeId = -1;
     private int maximumSubtypeId = -1;
+    private final boolean hasDefaultMethods;
+    private final boolean declaresDefaultMethods;
 
     LoadedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final LoadedTypeDefinition superType, final LoadedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
         this.delegate = delegate;
@@ -56,6 +58,31 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         }
         instanceFieldSet = new FieldSet(this, false);
         staticFieldSet = new FieldSet(this, true);
+
+        /* Walk methods of interfaces looking for default methods */
+        boolean buildDeclaresDefaultMethods = false;
+        if (isInterface()) {
+            for (MethodElement method : instanceMethods) {
+                if (!method.isStatic() && !method.isAbstract()) {
+                    buildDeclaresDefaultMethods = true;
+                }
+            }
+        }
+        declaresDefaultMethods = buildDeclaresDefaultMethods;
+
+        /* For both classes & interfaces, they either inherit "hasDefaultMethods"
+         * from their superclass or interfaces, or compute it (aka declaresDefaultMethods)
+         */
+        boolean buildHasDefaultMethods = declaresDefaultMethods;
+        if (superType != null) { /* Object */
+            buildHasDefaultMethods |= superType.hasDefaultMethods(); 
+        }
+        if (!buildHasDefaultMethods) {
+            for (LoadedTypeDefinition ltd : interfaces) {
+                buildHasDefaultMethods = ltd.hasDefaultMethods();
+            }
+        }
+        hasDefaultMethods = buildHasDefaultMethods;
     }
 
     // delegates
@@ -160,6 +187,16 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         // maximumSubtypeId shouldn't hae already been assigned
         Assert.assertTrue(maximumSubtypeId == -1);
         maximumSubtypeId = subTypeId;
+    }
+
+    public boolean declaresDefaultMethods() {
+        // only interfaces can declare default methods
+        Assert.assertTrue(isInterface() || (declaresDefaultMethods == false));
+        return declaresDefaultMethods;
+    }
+
+    public boolean hasDefaultMethods() {
+        return hasDefaultMethods;
     }
 }
 

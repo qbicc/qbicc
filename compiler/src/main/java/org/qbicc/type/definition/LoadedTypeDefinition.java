@@ -432,4 +432,23 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
      */
     void assignMaximumSubtypeId(int subTypeId);
 
+    /**
+     * Whether this class declares default (non-abstract, non-static) methods.
+     * This is always false for a Class.  For an interface, this is only true
+     * if it declares such a method itself.
+     * 
+     * @return true if a default method is declared on this interface.  False otherwise
+     */
+    boolean declaresDefaultMethods();
+
+    /**
+     * Whether this class declares or inherits default (non-abstract, non-static) methods.
+     * For a class, this is true if any of the interfaces it implements, including their supers,
+     * declares a default method.
+     * For an interface, this is true if #declaresDefaultMethods() is true for itself or its supers.
+     * 
+     * @return whether it has default methods.
+     */
+    boolean hasDefaultMethods();
+
 }
