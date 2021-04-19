@@ -275,3 +275,10 @@ Think thru these cases:
 
 See also https://github.com/vjovanov/taming-build-time-initalization
 
+== User control of initialization
+
+There will be times that users want to explicitly opt-in to or opt-out of compile time class initialization.
+We should look at providing commandline options or a control file that allows them to specify if a class is
+opt-in or out.
+
+User choice should over-ride our determination of whether a `<clinit>` is safe or not.
