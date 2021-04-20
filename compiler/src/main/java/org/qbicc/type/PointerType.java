@@ -7,16 +7,20 @@ public final class PointerType extends WordType {
     private final ValueType pointeeType;
     private final boolean restrict;
     private final boolean constPointee;
+    private final boolean collected;
     private final PointerType asRestrict;
     private final PointerType withConstPointee;
+    private final PointerType asCollected;
 
-    PointerType(final TypeSystem typeSystem, final ValueType pointeeType, final boolean restrict, final boolean constPointee) {
+    PointerType(final TypeSystem typeSystem, final ValueType pointeeType, final boolean restrict, final boolean constPointee, final boolean collected) {
         super(typeSystem, pointeeType.hashCode() * 19 + Boolean.hashCode(restrict));
         this.pointeeType = pointeeType;
         this.restrict = restrict;
         this.constPointee = constPointee;
-        this.asRestrict = restrict ? this : new PointerType(typeSystem, pointeeType, true, constPointee);
-        this.withConstPointee = constPointee ? this : new PointerType(typeSystem, pointeeType, restrict, true);
+        this.collected = collected;
+        this.asRestrict = restrict ? this : new PointerType(typeSystem, pointeeType, true, constPointee, collected);
+        this.withConstPointee = constPointee ? this : new PointerType(typeSystem, pointeeType, restrict, true, collected);
+        this.asCollected = collected ? this : new PointerType(typeSystem, pointeeType, restrict, constPointee, true);
     }
 
     /**
@@ -40,6 +44,10 @@ public final class PointerType extends WordType {
         return withConstPointee;
     }
 
+    public PointerType asCollected() {
+        return asCollected;
+    }
+
     public long getSize() {
         return typeSystem.getPointerSize();
     }
@@ -56,12 +64,16 @@ public final class PointerType extends WordType {
         return constPointee;
     }
 
+    public boolean isCollected() {
+        return collected;
+    }
+
     public boolean equals(final ValueType other) {
         return other instanceof PointerType && equals((PointerType) other);
     }
 
     public boolean equals(final PointerType other) {
-        return other == this || super.equals(other) && restrict == other.restrict && pointeeType.equals(other.pointeeType);
+        return other == this || super.equals(other) && restrict == other.restrict && collected == other.collected && pointeeType.equals(other.pointeeType);
     }
 
     @Override
@@ -74,11 +86,31 @@ public final class PointerType extends WordType {
         PointerType pointerType = pointeeType.getPointer();
         boolean restrict = this.restrict || other.restrict;
         boolean constPointee = this.constPointee || other.constPointee;
-        return restrict ? constPointee ? pointerType.asRestrict().withConstPointee() : pointerType.asRestrict() : constPointee ? pointerType.withConstPointee() : pointerType;
+
+        if (collected != other.collected) {
+            throw new IllegalArgumentException("Cannot join non-collected and collected pointer types");
+        }
+
+        if (restrict) {
+            pointerType = pointerType.asRestrict();
+        }
+
+        if (constPointee) {
+            pointerType = pointerType.withConstPointee();
+        }
+
+        if (collected) {
+            pointerType = pointerType.asCollected();
+        }
+
+        return pointerType;
     }
 
     public StringBuilder toString(final StringBuilder b) {
         super.toString(b);
+        if (collected) {
+            b.append("collected ");
+        }
         if (restrict) {
             b.append("restrict ");
         }
