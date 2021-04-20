@@ -282,3 +282,18 @@ We should look at providing commandline options or a control file that allows th
 opt-in or out.
 
 User choice should over-ride our determination of whether a `<clinit>` is safe or not.
+
+== Runtime `<clinit>` optimization
+
+One option is to batch a set of class initializers and run them immediately on startup of the compiled image.
+Classes initialized in this batch can be treated similarly to build time initialized classes and uses of them
+can avoid initialization checks.  These `<clinit>` methods still need to be "safe" enough that skipping 
+`<clinit>` checks on these class is safe and will avoid uninitialized values escaping.
+
+As an example of a potential concern, if a `<clinit>` starts another Thread, and that thread immediately executes,
+it may race with the `<clinit>` methods still being executed and observe the static fields before the declaring class
+is initialized.
+
+A variation of this was used in the Multi-Tenant JVM to force new Tenants to stay in the interpreter, executing a set
+of known class initializers, so that the JITTED code could elide the class init checks for critical class such as Object,
+String, Class, etc.
