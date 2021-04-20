@@ -14,7 +14,7 @@ final class PointerTo extends AbstractValue {
     public Appendable appendTo(final Appendable target) throws IOException {
         type.appendTo(target);
         if (addrSpace != 0) {
-            target.append(' ').append("addrSpace").append('(');
+            target.append(' ').append("addrspace").append('(');
             target.append(Integer.toString(addrSpace));
             target.append(')');
         }
