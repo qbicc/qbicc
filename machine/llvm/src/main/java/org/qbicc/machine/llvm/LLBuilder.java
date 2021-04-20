@@ -112,6 +112,8 @@ public interface LLBuilder {
 
     YieldingInstruction bitcast(LLValue type, LLValue value, LLValue toType);
 
+    YieldingInstruction addrspacecast(LLValue type, LLValue value, LLValue toType);
+
     YieldingInstruction fptosi(LLValue type, LLValue value, LLValue toType);
 
     YieldingInstruction fptoui(LLValue type, LLValue value, LLValue toType);

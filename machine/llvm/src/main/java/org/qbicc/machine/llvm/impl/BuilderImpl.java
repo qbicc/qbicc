@@ -341,6 +341,13 @@ final class BuilderImpl implements LLBuilder {
         return append(new BitCastImpl(block, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
     }
 
+    public YieldingInstruction addrspacecast(final LLValue type, final LLValue value, final LLValue toType) {
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("value", value);
+        Assert.checkNotNullParam("toType", toType);
+        return append(new AddrSpaceCast(block, (AbstractValue) type, (AbstractValue) value, (AbstractValue) toType));
+    }
+
     public YieldingInstruction fptosi(final LLValue type, final LLValue value, final LLValue toType) {
         Assert.checkNotNullParam("type", type);
         Assert.checkNotNullParam("value", value);
