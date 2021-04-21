@@ -125,7 +125,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
                             ValueHandle elementHandle = b.elementOf(b.transform(b.instanceFieldOf(inputHandle, contentField)), node.getIndex());
                             Value addr = b.addressOf(elementHandle);
                             ReferenceType elementType = ((ReferenceArrayObjectType) upperBound).getElementType();
-                            return b.transform(b.pointerHandle(b.bitCast(addr, elementType.getPointer())));
+                            return b.transform(b.pointerHandle(b.bitCast(addr, elementType.getPointer().asCollected())));
                         } else {
                             assert upperBound instanceof PrimitiveArrayObjectType;
                             return b.elementOf(b.transform(b.instanceFieldOf(inputHandle, contentField)), node.getIndex());
@@ -147,7 +147,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
                 } else {
                     info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
                 }
-                return b.pointerHandle(b.valueConvert(node.getReferenceValue(), info.getCompoundType().getPointer()));
+                return b.pointerHandle(b.valueConvert(node.getReferenceValue(), info.getCompoundType().getPointer().asCollected()));
             }
 
             @Override
