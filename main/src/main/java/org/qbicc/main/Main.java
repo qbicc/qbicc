@@ -50,7 +50,8 @@ import org.qbicc.plugin.linker.LinkStage;
 import org.qbicc.plugin.llvm.LLVMCompileStage;
 import org.qbicc.plugin.llvm.LLVMGenerator;
 import org.qbicc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
-import org.qbicc.plugin.lowering.StaticFieldLoweringBasicBlockBuilder;
+import org.qbicc.plugin.layout.StaticFieldMappingBasicBlockBuilder;
+import org.qbicc.plugin.layout.StaticFieldRegisteringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.ThrowExceptionHelper;
 import org.qbicc.plugin.lowering.ThrowLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.VMHelpersSetupHook;
@@ -328,6 +329,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optInlining) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
                                 }
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, StaticFieldRegisteringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addElementVisitor(Phase.ANALYZE, new DotGenerator(Phase.ANALYZE, graphGenConfig));
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
@@ -337,6 +339,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
                                 }
 
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldMappingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 if (nogc) {
@@ -344,7 +347,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForLowerPhase);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldLoweringBasicBlockBuilder::new);
                                 // InstanceOfCheckCastBB must come before ObjectAccessLoweringBuilder or typeIdOf won't be lowered correctly
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
