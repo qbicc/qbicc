@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.DispatchInvocation;
@@ -37,8 +38,12 @@ public class CloneConversionBasicBlockBuilder extends DelegatingBasicBlockBuilde
                 BlockLabel throwIt = new BlockLabel();
                 Info info = getInfo(ctxt);
                 if_(instanceOf(instance, info.cloneable), goAhead, throwIt);
-                begin(throwIt);
-                throw_(invokeConstructor(new_(info.notSupp), info.notSupp, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of()));
+                try {
+                    begin(throwIt);
+                    throw_(invokeConstructor(new_(info.notSupp), info.notSupp, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of()));
+                } catch (BlockEarlyTermination ignored) {
+                    // continue
+                }
                 begin(goAhead);
                 return clone(instance);
             }

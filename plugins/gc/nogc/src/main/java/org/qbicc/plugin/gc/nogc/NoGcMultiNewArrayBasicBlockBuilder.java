@@ -37,6 +37,11 @@ public class NoGcMultiNewArrayBasicBlockBuilder extends DelegatingBasicBlockBuil
         if (! dimensions.hasNext()) {
             return newArray;
         }
+        Descriptor elementDesc = desc.getElementTypeDescriptor();
+        if (!(elementDesc instanceof ArrayTypeDescriptor)) {
+            ctxt.error(getLocation(), "Unexpected array descriptor: %s", elementDesc);
+            throw new BlockEarlyTermination(unreachable());
+        }
         // create a loop to create and fill each nested array
         BlockLabel loop = new BlockLabel();
         BasicBlock initial = goto_(loop);
@@ -46,17 +51,16 @@ public class NoGcMultiNewArrayBasicBlockBuilder extends DelegatingBasicBlockBuil
         BlockLabel resume = new BlockLabel();
         LiteralFactory lf = ctxt.getLiteralFactory();
         if_(isEq(phi, dimension), exit, resume);
-        begin(resume);
-        phi.setValueForBlock(ctxt, getCurrentElement(), initial, lf.literalOf(0));
-        Descriptor elementDesc = desc.getElementTypeDescriptor();
-        if (! (elementDesc instanceof ArrayTypeDescriptor)) {
-            ctxt.error(getLocation(), "Unexpected array descriptor: %s", elementDesc);
-            throw new BlockEarlyTermination(unreachable());
+        try {
+            begin(resume);
+            phi.setValueForBlock(ctxt, getCurrentElement(), initial, lf.literalOf(0));
+            Value innerArray = multiNewArray((ArrayTypeDescriptor) elementDesc, dimensions);
+            store(elementOf(referenceHandle(newArray), phi), innerArray, MemoryAtomicityMode.UNORDERED);
+            BasicBlock loopExit = goto_(loop);
+            phi.setValueForBlock(ctxt, getCurrentElement(), loopExit, add(phi, lf.literalOf(1)));
+        } catch (BlockEarlyTermination ignored) {
+            // continue
         }
-        Value innerArray = multiNewArray((ArrayTypeDescriptor) elementDesc, dimensions);
-        store(elementOf(referenceHandle(newArray), phi), innerArray, MemoryAtomicityMode.UNORDERED);
-        BasicBlock loopExit = goto_(loop);
-        phi.setValueForBlock(ctxt, getCurrentElement(), loopExit, add(phi, lf.literalOf(1)));
         begin(exit);
         return newArray;
     }

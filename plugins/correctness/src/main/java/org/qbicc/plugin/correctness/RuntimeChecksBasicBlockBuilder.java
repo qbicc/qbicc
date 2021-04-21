@@ -216,10 +216,14 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             final BlockLabel goAhead = new BlockLabel();
 
             if_(isEq(v2, zero), throwIt, goAhead);
-            begin(throwIt);
-            MethodElement helper = ctxt.getVMHelperMethod("raiseArithmeticException");
-            invokeStatic(helper, List.of());
-            unreachable();
+            try {
+                begin(throwIt);
+                MethodElement helper = ctxt.getVMHelperMethod("raiseArithmeticException");
+                invokeStatic(helper, List.of());
+                unreachable();
+            } catch (BlockEarlyTermination ignored) {
+                // continue
+            }
             begin(goAhead);
         }
         return super.divide(v1, v2);
@@ -294,10 +298,14 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         final BlockLabel goAhead = new BlockLabel();
         final LiteralFactory lf = ctxt.getLiteralFactory();
         if_(isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), throwIt, goAhead);
-        begin(throwIt);
-        MethodElement helper = ctxt.getVMHelperMethod("raiseNullPointerException");
-        invokeStatic(helper, List.of());
-        unreachable();
+        try {
+            begin(throwIt);
+            MethodElement helper = ctxt.getVMHelperMethod("raiseNullPointerException");
+            invokeStatic(helper, List.of());
+            unreachable();
+        } catch (BlockEarlyTermination ignored) {
+            //continue
+        }
         begin(goAhead);
     }
 
@@ -309,13 +317,21 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         final IntegerLiteral zero = lf.literalOf(0);
 
         if_(isLt(index, zero), throwIt, notNegative);
-        begin(notNegative);
-        final Value length = arrayLength(array);
-        if_(isGe(index, length), throwIt, goAhead);
-        begin(throwIt);
-        MethodElement helper = ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException");
-        invokeStatic(helper, List.of());
-        unreachable();
+        try {
+            begin(notNegative);
+            final Value length = arrayLength(array);
+            if_(isGe(index, length), throwIt, goAhead);
+        } catch (BlockEarlyTermination ignored) {
+            // continue
+        }
+        try {
+            begin(throwIt);
+            MethodElement helper = ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException");
+            invokeStatic(helper, List.of());
+            unreachable();
+        } catch (BlockEarlyTermination ignored) {
+            // continue
+        }
         begin(goAhead);
     }
 
@@ -324,10 +340,14 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         final BlockLabel goAhead = new BlockLabel();
         final IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
         if_(isLt(size, zero), throwIt, goAhead);
-        begin(throwIt);
-        MethodElement helper = ctxt.getVMHelperMethod("raiseNegativeArraySizeException");
-        invokeStatic(helper, List.of());
-        unreachable();
+        try {
+            begin(throwIt);
+            MethodElement helper = ctxt.getVMHelperMethod("raiseNegativeArraySizeException");
+            invokeStatic(helper, List.of());
+            unreachable();
+        } catch (BlockEarlyTermination ignored) {
+            // continue
+        }
         begin(goAhead);
     }
 
