@@ -1083,7 +1083,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
             if (cp == '"') {
                 appendTo(output, '\\');
             } else if (cp == '\\') {
-                if((i+1) == orig.length() ||
+                if((i + 1) == orig.length() ||
                    "nlrGNTHE".indexOf(orig.codePointAt(i + 1)) == -1) {
                     appendTo(output, '\\');
                 }
