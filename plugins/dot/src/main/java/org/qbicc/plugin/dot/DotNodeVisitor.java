@@ -1080,8 +1080,13 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         int cp;
         for (int i = 0; i < orig.length(); i += Character.charCount(cp)) {
             cp = orig.codePointAt(i);
-            if (cp == '"' || cp == '\\') {
+            if (cp == '"') {
                 appendTo(output, '\\');
+            } else if (cp == '\\') {
+                if((i+1) == orig.length() ||
+                   "nlrGNTHE".indexOf(orig.codePointAt(i + 1)) == -1) {
+                    appendTo(output, '\\');
+                }
             }
             if (Character.charCount(cp) == 1) {
                 appendTo(output, (char) cp);
