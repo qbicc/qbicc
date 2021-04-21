@@ -48,6 +48,24 @@ public final class PointerType extends WordType {
         return asCollected;
     }
 
+    public PointerType withQualifiersFrom(PointerType otherPointerType) {
+        PointerType pointerType = this;
+
+        if (otherPointerType.isRestrict()) {
+            pointerType = pointerType.asRestrict();
+        }
+
+        if (otherPointerType.isConstPointee()) {
+            pointerType = pointerType.withConstPointee();
+        }
+
+        if (otherPointerType.isCollected()) {
+            pointerType = pointerType.asCollected();
+        }
+
+        return pointerType;
+    }
+
     public long getSize() {
         return typeSystem.getPointerSize();
     }

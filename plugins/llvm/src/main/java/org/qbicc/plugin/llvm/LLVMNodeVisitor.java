@@ -192,7 +192,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         } else {
             ptr = valueHandle.accept(this, null).asLocal();
         }
-        org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(node.getValue().getType().getPointer()), map(node.getValue()), map(node.getValue().getType()), ptr);
+        org.qbicc.machine.llvm.op.Store storeInsn = builder.store(map(valueHandle.getPointerType()), map(node.getValue()), map(node.getValue().getType()), ptr);
         storeInsn.align(valueHandle.getValueType().getAlign());
         if (node.getMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
             storeInsn.atomic(OrderingConstraint.seq_cst);
@@ -501,7 +501,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         } else {
             ptr = valueHandle.accept(this, null).asLocal();
         }
-        org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getValueType().getPointer()), map(valueHandle.getValueType()), ptr);
+        org.qbicc.machine.llvm.op.Load loadInsn = builder.load(map(valueHandle.getPointerType()), map(valueHandle.getValueType()), ptr);
         loadInsn.align(node.getType().getAlign());
         if (node.getMode() == MemoryAtomicityMode.ACQUIRE) {
             loadInsn.atomic(OrderingConstraint.acquire);
@@ -748,7 +748,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         if (nextHandle instanceof PointerHandle) {
             PointerHandle ptrHandle = (PointerHandle) nextHandle;
             // special case: element-of-pointer
-            return gep(map(ptrHandle.getPointerValue()), ptrHandle.getPointerType(), ptrHandle).arg(false, indexType, index);
+            return gep(map(ptrHandle.getPointerValue()), ptrHandle).arg(false, indexType, index);
         }
         return nextHandle.accept(this, param).arg(false, indexType, index);
     }
@@ -762,21 +762,21 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     @Override
     public GetElementPtr visit(Void param, GlobalVariable node) {
         GlobalVariableElement gv = node.getVariableElement();
-        return gep(Values.global(gv.getName()), node.getValueType().getPointer(), node).arg(false, i32, ZERO);
+        return gep(Values.global(gv.getName()), node).arg(false, i32, ZERO);
     }
 
     @Override
     public GetElementPtr visit(Void param, PointerHandle node) {
-        return gep(map(node.getPointerValue()), node.getPointerType(), node).arg(false, i32, ZERO);
+        return gep(map(node.getPointerValue()), node).arg(false, i32, ZERO);
     }
 
-    GetElementPtr gep(LLValue ptr, ValueType pointerType, ValueHandle handle) {
-        ValueType valueType = handle.getValueType();
-        if (valueType instanceof VoidType) {
-            return builder.getelementptr(i8, map(pointerType), ptr);
-        } else {
-            return builder.getelementptr(map(valueType), map(pointerType), ptr);
-        }
+    GetElementPtr gep(LLValue ptr, ValueHandle handle) {
+        PointerType pointerType = handle.getPointerType();
+        return builder.getelementptr(
+            pointerType.getPointeeType() instanceof VoidType ? i8 : map(pointerType.getPointeeType()),
+            map(pointerType),
+            ptr
+        );
     }
 
     // unknown node catch-all methods

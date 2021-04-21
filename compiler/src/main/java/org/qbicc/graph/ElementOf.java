@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -13,27 +14,32 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class ElementOf extends AbstractValueHandle {
     private final ValueHandle inputHandle;
     private final Value index;
-    private final ValueType valueType;
+    private final PointerType pointerType;
 
     ElementOf(Node callSite, ExecutableElement element, int line, int bci, ValueHandle inputHandle, Value index) {
         super(callSite, element, line, bci);
         this.inputHandle = inputHandle;
         this.index = index;
+
         ValueType inputType = inputHandle.getValueType();
+        PointerType pointerType;
+
         if (inputHandle instanceof PointerHandle) {
-            valueType = inputHandle.getValueType();
+            pointerType = inputType.getPointer();
         } else if (inputType instanceof ArrayType) {
-            valueType = ((ArrayType) inputType).getElementType();
+            pointerType = ((ArrayType) inputType).getElementType().getPointer();
         } else if (inputType instanceof ArrayObjectType) {
-            valueType = ((ArrayObjectType) inputType).getElementType();
+            pointerType = ((ArrayObjectType) inputType).getElementType().getPointer();
         } else {
             throw new IllegalArgumentException("Invalid input type: " + inputType);
         }
+
+        this.pointerType = pointerType.withQualifiersFrom(inputHandle.getPointerType());
     }
 
     @Override
-    public ValueType getValueType() {
-        return valueType;
+    public PointerType getPointerType() {
+        return pointerType;
     }
 
     public Value getIndex() {

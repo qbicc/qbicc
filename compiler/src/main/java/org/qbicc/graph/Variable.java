@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -12,12 +13,12 @@ import org.qbicc.type.definition.element.VariableElement;
  */
 public abstract class Variable extends AbstractValueHandle {
     private final VariableElement variableElement;
-    private final ValueType valueType;
+    private final PointerType pointerType;
 
-    Variable(final ExecutableElement element, final int line, final int bci, final VariableElement variableElement, ValueType valueType) {
+    Variable(final ExecutableElement element, final int line, final int bci, final VariableElement variableElement, PointerType pointerType) {
         super(null, element, line, bci);
         this.variableElement = variableElement;
-        this.valueType = valueType;
+        this.pointerType = pointerType;
     }
 
     int calcHashCode() {
@@ -28,8 +29,8 @@ public abstract class Variable extends AbstractValueHandle {
         return variableElement;
     }
 
-    public ValueType getValueType() {
-        return valueType;
+    public PointerType getPointerType() {
+        return pointerType;
     }
 
     @Override

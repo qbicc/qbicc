@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 
 /**
@@ -7,11 +8,20 @@ import org.qbicc.type.ValueType;
  */
 public interface ValueHandle extends Unschedulable {
     /**
-     * Get the type of the referred value.
+     * Get the type that a pointer to the referred value would have.
+     *
+     * @return the referred pointer type
+     */
+    PointerType getPointerType();
+
+    /**
+     * Get the type that the referred value would have. Equivalent to {@code getPointerType().getPointeeType()}.
      *
      * @return the referred value type
      */
-    ValueType getValueType();
+    default ValueType getValueType() {
+        return getPointerType().getPointeeType();
+    }
 
     /**
      * Determine whether this handle is writable.

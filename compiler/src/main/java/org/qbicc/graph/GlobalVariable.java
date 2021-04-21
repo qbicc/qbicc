@@ -9,7 +9,7 @@ import org.qbicc.type.definition.element.GlobalVariableElement;
  */
 public final class GlobalVariable extends Variable {
     GlobalVariable(ExecutableElement element, int line, int bci, GlobalVariableElement variableElement, ValueType valueType) {
-        super(element, line, bci, variableElement, valueType);
+        super(element, line, bci, variableElement, valueType.getPointer());
     }
 
     @Override
