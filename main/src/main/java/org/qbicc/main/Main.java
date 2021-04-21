@@ -128,7 +128,12 @@ public class Main implements Callable<DiagnosticContext> {
         Thread compilerThread = new Thread(Thread.currentThread().getThreadGroup(), () -> {
             BaseDiagnosticContext ctxt = new BaseDiagnosticContext();
             ref.set(ctxt);
-            call0(ctxt);
+            try {
+                call0(ctxt);
+            } catch (Throwable t) {
+                t.printStackTrace(System.err);
+                ctxt.error(t, "Compilation failed due to an exception");
+            }
         }, "Compiler thread", 64L * 1024 * 1024);
         compilerThread.start();
         boolean intr = false;
