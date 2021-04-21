@@ -379,7 +379,7 @@ public final class TypeSystem {
     }
 
     ReferenceType createReference(PhysicalObjectType objectType, Set<InterfaceObjectType> interfaceBounds) {
-        return new ReferenceType(this, objectType, interfaceBounds, false, referenceSize, referenceAlign);
+        return new ReferenceType(this, objectType, interfaceBounds, referenceSize, referenceAlign);
     }
 
     ReferenceArrayObjectType createReferenceArrayObject(final ObjectType elementType) {

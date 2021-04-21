@@ -13,17 +13,28 @@ public final class ReferenceType extends WordType {
     private final Set<InterfaceObjectType> interfaceBounds;
     private final int size;
     private final int align;
-    private final boolean nullable;
+    private final ReferenceType asNotNull;
     private final ReferenceType asNullable;
 
-    ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, Set<InterfaceObjectType> interfaceBounds, final boolean nullable, final int size, final int align) {
-        super(typeSystem, ((Objects.hash(upperBound, interfaceBounds) * 19 + size) * 19 + ReferenceType.class.hashCode()) * 19 + Boolean.hashCode(nullable));
+    private ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, Set<InterfaceObjectType> interfaceBounds, final ReferenceType notNull, final int size, final int align) {
+        super(typeSystem, ((Objects.hash(upperBound, interfaceBounds) * 19 + size) * 19 + ReferenceType.class.hashCode()) * 19 + Boolean.hashCode(notNull != null));
         this.upperBound = upperBound;
         this.interfaceBounds = interfaceBounds;
         this.size = size;
         this.align = align;
-        this.nullable = nullable;
-        this.asNullable = nullable ? this : new ReferenceType(typeSystem, this.upperBound, interfaceBounds, true, size, align);
+        if (notNull != null) {
+            // a non-null view was passed in, so this must be the nullable view
+            this.asNullable = this;
+            this.asNotNull = notNull;
+        } else {
+            // null was passed in for the non-null view, so this must be the non-null view; construct nullable view
+            this.asNullable = new ReferenceType(typeSystem, this.upperBound, interfaceBounds, this, size, align);
+            this.asNotNull = this;
+        }
+    }
+
+    ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, final Set<InterfaceObjectType> interfaceBounds, final int size, final int align) {
+        this(typeSystem, upperBound, interfaceBounds, null, size, align);
     }
 
     public ReferenceType getConstraintType() {
@@ -53,11 +64,15 @@ public final class ReferenceType extends WordType {
     }
 
     public boolean isNullable() {
-        return nullable;
+        return this == asNullable;
     }
 
     public ReferenceType asNullable() {
         return asNullable;
+    }
+
+    public ReferenceType asNotNull() {
+        return asNotNull;
     }
 
     public int getMinBits() {
@@ -128,7 +143,7 @@ public final class ReferenceType extends WordType {
         if (otherType.isSupertypeOf(upperBound)) {
             return this;
         } else if (otherType.isSubtypeOf(upperBound)) {
-            return new ReferenceType(typeSystem, otherType, filtered(interfaceBounds, otherType), nullable, size, align);
+            return new ReferenceType(typeSystem, otherType, filtered(interfaceBounds, otherType), isNullable() ? asNotNull : null, size, align);
         } else {
             // no valid narrowing
             return null;
@@ -148,7 +163,7 @@ public final class ReferenceType extends WordType {
             // already implicitly narrowed to this type
             return this;
         } else {
-            return new ReferenceType(typeSystem, upperBound, filteredWith(interfaceBounds, otherType), nullable, size, align);
+            return new ReferenceType(typeSystem, upperBound, filteredWith(interfaceBounds, otherType), isNullable() ? asNotNull : null, size, align);
         }
     }
 
@@ -260,7 +275,7 @@ public final class ReferenceType extends WordType {
             // they were equal
             return this;
         }
-        return new ReferenceType(typeSystem, upperBound, union, nullable, size, align);
+        return new ReferenceType(typeSystem, upperBound, union, isNullable() ? asNotNull : null, size, align);
     }
 
     private Set<InterfaceObjectType> union(Set<InterfaceObjectType> ours, Set<InterfaceObjectType> others, PhysicalObjectType upperBound) {
@@ -393,7 +408,7 @@ public final class ReferenceType extends WordType {
 
     public StringBuilder toString(final StringBuilder b) {
         super.toString(b);
-        if (nullable) {
+        if (isNullable()) {
             b.append("nullable").append(' ');
         }
         b.append("reference");
