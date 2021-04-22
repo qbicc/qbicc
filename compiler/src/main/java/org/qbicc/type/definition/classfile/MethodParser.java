@@ -43,6 +43,7 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -310,21 +311,33 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
 
     // Locals manipulation
 
-    void setLocal2(int index, Value value) {
+    void setLocal2(int index, Value value, int bci) {
         locals[index] = value;
         locals[index + 1] = null;
-    }
-
-    void setLocal1(int index, Value value) {
-        locals[index] = value;
-    }
-
-    void setLocal(int index, Value value, boolean class2) {
-        if (class2) {
-            setLocal2(index, value);
-        } else {
-            setLocal1(index, value);
+        LocalVariableElement lve = getLocalVariableElement(bci, index);
+        if (lve != null) {
+            gf.store(gf.localVariable(lve), value, MemoryAtomicityMode.NONE);
         }
+    }
+
+    void setLocal1(int index, Value value, int bci) {
+        locals[index] = value;
+        LocalVariableElement lve = getLocalVariableElement(bci, index);
+        if (lve != null) {
+            gf.store(gf.localVariable(lve), value, MemoryAtomicityMode.NONE);
+        }
+    }
+
+    void setLocal(int index, Value value, boolean class2, int bci) {
+        if (class2) {
+            setLocal2(index, value, bci);
+        } else {
+            setLocal1(index, value, bci);
+        }
+    }
+
+    LocalVariableElement getLocalVariableElement(int bci, int index) {
+        return null;
     }
 
     Value getLocal(int index) {
@@ -602,41 +615,41 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_ISTORE:
                     case OP_FSTORE:
                     case OP_ASTORE:
-                        setLocal1(getWidenableValue(buffer, wide), pop1());
+                        setLocal1(getWidenableValue(buffer, wide), pop1(), src);
                         break;
                     case OP_LSTORE:
                     case OP_DSTORE:
-                        setLocal2(getWidenableValue(buffer, wide), pop2());
+                        setLocal2(getWidenableValue(buffer, wide), pop2(), src);
                         break;
                     case OP_ISTORE_0:
                     case OP_ISTORE_1:
                     case OP_ISTORE_2:
                     case OP_ISTORE_3:
-                        setLocal1(opcode - OP_ISTORE_0, pop1());
+                        setLocal1(opcode - OP_ISTORE_0, pop1(), src);
                         break;
                     case OP_LSTORE_0:
                     case OP_LSTORE_1:
                     case OP_LSTORE_2:
                     case OP_LSTORE_3:
-                        setLocal2(opcode - OP_LSTORE_0, pop2());
+                        setLocal2(opcode - OP_LSTORE_0, pop2(), src);
                         break;
                     case OP_FSTORE_0:
                     case OP_FSTORE_1:
                     case OP_FSTORE_2:
                     case OP_FSTORE_3:
-                        setLocal1(opcode - OP_FSTORE_0, pop1());
+                        setLocal1(opcode - OP_FSTORE_0, pop1(), src);
                         break;
                     case OP_DSTORE_0:
                     case OP_DSTORE_1:
                     case OP_DSTORE_2:
                     case OP_DSTORE_3:
-                        setLocal2(opcode - OP_DSTORE_0, pop2());
+                        setLocal2(opcode - OP_DSTORE_0, pop2(), src);
                         break;
                     case OP_ASTORE_0:
                     case OP_ASTORE_1:
                     case OP_ASTORE_2:
                     case OP_ASTORE_3:
-                        setLocal1(opcode - OP_ASTORE_0, pop1());
+                        setLocal1(opcode - OP_ASTORE_0, pop1(), src);
                         break;
                     case OP_IASTORE:
                     case OP_FASTORE:
@@ -932,7 +945,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     case OP_IINC:
                         int idx = getWidenableValue(buffer, wide);
-                        setLocal1(idx, gf.add(getLocal(idx), lf.literalOf(getWidenableValueSigned(buffer, wide))));
+                        setLocal1(idx, gf.add(getLocal(idx), lf.literalOf(getWidenableValueSigned(buffer, wide))), src);
                         break;
                     case OP_I2L:
                         push2(gf.extend(pop1(), ts.getSignedInteger64Type()));

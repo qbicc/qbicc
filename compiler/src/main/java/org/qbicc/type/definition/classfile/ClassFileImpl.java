@@ -1206,7 +1206,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 // instance method or constructor
                 thisValue = gf.parameter(enclosing.load().getType().getReference(), "this", 0);
                 currentVarTypes[j] = thisValue.getType();
-                methodParser.setLocal1(j++, thisValue);
+                methodParser.setLocal1(j++, thisValue, 0);
             } else {
                 thisValue = null;
             }
@@ -1216,7 +1216,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 boolean class2 = elementParameters.get(i).hasClass2Type();
                 Value promoted = methodParser.promote(parameters[i]);
                 currentVarTypes[j] = promoted.getType();
-                methodParser.setLocal(j, promoted, class2);
+                methodParser.setLocal(j, promoted, class2, 0);
                 j += class2 ? 2 : 1;
             }
         } else {
