@@ -519,7 +519,7 @@ public final class Layout {
                     builder.setSignature(BaseTypeSignature.V);
                     builder.setName("_qbicc_statics");
                     this.statics = statics = builder.build();
-                    ctxt.getImplicitSection(jlo).addData(null, "_qbicc_statics", ctxt.getLiteralFactory().zeroInitializerLiteralOfType(type));
+                    ctxt.getImplicitSection(jlo).addData(null, "_qbicc_statics", ctxt.getLiteralFactory().zeroInitializerLiteralOfType(type)).setDsoLocal();
                 }
             }
         }
