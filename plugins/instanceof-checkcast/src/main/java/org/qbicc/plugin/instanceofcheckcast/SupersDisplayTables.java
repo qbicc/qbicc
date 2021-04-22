@@ -21,6 +21,7 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.CompoundType.CompoundTypeBuilder;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
@@ -398,20 +399,15 @@ public class SupersDisplayTables {
         //   u32_t flags;
         // } typeids;
         UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
-        CompoundType.Member[] members = new CompoundType.Member[5];
-        members[0] = ts.getCompoundTypeMember("typeId", uTypeId, 0, uTypeId.getAlign());
-        members[1] = ts.getCompoundTypeMember("maxSubTypeId", uTypeId, (int)uTypeId.getSize(), uTypeId.getAlign());
-        members[2] = ts.getCompoundTypeMember("superTypeId", uTypeId, (int)uTypeId.getSize() * 2, uTypeId.getAlign());
-        members[3] = ts.getCompoundTypeMember("interfaceBits", interfaceBitsType, (int)uTypeId.getSize() * 3, interfaceBitsType.getAlign());
-        members[4] = ts.getCompoundTypeMember("flags", u32, nextMemberOffset((int)(members[3].getOffset() + members[3].getType().getSize()), u32.getAlign()), u32.getAlign());
-        int memberSize = members[4].getOffset() + (int)members[4].getType().getSize();
-
-        CompoundType typeIdStruct = ts.getCompoundType(
-            CompoundType.Tag.STRUCT, 
-            "typeIds", 
-            memberSize /* size */,
-            ts.getPointerAlignment(), 
-            () -> List.of(members));
+        CompoundTypeBuilder ctBuilder = new CompoundTypeBuilder(ts, CompoundType.Tag.STRUCT, "typeIds", ts.getPointerAlignment());
+        CompoundType typeIdStruct = ctBuilder
+            .addNextMember("typedId", uTypeId)
+            .addNextMember("maxSubTypeId", uTypeId)
+            .addNextMember("superTypeId", uTypeId)
+            .addNextMember("interfaceBits", interfaceBitsType)
+            .addNextMember("flags", u32)
+            .build();
+        List<CompoundType.Member> members = typeIdStruct.getMembers();
         
         Section section = ctxt.getImplicitSection(jlo);
         Literal[] typeIdTable = new Literal[typeids.size() + 10]; // invalid zero + 8 prims + void
@@ -428,11 +424,11 @@ public class SupersDisplayTables {
         for (int i = 0; i < 10; i++) {
             typeIdTable[i] = literalFactory.literalOf(typeIdStruct, 
                 Map.of(
-                    members[0], literalFactory.literalOf(uTypeId, i),
-                    members[1], literalFactory.literalOf(uTypeId, i),
-                    members[2], literalFactory.literalOf(uTypeId, 0),  /* Set super for prims to posion */
-                    members[3], literalFactory.literalOf(interfaceBitsType, primitivesInterfaceBits),
-                    members[4], literalFactory.literalOf(u32, 0)  /* no flags for prims */
+                    members.get(0), literalFactory.literalOf(uTypeId, i),
+                    members.get(1), literalFactory.literalOf(uTypeId, i),
+                    members.get(2), literalFactory.literalOf(uTypeId, 0),  /* Set super for prims to posion */
+                    members.get(3), literalFactory.literalOf(interfaceBitsType, primitivesInterfaceBits),
+                    members.get(4), literalFactory.literalOf(u32, 0)  /* no flags for prims */
                 )
             );
         }
@@ -446,11 +442,11 @@ public class SupersDisplayTables {
             }
             typeIdTable[vtd.getTypeId()] = literalFactory.literalOf(typeIdStruct, 
                 Map.of(
-                    members[0], literalFactory.literalOf(uTypeId, idRange.typeid),
-                    members[1], literalFactory.literalOf(uTypeId, idRange.maximumSubtypeId),
-                    members[2], literalFactory.literalOf(uTypeId, superTypeId),
-                    members[3], literalFactory.literalOf(interfaceBitsType, convertByteArrayToValuesList(literalFactory, getImplementedInterfaceBits(vtd))),
-                    members[4], literalFactory.literalOf(u32, 0)  /* TODO: calculate flags */
+                    members.get(0), literalFactory.literalOf(uTypeId, idRange.typeid),
+                    members.get(1), literalFactory.literalOf(uTypeId, idRange.maximumSubtypeId),
+                    members.get(2), literalFactory.literalOf(uTypeId, superTypeId),
+                    members.get(3), literalFactory.literalOf(interfaceBitsType, convertByteArrayToValuesList(literalFactory, getImplementedInterfaceBits(vtd))),
+                    members.get(4), literalFactory.literalOf(u32, 0)  /* TODO: calculate flags */
                 )
             );
         }
@@ -468,10 +464,6 @@ public class SupersDisplayTables {
         builder.setSignature(BaseTypeSignature.V);
         typeIdArrayGlobal = builder.build();
         typeIdStructType = typeIdStruct;
-    }
-
-    private int nextMemberOffset(int offset, int align) {
-        return (offset + (align - 1)) & -align;
     }
 
     /**

@@ -208,6 +208,12 @@ public final class CompoundType extends ValueType {
         }
     }
 
+    /**
+     * CompoundTypeBuilders are explicitly not thread-safe
+     * and should not be shared between threads.
+     * 
+     * The resulting CompoundType can be shared.
+     */
     public static class CompoundTypeBuilder {
         final TypeSystem typeSystem;
         final Tag tag;
@@ -218,6 +224,8 @@ public final class CompoundType extends ValueType {
         int overallAlign;
 
         ArrayList<CompoundType.Member> members = new ArrayList<>();
+
+        CompoundType completeType;
 
         public CompoundTypeBuilder(final TypeSystem typeSystem, final Tag tag, final String name, int overallAlign) {
             this.typeSystem = typeSystem;
@@ -248,10 +256,12 @@ public final class CompoundType extends ValueType {
             if (members.isEmpty()) {
                 throw new IllegalStateException("CompoundType has no members");
             }
-
-            Member last = members.get(members.size() -1);
-            int size = last.getOffset() + (int)last.getType().getSize();
-            return typeSystem.getCompoundType(tag, name, size, overallAlign, () -> members);
+            if (completeType == null) {
+                Member last = members.get(members.size() -1);
+                int size = last.getOffset() + (int)last.getType().getSize();
+                completeType =  typeSystem.getCompoundType(tag, name, size, overallAlign, () -> members);
+            }
+            return completeType;
         }
     }
 }
