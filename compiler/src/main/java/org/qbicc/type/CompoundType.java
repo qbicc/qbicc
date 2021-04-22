@@ -1,5 +1,6 @@
 package org.qbicc.type;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -204,6 +205,53 @@ public final class CompoundType extends ValueType {
 
         public String toString() {
             return string;
+        }
+    }
+
+    public static class CompoundTypeBuilder {
+        final TypeSystem typeSystem;
+        final Tag tag;
+        final String name;
+
+        long size = 0;
+        int offset = 0;
+        int overallAlign;
+
+        ArrayList<CompoundType.Member> members = new ArrayList<>();
+
+        public CompoundTypeBuilder(final TypeSystem typeSystem, final Tag tag, final String name, int overallAlign) {
+            this.typeSystem = typeSystem;
+            this.tag = tag;
+            this.name = name;
+            this.overallAlign = overallAlign;
+        }
+
+        public CompoundTypeBuilder addNextMember(final String name, final ValueType type) {
+            return addNextMember(name, type, type.getAlign());
+        }
+
+        public CompoundTypeBuilder addNextMember(final String name, final ValueType type, final int align) {
+            int thisOffset = nextMemberOffset(offset, align);
+            Member m = typeSystem.getCompoundTypeMember(name, type, thisOffset, align);
+
+            // Update offset to point to the end of the reserved space
+            offset = thisOffset + (int)type.getSize();
+            members.add(m);
+            return this;
+        }
+
+        private int nextMemberOffset(int offset, int align) {
+            return (offset + (align - 1)) & -align;
+        }
+
+        public CompoundType build() {
+            if (members.isEmpty()) {
+                throw new IllegalStateException("CompoundType has no members");
+            }
+
+            Member last = members.get(members.size() -1);
+            int size = last.getOffset() + (int)last.getType().getSize();
+            return typeSystem.getCompoundType(tag, name, size, overallAlign, () -> members);
         }
     }
 }
