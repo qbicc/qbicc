@@ -7,13 +7,15 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public final class StackAllocation extends AbstractValue {
+public final class StackAllocation extends AbstractValue implements OrderedNode {
+    private final Node dependency;
     private final ValueType type;
     private final Value count;
     private final Value align;
 
-    StackAllocation(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueType type, final Value count, final Value align) {
+    StackAllocation(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final ValueType type, final Value count, final Value align) {
         super(callSite, element, line, bci);
+        this.dependency = dependency;
         this.type = type;
         this.count = count;
         this.align = align;
@@ -50,5 +52,10 @@ public final class StackAllocation extends AbstractValue {
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 }

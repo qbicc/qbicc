@@ -400,7 +400,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {
-        return new StackAllocation(callSite, element, line, bci, type, count, align);
+        return asDependency(new StackAllocation(callSite, element, line, bci, requireDependency(), type, count, align));
     }
 
     public ParameterValue parameter(final ValueType type, String label, final int index) {
