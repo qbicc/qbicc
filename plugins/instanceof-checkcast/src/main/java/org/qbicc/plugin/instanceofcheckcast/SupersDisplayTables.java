@@ -393,15 +393,19 @@ public class SupersDisplayTables {
         // typedef struct typeids {
         //   uintXX_t tid;
         //   uintXX_t maxsubid;
+        //   uintXX_t superTypeId;
         //   uint8_t interfaces[x];
+        //   u32_t flags;
         // } typeids;
-        CompoundType.Member[] members = new CompoundType.Member[] {
-            ts.getCompoundTypeMember("typeId", uTypeId, 0, uTypeId.getAlign()),
-            ts.getCompoundTypeMember("maxSubTypeId", uTypeId, (int)uTypeId.getSize(), uTypeId.getAlign()),
-            ts.getCompoundTypeMember("superTypeId", uTypeId, (int)uTypeId.getSize() * 2, uTypeId.getAlign()),
-            ts.getCompoundTypeMember("interfaceBits", interfaceBitsType, (int)uTypeId.getSize() * 3, interfaceBitsType.getAlign())
-        };
-        int memberSize = (int)(uTypeId.getSize() * 3 + interfaceBitsType.getSize());
+        UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
+        CompoundType.Member[] members = new CompoundType.Member[5];
+        members[0] = ts.getCompoundTypeMember("typeId", uTypeId, 0, uTypeId.getAlign());
+        members[1] = ts.getCompoundTypeMember("maxSubTypeId", uTypeId, (int)uTypeId.getSize(), uTypeId.getAlign());
+        members[2] = ts.getCompoundTypeMember("superTypeId", uTypeId, (int)uTypeId.getSize() * 2, uTypeId.getAlign());
+        members[3] = ts.getCompoundTypeMember("interfaceBits", interfaceBitsType, (int)uTypeId.getSize() * 3, interfaceBitsType.getAlign());
+        members[4] = ts.getCompoundTypeMember("flags", u32, nextMemberOffset((int)(members[3].getOffset() + members[3].getType().getSize()), u32.getAlign()), u32.getAlign());
+        int memberSize = members[4].getOffset() + (int)members[4].getType().getSize();
+
         CompoundType typeIdStruct = ts.getCompoundType(
             CompoundType.Tag.STRUCT, 
             "typeIds", 
@@ -427,7 +431,8 @@ public class SupersDisplayTables {
                     members[0], literalFactory.literalOf(uTypeId, i),
                     members[1], literalFactory.literalOf(uTypeId, i),
                     members[2], literalFactory.literalOf(uTypeId, 0),  /* Set super for prims to posion */
-                    members[3], literalFactory.literalOf(interfaceBitsType, primitivesInterfaceBits)
+                    members[3], literalFactory.literalOf(interfaceBitsType, primitivesInterfaceBits),
+                    members[4], literalFactory.literalOf(u32, 0)  /* no flags for prims */
                 )
             );
         }
@@ -444,7 +449,8 @@ public class SupersDisplayTables {
                     members[0], literalFactory.literalOf(uTypeId, idRange.typeid),
                     members[1], literalFactory.literalOf(uTypeId, idRange.maximumSubtypeId),
                     members[2], literalFactory.literalOf(uTypeId, superTypeId),
-                    members[3], literalFactory.literalOf(interfaceBitsType, convertByteArrayToValuesList(literalFactory, getImplementedInterfaceBits(vtd)))
+                    members[3], literalFactory.literalOf(interfaceBitsType, convertByteArrayToValuesList(literalFactory, getImplementedInterfaceBits(vtd))),
+                    members[4], literalFactory.literalOf(u32, 0)  /* TODO: calculate flags */
                 )
             );
         }
@@ -462,6 +468,10 @@ public class SupersDisplayTables {
         builder.setSignature(BaseTypeSignature.V);
         typeIdArrayGlobal = builder.build();
         typeIdStructType = typeIdStruct;
+    }
+
+    private int nextMemberOffset(int offset, int align) {
+        return (offset + (align - 1)) & -align;
     }
 
     /**
