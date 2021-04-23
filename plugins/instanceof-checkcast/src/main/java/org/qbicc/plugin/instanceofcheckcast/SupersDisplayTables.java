@@ -21,7 +21,6 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
-import org.qbicc.type.CompoundType.CompoundTypeBuilder;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
@@ -399,8 +398,11 @@ public class SupersDisplayTables {
         //   u32_t flags;
         // } typeids;
         UnsignedIntegerType u32 = ts.getUnsignedInteger32Type();
-        CompoundTypeBuilder ctBuilder = new CompoundTypeBuilder(ts, CompoundType.Tag.STRUCT, "typeIds", ts.getPointerAlignment());
-        CompoundType typeIdStruct = ctBuilder
+        
+        CompoundType typeIdStruct =  CompoundType.builder(ts)
+            .setTag(CompoundType.Tag.STRUCT)
+            .setName("typeIds")
+            .setOverallAlignment(ts.getPointerAlignment())
             .addNextMember("typedId", uTypeId)
             .addNextMember("maxSubTypeId", uTypeId)
             .addNextMember("superTypeId", uTypeId)
