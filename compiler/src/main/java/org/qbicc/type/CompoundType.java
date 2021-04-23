@@ -1,5 +1,6 @@
 package org.qbicc.type;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -124,6 +125,10 @@ public final class CompoundType extends ValueType {
         return b;
     }
 
+    public static CompoundType.Builder builder(TypeSystem typeSystem) {
+        return new Builder(typeSystem);
+    }
+
     public static final class Member implements Comparable<Member> {
         private final int hashCode;
         private final String name;
@@ -204,6 +209,82 @@ public final class CompoundType extends ValueType {
 
         public String toString() {
             return string;
+        }
+    }
+
+    /**
+     * CompoundTypeBuilders are explicitly not thread-safe
+     * and should not be shared between threads.
+     * 
+     * The resulting CompoundType can be shared.
+     */
+    public static final class Builder {
+        final TypeSystem typeSystem;
+        Tag tag;
+        String name;
+
+        long size;
+        int offset;
+        int overallAlign;
+
+        ArrayList<CompoundType.Member> members = new ArrayList<>();
+
+        CompoundType completeType;
+
+        Builder(final TypeSystem typeSystem) {
+            this.typeSystem = typeSystem;
+            this.tag = Tag.NONE;
+        }
+
+        public Builder setName(String name) {
+            // Don't need to check for null as CompoundType's ctor
+            // will assign a name to anything without one.
+            this.name = name;
+            return this;
+        }
+
+        public Builder setTag(Tag tag) {
+            this.tag = Objects.requireNonNull(tag);
+            return this;
+        }
+
+        public Builder setOverallAlignment(int align) {
+            if (align < 0) { 
+                throw new IllegalStateException("Align must be positive");
+            }
+            overallAlign = align;
+            return this;
+        }
+
+        public Builder addNextMember(final String name, final ValueType type) {
+            return addNextMember(name, type, type.getAlign());
+        }
+
+        public Builder addNextMember(final String name, final ValueType type, final int align) {
+            int thisOffset = nextMemberOffset(offset, align);
+            Member m = typeSystem.getCompoundTypeMember(name, type, thisOffset, align);
+            // Equivalent to Max(overallAign, Max(type.getAlign(), align))
+            overallAlign = Math.max(overallAlign, m.getAlign());
+            
+            // Update offset to point to the end of the reserved space
+            offset = thisOffset + (int)type.getSize();
+            members.add(m);
+            return this;
+        }
+
+        private int nextMemberOffset(int offset, int align) {
+            return (offset + (align - 1)) & -align;
+        }
+
+        public CompoundType build() {
+            if (members.isEmpty()) {
+                throw new IllegalStateException("CompoundType has no members");
+            }
+            if (completeType == null) {
+                int size = offset;  // Offset points to the end of the structure
+                completeType =  typeSystem.getCompoundType(tag, name, size, overallAlign, () -> members);
+            }
+            return completeType;
         }
     }
 }

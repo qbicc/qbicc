@@ -271,7 +271,9 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             int memberOffset = member.getOffset(); // already includes alignment
             if (memberOffset > offs) {
                 // we have to pad it out
-                struct.item(array((int) (memberOffset - offs), i8), zeroinitializer);
+                int pad = (int) (memberOffset - offs);
+                struct.item(array(pad, i8), zeroinitializer);
+                offs += pad;
             }
             // actual member
             Literal literal = values.get(member);
