@@ -263,7 +263,8 @@ public final class CompoundType extends ValueType {
         public Builder addNextMember(final String name, final ValueType type, final int align) {
             int thisOffset = nextMemberOffset(offset, align);
             Member m = typeSystem.getCompoundTypeMember(name, type, thisOffset, align);
-            overallAlign = Math.max(overallAlign, align);
+            // Equivalent to Max(overallAign, Max(type.getAlign(), align))
+            overallAlign = Math.max(overallAlign, m.getAlign());
             
             // Update offset to point to the end of the reserved space
             offset = thisOffset + (int)type.getSize();
