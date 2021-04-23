@@ -162,7 +162,6 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             long offs = 0;
             StructType struct = structType();
             int index = 0;
-            int paddingSize = 0;
             for (int i = 0; i < memberCnt; i ++) {
                 CompoundType.Member member = compoundType.getMember(i);
                 int memberOffset = member.getOffset(); // already includes alignment
@@ -171,7 +170,6 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                     int pad = (int) (memberOffset - offs);
                     struct.member(array(pad, i8));
                     offs += pad;
-                    paddingSize += pad;
                     index ++;
                 }
                 ValueType memberType = member.getType();
@@ -182,7 +180,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                 // the target will already pad out for normal alignment
                 offs += max(memberType.getAlign(), memberType.getSize());
             }
-            long size = compoundType.getSize() + paddingSize;
+            long size = compoundType.getSize();
             if (offs < size) {
                 // yet more padding
                 struct.member(array((int) (size - offs), i8));
@@ -273,7 +271,9 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             int memberOffset = member.getOffset(); // already includes alignment
             if (memberOffset > offs) {
                 // we have to pad it out
-                struct.item(array((int) (memberOffset - offs), i8), zeroinitializer);
+                int pad = (int) (memberOffset - offs);
+                struct.item(array(pad, i8), zeroinitializer);
+                offs += pad;
             }
             // actual member
             Literal literal = values.get(member);
