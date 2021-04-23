@@ -123,6 +123,15 @@ public interface BasicBlockBuilder extends Locatable {
      */
     void finish();
 
+    /**
+     * Get the first (entry) block of the subprogram.  If the first block has not yet been terminated, an exception
+     * is thrown.
+     *
+     * @return the first (entry) block (not {@code null})
+     * @throws IllegalStateException if the first block has not yet been terminated
+     */
+    BasicBlock getFirstBlock() throws IllegalStateException;
+
     // values
 
     ParameterValue parameter(ValueType type, String label, int index);

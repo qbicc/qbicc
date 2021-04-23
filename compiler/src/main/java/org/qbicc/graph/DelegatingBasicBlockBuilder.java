@@ -88,6 +88,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         getDelegate().finish();
     }
 
+    public BasicBlock getFirstBlock() throws IllegalStateException {
+        return getDelegate().getFirstBlock();
+    }
+
     public BasicBlockBuilder getDelegate() {
         return delegate;
     }
