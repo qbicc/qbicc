@@ -25,4 +25,6 @@ public interface Global extends YieldingInstruction {
     Global visibility(Visibility visibility);
 
     Global threadLocal(ThreadLocalStorageModel model);
+
+    Global addressSpace(int addressSpace);
 }

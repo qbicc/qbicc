@@ -85,6 +85,11 @@ final class GlobalImpl extends AbstractYieldingInstruction implements Global {
         return this;
     }
 
+    public Global addressSpace(final int addressSpace) {
+        this.addressSpace = addressSpace;
+        return this;
+    }
+
     public Appendable appendTo(final Appendable target) throws IOException {
         super.appendTo(target);
         final Linkage linkage = this.linkage;
