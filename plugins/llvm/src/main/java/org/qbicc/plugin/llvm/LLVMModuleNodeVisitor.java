@@ -44,6 +44,7 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
@@ -116,7 +117,13 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             }
         } else if (type instanceof PointerType) {
             Type pointeeType = ((PointerType) type).getPointeeType();
-            res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType));
+            boolean isCollected = ((PointerType) type).isCollected();
+            res = ptrTo(pointeeType instanceof VoidType ? i8 : map(pointeeType), isCollected ? 1 : 0);
+        } else if (type instanceof ReferenceType) {
+            // References can be used as different types in the IL without manually casting them, so we need to
+            // represent all reference types as being the same LLVM type. We will cast to and from the actual type we
+            // use the reference as when needed.
+            res = ptrTo(i8, 1);
         } else if (type instanceof WordType) {
             // all other words are integers
             // LLVM doesn't really care about signedness
@@ -232,11 +239,12 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
 
     public LLValue visit(final Void param, final BitCastLiteral node) {
         LLValue input = map(node.getValue());
-        if (mapsToSameType(node.getValue().getType(), node.getType())) {
-            return input;
-        }
         LLValue fromType = map(node.getValue().getType());
         LLValue toType = map(node.getType());
+        if (fromType.equals(toType)) {
+            return input;
+        }
+
         return Values.bitcastConstant(input, fromType, toType);
     }
 
@@ -246,10 +254,26 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         LLValue fromType = map(inputType);
         WordType outputType = node.getType();
         LLValue toType = map(outputType);
-        if ((inputType instanceof IntegerType || inputType instanceof ReferenceType) && outputType instanceof PointerType) {
+        if (fromType.equals(toType)) {
+            return input;
+        }
+
+        if (inputType instanceof IntegerType && outputType instanceof PointerType) {
             return Values.inttoptrConstant(input, fromType, toType);
-        } else if (inputType instanceof PointerType && (outputType instanceof IntegerType || outputType instanceof ReferenceType)) {
+        } else if (inputType instanceof PointerType && outputType instanceof IntegerType) {
             return Values.ptrtointConstant(input, fromType, toType);
+        } else if (inputType instanceof ReferenceType && outputType instanceof PointerType) {
+            if (((PointerType) outputType).isCollected()) {
+                return Values.bitcastConstant(input, fromType, toType);
+            } else {
+                return Values.addrspacecastConstant(input, fromType, toType);
+            }
+        } else if (inputType instanceof PointerType && outputType instanceof ReferenceType) {
+            if (((PointerType) inputType).isCollected()) {
+                return Values.bitcastConstant(input, fromType, toType);
+            } else {
+                return Values.addrspacecastConstant(input, fromType, toType);
+            }
         }
         // todo: add signed/unsigned int <-> fp
         return visitUnknown(param, node);
@@ -343,13 +367,6 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         return LLVM.FALSE;
     }
 
-    public static boolean mapsToSameType(ValueType t1, ValueType t2) {
-        return t1.equals(t2)
-            || t1 instanceof IntegerType && t2 instanceof IntegerType && ((IntegerType) t1).getMinBits() == ((IntegerType) t2).getMinBits()
-            || t1 instanceof ReferenceType && t2 instanceof ReferenceType
-            || t1 instanceof PointerType && t2 instanceof PointerType && mapsToSameType(((PointerType) t1).getPointeeType(), ((PointerType) t2).getPointeeType());
-    }
-
     // === TEMPORARY until heap serialization is functional ===
 
     public LLValue visit(Void param, StringLiteral node) {
@@ -384,7 +401,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                 lengthMem, lf.literalOf(bytes.length),
                 realContentMem, lf.literalOf(s8ArrayType, bytes)
             ));
-            module.global(map(baType)).value(map(baLit)).linkage(Linkage.PRIVATE).asGlobal("ba" + id);
+            module.global(map(baType)).value(map(baLit)).linkage(Linkage.PRIVATE).addressSpace(1).asGlobal("ba" + id);
 
             DefinedTypeDefinition jls = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String");
             Layout.LayoutInfo jlsLayout = layout.getInstanceLayoutInfo(jls);
@@ -396,7 +413,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                 coderMem, lf.literalOf(node.isLatin1() ? 0 : 1),
                 valueMem, lf.valueConvertLiteral(lf.literalOfSymbol("ba" + id, baType.getPointer().asCollected()), jls.load().getType().getReference())
             ));
-            module.constant(map(stringType)).value(visit(param, lit)).linkage(Linkage.PRIVATE).asGlobal("str" + id);
+            module.constant(map(stringType)).value(visit(param, lit)).linkage(Linkage.PRIVATE).addressSpace(1).asGlobal("str" + id);
             TEMPORARY_stringLiterals.put(value, v = map(lf.valueConvertLiteral(lf.literalOfSymbol("str" + id, lit.getType().getPointer().asCollected()), jls.load().getClassType().getReference())));
         }
         return v;
