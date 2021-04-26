@@ -83,6 +83,10 @@ public final class LLVM {
         return new BitcastConstant(val, fromType, toType);
     }
 
+    public static LLValue addrspacecastConstant(LLValue val, LLValue fromType, LLValue toType) {
+        return new AddrspacecastConstant(val, fromType, toType);
+    }
+
     public static LLValue inttoptrConstant(LLValue val, LLValue fromType, LLValue toType) {
         return new IntToPtrConstant(val, fromType, toType);
     }

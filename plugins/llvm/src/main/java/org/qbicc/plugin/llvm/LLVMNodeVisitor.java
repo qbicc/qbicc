@@ -95,8 +95,10 @@ import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.PointerType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.Type;
+import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.MethodBody;
@@ -278,8 +280,26 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         return type instanceof SignedIntegerType;
     }
 
+    boolean isPointerLike(Type type) {
+        return isPointer(type) || isReference(type);
+    }
+
     boolean isPointer(Type type) {
         return type instanceof PointerType;
+    }
+
+    boolean isReference(Type type) {
+        return type instanceof ReferenceType;
+    }
+
+    boolean isCollected(Type type) {
+        if (type instanceof PointerType) {
+            return ((PointerType) type).isCollected();
+        } else if (type instanceof ReferenceType) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public LLValue visit(final Void param, final Add node) {
@@ -565,13 +585,18 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         ValueType javaInputType = node.getInput().getType();
         ValueType javaOutputType = node.getType();
         LLValue llvmInput = map(node.getInput());
-        // skip bitcasts between same types
-        if (LLVMModuleNodeVisitor.mapsToSameType(javaInputType, javaOutputType)) {
-            return llvmInput;
-        }
         LLValue inputType = map(javaInputType);
         LLValue outputType = map(javaOutputType);
-        return builder.bitcast(inputType, llvmInput, outputType).asLocal();
+        if (inputType.equals(outputType)) {
+            return llvmInput;
+        }
+
+        if (isPointerLike(javaInputType) && isPointerLike(javaOutputType) && isCollected(javaInputType) != isCollected(javaOutputType)) {
+            // TODO May need pseudointrinsic here for correctness
+            return builder.addrspacecast(inputType, llvmInput, outputType).asLocal();
+        } else {
+            return builder.bitcast(inputType, llvmInput, outputType).asLocal();
+        }
     }
 
     public LLValue visit(final Void param, final Convert node) {
@@ -583,17 +608,43 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         if (inputType.equals(outputType)) {
             return llvmInput;
         }
-        return isPointer(javaInputType) ?
-                    builder.ptrtoint(inputType, llvmInput, outputType).asLocal() :
-                    isPointer(javaOutputType) ?
-                    builder.inttoptr(inputType, llvmInput, outputType).asLocal() :
-                    isFloating(javaInputType) ?
-                    isSigned(javaOutputType) ?
-                    builder.fptosi(inputType, llvmInput, outputType).asLocal() :
-                    builder.fptoui(inputType, llvmInput, outputType).asLocal() :
-                    isSigned(javaInputType) ?
-                    builder.sitofp(inputType, llvmInput, outputType).asLocal() :
-                    builder.uitofp(inputType, llvmInput, outputType).asLocal();
+
+        if (isPointerLike(javaInputType)) {
+            if (isPointerLike(javaOutputType)) {
+                if (isCollected(javaInputType) != isCollected(javaOutputType)) {
+                    // TODO May need pseudointrinsic here for correctness
+                    return builder.addrspacecast(inputType, llvmInput, outputType).asLocal();
+                } else {
+                    return builder.bitcast(inputType, llvmInput, outputType).asLocal();
+                }
+            } else if (javaOutputType instanceof IntegerType) {
+                // TODO May need pseudointrinsic here for correctness (if javaInputType is collected)
+                return builder.ptrtoint(inputType, llvmInput, outputType).asLocal();
+            }
+        } else if (javaInputType instanceof FloatType) {
+            if (javaOutputType instanceof SignedIntegerType) {
+                return builder.fptosi(inputType, llvmInput, outputType).asLocal();
+            } else if (javaOutputType instanceof UnsignedIntegerType) {
+                return builder.fptoui(inputType, llvmInput, outputType).asLocal();
+            }
+        } else if (javaInputType instanceof SignedIntegerType) {
+            if (isPointerLike(javaOutputType)) {
+                // TODO May need pseudointrinsic here for correctness (if javaOutputType is collected)
+                return builder.inttoptr(inputType, llvmInput, outputType).asLocal();
+            } else if (javaOutputType instanceof FloatType) {
+                return builder.sitofp(inputType, llvmInput, outputType).asLocal();
+            }
+        } else if (javaInputType instanceof UnsignedIntegerType) {
+            if (isPointerLike(javaOutputType)) {
+                // TODO May need pseudointrinsic here for correctness (if javaOutputType is collected)
+                return builder.inttoptr(inputType, llvmInput, outputType).asLocal();
+            } else if (javaOutputType instanceof FloatType) {
+                return builder.uitofp(inputType, llvmInput, outputType).asLocal();
+            }
+        }
+
+        ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unhandled conversion %s -> %s", javaInputType.toString(), javaOutputType.toString());
+        return llvmInput;
     }
 
     public LLValue visit(final Void param, final Extend node) {

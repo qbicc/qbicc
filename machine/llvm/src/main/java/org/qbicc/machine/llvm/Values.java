@@ -20,6 +20,10 @@ public final class Values {
         return LLVM.bitcastConstant(value, fromType, toType);
     }
 
+    public static LLValue addrspacecastConstant(LLValue value, LLValue fromType, LLValue toType) {
+        return LLVM.addrspacecastConstant(value, fromType, toType);
+    }
+
     public static LLValue inttoptrConstant(LLValue value, LLValue fromType, LLValue toType) {
         return LLVM.inttoptrConstant(value, fromType, toType);
     }
