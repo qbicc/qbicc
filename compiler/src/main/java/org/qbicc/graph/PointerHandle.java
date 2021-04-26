@@ -10,13 +10,11 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class PointerHandle extends AbstractValueHandle {
     private final Value pointerValue;
     private final PointerType pointerType;
-    private final ValueType valueType;
 
     PointerHandle(Node callSite, ExecutableElement element, int line, int bci, Value pointerValue) {
         super(callSite, element, line, bci);
         this.pointerValue = pointerValue;
         pointerType = (PointerType) pointerValue.getType();
-        valueType = pointerType.getPointeeType();
     }
 
     @Override
@@ -38,10 +36,6 @@ public final class PointerHandle extends AbstractValueHandle {
     @Override
     public MemoryAtomicityMode getDetectedMode() {
         return MemoryAtomicityMode.UNORDERED;
-    }
-
-    public ValueType getValueType() {
-        return valueType;
     }
 
     public PointerType getPointerType() {

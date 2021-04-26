@@ -10,7 +10,7 @@ import org.qbicc.type.definition.element.FieldElement;
 public final class StaticField extends Field {
 
     StaticField(ExecutableElement element, int line, int bci, FieldElement fieldElement, ValueType valueType) {
-        super(element, line, bci, fieldElement, valueType);
+        super(element, line, bci, fieldElement, valueType.getPointer());
     }
 
     public boolean equals(final Object other) {

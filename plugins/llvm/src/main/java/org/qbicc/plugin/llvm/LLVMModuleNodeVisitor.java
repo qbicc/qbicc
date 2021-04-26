@@ -394,10 +394,10 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             CompoundLiteral lit = lf.literalOf(stringType, Map.of(
                 typeIdMem, lf.literalOfType(jls.load().getType()),
                 coderMem, lf.literalOf(node.isLatin1() ? 0 : 1),
-                valueMem, lf.valueConvertLiteral(lf.literalOfSymbol("ba" + id, baType.getPointer()), jls.load().getType().getReference())
+                valueMem, lf.valueConvertLiteral(lf.literalOfSymbol("ba" + id, baType.getPointer().asCollected()), jls.load().getType().getReference())
             ));
             module.constant(map(stringType)).value(visit(param, lit)).linkage(Linkage.PRIVATE).asGlobal("str" + id);
-            TEMPORARY_stringLiterals.put(value, v = map(lf.valueConvertLiteral(lf.literalOfSymbol("str" + id, lit.getType().getPointer()), jls.load().getClassType().getReference())));
+            TEMPORARY_stringLiterals.put(value, v = map(lf.valueConvertLiteral(lf.literalOfSymbol("str" + id, lit.getType().getPointer().asCollected()), jls.load().getClassType().getReference())));
         }
         return v;
     }

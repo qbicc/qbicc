@@ -9,7 +9,7 @@ import org.qbicc.type.definition.element.LocalVariableElement;
  */
 public final class LocalVariable extends Variable {
     LocalVariable(ExecutableElement element, int line, int bci, LocalVariableElement variableElement, ValueType valueType) {
-        super(element, line, bci, variableElement, valueType);
+        super(element, line, bci, variableElement, valueType.getPointer());
     }
 
     @Override

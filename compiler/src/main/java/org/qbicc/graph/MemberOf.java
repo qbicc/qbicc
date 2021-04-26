@@ -3,7 +3,7 @@ package org.qbicc.graph;
 import java.util.Objects;
 
 import org.qbicc.type.CompoundType;
-import org.qbicc.type.ValueType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -11,6 +11,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
  */
 public final class MemberOf extends AbstractValueHandle {
     private final ValueHandle structureHandle;
+    private final PointerType pointerType;
     private final CompoundType structType;
     private final CompoundType.Member member;
 
@@ -18,6 +19,8 @@ public final class MemberOf extends AbstractValueHandle {
         super(callSite, element, line, bci);
         this.structureHandle = structureHandle;
         this.member = member;
+
+        pointerType = member.getType().getPointer().withQualifiersFrom(structureHandle.getPointerType());
         structType = (CompoundType) structureHandle.getValueType();
     }
 
@@ -26,8 +29,8 @@ public final class MemberOf extends AbstractValueHandle {
     }
 
     @Override
-    public ValueType getValueType() {
-        return member.getType();
+    public PointerType getPointerType() {
+        return pointerType;
     }
 
     @Override

@@ -19,7 +19,10 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     public BasicBlock throw_(final Value value) {
         ThrowExceptionHelper teh = ThrowExceptionHelper.get(ctxt);
-        Value ptr = addressOf(instanceFieldOf(referenceHandle(currentThread()), teh.getUnwindExceptionField()));
+
+        // TODO Is this safe? Can the java/lang/Thread object be moved while this pointer is still in use?
+        Value ptr = bitCast(addressOf(instanceFieldOf(referenceHandle(currentThread()), teh.getUnwindExceptionField())), teh.getUnwindExceptionField().getType().getPointer());
+
         String functionName = "_Unwind_RaiseException";
         FunctionType functionType = teh.getRaiseExceptionMethod().getType();
         ctxt.getImplicitSection(getCurrentElement()).declareFunction(teh.getRaiseExceptionMethod(), functionName, functionType);

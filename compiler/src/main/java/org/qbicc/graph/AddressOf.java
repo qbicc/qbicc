@@ -40,7 +40,7 @@ public final class AddressOf extends AbstractValue {
 
     @Override
     public ValueType getType() {
-        return valueHandle.getValueType().getPointer();
+        return valueHandle.getPointerType();
     }
 
     @Override

@@ -375,7 +375,7 @@ public final class TypeSystem {
     }
 
     PointerType createPointer(ValueType type) {
-        return new PointerType(this, type, false, false);
+        return new PointerType(this, type, false, false, false);
     }
 
     ReferenceType createReference(PhysicalObjectType objectType, Set<InterfaceObjectType> interfaceBounds) {

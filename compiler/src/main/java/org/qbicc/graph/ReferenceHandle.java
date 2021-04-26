@@ -1,6 +1,7 @@
 package org.qbicc.graph;
 
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -9,12 +10,12 @@ import org.qbicc.type.definition.element.ExecutableElement;
  */
 public final class ReferenceHandle extends AbstractValueHandle {
     private final Value referenceValue;
-    private final ObjectType valueType;
+    private final PointerType pointerType;
 
     ReferenceHandle(Node callSite, ExecutableElement element, int line, int bci, Value referenceValue) {
         super(callSite, element, line, bci);
         this.referenceValue = referenceValue;
-        valueType = ((ReferenceType) referenceValue.getType()).getUpperBound();
+        pointerType = ((ReferenceType) referenceValue.getType()).getUpperBound().getPointer().asCollected();
     }
 
     @Override
@@ -22,8 +23,13 @@ public final class ReferenceHandle extends AbstractValueHandle {
         return 1;
     }
 
+    public PointerType getPointerType() {
+        return pointerType;
+    }
+
+    @Override
     public ObjectType getValueType() {
-        return valueType;
+        return (ObjectType) super.getValueType();
     }
 
     @Override
