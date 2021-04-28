@@ -108,6 +108,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     final CompilationContext ctxt;
     final Module module;
     final LLVMModuleDebugInfo debugInfo;
+    final LLVMPseudoIntrinsics pseudoIntrinsics;
     final LLValue topSubprogram;
     final LLVMModuleNodeVisitor moduleVisitor;
     final Schedule schedule;
@@ -125,10 +126,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
 
     private boolean personalityAdded;
 
-    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLValue topSubprogram, final LLVMModuleNodeVisitor moduleVisitor, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
+    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLVMPseudoIntrinsics pseudoIntrinsics, final LLValue topSubprogram, final LLVMModuleNodeVisitor moduleVisitor, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
         this.module = module;
         this.debugInfo = debugInfo;
+        this.pseudoIntrinsics = pseudoIntrinsics;
         this.topSubprogram = topSubprogram;
         this.moduleVisitor = moduleVisitor;
         this.schedule = schedule;
@@ -581,6 +583,36 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
                       builder.urem(inputType, llvmLeft, llvmRight).asLocal();
     }
 
+    private LLValue createRefToPtrCast(final LLValue fromType, LLValue value, final LLValue toType) {
+        if (!pseudoIntrinsics.getCollectedPtrType().equals(fromType)) {
+            value = builder.bitcast(fromType, value, pseudoIntrinsics.getCollectedPtrType()).asLocal();
+        }
+
+        Call call = builder.call(pseudoIntrinsics.getCastRefToPtrType(), pseudoIntrinsics.getCastRefToPtr());
+        call.arg(pseudoIntrinsics.getCollectedPtrType(), value);
+
+        if (!pseudoIntrinsics.getRawPtrType().equals(toType)) {
+            return builder.bitcast(pseudoIntrinsics.getRawPtrType(), call.asLocal(), toType).asLocal();
+        } else {
+            return call.asLocal();
+        }
+    }
+
+    private LLValue createPtrToRefCast(final LLValue fromType, LLValue value, final LLValue toType) {
+        if (!pseudoIntrinsics.getRawPtrType().equals(fromType)) {
+            value = builder.bitcast(fromType, value, pseudoIntrinsics.getRawPtrType()).asLocal();
+        }
+
+        Call call = builder.call(pseudoIntrinsics.getCastPtrToRefType(), pseudoIntrinsics.getCastPtrToRef());
+        call.arg(pseudoIntrinsics.getRawPtrType(), value);
+
+        if (!pseudoIntrinsics.getCollectedPtrType().equals(toType)) {
+            return builder.bitcast(pseudoIntrinsics.getCollectedPtrType(), call.asLocal(), toType).asLocal();
+        } else {
+            return call.asLocal();
+        }
+    }
+
     public LLValue visit(final Void param, final BitCast node) {
         ValueType javaInputType = node.getInput().getType();
         ValueType javaOutputType = node.getType();
@@ -592,8 +624,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         }
 
         if (isPointerLike(javaInputType) && isPointerLike(javaOutputType) && isCollected(javaInputType) != isCollected(javaOutputType)) {
-            // TODO May need pseudointrinsic here for correctness
-            return builder.addrspacecast(inputType, llvmInput, outputType).asLocal();
+            if (isCollected(javaInputType)) {
+                return createRefToPtrCast(inputType, llvmInput, outputType);
+            } else {
+                return createPtrToRefCast(inputType, llvmInput, outputType);
+            }
         } else {
             return builder.bitcast(inputType, llvmInput, outputType).asLocal();
         }
@@ -612,14 +647,24 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         if (isPointerLike(javaInputType)) {
             if (isPointerLike(javaOutputType)) {
                 if (isCollected(javaInputType) != isCollected(javaOutputType)) {
-                    // TODO May need pseudointrinsic here for correctness
-                    return builder.addrspacecast(inputType, llvmInput, outputType).asLocal();
+                    if (isCollected(javaInputType)) {
+                        return createRefToPtrCast(inputType, llvmInput, outputType);
+                    } else {
+                        return createPtrToRefCast(inputType, llvmInput, outputType);
+                    }
                 } else {
                     return builder.bitcast(inputType, llvmInput, outputType).asLocal();
                 }
             } else if (javaOutputType instanceof IntegerType) {
-                // TODO May need pseudointrinsic here for correctness (if javaInputType is collected)
-                return builder.ptrtoint(inputType, llvmInput, outputType).asLocal();
+                if (isCollected(javaInputType)) {
+                    return builder.ptrtoint(
+                        pseudoIntrinsics.getRawPtrType(),
+                        createRefToPtrCast(inputType, llvmInput, pseudoIntrinsics.getRawPtrType()),
+                        outputType
+                    ).asLocal();
+                } else {
+                    return builder.ptrtoint(inputType, llvmInput, outputType).asLocal();
+                }
             }
         } else if (javaInputType instanceof FloatType) {
             if (javaOutputType instanceof SignedIntegerType) {
@@ -627,19 +672,25 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             } else if (javaOutputType instanceof UnsignedIntegerType) {
                 return builder.fptoui(inputType, llvmInput, outputType).asLocal();
             }
-        } else if (javaInputType instanceof SignedIntegerType) {
+        } else if (javaInputType instanceof IntegerType) {
             if (isPointerLike(javaOutputType)) {
-                // TODO May need pseudointrinsic here for correctness (if javaOutputType is collected)
-                return builder.inttoptr(inputType, llvmInput, outputType).asLocal();
-            } else if (javaOutputType instanceof FloatType) {
-                return builder.sitofp(inputType, llvmInput, outputType).asLocal();
-            }
-        } else if (javaInputType instanceof UnsignedIntegerType) {
-            if (isPointerLike(javaOutputType)) {
-                // TODO May need pseudointrinsic here for correctness (if javaOutputType is collected)
-                return builder.inttoptr(inputType, llvmInput, outputType).asLocal();
-            } else if (javaOutputType instanceof FloatType) {
-                return builder.uitofp(inputType, llvmInput, outputType).asLocal();
+                if (isCollected(javaOutputType)) {
+                    return createPtrToRefCast(
+                        pseudoIntrinsics.getRawPtrType(),
+                        builder.inttoptr(inputType, llvmInput, pseudoIntrinsics.getRawPtrType()).asLocal(),
+                        outputType
+                    );
+                } else {
+                    return builder.inttoptr(inputType, llvmInput, outputType).asLocal();
+                }
+            } else if (javaInputType instanceof SignedIntegerType) {
+                if (javaOutputType instanceof FloatType) {
+                    return builder.sitofp(inputType, llvmInput, outputType).asLocal();
+                }
+            } else if (javaInputType instanceof UnsignedIntegerType) {
+                if (javaOutputType instanceof FloatType) {
+                    return builder.uitofp(inputType, llvmInput, outputType).asLocal();
+                }
             }
         }
 
