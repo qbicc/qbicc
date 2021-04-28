@@ -100,6 +100,6 @@ abstract class AbstractBufferBacked implements BufferBacked {
     }
 
     public ByteBuffer slice(int offset, int length) {
-        return buffer.duplicate().position(offset).limit(offset + length).slice();
+        return buffer.duplicate().position(offset).limit(offset + length).slice().order(buffer.order());
     }
 }
