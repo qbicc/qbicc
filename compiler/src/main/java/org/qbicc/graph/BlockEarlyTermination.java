@@ -8,10 +8,12 @@ import io.smallrye.common.constraint.Assert;
  */
 @SuppressWarnings("serial")
 public final class BlockEarlyTermination extends RuntimeException {
+    private static final boolean DEBUG_BET_STACKS = Boolean.parseBoolean(System.getProperty("qbicc.debug.bet-stacks", "false"));
+
     private final BasicBlock terminatedBlock;
 
     public BlockEarlyTermination(BasicBlock terminatedBlock) {
-        super("(cancelled block generation)", null, false, false);
+        super("(cancelled block generation)", null, false, DEBUG_BET_STACKS);
         this.terminatedBlock = Assert.checkNotNullParam("terminatedBlock", terminatedBlock);
     }
 

@@ -11,12 +11,16 @@ import java.util.Set;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.context.ClassContext;
@@ -440,8 +444,32 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new TypeIdOf(callSite, element, line, bci, valueHandle);
     }
 
-    public Value classOf(final Value typeId) {
-        ClassObjectType type = element.getEnclosingType().getContext().findDefinedType("java/lang/Class").load().getClassType();
+    public Value classOf(Value typeId) {
+        ClassContext classContext = element.getEnclosingType().getContext();
+        TypeType typeIdType = (TypeType) typeId.getType();
+        ValueType idType = typeIdType.getUpperBound();
+        if (idType instanceof ReferenceType) {
+            CompilationContext ctxt = classContext.getCompilationContext();
+            ctxt.warning(getLocation(), "TODO: class type ID argument is given as a reference type which is not allowed");
+            // decode the expected type
+            PhysicalObjectType upperBound = ((ReferenceType) idType).getUpperBound();
+            LiteralFactory lf = classContext.getLiteralFactory();
+            if (! upperBound.hasSuperClassType()) {
+                // check the interface bounds first
+                Set<InterfaceObjectType> interfaceBounds = ((ReferenceType) idType).getInterfaceBounds();
+                if (interfaceBounds.isEmpty()) {
+                    typeId = lf.literalOfType(upperBound);
+                } else {
+                    if (interfaceBounds.size() > 1) {
+                        ctxt.warning(getLocation(), "Class of multiple-bounded reference type %s", idType);
+                    }
+                    typeId = lf.literalOfType(interfaceBounds.iterator().next());
+                }
+            } else {
+                typeId = lf.literalOfType(upperBound);
+            }
+        }
+        ClassObjectType type = classContext.findDefinedType("java/lang/Class").load().getClassType();
         return new ClassOf(callSite, element, line, bci, typeId, type.getReference());
     }
 

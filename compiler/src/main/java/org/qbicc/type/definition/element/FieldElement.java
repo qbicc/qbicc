@@ -37,6 +37,10 @@ public final class FieldElement extends VariableElement implements MemberElement
         return visitor.visit(param, this);
     }
 
+    public boolean isThreadLocal() {
+        return hasAllModifiersOf(ClassFile.I_ACC_THREAD_LOCAL);
+    }
+
     public static final class Builder extends VariableElement.Builder implements MemberElement.Builder {
         Builder() {}
 

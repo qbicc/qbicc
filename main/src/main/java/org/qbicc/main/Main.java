@@ -50,7 +50,8 @@ import org.qbicc.plugin.linker.LinkStage;
 import org.qbicc.plugin.llvm.LLVMCompileStage;
 import org.qbicc.plugin.llvm.LLVMGenerator;
 import org.qbicc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
-import org.qbicc.plugin.lowering.StaticFieldLoweringBasicBlockBuilder;
+import org.qbicc.plugin.layout.StaticFieldMappingBasicBlockBuilder;
+import org.qbicc.plugin.layout.StaticFieldRegisteringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.ThrowExceptionHelper;
 import org.qbicc.plugin.lowering.ThrowLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.VMHelpersSetupHook;
@@ -126,14 +127,23 @@ public class Main implements Callable<DiagnosticContext> {
     public DiagnosticContext call() {
         AtomicReference<DiagnosticContext> ref = new AtomicReference<>();
         Thread compilerThread = new Thread(Thread.currentThread().getThreadGroup(), () -> {
-            ref.set(call0());
+            BaseDiagnosticContext ctxt = new BaseDiagnosticContext();
+            ref.set(ctxt);
+            try {
+                call0(ctxt);
+            } catch (Throwable t) {
+                t.printStackTrace(System.err);
+                ctxt.error(t, "Compilation failed due to an exception");
+            }
         }, "Compiler thread", 64L * 1024 * 1024);
         compilerThread.start();
         boolean intr = false;
         try {
             for (;;) try {
                 compilerThread.join();
-                return ref.get();
+                DiagnosticContext ctxt = ref.get();
+                diagnosticsHandler.accept(ctxt.getDiagnostics());
+                return ctxt;
             } catch (InterruptedException ex) {
                 intr = true;
             }
@@ -144,8 +154,7 @@ public class Main implements Callable<DiagnosticContext> {
         }
     }
 
-    DiagnosticContext call0() {
-        final BaseDiagnosticContext initialContext = new BaseDiagnosticContext();
+    DiagnosticContext call0(BaseDiagnosticContext initialContext) {
         final Driver.Builder builder = Driver.builder();
         builder.setInitialContext(initialContext);
         boolean nogc = gc.equals("none");
@@ -320,6 +329,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optInlining) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
                                 }
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, StaticFieldRegisteringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addElementVisitor(Phase.ANALYZE, new DotGenerator(Phase.ANALYZE, graphGenConfig));
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
@@ -329,6 +339,7 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
                                 }
 
+                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldMappingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 if (nogc) {
@@ -336,7 +347,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForLowerPhase);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InvocationLoweringBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, StaticFieldLoweringBasicBlockBuilder::new);
                                 // InstanceOfCheckCastBB must come before ObjectAccessLoweringBuilder or typeIdOf won't be lowered correctly
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, InstanceOfCheckCastBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ObjectAccessLoweringBuilder::new);
@@ -371,7 +381,6 @@ public class Main implements Callable<DiagnosticContext> {
                 }
             }
         }
-        diagnosticsHandler.accept(initialContext.getDiagnostics());
         return initialContext;
     }
 

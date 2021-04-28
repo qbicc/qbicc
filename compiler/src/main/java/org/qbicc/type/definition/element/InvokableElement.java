@@ -66,6 +66,14 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         return methodBodyFactory != null;
     }
 
+    public MethodBodyFactory getMethodBodyFactory() {
+        return methodBodyFactory;
+    }
+
+    public int getMethodBodyFactoryIndex() {
+        return methodBodyFactoryIndex;
+    }
+
     public boolean isVarargs() {
         return hasAllModifiersOf(ClassFile.ACC_VARARGS);
     }

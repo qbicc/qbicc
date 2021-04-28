@@ -1,7 +1,11 @@
 package org.qbicc.plugin.layout;
 
+import static java.lang.Math.max;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +30,7 @@ import org.qbicc.type.definition.InitializerResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -51,6 +56,8 @@ public final class Layout {
     private static final TypeSignature typeTypeSignature = BaseTypeSignature.V;    // TODO: Should be C (16 bit unsigned)
 
     private final Map<LoadedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
+    private final Map<FieldElement, CompoundType.Member> staticFieldMapping = new ConcurrentHashMap<>();
+    private final BitSet staticFieldAllocated = new BitSet();
     private final CompilationContext ctxt;
     private final FieldElement objectTypeIdField;
     private final FieldElement classTypeIdField;
@@ -73,6 +80,9 @@ public final class Layout {
 
     private final FieldElement floatArrayContentField;
     private final FieldElement doubleArrayContentField;
+
+    private volatile CompoundType staticFieldsType;
+    private volatile GlobalVariableElement statics;
 
     private Layout(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -439,6 +449,81 @@ public final class Layout {
         layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
         LayoutInfo appearing = instanceLayouts.putIfAbsent(validated, layoutInfo);
         return appearing != null ? appearing : layoutInfo;
+    }
+
+    public CompoundType.Member getStaticFieldMember(final FieldElement field) {
+        if (! field.isStatic() || field.isThreadLocal()) {
+            throw new IllegalArgumentException("Static field member computation on an instance field");
+        }
+        Map<FieldElement, CompoundType.Member> staticFieldMapping = this.staticFieldMapping;
+        CompoundType.Member member = staticFieldMapping.get(field);
+        if (member == null) {
+            synchronized (staticFieldMapping) {
+                member = staticFieldMapping.get(field);
+                if (member == null) {
+                    if (staticFieldsType != null) {
+                        throw new IllegalStateException("Static fields type already computed");
+                    }
+                    member = computeMember(staticFieldAllocated, field);
+                    staticFieldMapping.put(field, member);
+                }
+            }
+        }
+        return member;
+    }
+
+    public CompoundType getStaticFieldsType() {
+        CompoundType staticFieldsType = this.staticFieldsType;
+        if (staticFieldsType == null) {
+            Map<FieldElement, CompoundType.Member> staticFieldMapping = this.staticFieldMapping;
+            synchronized (staticFieldMapping) {
+                staticFieldsType = this.staticFieldsType;
+                if (staticFieldsType == null) {
+                    ArrayList<CompoundType.Member> members = new ArrayList<>(staticFieldMapping.values());
+                    members.sort(Comparator.naturalOrder());
+                    long size = 0;
+                    int align = 1;
+                    for (CompoundType.Member member : members) {
+                        int memberAlign = member.getType().getAlign();
+                        align = max(align, memberAlign);
+                        size = max(size, member.getOffset() + member.getType().getSize());
+                    }
+                    this.staticFieldsType = staticFieldsType = ctxt.getTypeSystem().getCompoundType(
+                        CompoundType.Tag.NONE,
+                        "statics",
+                        size,
+                        align,
+                        () -> members
+                    );
+                }
+            }
+        }
+        return staticFieldsType;
+    }
+
+    public GlobalVariableElement getStatics() {
+        GlobalVariableElement statics = this.statics;
+        if (statics == null) {
+            synchronized (staticFieldMapping) {
+                statics = this.statics;
+                if (statics == null) {
+                    GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
+                    // we need an enclosing type so that the variable is generated somewhere
+                    DefinedTypeDefinition jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object");
+                    builder.setEnclosingType(jlo);
+                    CompoundType type = getStaticFieldsType();
+                    builder.setType(type);
+                    // todo: ACC_PRIVATE indicating local linkage; introduce a dedicated modifier
+                    builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC);
+                    builder.setDescriptor(BaseTypeDescriptor.V);
+                    builder.setSignature(BaseTypeSignature.V);
+                    builder.setName("_qbicc_statics");
+                    this.statics = statics = builder.build();
+                    ctxt.getImplicitSection(jlo).addData(null, "_qbicc_statics", ctxt.getLiteralFactory().zeroInitializerLiteralOfType(type)).setDsoLocal();
+                }
+            }
+        }
+        return statics;
     }
 
     private CompoundType.Member computeMember(final BitSet allocated, final FieldElement field) {
