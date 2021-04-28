@@ -1,6 +1,7 @@
 package org.qbicc.machine.file.elf;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.NoSuchElementException;
@@ -11,6 +12,7 @@ import org.qbicc.machine.file.bin.BinaryBuffer;
 import org.qbicc.machine.object.ObjectFile;
 import org.qbicc.machine.object.ObjectFileProvider;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.machine.object.Section;
 
 /**
  * The object file provider implementation for ELF files.
@@ -105,6 +107,25 @@ public class ElfObjectFileProvider implements ObjectFileProvider {
 
             public ObjectType getObjectType() {
                 return ObjectType.ELF;
+            }
+
+            @Override
+            public Section getSection(String name) {
+                ElfSectionHeaderEntry entry = elfHeader.getSectionHeaderTableEntry(name);
+                if (entry == null) {
+                    return null;
+                }
+                return new Section() {
+                    @Override
+                    public String getName() {
+                        return name;
+                    }
+
+                    @Override
+                    public ByteBuffer getSectionContent() {
+                        return entry.getBackingBuffer().getBuffer(entry.getOffset(), entry.getSize());
+                    }
+                };
             }
 
             private ElfSymbolTableEntry findSymbol(final String name) {
