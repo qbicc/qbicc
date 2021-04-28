@@ -120,142 +120,73 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         return new NamedGlobalValueOf(this.name);
     }
 
-    ///////////////////
-    // Private API
-    ///////////////////
-
-    abstract String keyWord();
-
-    ///////////////////
-    // Emitting
-    ///////////////////
-
-    public final Appendable appendTo(final Appendable target) throws IOException {
-        target.append(keyWord());
-        target.append(' ');
-        final Linkage linkage = this.linkage;
+    protected final void appendLinkage(final Appendable target) throws IOException {
         if (linkage != Linkage.EXTERNAL) {
-            target.append(linkage.toString());
-            target.append(' ');
+            target.append(linkage.toString()).append(' ');
         }
-        appendAfterLinkage(target);
-        return target;
     }
 
-    void appendAfterLinkage(final Appendable target) throws IOException {
-        final Visibility visibility = this.visibility;
+    protected final void appendVisibility(final Appendable target) throws IOException {
         if (visibility != Visibility.DEFAULT) {
-            target.append(visibility.toString());
-            target.append(' ');
+            target.append(visibility.toString()).append(' ');
         }
-        appendAfterVisibility(target);
     }
 
-    void appendAfterVisibility(final Appendable target) throws IOException {
-        final DllStorageClass dllStorageClass = this.dllStorageClass;
+    protected final void appendDllStorageClass(final Appendable target) throws IOException {
         if (dllStorageClass != DllStorageClass.NONE) {
-            target.append(dllStorageClass.toString());
-            target.append(' ');
+            target.append(dllStorageClass.toString()).append(' ');
         }
-        appendAfterDllStorageClass(target);
     }
 
-    void appendAfterDllStorageClass(final Appendable target) throws IOException {
-        final CallingConvention callingConvention = this.callingConvention;
+    protected final void appendCallingConvention(final Appendable target) throws IOException {
         if (callingConvention != CallingConvention.C) {
-            target.append(callingConvention.toString());
-            target.append(' ');
+            target.append(callingConvention.toString()).append(' ');
         }
-        appendAfterCallingConvention(target);
     }
 
-    void appendAfterCallingConvention(final Appendable target) throws IOException {
-        final AddressNaming addressNaming = this.addressNaming;
-        if (addressNaming != AddressNaming.NAMED) {
-            target.append(addressNaming.toString());
-            target.append(' ');
+    protected final void appendNameAndType(final Appendable target) throws IOException {
+        if (ext != SignExtension.none) {
+            target.append(ext.name()).append(' ');
         }
-        appendAfterAddressNaming(target);
-    }
+        returnType.appendTo(target);
 
-    void appendAfterAddressNaming(final Appendable target) throws IOException {
-        final int addressSpace = this.addressSpace;
-        if (addressSpace != 0) {
-            target.append("addrspace(");
-            target.append(Integer.toString(addressSpace));
-            target.append(") ");
-        }
-        appendAfterAddressSpace(target);
-    }
+        target.append(" @").append(name).append('(');
 
-    void appendAfterAddressSpace(final Appendable target) throws IOException {
-        if(returnType != null) {
-            if(ext != SignExtension.none) {
-                target.append(ext.name());
-                target.append(' ');
-            }
-            returnType.appendTo(target);
-            target.append(' ');
-        }
-        appendAfterReturnType(target);
-    }
-
-    void appendAfterReturnType(final Appendable target) throws IOException {
-        // todo: param attr
-        appendAfterReturnTypeAttribute(target);
-    }
-
-    void appendAfterReturnTypeAttribute(final Appendable target) throws IOException {
-        target.append('@');
-        target.append(name);
-        appendAfterName(target);
-    }
-
-    void appendAfterName(final Appendable target) throws IOException {
-        target.append('(');
-        final ParameterImpl lastParam = this.lastParam;
         if (lastParam != null) {
             lastParam.appendTo(target);
             if (variadic) {
-                target.append(',').append(' ');
-                target.append("...");
+                target.append(", ...");
             }
         } else {
             if (variadic) {
                 target.append("...");
             }
         }
-        target.append(')');
-        appendAfterParams(target);
+
+        target.append(")");
     }
 
-    void appendAfterParams(final Appendable target) throws IOException {
-        if (alignment != 0) {
-            target.append("align ");
-            target.append(Integer.toString(alignment));
+    protected final void appendAddressNaming(final Appendable target) throws IOException {
+        if (addressNaming != AddressNaming.NAMED) {
+            target.append(' ').append(addressNaming.toString());
         }
-        appendAfterAlignment(target);
     }
 
-    void appendAfterAlignment(final Appendable target) throws IOException {
-        // todo: GC name?
-        appendAfterGc(target);
+    protected final void appendAddressSpace(final Appendable target) throws IOException {
+        if (addressSpace != 0) {
+            target.append(" addrspace(").append(Integer.toString(addressSpace)).append(')');
+        }
     }
 
-    void appendAfterGc(final Appendable target) throws IOException {
-        // todo: prefix
-        appendAfterPrefix(target);
+    protected final void appendFunctionAttributes(final Appendable target) throws IOException {
+        // TODO
     }
 
-    void appendAfterPrefix(final Appendable target) throws IOException {
-        // todo: prologue
-        appendAfterPrologue(target);
+    protected final void appendAlign(final Appendable target) throws IOException {
+        if (alignment != 0) {
+            target.append(" align ").append(Integer.toString(alignment));
+        }
     }
-
-    void appendAfterPrologue(final Appendable target) throws IOException {
-        // nothing
-    }
-
 
     static final class ParameterImpl extends AbstractEmittable implements Parameter {
         String name;
