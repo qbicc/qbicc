@@ -90,6 +90,8 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             functionDefinition.meta("dbg", topSubprogram);
                         }
 
+                        functionDefinition.gc("statepoint-example");
+
                         LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
                         if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                             functionDefinition.section(sectionName);

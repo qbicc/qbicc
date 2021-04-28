@@ -24,6 +24,7 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
     RuntimePreemption preemption = RuntimePreemption.PREEMPTABLE;
     private int blockCounter;
     private int localCounter;
+    private String gc = null;
     private AbstractValue personalityType = null;
     private AbstractValue personalityValue = null;
     private boolean uwtable = false;
@@ -57,6 +58,12 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
     public FunctionDefinition personality(final LLValue personalityValue, final LLValue personalityType) {
         this.personalityValue = (AbstractValue) Assert.checkNotNullParam("personalityValue", personalityValue);
         this.personalityType = (AbstractValue) Assert.checkNotNullParam("personalityType", personalityType);
+        return this;
+    }
+
+    @Override
+    public FunctionDefinition gc(String gc) {
+        this.gc = gc;
         return this;
     }
 
@@ -149,6 +156,13 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         }
     }
 
+    private void appendGc(final Appendable target) throws IOException {
+        if (gc != null) {
+            target.append(" gc ");
+            appendEscapedString(target, gc);
+        }
+    }
+
     private void appendPersonality(final Appendable target) throws IOException {
         if (personalityValue != null) {
             target.append(" personality ");
@@ -172,6 +186,7 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         appendFunctionAttributes(target);
         appendAlign(target);
         appendSection(target);
+        appendGc(target);
         appendPersonality(target);
         appendMeta(target);
         target.append(" {");
