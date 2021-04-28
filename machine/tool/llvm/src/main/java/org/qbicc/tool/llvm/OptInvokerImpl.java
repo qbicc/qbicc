@@ -1,6 +1,7 @@
 package org.qbicc.tool.llvm;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import io.smallrye.common.constraint.Assert;
@@ -9,7 +10,7 @@ import io.smallrye.common.constraint.Assert;
  *
  */
 final class OptInvokerImpl extends AbstractLlvmInvoker implements OptInvoker {
-    private OptOptLevel optLevel = OptOptLevel.O2;
+    private List<OptPass> passes = new ArrayList<>();
 
     OptInvokerImpl(final LlvmToolChainImpl tool, final Path path) {
         super(tool, path);
@@ -20,14 +21,12 @@ final class OptInvokerImpl extends AbstractLlvmInvoker implements OptInvoker {
     }
 
     void addArguments(final List<String> cmd) {
-        cmd.add("-" + optLevel.name());
+        for (OptPass pass : passes) {
+            cmd.add("-" + pass.name);
+        }
     }
 
-    public void setOptimizationLevel(final OptOptLevel level) {
-        optLevel = Assert.checkNotNullParam("level", level);
-    }
-
-    public OptOptLevel getOptimizationLevel() {
-        return optLevel;
+    public void addOptimizationPass(final OptPass pass) {
+        passes.add(Assert.checkNotNullParam("pass", pass));
     }
 }
