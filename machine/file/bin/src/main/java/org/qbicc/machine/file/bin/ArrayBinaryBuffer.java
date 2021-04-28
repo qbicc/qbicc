@@ -179,6 +179,10 @@ public final class ArrayBinaryBuffer implements BinaryBuffer {
         }
     }
 
+    public ByteBuffer getBuffer(final long offset, final long size) {
+        throw new UnsupportedOperationException();
+    }
+
     public void close() {
     }
 }
