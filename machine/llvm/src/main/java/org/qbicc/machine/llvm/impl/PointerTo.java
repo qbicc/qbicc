@@ -1,6 +1,7 @@
 package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
+import java.util.Objects;
 
 final class PointerTo extends AbstractValue {
     private final AbstractValue type;
@@ -19,5 +20,18 @@ final class PointerTo extends AbstractValue {
             target.append(')');
         }
         return target.append('*');
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PointerTo pointerTo = (PointerTo) o;
+        return addrSpace == pointerTo.addrSpace && type.equals(pointerTo.type);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, addrSpace);
     }
 }
