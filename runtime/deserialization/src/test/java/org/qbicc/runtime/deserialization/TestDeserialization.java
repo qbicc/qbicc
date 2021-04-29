@@ -2,13 +2,12 @@ package org.qbicc.runtime.deserialization;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 public class TestDeserialization {
@@ -60,8 +59,7 @@ public class TestDeserialization {
         writeStringU16(ciao, out);
 
         out.flush();
-        ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
-        Deserializer ds = new Deserializer(is, mock);
+        Deserializer ds = new Deserializer(ByteBuffer.wrap(os.toByteArray()), mock);
         ObjectGraph graph = ds.readAll();
 
         assertEquals(graph.getObject(0), hello);
@@ -79,8 +77,7 @@ public class TestDeserialization {
         out.writeByte(SerializationConstants.NULL);
 
         out.flush();
-        ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
-        Deserializer ds = new Deserializer(is, mock);
+        Deserializer ds = new Deserializer(ByteBuffer.wrap(os.toByteArray()), mock);
         ObjectGraph graph = ds.readAll();
 
         Test1 obj = (Test1) graph.getObject(0);
@@ -106,8 +103,7 @@ public class TestDeserialization {
         out.writeByte(SerializationConstants.NULL);
 
         out.flush();
-        ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
-        Deserializer ds = new Deserializer(is, mock);
+        Deserializer ds = new Deserializer(ByteBuffer.wrap(os.toByteArray()), mock);
         ObjectGraph graph = ds.readAll();
 
         assertEquals(2, ((Test1) graph.getObject(0)).a);
@@ -136,8 +132,7 @@ public class TestDeserialization {
         out.writeByte(SerializationConstants.TINY_REF_TAG_BIT | 3);
 
         out.flush();
-        ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
-        Deserializer ds = new Deserializer(is, mock);
+        Deserializer ds = new Deserializer(ByteBuffer.wrap(os.toByteArray()), mock);
         ObjectGraph graph = ds.readAll();
 
         assertEquals(2, ((Test1) graph.getObject(0)).a);
@@ -172,8 +167,7 @@ public class TestDeserialization {
         out.writeShort(4);
 
         out.flush();
-        ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
-        Deserializer ds = new Deserializer(is, mock);
+        Deserializer ds = new Deserializer(ByteBuffer.wrap(os.toByteArray()), mock);
         ObjectGraph graph = ds.readAll();
 
         assertEquals(2, ((Test1) graph.getObject(0)).a);
@@ -202,8 +196,7 @@ public class TestDeserialization {
         writeStringU16("QED", out);
 
         out.flush();
-        ByteArrayInputStream is = new ByteArrayInputStream(os.toByteArray());
-        Deserializer ds = new Deserializer(is, mock);
+        Deserializer ds = new Deserializer(ByteBuffer.wrap(os.toByteArray()), mock);
         ObjectGraph graph = ds.readAll();
 
         Object[] spine = (Object[])graph.getObject(0);
