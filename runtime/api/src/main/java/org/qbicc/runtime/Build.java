@@ -129,7 +129,7 @@ public final class Build {
         // OS
 
         public static boolean isUnix() {
-            return defined(__unix__);
+            return defined(__unix__) || isMacOs();
         }
 
         public static boolean isLinux() {
@@ -145,11 +145,11 @@ public final class Build {
         }
 
         public static boolean isMacOs() {
-            return isApple() && TARGET_OS_MAC.booleanValue();
+            return isApple() && defined(TARGET_OS_MAC) && TARGET_OS_MAC.booleanValue();
         }
 
         public static boolean isIOS() {
-            return isApple() && TARGET_OS_IPHONE.booleanValue();
+            return isApple() && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE.booleanValue();
         }
 
         public static boolean isAix() {
@@ -157,7 +157,7 @@ public final class Build {
         }
 
         public static boolean isPosix() {
-            return defined(__unix__) && defined(_POSIX_VERSION);
+            return isUnix() && defined(_POSIX_VERSION);
         }
 
         // CPU
