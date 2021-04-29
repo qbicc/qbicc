@@ -100,9 +100,9 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value isEq(final Value v1, final Value v2) {
-        if (isAlwaysNull(v1) && isAlwaysNull(v2)) {
+        if (isAlwaysNull(v1) && isAlwaysNull(v2) || v1.isDefEq(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
-        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2)) {
+        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2) || v1.isDefNe(v2)) {
             return ctxt.getLiteralFactory().literalOf(false);
         } else if (v1 instanceof Literal && v2 instanceof Literal && v1.getType().equals(v2.getType())) {
             // todo: replace with constant detection
@@ -120,9 +120,9 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value isNe(final Value v1, final Value v2) {
-        if (isAlwaysNull(v1) && isAlwaysNull(v2)) {
+        if (isAlwaysNull(v1) && isAlwaysNull(v2) || v1.isDefEq(v2)) {
             return ctxt.getLiteralFactory().literalOf(false);
-        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2)) {
+        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2) || v1.isDefNe(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
         }
 
