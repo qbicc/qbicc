@@ -17,6 +17,8 @@ import java.util.Objects;
 
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.context.Location;
+import org.qbicc.graph.literal.Literal;
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.object.ObjectFile;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.tool.CCompilerInvoker;
@@ -26,6 +28,12 @@ import org.qbicc.machine.tool.ToolInvoker;
 import org.qbicc.machine.tool.ToolMessageHandler;
 import org.qbicc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.ArrayType;
+import org.qbicc.type.BooleanType;
+import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.TypeSystem;
+import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.ValueType;
 
 /**
  * The universal C compiler probe utility.  Produces a single C source file that is compiled to an object file
@@ -96,20 +104,13 @@ public final class CProbe {
                 final Map<String, ConstantInfo> constantInfos = new HashMap<>(cnt);
                 for (int i = 0; i < cnt; i ++) {
                     String name = constants.get(i);
-                    boolean hasType = constantTypes.containsKey(name);
                     boolean defined = objectFile.getSymbolValueAsByte("cp_is_defined" + i) != 0;
                     int size = (int) objectFile.getSymbolValueAsLong("cp_size" + i);
-                    if (hasType) {
-                        if (defined) {
-                            // just get the raw value
-                            constantInfos.put(name, new ConstantInfo(true, objectFile.getSymbolAsBytes("cp_value" + i, size), name, byteOrder));
-                        } else {
-                            // get the symbol address too (todo)
-                            throw new UnsupportedOperationException("Read symbol relocation data from object file");
-                        }
-                    } else {
-                        constantInfos.put(name, new ConstantInfo(defined, objectFile.getSymbolAsBytes("cp_value" + i, size), name, byteOrder));
-                    }
+                    boolean signed = objectFile.getSymbolValueAsByte("cp_is_signed" + i) != 0;
+                    boolean unsigned = objectFile.getSymbolValueAsByte("cp_is_unsigned" + i) != 0;
+                    boolean floating = objectFile.getSymbolValueAsByte("cp_is_floating" + i) != 0;
+                    boolean bool = objectFile.getSymbolValueAsByte("cp_is_bool" + i) != 0;
+                    constantInfos.put(name, new ConstantInfo(defined, objectFile.getSymbolAsBytes("cp_value" + i, size), name, byteOrder, signed, unsigned, floating, bool));
                 }
                 cnt = functions.size();
                 final Map<String, FunctionInfo> functionInfos = new HashMap<>(cnt);
@@ -271,23 +272,27 @@ public final class CProbe {
             line(line, sourceFile);
             add(decl(NamedType.BOOL, "cp_is_defined", idx, Number.ONE));
             // type
-            TypeStep typeStep;
-            if (type != null) {
-                constantTypes.put(name, type);
-                typeStep = getTypeStepOf(type);
-            } else {
-                // otherwise use typeof
-                typeStep = typeof(symbol);
-            }
+            TypeStep typeStep = typeof(symbol);
             else_();
-            // it's a real symbol; get its address (actually symbol ref & type) and real size
+            // it's a real symbol
             line(line, sourceFile);
             add(decl(NamedType.BOOL, "cp_is_defined", idx, Number.ZERO));
             endif();
+            // get the actual value
             line(line, sourceFile);
             add(decl(typeStep, "cp_value", idx, type != null ? cast(symbol, typeStep) : symbol));
+            // get the size of the value
             line(line, sourceFile);
             add(decl(NamedType.UNSIGNED_LONG, "cp_size", idx, sizeof(symbol)));
+            // probe value information
+            line(line, sourceFile);
+            add(decl(NamedType.BOOL, "cp_is_signed", idx, isSigned(symbol)));
+            line(line, sourceFile);
+            add(decl(NamedType.BOOL, "cp_is_unsigned", idx, isUnsigned(symbol)));
+            line(line, sourceFile);
+            add(decl(NamedType.BOOL, "cp_is_floating", idx, isFloating(symbol)));
+            line(line, sourceFile);
+            add(decl(NamedType.BOOL, "cp_is_bool", idx, isBool(symbol)));
             constants.add(name);
             return this;
         }
@@ -480,6 +485,13 @@ public final class CProbe {
                 assocItem(NamedType.SIGNED_INT, Number.ONE),
                 assocItem(NamedType.SIGNED_LONG, Number.ONE),
                 assocItem(NamedType.SIGNED_LONG_LONG, Number.ONE),
+                assocItem(NamedType.DEFAULT, Number.ZERO)
+            )));
+        }
+
+        ValueStep isBool(ValueStep expr) {
+            return generic(expr, listOf(List.of(
+                assocItem(NamedType.BOOL, Number.ONE),
                 assocItem(NamedType.DEFAULT, Number.ZERO)
             )));
         }
@@ -686,12 +698,20 @@ public final class CProbe {
         private final byte[] value;
         private final String symbol;
         private final ByteOrder byteOrder;
+        private final boolean signed;
+        private final boolean unsigned;
+        private final boolean floating;
+        private final boolean bool;
 
-        ConstantInfo(final boolean defined, final byte[] value, final String symbol, final ByteOrder byteOrder) {
+        ConstantInfo(final boolean defined, final byte[] value, final String symbol, final ByteOrder byteOrder, boolean signed, boolean unsigned, boolean floating, boolean bool) {
             this.defined = defined;
             this.value = value;
             this.symbol = symbol;
             this.byteOrder = byteOrder;
+            this.signed = signed;
+            this.unsigned = unsigned;
+            this.floating = floating;
+            this.bool = bool;
         }
 
         public boolean isDefined() {
@@ -710,16 +730,39 @@ public final class CProbe {
             return symbol != null;
         }
 
+        public int getSize() {
+            return value.length;
+        }
+
         public String getSymbol() {
             return symbol;
         }
 
         public int getValueAsInt() {
+            return (int) getValueAsUnsignedLong();
+        }
+
+        public long getValueAsSignedLong() {
             ByteBuffer buf = ByteBuffer.wrap(value).order(byteOrder);
             if (buf.remaining() >= 8) {
-                return (int) buf.getLong();
+                return buf.getLong();
             } else if (buf.remaining() >= 4) {
                 return buf.getInt();
+            } else if (buf.remaining() >= 2) {
+                return buf.getShort();
+            } else if (buf.remaining() >= 1) {
+                return buf.get();
+            } else {
+                return 0;
+            }
+        }
+
+        public long getValueAsUnsignedLong() {
+            ByteBuffer buf = ByteBuffer.wrap(value).order(byteOrder);
+            if (buf.remaining() >= 8) {
+                return buf.getLong();
+            } else if (buf.remaining() >= 4) {
+                return buf.getInt() & 0xffff_ffffL;
             } else if (buf.remaining() >= 2) {
                 return buf.getShort() & 0xffff;
             } else if (buf.remaining() >= 1) {
@@ -727,6 +770,57 @@ public final class CProbe {
             } else {
                 return 0;
             }
+        }
+
+        public Literal getValueAsLiteral(TypeSystem ts, LiteralFactory lf) {
+            ValueType valueType = getValueType(ts);
+            if (valueType instanceof SignedIntegerType) {
+                return lf.literalOf((SignedIntegerType) valueType, getValueAsSignedLong());
+            } else if (valueType instanceof UnsignedIntegerType) {
+                return lf.literalOf((UnsignedIntegerType) valueType, getValueAsUnsignedLong());
+            } else if (valueType instanceof BooleanType) {
+                return lf.literalOf(getValueAsUnsignedLong() != 0);
+            } else if (valueType instanceof ArrayType) {
+                return lf.literalOf((ArrayType) valueType, value);
+            } else {
+                throw new IllegalArgumentException("Invalid constant type");
+            }
+        }
+
+        public ValueType getValueType(TypeSystem ts) {
+            int size = value.length;
+            if (signed) {
+                if (size == 1) {
+                    return ts.getSignedInteger8Type();
+                } else if (size == 2) {
+                    return ts.getSignedInteger16Type();
+                } else if (size == 4) {
+                    return ts.getSignedInteger32Type();
+                } else if (size == 8) {
+                    return ts.getSignedInteger64Type();
+                }
+            } else if (unsigned) {
+                if (size == 1) {
+                    return ts.getUnsignedInteger8Type();
+                } else if (size == 2) {
+                    return ts.getUnsignedInteger16Type();
+                } else if (size == 4) {
+                    return ts.getUnsignedInteger32Type();
+                } else if (size == 8) {
+                    return ts.getUnsignedInteger64Type();
+                }
+            } else if (floating) {
+                if (size == 4) {
+                    return ts.getFloat32Type();
+                } else if (size == 8) {
+                    return ts.getFloat64Type();
+                }
+            } else if (bool) {
+                return ts.getBooleanType();
+            } else {
+                return ts.getArrayType(ts.getUnsignedInteger8Type(), size);
+            }
+            throw new IllegalArgumentException("Unable to determine type of constant");
         }
     }
 
