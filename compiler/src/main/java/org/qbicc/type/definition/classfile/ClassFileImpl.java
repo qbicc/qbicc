@@ -1206,7 +1206,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 // instance method or constructor
                 thisValue = gf.parameter(enclosing.load().getType().getReference(), "this", 0);
                 currentVarTypes[j] = thisValue.getType();
-                methodParser.setLocal1(j++, thisValue, 0);
             } else {
                 thisValue = null;
             }
@@ -1216,7 +1215,6 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 boolean class2 = elementParameters.get(i).hasClass2Type();
                 Value promoted = methodParser.promote(parameters[i]);
                 currentVarTypes[j] = promoted.getType();
-                methodParser.setLocal(j, promoted, class2, 0);
                 j += class2 ? 2 : 1;
             }
         } else {
@@ -1363,6 +1361,24 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
         }
         methodParser.setTypeInformation(varTypesByEntryPoint, stackTypesByEntryPoint);
+        // set initial values
+        if (element instanceof InvokableElement) {
+            List<ParameterElement> elementParameters = ((InvokableElement) element).getParameters();
+            int paramCount = elementParameters.size();
+            int j = 0;
+            if (nonStatic) {
+                // instance method or constructor
+                methodParser.setLocal1(j++, thisValue, 0);
+            }
+            for (int i = 0; i < paramCount; i ++) {
+                boolean class2 = elementParameters.get(i).hasClass2Type();
+                Value promoted = methodParser.promote(parameters[i]);
+                methodParser.setLocal(j, promoted, class2, 0);
+                j += class2 ? 2 : 1;
+            }
+        } else {
+            parameters = ParameterValue.NO_PARAMETER_VALUES;
+        }
         // process the main entry point
         BlockLabel entryBlockHandle = methodParser.getBlockForIndexIfExists(0);
         if (entryBlockHandle == null) {

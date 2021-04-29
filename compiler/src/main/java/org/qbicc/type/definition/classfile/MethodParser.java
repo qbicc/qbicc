@@ -50,6 +50,7 @@ import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.MethodHandleDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
+import org.qbicc.type.generic.BaseTypeSignature;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
 import io.smallrye.common.constraint.Assert;
@@ -76,6 +77,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     int sp;
     private ValueType[][] varTypesByEntryPoint;
     private ValueType[][] stackTypesByEntryPoint;
+    private LocalVariableElement[][] varsByEntryPoint;
 
     MethodParser(final ClassContext ctxt, final ClassMethodInfo info, final ByteBuffer buffer, final BasicBlockBuilder graphFactory) {
         this.ctxt = ctxt;
@@ -131,6 +133,43 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     void setTypeInformation(final ValueType[][] varTypesByEntryPoint, final ValueType[][] stackTypesByEntryPoint) {
         this.varTypesByEntryPoint = varTypesByEntryPoint;
         this.stackTypesByEntryPoint = stackTypesByEntryPoint;
+        int epCount = info.getEntryPointCount();
+        int maxLocals = info.getMaxLocals();
+        List<Map<ValueType, LocalVariableElement>> varsBySlotList = new ArrayList<>(maxLocals);
+        for (int i = 0; i < maxLocals; i ++) {
+            HashMap<ValueType, LocalVariableElement> map = new HashMap<>();
+            varsBySlotList.add(i, map);
+        }
+        // now iterate the types by entry point and create local var objects by type and index
+        LocalVariableElement[][] varsByEntryPoint = new LocalVariableElement[epCount][];
+        int lvi = 0;
+        for (int i = 0; i < epCount; i ++) {
+            ValueType[] varTypes = varTypesByEntryPoint[i];
+            if (varTypes != null) {
+                int slots = varTypes.length;
+                varsByEntryPoint[i] = new LocalVariableElement[slots];
+                for (int j = 0; j < slots; j++) {
+                    ValueType varType = varTypes[j];
+                    if (varType != null) {
+                        Map<ValueType, LocalVariableElement> varsByType = varsBySlotList.get(j);
+                        LocalVariableElement element = varsByType.get(varType);
+                        if (element == null) {
+                            LocalVariableElement.Builder builder = LocalVariableElement.builder();
+                            builder.setIndex(lvi++);
+                            builder.setEnclosingType(gf.getCurrentElement().getEnclosingType());
+                            builder.setType(varType);
+                            builder.setTypeParameterContext((TypeParameterContext) gf.getCurrentElement());
+                            // todo
+                            builder.setDescriptor(BaseTypeDescriptor.V);
+                            builder.setSignature(BaseTypeSignature.V);
+                            varsByType.put(varType, element = builder.build());
+                        }
+                        varsByEntryPoint[i][j] = element;
+                    }
+                }
+            }
+        }
+        this.varsByEntryPoint = varsByEntryPoint;
     }
 
     class ExceptionHandlerImpl implements BasicBlockBuilder.ExceptionHandler {
@@ -337,6 +376,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     }
 
     LocalVariableElement getLocalVariableElement(int bci, int index) {
+        int epIndex = info.getEntryPointIndex(bci);
+        if (epIndex >= 0) {
+            LocalVariableElement[] vars = varsByEntryPoint[epIndex];
+            if (index < vars.length) {
+                return vars[index];
+            }
+        }
         return null;
     }
 
