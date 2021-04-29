@@ -225,7 +225,7 @@ public final class CoreIntrinsics {
         // Null and no-operation intrinsics
 
         StaticIntrinsic returnNull = (builder, target, arguments) ->
-            classContext.getLiteralFactory().zeroInitializerLiteralOfType(jls.getClassType().getReference().asNullable());
+            classContext.getLiteralFactory().zeroInitializerLiteralOfType(jls.getClassType().getReference());
         intrinsics.registerIntrinsic(systemDesc, "getSecurityManager",
             MethodDescriptor.synthesize(classContext,
                 ClassTypeDescriptor.synthesize(classContext,"java/lang/SecurityManager"), List.of()),

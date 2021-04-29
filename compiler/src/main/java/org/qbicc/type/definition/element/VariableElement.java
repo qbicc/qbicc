@@ -67,12 +67,6 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         ValueType type = this.type;
         if (type == null) {
             type = resolveTypeDescriptor(classContext, typeParameterContext);
-            if (type instanceof ReferenceType) {
-                // all fields are considered nullable for now
-                // todo: add a flag for non-nullable fields
-                // todo: initial heap final fields are non-nullable
-                type = ((ReferenceType) type).asNullable();
-            }
             this.type = type;
         }
         return type;

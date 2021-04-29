@@ -140,7 +140,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         ExceptionHandlerImpl(final int index, final BasicBlockBuilder.ExceptionHandler delegate) {
             this.index = index;
             this.delegate = delegate;
-            this.phi = gf.phi(throwable.load().getType().getReference().asNullable(), new BlockLabel(), PhiValue.Flag.NOT_NULL);
+            this.phi = gf.phi(throwable.load().getType().getReference(), new BlockLabel(), PhiValue.Flag.NOT_NULL);
         }
 
         private void clearExceptionField() {
@@ -461,7 +461,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_NOP:
                         break;
                     case OP_ACONST_NULL:
-                        push1(lf.zeroInitializerLiteralOfType(jlo.load().getClassType().getReference().asNullable()));
+                        push1(lf.zeroInitializerLiteralOfType(jlo.load().getClassType().getReference()));
                         break;
                     case OP_ICONST_M1:
                     case OP_ICONST_0:
