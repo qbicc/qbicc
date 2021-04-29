@@ -838,7 +838,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             //      func.personality(Values.bitcastConstant(map(literal), map(literal.getType()), ptrTo(i8)), ptrTo(i8));
             // but directly specifying the function works as well.
             func.personality(map(literal), map(literal.getType()));
-            func.attribute(FunctionAttributes.uwtable);
             personalityAdded = true;
         }
         return call.asLocal();

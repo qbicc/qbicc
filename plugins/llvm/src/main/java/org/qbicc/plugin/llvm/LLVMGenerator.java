@@ -12,6 +12,7 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.schedule.Schedule;
+import org.qbicc.machine.llvm.FunctionAttributes;
 import org.qbicc.machine.llvm.FunctionDefinition;
 import org.qbicc.machine.llvm.Global;
 import org.qbicc.machine.llvm.LLValue;
@@ -90,6 +91,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             functionDefinition.meta("dbg", topSubprogram);
                         }
 
+                        functionDefinition.attribute(FunctionAttributes.uwtable);
                         functionDefinition.gc("statepoint-example");
 
                         LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
