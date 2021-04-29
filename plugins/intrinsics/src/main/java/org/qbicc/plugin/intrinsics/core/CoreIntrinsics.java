@@ -479,7 +479,7 @@ public final class CoreIntrinsics {
             //java.lang.Thread.nextThreadID
             Value thread = builder.new_(thrDesc);
             // immediately set the thread to be the current thread
-            builder.store(builder.pointerHandle(ctxt.getCurrentThreadLocalSymbolLiteral()), builder.valueConvert(thread, voidPtr), MemoryAtomicityMode.NONE);
+            builder.store(builder.pointerHandle(ctxt.getCurrentThreadLocalSymbolLiteral()), thread, MemoryAtomicityMode.NONE);
             // now start initializing
             DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
             LoadedTypeDefinition jltVal = jlt.load();
