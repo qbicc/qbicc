@@ -268,6 +268,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, NotNull node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, NullLiteral node) {
         return visitUnknown(param, node);
     }
@@ -592,6 +596,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, NewArray node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, NotNull node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

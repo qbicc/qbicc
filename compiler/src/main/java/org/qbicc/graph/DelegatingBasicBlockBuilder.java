@@ -515,6 +515,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().cmpL(v1, v2);
     }
 
+    public Value notNull(final Value v) {
+        return getDelegate().notNull(v);
+    }
+
     public Value negate(final Value v) {
         return getDelegate().negate(v);
     }

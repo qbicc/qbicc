@@ -214,6 +214,8 @@ public interface BasicBlockBuilder extends Locatable {
 
     // unary
 
+    Value notNull(Value v);
+
     Value negate(Value v); // neg is only needed for FP; ints should use 0-n
 
     Value byteSwap(Value v);

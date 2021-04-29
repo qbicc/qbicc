@@ -80,6 +80,7 @@ import org.qbicc.graph.NoSuchMethodErrorNode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NonCommutativeBinaryValue;
+import org.qbicc.graph.NotNull;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
@@ -1059,6 +1060,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         processDependency(param, node.getDependency());
         addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
         return name;
+    }
+
+    public String visit(final Appendable param, final NotNull node) {
+        return node(param, "not-null", node);
     }
 
     public String visit(final Appendable param, final NullLiteral node) {

@@ -301,6 +301,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new CmpL(callSite, element, line, bci, v1, v2, typeSystem.getSignedInteger32Type());
     }
 
+    public Value notNull(Value v) {
+        return v.isNullable() ? new NotNull(callSite, element, line, bci, v) : v;
+    }
+
     public Value negate(final Value v) {
         return new Neg(callSite, element, line, bci, v);
     }

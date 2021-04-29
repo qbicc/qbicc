@@ -56,6 +56,7 @@ import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
+import org.qbicc.graph.NotNull;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
@@ -547,6 +548,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         LLValue inputType = map(javaInputType);
         LLValue llvmInput = map(node.getInput());
         return builder.fneg(inputType, llvmInput).asLocal();
+    }
+
+    public LLValue visit(Void param, NotNull node) {
+        return map(node.getInput());
     }
 
     public LLValue visit(final Void param, final Shr node) {
