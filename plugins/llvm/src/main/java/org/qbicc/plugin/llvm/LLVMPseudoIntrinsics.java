@@ -1,5 +1,6 @@
 package org.qbicc.plugin.llvm;
 
+import org.qbicc.machine.llvm.FunctionAttributes;
 import org.qbicc.machine.llvm.FunctionDefinition;
 import org.qbicc.machine.llvm.LLBasicBlock;
 import org.qbicc.machine.llvm.LLBuilder;
@@ -36,6 +37,7 @@ public class LLVMPseudoIntrinsics {
 
         func.linkage(Linkage.PRIVATE);
         func.returns(collectedPtrType);
+        func.attribute(FunctionAttributes.alwaysinline).attribute(FunctionAttributes.gcLeafFunction);
         LLValue val = func.param(rawPtrType).name("ptr").asValue();
 
         builder.ret(
@@ -53,6 +55,7 @@ public class LLVMPseudoIntrinsics {
 
         func.linkage(Linkage.PRIVATE);
         func.returns(rawPtrType);
+        func.attribute(FunctionAttributes.alwaysinline).attribute(FunctionAttributes.gcLeafFunction);
         LLValue val = func.param(collectedPtrType).name("ref").asValue();
 
         builder.ret(

@@ -51,6 +51,7 @@ public class LLVMCompileStage implements Consumer<CompilationContext> {
 
         OptInvoker optInvoker = llvmToolChain.newOptInvoker();
         optInvoker.addOptimizationPass(OptPass.RewriteStatepointsForGc);
+        optInvoker.addOptimizationPass(OptPass.AlwaysInline);
 
         CCompilerInvoker ccInvoker = cToolChain.newCompilerInvoker();
         ccInvoker.setMessageHandler(ToolMessageHandler.reporting(context));

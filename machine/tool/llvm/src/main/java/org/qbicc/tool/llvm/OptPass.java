@@ -10,7 +10,8 @@ public enum OptPass {
     O3("O3"),
     Os("Os"),
     Oz("Oz"),
-    RewriteStatepointsForGc("rewrite-statepoints-for-gc");
+    RewriteStatepointsForGc("rewrite-statepoints-for-gc"),
+    AlwaysInline("always-inline");
 
     public final String name;
 
