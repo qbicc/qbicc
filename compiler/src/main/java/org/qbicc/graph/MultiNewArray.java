@@ -54,6 +54,10 @@ public final class MultiNewArray extends AbstractValue implements OrderedNode {
         return visitor.visit(param, this);
     }
 
+    public boolean isNullable() {
+        return false;
+    }
+
     int calcHashCode() {
         return System.identityHashCode(this);
     }

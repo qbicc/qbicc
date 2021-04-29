@@ -41,6 +41,10 @@ public final class ObjectLiteral extends WordLiteral {
         return false;
     }
 
+    public boolean isNullable() {
+        return false;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof ObjectLiteral && equals((ObjectLiteral) other);
     }

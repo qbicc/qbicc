@@ -55,6 +55,11 @@ public final class StackAllocation extends AbstractValue implements OrderedNode 
     }
 
     @Override
+    public boolean isNullable() {
+        return false;
+    }
+
+    @Override
     public Node getDependency() {
         return dependency;
     }

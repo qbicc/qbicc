@@ -47,4 +47,9 @@ public final class New extends AbstractValue implements OrderedNode {
     public boolean isDefNe(Value other) {
         return other instanceof NullLiteral;
     }
+
+    @Override
+    public boolean isNullable() {
+        return false;
+    }
 }

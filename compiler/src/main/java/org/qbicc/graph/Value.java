@@ -45,4 +45,13 @@ public interface Value extends Node {
         // only floats can be NaN
         return ! (getType() instanceof FloatType);
     }
+
+    /**
+     * Determine whether this value may be {@code null}.
+     *
+     * @return {@code true} if the value may be {@code null}, or {@code false} if it can never be {@code null}
+     */
+    default boolean isNullable() {
+        return true;
+    }
 }
