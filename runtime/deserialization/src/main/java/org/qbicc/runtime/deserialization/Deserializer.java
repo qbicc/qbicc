@@ -1,15 +1,12 @@
 package org.qbicc.runtime.deserialization;
 
-import java.io.DataInputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 /**
  * The main Deserializer engine.
  *
- * Given an input stream of bytes, process it and create an object graph.
+ * Given an input ByteBuffer, parse it to create an object graph.
  * We expect the compiler to generate a top-level heap initialization method that
  * looks something like:
  * <pre>
@@ -20,13 +17,13 @@ import java.nio.charset.StandardCharsets;
  *     ...
  * </pre>
  */
-public class Deserializer implements SerializationConstants {
-    private final DataInputStream in;
+public final class Deserializer implements SerializationConstants {
+    private final ByteBuffer in;
     private final ObjectGraph objects;
     private final ObjectDeserializer thunk;
 
-    public Deserializer(InputStream is, ObjectDeserializer thunk) {
-        this.in = new DataInputStream(is);
+    public Deserializer(ByteBuffer bb, ObjectDeserializer thunk) {
+        this.in = bb;
         this.objects = new ObjectGraph();
         this.thunk = thunk;
     }
@@ -35,12 +32,9 @@ public class Deserializer implements SerializationConstants {
      * Deserialize the entire buffer and return the constructed object graph.
      * This method is only intended to be used for writing test cases.
      */
-    ObjectGraph readAll() throws IOException {
-        try {
-            while (true) {
-                readObject();
-            }
-        } catch (EOFException ignored) {
+    ObjectGraph readAll() {
+        while (in.remaining() > 0) {
+            readObject();
         }
         return objects;
     }
@@ -51,51 +45,52 @@ public class Deserializer implements SerializationConstants {
      * expose them to the compiler generated code.
      */
 
-    public boolean readBoolean() throws IOException {
-        return in.readBoolean();
+    public boolean readBoolean() {
+        byte data = in.get();
+        return data != 0;
     }
 
-    public byte readByte() throws IOException {
-        return in.readByte();
+    public byte readByte() {
+        return in.get();
     }
 
-    public char readChar() throws IOException {
-        return in.readChar();
+    public char readChar() {
+        return in.getChar();
     }
 
-    public short readShort() throws IOException {
-        return in.readShort();
+    public short readShort() {
+        return in.getShort();
     }
 
-    public float readFloat() throws IOException {
-        return in.readFloat();
+    public float readFloat()  {
+        return in.getFloat();
     }
 
-    public int readInt() throws IOException {
-        return in.readInt();
+    public int readInt()  {
+        return in.getInt();
     }
 
-    public double readDouble() throws IOException {
-        return in.readDouble();
+    public double readDouble() {
+        return in.getDouble();
     }
 
-    public long readLong() throws IOException {
-        return in.readLong();
+    public long readLong() {
+        return in.getLong();
     }
 
-    public int readU8() throws IOException {
-        return in.readUnsignedByte();
+    public int readU8() {
+        return 0xFF & in.get();
     }
 
-    public int readU16() throws IOException {
-        return in.readUnsignedShort();
+    public int readU16() {
+        return 0xFFFF & in.getShort();
     }
 
     /**
      * Fully deserialize (including transitively reachable objects) an object and return it.
      * @return The deserialized object.
      */
-    public Object readObject() throws IOException {
+    public Object readObject() {
         int tag = readU8();
         if (tag == NULL) {
             return null;
@@ -120,7 +115,7 @@ public class Deserializer implements SerializationConstants {
             case STRING_LARGE_L1: {
                 int length = tag == STRING_SMALL_L1 ? readU8() : readInt();
                 byte[] data = new byte[length];
-                in.readFully(data);
+                in.get(data);
                 String str = new String(data, StandardCharsets.ISO_8859_1);
                 objects.recordObject(str);
                 return str;
@@ -129,7 +124,7 @@ public class Deserializer implements SerializationConstants {
             case STRING_SMALL_U16: {
                 int length = readU8();
                 byte[] data = new byte[length * 2];
-                in.readFully(data);
+                in.get(data);
                 String str = new String(data, StandardCharsets.UTF_16);
                 objects.recordObject(str);
                 return str;
@@ -139,7 +134,7 @@ public class Deserializer implements SerializationConstants {
                 int length = readInt();
                 if (length < Integer.MAX_VALUE / 2) {
                     byte[] data = new byte[length * 2];
-                    in.readFully(data);
+                    in.get(data);
                     String str = new String(data, StandardCharsets.UTF_16);
                     objects.recordObject(str);
                     return str;

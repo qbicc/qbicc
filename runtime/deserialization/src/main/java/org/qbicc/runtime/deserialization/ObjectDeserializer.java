@@ -42,7 +42,7 @@ public interface ObjectDeserializer {
      * @param obj the object into which the deserialized fields should be stored
      * @param deserializer the Deserializer from which to read the fields
      */
-    void readInstanceFields(int typeId, Object obj, Deserializer deserializer) throws IOException;
+    void readInstanceFields(int typeId, Object obj, Deserializer deserializer);
 
     /**
      * Deserialize the elements of a primitive array
@@ -51,5 +51,5 @@ public interface ObjectDeserializer {
      * @param array the array object into which the deserialized elements should be stored
      * @param deserializer the Deserializer from which to read the fields
      */
-    void readPrimitiveArrayData(int typeId, int length, Object array, Deserializer deserializer) throws IOException;
+    void readPrimitiveArrayData(int typeId, int length, Object array, Deserializer deserializer);
 }
