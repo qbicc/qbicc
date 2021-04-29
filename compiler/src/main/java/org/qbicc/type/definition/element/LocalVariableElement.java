@@ -13,7 +13,7 @@ public final class LocalVariableElement extends VariableElement {
         return visitor.visit(param, this);
     }
 
-    static Builder builder() {
+    public static Builder builder() {
         return new Builder();
     }
 
