@@ -6,7 +6,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.driver.Driver;
 import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.CheckCast;
+import org.qbicc.graph.CastValue;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
@@ -65,8 +65,8 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
     @Override
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
         Value test = value;
-        while (test instanceof CheckCast) {
-            test = ((CheckCast) test).getInput();
+        while (test instanceof CastValue) {
+            test = ((CastValue) test).getInput();
         }
         if (test instanceof StaticInvocationValue) {
             StaticInvocationValue inv = (StaticInvocationValue) test;
@@ -102,6 +102,9 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             if (desc.getPackageName().equals(Native.NATIVE_PKG) && desc.getClassName().equals(Native.ANN_NAME)) {
                 name = ((StringAnnotationValue) annotation.getValue("value")).getString();
             }
+        }
+        for (Annotation annotation : fieldElement.getEnclosingType().getVisibleAnnotations()) {
+            ProbeUtils.processCommonAnnotation(builder, annotation);
         }
         // todo: recursively process enclosing types (requires InnerClasses support)
         Location location = getLocation();

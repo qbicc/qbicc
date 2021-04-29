@@ -283,8 +283,6 @@ public final class CProbe {
             // it's a real symbol; get its address (actually symbol ref & type) and real size
             line(line, sourceFile);
             add(decl(NamedType.BOOL, "cp_is_defined", idx, Number.ZERO));
-            line(line, sourceFile);
-            add(decl(ptrTo(NamedType.VOID), "cp_address", idx, addrOf(symbol)));
             endif();
             line(line, sourceFile);
             add(decl(typeStep, "cp_value", idx, type != null ? cast(symbol, typeStep) : symbol));
