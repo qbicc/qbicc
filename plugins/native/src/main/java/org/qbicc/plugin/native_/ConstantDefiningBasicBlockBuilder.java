@@ -103,6 +103,9 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
                 name = ((StringAnnotationValue) annotation.getValue("value")).getString();
             }
         }
+        for (Annotation annotation : fieldElement.getEnclosingType().getVisibleAnnotations()) {
+            ProbeUtils.processCommonAnnotation(builder, annotation);
+        }
         // todo: recursively process enclosing types (requires InnerClasses support)
         Location location = getLocation();
         builder.probeConstant(name, location.getSourceFilePath(), location.getLineNumber());
