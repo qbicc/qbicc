@@ -20,11 +20,7 @@ public interface Call extends YieldingInstruction {
 
     Call cconv(CallingConvention cconv);
 
-    // todo ret attrs
-
-    Call signExt();
-
-    Call zeroExt();
+    Returns returns();
 
     Call addrSpace(int num);
 
@@ -34,13 +30,13 @@ public interface Call extends YieldingInstruction {
 
     Argument arg(LLValue type, LLValue value);
 
+    interface Returns {
+        Returns attribute(LLValue attribute);
+    }
+
     interface Argument {
+        Argument attribute(LLValue attribute);
+
         Argument arg(LLValue type, LLValue value);
-
-        Argument signExt();
-
-        Argument zeroExt();
-
-        Argument inReg();
     }
 }

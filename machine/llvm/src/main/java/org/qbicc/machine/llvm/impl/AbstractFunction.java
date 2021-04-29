@@ -1,6 +1,8 @@
 package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.qbicc.machine.llvm.AddressNaming;
 import org.qbicc.machine.llvm.CallingConvention;
@@ -8,19 +10,18 @@ import org.qbicc.machine.llvm.DllStorageClass;
 import org.qbicc.machine.llvm.Function;
 import org.qbicc.machine.llvm.Linkage;
 import org.qbicc.machine.llvm.LLValue;
-import org.qbicc.machine.llvm.SignExtension;
 import org.qbicc.machine.llvm.Visibility;
 import io.smallrye.common.constraint.Assert;
 
 abstract class AbstractFunction extends AbstractMetable implements Function {
     final String name;
+    final List<AbstractValue> attributes = new ArrayList<>();
     Linkage linkage = Linkage.EXTERNAL;
     Visibility visibility = Visibility.DEFAULT;
     DllStorageClass dllStorageClass = DllStorageClass.NONE;
     CallingConvention callingConvention = CallingConvention.C;
     AddressNaming addressNaming = AddressNaming.NAMED;
-    AbstractValue returnType;
-    SignExtension ext = SignExtension.none;
+    ReturnsImpl returnType;
 
     int addressSpace = 0;
     // todo: return type attribute
@@ -34,21 +35,11 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         this.name = name;
     }
 
-    public Function returns(final LLValue returnType) {
+    public Returns returns(final LLValue returnType) {
         Assert.checkNotNullParam("returnType", returnType);
         // todo with attributes...
-        this.returnType = (AbstractValue) returnType;
-        return this;
-    }
-
-    public Function signExt() {
-        ext = SignExtension.signext;
-        return this;
-    }
-
-    public Function zeroExt() {
-        ext = SignExtension.zeroext;
-        return this;
+        this.returnType = new ReturnsImpl((AbstractValue) returnType);
+        return this.returnType;
     }
 
     public ParameterImpl param(final LLValue type) {
@@ -106,6 +97,11 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         return this;
     }
 
+    public Function attribute(LLValue attribute) {
+        attributes.add((AbstractValue) Assert.checkNotNullParam("attribute", attribute));
+        return this;
+    }
+
     public Function meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
@@ -145,9 +141,6 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
     }
 
     protected final void appendNameAndType(final Appendable target) throws IOException {
-        if (ext != SignExtension.none) {
-            target.append(ext.name()).append(' ');
-        }
         returnType.appendTo(target);
 
         target.append(" @").append(name).append('(');
@@ -179,7 +172,10 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
     }
 
     protected final void appendFunctionAttributes(final Appendable target) throws IOException {
-        // TODO
+        for (AbstractValue attribute : attributes) {
+            target.append(' ');
+            attribute.appendTo(target);
+        }
     }
 
     protected final void appendAlign(final Appendable target) throws IOException {
@@ -188,12 +184,41 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         }
     }
 
+    static final class ReturnsImpl extends AbstractEmittable implements Returns {
+        final AbstractValue type;
+        final List<AbstractValue> attributes = new ArrayList<>();
+
+        ReturnsImpl(final AbstractValue type) {
+            this.type = type;
+        }
+
+        public ReturnsImpl attribute(LLValue attribute) {
+            this.attributes.add((AbstractValue) Assert.checkNotNullParam("attribute", attribute));
+            return this;
+        }
+
+        public LLValue type() {
+            return type;
+        }
+
+        public Appendable appendTo(Appendable target) throws IOException {
+            for (AbstractValue attribute : attributes) {
+                attribute.appendTo(target);
+                target.append(' ');
+            }
+
+            type.appendTo(target);
+
+            return target;
+        }
+    }
+
     static final class ParameterImpl extends AbstractEmittable implements Parameter {
         String name;
         final ParameterImpl prev;
         final AbstractFunction function;
         final AbstractValue type;
-        SignExtension ext = SignExtension.none;
+        final List<AbstractValue> attributes = new ArrayList<>();
 
         ParameterImpl(final ParameterImpl prev, final AbstractFunction function, final AbstractValue type) {
             this.prev = prev;
@@ -207,6 +232,11 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
 
         public ParameterImpl name(final String name) {
             this.name = name;
+            return this;
+        }
+
+        public ParameterImpl attribute(final LLValue attribute) {
+            attributes.add((AbstractValue) Assert.checkNotNullParam("attribute", attribute));
             return this;
         }
 
@@ -228,23 +258,14 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
                 target.append(',').append(' ');
             }
             type.appendTo(target);
-            if (ext != SignExtension.none) {
-                target.append(' ').append(ext.name());
+            for (AbstractValue attribute : attributes) {
+                target.append(' ');
+                attribute.appendTo(target);
             }
             if (name != null) {
                 target.append(' ').append('%').append(name);
             }
             return target;
-        }
-
-        public ParameterImpl signExt() {
-            ext = SignExtension.signext;
-            return this;
-        }
-
-        public ParameterImpl zeroExt() {
-            ext = SignExtension.zeroext;
-            return this;
         }
     }
 }

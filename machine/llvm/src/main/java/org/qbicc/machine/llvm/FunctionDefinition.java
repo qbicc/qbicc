@@ -10,8 +10,6 @@ public interface FunctionDefinition extends Function {
 
     // overrides
 
-    FunctionDefinition returns(LLValue returnType);
-
     FunctionDefinition linkage(Linkage linkage);
 
     FunctionDefinition visibility(Visibility visibility);
@@ -39,8 +37,6 @@ public interface FunctionDefinition extends Function {
     FunctionDefinition section(String section);
 
     FunctionDefinition preemption(RuntimePreemption preemption);
-
-    FunctionDefinition unwindTable();
 
     FunctionDefinition personality(LLValue personalityValue, LLValue personalityType);
 }

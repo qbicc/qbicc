@@ -1,11 +1,12 @@
 package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.qbicc.machine.llvm.CallingConvention;
 import org.qbicc.machine.llvm.FastMathFlag;
-import org.qbicc.machine.llvm.SignExtension;
 import org.qbicc.machine.llvm.TailType;
 import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Types;
@@ -15,10 +16,10 @@ import io.smallrye.common.constraint.Assert;
 final class CallImpl extends AbstractYieldingInstruction implements Call {
     final AbstractValue type;
     final AbstractValue function;
+    final ReturnsImpl returns = new ReturnsImpl();
     Set<FastMathFlag> flags = Set.of();
     TailType tailType = TailType.notail;
     CallingConvention cconv = CallingConvention.C;
-    SignExtension ext = SignExtension.none;
     ArgImpl lastArg;
     int addressSpace;
 
@@ -65,19 +66,13 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
         return this;
     }
 
+    public Returns returns() {
+        return returns;
+    }
+
     public Call addrSpace(final int num) {
         Assert.checkMinimumParameter("num", 0, num);
         addressSpace = num;
-        return this;
-    }
-
-    public Call signExt() {
-        ext = SignExtension.signext;
-        return this;
-    }
-
-    public Call zeroExt() {
-        ext = SignExtension.zeroext;
         return this;
     }
 
@@ -99,12 +94,9 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
         if (cconv != CallingConvention.C) {
             target.append(cconv.toString()).append(' ');
         }
-        // todo ret attrs
+        returns.appendTo(target);
         if (addressSpace != 0) {
             target.append("addrspace").append('(').append(Integer.toString(addressSpace)).append(')').append(' ');
-        }
-        if(ext != SignExtension.none) {
-            target.append(ext.name()).append(' ');
         }
         type.appendTo(target).append(' ');
         function.appendTo(target);
@@ -123,13 +115,30 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
         return !(type instanceof FunctionType) || Types.void_ != ((FunctionType) type).returnType;
     }
 
+    static final class ReturnsImpl extends AbstractEmittable implements Returns {
+        final List<AbstractValue> attributes = new ArrayList<>();
+
+        public ReturnsImpl attribute(LLValue attribute) {
+            attributes.add((AbstractValue) Assert.checkNotNullParam("attribute", attribute));
+            return this;
+        }
+
+        public Appendable appendTo(Appendable target) throws IOException {
+            for (AbstractValue attribute : attributes) {
+                attribute.appendTo(target);
+                target.append(' ');
+            }
+
+            return target;
+        }
+    }
+
     static final class ArgImpl extends AbstractEmittable implements Argument {
         final CallImpl call;
         final ArgImpl prev;
         final AbstractValue type;
         final AbstractValue value;
-        SignExtension ext = SignExtension.none;
-        boolean inReg;
+        final List<AbstractValue> attributes = new ArrayList<>();
 
         ArgImpl(final CallImpl call, final ArgImpl prev, final AbstractValue type, final AbstractValue value) {
             this.call = call;
@@ -138,23 +147,13 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
             this.value = value;
         }
 
+        public ArgImpl attribute(final LLValue attribute) {
+            attributes.add((AbstractValue) Assert.checkNotNullParam("attribute", attribute));
+            return this;
+        }
+
         public Argument arg(final LLValue type, final LLValue value) {
             return call.arg(type, value);
-        }
-
-        public Argument signExt() {
-            ext = SignExtension.signext;
-            return this;
-        }
-
-        public Argument zeroExt() {
-            ext = SignExtension.zeroext;
-            return this;
-        }
-
-        public Argument inReg() {
-            inReg = true;
-            return this;
         }
 
         public Appendable appendTo(final Appendable target) throws IOException {
@@ -163,13 +162,11 @@ final class CallImpl extends AbstractYieldingInstruction implements Call {
                 prev.appendTo(target);
                 target.append(',').append(' ');
             }
-            if (inReg) {
-                target.append("inreg").append(' ');
-            }
             type.appendTo(target);
             target.append(' ');
-            if (ext != SignExtension.none) {
-                target.append(ext.name()).append(' ');
+            for (AbstractValue attribute : attributes) {
+                attribute.appendTo(target);
+                target.append(' ');
             }
             value.appendTo(target);
             return target;

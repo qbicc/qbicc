@@ -1,5 +1,6 @@
 package org.qbicc.machine.llvm.impl;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.qbicc.machine.llvm.Array;
@@ -125,5 +126,25 @@ public final class LLVM {
 
     public static LLValue byteArray(final byte[] contents) {
         return new ByteArrayImpl(contents);
+    }
+
+    public static String quoteStringIfNeeded(final String str) {
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))) {
+                try {
+                    return AbstractEmittable.appendEscapedString(new StringBuilder(), str).toString();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        return str;
+    }
+
+    public static LLValue flagAttribute(final String flag) {
+        return new SingleWord(quoteStringIfNeeded(flag));
     }
 }

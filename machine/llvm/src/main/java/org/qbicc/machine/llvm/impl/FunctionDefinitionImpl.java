@@ -27,16 +27,10 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
     private String gc = null;
     private AbstractValue personalityType = null;
     private AbstractValue personalityValue = null;
-    private boolean uwtable = false;
 
     FunctionDefinitionImpl(final ModuleImpl module, final String name) {
         super(name);
         this.module = module;
-    }
-
-    public FunctionDefinitionImpl returns(final LLValue returnType) {
-        super.returns(returnType);
-        return this;
     }
 
     public FunctionDefinition section(final String section) {
@@ -46,11 +40,6 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
 
     public FunctionDefinition preemption(final RuntimePreemption preemption) {
         this.preemption = Assert.checkNotNullParam("preemption", preemption);
-        return this;
-    }
-
-    public FunctionDefinition unwindTable() {
-        this.uwtable = true;
         return this;
     }
 
@@ -143,12 +132,6 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         }
     }
 
-    private void appendUwtable(final Appendable target) throws IOException {
-        if (uwtable) {
-            target.append(" uwtable");
-        }
-    }
-
     private void appendSection(final Appendable target) throws IOException {
         if (section != null) {
             target.append(" section ");
@@ -182,7 +165,6 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         appendNameAndType(target);
         appendAddressNaming(target);
         appendAddressSpace(target);
-        appendUwtable(target);
         appendFunctionAttributes(target);
         appendAlign(target);
         appendSection(target);
