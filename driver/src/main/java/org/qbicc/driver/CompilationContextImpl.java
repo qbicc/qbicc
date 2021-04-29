@@ -76,7 +76,7 @@ final class CompilationContextImpl implements CompilationContext {
         this.outputDir = outputDir;
         this.resolverFactories = resolverFactories;
         bootstrapClassContext = new ClassContextImpl(this, null);
-        qbiccBoundThread = getLiteralFactory().literalOfSymbol("_qbicc_bound_thread", getTypeSystem().getVoidType().getPointer().getPointer());
+        qbiccBoundThread = getLiteralFactory().literalOfSymbol("_qbicc_bound_thread", getTypeSystem().getVoidType().getPointer().asCollected().getPointer());
     }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {
