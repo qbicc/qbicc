@@ -87,7 +87,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Node invokeStatic(MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) && !target.getEnclosingType().internalPackageAndNameEquals("org/qbicc/runtime", "CNative") &&
             null == Intrinsics.get(ctxt).getStaticIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
             throwUnsatisfiedLinkError();
             return nop();
@@ -101,7 +101,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     @Override
     public Value invokeValueStatic(MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) && !target.getEnclosingType().internalPackageAndNameEquals("org/qbicc/runtime", "CNative") &&
             null == Intrinsics.get(ctxt).getStaticValueIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
             throwUnsatisfiedLinkError();
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());

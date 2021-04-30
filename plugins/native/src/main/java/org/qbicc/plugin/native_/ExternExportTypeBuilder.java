@@ -3,12 +3,6 @@ package org.qbicc.plugin.native_;
 import java.util.List;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.BasicBlock;
-import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.ParameterValue;
-import org.qbicc.graph.Value;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
@@ -16,7 +10,6 @@ import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
-import org.qbicc.type.VoidType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.AnnotationValue;
 import org.qbicc.type.annotation.ArrayAnnotationValue;
@@ -24,12 +17,9 @@ import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.FieldResolver;
-import org.qbicc.type.definition.MethodBody;
-import org.qbicc.type.definition.MethodBodyFactory;
 import org.qbicc.type.definition.MethodResolver;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -243,8 +233,9 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     ctxt.error(origMethod, "Exported vararg functions not yet supported");
                     return;
                 }
-                FunctionElement.Builder builder = new FunctionElement.Builder();
+                FunctionElement.Builder builder = FunctionElement.builder();
                 builder.setName(name);
+                builder.setModifiers(origMethod.getModifiers());
                 builder.setEnclosingType(origMethod.getEnclosingType());
                 builder.setDescriptor(origMethod.getDescriptor());
                 builder.setSignature(origMethod.getSignature());
@@ -254,31 +245,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 builder.setParameters(origMethod.getParameters());
                 builder.setMinimumLineNumber(origMethod.getMinimumLineNumber());
                 builder.setMaximumLineNumber(origMethod.getMaximumLineNumber());
-                builder.setMethodBodyFactory(new MethodBodyFactory() {
-                    @Override
-                    public MethodBody createMethodBody(int index, ExecutableElement element) {
-                        FunctionElement elem = (FunctionElement) element;
-                        BasicBlockBuilder gf = classCtxt.newBasicBlockBuilder(element);
-                        gf.setLineNumber(origMethod.getMinimumLineNumber());
-                        BlockLabel entry = new BlockLabel();
-                        gf.begin(entry);
-                        int pcnt = elem.getParameters().size();
-                        ParameterValue[] args = new ParameterValue[pcnt];
-                        for (int i = 0; i < pcnt; i ++) {
-                            args[i] = gf.parameter(fnType.getParameterType(i), "p", i);
-                        }
-                        List<Value> argsList = List.of(args);
-                        if (fnType.getReturnType() instanceof VoidType) {
-                            gf.invokeStatic(origMethod, argsList);
-                            gf.return_();
-                        } else {
-                            gf.return_(gf.invokeValueStatic(origMethod, argsList));
-                        }
-                        gf.finish();
-                        BasicBlock entryBlock = BlockLabel.getTargetOf(entry);
-                        return MethodBody.of(entryBlock, Schedule.forMethod(entryBlock), null, args);
-                    }
-                }, 0);
+                builder.setMethodBodyFactory(origMethod.getMethodBodyFactory(), origMethod.getMethodBodyFactoryIndex());
                 FunctionElement function = builder.build();
                 nativeInfo.registerFunctionInfo(
                     origMethod.getEnclosingType().getDescriptor(),

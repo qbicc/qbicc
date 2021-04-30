@@ -27,4 +27,6 @@ public interface ObjectFile extends Closeable {
     Cpu getCpu();
 
     ObjectType getObjectType();
+
+    Section getSection(String name);
 }

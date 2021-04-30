@@ -19,6 +19,7 @@ import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Linkage;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.ModuleFlagBehavior;
+import org.qbicc.machine.llvm.RuntimePreemption;
 import org.qbicc.machine.llvm.ThreadLocalStorageModel;
 import org.qbicc.machine.llvm.Types;
 import org.qbicc.machine.llvm.Values;
@@ -138,6 +139,9 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                         ThreadLocalMode tlm = item.getThreadLocalMode();
                         if (tlm != null) {
                             obj.threadLocal(map(tlm));
+                        }
+                        if (((Data) item).isDsoLocal()) {
+                            obj.preemption(RuntimePreemption.LOCAL);
                         }
                         obj.asGlobal(item.getName());
                     }

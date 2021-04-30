@@ -76,7 +76,7 @@ final class CompilationContextImpl implements CompilationContext {
         this.outputDir = outputDir;
         this.resolverFactories = resolverFactories;
         bootstrapClassContext = new ClassContextImpl(this, null);
-        qbiccBoundThread = getLiteralFactory().literalOfSymbol("_qbicc_bound_thread", getTypeSystem().getVoidType().getPointer().getPointer());
+        qbiccBoundThread = getLiteralFactory().literalOfSymbol("_qbicc_bound_thread", getTypeSystem().getVoidType().getPointer().asCollected().getPointer());
     }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {
@@ -393,7 +393,7 @@ final class CompilationContextImpl implements CompilationContext {
         TypeSystem ts = typeSystem;
         if (element instanceof InitializerElement) {
             // todo: initializers should not survive the copy
-            return ts.getFunctionType(ts.getVoidType());
+            return ts.getFunctionType(ts.getVoidType(), threadType.getReference());
         }
         assert element instanceof InvokableElement;
         FunctionType methodType = element.getType();

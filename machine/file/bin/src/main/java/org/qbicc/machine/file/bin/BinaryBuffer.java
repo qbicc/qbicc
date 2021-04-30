@@ -132,6 +132,8 @@ public interface BinaryBuffer extends AutoCloseable {
 
     void writeTo(GatheringByteChannel fc, long offset, long cnt) throws IOException;
 
+    ByteBuffer getBuffer(long offset, long size);
+
     abstract class BufferIterator implements AutoCloseable {
         final BinaryBuffer backingBuffer;
         long position;

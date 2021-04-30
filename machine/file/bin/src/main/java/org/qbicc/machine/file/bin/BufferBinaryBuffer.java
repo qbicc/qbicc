@@ -88,31 +88,17 @@ class BufferBinaryBuffer implements BinaryBuffer {
     }
 
     public void putBytes(final long position, final BinaryBuffer buf, final long offset, final long size) {
-        final ByteBuffer byteBuffer = this.buf;
-        final int oldPos = byteBuffer.position();
-        final int oldLim = byteBuffer.limit();
+        final ByteBuffer byteBuffer = this.buf.duplicate();
         byteBuffer.position((int) position);
         byteBuffer.limit((int) (position + size));
-        try {
-            buf.writeTo(offset, byteBuffer);
-        } finally {
-            byteBuffer.position(oldPos);
-            byteBuffer.limit(oldLim);
-        }
+        buf.writeTo(offset, byteBuffer);
     }
 
     public void writeTo(final long position, final ByteBuffer targetBuf) {
-        final ByteBuffer byteBuffer = this.buf;
-        final int oldPos = byteBuffer.position();
-        final int oldLim = byteBuffer.limit();
+        final ByteBuffer byteBuffer = this.buf.duplicate();
         byteBuffer.position((int) position);
         byteBuffer.limit((int) position + targetBuf.remaining());
-        try {
-            targetBuf.put(byteBuffer);
-        } finally {
-            byteBuffer.position(oldPos);
-            byteBuffer.limit(oldLim);
-        }
+        targetBuf.put(byteBuffer);
     }
 
     public void writeTo(final GatheringByteChannel channel) throws IOException {
@@ -126,6 +112,10 @@ class BufferBinaryBuffer implements BinaryBuffer {
         while (b.hasRemaining()) {
             channel.write(b);
         }
+    }
+
+    public ByteBuffer getBuffer(final long offset, final long size) {
+        return buf.duplicate().position((int) offset).limit((int) (offset + size)).slice().order(buf.order());
     }
 
     public void close() {

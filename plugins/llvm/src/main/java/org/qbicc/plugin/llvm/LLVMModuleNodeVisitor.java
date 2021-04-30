@@ -21,6 +21,7 @@ import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.DefinedConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
@@ -52,9 +53,11 @@ import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.Type;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
+import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
 import org.qbicc.type.VoidType;
@@ -319,6 +322,11 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         return struct;
     }
 
+    @Override
+    public LLValue visit(Void param, DefinedConstantLiteral node) {
+        return node.getValue().accept(this, param);
+    }
+
     public LLValue visit(final Void param, final FloatLiteral node) {
         if (((FloatType) node.getType()).getMinBits() == 32) {
             return Values.floatConstant(node.floatValue());
@@ -354,12 +362,51 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     }
 
     public LLValue visit(Void param, TypeLiteral node) {
-        ObjectType type = (ObjectType)node.getValue();
-        if  (type instanceof ArrayObjectType) {
-            return Values.intConstant(Layout.get(ctxt).getArrayContentField(type).getEnclosingType().load().getTypeId());
-        } else {
-            return Values.intConstant(type.getDefinition().load().getTypeId());
+        ValueType type = node.getValue();
+        // common cases first
+        if (type instanceof ArrayObjectType) {
+            return Values.intConstant(Layout.get(ctxt).getArrayContentField((ArrayObjectType) type).getEnclosingType().load().getTypeId());
+        } else if (type instanceof ObjectType) {
+            return Values.intConstant(((ObjectType) type).getDefinition().load().getTypeId());
         }
+        // uncommon cases: primitives
+        // TODO: come up with an appropriate shared location for these constants
+        // [1] boolean.class
+        // [2] byte.class
+        // [3] short.class
+        // [4] char.class
+        // [5] int.class
+        // [6] float.class
+        // [7] long.class
+        // [8] double.class
+        // [9] void.class
+        if (type instanceof FloatType) {
+            switch (((FloatType) type).getMinBits()) {
+                case 32: return Values.intConstant(6);
+                case 64: return Values.intConstant(8);
+                // else fall out
+            }
+        } else if (type instanceof SignedIntegerType) {
+            switch (((SignedIntegerType) type).getMinBits()) {
+                case 8: return Values.intConstant(2);
+                case 16: return Values.intConstant(3);
+                case 32: return Values.intConstant(5);
+                case 64: return Values.intConstant(7);
+                // else fall out
+            }
+        } else if (type instanceof UnsignedIntegerType) {
+            if (((UnsignedIntegerType) type).getMinBits() == 16) {
+                return intConstant(4);
+            }
+            // fall out
+        } else if (type instanceof BooleanType) {
+            return Values.intConstant(1);
+        } else if (type instanceof VoidType) {
+            return Values.intConstant(9);
+        }
+        // not a valid type literal
+        ctxt.error("llvm: cannot lower type literal %s", node);
+        return Values.intConstant(0);
     }
 
     public LLValue visitUnknown(final Void param, final Value node) {

@@ -1,6 +1,7 @@
 package org.qbicc.machine.file.macho;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import org.qbicc.machine.arch.ObjectType;
 import org.qbicc.machine.file.bin.BinaryBuffer;
 import org.qbicc.machine.object.ObjectFile;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.machine.object.Section;
 
 /**
  * A Mach-O object file.
@@ -214,6 +216,25 @@ public final class MachOObjectFile implements ObjectFile {
 
     public ObjectType getObjectType() {
         return ObjectType.MACH_O;
+    }
+
+    @Override
+    public org.qbicc.machine.object.Section getSection(String name) {
+        final Section section = segmentsAndSections.getOrDefault(name, Map.of()).get(name);
+        if (section == null) {
+            return null;
+        }
+        return new org.qbicc.machine.object.Section() {
+            @Override
+            public String getName() {
+                return name;
+            }
+
+            @Override
+            public ByteBuffer getSectionContent() {
+                return buffer.getBuffer(section.fileOffset, section.size);
+            }
+        };
     }
 
     public void close() {

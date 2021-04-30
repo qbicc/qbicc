@@ -18,7 +18,7 @@ public final class VM {
     @ThreadScoped
     @export
     @SuppressWarnings("unused")
-    static void_ptr _qbicc_bound_thread;
+    static Thread _qbicc_bound_thread;
 
     // Temporary manual implementation
     @SuppressWarnings("ManualArrayCopy")

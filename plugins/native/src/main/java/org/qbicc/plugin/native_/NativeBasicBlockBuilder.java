@@ -212,6 +212,9 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 case "doubleValue": {
                     return doConvert(input, type, ts.getFloat64Type());
                 }
+                case "booleanValue": {
+                    return isNe(input, lf.zeroInitializerLiteralOfType(input.getType()));
+                }
                 case "isNull":
                 case "isZero": {
                     return isEq(input, lf.zeroInitializerLiteralOfType(input.getType()));

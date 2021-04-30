@@ -17,11 +17,15 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
@@ -56,10 +60,49 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.extractMember(compound, member);
     }
 
+    private Value literalCast(Value value, WordType toType, boolean truncate) {
+        if (value instanceof IntegerLiteral) {
+            if (toType instanceof IntegerType) {
+                return ctxt.getLiteralFactory().literalOf((IntegerType) toType, ((IntegerLiteral) value).longValue());
+            } else if (toType instanceof BooleanType) {
+                long longValue = ((IntegerLiteral) value).longValue();
+                return ctxt.getLiteralFactory().literalOf((truncate ? (longValue & 1) : longValue) != 0);
+            } else if (toType instanceof FloatType) {
+                return ctxt.getLiteralFactory().literalOf((FloatType) toType, ((IntegerLiteral) value).longValue());
+            }
+        } else if (value instanceof FloatLiteral) {
+            if (toType instanceof IntegerType) {
+                return ctxt.getLiteralFactory().literalOf((IntegerType) toType, (long) ((FloatLiteral) value).doubleValue());
+            } else if (toType instanceof FloatType) {
+                return ctxt.getLiteralFactory().literalOf((FloatType) toType, ((FloatLiteral) value).doubleValue());
+            } else if (toType instanceof BooleanType) {
+                assert truncate;
+                return ctxt.getLiteralFactory().literalOf((((long) ((FloatLiteral) value).doubleValue()) & 1) != 0);
+            }
+        } else if (value instanceof BooleanLiteral) {
+            if (toType instanceof IntegerType) {
+                return ctxt.getLiteralFactory().literalOf((IntegerType) toType, ((BooleanLiteral) value).booleanValue() ? 1 : 0);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Value truncate(Value value, WordType toType) {
+        Value result = literalCast(value, toType, true);
+        return result != null ? result : super.truncate(value, toType);
+    }
+
+    @Override
+    public Value extend(Value value, WordType toType) {
+        Value result = literalCast(value, toType, false);
+        return result != null ? result : super.extend(value, toType);
+    }
+
     public Value isEq(final Value v1, final Value v2) {
-        if (isAlwaysNull(v1) && isAlwaysNull(v2)) {
+        if (isAlwaysNull(v1) && isAlwaysNull(v2) || v1.isDefEq(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
-        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2)) {
+        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2) || v1.isDefNe(v2)) {
             return ctxt.getLiteralFactory().literalOf(false);
         } else if (v1 instanceof Literal && v2 instanceof Literal && v1.getType().equals(v2.getType())) {
             // todo: replace with constant detection
@@ -77,9 +120,9 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value isNe(final Value v1, final Value v2) {
-        if (isAlwaysNull(v1) && isAlwaysNull(v2)) {
+        if (isAlwaysNull(v1) && isAlwaysNull(v2) || v1.isDefEq(v2)) {
             return ctxt.getLiteralFactory().literalOf(false);
-        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2)) {
+        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2) || v1.isDefNe(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
         }
 
@@ -241,6 +284,10 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     @Override
     public Value valueConvert(Value input, WordType toType) {
+        Value result = literalCast(input, toType, false);
+        if (result != null) {
+            return result;
+        }
         if (input instanceof Convert) {
             Convert inputNode = (Convert) input;
             Value inputInput = inputNode.getInput();
