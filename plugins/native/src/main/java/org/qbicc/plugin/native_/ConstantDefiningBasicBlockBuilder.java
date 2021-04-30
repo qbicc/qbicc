@@ -128,19 +128,6 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         }
         CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
         // compute the type and raw value
-        ValueType type = fieldElement.getType();
-        Value val;
-        // todo: if constant value is actually a symbol ref...
-        if (type instanceof IntegerType) {
-            val = lf.literalOf(constantInfo.getValueAsInt());
-        } else if (type instanceof FloatType) {
-            val = lf.literalOf(Float.intBitsToFloat(constantInfo.getValueAsInt()));
-        } else {
-            val = lf.literalOfUndefined();
-        }
-        if (constantInfo.isDefined()) {
-            val = lf.literalOfDefinedConstant(name, val);
-        }
-        constants.registerConstant(fieldElement, val);
+        constants.registerConstant(fieldElement, constantInfo.getValueAsLiteral(ctxt.getTypeSystem(), lf));
     }
 }
