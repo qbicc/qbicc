@@ -120,6 +120,7 @@ public interface Node {
             PhiValue orig;
             while ((orig = phiQueue.poll()) != null) {
                 PhiValue copy = (PhiValue) copiedNodes.get(orig);
+                BasicBlock ourBlock = copy.getPinnedBlock();
                 // process and map all incoming values - might enqueue more blocks or phis
                 for (BasicBlock incomingBlock : orig.getPinnedBlock().getIncoming()) {
                     Terminator incomingTerminator = incomingBlock.getTerminator();
@@ -128,8 +129,13 @@ public interface Node {
                         if (val != null) {
                             BasicBlock copiedIncomingBlock = copiedTerminators.get(incomingTerminator);
                             // if this block is null, that means that the copied block can no longer flow into this block due to transformation
-                            if (copiedIncomingBlock != null) {
-                                copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copiedIncomingBlock, copyValue(val));
+                            if (copiedIncomingBlock != null && copiedIncomingBlock.isSucceededBy(ourBlock)) {
+                                Value copiedValue = (Value) copiedNodes.get(val);
+                                // if this value is null, that means big problems
+                                if (copiedValue == null) {
+                                    throw new IllegalStateException("Incoming phi value was not copied");
+                                }
+                                copy.setValueForBlock(ctxt, blockBuilder.getCurrentElement(), copiedIncomingBlock, copiedValue);
                             }
                         }
                     }
