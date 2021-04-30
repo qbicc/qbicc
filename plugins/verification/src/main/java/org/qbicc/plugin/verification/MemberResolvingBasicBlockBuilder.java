@@ -154,7 +154,7 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().undefinedLiteralOfType(castType);
         } else if (castType instanceof ReferenceType) {
-            if (value.getType() instanceof ReferenceType && ((ReferenceType) value.getType()).isNullable()) {
+            if (value.getType() instanceof ReferenceType && value.isNullable()) {
                 castType = ((ReferenceType)castType).asNullable();
             }
             ObjectType toType = ((ReferenceType) castType).getUpperBound();

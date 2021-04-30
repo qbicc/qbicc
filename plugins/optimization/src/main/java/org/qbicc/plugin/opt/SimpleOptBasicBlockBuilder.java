@@ -350,11 +350,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private boolean isNeverNull(final Value v1) {
-        ValueType type = v1.getType();
-        if (isAlwaysNull(v1)) {
-            return false;
-        }
-        return ! (type instanceof ReferenceType) || ! ((ReferenceType) type).isNullable();
+        return !v1.isNullable();
     }
 
     public Value arrayLength(final ValueHandle arrayHandle) {

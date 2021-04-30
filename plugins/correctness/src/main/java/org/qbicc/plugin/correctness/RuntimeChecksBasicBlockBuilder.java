@@ -306,7 +306,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     private void nullCheck(Value value) {
-        if (value.getType() instanceof ArrayType || value.getType() instanceof ReferenceType && ! ((ReferenceType) value.getType()).isNullable()) {
+        if (value.getType() instanceof ArrayType || value.getType() instanceof ReferenceType && ! value.isNullable()) {
             return;
         }
 
