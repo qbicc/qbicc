@@ -1,7 +1,6 @@
 package org.qbicc.runtime.deserialization;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 
 /**
  * The main Deserializer engine.
@@ -116,7 +115,7 @@ public final class Deserializer implements SerializationConstants {
                 int length = tag == STRING_SMALL_L1 ? readU8() : readInt();
                 byte[] data = new byte[length];
                 in.get(data);
-                String str = new String(data, StandardCharsets.ISO_8859_1);
+                String str = thunk.createString(data, (byte)0, false, false);
                 objects.recordObject(str);
                 return str;
             }
@@ -125,7 +124,7 @@ public final class Deserializer implements SerializationConstants {
                 int length = readU8();
                 byte[] data = new byte[length * 2];
                 in.get(data);
-                String str = new String(data, StandardCharsets.UTF_16);
+                String str = thunk.createString(data, (byte)1, false, false);
                 objects.recordObject(str);
                 return str;
             }
@@ -135,7 +134,7 @@ public final class Deserializer implements SerializationConstants {
                 if (length < Integer.MAX_VALUE / 2) {
                     byte[] data = new byte[length * 2];
                     in.get(data);
-                    String str = new String(data, StandardCharsets.UTF_16);
+                    String str = thunk.createString(data, (byte)1, false, false);
                     objects.recordObject(str);
                     return str;
                 } else {
