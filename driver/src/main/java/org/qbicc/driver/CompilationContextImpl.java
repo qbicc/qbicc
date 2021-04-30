@@ -267,6 +267,9 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public org.qbicc.object.Function getExactFunction(final ExecutableElement element) {
+        if (element.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+            throw new IllegalArgumentException("Cannot get function of native method");
+        }
         // optimistic
         org.qbicc.object.Function function = exactFunctions.get(element);
         if (function != null) {
