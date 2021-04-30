@@ -92,6 +92,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             functionDefinition.meta("dbg", topSubprogram);
                         }
 
+                        functionDefinition.attribute(FunctionAttributes.framePointer("non-leaf"));
                         functionDefinition.attribute(FunctionAttributes.uwtable);
                         functionDefinition.gc("statepoint-example");
 

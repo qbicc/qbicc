@@ -128,23 +128,20 @@ public final class LLVM {
         return new ByteArrayImpl(contents);
     }
 
-    public static String quoteStringIfNeeded(final String str) {
-        for (int i = 0; i < str.length(); i++) {
-            char c = str.charAt(i);
-
-            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))) {
-                try {
-                    return AbstractEmittable.appendEscapedString(new StringBuilder(), str).toString();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+    public static String quoteString(final String str) {
+        try {
+            return AbstractEmittable.appendEscapedString(new StringBuilder(), str).toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-
-        return str;
     }
 
-    public static LLValue flagAttribute(final String flag) {
-        return new SingleWord(quoteStringIfNeeded(flag));
+    public static LLValue flagAttribute(final String attribute) {
+        return new SingleWord(attribute);
+    }
+
+    public static LLValue valueAttribute(final String attribute, final String value) {
+        // TODO Should we have a separate class for this?
+        return new SingleWord(attribute + "=" + value);
     }
 }
