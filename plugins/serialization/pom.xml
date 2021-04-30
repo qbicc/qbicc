@@ -6,28 +6,28 @@
 
     <parent>
         <groupId>org.qbicc</groupId>
-        <artifactId>qbicc-runtime-parent</artifactId>
+        <artifactId>qbicc-plugin-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qbicc-runtime-main</artifactId>
+    <artifactId>qbicc-plugin-serialization</artifactId>
 
     <dependencies>
         <dependency>
-            <groupId>org.qbicc</groupId>
-            <artifactId>qbicc-runtime-api</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-compiler</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.qbicc</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-runtime-deserialization</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.qbicc</groupId>
-            <artifactId>qbicc-runtime-posix</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-layout</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.qbicc</groupId>
-            <artifactId>qbicc-runtime-linux</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-gc-nogc</artifactId>
         </dependency>
     </dependencies>
 

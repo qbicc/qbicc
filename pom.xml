@@ -341,6 +341,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-plugin-serialization</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-plugin-thread-local</artifactId>
                 <version>${project.version}</version>
             </dependency>
