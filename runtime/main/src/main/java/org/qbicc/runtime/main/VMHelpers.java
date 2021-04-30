@@ -175,10 +175,14 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
-    static void raiseIncompatibleClassChangeError() { throw new IncompatibleClassChangeError(); }
+    static void raiseIncompatibleClassChangeError() {
+        throw new IncompatibleClassChangeError(); 
+    }
 
     // TODO: mark this with a "NoInline" annotation
-    static void raiseNegativeArraySizeException() { throw new NegativeArraySizeException(); }
+    static void raiseNegativeArraySizeException() {
+        throw new NegativeArraySizeException(); 
+    }
 
     // TODO: mark this with a "NoInline" annotation
     static void raiseNullPointerException() {
@@ -186,5 +190,7 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
-    static void raiseUnsatisfiedLinkError() { throw new UnsatisfiedLinkError(); }
+    static void raiseUnsatisfiedLinkError() {
+        throw new UnsatisfiedLinkError(); 
+    }
 }
