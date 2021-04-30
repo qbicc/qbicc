@@ -1,7 +1,6 @@
 package org.qbicc.graph;
 
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -15,7 +14,7 @@ public abstract class AbstractBooleanCompare extends AbstractBinaryValue {
         this.booleanType = booleanType;
     }
 
-    public ValueType getType() {
+    public BooleanType getType() {
         return booleanType;
     }
 }
