@@ -40,12 +40,12 @@ public class TestDeserialization {
     void writeStringU16(String str, DataOutputStream out) throws IOException {
         if (str.length() < 20) { // artificially small for testing. Actually support up to 255.
             out.write(SerializationConstants.STRING_SMALL_U16);
-            out.writeByte(str.getBytes(StandardCharsets.UTF_16).length/2);
+            out.writeByte(str.getBytes(StandardCharsets.UTF_16BE).length/2);
         } else {
             out.write(SerializationConstants.STRING_LARGE_U16);
-            out.writeInt(str.getBytes(StandardCharsets.UTF_16).length/2);
+            out.writeInt(str.getBytes(StandardCharsets.UTF_16BE).length/2);
         }
-        out.write(str.getBytes(StandardCharsets.UTF_16));
+        out.write(str.getBytes(StandardCharsets.UTF_16BE));
     }
 
     @Test

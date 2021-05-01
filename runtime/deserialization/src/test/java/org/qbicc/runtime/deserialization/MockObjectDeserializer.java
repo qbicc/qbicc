@@ -1,5 +1,7 @@
 package org.qbicc.runtime.deserialization;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * A mock to enable some simple testing without qbicc.
  */
@@ -9,6 +11,11 @@ public class MockObjectDeserializer implements ObjectDeserializer {
     final static int TYPEID_STRING = 20;
     final static int TYPEID_TEST1 = 21;
     final static int TYPEID_TEST2 = 22;
+
+    // In the real implementation, we simulate the lowlevel (byte[], byte) String constructor.
+    public String createString(byte[] data, byte coder, boolean longLived, boolean immortal) {
+        return coder == 0 ? new String(data, StandardCharsets.ISO_8859_1) : new String(data, StandardCharsets.UTF_16BE);
+    }
 
     // In the real implementation, we would use the typeId to index into a compiler-generated array of instance
     // sizes.  We then allocate the raw storage from the appropriate allocator and initialize the object header.
