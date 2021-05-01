@@ -1,6 +1,8 @@
 package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.qbicc.machine.llvm.AddressNaming;
 import org.qbicc.machine.llvm.CallingConvention;
@@ -8,19 +10,18 @@ import org.qbicc.machine.llvm.DllStorageClass;
 import org.qbicc.machine.llvm.Function;
 import org.qbicc.machine.llvm.Linkage;
 import org.qbicc.machine.llvm.LLValue;
-import org.qbicc.machine.llvm.SignExtension;
 import org.qbicc.machine.llvm.Visibility;
 import io.smallrye.common.constraint.Assert;
 
 abstract class AbstractFunction extends AbstractMetable implements Function {
     final String name;
+    final List<AbstractValue> attributes = new ArrayList<>();
     Linkage linkage = Linkage.EXTERNAL;
     Visibility visibility = Visibility.DEFAULT;
     DllStorageClass dllStorageClass = DllStorageClass.NONE;
     CallingConvention callingConvention = CallingConvention.C;
     AddressNaming addressNaming = AddressNaming.NAMED;
-    AbstractValue returnType;
-    SignExtension ext = SignExtension.none;
+    ReturnsImpl returnType;
 
     int addressSpace = 0;
     // todo: return type attribute
@@ -34,21 +35,11 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         this.name = name;
     }
 
-    public Function returns(final LLValue returnType) {
+    public Returns returns(final LLValue returnType) {
         Assert.checkNotNullParam("returnType", returnType);
         // todo with attributes...
-        this.returnType = (AbstractValue) returnType;
-        return this;
-    }
-
-    public Function signExt() {
-        ext = SignExtension.signext;
-        return this;
-    }
-
-    public Function zeroExt() {
-        ext = SignExtension.zeroext;
-        return this;
+        this.returnType = new ReturnsImpl((AbstractValue) returnType);
+        return this.returnType;
     }
 
     public ParameterImpl param(final LLValue type) {
@@ -106,6 +97,11 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         return this;
     }
 
+    public Function attribute(LLValue attribute) {
+        attributes.add((AbstractValue) Assert.checkNotNullParam("attribute", attribute));
+        return this;
+    }
+
     public Function meta(final String name, final LLValue data) {
         super.meta(name, data);
         return this;
@@ -120,149 +116,109 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
         return new NamedGlobalValueOf(this.name);
     }
 
-    ///////////////////
-    // Private API
-    ///////////////////
-
-    abstract String keyWord();
-
-    ///////////////////
-    // Emitting
-    ///////////////////
-
-    public final Appendable appendTo(final Appendable target) throws IOException {
-        target.append(keyWord());
-        target.append(' ');
-        final Linkage linkage = this.linkage;
+    protected final void appendLinkage(final Appendable target) throws IOException {
         if (linkage != Linkage.EXTERNAL) {
-            target.append(linkage.toString());
-            target.append(' ');
+            target.append(linkage.toString()).append(' ');
         }
-        appendAfterLinkage(target);
-        return target;
     }
 
-    void appendAfterLinkage(final Appendable target) throws IOException {
-        final Visibility visibility = this.visibility;
+    protected final void appendVisibility(final Appendable target) throws IOException {
         if (visibility != Visibility.DEFAULT) {
-            target.append(visibility.toString());
-            target.append(' ');
+            target.append(visibility.toString()).append(' ');
         }
-        appendAfterVisibility(target);
     }
 
-    void appendAfterVisibility(final Appendable target) throws IOException {
-        final DllStorageClass dllStorageClass = this.dllStorageClass;
+    protected final void appendDllStorageClass(final Appendable target) throws IOException {
         if (dllStorageClass != DllStorageClass.NONE) {
-            target.append(dllStorageClass.toString());
-            target.append(' ');
+            target.append(dllStorageClass.toString()).append(' ');
         }
-        appendAfterDllStorageClass(target);
     }
 
-    void appendAfterDllStorageClass(final Appendable target) throws IOException {
-        final CallingConvention callingConvention = this.callingConvention;
+    protected final void appendCallingConvention(final Appendable target) throws IOException {
         if (callingConvention != CallingConvention.C) {
-            target.append(callingConvention.toString());
-            target.append(' ');
+            target.append(callingConvention.toString()).append(' ');
         }
-        appendAfterCallingConvention(target);
     }
 
-    void appendAfterCallingConvention(final Appendable target) throws IOException {
-        final AddressNaming addressNaming = this.addressNaming;
-        if (addressNaming != AddressNaming.NAMED) {
-            target.append(addressNaming.toString());
-            target.append(' ');
-        }
-        appendAfterAddressNaming(target);
-    }
+    protected final void appendNameAndType(final Appendable target) throws IOException {
+        returnType.appendTo(target);
 
-    void appendAfterAddressNaming(final Appendable target) throws IOException {
-        final int addressSpace = this.addressSpace;
-        if (addressSpace != 0) {
-            target.append("addrspace(");
-            target.append(Integer.toString(addressSpace));
-            target.append(") ");
-        }
-        appendAfterAddressSpace(target);
-    }
+        target.append(" @").append(name).append('(');
 
-    void appendAfterAddressSpace(final Appendable target) throws IOException {
-        if(returnType != null) {
-            if(ext != SignExtension.none) {
-                target.append(ext.name());
-                target.append(' ');
-            }
-            returnType.appendTo(target);
-            target.append(' ');
-        }
-        appendAfterReturnType(target);
-    }
-
-    void appendAfterReturnType(final Appendable target) throws IOException {
-        // todo: param attr
-        appendAfterReturnTypeAttribute(target);
-    }
-
-    void appendAfterReturnTypeAttribute(final Appendable target) throws IOException {
-        target.append('@');
-        target.append(name);
-        appendAfterName(target);
-    }
-
-    void appendAfterName(final Appendable target) throws IOException {
-        target.append('(');
-        final ParameterImpl lastParam = this.lastParam;
         if (lastParam != null) {
             lastParam.appendTo(target);
             if (variadic) {
-                target.append(',').append(' ');
-                target.append("...");
+                target.append(", ...");
             }
         } else {
             if (variadic) {
                 target.append("...");
             }
         }
-        target.append(')');
-        appendAfterParams(target);
+
+        target.append(")");
     }
 
-    void appendAfterParams(final Appendable target) throws IOException {
-        if (alignment != 0) {
-            target.append("align ");
-            target.append(Integer.toString(alignment));
+    protected final void appendAddressNaming(final Appendable target) throws IOException {
+        if (addressNaming != AddressNaming.NAMED) {
+            target.append(' ').append(addressNaming.toString());
         }
-        appendAfterAlignment(target);
     }
 
-    void appendAfterAlignment(final Appendable target) throws IOException {
-        // todo: GC name?
-        appendAfterGc(target);
+    protected final void appendAddressSpace(final Appendable target) throws IOException {
+        if (addressSpace != 0) {
+            target.append(" addrspace(").append(Integer.toString(addressSpace)).append(')');
+        }
     }
 
-    void appendAfterGc(final Appendable target) throws IOException {
-        // todo: prefix
-        appendAfterPrefix(target);
+    protected final void appendFunctionAttributes(final Appendable target) throws IOException {
+        for (AbstractValue attribute : attributes) {
+            target.append(' ');
+            attribute.appendTo(target);
+        }
     }
 
-    void appendAfterPrefix(final Appendable target) throws IOException {
-        // todo: prologue
-        appendAfterPrologue(target);
+    protected final void appendAlign(final Appendable target) throws IOException {
+        if (alignment != 0) {
+            target.append(" align ").append(Integer.toString(alignment));
+        }
     }
 
-    void appendAfterPrologue(final Appendable target) throws IOException {
-        // nothing
-    }
+    static final class ReturnsImpl extends AbstractEmittable implements Returns {
+        final AbstractValue type;
+        final List<AbstractValue> attributes = new ArrayList<>();
 
+        ReturnsImpl(final AbstractValue type) {
+            this.type = type;
+        }
+
+        public ReturnsImpl attribute(LLValue attribute) {
+            this.attributes.add((AbstractValue) Assert.checkNotNullParam("attribute", attribute));
+            return this;
+        }
+
+        public LLValue type() {
+            return type;
+        }
+
+        public Appendable appendTo(Appendable target) throws IOException {
+            for (AbstractValue attribute : attributes) {
+                attribute.appendTo(target);
+                target.append(' ');
+            }
+
+            type.appendTo(target);
+
+            return target;
+        }
+    }
 
     static final class ParameterImpl extends AbstractEmittable implements Parameter {
         String name;
         final ParameterImpl prev;
         final AbstractFunction function;
         final AbstractValue type;
-        SignExtension ext = SignExtension.none;
+        final List<AbstractValue> attributes = new ArrayList<>();
 
         ParameterImpl(final ParameterImpl prev, final AbstractFunction function, final AbstractValue type) {
             this.prev = prev;
@@ -276,6 +232,11 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
 
         public ParameterImpl name(final String name) {
             this.name = name;
+            return this;
+        }
+
+        public ParameterImpl attribute(final LLValue attribute) {
+            attributes.add((AbstractValue) Assert.checkNotNullParam("attribute", attribute));
             return this;
         }
 
@@ -297,23 +258,14 @@ abstract class AbstractFunction extends AbstractMetable implements Function {
                 target.append(',').append(' ');
             }
             type.appendTo(target);
-            if (ext != SignExtension.none) {
-                target.append(' ').append(ext.name());
+            for (AbstractValue attribute : attributes) {
+                target.append(' ');
+                attribute.appendTo(target);
             }
             if (name != null) {
                 target.append(' ').append('%').append(name);
             }
             return target;
-        }
-
-        public ParameterImpl signExt() {
-            ext = SignExtension.signext;
-            return this;
-        }
-
-        public ParameterImpl zeroExt() {
-            ext = SignExtension.zeroext;
-            return this;
         }
     }
 }

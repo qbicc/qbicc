@@ -12,6 +12,7 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.schedule.Schedule;
+import org.qbicc.machine.llvm.FunctionAttributes;
 import org.qbicc.machine.llvm.FunctionDefinition;
 import org.qbicc.machine.llvm.Global;
 import org.qbicc.machine.llvm.LLValue;
@@ -57,6 +58,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
             final Module module = Module.newModule();
             final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(module, ctxt);
             final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(module, ctxt);
+            final LLVMPseudoIntrinsics pseudoIntrinsics = new LLVMPseudoIntrinsics(module);
 
             if (picLevel != 0) {
                 module.addFlag(ModuleFlagBehavior.Max, "PIC Level", Types.i32, Values.intConstant(picLevel));
@@ -90,7 +92,11 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             functionDefinition.meta("dbg", topSubprogram);
                         }
 
-                        LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, module, debugInfo, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
+                        functionDefinition.attribute(FunctionAttributes.framePointer("non-leaf"));
+                        functionDefinition.attribute(FunctionAttributes.uwtable);
+                        functionDefinition.gc("statepoint-example");
+
+                        LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
                         if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                             functionDefinition.section(sectionName);
                         }

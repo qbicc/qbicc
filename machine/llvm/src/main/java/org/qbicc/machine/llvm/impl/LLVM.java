@@ -1,5 +1,6 @@
 package org.qbicc.machine.llvm.impl;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.qbicc.machine.llvm.Array;
@@ -125,5 +126,22 @@ public final class LLVM {
 
     public static LLValue byteArray(final byte[] contents) {
         return new ByteArrayImpl(contents);
+    }
+
+    public static String quoteString(final String str) {
+        try {
+            return AbstractEmittable.appendEscapedString(new StringBuilder(), str).toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static LLValue flagAttribute(final String attribute) {
+        return new SingleWord(attribute);
+    }
+
+    public static LLValue valueAttribute(final String attribute, final String value) {
+        // TODO Should we have a separate class for this?
+        return new SingleWord(attribute + "=" + value);
     }
 }

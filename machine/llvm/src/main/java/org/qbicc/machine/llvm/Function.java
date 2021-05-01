@@ -6,7 +6,7 @@ package org.qbicc.machine.llvm;
 public interface Function extends Metable {
     // basic stuff
 
-    Function returns(LLValue returnType);
+    Returns returns(LLValue returnType);
 
     Parameter param(LLValue type);
 
@@ -26,15 +26,19 @@ public interface Function extends Metable {
 
     Function variadic();
 
+    Function attribute(LLValue attribute);
+
     Function meta(String name, LLValue metadata);
 
     Function comment(String comment);
 
-    Function signExt();
-
-    Function zeroExt();
-
     LLValue asGlobal();
+
+    interface Returns {
+        Returns attribute(LLValue attribute);
+
+        LLValue type();
+    }
 
     interface Parameter {
         /**
@@ -47,9 +51,7 @@ public interface Function extends Metable {
 
         Parameter name(String name);
 
-        Parameter signExt();
-
-        Parameter zeroExt();
+        Parameter attribute(LLValue attribute);
 
         LLValue type();
 

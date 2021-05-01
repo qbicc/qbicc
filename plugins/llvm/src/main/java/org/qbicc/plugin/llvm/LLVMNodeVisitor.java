@@ -75,12 +75,14 @@ import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.machine.llvm.FastMathFlag;
 import org.qbicc.machine.llvm.FloatCondition;
+import org.qbicc.machine.llvm.FunctionAttributes;
 import org.qbicc.machine.llvm.FunctionDefinition;
 import org.qbicc.machine.llvm.IntCondition;
 import org.qbicc.machine.llvm.LLBasicBlock;
 import org.qbicc.machine.llvm.LLBuilder;
 import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Module;
+import org.qbicc.machine.llvm.ParameterAttributes;
 import org.qbicc.machine.llvm.Values;
 import org.qbicc.machine.llvm.debuginfo.DILocation;
 import org.qbicc.machine.llvm.op.Call;
@@ -108,6 +110,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     final CompilationContext ctxt;
     final Module module;
     final LLVMModuleDebugInfo debugInfo;
+    final LLVMPseudoIntrinsics pseudoIntrinsics;
     final LLValue topSubprogram;
     final LLVMModuleNodeVisitor moduleVisitor;
     final Schedule schedule;
@@ -125,10 +128,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
 
     private boolean personalityAdded;
 
-    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLValue topSubprogram, final LLVMModuleNodeVisitor moduleVisitor, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
+    LLVMNodeVisitor(final CompilationContext ctxt, final Module module, final LLVMModuleDebugInfo debugInfo, final LLVMPseudoIntrinsics pseudoIntrinsics, final LLValue topSubprogram, final LLVMModuleNodeVisitor moduleVisitor, final Schedule schedule, final Function functionObj, final FunctionDefinition func) {
         this.ctxt = ctxt;
         this.module = module;
         this.debugInfo = debugInfo;
+        this.pseudoIntrinsics = pseudoIntrinsics;
         this.topSubprogram = topSubprogram;
         this.moduleVisitor = moduleVisitor;
         this.schedule = schedule;
@@ -152,27 +156,27 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             ParameterValue value = functionObj.getBody().getParameterValue(i);
             ValueType      type = value.getType();
             org.qbicc.machine.llvm.Function.Parameter param = func.param(map(type)).name(value.getLabel() + value.getIndex());
-            if(type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
-                if(type instanceof SignedIntegerType) {
-                    param.signExt();
+            if (type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
+                if (type instanceof SignedIntegerType) {
+                    param.attribute(ParameterAttributes.signext);
                 } else {
-                    param.zeroExt();
+                    param.attribute(ParameterAttributes.zeroext);
                 }
-            } else if(type instanceof BooleanType) {
-                param.zeroExt();
+            } else if (type instanceof BooleanType) {
+                param.attribute(ParameterAttributes.zeroext);
             }
             mappedValues.put(value, param.asValue());
         }
         ValueType retType = funcType.getReturnType();
-        func.returns(map(retType));
-        if(retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
-            if(retType instanceof SignedIntegerType) {
-                func.signExt();
+        org.qbicc.machine.llvm.Function.Returns ret = func.returns(map(retType));
+        if (retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
+            if (retType instanceof SignedIntegerType) {
+                ret.attribute(ParameterAttributes.signext);
             } else {
-                func.zeroExt();
+                ret.attribute(ParameterAttributes.zeroext);
             }
-        } else if(retType instanceof BooleanType) {
-            func.zeroExt();
+        } else if (retType instanceof BooleanType) {
+            ret.attribute(ParameterAttributes.zeroext);
         }
         map(entryBlock);
     }
@@ -581,6 +585,36 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
                       builder.urem(inputType, llvmLeft, llvmRight).asLocal();
     }
 
+    private LLValue createRefToPtrCast(final LLValue fromType, LLValue value, final LLValue toType) {
+        if (!pseudoIntrinsics.getCollectedPtrType().equals(fromType)) {
+            value = builder.bitcast(fromType, value, pseudoIntrinsics.getCollectedPtrType()).asLocal();
+        }
+
+        Call call = builder.call(pseudoIntrinsics.getCastRefToPtrType(), pseudoIntrinsics.getCastRefToPtr());
+        call.arg(pseudoIntrinsics.getCollectedPtrType(), value);
+
+        if (!pseudoIntrinsics.getRawPtrType().equals(toType)) {
+            return builder.bitcast(pseudoIntrinsics.getRawPtrType(), call.asLocal(), toType).asLocal();
+        } else {
+            return call.asLocal();
+        }
+    }
+
+    private LLValue createPtrToRefCast(final LLValue fromType, LLValue value, final LLValue toType) {
+        if (!pseudoIntrinsics.getRawPtrType().equals(fromType)) {
+            value = builder.bitcast(fromType, value, pseudoIntrinsics.getRawPtrType()).asLocal();
+        }
+
+        Call call = builder.call(pseudoIntrinsics.getCastPtrToRefType(), pseudoIntrinsics.getCastPtrToRef());
+        call.arg(pseudoIntrinsics.getRawPtrType(), value);
+
+        if (!pseudoIntrinsics.getCollectedPtrType().equals(toType)) {
+            return builder.bitcast(pseudoIntrinsics.getCollectedPtrType(), call.asLocal(), toType).asLocal();
+        } else {
+            return call.asLocal();
+        }
+    }
+
     public LLValue visit(final Void param, final BitCast node) {
         ValueType javaInputType = node.getInput().getType();
         ValueType javaOutputType = node.getType();
@@ -592,8 +626,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         }
 
         if (isPointerLike(javaInputType) && isPointerLike(javaOutputType) && isCollected(javaInputType) != isCollected(javaOutputType)) {
-            // TODO May need pseudointrinsic here for correctness
-            return builder.addrspacecast(inputType, llvmInput, outputType).asLocal();
+            if (isCollected(javaInputType)) {
+                return createRefToPtrCast(inputType, llvmInput, outputType);
+            } else {
+                return createPtrToRefCast(inputType, llvmInput, outputType);
+            }
         } else {
             return builder.bitcast(inputType, llvmInput, outputType).asLocal();
         }
@@ -612,14 +649,24 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         if (isPointerLike(javaInputType)) {
             if (isPointerLike(javaOutputType)) {
                 if (isCollected(javaInputType) != isCollected(javaOutputType)) {
-                    // TODO May need pseudointrinsic here for correctness
-                    return builder.addrspacecast(inputType, llvmInput, outputType).asLocal();
+                    if (isCollected(javaInputType)) {
+                        return createRefToPtrCast(inputType, llvmInput, outputType);
+                    } else {
+                        return createPtrToRefCast(inputType, llvmInput, outputType);
+                    }
                 } else {
                     return builder.bitcast(inputType, llvmInput, outputType).asLocal();
                 }
             } else if (javaOutputType instanceof IntegerType) {
-                // TODO May need pseudointrinsic here for correctness (if javaInputType is collected)
-                return builder.ptrtoint(inputType, llvmInput, outputType).asLocal();
+                if (isCollected(javaInputType)) {
+                    return builder.ptrtoint(
+                        pseudoIntrinsics.getRawPtrType(),
+                        createRefToPtrCast(inputType, llvmInput, pseudoIntrinsics.getRawPtrType()),
+                        outputType
+                    ).asLocal();
+                } else {
+                    return builder.ptrtoint(inputType, llvmInput, outputType).asLocal();
+                }
             }
         } else if (javaInputType instanceof FloatType) {
             if (javaOutputType instanceof SignedIntegerType) {
@@ -627,19 +674,25 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             } else if (javaOutputType instanceof UnsignedIntegerType) {
                 return builder.fptoui(inputType, llvmInput, outputType).asLocal();
             }
-        } else if (javaInputType instanceof SignedIntegerType) {
+        } else if (javaInputType instanceof IntegerType) {
             if (isPointerLike(javaOutputType)) {
-                // TODO May need pseudointrinsic here for correctness (if javaOutputType is collected)
-                return builder.inttoptr(inputType, llvmInput, outputType).asLocal();
-            } else if (javaOutputType instanceof FloatType) {
-                return builder.sitofp(inputType, llvmInput, outputType).asLocal();
-            }
-        } else if (javaInputType instanceof UnsignedIntegerType) {
-            if (isPointerLike(javaOutputType)) {
-                // TODO May need pseudointrinsic here for correctness (if javaOutputType is collected)
-                return builder.inttoptr(inputType, llvmInput, outputType).asLocal();
-            } else if (javaOutputType instanceof FloatType) {
-                return builder.uitofp(inputType, llvmInput, outputType).asLocal();
+                if (isCollected(javaOutputType)) {
+                    return createPtrToRefCast(
+                        pseudoIntrinsics.getRawPtrType(),
+                        builder.inttoptr(inputType, llvmInput, pseudoIntrinsics.getRawPtrType()).asLocal(),
+                        outputType
+                    );
+                } else {
+                    return builder.inttoptr(inputType, llvmInput, outputType).asLocal();
+                }
+            } else if (javaInputType instanceof SignedIntegerType) {
+                if (javaOutputType instanceof FloatType) {
+                    return builder.sitofp(inputType, llvmInput, outputType).asLocal();
+                }
+            } else if (javaInputType instanceof UnsignedIntegerType) {
+                if (javaOutputType instanceof FloatType) {
+                    return builder.uitofp(inputType, llvmInput, outputType).asLocal();
+                }
             }
         }
 
@@ -716,24 +769,25 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             ValueType type = arguments.get(i).getType();
             Call.Argument arg = call.arg(map(type), map(arguments.get(i)));
             if (type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
-                if(type instanceof SignedIntegerType) {
-                    arg.signExt();
+                if (type instanceof SignedIntegerType) {
+                    arg.attribute(ParameterAttributes.signext);
                 } else {
-                    arg.zeroExt();
+                    arg.attribute(ParameterAttributes.zeroext);
                 }
             } else if (type instanceof BooleanType) {
-                arg.zeroExt();
+                arg.attribute(ParameterAttributes.zeroext);
             }
         }
         ValueType retType = functionType.getReturnType();
-        if(retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
-            if(retType instanceof SignedIntegerType) {
-                call.signExt();
+        Call.Returns ret = call.returns();
+        if (retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
+            if (retType instanceof SignedIntegerType) {
+                ret.attribute(ParameterAttributes.signext);
             } else {
-                call.zeroExt();
+                ret.attribute(ParameterAttributes.zeroext);
             }
-        } else if(retType instanceof BooleanType) {
-            call.zeroExt();
+        } else if (retType instanceof BooleanType) {
+            ret.attribute(ParameterAttributes.zeroext);
         }
         return call.asLocal();
     }
@@ -751,27 +805,28 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         }
         Call call = builder.invoke(llType, llTarget, map(try_.getResumeTarget()), mapCatch(try_.getExceptionHandler()));
         for (int i = 0; i < arguments.size(); i++) {
-            ValueType type = functionType.getParameterType(i);
+            ValueType type = arguments.get(i).getType();
             Call.Argument arg = call.arg(map(type), map(arguments.get(i)));
-            if(type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
-                if(type instanceof SignedIntegerType) {
-                    arg.signExt();
+            if (type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
+                if (type instanceof SignedIntegerType) {
+                    arg.attribute(ParameterAttributes.signext);
                 } else {
-                    arg.zeroExt();
+                    arg.attribute(ParameterAttributes.zeroext);
                 }
             } else if (type instanceof BooleanType) {
-                arg.zeroExt();
+                arg.attribute(ParameterAttributes.zeroext);
             }
         }
         ValueType retType = functionType.getReturnType();
-        if(retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
-            if(retType instanceof SignedIntegerType) {
-                call.signExt();
+        Call.Returns ret = call.returns();
+        if (retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
+            if (retType instanceof SignedIntegerType) {
+                ret.attribute(ParameterAttributes.signext);
             } else {
-                call.zeroExt();
+                ret.attribute(ParameterAttributes.zeroext);
             }
-        } else if(retType instanceof BooleanType) {
-            call.zeroExt();
+        } else if (retType instanceof BooleanType) {
+            ret.attribute(ParameterAttributes.zeroext);
         }
 
         if (!personalityAdded) {
@@ -783,7 +838,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             //      func.personality(Values.bitcastConstant(map(literal), map(literal.getType()), ptrTo(i8)), ptrTo(i8));
             // but directly specifying the function works as well.
             func.personality(map(literal), map(literal.getType()));
-            func.unwindTable();
             personalityAdded = true;
         }
         return call.asLocal();

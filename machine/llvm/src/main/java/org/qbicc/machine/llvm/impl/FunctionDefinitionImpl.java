@@ -24,18 +24,13 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
     RuntimePreemption preemption = RuntimePreemption.PREEMPTABLE;
     private int blockCounter;
     private int localCounter;
+    private String gc = null;
     private AbstractValue personalityType = null;
     private AbstractValue personalityValue = null;
-    private boolean uwtable = false;
 
     FunctionDefinitionImpl(final ModuleImpl module, final String name) {
         super(name);
         this.module = module;
-    }
-
-    public FunctionDefinitionImpl returns(final LLValue returnType) {
-        super.returns(returnType);
-        return this;
     }
 
     public FunctionDefinition section(final String section) {
@@ -48,11 +43,6 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         return this;
     }
 
-    public FunctionDefinition unwindTable() {
-        this.uwtable = true;
-        return this;
-    }
-
     @Override
     public FunctionDefinition personality(final LLValue personalityValue, final LLValue personalityType) {
         this.personalityValue = (AbstractValue) Assert.checkNotNullParam("personalityValue", personalityValue);
@@ -60,12 +50,10 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
         return this;
     }
 
-    ///////////////////
-    // Abstract impl //
-    ///////////////////
-
-    String keyWord() {
-        return "define";
+    @Override
+    public FunctionDefinition gc(String gc) {
+        this.gc = gc;
+        return this;
     }
 
     //////////////////////////
@@ -138,53 +126,58 @@ final class FunctionDefinitionImpl extends AbstractFunction implements FunctionD
     // Output //
     ////////////
 
-    void appendAfterLinkage(final Appendable target) throws IOException {
-        final RuntimePreemption preemption = this.preemption;
+    private void appendPreemption(final Appendable target) throws IOException {
         if (preemption != RuntimePreemption.PREEMPTABLE) {
-            target.append(preemption.toString());
-            target.append(' ');
+            target.append(preemption.toString()).append(' ');
         }
-        super.appendAfterLinkage(target);
     }
 
-    void appendAfterAddressSpace(final Appendable target) throws IOException {
+    private void appendSection(final Appendable target) throws IOException {
         if (section != null) {
-            target.append("section \"");
-            target.append(section);
-            target.append('"');
-            target.append(' ');
+            target.append(" section ");
+            appendEscapedString(target, section);
         }
-        super.appendAfterAddressSpace(target);
     }
 
-    void appendAfterParams(final Appendable target) throws IOException {
-        if (uwtable) {
-            target.append(' ').append("uwtable");
+    private void appendGc(final Appendable target) throws IOException {
+        if (gc != null) {
+            target.append(" gc ");
+            appendEscapedString(target, gc);
         }
-        super.appendAfterParams(target);
     }
 
-    void appendAfterPrologue(final Appendable target) throws IOException {
+    private void appendPersonality(final Appendable target) throws IOException {
         if (personalityValue != null) {
-            target.append(' ').append("personality").append(' ');
+            target.append(" personality ");
             personalityType.appendTo(target);
             personalityValue.appendTo(target);
         }
+    }
+
+    @Override
+    public Appendable appendTo(Appendable target) throws IOException {
+        target.append("define ");
+        appendLinkage(target);
+        appendPreemption(target);
+        appendVisibility(target);
+        appendDllStorageClass(target);
+        appendCallingConvention(target);
+        appendNameAndType(target);
+        appendAddressNaming(target);
+        appendAddressSpace(target);
+        appendFunctionAttributes(target);
+        appendAlign(target);
+        appendSection(target);
+        appendGc(target);
+        appendPersonality(target);
         appendMeta(target);
-        appendAfterPersonality(target);
-    }
-
-    void appendAfterPersonality(final Appendable target) throws IOException {
-        appendAfterMetadata(target);
-    }
-
-    void appendAfterMetadata(final Appendable target) throws IOException {
-        target.append(' ');
-        target.append('{');
+        target.append(" {");
         appendComment(target);
         target.append(System.lineSeparator());
         lastBlock.appendAsBlockTo(target);
         target.append('}');
+
+        return target;
     }
 
     void assignName(final BasicBlockImpl basicBlock) {
