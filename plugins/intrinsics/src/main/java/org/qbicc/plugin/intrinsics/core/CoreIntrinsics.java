@@ -24,7 +24,6 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
-import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
 import org.qbicc.plugin.intrinsics.InstanceValueIntrinsic;
@@ -276,7 +275,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor steDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/StackTraceElement");
         ArrayTypeDescriptor steArrayDesc = ArrayTypeDescriptor.of(classContext, steDesc);
 
-        ZeroInitializerLiteral zero = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getSignedInteger32Type());
+        Literal zero = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getSignedInteger32Type(), 0);
 
         // todo: temporary, until we have a stack walker
 

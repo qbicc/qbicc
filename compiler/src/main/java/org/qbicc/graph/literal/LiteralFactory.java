@@ -9,6 +9,7 @@ import java.util.function.Function;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.ArrayType;
+import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
@@ -58,13 +59,13 @@ public interface LiteralFactory {
 
     NullLiteral nullLiteralOfType(NullableType nullableType);
 
-    ZeroInitializerLiteral zeroInitializerLiteralOfType(ValueType type);
+    Literal zeroInitializerLiteralOfType(ValueType type);
 
-    ArrayLiteral literalOf(ArrayType type, List<Literal> values);
+    Literal literalOf(ArrayType type, List<Literal> values);
 
-    ByteArrayLiteral literalOf(ArrayType type, byte[] values);
+    Literal literalOf(ArrayType type, byte[] values);
 
-    CompoundLiteral literalOf(CompoundType type, Map<CompoundType.Member, Literal> values);
+    Literal literalOf(CompoundType type, Map<CompoundType.Member, Literal> values);
 
     BitCastLiteral bitcastLiteral(Literal value, WordType toType);
 
@@ -168,33 +169,57 @@ public interface LiteralFactory {
                 return nullLiterals.computeIfAbsent(type, NullLiteral::new);
             }
 
-            public ZeroInitializerLiteral zeroInitializerLiteralOfType(final ValueType type) {
+            public Literal zeroInitializerLiteralOfType(final ValueType type) {
                 Assert.checkNotNullParam("type", type);
+                if (type instanceof IntegerType) {
+                    return literalOf((IntegerType) type, 0);
+                } else if (type instanceof FloatType) {
+                    return literalOf((FloatType) type, 0.0);
+                } else if (type instanceof BooleanType) {
+                    return literalOf(false);
+                } else if (type instanceof NullableType) {
+                    return nullLiteralOfType((NullableType) type);
+                }
                 return zeroLiterals.computeIfAbsent(type, ZeroInitializerLiteral::new);
             }
 
-            public ArrayLiteral literalOf(final ArrayType type, final List<Literal> values) {
+            public Literal literalOf(final ArrayType type, final List<Literal> values) {
                 Assert.checkNotNullParam("type", type);
                 Assert.checkNotNullParam("values", values);
                 if (type.getElementCount() != values.size()) {
                     throw new IllegalArgumentException("Cannot construct array literal with different element count than the size of the list of values");
                 }
-                return new ArrayLiteral(type, values);
+                for (Literal value : values) {
+                    if (value.isNonZero()) {
+                        return new ArrayLiteral(type, values);
+                    }
+                }
+                return zeroInitializerLiteralOfType(type);
             }
 
-            public ByteArrayLiteral literalOf(ArrayType type, byte[] values) {
+            public Literal literalOf(ArrayType type, byte[] values) {
                 Assert.checkNotNullParam("type", type);
                 Assert.checkNotNullParam("values", values);
                 if (type.getElementCount() != values.length) {
                     throw new IllegalArgumentException("Cannot construct array literal with different element count than the size of the list of values");
                 }
-                return new ByteArrayLiteral(type, values);
+                for (byte value : values) {
+                    if (value != 0) {
+                        return new ByteArrayLiteral(type, values);
+                    }
+                }
+                return zeroInitializerLiteralOfType(type);
             }
 
-            public CompoundLiteral literalOf(final CompoundType type, final Map<CompoundType.Member, Literal> values) {
+            public Literal literalOf(final CompoundType type, final Map<CompoundType.Member, Literal> values) {
                 Assert.checkNotNullParam("type", type);
                 Assert.checkNotNullParam("values", values);
-                return new CompoundLiteral(type, values);
+                for (Literal value : values.values()) {
+                    if (value.isNonZero()) {
+                        return new CompoundLiteral(type, values);
+                    }
+                }
+                return zeroInitializerLiteralOfType(type);
             }
 
             public BitCastLiteral bitcastLiteral(final Literal value, final WordType toType) {

@@ -45,7 +45,6 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
@@ -343,17 +342,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     }
 
     public LLValue visit(final Void param, final ZeroInitializerLiteral node) {
-        if (node.getType() instanceof IntegerType) {
-            return Values.intConstant(0);
-        } else if (node.getType() instanceof PointerType) {
-            return NULL;
-        } else if (node.getType() instanceof BooleanType) {
-            return FALSE;
-        } else if (node.getType() instanceof FloatType) {
-            return Values.floatConstant(0);
-        } else {
-            return Values.zeroinitializer;
-        }
+        return Values.zeroinitializer;
     }
 
     public LLValue visit(final Void param, final BooleanLiteral node) {
@@ -442,7 +431,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
 
             CompoundType baType = ts.getCompoundType(CompoundType.Tag.NONE, "ba" + id, 0, 1, () -> List.of(typeIdMem, lengthMem, realContentMem));
 
-            CompoundLiteral baLit = lf.literalOf(baType, Map.of(
+            Literal baLit = lf.literalOf(baType, Map.of(
                 typeIdMem, lf.literalOfType(ba.load().getType()),
                 lengthMem, lf.literalOf(bytes.length),
                 realContentMem, lf.literalOf(s8ArrayType, bytes)
@@ -454,12 +443,12 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             CompoundType.Member coderMem = jlsLayout.getMember(jls.load().findField("coder"));
             CompoundType.Member valueMem = jlsLayout.getMember(jls.load().findField("value"));
             CompoundType stringType = ts.getCompoundType(CompoundType.Tag.NONE, "str" + id, 0, 1, () -> List.of(typeIdMem, coderMem, valueMem));
-            CompoundLiteral lit = lf.literalOf(stringType, Map.of(
+            Literal lit = lf.literalOf(stringType, Map.of(
                 typeIdMem, lf.literalOfType(jls.load().getType()),
                 coderMem, lf.literalOf(node.isLatin1() ? 0 : 1),
                 valueMem, lf.valueConvertLiteral(lf.literalOfSymbol("ba" + id, baType.getPointer().asCollected()), jls.load().getType().getReference())
             ));
-            module.constant(map(stringType)).value(visit(param, lit)).linkage(Linkage.PRIVATE).addressSpace(1).asGlobal("str" + id);
+            module.constant(map(stringType)).value(lit.accept(this, param)).linkage(Linkage.PRIVATE).addressSpace(1).asGlobal("str" + id);
             TEMPORARY_stringLiterals.put(value, v = map(lf.valueConvertLiteral(lf.literalOfSymbol("str" + id, lit.getType().getPointer().asCollected()), jls.load().getClassType().getReference())));
         }
         return v;

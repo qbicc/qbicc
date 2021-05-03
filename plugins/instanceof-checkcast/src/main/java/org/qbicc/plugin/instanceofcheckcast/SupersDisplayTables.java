@@ -11,7 +11,6 @@ import java.util.stream.IntStream;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.object.Section;
@@ -453,7 +452,7 @@ public class SupersDisplayTables {
             );
         }
         ArrayType typeIdsArrayType = ctxt.getTypeSystem().getArrayType(typeIdStruct, typeIdTable.length);
-        ArrayLiteral typeIdsValue = ctxt.getLiteralFactory().literalOf(typeIdsArrayType, List.of(typeIdTable));
+        Literal typeIdsValue = ctxt.getLiteralFactory().literalOf(typeIdsArrayType, List.of(typeIdTable));
         section.addData(null, GLOBAL_TYPEID_ARRAY, typeIdsValue);
 
         // create a GlobalVariable for shared access to the typeId array
