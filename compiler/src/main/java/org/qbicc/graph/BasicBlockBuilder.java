@@ -158,7 +158,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     // phi
 
-    PhiValue phi(ValueType type, BlockLabel owner);
+    PhiValue phi(ValueType type, BlockLabel owner, PhiValue.Flag... flags);
 
     // ternary
 

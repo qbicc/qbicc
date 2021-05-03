@@ -263,8 +263,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().insertMember(compound, member, value);
     }
 
-    public PhiValue phi(final ValueType type, final BlockLabel owner) {
-        return getDelegate().phi(type, owner);
+    public PhiValue phi(final ValueType type, final BlockLabel owner, PhiValue.Flag... flags) {
+        return getDelegate().phi(type, owner, flags);
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {

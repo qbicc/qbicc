@@ -756,9 +756,12 @@ public interface Node {
                 return node;
             }
 
+            static final PhiValue.Flag[] NO_FLAGS = new PhiValue.Flag[0];
+            static final PhiValue.Flag[] NOT_NULL_FLAGS = new PhiValue.Flag[] { PhiValue.Flag.NOT_NULL };
+
             public Value visit(final Copier param, final PhiValue node) {
                 param.enqueue(node);
-                return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()));
+                return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()), node.possibleValuesAreNullable() ? NO_FLAGS : NOT_NULL_FLAGS);
             }
 
             public Value visit(Copier param, ReferenceTo node) {

@@ -140,7 +140,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         ExceptionHandlerImpl(final int index, final BasicBlockBuilder.ExceptionHandler delegate) {
             this.index = index;
             this.delegate = delegate;
-            this.phi = gf.phi(throwable.load().getType().getReference().asNullable(), new BlockLabel());
+            this.phi = gf.phi(throwable.load().getType().getReference().asNullable(), new BlockLabel(), PhiValue.Flag.NOT_NULL);
         }
 
         private void clearExceptionField() {
