@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.Value;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
@@ -53,8 +52,6 @@ public interface LiteralFactory {
     SymbolLiteral literalOfSymbol(String name, ValueType symbolType);
 
     UndefinedLiteral literalOfUndefined();
-
-    DefinedConstantLiteral literalOfDefinedConstant(String name, Value constantValue);
 
     TypeLiteral literalOfType(ValueType type);
 
@@ -134,10 +131,6 @@ public interface LiteralFactory {
 
             public UndefinedLiteral literalOfUndefined() {
                 return undef;
-            }
-
-            public DefinedConstantLiteral literalOfDefinedConstant(final String name, final Value constantValue) {
-                return new DefinedConstantLiteral(name, constantValue);
             }
 
             public ObjectLiteral literalOf(final VmObject value) {

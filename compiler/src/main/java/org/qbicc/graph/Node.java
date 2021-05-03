@@ -14,7 +14,6 @@ import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
-import org.qbicc.graph.literal.DefinedConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodDescriptorLiteral;
@@ -506,10 +505,6 @@ public interface Node {
             public Value visit(final Copier param, final CurrentThreadRead node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().currentThread();
-            }
-
-            public Value visit(final Copier param, final DefinedConstantLiteral node) {
-                return node;
             }
 
             public Value visit(final Copier param, final Div node) {

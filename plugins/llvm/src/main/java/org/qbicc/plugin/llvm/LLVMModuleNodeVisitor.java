@@ -21,7 +21,6 @@ import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
-import org.qbicc.graph.literal.DefinedConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
@@ -320,11 +319,6 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             struct.item(array((int) (size - offs), i8), zeroinitializer);
         }
         return struct;
-    }
-
-    @Override
-    public LLValue visit(Void param, DefinedConstantLiteral node) {
-        return node.getValue().accept(this, param);
     }
 
     public LLValue visit(final Void param, final FloatLiteral node) {

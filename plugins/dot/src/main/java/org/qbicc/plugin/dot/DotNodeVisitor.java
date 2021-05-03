@@ -102,7 +102,6 @@ import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
-import org.qbicc.graph.literal.DefinedConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodDescriptorLiteral;
@@ -633,10 +632,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         dependencyList.add(name);
         processDependency(param, node.getDependency());
         return name;
-    }
-
-    public String visit(final Appendable param, final DefinedConstantLiteral node) {
-        return literal(param, "constant " + node.getName());
     }
 
     public String visit(final Appendable param, final Div node) {
