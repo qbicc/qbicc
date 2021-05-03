@@ -51,7 +51,12 @@ final class PhiImpl extends AbstractYieldingInstruction implements Phi {
             target.append(' ');
             lastItem.appendTo(target);
         } else {
-            target.append("undef");
+            target.append("select").append(' ');
+            target.append("i1").append(' ').append("true").append(',').append(' ');
+            type.appendTo(target);
+            target.append(' ').append("undef").append(',').append(' ');
+            type.appendTo(target);
+            target.append(' ').append("undef");
         }
         return appendTrailer(target);
     }
