@@ -30,6 +30,11 @@ public class BitCastLiteral extends Literal {
         return other == this || other != null && toType.equals(other.toType) && value.equals(other.value);
     }
 
+    @Override
+    Literal bitCast(LiteralFactory lf, WordType toType) {
+        return lf.bitcastLiteral(value, toType);
+    }
+
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }

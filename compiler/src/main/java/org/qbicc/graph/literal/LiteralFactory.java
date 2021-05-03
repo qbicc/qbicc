@@ -67,9 +67,9 @@ public interface LiteralFactory {
 
     Literal literalOf(CompoundType type, Map<CompoundType.Member, Literal> values);
 
-    BitCastLiteral bitcastLiteral(Literal value, WordType toType);
+    Literal bitcastLiteral(Literal value, WordType toType);
 
-    ValueConvertLiteral valueConvertLiteral(Literal value, WordType toType);
+    Literal valueConvertLiteral(Literal value, WordType toType);
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
@@ -222,13 +222,13 @@ public interface LiteralFactory {
                 return zeroInitializerLiteralOfType(type);
             }
 
-            public BitCastLiteral bitcastLiteral(final Literal value, final WordType toType) {
+            public Literal bitcastLiteral(final Literal value, final WordType toType) {
                 Assert.checkNotNullParam("value", value);
                 Assert.checkNotNullParam("toType", toType);
-                return new BitCastLiteral(value, toType);
+                return value.bitCast(this, toType);
             }
 
-            public ValueConvertLiteral valueConvertLiteral(final Literal value, final WordType toType) {
+            public Literal valueConvertLiteral(final Literal value, final WordType toType) {
                 Assert.checkNotNullParam("value", value);
                 Assert.checkNotNullParam("toType", toType);
                 return new ValueConvertLiteral(value, toType);

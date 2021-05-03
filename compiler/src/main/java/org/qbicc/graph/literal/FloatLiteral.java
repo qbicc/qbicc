@@ -3,6 +3,8 @@ package org.qbicc.graph.literal;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.FloatType;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.WordType;
 
 public final class FloatLiteral extends WordLiteral {
     private final FloatType type;
@@ -43,6 +45,18 @@ public final class FloatLiteral extends WordLiteral {
 
     public int hashCode() {
         return hashCode;
+    }
+
+    @Override
+    Literal bitCast(LiteralFactory lf, WordType toType) {
+        int minBits = type.getMinBits();
+        if (toType.getMinBits() != minBits) {
+            throw new IllegalArgumentException("Invalid literal bitcast between differently-sized types");
+        }
+        if (toType instanceof IntegerType) {
+            return lf.literalOf((IntegerType) toType, minBits == 32 ? Float.floatToRawIntBits(floatValue()) : Double.doubleToRawLongBits(value));
+        }
+        return super.bitCast(lf, toType);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
