@@ -967,22 +967,28 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     }
                     case OP_IFEQ:
-                        processIf(buffer, gf.isEq(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        v1 = pop1();
+                        processIf(buffer, gf.isEq(v1, lf.zeroInitializerLiteralOfType(v1.getType())), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFNE:
-                        processIf(buffer, gf.isNe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        v1 = pop1();
+                        processIf(buffer, gf.isNe(v1, lf.zeroInitializerLiteralOfType(v1.getType())), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFLT:
-                        processIf(buffer, gf.isLt(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        v1 = pop1();
+                        processIf(buffer, gf.isLt(v1, lf.zeroInitializerLiteralOfType(v1.getType())), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFGE:
-                        processIf(buffer, gf.isGe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        v1 = pop1();
+                        processIf(buffer, gf.isGe(v1, lf.zeroInitializerLiteralOfType(v1.getType())), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFGT:
-                        processIf(buffer, gf.isGt(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        v1 = pop1();
+                        processIf(buffer, gf.isGt(v1, lf.zeroInitializerLiteralOfType(v1.getType())), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IFLE:
-                        processIf(buffer, gf.isLe(pop1(), lf.literalOf(0)), buffer.getShort() + src, buffer.position());
+                        v1 = pop1();
+                        processIf(buffer, gf.isLe(v1, lf.zeroInitializerLiteralOfType(v1.getType())), buffer.getShort() + src, buffer.position());
                         return;
                     case OP_IF_ICMPEQ:
                     case OP_IF_ACMPEQ:
