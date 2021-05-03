@@ -43,6 +43,11 @@ public final class CurrentThreadRead extends AbstractValue implements OrderedNod
     }
 
     @Override
+    public boolean isNullable() {
+        return false;
+    }
+
+    @Override
     public <T, R> R accept(ValueVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }

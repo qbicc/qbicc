@@ -34,6 +34,11 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
         return Objects.hash(ClassOf.class, input);
     }
 
+    @Override
+    public boolean isNullable() {
+        return false;
+    }
+
     public boolean equals(final Object other) {
         return other instanceof ClassOf && equals((ClassOf) other);
     }
