@@ -527,6 +527,7 @@ public final class CoreIntrinsics {
         MethodDescriptor typeIdTypeIdBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(typeIdDesc, typeIdDesc));
         MethodDescriptor clsTypeId = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(clsDesc));
         MethodDescriptor clsInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(clsDesc));
+        MethodDescriptor IntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
 
         StaticValueIntrinsic typeOf = (builder, owner, name, descriptor, arguments) ->
             builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
@@ -622,6 +623,9 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic getTypeIdFromClass = (builder, owner, name, descriptor, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), layout.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_type_id_from_class", clsTypeId, getTypeIdFromClass);
+
+        StaticValueIntrinsic getNumberOfTypeIds = (builder, owner, name, descriptor, arguments) -> lf.literalOf(tables.get_number_of_typeids());
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_number_of_typeids", IntDesc, getNumberOfTypeIds);
     }
 
     static void registerOrgQbiccRuntimeValuesIntrinsics(final CompilationContext ctxt) {

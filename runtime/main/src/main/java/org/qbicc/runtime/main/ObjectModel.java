@@ -92,4 +92,10 @@ public class ObjectModel {
      * Does a typeId implement the argument interface?
      */
     public static native boolean does_implement(CNative.type_id valueTypeId, CNative.type_id interfaceTypeId);
+
+    /**
+     * Get the number of typeIds in the system.
+     * This will be 1 higher than the highest typeid
+     */
+    public static native int get_number_of_typeids();
 }
