@@ -38,6 +38,10 @@ public final class ObjectLiteral extends Literal {
         return visitor.visit(param, this);
     }
 
+    public boolean isZero() {
+        return false;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof ObjectLiteral && equals((ObjectLiteral) other);
     }

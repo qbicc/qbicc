@@ -3,7 +3,7 @@ package org.qbicc.type;
 /**
  * A pointer to another type.  The size and behavior of a pointer type may depend on the target platform.
  */
-public final class PointerType extends WordType {
+public final class PointerType extends NullableType {
     private final ValueType pointeeType;
     private final boolean restrict;
     private final boolean constPointee;

@@ -30,6 +30,10 @@ public final class BlockLiteral extends Literal {
         return BlockLabel.getTargetOf(blockLabel);
     }
 
+    public boolean isZero() {
+        return false;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof BlockLiteral && equals((BlockLiteral) other);
     }

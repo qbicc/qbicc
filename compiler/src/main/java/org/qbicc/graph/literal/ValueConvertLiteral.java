@@ -18,6 +18,10 @@ public class ValueConvertLiteral extends Literal {
 
     public Literal getValue() { return value; }
 
+    public boolean isZero() {
+        return value.isZero();
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof ValueConvertLiteral && equals((ValueConvertLiteral) other);
     }

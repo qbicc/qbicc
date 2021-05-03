@@ -8,7 +8,7 @@ import java.util.Set;
  * pointee contains, somewhere, a value of type {@link TypeType} representing the object's polymorphic
  * type.  Alternatively, a reference value may be equal to {@code null}.
  */
-public final class ReferenceType extends WordType {
+public final class ReferenceType extends NullableType {
     private final PhysicalObjectType upperBound;
     private final Set<InterfaceObjectType> interfaceBounds;
     private final int size;

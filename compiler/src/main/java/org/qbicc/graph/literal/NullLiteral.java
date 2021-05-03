@@ -1,19 +1,19 @@
 package org.qbicc.graph.literal;
 
 import org.qbicc.graph.ValueVisitor;
-import org.qbicc.type.ValueType;
+import org.qbicc.type.NullableType;
 
 /**
- * A zero-initializer literal of some type which can be used to initialize arrays and structures.
+ * A literal of the {@code null} value of pointers and references.
  */
-public final class ZeroInitializerLiteral extends Literal {
-    private final ValueType type;
+public final class NullLiteral extends Literal {
+    private final NullableType type;
 
-    ZeroInitializerLiteral(final ValueType type) {
+    NullLiteral(final NullableType type) {
         this.type = type;
     }
 
-    public ValueType getType() {
+    public NullableType getType() {
         return type;
     }
 
@@ -23,10 +23,10 @@ public final class ZeroInitializerLiteral extends Literal {
     }
 
     public boolean equals(final Literal other) {
-        return other instanceof ZeroInitializerLiteral && equals((ZeroInitializerLiteral) other);
+        return other instanceof NullLiteral && equals((NullLiteral) other);
     }
 
-    public boolean equals(final ZeroInitializerLiteral other) {
+    public boolean equals(final NullLiteral other) {
         return other == this || other != null && type.equals(other.type);
     }
 
@@ -35,10 +35,10 @@ public final class ZeroInitializerLiteral extends Literal {
     }
 
     public int hashCode() {
-        return ZeroInitializerLiteral.class.hashCode();
+        return NullLiteral.class.hashCode();
     }
 
     public String toString() {
-        return "{0}";
+        return "null";
     }
 }

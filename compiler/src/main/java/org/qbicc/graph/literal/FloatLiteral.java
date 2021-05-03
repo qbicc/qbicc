@@ -29,6 +29,11 @@ public final class FloatLiteral extends Literal {
         return value;
     }
 
+    @Override
+    public boolean isZero() {
+        return Double.doubleToRawLongBits(value) == 0L;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof FloatLiteral && equals((FloatLiteral) other);
     }

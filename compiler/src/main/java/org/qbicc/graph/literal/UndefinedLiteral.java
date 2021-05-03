@@ -13,6 +13,10 @@ public final class UndefinedLiteral extends Literal {
         this.type = type;
     }
 
+    public boolean isZero() {
+        return false;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof UndefinedLiteral;
     }

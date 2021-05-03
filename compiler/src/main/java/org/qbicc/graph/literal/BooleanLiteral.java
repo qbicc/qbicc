@@ -22,6 +22,10 @@ public final class BooleanLiteral extends Literal {
         return value;
     }
 
+    public boolean isZero() {
+        return !value;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof BooleanLiteral && equals((BooleanLiteral) other);
     }

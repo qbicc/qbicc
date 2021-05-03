@@ -15,8 +15,8 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
-import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.type.ClassObjectType;
@@ -62,7 +62,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         }
 
         // Second, null can be trivially cast to any reference type
-        if (input instanceof ZeroInitializerLiteral) {
+        if (input instanceof NullLiteral) {
             return bitCast(input, type);
         }
 
@@ -117,7 +117,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
     public Value instanceOf(final Value input, final ObjectType expectedType, int expectedDimensions) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         // "null" instanceof <X> is always false
-        if (input instanceof ZeroInitializerLiteral) {
+        if (input instanceof NullLiteral) {
             return ctxt.getLiteralFactory().literalOf(false);
         }
 

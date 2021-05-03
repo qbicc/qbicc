@@ -10,7 +10,6 @@ import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
@@ -150,7 +149,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
             // no bitcast needed
             return from;
         }
-        if (from instanceof ZeroInitializerLiteral || from instanceof IntegerLiteral && ((IntegerLiteral) from).isZero()) {
+        if (from instanceof IntegerLiteral && ((IntegerLiteral) from).isZero()) {
             return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(toType);
         }
         if (fromTypeRaw instanceof WordType) {

@@ -18,6 +18,10 @@ public final class MethodHandleLiteral extends Literal {
         this.referenceIndex = reference;
     }
 
+    public boolean isZero() {
+        return false;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof MethodHandleLiteral && equals((MethodHandleLiteral) other);
     }

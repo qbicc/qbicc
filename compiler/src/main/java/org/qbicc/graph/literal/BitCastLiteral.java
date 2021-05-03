@@ -18,6 +18,10 @@ public class BitCastLiteral extends Literal {
 
     public Literal getValue() { return value; }
 
+    public boolean isZero() {
+        return value.isZero();
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof BitCastLiteral && equals((BitCastLiteral) other);
     }

@@ -12,6 +12,7 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -55,6 +56,8 @@ public interface LiteralFactory {
 
     TypeLiteral literalOfType(ValueType type);
 
+    NullLiteral nullLiteralOfType(NullableType nullableType);
+
     ZeroInitializerLiteral zeroInitializerLiteralOfType(ValueType type);
 
     ArrayLiteral literalOf(ArrayType type, List<Literal> values);
@@ -78,6 +81,7 @@ public interface LiteralFactory {
             private final ConcurrentMap<FloatLiteral, FloatLiteral> floatLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, TypeLiteral> typeLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, ZeroInitializerLiteral> zeroLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<NullableType, NullLiteral> nullLiterals = new ConcurrentHashMap<>();
 
             public BlockLiteral literalOf(final BlockLabel blockLabel) {
                 return new BlockLiteral(typeSystem.getBlockType(), blockLabel);
@@ -157,6 +161,11 @@ public interface LiteralFactory {
             public TypeLiteral literalOfType(final ValueType type) {
                 Assert.checkNotNullParam("type", type);
                 return typeLiterals.computeIfAbsent(type, TypeLiteral::new);
+            }
+
+            public NullLiteral nullLiteralOfType(NullableType type) {
+                Assert.checkNotNullParam("type", type);
+                return nullLiterals.computeIfAbsent(type, NullLiteral::new);
             }
 
             public ZeroInitializerLiteral zeroInitializerLiteralOfType(final ValueType type) {

@@ -25,6 +25,7 @@ import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -331,6 +332,10 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
 
     public LLValue visit(final Void param, final IntegerLiteral node) {
         return Values.intConstant(node.longValue());
+    }
+
+    public LLValue visit(final Void param, final NullLiteral node) {
+        return NULL;
     }
 
     public LLValue visit(final Void param, final SymbolLiteral node) {

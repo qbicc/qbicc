@@ -32,6 +32,10 @@ public final class ByteArrayLiteral extends Literal {
         return visitor.visit(param, this);
     }
 
+    public boolean isZero() {
+        return false;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof ByteArrayLiteral && equals((ByteArrayLiteral) other);
     }

@@ -16,6 +16,10 @@ public final class MethodDescriptorLiteral extends Literal {
         this.desc = desc;
     }
 
+    public boolean isZero() {
+        return false;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof MethodDescriptorLiteral && equals((MethodDescriptorLiteral) other);
     }
