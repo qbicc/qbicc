@@ -9,9 +9,11 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.Cmp;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Extend;
 import org.qbicc.graph.NewArray;
 import org.qbicc.graph.PointerHandle;
 import org.qbicc.graph.ReferenceHandle;
+import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.ArrayLiteral;
@@ -90,7 +92,13 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     @Override
     public Value truncate(Value value, WordType toType) {
         Value result = literalCast(value, toType, true);
-        return result != null ? result : super.truncate(value, toType);
+        if (result != null) {
+            return result;
+        }
+        if (value instanceof Truncate) {
+            return truncate(((Truncate) value).getInput(), toType);
+        }
+        return super.truncate(value, toType);
     }
 
     @Override
@@ -109,6 +117,21 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return ctxt.getLiteralFactory().literalOf(v1.equals(v2));
         }
 
+        if (v1 instanceof Extend && isZero(v2)) {
+            Value input = ((Extend) v1).getInput();
+            // icmp eq iX (*ext iY foo to iX), iX 0
+            //   ↓
+            // icmp eq iY foo, iY 0
+            return isEq(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()));
+        }
+        if (v2 instanceof Extend && isZero(v1)) {
+            Value input = ((Extend) v2).getInput();
+            // icmp eq iX 0, iX (*ext iY foo to iX)
+            //   ↓
+            // icmp eq iY 0, iY foo
+            return isEq(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()), input);
+        }
+
         if (isCmp(v1) && isLiteral(v2, 0)) {
             return isEq(cmpLeft(v1), cmpRight(v1));
         }
@@ -124,6 +147,27 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return ctxt.getLiteralFactory().literalOf(false);
         } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2) || v1.isDefNe(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
+        }
+
+        if (v1 instanceof Extend && isZero(v2)) {
+            Value input = ((Extend) v1).getInput();
+            if (input.getType() instanceof BooleanType) {
+                // icmp ne iX (zext i1 foo to iX), iX 0
+                return input;
+            } else {
+                // icmp ne iX (*ext iY foo to iX), iX 0
+                return isNe(input, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()));
+            }
+        }
+        if (v2 instanceof Extend && isZero(v1)) {
+            Value input = ((Extend) v2).getInput();
+            if (input.getType() instanceof BooleanType) {
+                // icmp ne iX 0, iX (zext i1 foo to iX)
+                return input;
+            } else {
+                // icmp ne iX 0, iX (*ext iY foo to iX)
+                return isNe(ctxt.getLiteralFactory().zeroInitializerLiteralOfType(input.getType()), input);
+            }
         }
 
         if (isCmp(v1) && isLiteral(v2, 0)) {
@@ -398,7 +442,12 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private static boolean isAlwaysNull(final Value value) {
-        return value instanceof ZeroInitializerLiteral;
+        ValueType valueType = value.getType();
+        return (valueType instanceof ReferenceType || valueType instanceof PointerType) && value instanceof ZeroInitializerLiteral;
+    }
+
+    private boolean isZero(final Value value) {
+        return isLiteral(value, 0);
     }
 
     private static boolean isCmp(final Value value) {
@@ -415,6 +464,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private boolean isLiteral(final Value value, final int literal) {
         return value instanceof IntegerLiteral &&
-            ((IntegerLiteral) value).equals(ctxt.getLiteralFactory().literalOf(literal));
+            ((IntegerLiteral) value).equals(ctxt.getLiteralFactory().literalOf(literal)) ||
+            literal == 0 && value instanceof ZeroInitializerLiteral;
     }
 }
