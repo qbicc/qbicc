@@ -231,7 +231,7 @@ public interface LiteralFactory {
             public Literal valueConvertLiteral(final Literal value, final WordType toType) {
                 Assert.checkNotNullParam("value", value);
                 Assert.checkNotNullParam("toType", toType);
-                return new ValueConvertLiteral(value, toType);
+                return value.convert(this, toType);
             }
         };
     }

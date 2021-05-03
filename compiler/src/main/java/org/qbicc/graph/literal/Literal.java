@@ -51,4 +51,8 @@ public abstract class Literal implements Unschedulable, Value {
     Literal bitCast(LiteralFactory lf, final WordType toType) {
         return new BitCastLiteral(this, toType);
     }
+
+    Literal convert(final LiteralFactory lf, final WordType toType) {
+        return new ValueConvertLiteral(this, toType);
+    }
 }
