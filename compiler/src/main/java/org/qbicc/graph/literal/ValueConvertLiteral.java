@@ -36,6 +36,11 @@ public class ValueConvertLiteral extends Literal {
 
     public int hashCode() { return value.hashCode() * 19 + toType.hashCode(); }
 
+    @Override
+    public boolean isNullable() {
+        return value.isNullable();
+    }
+
     public String toString() {
         return "convert ("+value+" to "+toType+")";
     }

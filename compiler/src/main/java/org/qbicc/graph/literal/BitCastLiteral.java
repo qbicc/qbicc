@@ -41,6 +41,11 @@ public class BitCastLiteral extends Literal {
 
     public int hashCode() { return value.hashCode() * 19 + toType.hashCode(); }
 
+    @Override
+    public boolean isNullable() {
+        return value.isNullable();
+    }
+
     public String toString() {
         return "bitcast ("+value+" to "+toType+")";
     }

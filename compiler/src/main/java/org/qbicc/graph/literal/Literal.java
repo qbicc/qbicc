@@ -40,6 +40,11 @@ public abstract class Literal implements Unschedulable, Value {
         return ! isZero();
     }
 
+    @Override
+    public boolean isNullable() {
+        return Value.super.isNullable();
+    }
+
     public final boolean equals(final Object obj) {
         return obj instanceof Literal && equals((Literal) obj);
     }
