@@ -37,7 +37,7 @@ public class LocalThrowHandlingBasicBlockBuilder extends DelegatingBasicBlockBui
         BlockLabel npe = new BlockLabel();
         BasicBlock from = if_(isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), npe, exceptionHandler.getHandler());
         // dispatch to the exception handler
-        exceptionHandler.enterHandler(from, value);
+        exceptionHandler.enterHandler(from, notNull(value));
         // throw an NPE to the handler instead
         begin(npe);
         ClassContext classContext = ctxt.getBootstrapClassContext();
