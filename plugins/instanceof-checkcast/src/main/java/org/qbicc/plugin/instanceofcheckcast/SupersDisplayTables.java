@@ -411,7 +411,7 @@ public class SupersDisplayTables {
         List<CompoundType.Member> members = typeIdStruct.getMembers();
         
         Section section = ctxt.getImplicitSection(jlo);
-        Literal[] typeIdTable = new Literal[typeids.size() + 10]; // invalid zero + 8 prims + void
+        Literal[] typeIdTable = new Literal[get_number_of_typeids()];
         LiteralFactory literalFactory = ctxt.getLiteralFactory();
         
         /* Set up the implementedInterface[] for primitives */
@@ -496,6 +496,12 @@ public class SupersDisplayTables {
     public CompoundType getGlobalTypeIdStructType() {
         Assert.assertNotNull(typeIdStructType);
         return typeIdStructType;
+    }
+
+    public int get_number_of_typeids() {
+        Assert.assertTrue(idAndRange.typeid_index == (typeids.size() + 10));
+        supersLog.debug("get_highest_typeid == " + (typeids.size() + 10));
+        return typeids.size() + 10; // invalid zero + 8 prims + void
     }
 }
 
