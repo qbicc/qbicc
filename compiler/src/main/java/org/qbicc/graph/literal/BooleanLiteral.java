@@ -3,9 +3,8 @@ package org.qbicc.graph.literal;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.ValueType;
 
-public final class BooleanLiteral extends Literal {
+public final class BooleanLiteral extends WordLiteral {
     private final BooleanType type;
     private final boolean value;
 
@@ -14,7 +13,7 @@ public final class BooleanLiteral extends Literal {
         this.value = value;
     }
 
-    public ValueType getType() {
+    public BooleanType getType() {
         return type;
     }
 

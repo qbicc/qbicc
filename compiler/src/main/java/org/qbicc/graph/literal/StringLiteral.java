@@ -7,7 +7,7 @@ import org.qbicc.type.ReferenceType;
 /**
  *
  */
-public final class StringLiteral extends Literal {
+public final class StringLiteral extends WordLiteral {
     private final ReferenceType type;
     private final String value;
     private final boolean latin1;

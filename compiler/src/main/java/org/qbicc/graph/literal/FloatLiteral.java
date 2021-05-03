@@ -3,9 +3,8 @@ package org.qbicc.graph.literal;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.FloatType;
-import org.qbicc.type.ValueType;
 
-public final class FloatLiteral extends Literal {
+public final class FloatLiteral extends WordLiteral {
     private final FloatType type;
     private final double value;
     private final int hashCode;
@@ -17,7 +16,7 @@ public final class FloatLiteral extends Literal {
         this.hashCode = (int)(bits ^ bits >>> 32) * 19 + type.hashCode();
     }
 
-    public ValueType getType() {
+    public FloatType getType() {
         return type;
     }
 

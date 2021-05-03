@@ -6,12 +6,11 @@ import org.qbicc.graph.ValueVisitor;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.ReferenceType;
-import org.qbicc.type.ValueType;
 
 /**
  *
  */
-public final class ObjectLiteral extends Literal {
+public final class ObjectLiteral extends WordLiteral {
     private final ReferenceType type;
     private final VmObject value;
     private final int hashCode;
@@ -22,7 +21,7 @@ public final class ObjectLiteral extends Literal {
         hashCode = Objects.hash(type, value);
     }
 
-    public ValueType getType() {
+    public ReferenceType getType() {
         return type;
     }
 

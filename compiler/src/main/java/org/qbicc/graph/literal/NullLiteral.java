@@ -6,7 +6,7 @@ import org.qbicc.type.NullableType;
 /**
  * A literal of the {@code null} value of pointers and references.
  */
-public final class NullLiteral extends Literal {
+public final class NullLiteral extends WordLiteral {
     private final NullableType type;
 
     NullLiteral(final NullableType type) {

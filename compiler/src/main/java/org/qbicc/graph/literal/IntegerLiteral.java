@@ -4,9 +4,8 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.SignedIntegerType;
-import org.qbicc.type.ValueType;
 
-public final class IntegerLiteral extends Literal {
+public final class IntegerLiteral extends WordLiteral {
     private final long value;
     private final IntegerType type;
     private final int hashCode;
@@ -17,7 +16,7 @@ public final class IntegerLiteral extends Literal {
         hashCode = Long.hashCode(value) * 19 + type.hashCode();
     }
 
-    public ValueType getType() {
+    public IntegerType getType() {
         return type;
     }
 
