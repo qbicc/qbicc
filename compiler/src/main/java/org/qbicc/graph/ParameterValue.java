@@ -14,12 +14,14 @@ public final class ParameterValue extends AbstractValue implements Unschedulable
     private final ValueType type;
     private final String label;
     private final int index;
+    private final boolean nullable;
 
     ParameterValue(final Node callSite, final ExecutableElement element, final ValueType type, String label, final int index) {
         super(callSite, element, 0, -1);
         this.type = type;
         this.label = label;
         this.index = index;
+        nullable = label.equals("p");
     }
 
     public ValueType getType() {
@@ -32,6 +34,11 @@ public final class ParameterValue extends AbstractValue implements Unschedulable
 
     public String getLabel() {
         return label;
+    }
+
+    @Override
+    public boolean isNullable() {
+        return nullable;
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
