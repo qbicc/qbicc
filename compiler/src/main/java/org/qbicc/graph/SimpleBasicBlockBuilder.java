@@ -532,7 +532,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         ValueType idType = typeIdType.getUpperBound();
         if (idType instanceof ReferenceType) {
             CompilationContext ctxt = classContext.getCompilationContext();
-            ctxt.warning(getLocation(), "TODO: class type ID argument is given as a reference type which is not allowed");
+//            ctxt.warning(getLocation(), "TODO: class type ID argument is given as a reference type which is not allowed");
             // decode the expected type
             PhysicalObjectType upperBound = ((ReferenceType) idType).getUpperBound();
             LiteralFactory lf = classContext.getLiteralFactory();
