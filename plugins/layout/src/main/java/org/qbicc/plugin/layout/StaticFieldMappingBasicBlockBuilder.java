@@ -16,7 +16,9 @@ import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 
@@ -35,12 +37,12 @@ public class StaticFieldMappingBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
-        return super.load(map(handle), mode);
+        return intToBool(handle, super.load(map(handle), mode));
     }
 
     @Override
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
-        return super.store(map(handle), value, mode);
+        return super.store(map(handle), boolToInt(handle, value), mode);
     }
 
     @Override
@@ -95,6 +97,23 @@ public class StaticFieldMappingBasicBlockBuilder extends DelegatingBasicBlockBui
     @Override
     public ValueHandle visit(Void param, ReferenceHandle node) {
         return node;
+    }
+
+    private Value boolToInt(final ValueHandle handle, final Value value) {
+        if (handle.getValueType() instanceof BooleanType) {
+            // we have to widen the value to an integer
+            return extend(value, ctxt.getTypeSystem().getUnsignedInteger8Type());
+        }
+        return value;
+    }
+
+    private Value intToBool(final ValueHandle handle, final Value value) {
+        ValueType valueType = handle.getValueType();
+        if (valueType instanceof BooleanType) {
+            // narrow it back
+            return isNe(value, ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 0));
+        }
+        return value;
     }
 
     private ValueHandle map(final ValueHandle handle) {
