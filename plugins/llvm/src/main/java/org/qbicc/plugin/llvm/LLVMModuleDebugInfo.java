@@ -53,6 +53,7 @@ final class LLVMModuleDebugInfo {
     private final Map<ExecutableElement, MethodDebugInfo> methods = new HashMap<>();
     private final Map<Type, LLValue> types = new HashMap<>();
     private final Map<LocationKey, LLValue> locations = new HashMap<>();
+    private final Map<String, LLValue> files = new HashMap<>();
 
     LLVMModuleDebugInfo(final Module module, final CompilationContext ctxt) {
         this.module = module;
@@ -87,7 +88,14 @@ final class LLVMModuleDebugInfo {
     }
 
     private LLValue createSourceFile(final Element element) {
-        String sourceFileName = element.getSourceFileName();
+        String sourceFileNameFull = element.getSourceFileName();
+
+        LLValue file = files.get(sourceFileNameFull);
+        if (file != null) {
+            return file;
+        }
+
+        String sourceFileName = sourceFileNameFull;
         String sourceFileDirectory = "";
 
         if (sourceFileName != null) {
@@ -101,7 +109,9 @@ final class LLVMModuleDebugInfo {
             sourceFileName = "<unknown>";
         }
 
-        return module.diFile(sourceFileName, sourceFileDirectory).asRef();
+        file = module.diFile(sourceFileName, sourceFileDirectory).asRef();
+        files.put(sourceFileNameFull, file);
+        return file;
     }
 
     private MethodDebugInfo createDebugInfoForFunction(final ExecutableElement element) {
