@@ -23,6 +23,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.FieldElement;
 
 /**
@@ -124,7 +125,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
             CompoundType newType = CmpAndSwap.getResultType(ctxt, bool);
             Value resultByteVal = extractMember(result, origType.getMember(0));
             Value resultFlag = extractMember(result, origType.getMember(1));
-            result = insertMember(lf.zeroInitializerLiteralOfType(newType), newType.getMember(0), isNe(resultByteVal, lf.literalOf(u8, 0)));
+            result = insertMember(lf.zeroInitializerLiteralOfType(newType), newType.getMember(0), truncate(resultByteVal, bool));
             result = insertMember(result, newType.getMember(1), resultFlag);
         }
         return result;
@@ -147,7 +148,7 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
         ValueType valueType = handle.getValueType();
         if (valueType instanceof BooleanType) {
             // narrow it back
-            return isNe(value, ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 0));
+            return truncate(value, (WordType) valueType);
         }
         return value;
     }

@@ -82,7 +82,7 @@ public final class IntegerLiteral extends WordLiteral {
                 return lf.literalOf((FloatType) toType, (double) value);
             }
         } else if (toType instanceof BooleanType) {
-            return lf.literalOf(value != 0);
+            return lf.literalOf((value & 1) != 0);
         }
         return super.bitCast(lf, toType);
     }

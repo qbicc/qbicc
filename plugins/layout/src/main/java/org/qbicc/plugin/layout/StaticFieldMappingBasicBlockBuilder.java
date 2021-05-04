@@ -111,7 +111,7 @@ public class StaticFieldMappingBasicBlockBuilder extends DelegatingBasicBlockBui
         ValueType valueType = handle.getValueType();
         if (valueType instanceof BooleanType) {
             // narrow it back
-            return isNe(value, ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), 0));
+            return truncate(value, (BooleanType) valueType);
         }
         return value;
     }

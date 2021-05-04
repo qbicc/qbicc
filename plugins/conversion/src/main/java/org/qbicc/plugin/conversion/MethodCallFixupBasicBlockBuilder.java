@@ -125,7 +125,7 @@ public class MethodCallFixupBasicBlockBuilder extends DelegatingBasicBlockBuilde
                     return truncate(bitCast(orig, ((SignedIntegerType) type).asUnsigned()), outputType);
                 }
             } else if (toType instanceof BooleanType) {
-                return isNe(orig, ctxt.getLiteralFactory().literalOf(inputType, 0));
+                return truncate(orig, (BooleanType) toType);
             }
         } else if (type instanceof UnsignedIntegerType) {
             UnsignedIntegerType inputType = (UnsignedIntegerType) type;
@@ -135,7 +135,7 @@ public class MethodCallFixupBasicBlockBuilder extends DelegatingBasicBlockBuilde
                     return truncate(orig, outputType);
                 }
             } else if (toType instanceof BooleanType) {
-                return isNe(orig, ctxt.getLiteralFactory().literalOf(inputType, 0));
+                return truncate(orig, (BooleanType) toType);
             }
         }
         ctxt.error("Invalid coercion of %s to %s", type, toType);
