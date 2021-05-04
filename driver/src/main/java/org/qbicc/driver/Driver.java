@@ -88,6 +88,8 @@ public class Driver implements Closeable {
     final Map<String, BootModule> bootModules;
     final List<ClassPathElement> bootClassPath;
     final Path outputDir;
+    final float threadsPerCpu;
+    final long stackSize;
 
     /*
         Reachability (Run Time)
@@ -194,6 +196,9 @@ public class Driver implements Closeable {
         compilationContext = new CompilationContextImpl(initialContext, typeSystem, literalFactory, finder, outputDir, resolverFactories);
         // start with ADD
         compilationContext.setBlockFactory(addBuilderFactory);
+
+        threadsPerCpu = builder.threadsPerCpu;
+        stackSize = builder.stackSize;
     }
 
     private static BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> constructCopiers(final Builder builder, final Phase phase) {
@@ -302,6 +307,18 @@ public class Driver implements Closeable {
      * @return {@code true} if compilation succeeded, {@code false} otherwise
      */
     public boolean execute() {
+        // start threads
+        int threadCnt = (int) Math.max(1, ((float)Runtime.getRuntime().availableProcessors()) * threadsPerCpu);
+        compilationContext.startThreads(threadCnt, stackSize);
+        try {
+            return execute0();
+        } finally {
+            // shut down threads
+            compilationContext.exitThreads();
+        }
+    }
+
+    boolean execute0() {
         CompilationContextImpl compilationContext = this.compilationContext;
 
         // ADD phase
@@ -611,6 +628,10 @@ public class Driver implements Closeable {
         LlvmToolChain llvmToolChain;
         ObjectFileProvider objectFileProvider;
 
+        float threadsPerCpu = 2.0f;
+        // 16 MB is the default stack size
+        long stackSize = 0x1000000L;
+
         String mainClass;
 
         Builder() {}
@@ -758,6 +779,27 @@ public class Driver implements Closeable {
 
         public Builder setObjectFileProvider(final ObjectFileProvider objectFileProvider) {
             this.objectFileProvider = objectFileProvider;
+            return this;
+        }
+
+        public float getThreadsPerCpu() {
+            return threadsPerCpu;
+        }
+
+        public Builder setThreadsPerCpu(float threadsPerCpu) {
+            Assert.checkMinimumParameter("threadsPerCpu", 0.0f, threadsPerCpu);
+            this.threadsPerCpu = threadsPerCpu;
+            return this;
+        }
+
+        public long getStackSize() {
+            return stackSize;
+        }
+
+        public Builder setStackSize(long stackSize) {
+            // 1 MB
+            Assert.checkMinimumParameter("stackSize", 0x100000L, stackSize);
+            this.stackSize = stackSize;
             return this;
         }
 
