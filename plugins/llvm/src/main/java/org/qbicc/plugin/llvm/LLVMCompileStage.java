@@ -2,6 +2,7 @@ package org.qbicc.plugin.llvm;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
@@ -44,72 +45,82 @@ public class LLVMCompileStage implements Consumer<CompilationContext> {
             return;
         }
 
-        LlcInvoker llcInvoker = llvmToolChain.newLlcInvoker();
-        llcInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
-        llcInvoker.setOutputFormat(OutputFormat.ASM);
-        llcInvoker.setRelocationModel(isPie ? RelocationModel.Pic : RelocationModel.Static);
-
-        OptInvoker optInvoker = llvmToolChain.newOptInvoker();
-        optInvoker.addOptimizationPass(OptPass.RewriteStatepointsForGc);
-        optInvoker.addOptimizationPass(OptPass.AlwaysInline);
-
-        CCompilerInvoker ccInvoker = cToolChain.newCompilerInvoker();
-        ccInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
-        ccInvoker.setSourceLanguage(CCompilerInvoker.SourceLanguage.ASM);
-
         Linker linker = Linker.get(context);
 
-        for (Path modulePath : llvmState.getModulePaths()) {
-            String moduleName = modulePath.getFileName().toString();
-            if (moduleName.endsWith(".ll")) {
-                String baseName = moduleName.substring(0, moduleName.length() - 3);
-                String optBitCodeName = baseName + "_opt.bc";
-                String assemblyName = baseName + ".s";
-                String objectName = baseName + "." + cToolChain.getPlatform().getObjectType().objectSuffix();
+        Iterator<Path> iterator = llvmState.getModulePaths().iterator();
+        context.runParallelTask(ctxt -> {
+            LlcInvoker llcInvoker = llvmToolChain.newLlcInvoker();
+            llcInvoker.setMessageHandler(ToolMessageHandler.reporting(ctxt));
+            llcInvoker.setOutputFormat(OutputFormat.ASM);
+            llcInvoker.setRelocationModel(isPie ? RelocationModel.Pic : RelocationModel.Static);
 
-                Path optBitCodePath = modulePath.resolveSibling(optBitCodeName);
-                Path assemblyPath = modulePath.resolveSibling(assemblyName);
-                Path objectPath = modulePath.resolveSibling(objectName);
+            OptInvoker optInvoker = llvmToolChain.newOptInvoker();
+            optInvoker.addOptimizationPass(OptPass.RewriteStatepointsForGc);
+            optInvoker.addOptimizationPass(OptPass.AlwaysInline);
 
-                optInvoker.setSource(InputSource.from(modulePath));
-                optInvoker.setDestination(OutputDestination.of(optBitCodePath));
-                int errCnt = context.errors();
-                try {
-                    optInvoker.invoke();
-                } catch (IOException e) {
-                    if (errCnt == context.errors()) {
-                        // whatever the problem was, it wasn't reported, so add an additional error here
-                        context.error(Location.builder().setSourceFilePath(modulePath.toString()).build(), "`opt` invocation has failed: %s", e.toString());
+            CCompilerInvoker ccInvoker = cToolChain.newCompilerInvoker();
+            ccInvoker.setMessageHandler(ToolMessageHandler.reporting(ctxt));
+            ccInvoker.setSourceLanguage(CCompilerInvoker.SourceLanguage.ASM);
+
+            for (;;) {
+                Path modulePath;
+                synchronized (iterator) {
+                    if (! iterator.hasNext()) {
+                        return;
                     }
-                    continue;
+                    modulePath = iterator.next();
                 }
+                String moduleName = modulePath.getFileName().toString();
+                if (moduleName.endsWith(".ll")) {
+                    String baseName = moduleName.substring(0, moduleName.length() - 3);
+                    String optBitCodeName = baseName + "_opt.bc";
+                    String assemblyName = baseName + ".s";
+                    String objectName = baseName + "." + cToolChain.getPlatform().getObjectType().objectSuffix();
 
-                llcInvoker.setSource(InputSource.from(optBitCodePath));
-                llcInvoker.setDestination(OutputDestination.of(assemblyPath));
-                errCnt = context.errors();
-                try {
-                    llcInvoker.invoke();
-                } catch (IOException e) {
-                    if (errCnt == context.errors()) {
-                        // whatever the problem was, it wasn't reported, so add an additional error here
-                        context.error(Location.builder().setSourceFilePath(modulePath.toString()).build(), "`llc` invocation has failed: %s", e.toString());
+                    Path optBitCodePath = modulePath.resolveSibling(optBitCodeName);
+                    Path assemblyPath = modulePath.resolveSibling(assemblyName);
+                    Path objectPath = modulePath.resolveSibling(objectName);
+
+                    optInvoker.setSource(InputSource.from(modulePath));
+                    optInvoker.setDestination(OutputDestination.of(optBitCodePath));
+                    int errCnt = ctxt.errors();
+                    try {
+                        optInvoker.invoke();
+                    } catch (IOException e) {
+                        if (errCnt == ctxt.errors()) {
+                            // whatever the problem was, it wasn't reported, so add an additional error here
+                            ctxt.error(Location.builder().setSourceFilePath(modulePath.toString()).build(), "`opt` invocation has failed: %s", e.toString());
+                        }
+                        continue;
                     }
-                    continue;
-                }
 
-                // now compile it
-                ccInvoker.setSource(InputSource.from(assemblyPath));
-                ccInvoker.setOutputPath(objectPath);
-                try {
-                    ccInvoker.invoke();
-                } catch (IOException e) {
-                    context.error("Compiler invocation has failed for %s: %s", modulePath, e.toString());
-                    continue;
+                    llcInvoker.setSource(InputSource.from(optBitCodePath));
+                    llcInvoker.setDestination(OutputDestination.of(assemblyPath));
+                    errCnt = ctxt.errors();
+                    try {
+                        llcInvoker.invoke();
+                    } catch (IOException e) {
+                        if (errCnt == ctxt.errors()) {
+                            // whatever the problem was, it wasn't reported, so add an additional error here
+                            ctxt.error(Location.builder().setSourceFilePath(modulePath.toString()).build(), "`llc` invocation has failed: %s", e.toString());
+                        }
+                        continue;
+                    }
+
+                    // now compile it
+                    ccInvoker.setSource(InputSource.from(assemblyPath));
+                    ccInvoker.setOutputPath(objectPath);
+                    try {
+                        ccInvoker.invoke();
+                    } catch (IOException e) {
+                        ctxt.error("Compiler invocation has failed for %s: %s", modulePath, e.toString());
+                        continue;
+                    }
+                    linker.addObjectFilePath(objectPath);
+                } else {
+                    ctxt.warning("Ignoring unknown module file name \"%s\"", modulePath);
                 }
-                linker.addObjectFilePath(objectPath);
-            } else {
-                context.warning("Ignoring unknown module file name \"%s\"", modulePath);
             }
-        }
+        });
     }
 }
