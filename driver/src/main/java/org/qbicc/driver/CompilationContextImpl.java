@@ -2,11 +2,11 @@ package org.qbicc.driver;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -15,6 +15,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
@@ -49,13 +50,15 @@ import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.TypeSignature;
 
 final class CompilationContextImpl implements CompilationContext {
+    private static final Logger log = Logger.getLogger("org.qbicc.driver");
+
     private final TypeSystem typeSystem;
     private final LiteralFactory literalFactory;
     private final BaseDiagnosticContext baseDiagnosticContext;
     private final ConcurrentMap<VmObject, ClassContext> classLoaderContexts = new ConcurrentHashMap<>();
     volatile Set<ExecutableElement> allowedSet = null;
     final Set<ExecutableElement> queued = ConcurrentHashMap.newKeySet();
-    final Queue<ExecutableElement> queue = new ConcurrentLinkedDeque<>();
+    final Queue<ExecutableElement> queue = new ArrayDeque<>();
     final Set<ExecutableElement> entryPoints = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext;
     private final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
@@ -192,7 +195,10 @@ final class CompilationContextImpl implements CompilationContext {
             throw new IllegalStateException("Cannot reach previously unreachable element: " + element);
         }
         if (queued.add(element)) {
-            queue.add(element);
+            synchronized (queue) {
+                queue.add(element);
+                queue.notify();
+            }
         }
     }
 
@@ -201,12 +207,16 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public ExecutableElement dequeue() {
-        return queue.poll();
+        synchronized (queue) {
+            return queue.poll();
+        }
     }
 
     void lockEnqueuedSet() {
         allowedSet = Set.copyOf(queued);
-        queued.clear();
+        synchronized (queue) {
+            queued.clear();
+        }
     }
 
     public void registerEntryPoint(final ExecutableElement method) {
@@ -569,6 +579,52 @@ final class CompilationContextImpl implements CompilationContext {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    int waiting;
+
+    void processQueue(Consumer<ExecutableElement> consumer) {
+        synchronized (this) {
+            waiting = 0;
+        }
+        runParallelTask(ctxt -> {
+            ExecutableElement element;
+            for (;;) {
+                synchronized (queue) {
+                    element = queue.poll();
+                    if (element == null) {
+                        waiting++;
+                        if (waiting == activeThreads) {
+                            // no elements left! let everyone know
+                            queue.notifyAll();
+                            return;
+                        }
+                        for (;;) {
+                            try {
+                                queue.wait();
+                            } catch (InterruptedException ignored) {
+                                // safe to ignore
+                            }
+                            element = queue.poll();
+                            if (element != null) {
+                                break;
+                            }
+                            if (waiting == activeThreads) {
+                                // awoken from sleep to exit
+                                return;
+                            }
+                        }
+                        waiting--;
+                    }
+                }
+                try {
+                    consumer.accept(element);
+                } catch (Exception e) {
+                    log.error("An exception was thrown from a queue processing task", e);
+                    error(element, "Exception while processing queue task for element: %s", e);
+                }
+            }
+        });
     }
 
     void startThreads(final int threadCnt, final long stackSize) {

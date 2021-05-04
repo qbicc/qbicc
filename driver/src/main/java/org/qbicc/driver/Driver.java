@@ -355,8 +355,7 @@ public class Driver implements Closeable {
             compilationContext.enqueue(entryPoint);
         }
 
-        ExecutableElement element = compilationContext.dequeue();
-        if (element != null) do {
+        compilationContext.processQueue(element -> {
             if (element.hasMethodBody()) {
                 // cause method and field references to be resolved
                 try {
@@ -374,8 +373,7 @@ public class Driver implements Closeable {
                     compilationContext.error(element, "Element visitor threw an exception: %s", e);
                 }
             }
-            element = compilationContext.dequeue();
-        } while (element != null);
+        });
 
         if (compilationContext.errors() > 0) {
             // bail out
@@ -425,8 +423,7 @@ public class Driver implements Closeable {
             compilationContext.enqueue(entryPoint);
         }
 
-        element = compilationContext.dequeue();
-        if (element != null) do {
+        compilationContext.processQueue(element -> {
             if (element.hasMethodBody()) {
                 // rewrite the method body
                 ClassContext classContext = element.getEnclosingType().getContext();
@@ -445,8 +442,7 @@ public class Driver implements Closeable {
                     compilationContext.error(element, "Element visitor threw an exception: %s", e);
                 }
             }
-            element = compilationContext.dequeue();
-        } while (element != null);
+        });
 
         if (compilationContext.errors() > 0) {
             // bail out
@@ -491,8 +487,7 @@ public class Driver implements Closeable {
             compilationContext.enqueue(entryPoint);
         }
 
-        element = compilationContext.dequeue();
-        while (element != null) {
+        compilationContext.processQueue(element -> {
             if (element.hasMethodBody()) {
                 // copy to a function; todo: this should eventually be done in the lowering plugin
                 ClassContext classContext = element.getEnclosingType().getContext();
@@ -530,8 +525,7 @@ public class Driver implements Closeable {
                     compilationContext.error(element, "Element visitor threw an exception: %s", e);
                 }
             }
-            element = compilationContext.dequeue();
-        }
+        });
 
         if (compilationContext.errors() > 0) {
             // bail out
