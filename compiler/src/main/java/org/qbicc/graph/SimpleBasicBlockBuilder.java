@@ -441,6 +441,14 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new ExtractInstanceField(callSite, element, line, bci, valueObj, field, field.getType());
     }
 
+    public Value insertElement(Value array, Value index, Value value) {
+        return new InsertElement(callSite, element, line, bci, array, index, value);
+    }
+
+    public Value insertMember(Value compound, CompoundType.Member member, Value value) {
+        return new InsertMember(callSite, element, line, bci, compound, value, member);
+    }
+
     public PhiValue phi(final ValueType type, final BlockLabel owner) {
         return new PhiValue(callSite, element, line, bci, type, owner);
     }

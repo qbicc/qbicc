@@ -148,6 +148,10 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value extractInstanceField(Value valueObj, FieldElement field);
 
+    Value insertElement(Value array, Value index, Value value);
+
+    Value insertMember(Value compound, CompoundType.Member member, Value value);
+
     // phi
 
     PhiValue phi(ValueType type, BlockLabel owner);

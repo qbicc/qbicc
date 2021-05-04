@@ -142,6 +142,8 @@ public interface LLBuilder {
 
     ExtractValue extractvalue(LLValue aggregateType, LLValue aggregate);
 
+    ExtractValue insertvalue(LLValue aggregateType, LLValue aggregate, LLValue insertType, LLValue insert);
+
     Alloca alloca(LLValue type);
 
     static LLBuilder newBuilder(LLBasicBlock block) {

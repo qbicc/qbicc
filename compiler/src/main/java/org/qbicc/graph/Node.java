@@ -520,6 +520,18 @@ public interface Node {
                 return param.getBlockBuilder().extend(param.copyValue(node.getInput()), node.getType());
             }
 
+            public Value visit(final Copier param, final ExtractElement node) {
+                return param.getBlockBuilder().extractElement(param.copyValue(node.getArrayValue()), param.copyValue(node.getIndex()));
+            }
+
+            public Value visit(final Copier param, final ExtractInstanceField node) {
+                return param.getBlockBuilder().extractInstanceField(param.copyValue(node.getObjectValue()), node.getFieldElement());
+            }
+
+            public Value visit(final Copier param, final ExtractMember node) {
+                return param.getBlockBuilder().extractMember(param.copyValue(node.getCompoundValue()), node.getMember());
+            }
+
             public Value visit(final Copier param, final FloatLiteral node) {
                 return node;
             }
@@ -572,6 +584,14 @@ public interface Node {
             public Value visit(final Copier param, final GetAndSub node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().getAndSub(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
+            }
+
+            public Value visit(final Copier param, final InsertElement node) {
+                return param.getBlockBuilder().insertElement(param.copyValue(node.getArrayValue()), param.copyValue(node.getIndex()), param.copyValue(node.getInsertedValue()));
+            }
+
+            public Value visit(final Copier param, final InsertMember node) {
+                return param.getBlockBuilder().insertMember(param.copyValue(node.getCompoundValue()), node.getMember(), param.copyValue(node.getInsertedValue()));
             }
 
             public ValueHandle visit(Copier param, GlobalVariable node) {
