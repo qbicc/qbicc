@@ -524,6 +524,18 @@ public interface Node {
                 return param.getBlockBuilder().extend(param.copyValue(node.getInput()), node.getType());
             }
 
+            public Value visit(final Copier param, final ExtractElement node) {
+                return param.getBlockBuilder().extractElement(param.copyValue(node.getArrayValue()), param.copyValue(node.getIndex()));
+            }
+
+            public Value visit(final Copier param, final ExtractInstanceField node) {
+                return param.getBlockBuilder().extractInstanceField(param.copyValue(node.getObjectValue()), node.getFieldElement());
+            }
+
+            public Value visit(final Copier param, final ExtractMember node) {
+                return param.getBlockBuilder().extractMember(param.copyValue(node.getCompoundValue()), node.getMember());
+            }
+
             public Value visit(final Copier param, final FloatLiteral node) {
                 return node;
             }
