@@ -2,6 +2,7 @@ package org.qbicc.graph.literal;
 
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.PoisonType;
+import org.qbicc.type.WordType;
 
 /**
  * The undefined value.  Usage of an undefined value results in a compilation error.
@@ -13,12 +14,21 @@ public final class UndefinedLiteral extends Literal {
         this.type = type;
     }
 
+    public boolean isZero() {
+        return false;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof UndefinedLiteral;
     }
 
     public PoisonType getType() {
         return type;
+    }
+
+    @Override
+    Literal bitCast(LiteralFactory lf, WordType toType) {
+        return this;
     }
 
     public int hashCode() {

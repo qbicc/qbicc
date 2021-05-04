@@ -23,6 +23,10 @@ public final class TypeLiteral extends Literal {
         return value;
     }
 
+    public boolean isZero() {
+        return false;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof TypeLiteral && equals((TypeLiteral) other);
     }

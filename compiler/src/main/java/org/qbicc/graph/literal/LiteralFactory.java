@@ -7,12 +7,13 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.Value;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.type.ArrayType;
+import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -54,21 +55,21 @@ public interface LiteralFactory {
 
     UndefinedLiteral literalOfUndefined();
 
-    DefinedConstantLiteral literalOfDefinedConstant(String name, Value constantValue);
-
     TypeLiteral literalOfType(ValueType type);
 
-    ZeroInitializerLiteral zeroInitializerLiteralOfType(ValueType type);
+    NullLiteral nullLiteralOfType(NullableType nullableType);
 
-    ArrayLiteral literalOf(ArrayType type, List<Literal> values);
+    Literal zeroInitializerLiteralOfType(ValueType type);
 
-    ByteArrayLiteral literalOf(ArrayType type, byte[] values);
+    Literal literalOf(ArrayType type, List<Literal> values);
 
-    CompoundLiteral literalOf(CompoundType type, Map<CompoundType.Member, Literal> values);
+    Literal literalOf(ArrayType type, byte[] values);
 
-    BitCastLiteral bitcastLiteral(Literal value, WordType toType);
+    Literal literalOf(CompoundType type, Map<CompoundType.Member, Literal> values);
 
-    ValueConvertLiteral valueConvertLiteral(Literal value, WordType toType);
+    Literal bitcastLiteral(Literal value, WordType toType);
+
+    Literal valueConvertLiteral(Literal value, WordType toType);
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
@@ -81,6 +82,7 @@ public interface LiteralFactory {
             private final ConcurrentMap<FloatLiteral, FloatLiteral> floatLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, TypeLiteral> typeLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, ZeroInitializerLiteral> zeroLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<NullableType, NullLiteral> nullLiterals = new ConcurrentHashMap<>();
 
             public BlockLiteral literalOf(final BlockLabel blockLabel) {
                 return new BlockLiteral(typeSystem.getBlockType(), blockLabel);
@@ -136,10 +138,6 @@ public interface LiteralFactory {
                 return undef;
             }
 
-            public DefinedConstantLiteral literalOfDefinedConstant(final String name, final Value constantValue) {
-                return new DefinedConstantLiteral(name, constantValue);
-            }
-
             public ObjectLiteral literalOf(final VmObject value) {
                 Assert.checkNotNullParam("value", value);
                 // todo: cache on object itself?
@@ -166,45 +164,74 @@ public interface LiteralFactory {
                 return typeLiterals.computeIfAbsent(type, TypeLiteral::new);
             }
 
-            public ZeroInitializerLiteral zeroInitializerLiteralOfType(final ValueType type) {
+            public NullLiteral nullLiteralOfType(NullableType type) {
                 Assert.checkNotNullParam("type", type);
+                return nullLiterals.computeIfAbsent(type, NullLiteral::new);
+            }
+
+            public Literal zeroInitializerLiteralOfType(final ValueType type) {
+                Assert.checkNotNullParam("type", type);
+                if (type instanceof IntegerType) {
+                    return literalOf((IntegerType) type, 0);
+                } else if (type instanceof FloatType) {
+                    return literalOf((FloatType) type, 0.0);
+                } else if (type instanceof BooleanType) {
+                    return literalOf(false);
+                } else if (type instanceof NullableType) {
+                    return nullLiteralOfType((NullableType) type);
+                }
                 return zeroLiterals.computeIfAbsent(type, ZeroInitializerLiteral::new);
             }
 
-            public ArrayLiteral literalOf(final ArrayType type, final List<Literal> values) {
+            public Literal literalOf(final ArrayType type, final List<Literal> values) {
                 Assert.checkNotNullParam("type", type);
                 Assert.checkNotNullParam("values", values);
                 if (type.getElementCount() != values.size()) {
                     throw new IllegalArgumentException("Cannot construct array literal with different element count than the size of the list of values");
                 }
-                return new ArrayLiteral(type, values);
+                for (Literal value : values) {
+                    if (value.isNonZero()) {
+                        return new ArrayLiteral(type, values);
+                    }
+                }
+                return zeroInitializerLiteralOfType(type);
             }
 
-            public ByteArrayLiteral literalOf(ArrayType type, byte[] values) {
+            public Literal literalOf(ArrayType type, byte[] values) {
                 Assert.checkNotNullParam("type", type);
                 Assert.checkNotNullParam("values", values);
                 if (type.getElementCount() != values.length) {
                     throw new IllegalArgumentException("Cannot construct array literal with different element count than the size of the list of values");
                 }
-                return new ByteArrayLiteral(type, values);
+                for (byte value : values) {
+                    if (value != 0) {
+                        return new ByteArrayLiteral(type, values);
+                    }
+                }
+                return zeroInitializerLiteralOfType(type);
             }
 
-            public CompoundLiteral literalOf(final CompoundType type, final Map<CompoundType.Member, Literal> values) {
+            public Literal literalOf(final CompoundType type, final Map<CompoundType.Member, Literal> values) {
                 Assert.checkNotNullParam("type", type);
                 Assert.checkNotNullParam("values", values);
-                return new CompoundLiteral(type, values);
+                for (Literal value : values.values()) {
+                    if (value.isNonZero()) {
+                        return new CompoundLiteral(type, values);
+                    }
+                }
+                return zeroInitializerLiteralOfType(type);
             }
 
-            public BitCastLiteral bitcastLiteral(final Literal value, final WordType toType) {
+            public Literal bitcastLiteral(final Literal value, final WordType toType) {
                 Assert.checkNotNullParam("value", value);
                 Assert.checkNotNullParam("toType", toType);
-                return new BitCastLiteral(value, toType);
+                return value.bitCast(this, toType);
             }
 
-            public ValueConvertLiteral valueConvertLiteral(final Literal value, final WordType toType) {
+            public Literal valueConvertLiteral(final Literal value, final WordType toType) {
                 Assert.checkNotNullParam("value", value);
                 Assert.checkNotNullParam("toType", toType);
-                return new ValueConvertLiteral(value, toType);
+                return value.convert(this, toType);
             }
         };
     }

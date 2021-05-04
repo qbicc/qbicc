@@ -7,7 +7,7 @@ import org.qbicc.type.ReferenceType;
 /**
  *
  */
-public final class StringLiteral extends Literal {
+public final class StringLiteral extends WordLiteral {
     private final ReferenceType type;
     private final String value;
     private final boolean latin1;
@@ -39,6 +39,10 @@ public final class StringLiteral extends Literal {
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    public boolean isZero() {
+        return false;
     }
 
     public boolean equals(final Literal other) {

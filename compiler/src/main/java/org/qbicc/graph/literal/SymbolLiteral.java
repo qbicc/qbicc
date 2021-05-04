@@ -15,6 +15,10 @@ public final class SymbolLiteral extends Literal {
         this.type = type;
     }
 
+    public boolean isZero() {
+        return false;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof SymbolLiteral && equals((SymbolLiteral) other);
     }

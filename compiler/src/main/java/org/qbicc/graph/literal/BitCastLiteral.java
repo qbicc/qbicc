@@ -18,12 +18,21 @@ public class BitCastLiteral extends Literal {
 
     public Literal getValue() { return value; }
 
+    public boolean isZero() {
+        return value.isZero();
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof BitCastLiteral && equals((BitCastLiteral) other);
     }
 
     public boolean equals(final BitCastLiteral other) {
         return other == this || other != null && toType.equals(other.toType) && value.equals(other.value);
+    }
+
+    @Override
+    Literal bitCast(LiteralFactory lf, WordType toType) {
+        return lf.bitcastLiteral(value, toType);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

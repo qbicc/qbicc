@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -45,6 +45,6 @@ public final class New extends AbstractValue implements OrderedNode {
 
     @Override
     public boolean isDefNe(Value other) {
-        return other instanceof ZeroInitializerLiteral;
+        return other instanceof NullLiteral;
     }
 }

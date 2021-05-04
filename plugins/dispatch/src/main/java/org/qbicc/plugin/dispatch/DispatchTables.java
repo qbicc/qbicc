@@ -9,8 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.literal.ArrayLiteral;
-import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
@@ -175,7 +173,7 @@ public class DispatchTables {
                     valueMap.put(info.getType().getMember(i), impl.getLiteral());
                 }
             }
-            CompoundLiteral vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
+            Literal vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
             section.addData(null, info.getSymbol().getName(), vtableLiteral).setLinkage(Linkage.EXTERNAL);
             emittedVTableCount += 1;
             emittedVTableBytes += info.getType().getMemberCount() * ctxt.getTypeSystem().getPointerSize();
@@ -199,7 +197,7 @@ public class DispatchTables {
                 vtableLiterals[typeId] = ctxt.getLiteralFactory().bitcastLiteral(e.getValue().getSymbol(), (WordType) vtablesGlobalType.getElementType());
             }
         }
-        ArrayLiteral vtablesGlobalValue = ctxt.getLiteralFactory().literalOf(vtablesGlobalType, List.of(vtableLiterals));
+        Literal vtablesGlobalValue = ctxt.getLiteralFactory().literalOf(vtablesGlobalType, List.of(vtableLiterals));
         section.addData(null, vtablesGlobal.getName(), vtablesGlobalValue);
         slog.debugf("Root vtable[] has %d slots (%d bytes)", vtableLiterals.length, vtableLiterals.length * ctxt.getTypeSystem().getPointerSize());
         slog.debugf("Emitted %d vtables with combined size of %d bytes", emittedVTableCount, emittedVTableBytes);
@@ -234,7 +232,7 @@ public class DispatchTables {
                 stubMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(iceeLiteral, sigType.getPointer()));
             }
             String stubsName = "qbicc_itable_icce_stubs_for_"+currentInterface.getInterfaceType().toFriendlyString();
-            CompoundLiteral stubsLiteral = lf.literalOf(itableInfo.getType(), stubMap);
+            Literal stubsLiteral = lf.literalOf(itableInfo.getType(), stubMap);
             iSection.addData(null, stubsName, stubsLiteral).setLinkage(Linkage.INTERNAL);
             SymbolLiteral stubPtrLiteral = lf.literalOfSymbol(stubsName, itableInfo.getType());
 
@@ -273,7 +271,7 @@ public class DispatchTables {
                     }
                     // Emit itable and refer to it in rootTable
                     String tableName = "qbicc_itable_impl_"+cls.getInternalName().replace('/', '.')+"_for_"+itableInfo.getGlobal().getName();
-                    CompoundLiteral itableLiteral = lf.literalOf(itableInfo.getType(), valueMap);
+                    Literal itableLiteral = lf.literalOf(itableInfo.getType(), valueMap);
                     cSection.addData(null, tableName, itableLiteral).setLinkage(Linkage.EXTERNAL);
                     iSection.declareData(null, tableName, itableInfo.getType());
                     rootTable[cls.getTypeId()] = lf.literalOfSymbol(tableName, itableInfo.getType());

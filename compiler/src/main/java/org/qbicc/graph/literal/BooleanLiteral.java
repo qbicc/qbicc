@@ -3,9 +3,10 @@ package org.qbicc.graph.literal;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.ValueType;
+import org.qbicc.type.IntegerType;
+import org.qbicc.type.WordType;
 
-public final class BooleanLiteral extends Literal {
+public final class BooleanLiteral extends WordLiteral {
     private final BooleanType type;
     private final boolean value;
 
@@ -14,12 +15,16 @@ public final class BooleanLiteral extends Literal {
         this.value = value;
     }
 
-    public ValueType getType() {
+    public BooleanType getType() {
         return type;
     }
 
     public boolean booleanValue() {
         return value;
+    }
+
+    public boolean isZero() {
+        return !value;
     }
 
     public boolean equals(final Literal other) {
@@ -32,6 +37,14 @@ public final class BooleanLiteral extends Literal {
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    @Override
+    Literal convert(LiteralFactory lf, WordType toType) {
+        if (toType instanceof IntegerType) {
+            return lf.literalOf((IntegerType) toType, value ? 1 : 0);
+        }
+        return super.convert(lf, toType);
     }
 
     public int hashCode() {

@@ -18,6 +18,10 @@ public class ValueConvertLiteral extends Literal {
 
     public Literal getValue() { return value; }
 
+    public boolean isZero() {
+        return value.isZero();
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof ValueConvertLiteral && equals((ValueConvertLiteral) other);
     }
@@ -33,6 +37,6 @@ public class ValueConvertLiteral extends Literal {
     public int hashCode() { return value.hashCode() * 19 + toType.hashCode(); }
 
     public String toString() {
-        return "bitcast ("+value+" to "+toType+")";
+        return "convert ("+value+" to "+toType+")";
     }
 }

@@ -17,6 +17,11 @@ public final class ZeroInitializerLiteral extends Literal {
         return type;
     }
 
+    @Override
+    public boolean isZero() {
+        return true;
+    }
+
     public boolean equals(final Literal other) {
         return other instanceof ZeroInitializerLiteral && equals((ZeroInitializerLiteral) other);
     }

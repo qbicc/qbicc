@@ -2,11 +2,15 @@ package org.qbicc.graph.literal;
 
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueVisitor;
+import org.qbicc.type.BooleanType;
+import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.NullableType;
 import org.qbicc.type.SignedIntegerType;
-import org.qbicc.type.ValueType;
+import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.WordType;
 
-public final class IntegerLiteral extends Literal {
+public final class IntegerLiteral extends WordLiteral {
     private final long value;
     private final IntegerType type;
     private final int hashCode;
@@ -17,7 +21,7 @@ public final class IntegerLiteral extends Literal {
         hashCode = Long.hashCode(value) * 19 + type.hashCode();
     }
 
-    public ValueType getType() {
+    public IntegerType getType() {
         return type;
     }
 
@@ -51,6 +55,36 @@ public final class IntegerLiteral extends Literal {
 
     public int hashCode() {
         return hashCode;
+    }
+
+    @Override
+    Literal bitCast(LiteralFactory lf, WordType toType) {
+        int minBits = type.getMinBits();
+        if (toType.getMinBits() != minBits) {
+            throw new IllegalArgumentException("Invalid literal bitcast between differently-sized types");
+        }
+        if (toType instanceof IntegerType) {
+            return lf.literalOf((IntegerType) toType, value);
+        } else if (toType instanceof FloatType) {
+            return lf.literalOf((FloatType) toType, minBits == 32 ? Float.intBitsToFloat(intValue()) : Double.longBitsToDouble(longValue()));
+        } else if (toType instanceof NullableType && value == 0) {
+            return lf.nullLiteralOfType((NullableType) toType);
+        }
+        return super.bitCast(lf, toType);
+    }
+
+    @Override
+    Literal convert(LiteralFactory lf, WordType toType) {
+        if (toType instanceof FloatType) {
+            if (type instanceof UnsignedIntegerType && type.getMinBits() == 64) {
+                return lf.literalOf((FloatType) toType, (double) (value >>> 1) * 2.0);
+            } else {
+                return lf.literalOf((FloatType) toType, (double) value);
+            }
+        } else if (toType instanceof BooleanType) {
+            return lf.literalOf(value != 0);
+        }
+        return super.bitCast(lf, toType);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {

@@ -23,7 +23,7 @@ import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -442,12 +442,11 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private static boolean isAlwaysNull(final Value value) {
-        ValueType valueType = value.getType();
-        return (valueType instanceof ReferenceType || valueType instanceof PointerType) && value instanceof ZeroInitializerLiteral;
+        return value instanceof NullLiteral;
     }
 
     private boolean isZero(final Value value) {
-        return isLiteral(value, 0);
+        return value instanceof Literal && ((Literal) value).isZero();
     }
 
     private static boolean isCmp(final Value value) {
@@ -463,8 +462,7 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private boolean isLiteral(final Value value, final int literal) {
-        return value instanceof IntegerLiteral &&
-            ((IntegerLiteral) value).equals(ctxt.getLiteralFactory().literalOf(literal)) ||
-            literal == 0 && value instanceof ZeroInitializerLiteral;
+        return literal == 0 ? isZero(value) : value instanceof IntegerLiteral &&
+            ((IntegerLiteral) value).equals(ctxt.getLiteralFactory().literalOf(literal));
     }
 }

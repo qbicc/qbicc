@@ -102,11 +102,11 @@ import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
-import org.qbicc.graph.literal.DefinedConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodDescriptorLiteral;
 import org.qbicc.graph.literal.MethodHandleLiteral;
+import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.SymbolLiteral;
@@ -635,10 +635,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return name;
     }
 
-    public String visit(final Appendable param, final DefinedConstantLiteral node) {
-        return literal(param, "constant " + node.getName());
-    }
-
     public String visit(final Appendable param, final Div node) {
         return node(param, "/", node);
     }
@@ -863,6 +859,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         processDependency(param, node.getDependency());
         addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
         return name;
+    }
+
+    public String visit(final Appendable param, final NullLiteral node) {
+        return literal(param, "null");
     }
 
     public String visit(final Appendable param, final ZeroInitializerLiteral node) {

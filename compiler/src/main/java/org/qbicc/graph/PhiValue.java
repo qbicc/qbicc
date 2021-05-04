@@ -3,12 +3,12 @@ package org.qbicc.graph;
 import java.util.HashSet;
 import java.util.Set;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.graph.literal.Literal;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.Element;
 import org.qbicc.type.definition.element.ExecutableElement;
-import io.smallrye.common.constraint.Assert;
 
 public final class PhiValue extends AbstractValue implements PinnedNode {
     private final ValueType type;
@@ -29,7 +29,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         ValueType expected = getType();
         ValueType actual = value.getType();
         if (! expected.isImplicitlyConvertibleFrom(actual)) {
-            if (value instanceof ZeroInitializerLiteral) {
+            if (value instanceof Literal && ((Literal) value).isZero()) {
                 value = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(expected);
             } else {
                 ctxt.warning(element, this, "Invalid input value for phi: expected %s, got %s", expected, actual);

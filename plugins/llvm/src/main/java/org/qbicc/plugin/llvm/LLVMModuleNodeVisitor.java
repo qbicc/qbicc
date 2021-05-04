@@ -21,11 +21,11 @@ import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
-import org.qbicc.graph.literal.DefinedConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.NullLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
@@ -45,7 +45,6 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
@@ -322,11 +321,6 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         return struct;
     }
 
-    @Override
-    public LLValue visit(Void param, DefinedConstantLiteral node) {
-        return node.getValue().accept(this, param);
-    }
-
     public LLValue visit(final Void param, final FloatLiteral node) {
         if (((FloatType) node.getType()).getMinBits() == 32) {
             return Values.floatConstant(node.floatValue());
@@ -339,22 +333,16 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         return Values.intConstant(node.longValue());
     }
 
+    public LLValue visit(final Void param, final NullLiteral node) {
+        return NULL;
+    }
+
     public LLValue visit(final Void param, final SymbolLiteral node) {
         return Values.global(node.getName());
     }
 
     public LLValue visit(final Void param, final ZeroInitializerLiteral node) {
-        if (node.getType() instanceof IntegerType) {
-            return Values.intConstant(0);
-        } else if (node.getType() instanceof PointerType) {
-            return NULL;
-        } else if (node.getType() instanceof BooleanType) {
-            return FALSE;
-        } else if (node.getType() instanceof FloatType) {
-            return Values.floatConstant(0);
-        } else {
-            return Values.zeroinitializer;
-        }
+        return Values.zeroinitializer;
     }
 
     public LLValue visit(final Void param, final BooleanLiteral node) {
@@ -443,7 +431,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
 
             CompoundType baType = ts.getCompoundType(CompoundType.Tag.NONE, "ba" + id, 0, 1, () -> List.of(typeIdMem, lengthMem, realContentMem));
 
-            CompoundLiteral baLit = lf.literalOf(baType, Map.of(
+            Literal baLit = lf.literalOf(baType, Map.of(
                 typeIdMem, lf.literalOfType(ba.load().getType()),
                 lengthMem, lf.literalOf(bytes.length),
                 realContentMem, lf.literalOf(s8ArrayType, bytes)
@@ -455,12 +443,12 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             CompoundType.Member coderMem = jlsLayout.getMember(jls.load().findField("coder"));
             CompoundType.Member valueMem = jlsLayout.getMember(jls.load().findField("value"));
             CompoundType stringType = ts.getCompoundType(CompoundType.Tag.NONE, "str" + id, 0, 1, () -> List.of(typeIdMem, coderMem, valueMem));
-            CompoundLiteral lit = lf.literalOf(stringType, Map.of(
+            Literal lit = lf.literalOf(stringType, Map.of(
                 typeIdMem, lf.literalOfType(jls.load().getType()),
                 coderMem, lf.literalOf(node.isLatin1() ? 0 : 1),
                 valueMem, lf.valueConvertLiteral(lf.literalOfSymbol("ba" + id, baType.getPointer().asCollected()), jls.load().getType().getReference())
             ));
-            module.constant(map(stringType)).value(visit(param, lit)).linkage(Linkage.PRIVATE).addressSpace(1).asGlobal("str" + id);
+            module.constant(map(stringType)).value(lit.accept(this, param)).linkage(Linkage.PRIVATE).addressSpace(1).asGlobal("str" + id);
             TEMPORARY_stringLiterals.put(value, v = map(lf.valueConvertLiteral(lf.literalOfSymbol("str" + id, lit.getType().getPointer().asCollected()), jls.load().getClassType().getReference())));
         }
         return v;
