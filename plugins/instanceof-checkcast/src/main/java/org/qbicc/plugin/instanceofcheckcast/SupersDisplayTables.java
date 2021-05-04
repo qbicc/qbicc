@@ -361,7 +361,7 @@ public class SupersDisplayTables {
         return List.of(literals);
     }
 
-    void emitTypeIdTable(LoadedTypeDefinition jlo) {
+    void defineTypeIdStructAndGlobalArray(LoadedTypeDefinition jlo) {
         TypeSystem ts = ctxt.getTypeSystem();
         UnsignedIntegerType u8 = ts.getUnsignedInteger8Type();
         int typeIdSize = ts.getTypeIdSize();
@@ -408,52 +408,8 @@ public class SupersDisplayTables {
             .addNextMember("interfaceBits", interfaceBitsType)
             .addNextMember("flags", u32)
             .build();
-        List<CompoundType.Member> members = typeIdStruct.getMembers();
-        
-        Section section = ctxt.getImplicitSection(jlo);
-        Literal[] typeIdTable = new Literal[get_number_of_typeids()];
-        LiteralFactory literalFactory = ctxt.getLiteralFactory();
-        
-        /* Set up the implementedInterface[] for primitives */
-        List<Literal> primitivesInterfaceBits = new ArrayList<>();
-        Literal zero = literalFactory.literalOf(0);
-        for (int i = 0; i < interfaceBitsType.getElementCount(); i++) {
-            primitivesInterfaceBits.add(zero);
-        }
 
-        /* Primitives don't support instanceOf but they are only implemented by themselves */
-        for (int i = 0; i < 10; i++) {
-            typeIdTable[i] = literalFactory.literalOf(typeIdStruct, 
-                Map.of(
-                    members.get(0), literalFactory.literalOf(uTypeId, i),
-                    members.get(1), literalFactory.literalOf(uTypeId, i),
-                    members.get(2), literalFactory.literalOf(uTypeId, 0),  /* Set super for prims to posion */
-                    members.get(3), literalFactory.literalOf(interfaceBitsType, primitivesInterfaceBits),
-                    members.get(4), literalFactory.literalOf(u32, 0)  /* no flags for prims */
-                )
-            );
-        }
-        for (Map.Entry<LoadedTypeDefinition, IdAndRange> e : typeids.entrySet()) {
-            LoadedTypeDefinition vtd = e.getKey();
-            IdAndRange idRange = e.getValue();
-            int superTypeId = 0;
-            if (vtd.hasSuperClass()) {
-                IdAndRange superRange = typeids.get(vtd.getSuperClass());
-                superTypeId = superRange.typeid;
-            }
-            typeIdTable[vtd.getTypeId()] = literalFactory.literalOf(typeIdStruct, 
-                Map.of(
-                    members.get(0), literalFactory.literalOf(uTypeId, idRange.typeid),
-                    members.get(1), literalFactory.literalOf(uTypeId, idRange.maximumSubtypeId),
-                    members.get(2), literalFactory.literalOf(uTypeId, superTypeId),
-                    members.get(3), literalFactory.literalOf(interfaceBitsType, convertByteArrayToValuesList(literalFactory, getImplementedInterfaceBits(vtd))),
-                    members.get(4), literalFactory.literalOf(u32, 0)  /* TODO: calculate flags */
-                )
-            );
-        }
-        ArrayType typeIdsArrayType = ctxt.getTypeSystem().getArrayType(typeIdStruct, typeIdTable.length);
-        Literal typeIdsValue = ctxt.getLiteralFactory().literalOf(typeIdsArrayType, List.of(typeIdTable));
-        section.addData(null, GLOBAL_TYPEID_ARRAY, typeIdsValue);
+        ArrayType typeIdsArrayType = ts.getArrayType(typeIdStruct, get_number_of_typeids());
 
         // create a GlobalVariable for shared access to the typeId array
         GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
@@ -465,6 +421,57 @@ public class SupersDisplayTables {
         builder.setSignature(BaseTypeSignature.V);
         typeIdArrayGlobal = builder.build();
         typeIdStructType = typeIdStruct;
+    }
+    
+    void emitTypeIdTable(LoadedTypeDefinition jlo) {
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        
+        /* Set up the implementedInterface[] for primitives */
+        List<Literal> primitivesInterfaceBits = new ArrayList<>();
+        Literal zero = lf.literalOf(0);
+        ArrayType interfaceBitsType = (ArrayType)typeIdStructType.getMember("interfaceBits").getType();
+        for (int i = 0; i < interfaceBitsType.getElementCount(); i++) {
+            primitivesInterfaceBits.add(zero);
+        }
+        
+        List<CompoundType.Member> members = typeIdStructType.getMembers();
+        Literal[] typeIdTable = new Literal[get_number_of_typeids()];
+
+        /* Primitives don't support instanceOf but they are only implemented by themselves */
+        for (int i = 0; i < 10; i++) {
+            typeIdTable[i] = lf.literalOf(typeIdStructType, 
+                Map.of(
+                    members.get(0), lf.literalOf((UnsignedIntegerType)members.get(0).getType(), i),
+                    members.get(1), lf.literalOf((UnsignedIntegerType)members.get(1).getType(), i),
+                    members.get(2), lf.literalOf((UnsignedIntegerType)members.get(2).getType(), 0),  /* Set super for prims to posion */
+                    members.get(3), lf.literalOf(interfaceBitsType, primitivesInterfaceBits),
+                    members.get(4), lf.literalOf((UnsignedIntegerType)members.get(4).getType(), 0)  /* no flags for prims */
+                )
+            );
+        }
+        for (Map.Entry<LoadedTypeDefinition, IdAndRange> e : typeids.entrySet()) {
+            LoadedTypeDefinition vtd = e.getKey();
+            IdAndRange idRange = e.getValue();
+            int superTypeId = 0;
+            if (vtd.hasSuperClass()) {
+                IdAndRange superRange = typeids.get(vtd.getSuperClass());
+                superTypeId = superRange.typeid;
+            }
+            typeIdTable[vtd.getTypeId()] = lf.literalOf(typeIdStructType, 
+                Map.of(
+                    members.get(0), lf.literalOf((UnsignedIntegerType)members.get(0).getType(), idRange.typeid),
+                    members.get(1), lf.literalOf((UnsignedIntegerType)members.get(1).getType(), idRange.maximumSubtypeId),
+                    members.get(2), lf.literalOf((UnsignedIntegerType)members.get(2).getType(), superTypeId),
+                    members.get(3), lf.literalOf(interfaceBitsType, convertByteArrayToValuesList(lf, getImplementedInterfaceBits(vtd))),
+                    members.get(4), lf.literalOf((UnsignedIntegerType)members.get(4).getType(), 0)  /* TODO: calculate flags */
+                )
+            );
+        }
+        Literal typeIdsValue = ctxt.getLiteralFactory().literalOf((ArrayType)typeIdArrayGlobal.getType(), List.of(typeIdTable));
+        
+        /* Write the data into Object's section */
+        Section section = ctxt.getImplicitSection(jlo);
+        section.addData(null, GLOBAL_TYPEID_ARRAY, typeIdsValue);
     }
 
     /**
