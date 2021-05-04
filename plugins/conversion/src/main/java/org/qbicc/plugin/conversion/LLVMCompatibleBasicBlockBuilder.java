@@ -3,7 +3,6 @@ package org.qbicc.plugin.conversion;
 import java.util.List;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.driver.Driver;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
@@ -55,18 +54,16 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
             fullFuncName = "llvm." + funcName + "imum.f" + numericType.getMinBits();
             return minMaxIntrinsic(fullFuncName, numericType, v1, v2);
         } else {
-            if (ctxt.getAttachment(Driver.LLVM_TOOL_KEY).compareVersionTo("12") >= 0) {
-                if (v1.getType() instanceof SignedIntegerType && v2.getType() instanceof SignedIntegerType) {
-                    numericType = (v1.getType().getSize() == 4) ? tps.getSignedInteger32Type() : tps.getSignedInteger64Type();
-                    fullFuncName = "llvm.s" + funcName + ".i" + numericType.getMinBits();
-                    return minMaxIntrinsic(fullFuncName, numericType, v1, v2);
-                } else if (v1.getType() instanceof UnsignedIntegerType && v2.getType() instanceof UnsignedIntegerType) {
-                    numericType = (v1.getType().getSize() == 4) ? tps.getUnsignedInteger32Type() : tps.getUnsignedInteger64Type();
-                    fullFuncName = "llvm.u" + funcName + ".i" + numericType.getMinBits();
-                    return minMaxIntrinsic(fullFuncName, numericType, v1, v2);
-                }
+            if (v1.getType() instanceof SignedIntegerType && v2.getType() instanceof SignedIntegerType) {
+                numericType = (v1.getType().getSize() == 4) ? tps.getSignedInteger32Type() : tps.getSignedInteger64Type();
+                fullFuncName = "llvm.s" + funcName + ".i" + numericType.getMinBits();
+                return minMaxIntrinsic(fullFuncName, numericType, v1, v2);
+            } else if (v1.getType() instanceof UnsignedIntegerType && v2.getType() instanceof UnsignedIntegerType) {
+                numericType = (v1.getType().getSize() == 4) ? tps.getUnsignedInteger32Type() : tps.getUnsignedInteger64Type();
+                fullFuncName = "llvm.u" + funcName + ".i" + numericType.getMinBits();
+                return minMaxIntrinsic(fullFuncName, numericType, v1, v2);
             }
-            // Fallback for LLVM<v12 or integer lengths other than 32 and 64 bits
+            // Fallback for integer lengths other than 32 and 64 bits
             return fb.select(isMax ? fb.isGt(v1, v2) : fb.isLt(v1, v2), v1, v2);
         }
     }
