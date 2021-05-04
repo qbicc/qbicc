@@ -433,6 +433,14 @@ final class BuilderImpl implements LLBuilder {
         return append(new ExtractValueImpl(block, (AbstractValue) aggregateType, (AbstractValue) aggregate));
     }
 
+    public ExtractValue insertvalue(final LLValue aggregateType, final LLValue aggregate, final LLValue insertType, final LLValue insert) {
+        Assert.checkNotNullParam("aggregateType", aggregateType);
+        Assert.checkNotNullParam("aggregate", aggregate);
+        Assert.checkNotNullParam("insertType", insertType);
+        Assert.checkNotNullParam("insert", insert);
+        return append(new InsertValueImpl(block, (AbstractValue) aggregateType, (AbstractValue) aggregate, (AbstractValue) insertType, (AbstractValue) insert));
+    }
+
     public Alloca alloca(final LLValue type) {
         Assert.checkNotNullParam("type", type);
         return append(new AllocaImpl(block, (AbstractValue) type));
