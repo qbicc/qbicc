@@ -906,7 +906,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
 
     // mapping
 
-    private DILocation createDbgLocation(final Node node) {
+    private LLValue createDbgLocation(final Node node, final boolean distinct) {
         LLValue inlinedAt = dbgInlinedCallSite(node.getCallSite());
 
         if (inlinedAt == null && node.getElement() != functionObj.getOriginalElement()) {
@@ -917,7 +917,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
                 ? topSubprogram
                 : debugInfo.getDebugInfoForFunction(node.getElement()).getScope(node.getBytecodeIndex());
 
-        return module.diLocation(node.getSourceLine(), 0, scope, inlinedAt);
+        if (distinct) {
+            return module.diLocation(node.getSourceLine(), 0, scope, inlinedAt).distinct(true).asRef();
+        } else {
+            return debugInfo.createDeduplicatedLocation(node.getSourceLine(), 0, scope, inlinedAt);
+        }
     }
 
     private LLValue dbgInlinedCallSite(final Node node) {
@@ -928,7 +932,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         LLValue diLocation = inlineLocations.get(node);
 
         if (diLocation == null) {
-            diLocation = createDbgLocation(node).distinct(true).asRef();
+            diLocation = createDbgLocation(node, true);
             inlineLocations.put(node, diLocation);
         }
 
@@ -940,7 +944,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             return null;
         }
 
-        return createDbgLocation(node).asRef();
+        return createDbgLocation(node, false);
     }
 
     private LLBasicBlock map(BasicBlock block) {
