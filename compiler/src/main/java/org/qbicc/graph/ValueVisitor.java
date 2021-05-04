@@ -203,6 +203,14 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, InsertElement node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, InsertMember node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, InstanceInvocationValue node) {
         return visitUnknown(param, node);
     }
@@ -475,6 +483,14 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, GetAndSub node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, InsertElement node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, InsertMember node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

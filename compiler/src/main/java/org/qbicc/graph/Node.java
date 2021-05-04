@@ -590,6 +590,14 @@ public interface Node {
                 return param.getBlockBuilder().getAndSub(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getUpdateValue()), node.getAtomicityMode());
             }
 
+            public Value visit(final Copier param, final InsertElement node) {
+                return param.getBlockBuilder().insertElement(param.copyValue(node.getArrayValue()), param.copyValue(node.getIndex()), param.copyValue(node.getInsertedValue()));
+            }
+
+            public Value visit(final Copier param, final InsertMember node) {
+                return param.getBlockBuilder().insertMember(param.copyValue(node.getCompoundValue()), node.getMember(), param.copyValue(node.getInsertedValue()));
+            }
+
             public ValueHandle visit(Copier param, GlobalVariable node) {
                 return param.getBlockBuilder().globalVariable(node.getVariableElement());
             }

@@ -192,6 +192,14 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().extractInstanceField(valueObj, field);
     }
 
+    public Value insertElement(Value array, Value index, Value value) {
+        return getDelegate().insertElement(array, index, value);
+    }
+
+    public Value insertMember(Value compound, CompoundType.Member member, Value value) {
+        return getDelegate().insertMember(compound, member, value);
+    }
+
     public PhiValue phi(final ValueType type, final BlockLabel owner) {
         return getDelegate().phi(type, owner);
     }

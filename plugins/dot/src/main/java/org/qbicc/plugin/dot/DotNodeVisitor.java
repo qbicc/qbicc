@@ -31,6 +31,8 @@ import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractInstanceField;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
+import org.qbicc.graph.InsertElement;
+import org.qbicc.graph.InsertMember;
 import org.qbicc.graph.IsEq;
 import org.qbicc.graph.IsGe;
 import org.qbicc.graph.IsGt;
@@ -716,6 +718,31 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
         }
+        return name;
+    }
+
+    public String visit(Appendable param, InsertElement node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "circle");
+        attr(param, "label", "inserted element");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getIndex(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getInsertedValue(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getArrayValue(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(Appendable param, InsertMember node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "circle");
+        attr(param, "label", "inserted member \"" + node.getMember().getName() + "\"");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getInsertedValue(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getCompoundValue(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
 

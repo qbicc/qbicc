@@ -33,6 +33,8 @@ import org.qbicc.graph.FunctionCall;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
+import org.qbicc.graph.InsertElement;
+import org.qbicc.graph.InsertMember;
 import org.qbicc.graph.IsEq;
 import org.qbicc.graph.IsGe;
 import org.qbicc.graph.IsGt;
@@ -725,6 +727,24 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         LLValue comp = map(node.getCompoundValue());
         LLValue index = map(node.getCompoundType(), node.getMember());
         return builder.extractvalue(compType, comp).arg(index).asLocal();
+    }
+
+    public LLValue visit(final Void param, final InsertElement node) {
+        LLValue arrayType = map(node.getType());
+        LLValue array = map(node.getArrayValue());
+        LLValue valueType = map(node.getInsertedValue().getType());
+        LLValue value = map(node.getInsertedValue());
+        LLValue index = map(node.getIndex());
+        return builder.insertvalue(arrayType, array, valueType, value).arg(index).asLocal();
+    }
+
+    public LLValue visit(final Void param, final InsertMember node) {
+        LLValue compType = map(node.getType());
+        LLValue comp = map(node.getCompoundValue());
+        LLValue valueType = map(node.getInsertedValue().getType());
+        LLValue value = map(node.getInsertedValue());
+        LLValue index = map(node.getType(), node.getMember());
+        return builder.insertvalue(compType, comp, valueType, value).arg(index).asLocal();
     }
 
     public LLValue visit(final Void param, final CheckCast node) {
