@@ -65,7 +65,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                     // OK in general but needs to be converted first
                     return truncate(bitCast(from, ((UnsignedIntegerType) fromType).asSigned()), toType);
                 } else if (toType instanceof BooleanType) {
-                    return isNe(from, ctxt.getLiteralFactory().literalOf((UnsignedIntegerType) fromType, 0));
+                    return super.truncate(from, toType);
                 }
                 // otherwise not OK (fall out)
             } else if (fromType instanceof FloatType) {

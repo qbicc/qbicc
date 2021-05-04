@@ -105,6 +105,7 @@ import org.qbicc.type.Type;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
+import org.qbicc.type.WordType;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 
@@ -712,11 +713,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     }
 
     public LLValue visit(final Void param, final Extend node) {
-        Type javaInputType = node.getInput().getType();
-        Type javaOutputType = node.getType();
+        WordType javaInputType = (WordType) node.getInput().getType();
+        WordType javaOutputType = node.getType();
+        LLValue llvmInput = map(node.getInput());
+        if (javaInputType instanceof IntegerType && javaOutputType instanceof IntegerType && javaInputType.getMinBits() == javaOutputType.getMinBits()) {
+            return llvmInput;
+        }
         LLValue inputType = map(javaInputType);
         LLValue outputType = map(javaOutputType);
-        LLValue llvmInput = map(node.getInput());
         return isFloating(javaInputType) ?
                builder.fpext(inputType, llvmInput, outputType).asLocal() :
                     isSigned(javaInputType) ?

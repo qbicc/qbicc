@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
@@ -156,8 +157,8 @@ public final class Layout {
         arrayLengthField = baseType.load().getField(0);
 
         // primitives first
-        // booleans are special
-        booleanArrayContentField = defineArrayType(classContext, baseType, ts.getUnsignedInteger8Type(), "[Z").load().getField(0);
+
+        booleanArrayContentField = defineArrayType(classContext, baseType, ts.getBooleanType(), "[Z").load().getField(0);
 
         byteArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger8Type(), "[B").load().getField(0);
         shortArrayContentField = defineArrayType(classContext, baseType, ts.getSignedInteger16Type(), "[S").load().getField(0);
@@ -526,9 +527,26 @@ public final class Layout {
         return statics;
     }
 
+    private ValueType widenBoolean(ValueType type) {
+        if (type instanceof BooleanType) {
+            return ctxt.getTypeSystem().getUnsignedInteger8Type();
+        } else if (type instanceof ArrayType) {
+            ArrayType arrayType = (ArrayType) type;
+            ValueType elementType = arrayType.getElementType();
+            ValueType widened = widenBoolean(elementType);
+            return elementType == widened ? type : ctxt.getTypeSystem().getArrayType(widened, arrayType.getElementCount());
+        } else {
+            return type;
+        }
+    }
+
     private CompoundType.Member computeMember(final BitSet allocated, final FieldElement field) {
         TypeSystem ts = ctxt.getTypeSystem();
-        ValueType fieldType = field.getType();
+        ValueType fieldType = widenBoolean(field.getType());
+        if (fieldType instanceof BooleanType) {
+            // widen booleans to 8 bits
+            fieldType = ts.getUnsignedInteger8Type();
+        }
         int size = (int) fieldType.getSize();
         int align = fieldType.getAlign();
         int idx = find(allocated, align, size);
