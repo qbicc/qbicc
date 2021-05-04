@@ -95,6 +95,16 @@ public final class BasicBlock {
         return incoming;
     }
 
+    public boolean isSucceededBy(final BasicBlock block) {
+        int cnt = terminator.getSuccessorCount();
+        for (int i = 0; i < cnt; i ++) {
+            if (block.equals(terminator.getSuccessor(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static final class Loop {
         private final BasicBlock startBlock;
         private final BasicBlock endBlock;

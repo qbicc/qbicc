@@ -25,6 +25,7 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
@@ -160,8 +161,8 @@ public class DispatchTables {
             HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
             for (int i = 0; i < vtable.length; i++) {
                 FunctionType funType = ctxt.getFunctionTypeForElement(vtable[i]);
-                if (vtable[i].isAbstract()) {
-                    MethodElement stub = ctxt.getVMHelperMethod("raiseAbstractMethodError");
+                if (vtable[i].isAbstract() || vtable[i].hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+                    MethodElement stub = ctxt.getVMHelperMethod(vtable[i].isAbstract() ? "raiseAbstractMethodError" : "raiseUnsatisfiedLinkError");
                     Function stubImpl = ctxt.getExactFunction(stub);
                     SymbolLiteral literal = ctxt.getLiteralFactory().literalOfSymbol(stubImpl.getLiteral().getName(), stubImpl.getType().getPointer());
                     section.declareFunction(stub, stubImpl.getName(), stubImpl.getType());

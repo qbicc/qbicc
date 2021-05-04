@@ -82,7 +82,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public Value negate(Value v) {
         if (v.getType() instanceof IntegerType) {
-            final IntegerLiteral zero = ctxt.getLiteralFactory().literalOf(0);
+            final IntegerLiteral zero = ctxt.getLiteralFactory().literalOf((IntegerType) v.getType(), 0);
             return super.sub(zero, v);
         }
         

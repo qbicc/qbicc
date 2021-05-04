@@ -14,6 +14,14 @@ public final class ConstructorElement extends InvokableElement {
         return visitor.visit(param, this);
     }
 
+    public String toString() {
+        final String packageName = getEnclosingType().getDescriptor().getPackageName();
+        if (packageName.isEmpty()) {
+            return getEnclosingType().getDescriptor().getClassName()+getDescriptor();
+        }
+        return packageName+"."+getEnclosingType().getDescriptor().getClassName()+getDescriptor();
+    }
+
     public static Builder builder() {
         return new Builder();
     }
