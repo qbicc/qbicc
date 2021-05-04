@@ -1,5 +1,6 @@
 package org.qbicc.plugin.llvm;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Module;
@@ -42,6 +43,7 @@ import org.qbicc.type.definition.element.MethodElement;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 final class LLVMModuleDebugInfo {
     private final Module module;
@@ -50,6 +52,8 @@ final class LLVMModuleDebugInfo {
     private final LLValue diCompileUnit;
     private final Map<ExecutableElement, MethodDebugInfo> methods = new HashMap<>();
     private final Map<Type, LLValue> types = new HashMap<>();
+    private final Map<LocationKey, LLValue> locations = new HashMap<>();
+    private final Map<String, LLValue> files = new HashMap<>();
 
     LLVMModuleDebugInfo(final Module module, final CompilationContext ctxt) {
         this.module = module;
@@ -84,7 +88,14 @@ final class LLVMModuleDebugInfo {
     }
 
     private LLValue createSourceFile(final Element element) {
-        String sourceFileName = element.getSourceFileName();
+        String sourceFileNameFull = element.getSourceFileName();
+
+        LLValue file = files.get(sourceFileNameFull);
+        if (file != null) {
+            return file;
+        }
+
+        String sourceFileName = sourceFileNameFull;
         String sourceFileDirectory = "";
 
         if (sourceFileName != null) {
@@ -98,7 +109,9 @@ final class LLVMModuleDebugInfo {
             sourceFileName = "<unknown>";
         }
 
-        return module.diFile(sourceFileName, sourceFileDirectory).asRef();
+        file = module.diFile(sourceFileName, sourceFileDirectory).asRef();
+        files.put(sourceFileNameFull, file);
+        return file;
     }
 
     private MethodDebugInfo createDebugInfoForFunction(final ExecutableElement element) {
@@ -304,6 +317,47 @@ final class LLVMModuleDebugInfo {
         }
 
         return debugInfo;
+    }
+
+    public LLValue createDeduplicatedLocation(int line, int column, LLValue scope, LLValue inlinedAt) {
+        Assert.checkNotNullParam("scope", scope);
+
+        LocationKey key = new LocationKey(line, column, scope, inlinedAt);
+        LLValue location = locations.get(key);
+        if (location != null) {
+            return location;
+        }
+
+        location = module.diLocation(line, column, scope, inlinedAt).asRef();
+        locations.put(key, location);
+        return location;
+    }
+
+    final static class LocationKey {
+        private final int line;
+        private final int column;
+        private final LLValue scope;
+        private final LLValue inlinedAt;
+
+        LocationKey(final int line, final int column, final LLValue scope, final LLValue inlinedAt) {
+            this.line = line;
+            this.column = column;
+            this.scope = scope;
+            this.inlinedAt = inlinedAt;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            LocationKey that = (LocationKey) o;
+            return line == that.line && column == that.column && scope.equals(that.scope) && Objects.equals(inlinedAt, that.inlinedAt);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(line, column, scope, inlinedAt);
+        }
     }
 
     final static class MethodDebugInfo {
