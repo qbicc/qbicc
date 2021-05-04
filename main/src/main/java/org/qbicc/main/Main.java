@@ -260,11 +260,19 @@ public class Main implements Callable<DiagnosticContext> {
                             errors = initialContext.errors();
                             if (errors == 0) {
                                 Iterator<LlvmToolChain> llvmTools = LlvmToolChain.findAllLlvmToolChains(target, t -> true, Main.class.getClassLoader()).iterator();
-                                if (! llvmTools.hasNext()) {
+                                LlvmToolChain llvmToolChain = null;
+                                while (llvmTools.hasNext()) {
+                                    llvmToolChain = llvmTools.next();
+                                    if (llvmToolChain.compareVersionTo("12") >= 0) {
+                                        break;
+                                    }
+                                    llvmToolChain = null;
+                                }
+                                if (llvmToolChain == null) {
                                     initialContext.error("No working LLVM toolchain found");
                                     errors = initialContext.errors();
                                 } else {
-                                    builder.setLlvmToolChain(llvmTools.next());
+                                    builder.setLlvmToolChain(llvmToolChain);
                                 }
                             }
                             if (errors == 0) {
