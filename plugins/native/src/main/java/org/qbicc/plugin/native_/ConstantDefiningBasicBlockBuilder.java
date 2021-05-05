@@ -1,6 +1,7 @@
 package org.qbicc.plugin.native_;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
@@ -11,16 +12,13 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.StaticField;
-import org.qbicc.graph.StaticInvocationValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.plugin.constants.Constants;
 import org.qbicc.runtime.CNative;
-import org.qbicc.type.FloatType;
-import org.qbicc.type.IntegerType;
-import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -28,6 +26,8 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
+import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  * This block builder replaces calls to the {@link CNative#constant()} method with a registration of the constant
@@ -68,26 +68,31 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         while (test instanceof CastValue) {
             test = ((CastValue) test).getInput();
         }
-        if (test instanceof StaticInvocationValue) {
-            StaticInvocationValue inv = (StaticInvocationValue) test;
-            MethodElement invocationTarget = inv.getInvocationTarget();
-            if (invocationTarget.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.C_NATIVE)) {
-                if (invocationTarget.getName().equals("constant")) {
-                    // it's a constant
-                    if (handle instanceof StaticField) {
-                        FieldElement fieldElement = ((StaticField) handle).getVariableElement();
-                        if (fieldElement.isReallyFinal()) {
-                            processConstant(fieldElement);
-                            // don't actually write the field at all
-                            return nop();
-                        }
-                    }
-                    ctxt.error(getLocation(), "Compilation constants must be static final fields");
+        if (test instanceof ConstantLiteral) {
+            // it's a constant
+            if (handle instanceof StaticField) {
+                FieldElement fieldElement = ((StaticField) handle).getVariableElement();
+                if (fieldElement.isReallyFinal()) {
+                    processConstant(fieldElement);
+                    // don't actually write the field at all
                     return nop();
                 }
             }
+            ctxt.error(getLocation(), "Compilation constants must be static final fields");
+            return nop();
         }
         return super.store(handle, value, mode);
+    }
+
+    @Override
+    public Value invokeValueStatic(MethodElement target, List<Value> arguments) {
+        if (target.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.C_NATIVE)) {
+            if (target.getName().equals("constant")) {
+                // it's a constant but we don't yet know its type
+                return ctxt.getLiteralFactory().constantLiteralOfType(ctxt.getTypeSystem().getPoisonType());
+            }
+        }
+        return super.invokeValueStatic(target, arguments);
     }
 
     private void processConstant(final FieldElement fieldElement) {
@@ -118,12 +123,12 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
             if (result == null) {
                 // constant is undefined
-                constants.registerConstant(fieldElement, lf.literalOfUndefined());
+                constants.registerConstant(fieldElement, lf.undefinedLiteralOfType(fieldElement.getType()));
                 return;
             }
         } catch (IOException e) {
             // constant is undefined either way
-            constants.registerConstant(fieldElement, lf.literalOfUndefined());
+            constants.registerConstant(fieldElement, lf.undefinedLiteralOfType(fieldElement.getType()));
             return;
         }
         CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);

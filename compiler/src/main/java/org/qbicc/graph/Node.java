@@ -14,6 +14,7 @@ import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodDescriptorLiteral;
@@ -491,6 +492,10 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final CompoundLiteral node) {
+                return node;
+            }
+
+            public Value visit(final Copier param, final ConstantLiteral node) {
                 return node;
             }
 

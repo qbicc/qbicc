@@ -53,7 +53,9 @@ public interface LiteralFactory {
 
     SymbolLiteral literalOfSymbol(String name, ValueType symbolType);
 
-    UndefinedLiteral literalOfUndefined();
+    UndefinedLiteral undefinedLiteralOfType(ValueType type);
+
+    ConstantLiteral constantLiteralOfType(ValueType type);
 
     TypeLiteral literalOfType(ValueType type);
 
@@ -75,7 +77,6 @@ public interface LiteralFactory {
         return new LiteralFactory() {
             private final BooleanLiteral TRUE = new BooleanLiteral(typeSystem.getBooleanType(), true);
             private final BooleanLiteral FALSE = new BooleanLiteral(typeSystem.getBooleanType(), false);
-            private final UndefinedLiteral undef = new UndefinedLiteral(typeSystem.getPoisonType());
             private final ConcurrentMap<String, StringLiteral> stringLiterals = new ConcurrentHashMap<>();
             // todo: come up with a more efficient caching scheme
             private final ConcurrentMap<IntegerLiteral, IntegerLiteral> integerLiterals = new ConcurrentHashMap<>();
@@ -83,6 +84,8 @@ public interface LiteralFactory {
             private final ConcurrentMap<ValueType, TypeLiteral> typeLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<ValueType, ZeroInitializerLiteral> zeroLiterals = new ConcurrentHashMap<>();
             private final ConcurrentMap<NullableType, NullLiteral> nullLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<ValueType, UndefinedLiteral> undefLiterals = new ConcurrentHashMap<>();
+            private final ConcurrentMap<ValueType, ConstantLiteral> constantLiterals = new ConcurrentHashMap<>();
 
             public BlockLiteral literalOf(final BlockLabel blockLabel) {
                 return new BlockLiteral(typeSystem.getBlockType(), blockLabel);
@@ -134,8 +137,12 @@ public interface LiteralFactory {
                 return stringLiterals.computeIfAbsent(value, v -> new StringLiteral(stringRefType, v));
             }
 
-            public UndefinedLiteral literalOfUndefined() {
-                return undef;
+            public UndefinedLiteral undefinedLiteralOfType(ValueType type) {
+                return undefLiterals.computeIfAbsent(type, UndefinedLiteral::new);
+            }
+
+            public ConstantLiteral constantLiteralOfType(ValueType type) {
+                return constantLiterals.computeIfAbsent(type, ConstantLiteral::new);
             }
 
             public ObjectLiteral literalOf(final VmObject value) {
