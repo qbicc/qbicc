@@ -94,6 +94,10 @@ public interface ClassFile extends FieldResolver,
     int I_ACC_THREAD_LOCAL = 1 << 19;
     int I_ACC_ALWAYS_INLINE = 1 << 20;
     int I_ACC_NEVER_INLINE = 1 << 21;
+    /**
+     * For methods which have no side-effects.
+     */
+    int I_ACC_NO_SIDE_EFFECTS = 1 << 22;
 
     int OP_NOP = 0x00;
     int OP_ACONST_NULL = 0x01;

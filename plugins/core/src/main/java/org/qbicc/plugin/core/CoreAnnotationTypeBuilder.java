@@ -1,0 +1,49 @@
+package org.qbicc.plugin.core;
+
+import org.qbicc.context.ClassContext;
+import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.MethodResolver;
+import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.definition.element.MethodElement;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+
+/**
+ * A type builder which applies the core annotations.
+ */
+public final class CoreAnnotationTypeBuilder implements DefinedTypeDefinition.Builder.Delegating {
+    private final DefinedTypeDefinition.Builder delegate;
+
+    private final ClassTypeDescriptor noSideEffects;
+    private final ClassTypeDescriptor hidden;
+
+    public CoreAnnotationTypeBuilder(final ClassContext classCtxt, DefinedTypeDefinition.Builder delegate) {
+        this.delegate = delegate;
+
+        noSideEffects = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/NoSideEffects");
+        hidden = ClassTypeDescriptor.synthesize(classCtxt, "org/qbicc/runtime/Hidden");
+    }
+
+    @Override
+    public DefinedTypeDefinition.Builder getDelegate() {
+        return delegate;
+    }
+
+    @Override
+    public void addMethod(MethodResolver resolver, int index) {
+        Delegating.super.addMethod(new MethodResolver() {
+            @Override
+            public MethodElement resolveMethod(int index, DefinedTypeDefinition enclosing) {
+                MethodElement methodElement = resolver.resolveMethod(index, enclosing);
+                for (Annotation annotation : methodElement.getInvisibleAnnotations()) {
+                    if (annotation.getDescriptor().equals(noSideEffects)) {
+                        methodElement.setModifierFlags(ClassFile.I_ACC_NO_SIDE_EFFECTS);
+                    } else if (annotation.getDescriptor().equals(hidden)) {
+                        methodElement.setModifierFlags(ClassFile.I_ACC_HIDDEN);
+                    }
+                }
+                return methodElement;
+            }
+        }, index);
+    }
+}
