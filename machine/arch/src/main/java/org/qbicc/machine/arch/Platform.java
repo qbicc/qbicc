@@ -1,6 +1,9 @@
 package org.qbicc.machine.arch;
 
+import java.util.Iterator;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.smallrye.common.constraint.Assert;
 
@@ -16,14 +19,18 @@ public final class Platform {
 
     public Platform(final Cpu cpu, final OS os, final ABI abi, final ObjectType objectType) {
         this.cpu = Assert.checkNotNullParam("cpu", cpu);
-        this.os = Assert.checkNotNullParam("system", os);
+        this.os = Assert.checkNotNullParam("os", os);
         this.abi = Assert.checkNotNullParam("abi", abi);
         this.objectType = Assert.checkNotNullParam("objectType", objectType);
         hashCode = Objects.hash(cpu, os, abi, objectType);
     }
 
+    public Platform(final Cpu cpu, final OS os, ABI abi) {
+        this(cpu, os, abi, os.getDefaultObjectType(cpu));
+    }
+
     public Platform(final Cpu cpu, final OS os) {
-        this(cpu, os, os.getDefaultAbi(cpu), os.getDefaultObjectType(cpu));
+        this(cpu, os, os.getDefaultAbi(cpu));
     }
 
     public Cpu getCpu() {
@@ -56,6 +63,55 @@ public final class Platform {
 
     public boolean equals(final Platform obj) {
         return obj == this || obj != null && cpu.equals(obj.cpu) && os.equals(obj.os) && abi.equals(obj.abi);
+    }
+
+    private static final Pattern PLATFORM_PATTERN;
+
+    static {
+        StringBuilder b = new StringBuilder(256);
+        b.append('('); // first capture group: CPU
+        Iterator<String> iterator = Cpu.getNames().iterator();
+        appendNameAlt(b, iterator);
+        b.append(')').append('-');
+        b.append('('); // second capture group: OS
+        iterator = OS.getNames().iterator();
+        appendNameAlt(b, iterator);
+        b.append(')');
+        b.append("(?:");
+        b.append('-');
+        b.append('('); // final capture group: ABI (optional)
+        iterator = ABI.getNames().iterator();
+        appendNameAlt(b, iterator);
+        b.append(')').append(')').append('?');
+        PLATFORM_PATTERN = Pattern.compile(b.toString());
+    }
+
+    private static void appendNameAlt(final StringBuilder b, final Iterator<String> iterator) {
+        if (iterator.hasNext()) {
+            String name = iterator.next();
+            b.append(Pattern.quote(name));
+            while (iterator.hasNext()) {
+                b.append('|');
+                name = iterator.next();
+                b.append(Pattern.quote(name));
+            }
+        }
+    }
+
+    public static Platform parse(String platformString) throws IllegalArgumentException {
+        Matcher matcher = PLATFORM_PATTERN.matcher(platformString);
+        if (matcher.matches()) {
+            String cpu = matcher.group(1);
+            String os = matcher.group(2);
+            String abi = matcher.group(3);
+            if (abi == null) {
+                return new Platform(Cpu.forName(cpu), OS.forName(os));
+            } else {
+                return new Platform(Cpu.forName(cpu), OS.forName(os), ABI.forName(abi));
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid platform string (expected \"cpuname-osname[-abiname]\"");
+        }
     }
 
     public int hashCode() {
