@@ -62,7 +62,8 @@ public final class Section extends ProgramObject {
     public Function addFunction(ExecutableElement originalElement, String name, FunctionType type) {
         Function obj = new Function(
             originalElement, Assert.checkNotNullParam("name", name),
-            programModule.literalFactory.literalOfSymbol(name, type)
+            programModule.literalFactory.literalOfSymbol(name, type),
+            Function.getFunctionFlags(originalElement)
         );
         Map<String, ProgramObject> definedObjects = this.definedObjects;
         synchronized (definedObjects) {

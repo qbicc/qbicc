@@ -664,8 +664,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         throw new IllegalStateException("Invoke of unresolved constructor");
     }
 
-    public Value callFunction(final Value callTarget, final List<Value> arguments) {
-        return optionallyTry(new FunctionCall(callSite, element, line, bci, requireDependency(), callTarget, arguments));
+    public Value callFunction(final Value callTarget, final List<Value> arguments, int flags) {
+        return optionallyTry(new FunctionCall(callSite, element, line, bci, requireDependency(), callTarget, arguments, flags));
     }
 
     public Node nop() {

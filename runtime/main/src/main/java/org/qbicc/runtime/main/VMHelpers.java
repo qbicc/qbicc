@@ -1,5 +1,6 @@
 package org.qbicc.runtime.main;
 
+import org.qbicc.runtime.NoSideEffects;
 import org.qbicc.runtime.stdc.Stddef;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +18,7 @@ public final class VMHelpers {
     /* map Java object to native mutex for object monitor bytecodes. */
     static ConcurrentMap<Object, NativeObjectMonitor> objectMonitorNatives = null;
 
+    @NoSideEffects
     public static boolean instanceof_class(Object instance, Class<?> cls) {
         if (instance == null) {
             return false;
@@ -26,6 +28,7 @@ public final class VMHelpers {
         return isAssignableTo(instance, toTypeId, toDim);
     }
 
+    @NoSideEffects
     public static boolean instanceof_typeId(Object instance, type_id typeId, int dimensions) {
         if (instance == null) {
             return false;
@@ -33,6 +36,7 @@ public final class VMHelpers {
         return isAssignableTo(instance, typeId, dimensions);
     }
 
+    @NoSideEffects
     public static void arrayStoreCheck(Object value, type_id toTypeId, int toDimensions) {
         if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
@@ -40,12 +44,14 @@ public final class VMHelpers {
         raiseArrayStoreException();
     }
 
+    @NoSideEffects
     public static void checkcast_class (Object value, Class<?> cls) {
         type_id toTypeId = ObjectModel.get_type_id_from_class(cls);
         int toDim = ObjectModel.get_dimensions_from_class(cls);
         checkcast_typeId(value, toTypeId, toDim);
     }
 
+    @NoSideEffects
     public static void checkcast_typeId(Object value, type_id toTypeId, int toDimensions) {
         if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
@@ -54,6 +60,7 @@ public final class VMHelpers {
     }
 
     // Invariant: value is not null
+    @NoSideEffects
     private static boolean isAssignableTo(Object value, type_id toTypeId, int toDimensions) {
         type_id valueTypeId = ObjectModel.type_id_of(value);
         if (toDimensions == 0) {
@@ -71,6 +78,7 @@ public final class VMHelpers {
         return false;
     }
 
+    @NoSideEffects
     private static boolean isAssignableToLeaf(type_id valueTypeId, type_id toTypeId) {
         if (ObjectModel.is_class(toTypeId)) {
             type_id maxTypeId = ObjectModel.max_subclass_type_id_of(toTypeId);
@@ -84,11 +92,13 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
+    @NoSideEffects
     static Class<?> classof_from_typeid(type_id typeId) {
         // Load the java.lang.Class object from an array of them indexed by typeId.
         return null; // TODO: Implement this! (or perhaps implement it inline; it should take less code than a call).
     }
 
+    @NoSideEffects
     private static void omError(c_int nativeErrorCode) throws IllegalMonitorStateException {
         int errorCode = nativeErrorCode.intValue();
         if (0 != errorCode) {

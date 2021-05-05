@@ -543,7 +543,7 @@ public interface Node {
 
             public Value visit(final Copier param, final FunctionCall node) {
                 param.copyNode(node.getDependency());
-                return param.getBlockBuilder().callFunction(param.copyValue(node.getCallTarget()), param.copyValues(node.getArguments()));
+                return param.getBlockBuilder().callFunction(param.copyValue(node.getCallTarget()), param.copyValues(node.getArguments()), node.getFlags());
             }
 
             public Value visit(final Copier param, final GetAndAdd node) {
