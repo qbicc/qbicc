@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.machine.arch.Platform;
 
 /**
  *
@@ -46,6 +47,8 @@ final class LlcInvokerImpl extends AbstractLlvmInvoker implements LlcInvoker {
     }
 
     void addArguments(final List<String> cmd) {
+        Platform platform = getTool().getPlatform();
+        cmd.add("-mtriple=" + platform.getCpu().toString() + "-" + platform.getOs().toString() + "-" + platform.getAbi().toString());
         cmd.add("--relocation-model=" + relocationModel.value);
         cmd.add("-" + optLevel.name());
         cmd.add("--filetype=" + outputFormat.toOptionString());

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.machine.arch.Platform;
 
 /**
  *
@@ -21,6 +22,8 @@ final class OptInvokerImpl extends AbstractLlvmInvoker implements OptInvoker {
     }
 
     void addArguments(final List<String> cmd) {
+        Platform platform = getTool().getPlatform();
+        cmd.add("-mtriple=" + platform.getCpu().toString() + "-" + platform.getOs().toString() + "-" + platform.getAbi().toString());
         for (OptPass pass : passes) {
             cmd.add("-" + pass.name);
         }
