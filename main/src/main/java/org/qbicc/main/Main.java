@@ -404,6 +404,10 @@ public class Main implements Callable<DiagnosticContext> {
             .setOptGotos(optionsProcessor.optArgs.optGotos)
             .setOptPhis(optionsProcessor.optArgs.optPhis)
             .setGraphGenConfig(optionsProcessor.graphGenConfig);
+        Platform platform = optionsProcessor.platform;
+        if (platform != null) {
+            mainBuilder.setPlatform(platform);
+        }
 
         Main main = mainBuilder.build();
         DiagnosticContext context = main.call();
@@ -461,6 +465,8 @@ public class Main implements Callable<DiagnosticContext> {
         private GCType gc;
         @CommandLine.Option(names = "--pie", negatable = true, defaultValue = "false", description = "[Disable|Enable] generation of position independent executable")
         private boolean isPie;
+        @CommandLine.Option(names = "--platform", converter = PlatformConverter.class)
+        private Platform platform;
 
         @CommandLine.Parameters(index="0", arity="1", description = "Application main class")
         private String mainClass;
