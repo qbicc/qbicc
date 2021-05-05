@@ -4,10 +4,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
+import org.qbicc.machine.arch.Cpu;
+import org.qbicc.machine.arch.OS;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.tool.process.InputSource;
 
@@ -27,8 +28,18 @@ public interface CToolChain extends Tool {
     static Iterable<CToolChain> findAllCToolChains(final Platform platform, Predicate<? super CToolChain> filter, ClassLoader classLoader) {
         // for now, just a simple iterative check
         List<Path> paths = new ArrayList<>();
-        // we also need to include cross-compilers at some point
-        for (String name : Arrays.asList("cc", "gcc", "clang")) {
+        List<String> names = new ArrayList<>(16);
+        // cross-compiler: cpu-os-vendor
+        Cpu cpu = platform.getCpu();
+        String cpuName = cpu.getSimpleName();
+        OS os = platform.getOs();
+        String osName = os.getName();
+        if (os == OS.LINUX && (os != Platform.HOST_PLATFORM.getOs() || cpu != Platform.HOST_PLATFORM.getCpu())) {
+            names.add(cpuName + "-" + osName + "-gnu-gcc");
+        }
+        // generic compiler names
+        names.addAll(List.of("cc", "gcc", "clang"));
+        for (String name : names) {
             Path path = ToolUtil.findExecutable(name);
             if (path != null) {
                 paths.add(path);

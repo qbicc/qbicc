@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
@@ -25,6 +26,8 @@ import org.qbicc.type.definition.element.MethodElement;
 public interface CompilationContext extends DiagnosticContext {
 
     String IMPLICIT_SECTION_NAME = "__implicit__";
+
+    Platform getPlatform();
 
     TypeSystem getTypeSystem();
 

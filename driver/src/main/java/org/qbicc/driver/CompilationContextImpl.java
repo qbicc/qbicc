@@ -25,6 +25,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.Section;
@@ -52,6 +53,7 @@ import org.qbicc.type.generic.TypeSignature;
 final class CompilationContextImpl implements CompilationContext {
     private static final Logger log = Logger.getLogger("org.qbicc.driver");
 
+    private final Platform platform;
     private final TypeSystem typeSystem;
     private final LiteralFactory literalFactory;
     private final BaseDiagnosticContext baseDiagnosticContext;
@@ -73,8 +75,9 @@ final class CompilationContextImpl implements CompilationContext {
     // mutable state
     private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories) {
         this.baseDiagnosticContext = baseDiagnosticContext;
+        this.platform = platform;
         this.typeSystem = typeSystem;
         this.literalFactory = literalFactory;
         this.finder = finder;
@@ -150,6 +153,10 @@ final class CompilationContextImpl implements CompilationContext {
 
     public Iterable<Diagnostic> getDiagnostics() {
         return baseDiagnosticContext.getDiagnostics();
+    }
+
+    public Platform getPlatform() {
+        return platform;
     }
 
     public TypeSystem getTypeSystem() {
