@@ -18,6 +18,7 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.interpreter.VmObject;
+import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.object.ProgramModule;
@@ -44,6 +45,10 @@ import org.qbicc.type.descriptor.TypeDescriptor;
 public class TestClassContext implements ClassContext {
     private final CompilationContext ctxt = new CompilationContext() {
         private final Map<AttachmentKey<?>, Object> attachments = new HashMap<>();
+
+        public Platform getPlatform() {
+            return Platform.HOST_PLATFORM;
+        }
 
         public TypeSystem getTypeSystem() {
             return null;
