@@ -108,6 +108,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean optPhis;
     private final boolean optGotos;
     private final boolean optInlining;
+    private final Platform platform;
 
     Main(Builder builder) {
         bootModulePath = List.copyOf(builder.bootModulePath);
@@ -122,6 +123,7 @@ public class Main implements Callable<DiagnosticContext> {
         optInlining = builder.optInlining;
         optPhis = builder.optPhis;
         optGotos = builder.optGotos;
+        platform = builder.platform;
     }
 
     public DiagnosticContext call() {
@@ -145,7 +147,7 @@ public class Main implements Callable<DiagnosticContext> {
             builder.setOutputDirectory(outputPath);
             builder.addBootClassPathElements(bootModulePath);
             // first, probe the target platform
-            Platform target = Platform.HOST_PLATFORM;
+            Platform target = platform;
             builder.setTargetPlatform(target);
             Optional<ObjectFileProvider> optionalProvider = ObjectFileProvider.findProvider(target.getObjectType(), Main.class.getClassLoader());
             if (optionalProvider.isEmpty()) {
@@ -554,6 +556,7 @@ public class Main implements Callable<DiagnosticContext> {
         private final List<Path> bootModulePath = new ArrayList<>();
         private Path outputPath;
         private Consumer<Iterable<Diagnostic>> diagnosticsHandler = diagnostics -> {};
+        private Platform platform = Platform.HOST_PLATFORM;
         private String mainClass;
         private String gc = "none";
         // TODO Detect whether the system uses PIEs by default and match that if possible
@@ -591,6 +594,12 @@ public class Main implements Callable<DiagnosticContext> {
         public Builder setOutputPath(Path path) {
             Assert.checkNotNullParam("path", path);
             this.outputPath = path;
+            return this;
+        }
+
+        public Builder setPlatform(Platform platform) {
+            Assert.checkNotNullParam("platform", platform);
+            this.platform = platform;
             return this;
         }
 
