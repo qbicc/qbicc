@@ -2,6 +2,7 @@ package org.qbicc.context;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
@@ -77,4 +78,14 @@ public interface CompilationContext extends DiagnosticContext {
     SymbolLiteral getCurrentThreadLocalSymbolLiteral();
 
     FieldElement getExceptionField();
+
+    /**
+     * Run a task on every compiler thread.  When the task has returned on all threads, this method will return.  This
+     * method must not be called from a compiler thread or an exception will be thrown.
+     *
+     * @param task the task to run on every compiler thread
+     * @throws IllegalStateException if this method is called from a compiler thread, or if the compiler threads are not
+     *  running
+     */
+    void runParallelTask(Consumer<CompilationContext> task) throws IllegalStateException;
 }

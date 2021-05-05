@@ -222,7 +222,11 @@ public abstract class InputSource {
     }
 
     static String nameOf(final Process p) {
-        return p.info().command().orElse("<unknown process>");
+        try {
+            return p.info().command().orElse("<unknown process>");
+        } catch (RuntimeException ignored) {
+            return "<unknown process>";
+        }
     }
 
     public abstract String toString();

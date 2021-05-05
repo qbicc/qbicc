@@ -2,17 +2,20 @@ package org.qbicc.driver;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
@@ -47,13 +50,15 @@ import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.TypeSignature;
 
 final class CompilationContextImpl implements CompilationContext {
+    private static final Logger log = Logger.getLogger("org.qbicc.driver");
+
     private final TypeSystem typeSystem;
     private final LiteralFactory literalFactory;
     private final BaseDiagnosticContext baseDiagnosticContext;
     private final ConcurrentMap<VmObject, ClassContext> classLoaderContexts = new ConcurrentHashMap<>();
     volatile Set<ExecutableElement> allowedSet = null;
     final Set<ExecutableElement> queued = ConcurrentHashMap.newKeySet();
-    final Queue<ExecutableElement> queue = new ConcurrentLinkedDeque<>();
+    final Queue<ExecutableElement> queue = new ArrayDeque<>();
     final Set<ExecutableElement> entryPoints = ConcurrentHashMap.newKeySet();
     final ClassContext bootstrapClassContext;
     private final BiFunction<VmObject, String, DefinedTypeDefinition> finder;
@@ -190,7 +195,10 @@ final class CompilationContextImpl implements CompilationContext {
             throw new IllegalStateException("Cannot reach previously unreachable element: " + element);
         }
         if (queued.add(element)) {
-            queue.add(element);
+            synchronized (queue) {
+                queue.add(element);
+                queue.notify();
+            }
         }
     }
 
@@ -199,12 +207,16 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public ExecutableElement dequeue() {
-        return queue.poll();
+        synchronized (queue) {
+            return queue.poll();
+        }
     }
 
     void lockEnqueuedSet() {
         allowedSet = Set.copyOf(queued);
-        queued.clear();
+        synchronized (queue) {
+            queued.clear();
+        }
     }
 
     public void registerEntryPoint(final ExecutableElement method) {
@@ -439,5 +451,227 @@ final class CompilationContextImpl implements CompilationContext {
 
     void setBlockFactory(final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory) {
         this.blockFactory = blockFactory;
+    }
+
+    private int state;
+    private int activeThreads;
+    private int threadAcks;
+    private Consumer<CompilationContext> task;
+
+    private static final int ST_WAITING = 0; // waiting -> task | exit
+    private static final int ST_TASK = 1; // task -> join
+    private static final int ST_JOIN = 2; // join -> waiting
+    private static final int ST_EXIT = 3; // exit -> .
+
+    private final Runnable threadTask = new Runnable() {
+        public void run() {
+            CompilationContextImpl lock = CompilationContextImpl.this;
+            synchronized (lock) {
+                activeThreads ++;
+            }
+            Consumer<CompilationContext> task;
+            boolean needsJoin = false;
+            int state;
+            for (;;) {
+                synchronized (lock) {
+                    inner: for (;;) {
+                        state = CompilationContextImpl.this.state;
+                        switch (state) {
+                            case ST_WAITING: {
+                                try {
+                                    lock.wait();
+                                } catch (InterruptedException ignored) {
+                                    // consume interruption on root task
+                                }
+                                continue inner;
+                            }
+                            case ST_TASK: {
+                                if (needsJoin) {
+                                    try {
+                                        lock.wait();
+                                    } catch (InterruptedException ignored) {
+                                        // consume interruption on root task
+                                    }
+                                    continue inner;
+                                }
+                                needsJoin = true;
+                                // exit lock to run task
+                                task = CompilationContextImpl.this.task;
+                                // acknowledge
+                                if (++ threadAcks == activeThreads) {
+                                    lock.notifyAll();
+                                }
+                                break inner;
+                            }
+                            case ST_JOIN: {
+                                needsJoin = false;
+                                if (++ threadAcks == activeThreads) {
+                                    lock.notifyAll();
+                                }
+                                try {
+                                    lock.wait();
+                                } catch (InterruptedException ignored) {
+                                    // consume interruption on root task
+                                }
+                                continue inner;
+                            }
+                            case ST_EXIT: {
+                                if (--activeThreads == 0) {
+                                    lock.notifyAll();
+                                }
+                                return;
+                            }
+                            default: {
+                                throw Assert.impossibleSwitchCase(state);
+                            }
+                        }
+                    }
+                }
+                assert state == ST_TASK;
+                try {
+                    task.accept(lock);
+                } catch (Throwable t) {
+                    error(t, "A task threw an uncaught exception");
+                }
+            }
+        }
+    };
+
+    @Override
+    public void runParallelTask(Consumer<CompilationContext> task) throws IllegalStateException {
+        Assert.checkNotNullParam("task", task);
+        boolean intr = false;
+        try {
+            synchronized (this) {
+                if (state != ST_WAITING) {
+                    throw new IllegalStateException("Invalid thread state");
+                }
+                // submit task
+                this.task = task;
+                threadAcks = 0;
+                state = ST_TASK;
+                notifyAll();
+                // wait for acks
+                while (threadAcks < activeThreads) {
+                    try {
+                        wait();
+                    } catch (InterruptedException e) {
+                        intr = true;
+                    }
+                }
+                // all threads have ack'd the task, now join
+                threadAcks = 0;
+                state = ST_JOIN;
+                notifyAll();
+                // wait for acks
+                while (threadAcks < activeThreads) {
+                    try {
+                        wait();
+                    } catch (InterruptedException e) {
+                        intr = true;
+                    }
+                }
+                threadAcks = 0;
+                state = ST_WAITING;
+            }
+        } finally {
+            if (intr) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    int waiting;
+
+    void processQueue(Consumer<ExecutableElement> consumer) {
+        synchronized (this) {
+            waiting = 0;
+        }
+        runParallelTask(ctxt -> {
+            ExecutableElement element;
+            for (;;) {
+                synchronized (queue) {
+                    element = queue.poll();
+                    if (element == null) {
+                        waiting++;
+                        if (waiting == activeThreads) {
+                            // no elements left! let everyone know
+                            queue.notifyAll();
+                            return;
+                        }
+                        for (;;) {
+                            try {
+                                queue.wait();
+                            } catch (InterruptedException ignored) {
+                                // safe to ignore
+                            }
+                            element = queue.poll();
+                            if (element != null) {
+                                break;
+                            }
+                            if (waiting == activeThreads) {
+                                // awoken from sleep to exit
+                                return;
+                            }
+                        }
+                        waiting--;
+                    }
+                }
+                try {
+                    consumer.accept(element);
+                } catch (Exception e) {
+                    log.error("An exception was thrown from a queue processing task", e);
+                    error(element, "Exception while processing queue task for element: %s", e);
+                }
+            }
+        });
+    }
+
+    void startThreads(final int threadCnt, final long stackSize) {
+        ThreadGroup threadGroup = new ThreadGroup("qbicc compiler thread group");
+        Thread[] threads = new Thread[threadCnt];
+        for (int i = 0; i < threadCnt; i ++) {
+            threads[i] = new Thread(threadGroup, threadTask, "qbicc compiler thread " + (i + 1) + "/" + threadCnt, stackSize, false);
+        }
+        // now start them all
+        for (int i = 0; i < threadCnt; i ++) {
+            try {
+                threads[i].start();
+            } catch (Exception e) {
+                // failed to start thread
+                error("Failed to start a compiler thread: %s", e);
+                exitThreads();
+                return;
+            }
+        }
+    }
+
+    void exitThreads() {
+        boolean intr = false;
+        try {
+            int state;
+            synchronized (this) {
+                state = this.state;
+                if (state != ST_WAITING) {
+                    throw new IllegalStateException("Unexpected thread state");
+                }
+                this.state = ST_EXIT;
+                notifyAll();
+                for (;;) {
+                    if (activeThreads == 0) {
+                        return;
+                    }
+                    try {
+                        wait();
+                    } catch (InterruptedException e) {
+                        intr = true;
+                    }
+                }
+            }
+        } finally {
+            if (intr) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 }

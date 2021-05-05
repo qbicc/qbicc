@@ -125,33 +125,15 @@ public class Main implements Callable<DiagnosticContext> {
     }
 
     public DiagnosticContext call() {
-        AtomicReference<DiagnosticContext> ref = new AtomicReference<>();
-        Thread compilerThread = new Thread(Thread.currentThread().getThreadGroup(), () -> {
-            BaseDiagnosticContext ctxt = new BaseDiagnosticContext();
-            ref.set(ctxt);
-            try {
-                call0(ctxt);
-            } catch (Throwable t) {
-                t.printStackTrace(System.err);
-                ctxt.error(t, "Compilation failed due to an exception");
-            }
-        }, "Compiler thread", 64L * 1024 * 1024);
-        compilerThread.start();
-        boolean intr = false;
+        BaseDiagnosticContext ctxt = new BaseDiagnosticContext();
         try {
-            for (;;) try {
-                compilerThread.join();
-                DiagnosticContext ctxt = ref.get();
-                diagnosticsHandler.accept(ctxt.getDiagnostics());
-                return ctxt;
-            } catch (InterruptedException ex) {
-                intr = true;
-            }
-        } finally {
-            if (intr) {
-                Thread.currentThread().interrupt();
-            }
+            call0(ctxt);
+        } catch (Throwable t) {
+            t.printStackTrace(System.err);
+            ctxt.error(t, "Compilation failed due to an exception");
         }
+        diagnosticsHandler.accept(ctxt.getDiagnostics());
+        return ctxt;
     }
 
     DiagnosticContext call0(BaseDiagnosticContext initialContext) {
@@ -310,7 +292,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PointerBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThrowValueBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MethodCallFixupBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, SynchronizedMethodBasicBlockBuilder::createIfNeeded);
@@ -329,6 +310,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optPhis) {
                                     builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
                                 }
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 if (optMemoryTracking) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
                                 }
