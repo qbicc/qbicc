@@ -1,9 +1,11 @@
 package org.qbicc.graph;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -48,9 +50,16 @@ public final class ConstructorInvocation extends AbstractValue implements Instan
         return instance;
     }
 
+    public boolean hasDependency() {
+        return target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS);
+    }
+
     @Override
     public Node getDependency() {
-        return dependency;
+        if (hasDependency()) {
+            return dependency;
+        }
+        throw new NoSuchElementException();
     }
 
     public int getValueDependencyCount() {

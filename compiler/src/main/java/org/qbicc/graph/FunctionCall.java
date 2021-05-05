@@ -4,6 +4,7 @@ import static org.qbicc.object.Function.FN_NO_RETURN;
 import static org.qbicc.object.Function.FN_NO_SIDE_EFFECTS;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import org.qbicc.type.FunctionType;
@@ -60,7 +61,14 @@ public final class FunctionCall extends AbstractValue implements Triable, Ordere
 
     @Override
     public Node getDependency() {
-        return dependency;
+        if (hasDependency()) {
+            return dependency;
+        }
+        throw new NoSuchElementException();
+    }
+
+    public boolean hasDependency() {
+        return ! isNoSideEffects();
     }
 
     public int getValueDependencyCount() {

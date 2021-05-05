@@ -12,6 +12,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.object.Function;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -24,6 +25,7 @@ import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.context.ClassContext;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -579,7 +581,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new MonitorExit(callSite, element, line, bci, requireDependency(), Assert.checkNotNullParam("obj", obj)));
     }
 
-    <N extends Node & Triable> N optionallyTry(N op) {
+    <N extends Node & Triable> N optionallyTry(N op, boolean ordered) {
         ExceptionHandler exceptionHandler = getExceptionHandler();
         // todo: temporarily disable until exception handlers are fixed
         if (false && exceptionHandler != null) {
@@ -601,7 +603,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             begin(resume);
             return op;
         } else {
-            return asDependency(op);
+            return ordered ? asDependency(op) : op;
         }
     }
 
@@ -625,7 +627,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new StaticInvocation(callSite, element, line, bci, requireDependency(), target, arguments));
+        return optionallyTry(new StaticInvocation(callSite, element, line, bci, requireDependency(), target, arguments), target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS));
     }
 
     public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
@@ -633,7 +635,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new InstanceInvocation(callSite, element, line, bci, requireDependency(), kind, instance, target, arguments));
+        return optionallyTry(new InstanceInvocation(callSite, element, line, bci, requireDependency(), kind, instance, target, arguments), target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS));
     }
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
@@ -641,7 +643,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new StaticInvocationValue(callSite, element, line, bci, requireDependency(), target, target.getType().getReturnType(), arguments));
+        return optionallyTry(new StaticInvocationValue(callSite, element, line, bci, requireDependency(), target, target.getType().getReturnType(), arguments), target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS));
     }
 
     public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
@@ -649,7 +651,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new InstanceInvocationValue(callSite, element, line, bci, requireDependency(), kind, instance, target, target.getType().getReturnType(), arguments));
+        return optionallyTry(new InstanceInvocationValue(callSite, element, line, bci, requireDependency(), kind, instance, target, target.getType().getReturnType(), arguments), target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS));
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
@@ -657,7 +659,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
-        return optionallyTry(new ConstructorInvocation(callSite, element, line, bci, requireDependency(), instance, target, arguments));
+        return optionallyTry(new ConstructorInvocation(callSite, element, line, bci, requireDependency(), instance, target, arguments), target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS));
     }
 
     public Value invokeConstructor(final Value instance, final TypeDescriptor owner, final MethodDescriptor descriptor, final List<Value> arguments) {
@@ -665,7 +667,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value callFunction(final Value callTarget, final List<Value> arguments, int flags) {
-        return optionallyTry(new FunctionCall(callSite, element, line, bci, requireDependency(), callTarget, arguments, flags));
+        return optionallyTry(new FunctionCall(callSite, element, line, bci, requireDependency(), callTarget, arguments, flags), (flags & Function.FN_NO_SIDE_EFFECTS) == 0);
     }
 
     public Node nop() {

@@ -1,9 +1,11 @@
 package org.qbicc.graph;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -46,7 +48,14 @@ public final class StaticInvocationValue extends AbstractValue implements Method
 
     @Override
     public Node getDependency() {
-        return dependency;
+        if (hasDependency()) {
+            return dependency;
+        }
+        throw new NoSuchElementException();
+    }
+
+    public boolean hasDependency() {
+        return target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS);
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
