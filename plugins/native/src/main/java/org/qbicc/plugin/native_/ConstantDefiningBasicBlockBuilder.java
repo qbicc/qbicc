@@ -96,43 +96,43 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
     }
 
     private void processConstant(final FieldElement fieldElement) {
-        CProbe.Builder builder = CProbe.builder();
-        // get the element's info
-        String name = fieldElement.getName();
-        for (Annotation annotation : fieldElement.getVisibleAnnotations()) {
-            ClassTypeDescriptor desc = annotation.getDescriptor();
-            if (ProbeUtils.processCommonAnnotation(builder, annotation)) {
-                continue;
-            }
-            if (desc.getPackageName().equals(Native.NATIVE_PKG) && desc.getClassName().equals(Native.ANN_NAME)) {
-                name = ((StringAnnotationValue) annotation.getValue("value")).getString();
-            }
-        }
-        for (Annotation annotation : fieldElement.getEnclosingType().getVisibleAnnotations()) {
-            ProbeUtils.processCommonAnnotation(builder, annotation);
-        }
-        // todo: recursively process enclosing types (requires InnerClasses support)
-        Location location = getLocation();
-        builder.probeConstant(name, location.getSourceFilePath(), location.getLineNumber());
-        // run the probe
-        CProbe probe = builder.build();
         Constants constants = Constants.get(ctxt);
-        LiteralFactory lf = ctxt.getLiteralFactory();
-        CProbe.Result result;
-        try {
-            result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
-            if (result == null) {
-                // constant is undefined
-                constants.registerConstant(fieldElement, lf.undefinedLiteralOfType(fieldElement.getType()));
-                return;
+        constants.registerConstant(fieldElement, () -> {
+            CProbe.Builder builder = CProbe.builder();
+            // get the element's info
+            String name = fieldElement.getName();
+            for (Annotation annotation : fieldElement.getVisibleAnnotations()) {
+                ClassTypeDescriptor desc = annotation.getDescriptor();
+                if (ProbeUtils.processCommonAnnotation(builder, annotation)) {
+                    continue;
+                }
+                if (desc.getPackageName().equals(Native.NATIVE_PKG) && desc.getClassName().equals(Native.ANN_NAME)) {
+                    name = ((StringAnnotationValue) annotation.getValue("value")).getString();
+                }
             }
-        } catch (IOException e) {
-            // constant is undefined either way
-            constants.registerConstant(fieldElement, lf.undefinedLiteralOfType(fieldElement.getType()));
-            return;
-        }
-        CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
-        // compute the type and raw value
-        constants.registerConstant(fieldElement, constantInfo.getValueAsLiteral(ctxt.getTypeSystem(), lf));
+            for (Annotation annotation : fieldElement.getEnclosingType().getVisibleAnnotations()) {
+                ProbeUtils.processCommonAnnotation(builder, annotation);
+            }
+            // todo: recursively process enclosing types (requires InnerClasses support)
+            Location location = getLocation();
+            builder.probeConstant(name, location.getSourceFilePath(), location.getLineNumber());
+            // run the probe
+            CProbe probe = builder.build();
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            CProbe.Result result;
+            try {
+                result = probe.run(ctxt.getAttachment(Driver.C_TOOL_CHAIN_KEY), ctxt.getAttachment(Driver.OBJ_PROVIDER_TOOL_KEY), null);
+                if (result == null) {
+                    // constant is undefined
+                    return lf.undefinedLiteralOfType(fieldElement.getType());
+                }
+            } catch (IOException e) {
+                // constant is undefined either way
+                return lf.undefinedLiteralOfType(fieldElement.getType());
+            }
+            CProbe.ConstantInfo constantInfo = result.getConstantInfo(name);
+            // compute the type and raw value
+            return constantInfo.getValueAsLiteral(ctxt.getTypeSystem(), lf);
+        });
     }
 }
