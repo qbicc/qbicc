@@ -104,6 +104,7 @@ import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
+import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodDescriptorLiteral;
@@ -857,6 +858,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         addEdge(param, node, node.getToType(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getToDimensions(), EdgeType.VALUE_DEPENDENCY);
         return name;
+    }
+
+    public String visit(final Appendable param, final ConstantLiteral node) {
+        return literal(param, "constant");
     }
 
     public String visit(final Appendable param, final Neg node) {

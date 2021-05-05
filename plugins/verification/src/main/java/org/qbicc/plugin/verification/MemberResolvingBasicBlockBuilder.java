@@ -13,11 +13,14 @@ import org.qbicc.graph.DispatchInvocation;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.ConstantLiteral;
+import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
+import org.qbicc.type.PoisonType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
@@ -65,7 +68,13 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         ClassContext cc = getClassContext();
         // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
         ValueType castType = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
-        if (castType instanceof ReferenceType) {
+        if (value instanceof ConstantLiteral) {
+            // it may be something we can't really cast.
+            return ctxt.getLiteralFactory().constantLiteralOfType(castType);
+        } else if (value instanceof UndefinedLiteral) {
+            // it may be something we can't really cast.
+            return ctxt.getLiteralFactory().undefinedLiteralOfType(castType);
+        } else if (castType instanceof ReferenceType) {
             if (value.getType() instanceof ReferenceType && ((ReferenceType) value.getType()).isNullable()) {
                 castType = ((ReferenceType)castType).asNullable();
             }

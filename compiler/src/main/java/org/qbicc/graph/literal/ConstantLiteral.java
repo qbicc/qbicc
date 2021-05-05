@@ -5,12 +5,12 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 
 /**
- * The undefined value.  Usage of an undefined value results in a compilation error.
+ * A constant literal.  Constant literals are resolved to values during the analysis phase.
  */
-public final class UndefinedLiteral extends Literal {
+public final class ConstantLiteral extends Literal {
     private final ValueType type;
 
-    UndefinedLiteral(final ValueType type) {
+    ConstantLiteral(final ValueType type) {
         this.type = type;
     }
 
@@ -19,7 +19,7 @@ public final class UndefinedLiteral extends Literal {
     }
 
     public boolean equals(final Literal other) {
-        return other instanceof UndefinedLiteral;
+        return other instanceof ConstantLiteral;
     }
 
     public ValueType getType() {
@@ -28,7 +28,7 @@ public final class UndefinedLiteral extends Literal {
 
     @Override
     Literal bitCast(LiteralFactory lf, WordType toType) {
-        return lf.undefinedLiteralOfType(toType);
+        return lf.constantLiteralOfType(toType);
     }
 
     public int hashCode() {

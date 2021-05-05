@@ -6,6 +6,7 @@ import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
+import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.MethodDescriptorLiteral;
@@ -120,6 +121,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, CompoundLiteral node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, ConstantLiteral node) {
         return visitUnknown(param, node);
     }
 
@@ -407,6 +412,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, CompoundLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ConstantLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
