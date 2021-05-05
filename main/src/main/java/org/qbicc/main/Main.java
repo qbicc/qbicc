@@ -125,33 +125,15 @@ public class Main implements Callable<DiagnosticContext> {
     }
 
     public DiagnosticContext call() {
-        AtomicReference<DiagnosticContext> ref = new AtomicReference<>();
-        Thread compilerThread = new Thread(Thread.currentThread().getThreadGroup(), () -> {
-            BaseDiagnosticContext ctxt = new BaseDiagnosticContext();
-            ref.set(ctxt);
-            try {
-                call0(ctxt);
-            } catch (Throwable t) {
-                t.printStackTrace(System.err);
-                ctxt.error(t, "Compilation failed due to an exception");
-            }
-        }, "Compiler thread", 64L * 1024 * 1024);
-        compilerThread.start();
-        boolean intr = false;
+        BaseDiagnosticContext ctxt = new BaseDiagnosticContext();
         try {
-            for (;;) try {
-                compilerThread.join();
-                DiagnosticContext ctxt = ref.get();
-                diagnosticsHandler.accept(ctxt.getDiagnostics());
-                return ctxt;
-            } catch (InterruptedException ex) {
-                intr = true;
-            }
-        } finally {
-            if (intr) {
-                Thread.currentThread().interrupt();
-            }
+            call0(ctxt);
+        } catch (Throwable t) {
+            t.printStackTrace(System.err);
+            ctxt.error(t, "Compilation failed due to an exception");
         }
+        diagnosticsHandler.accept(ctxt.getDiagnostics());
+        return ctxt;
     }
 
     DiagnosticContext call0(BaseDiagnosticContext initialContext) {
