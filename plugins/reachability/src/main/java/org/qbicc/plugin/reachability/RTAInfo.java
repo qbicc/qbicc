@@ -2,6 +2,7 @@ package org.qbicc.plugin.reachability;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 
 import java.util.HashSet;
@@ -42,6 +43,27 @@ public class RTAInfo {
         ReachabilityBlockBuilder.rtaLog.debugf("Clearing RTAInfo %s classes; %s interfaces", info.classHierarchy.size(), info.interfaceHierarchy.size());
         info.classHierarchy.clear();
         info.interfaceHierarchy.clear();
+    }
+
+    // We force some fundamental types to be considered live even if the program doesn't use them.
+    // This simplifies the implementation of the core runtime.
+    public static void forceCoreClassesLive(CompilationContext ctxt) {
+        RTAInfo info = get(ctxt);
+        Layout layout = Layout.get(ctxt);
+        ReachabilityBlockBuilder.rtaLog.debugf("Forcing all array types live");
+        String[] desc = { "[Z", "[B", "[C", "[S", "[I", "[F", "[J", "[D", "[ref" };
+        LoadedTypeDefinition obj = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
+        LoadedTypeDefinition cloneable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Cloneable").load();
+        LoadedTypeDefinition serializable = ctxt.getBootstrapClassContext().findDefinedType("java/io/Serializable").load();
+        info.addLiveClass(obj);
+        info.makeInterfaceLive(cloneable);
+        info.makeInterfaceLive(serializable);
+        for (String d: desc) {
+            LoadedTypeDefinition at = layout.getArrayLoadedTypeDefinition(d);
+            info.addLiveClass(at);
+            info.addInterfaceEdge(at, cloneable);
+            info.addInterfaceEdge(at, serializable);
+        }
     }
 
     public boolean isLiveClass(LoadedTypeDefinition type) {

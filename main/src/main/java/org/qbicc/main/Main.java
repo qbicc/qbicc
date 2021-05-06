@@ -284,6 +284,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (nogc) {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
                                 }
+                                builder.addPreHook(Phase.ADD, RTAInfo::forceCoreClassesLive);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NoGcMultiNewArrayBasicBlockBuilder::new);
@@ -307,6 +308,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addElementVisitor(Phase.ADD, new DotGenerator(Phase.ADD, graphGenConfig));
                                 builder.addPostHook(Phase.ADD, RTAInfo::clear);
+                                builder.addPostHook(Phase.ADD, RTAInfo::forceCoreClassesLive);
 
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
