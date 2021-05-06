@@ -166,7 +166,11 @@ public class DispatchTables {
                     section.declareFunction(stub, stubImpl.getName(), stubImpl.getType());
                     valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getFunctionTypeForElement(vtable[i]).getPointer()));
                 } else {
-                    Function impl = ctxt.getExactFunction(vtable[i]);
+                    Function impl = ctxt.getExactFunctionIfExists(vtable[i]);
+                    if (impl == null) {
+                        ctxt.error(vtable[i], "Missing method implementation for vtable of %s", cls.getInternalName());
+                        continue;
+                    }
                     if (!vtable[i].getEnclosingType().load().equals(cls)) {
                         section.declareFunction(vtable[i], impl.getName(), funType);
                     }
@@ -262,7 +266,11 @@ public class DispatchTables {
                             cSection.declareFunction(ameStub, ameImpl.getName(), ameImpl.getType());
                             valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(ameLiteral, implType.getPointer()));
                         } else {
-                            Function impl = ctxt.getExactFunction(methImpl);
+                            Function impl = ctxt.getExactFunctionIfExists(methImpl);
+                            if (impl == null) {
+                                ctxt.error(methImpl, "Missing method implementation for vtable of %s", cls.getInternalName());
+                                continue;
+                            }
                             if (!methImpl.getEnclosingType().load().equals(cls)) {
                                 cSection.declareFunction(methImpl, impl.getName(), implType);
                             }

@@ -118,12 +118,15 @@ final class LLVMModuleDebugInfo {
         LLValue type = getType(element.getType());
         int line = element.getMinimumLineNumber();
 
-        LLValue diSubprogram = module.diSubprogram(getFriendlyName(element), type, diCompileUnit)
-                .location(createSourceFile(element), line, line)
-                .linkageName(ctxt.getExactFunction(element).getName())
-                .asRef();
+        Function exactFunction = ctxt.getExactFunctionIfExists(element);
+        DISubprogram diSubprogram = module.diSubprogram(getFriendlyName(element), type, diCompileUnit)
+            .location(createSourceFile(element), line, line);
 
-        MethodDebugInfo debugInfo = new MethodDebugInfo(diSubprogram);
+        if (exactFunction != null) {
+            diSubprogram.linkageName(exactFunction.getName());
+        }
+
+        MethodDebugInfo debugInfo = new MethodDebugInfo(diSubprogram.asRef());
 
         methods.put(element, debugInfo);
         return debugInfo;

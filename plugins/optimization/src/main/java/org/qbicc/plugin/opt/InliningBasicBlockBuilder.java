@@ -49,6 +49,11 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.Xor;
+import org.qbicc.object.DataDeclaration;
+import org.qbicc.object.FunctionDeclaration;
+import org.qbicc.object.ProgramModule;
+import org.qbicc.object.ProgramObject;
+import org.qbicc.object.Section;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -59,12 +64,14 @@ import org.qbicc.type.definition.element.MethodElement;
  */
 public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
+    private final ExecutableElement rootElement;
     // todo: this is arbitrary
     private final float costThreshold = 80.0f;
     private float cost;
 
     public InliningBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
+        rootElement = getCurrentElement();
         this.ctxt = ctxt;
     }
 
@@ -87,7 +94,9 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                         } catch (BlockEarlyTermination e) {
                             copied = e.getTerminatedBlock();
                         }
-                        // inline successful, jump to the inlined code
+                        // inline successful, now copy all declarations known at this point
+                        copyDeclarations(target);
+                        // jump to the inlined code
                         inlined.setTarget(copied);
                         setCallSite(oldCallSite);
                         // this is the return point (it won't be reachable if the inlined function does not return)
@@ -124,7 +133,9 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                         } catch (BlockEarlyTermination e) {
                             copied = e.getTerminatedBlock();
                         }
-                        // inline successful, jump to the inlined code
+                        // inline successful, now copy all declarations known at this point
+                        copyDeclarations(target);
+                        // jump to the inlined code
                         inlined.setTarget(copied);
                         setCallSite(oldCallSite);
                         // this is the return point (it won't be reachable if the inlined function does not return)
@@ -162,7 +173,9 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                         } catch (BlockEarlyTermination e) {
                             copied = e.getTerminatedBlock();
                         }
-                        // inline successful, jump to the inlined code
+                        // inline successful, now copy all declarations known at this point
+                        copyDeclarations(target);
+                        // jump to the inlined code
                         inlined.setTarget(copied);
                         setCallSite(oldCallSite);
                         // this is the return point (it won't be reachable if the inlined function does not return)
@@ -200,7 +213,9 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                         } catch (BlockEarlyTermination e) {
                             copied = e.getTerminatedBlock();
                         }
-                        // inline successful, jump to the inlined code
+                        // inline successful, now copy all declarations known at this point
+                        copyDeclarations(target);
+                        // jump to the inlined code
                         inlined.setTarget(copied);
                         setCallSite(oldCallSite);
                         // this is the return point (it won't be reachable if the inlined function does not return)
@@ -216,6 +231,30 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
         return super.invokeValueInstance(kind, instance, target, arguments);
+    }
+
+    private void copyDeclarations(final MethodElement target) {
+        ProgramModule ourModule = ctxt.getOrAddProgramModule(rootElement.getEnclosingType());
+        ProgramModule module = ctxt.getOrAddProgramModule(target.getEnclosingType());
+        for (Section section : module.sections()) {
+            for (ProgramObject object : section.contents()) {
+                if (object instanceof FunctionDeclaration) {
+                    FunctionDeclaration declaration = (FunctionDeclaration) object;
+                    ourModule.getOrAddSection(section.getName()).declareFunction(
+                        declaration.getOriginalElement(),
+                        declaration.getName(),
+                        declaration.getType()
+                    );
+                } else if (object instanceof DataDeclaration) {
+                    DataDeclaration declaration = (DataDeclaration) object;
+                    ourModule.getOrAddSection(section.getName()).declareData(
+                        declaration.getOriginalElement(),
+                        declaration.getName(),
+                        declaration.getType()
+                    );
+                }
+            }
+        }
     }
 
     /**

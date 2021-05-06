@@ -54,7 +54,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
         Function function = ctxt.getExactFunction(target);
-        ctxt.declareForeignFunction(target, function, getCurrentElement());
+        ctxt.declareForeignFunction(target, function, originalElement);
         List<Value> args = new ArrayList<>(arguments.size() + 1);
         args.add(currentThread());
         args.addAll(arguments);
@@ -70,7 +70,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             callTarget = expandVirtualDispatch(instance, target);
         } else {
             Function invokeTarget = ctxt.getExactFunction(target);
-            ctxt.declareForeignFunction(target, invokeTarget, getCurrentElement());
+            ctxt.declareForeignFunction(target, invokeTarget, originalElement);
             callTarget = functionLiteral(invokeTarget);
         }
         List<Value> args = new ArrayList<>(arguments.size() + 2);
@@ -83,7 +83,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
         Function function = ctxt.getExactFunction(target);
-        ctxt.declareForeignFunction(target, function, getCurrentElement());
+        ctxt.declareForeignFunction(target, function, originalElement);
         List<Value> args = new ArrayList<>(arguments.size() + 1);
         args.add(currentThread());
         args.addAll(arguments);
@@ -99,7 +99,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             callTarget = expandVirtualDispatch(instance, target);
         } else {
             Function invokeTarget = ctxt.getExactFunction(target);
-            ctxt.declareForeignFunction(target, invokeTarget, getCurrentElement());
+            ctxt.declareForeignFunction(target, invokeTarget, originalElement);
             callTarget = functionLiteral(invokeTarget);
         }
         List<Value> args = new ArrayList<>(arguments.size() + 2);
@@ -112,7 +112,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
         Function function = ctxt.getExactFunction(target);
-        ctxt.declareForeignFunction(target, function, getCurrentElement());
+        ctxt.declareForeignFunction(target, function, originalElement);
         List<Value> args = new ArrayList<>(arguments.size() + 2);
         args.add(currentThread());
         args.add(instance);

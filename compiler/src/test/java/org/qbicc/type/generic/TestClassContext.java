@@ -120,6 +120,10 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public Function getExactFunctionIfExists(ExecutableElement element) {
+            return null;
+        }
+
         public FunctionType getFunctionTypeForElement(ExecutableElement element) {
             return null;
         }

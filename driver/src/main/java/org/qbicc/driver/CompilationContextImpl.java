@@ -286,11 +286,8 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public org.qbicc.object.Function getExactFunction(final ExecutableElement element) {
-        if (element.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
-            throw new IllegalArgumentException("Cannot get function of native method");
-        }
         // optimistic
-        org.qbicc.object.Function function = exactFunctions.get(element);
+        org.qbicc.object.Function function = getExactFunctionIfExists(element);
         if (function != null) {
             return function;
         }
@@ -303,6 +300,14 @@ final class CompilationContextImpl implements CompilationContext {
             FunctionType functionType = getFunctionTypeForElement(element);
             return implicit.addFunction(element, getExactNameForElement(element, elementType), functionType);
         });
+    }
+
+    @Override
+    public org.qbicc.object.Function getExactFunctionIfExists(final ExecutableElement element) {
+        if (element.hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+            throw new IllegalArgumentException("Cannot get function of native method");
+        }
+        return exactFunctions.get(element);
     }
 
     public Section getImplicitSection(ExecutableElement element) {
