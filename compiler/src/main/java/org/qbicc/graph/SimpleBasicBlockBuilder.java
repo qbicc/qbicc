@@ -584,7 +584,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     <N extends Node & Triable> N optionallyTry(N op, boolean ordered) {
         ExceptionHandler exceptionHandler = getExceptionHandler();
         // todo: temporarily disable until exception handlers are fixed
-        if (false && exceptionHandler != null) {
+        if (true && exceptionHandler != null) {
             BlockLabel resume = new BlockLabel();
             BlockLabel handler = exceptionHandler.getHandler();
             BlockLabel setupHandler = new BlockLabel();

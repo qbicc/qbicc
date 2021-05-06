@@ -37,6 +37,8 @@ public final class LLVM {
 
     public static final LLValue void_ = new SingleWord("void");
 
+    public static final LLValue token = new SingleWord("token");
+
     public static final LLValue metadata = new MetadataType(null);
 
     public static final LLValue ZERO = new IntConstant(0);

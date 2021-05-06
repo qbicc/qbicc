@@ -108,6 +108,7 @@ import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.MethodElement;
 
 final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, GetElementPtr> {
     final CompilationContext ctxt;
@@ -863,8 +864,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         }
 
         if (!personalityAdded) {
-            Function personalityFunction = ctxt.getExactFunction(UnwindHelper.get(ctxt).getPersonalityMethod());
-            SymbolLiteral literal = ctxt.getLiteralFactory().literalOfSymbol(personalityFunction.getLiteral().getName(), personalityFunction.getType().getPointer());
+            MethodElement personalityFunction = UnwindHelper.get(ctxt).getPersonalityMethod();
+            SymbolLiteral literal = ctxt.getLiteralFactory().literalOfSymbol(personalityFunction.getName(), personalityFunction.getType().getPointer());
             // clang generates the personality argument like this (by casting the function to i8* using bitcast):
             //      define dso_local void @_Z7catchitv() #0 personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
             // We can also generate it this way using following construct:
@@ -1010,7 +1011,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         // TODO Is it correct to use the call's debug info here?
         LLBasicBlock oldBuilderBlock = builder.moveToBlock(mapped);
 
-        builder.landingpad(structType().member(ptrTo(i8)).member(i32)).catch_(ptrTo(i8), NULL);
+        builder.landingpad(token).cleanup();
         LLBasicBlock handler = map(block);
         builder.br(handler);
 

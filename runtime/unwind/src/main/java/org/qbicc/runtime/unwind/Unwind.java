@@ -90,6 +90,8 @@ public final class Unwind {
          * The function which frees this object.
          */
         public function_ptr<_Unwind_Exception_Cleanup_Fn> exception_cleanup;
+        public uint64_t private_1;
+        public uint64_t private_2;
     }
 
     public static final class struct__Unwind_Exception_ptr extends ptr<struct__Unwind_Exception> {}
@@ -121,9 +123,12 @@ public final class Unwind {
         _Unwind_Reason_Code run(c_int version, _Unwind_Action actions, uint64_t exception_class, struct__Unwind_Context_ptr exception_object, struct__Unwind_Context_ptr context, void_ptr stop_parameter);
     }
 
+    @export
     public static _Unwind_Reason_Code personality(c_int version, _Unwind_Action action, uint64_t exceptionClass,
                                     struct__Unwind_Exception_ptr exceptionObject, struct__Unwind_Context_ptr context) {
         uint64_t ip = _Unwind_GetIP(context);
+        // ip points to instruction after the call, therefore subtract 1 to bring it in the call instruction range.
+        ip = word(ip.longValue() - 1);
         uint64_t methodStart = _Unwind_GetRegionStart(context);
         uint64_t lsda = _Unwind_GetLanguageSpecificData(context);
 
@@ -151,7 +156,9 @@ public final class Unwind {
         offset[0] += 1;
         uint8_t typeEncodingEncoding = lsda.get(offset[0]);
         offset[0] += 1;
-        long typeBaseOffset = readULEB(lsda, offset);
+        if (typeEncodingEncoding.byteValue() != (byte)0xff) {   // check for DW_EH_PE_omit(0xff)
+            long typeBaseOffset = readULEB(lsda, offset);
+        }
         uint8_t callSiteEncodingEncoding = lsda.get(offset[0]);
         offset[0] += 1;
         int callSiteEncoding = callSiteEncodingEncoding.byteValue();
@@ -166,7 +173,7 @@ public final class Unwind {
                 return lpOffset;
             }
         }
-        return headerValue;
+        return 0;
     }
 
     public static long read(uint8_t_ptr lsda, int[] offset, int callSiteEncoding) {

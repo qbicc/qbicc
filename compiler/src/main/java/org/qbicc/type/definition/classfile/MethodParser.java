@@ -180,6 +180,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 Value[] stack = saveStack();
                 clearStack();
                 int pos = buffer.position();
+                int previousbci = currentbci;
                 buffer.position(pc);
                 if (single) {
                     gf.begin(block);
@@ -191,6 +192,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 }
                 // restore everything like nothing happened...
                 buffer.position(pos);
+                currentbci = previousbci;
                 restoreLocals(locals);
                 restoreStack(stack);
             }
