@@ -74,6 +74,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-correctness</artifactId>
         </dependency>
         <dependency>

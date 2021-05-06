@@ -520,8 +520,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().invokeConstructor(instance, owner, descriptor, arguments);
     }
 
-    public Value callFunction(final Value callTarget, final List<Value> arguments) {
-        return getDelegate().callFunction(callTarget, arguments);
+    public Value callFunction(final Value callTarget, final List<Value> arguments, int flags) {
+        return getDelegate().callFunction(callTarget, arguments, flags);
     }
 
     public Node nop() {

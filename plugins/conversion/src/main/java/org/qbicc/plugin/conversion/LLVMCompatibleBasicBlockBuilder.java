@@ -73,7 +73,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         FunctionType functionType = tps.getFunctionType(numericType, numericType, numericType);
         SymbolLiteral functionSymbol = ctxt.getLiteralFactory().literalOfSymbol(funcName, functionType);
         ctxt.getImplicitSection(getCurrentElement()).declareFunction(null, funcName, functionType);
-        return getFirstBuilder().callFunction(functionSymbol, List.of(v1, v2));
+        return getFirstBuilder().callFunction(functionSymbol, List.of(v1, v2), Function.FN_NO_SIDE_EFFECTS);
     }
 
     @Override

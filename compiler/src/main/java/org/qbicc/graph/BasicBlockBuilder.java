@@ -364,7 +364,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     // misc
 
-    Value callFunction(Value callTarget, List<Value> arguments); // todo: flags etc.
+    Value callFunction(Value callTarget, List<Value> arguments, int flags);
 
     /**
      * No operation.  The returned node is not guaranteed to be unique or of any particular type.

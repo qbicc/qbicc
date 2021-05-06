@@ -61,8 +61,8 @@ public class MethodCallFixupBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public Value callFunction(Value callTarget, List<Value> arguments) {
-        return super.callFunction(callTarget, fixArguments(callTarget.getType(), arguments));
+    public Value callFunction(Value callTarget, List<Value> arguments, int flags) {
+        return super.callFunction(callTarget, fixArguments(callTarget.getType(), arguments), flags);
     }
 
     private List<Value> fixArguments(final InvokableElement target, final List<Value> arguments) {

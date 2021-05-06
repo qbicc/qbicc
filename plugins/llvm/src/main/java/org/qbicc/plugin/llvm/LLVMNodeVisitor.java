@@ -786,7 +786,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     // calls
 
     public LLValue visit(final Void param, final FunctionCall node) {
-        map(node.getDependency());
+        if (node.hasDependency()) map(node.getDependency());
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);

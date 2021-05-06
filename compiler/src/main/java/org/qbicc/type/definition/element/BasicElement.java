@@ -50,7 +50,7 @@ public abstract class BasicElement implements Element {
     }
 
     public boolean hasNoModifiersOf(int mask) {
-        return (getModifiers() & mask) == mask;
+        return (getModifiers() & mask) == 0;
     }
 
     public void setModifierFlags(int flags) {

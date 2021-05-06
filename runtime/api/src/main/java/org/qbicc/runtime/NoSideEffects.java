@@ -1,16 +1,14 @@
 package org.qbicc.runtime;
 
-import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Indicate that the annotated method is hidden from stack traces.
+ * Indicate that a method has no side-effects <em>including</em> throwing exceptions.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.CLASS)
-@Documented
-public @interface Hidden {
+public @interface NoSideEffects {
 }

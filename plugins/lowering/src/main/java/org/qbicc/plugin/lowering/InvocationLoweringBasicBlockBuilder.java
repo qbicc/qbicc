@@ -59,7 +59,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.add(currentThread());
         args.addAll(arguments);
         ctxt.enqueue(target);
-        return super.callFunction(functionLiteral(function), args);
+        return super.callFunction(functionLiteral(function), args, Function.getFunctionFlags(target));
     }
 
     public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
@@ -78,7 +78,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.add(instance);
         args.addAll(arguments);
         ctxt.enqueue(target);
-        return super.callFunction(callTarget, args);
+        return super.callFunction(callTarget, args, Function.getFunctionFlags(target));
     }
 
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
@@ -88,7 +88,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.add(currentThread());
         args.addAll(arguments);
         ctxt.enqueue(target);
-        return super.callFunction(functionLiteral(function), args);
+        return super.callFunction(functionLiteral(function), args, Function.getFunctionFlags(target));
     }
 
     public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
@@ -107,7 +107,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.add(instance);
         args.addAll(arguments);
         ctxt.enqueue(target);
-        return super.callFunction(callTarget, args);
+        return super.callFunction(callTarget, args, Function.getFunctionFlags(target));
     }
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
@@ -118,7 +118,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         args.add(instance);
         args.addAll(arguments);
         ctxt.enqueue(target);
-        super.callFunction(functionLiteral(function), args);
+        super.callFunction(functionLiteral(function), args, Function.getFunctionFlags(target));
         return instance;
     }
 

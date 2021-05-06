@@ -31,6 +31,7 @@ import org.qbicc.plugin.conversion.CloneConversionBasicBlockBuilder;
 import org.qbicc.plugin.conversion.LLVMCompatibleBasicBlockBuilder;
 import org.qbicc.plugin.conversion.MethodCallFixupBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
+import org.qbicc.plugin.core.CoreAnnotationTypeBuilder;
 import org.qbicc.plugin.correctness.RuntimeChecksBasicBlockBuilder;
 import org.qbicc.plugin.dispatch.DevirtualizingBasicBlockBuilder;
 import org.qbicc.plugin.dispatch.DispatchTableEmitter;
@@ -267,6 +268,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addTypeBuilderFactory(ExternExportTypeBuilder::new);
                                 builder.addTypeBuilderFactory(NativeTypeBuilder::new);
                                 builder.addTypeBuilderFactory(ThreadLocalTypeBuilder::new);
+                                builder.addTypeBuilderFactory(CoreAnnotationTypeBuilder::new);
 
                                 builder.addResolverFactory(ConstTypeResolver::new);
                                 builder.addResolverFactory(FunctionTypeResolver::new);

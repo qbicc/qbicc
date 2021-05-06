@@ -242,7 +242,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        if (node.hasDependency()) processDependency(param, node.getDependency());
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
@@ -319,7 +319,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        if (node.hasDependency()) processDependency(param, node.getDependency());
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
         }
@@ -614,7 +614,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        if (node.hasDependency()) processDependency(param, node.getDependency());
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
@@ -711,7 +711,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
             addEdge(param, node, callTarget, EdgeType.VALUE_DEPENDENCY, "fn");
         }
         dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        if (node.hasDependency()) processDependency(param, node.getDependency());
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
         }
@@ -750,7 +750,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        if (node.hasDependency()) processDependency(param, node.getDependency());
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
@@ -978,7 +978,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        if (node.hasDependency()) processDependency(param, node.getDependency());
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
         }

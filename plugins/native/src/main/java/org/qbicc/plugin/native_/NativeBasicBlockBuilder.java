@@ -19,6 +19,7 @@ import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.object.DataDeclaration;
+import org.qbicc.object.Function;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
@@ -89,20 +90,20 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                         for (int i = 0; i < varCnt; i ++) {
                             realArgs.add(load(elementOf(arrayHandle, lf.literalOf(i)), MemoryAtomicityMode.NONE));
                         }
-                        return callFunction(sym, realArgs);
+                        return callFunction(sym, realArgs, Function.getFunctionFlags(functionInfo.origMethod));
                     } else {
                         // usage error
                         ctxt.error(getLocation(), "Variadic call only allowed with array of constant size");
-                        return callFunction(sym, arguments);
+                        return callFunction(sym, arguments, Function.getFunctionFlags(functionInfo.origMethod));
                     }
                 } else {
                     // usage error
                     ctxt.error(getLocation(), "Variadic call only allowed with immediate array argument");
-                    return callFunction(sym, arguments);
+                    return callFunction(sym, arguments, Function.getFunctionFlags(functionInfo.origMethod));
                 }
             }
             // not variadic; just plain call
-            return callFunction(sym, arguments);
+            return callFunction(sym, arguments, Function.getFunctionFlags(functionInfo.origMethod));
         }
         if (owner.equals(nativeInfo.cNativeDesc)) {
             switch (name) {
@@ -174,7 +175,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             ctxt.getImplicitSection(getCurrentElement())
                 .declareFunction(functionInfo.origMethod, sym.getName(), functionType);
             // todo: store current thread into TLS for recursive Java call-in
-            return callFunction(functionInfo.symbolLiteral, arguments);
+            return callFunction(functionInfo.symbolLiteral, arguments, Function.getFunctionFlags(functionInfo.origMethod));
         }
         // no special behaviors
         return super.invokeStatic(owner, name, descriptor, arguments);

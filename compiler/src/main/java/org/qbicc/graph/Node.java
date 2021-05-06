@@ -314,7 +314,7 @@ public interface Node {
             }
 
             public Node visit(Copier param, InstanceInvocation node) {
-                param.copyNode(node.getDependency());
+                if (node.hasDependency()) param.copyNode(node.getDependency());
                 return param.getBlockBuilder().invokeInstance(node.getKind(), param.copyValue(node.getInstance()), node.getInvocationTarget(), param.copyValues(node.getArguments()));
             }
 
@@ -329,7 +329,7 @@ public interface Node {
             }
 
             public Node visit(Copier param, StaticInvocation node) {
-                param.copyNode(node.getDependency());
+                if (node.hasDependency()) param.copyNode(node.getDependency());
                 return param.getBlockBuilder().invokeStatic(node.getInvocationTarget(), param.copyValues(node.getArguments()));
             }
 
@@ -500,7 +500,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final ConstructorInvocation node) {
-                param.copyNode(node.getDependency());
+                if (node.hasDependency()) param.copyNode(node.getDependency());
                 return param.getBlockBuilder().invokeConstructor(param.copyValue(node.getInstance()), node.getInvocationTarget(), param.copyValues(node.getArguments()));
             }
 
@@ -542,8 +542,8 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final FunctionCall node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().callFunction(param.copyValue(node.getCallTarget()), param.copyValues(node.getArguments()));
+                if (node.hasDependency()) param.copyNode(node.getDependency());
+                return param.getBlockBuilder().callFunction(param.copyValue(node.getCallTarget()), param.copyValues(node.getArguments()), node.getFlags());
             }
 
             public Value visit(final Copier param, final GetAndAdd node) {
@@ -604,7 +604,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final InstanceInvocationValue node) {
-                param.copyNode(node.getDependency());
+                if (node.hasDependency()) param.copyNode(node.getDependency());
                 return param.getBlockBuilder().invokeValueInstance(node.getKind(), param.copyValue(node.getInstance()), node.getInvocationTarget(), param.copyValues(node.getArguments()));
             }
 
@@ -758,7 +758,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final StaticInvocationValue node) {
-                param.copyNode(node.getDependency());
+                if (node.hasDependency()) param.copyNode(node.getDependency());
                 return param.getBlockBuilder().invokeValueStatic(node.getInvocationTarget(), param.copyValues(node.getArguments()));
             }
 
