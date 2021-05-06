@@ -74,6 +74,8 @@ public interface CompilationContext extends DiagnosticContext {
 
     Function getExactFunction(ExecutableElement element);
 
+    Function getExactFunctionIfExists(ExecutableElement element);
+
     FunctionType getFunctionTypeForElement(ExecutableElement element);
 
     FunctionDeclaration declareForeignFunction(ExecutableElement target, Function function, ExecutableElement current);
