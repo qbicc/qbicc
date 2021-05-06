@@ -461,6 +461,8 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugRTA;
         @CommandLine.Option(names = "--debug-supers")
         private boolean debugSupers;
+        @CommandLine.Option(names = "--debug-devirt")
+        private boolean debugDevirt;
         @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
         private GCType gc;
         @CommandLine.Option(names = "--pie", negatable = true, defaultValue = "false", description = "[Disable|Enable] generation of position independent executable")
@@ -532,6 +534,9 @@ public class Main implements Callable<DiagnosticContext> {
             }
             if (debugSupers) {
                 Logger.getLogger("org.qbicc.plugin.instanceofcheckcast.supers").setLevel(Level.DEBUG);
+            }
+            if (debugDevirt) {
+                Logger.getLogger("org.qbicc.plugin.dispatch.devirt").setLevel(Level.DEBUG);
             }
             if (outputPath == null) {
                 outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qbicc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));
