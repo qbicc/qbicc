@@ -41,6 +41,7 @@ import org.qbicc.plugin.gc.nogc.NoGcBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcMultiNewArrayBasicBlockBuilder;
 import org.qbicc.plugin.gc.nogc.NoGcSetupHook;
 import org.qbicc.plugin.gc.nogc.NoGcTypeSystemConfigurator;
+import org.qbicc.plugin.instanceofcheckcast.ClassInitializerRegister;
 import org.qbicc.plugin.instanceofcheckcast.InstanceOfCheckCastBasicBlockBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
@@ -329,6 +330,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addElementVisitor(Phase.ANALYZE, new DotGenerator(Phase.ANALYZE, graphGenConfig));
+                                builder.addPostHook(Phase.ANALYZE, new ClassInitializerRegister());
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new HeapSerializer());
