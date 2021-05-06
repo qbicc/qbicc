@@ -351,7 +351,6 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
                                 }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
-                                builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addElementVisitor(Phase.LOWER, new DotGenerator(Phase.LOWER, graphGenConfig));
 
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
