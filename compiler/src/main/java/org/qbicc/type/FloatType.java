@@ -50,4 +50,8 @@ public final class FloatType extends NumericType {
     public StringBuilder toFriendlyString(final StringBuilder b) {
         return b.append('f').append(bits);
     }
+
+    public SignedIntegerType getSameSizeSignedIntegerType() {
+        return bits == 32 ? getTypeSystem().getSignedInteger32Type() : getTypeSystem().getSignedInteger64Type();
+    }
 }

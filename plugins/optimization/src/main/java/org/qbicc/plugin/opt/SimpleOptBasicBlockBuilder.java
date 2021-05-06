@@ -112,9 +112,6 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             return ctxt.getLiteralFactory().literalOf(true);
         } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2) || v1.isDefNe(v2)) {
             return ctxt.getLiteralFactory().literalOf(false);
-        } else if (v1 instanceof Literal && v2 instanceof Literal && v1.getType().equals(v2.getType())) {
-            // todo: replace with constant detection
-            return ctxt.getLiteralFactory().literalOf(v1.equals(v2));
         }
 
         if (v1 instanceof Extend && isZero(v2)) {

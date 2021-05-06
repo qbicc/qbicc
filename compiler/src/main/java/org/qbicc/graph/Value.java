@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import org.qbicc.type.FloatType;
 import org.qbicc.type.ValueType;
 
 public interface Value extends Node {
@@ -13,7 +14,7 @@ public interface Value extends Node {
     Value[] NO_VALUES = new Value[0];
 
     default boolean isDefEq(Value other) {
-        return equals(other);
+        return equals(other) && isDefNotNaN() && other.isDefNotNaN();
     }
 
     default boolean isDefNe(Value other) {
@@ -29,11 +30,11 @@ public interface Value extends Node {
     }
 
     default boolean isDefLe(Value other) {
-        return equals(other);
+        return equals(other) && isDefNotNaN() && other.isDefNotNaN();
     }
 
     default boolean isDefGe(Value other) {
-        return equals(other);
+        return equals(other) && isDefNotNaN() && other.isDefNotNaN();
     }
 
     default boolean isDefNaN() {
@@ -41,6 +42,7 @@ public interface Value extends Node {
     }
 
     default boolean isDefNotNaN() {
-        return false;
+        // only floats can be NaN
+        return ! (getType() instanceof FloatType);
     }
 }

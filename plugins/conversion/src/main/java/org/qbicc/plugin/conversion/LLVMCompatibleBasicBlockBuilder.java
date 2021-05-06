@@ -15,6 +15,7 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.machine.arch.Cpu;
 import org.qbicc.object.Function;
 import org.qbicc.plugin.unwind.UnwindHelper;
 import org.qbicc.type.FloatType;
@@ -50,9 +51,24 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         String funcName = isMax ? "max" : "min";
         String fullFuncName;
         if (v1.getType() instanceof FloatType && v2.getType() instanceof FloatType) {
-            numericType = (v1.getType().getSize() == 4) ? tps.getFloat32Type() : tps.getFloat64Type();
-            fullFuncName = "llvm." + funcName + "imum.f" + numericType.getMinBits();
-            return minMaxIntrinsic(fullFuncName, numericType, v1, v2);
+            FloatType t1 = (FloatType) v1.getType();
+            FloatType t2 = (FloatType) v2.getType();
+            // todo: CPU capability bits
+            if (ctxt.getPlatform().getCpu() == Cpu.AARCH64) {
+                numericType = (t1.getSize() == 4) ? tps.getFloat32Type() : tps.getFloat64Type();
+                fullFuncName = "llvm." + funcName + "imum.f" + numericType.getMinBits();
+                return minMaxIntrinsic(fullFuncName, numericType, v1, v2);
+            } else {
+                // we have to simulate it (poorly)
+                Value lt1 = isLt(v1, v2);
+                Value gt1 = isGt(v1, v2);
+                Value notNan1 = isEq(v1, v1);
+                Value notNan2 = isEq(v2, v2);
+                Value bc1 = bitCast(v1, t1.getSameSizeSignedIntegerType());
+                Value bc2 = bitCast(v2, t2.getSameSizeSignedIntegerType());
+                Value last = bitCast(minMax(isMax, bc1, bc2), t1);
+                return fb.select(isMax ? gt1 : lt1, v1, fb.select(isMax ? lt1 : gt1, v2, fb.select(notNan1, fb.select(notNan2, last, v2), v1)));
+            }
         } else {
             if (v1.getType() instanceof SignedIntegerType && v2.getType() instanceof SignedIntegerType) {
                 numericType = (v1.getType().getSize() == 4) ? tps.getSignedInteger32Type() : tps.getSignedInteger64Type();
