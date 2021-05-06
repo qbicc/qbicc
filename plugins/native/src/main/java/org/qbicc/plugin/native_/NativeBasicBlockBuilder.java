@@ -36,6 +36,7 @@ import org.qbicc.type.WordType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.VariadicType;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
@@ -45,10 +46,12 @@ import org.qbicc.type.descriptor.TypeDescriptor;
  */
 public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
+    private final ExecutableElement rootElement;
 
     public NativeBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+        rootElement = getCurrentElement();
     }
 
     public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
@@ -62,7 +65,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (functionInfo != null) {
             SymbolLiteral sym = functionInfo.symbolLiteral;
             FunctionType functionType = (FunctionType) sym.getType();
-            ctxt.getImplicitSection(getCurrentElement())
+            ctxt.getImplicitSection(rootElement)
                 .declareFunction(functionInfo.origMethod, sym.getName(), functionType);
             // todo: prologue, epilogue (store current thread, GC state, etc.)
             int pc = functionType.getParameterCount();
@@ -172,7 +175,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         if (functionInfo != null) {
             SymbolLiteral sym = functionInfo.symbolLiteral;
             FunctionType functionType = (FunctionType) sym.getType();
-            ctxt.getImplicitSection(getCurrentElement())
+            ctxt.getImplicitSection(rootElement)
                 .declareFunction(functionInfo.origMethod, sym.getName(), functionType);
             // todo: store current thread into TLS for recursive Java call-in
             return callFunction(functionInfo.symbolLiteral, arguments, Function.getFunctionFlags(functionInfo.origMethod));
@@ -289,7 +292,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private SymbolLiteral getAndDeclareSymbolLiteral(final NativeDataInfo fieldInfo) {
         SymbolLiteral sym = fieldInfo.symbolLiteral;
         // todo: fix this for inlining
-        DefinedTypeDefinition ourType = getCurrentElement().getEnclosingType();
+        DefinedTypeDefinition ourType = rootElement.getEnclosingType();
         if (!fieldInfo.defined || fieldInfo.fieldElement.getEnclosingType() != ourType) {
             // declare it
             Section section = ctxt.getImplicitSection(ourType);

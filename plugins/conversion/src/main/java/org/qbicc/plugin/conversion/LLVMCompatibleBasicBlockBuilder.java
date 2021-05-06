@@ -25,13 +25,16 @@ import org.qbicc.type.NumericType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
+    private final ExecutableElement rootElement;
 
     public LLVMCompatibleBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+        rootElement = getCurrentElement();
     }
 
     @Override
@@ -88,7 +91,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         TypeSystem tps = ctxt.getTypeSystem();
         FunctionType functionType = tps.getFunctionType(numericType, numericType, numericType);
         SymbolLiteral functionSymbol = ctxt.getLiteralFactory().literalOfSymbol(funcName, functionType);
-        ctxt.getImplicitSection(getCurrentElement()).declareFunction(null, funcName, functionType);
+        ctxt.getImplicitSection(rootElement).declareFunction(null, funcName, functionType);
         return getFirstBuilder().callFunction(functionSymbol, List.of(v1, v2), Function.FN_NO_SIDE_EFFECTS);
     }
 
@@ -134,7 +137,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel, final BlockLabel exceptionHandler) {
         Function personalityFunction = ctxt.getExactFunction(UnwindHelper.get(ctxt).getPersonalityMethod());
-        ctxt.getImplicitSection(getCurrentElement()).declareFunction(null, personalityFunction.getName(), personalityFunction.getType());
+        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityFunction.getName(), personalityFunction.getType());
         return super.try_(operation, resumeLabel, exceptionHandler);
     }
 }
