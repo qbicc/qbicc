@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -27,7 +27,7 @@ abstract class AbstractTerminator extends AbstractNode implements Terminator {
             Map.Entry<PhiValue, Value> entry = outboundValues.entrySet().iterator().next();
             this.outboundValues = Map.of(entry.getKey(), entry.getValue(), phi, val);
         } else if (outboundValues.size() == 2) {
-            this.outboundValues = new HashMap<>(outboundValues);
+            this.outboundValues = new LinkedHashMap<>(outboundValues);
             this.outboundValues.put(phi, val);
         } else {
             this.outboundValues.put(phi, val);
