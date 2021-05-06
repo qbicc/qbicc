@@ -1,6 +1,6 @@
 package org.qbicc.graph;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -76,7 +76,7 @@ public final class BasicBlock {
                 }
             } else if (incoming.size() == 2) {
                 Set<BasicBlock> old = this.incoming;
-                incoming = new HashSet<>();
+                incoming = new LinkedHashSet<>();
                 incoming.addAll(old);
                 incoming.add(from);
             } else {

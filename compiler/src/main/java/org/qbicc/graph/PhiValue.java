@@ -1,6 +1,7 @@
 package org.qbicc.graph;
 
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import io.smallrye.common.constraint.Assert;
@@ -55,7 +56,7 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
      * @return the set of possible values (not {@code null})
      */
     public Set<Value> getPossibleValues() {
-        HashSet<Value> possibleValues = new HashSet<>();
+        LinkedHashSet<Value> possibleValues = new LinkedHashSet<>();
         getPossibleValues(possibleValues, new HashSet<>());
         return possibleValues;
     }
