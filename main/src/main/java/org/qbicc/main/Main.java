@@ -312,6 +312,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optPhis) {
                                     builder.addCopyFactory(Phase.ANALYZE, PhiOptimizerVisitor::new);
                                 }
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, ConstantBasicBlockBuilder::new);
                                 if (optMemoryTracking) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
