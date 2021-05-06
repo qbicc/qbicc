@@ -81,6 +81,10 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
         } else {
             return null;
         }
+        // only select the class if it implements the interface; else we risk adding a more general method than we had before
+        if (! classType.isSubtypeOf(target.getEnclosingType().load().getInterfaceType())) {
+            return null;
+        }
         LoadedTypeDefinition definition = classType.getDefinition().load();
         int idx = definition.findMethodIndex(target.getName(), target.getDescriptor());
         if (idx != -1) {
