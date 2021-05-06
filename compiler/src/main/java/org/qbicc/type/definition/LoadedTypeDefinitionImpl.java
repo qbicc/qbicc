@@ -2,6 +2,7 @@ package org.qbicc.type.definition;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
@@ -111,6 +112,17 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     public LoadedTypeDefinition[] getInterfaces() {
         return interfaces.clone();
+    }
+
+    public void forEachInterfaceFullImplementedSet(Consumer<LoadedTypeDefinition> function) {
+        for (LoadedTypeDefinition i : interfaces) {
+            function.accept(i);
+        }
+        // Walk up the heirarchy and visit each inteface from the the superclass
+        LoadedTypeDefinition superClass = getSuperClass();
+        if (superClass != null) {
+            superClass.forEachInterfaceFullImplementedSet(function);
+        }
     }
 
     public MethodElement[] getInstanceMethods() { return instanceMethods; }
