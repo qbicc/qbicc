@@ -9,15 +9,19 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 
 public class SupersDisplayEmitter implements Consumer<CompilationContext>  {
 
-	@Override
+    @Override
     public void accept(CompilationContext ctxt) {
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
 
-		ClassContext classContext = ctxt.getBootstrapClassContext();
+        ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         LoadedTypeDefinition jlo = jloDef.load();
 
-		// emit the typeid[] into Object's file
-		tables.emitTypeIdTable(jlo);
+        // emit the typeid[] into Object's file
+        tables.emitTypeIdTable(jlo);
+
+        // TODO: enable this when the final mising <clinit>s are tracked down
+        // emit the initialization data
+        // tables.emitClinitStateTable(jlo);
     }
 }
