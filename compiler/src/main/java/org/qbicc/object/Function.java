@@ -56,7 +56,7 @@ public final class Function extends SectionObject {
             synchronized (this) {
                 declaration = this.declaration;
                 if (declaration == null) {
-                    declaration = this.declaration = new FunctionDeclaration(originalElement, name, literal);
+                    declaration = this.declaration = new FunctionDeclaration(getOriginalElement(), name, literal);
                 }
             }
         }

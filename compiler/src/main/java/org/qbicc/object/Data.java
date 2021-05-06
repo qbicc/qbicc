@@ -2,7 +2,7 @@ package org.qbicc.object;
 
 import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.SymbolLiteral;
-import org.qbicc.type.definition.element.Element;
+import org.qbicc.type.definition.element.MemberElement;
 
 /**
  * A data object definition.
@@ -12,9 +12,14 @@ public final class Data extends SectionObject {
     private volatile DataDeclaration declaration;
     private volatile boolean dsoLocal;
 
-    Data(final Element originalElement, final String name, final SymbolLiteral symbolLiteral, final Value value) {
+    Data(final MemberElement originalElement, final String name, final SymbolLiteral symbolLiteral, final Value value) {
         super(originalElement, name, symbolLiteral);
         this.value = value;
+    }
+
+    @Override
+    public MemberElement getOriginalElement() {
+        return (MemberElement) super.getOriginalElement();
     }
 
     public String getName() {
@@ -35,7 +40,7 @@ public final class Data extends SectionObject {
             synchronized (this) {
                 declaration = this.declaration;
                 if (declaration == null) {
-                    declaration = this.declaration = new DataDeclaration(originalElement, name, literal);
+                    declaration = this.declaration = new DataDeclaration(getOriginalElement(), name, literal);
                 }
             }
         }
