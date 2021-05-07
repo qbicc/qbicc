@@ -45,5 +45,8 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         for (int i=0; i < deser.getMethodCount(); i++) {
             ctxt.registerEntryPoint(deser.getMethod(i));
         }
+
+        // class initialization
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("initialize_class"));
     }
 }
