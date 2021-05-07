@@ -20,8 +20,10 @@ import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.IntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.CompoundType.Member;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -367,6 +369,30 @@ public class SupersDisplayTables {
         return List.of(literals);
     }
 
+    /**
+     * Flags:
+     * 1 - has clinit method
+     * 2 - declares default methods
+     * 4 - has default methods
+     */
+    Literal calculateTypeIdFlags(final UnsignedIntegerType type, LoadedTypeDefinition ltd) {
+        int flags = 0;
+        InitializerElement initializer = ltd.getInitializer();
+        if (initializer != null && initializer.hasMethodBody()) {
+            flags |= 1;
+        }
+        if (ltd.declaresDefaultMethods()) {
+            flags |= 2;
+        }
+        if (ltd.hasDefaultMethods()) {
+            flags |= 4;
+        }
+        
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        supersLog.debug("[[Flags] ID["+ ltd.getTypeId() + "] Flags = " + Integer.toBinaryString(flags) + ltd.getInternalName() + "]");
+        return lf.literalOf(type, flags);
+    }
+
     void defineTypeIdStructAndGlobalArray(LoadedTypeDefinition jlo) {
         TypeSystem ts = ctxt.getTypeSystem();
         UnsignedIntegerType u8 = ts.getUnsignedInteger8Type();
@@ -469,7 +495,7 @@ public class SupersDisplayTables {
                     members.get(1), lf.literalOf((UnsignedIntegerType)members.get(1).getType(), idRange.maximumSubtypeId),
                     members.get(2), lf.literalOf((UnsignedIntegerType)members.get(2).getType(), superTypeId),
                     members.get(3), lf.literalOf(interfaceBitsType, convertByteArrayToValuesList(lf, getImplementedInterfaceBits(vtd))),
-                    members.get(4), lf.literalOf((UnsignedIntegerType)members.get(4).getType(), 0)  /* TODO: calculate flags */
+                    members.get(4), calculateTypeIdFlags((UnsignedIntegerType)members.get(4).getType(), vtd)
                 )
             );
         }

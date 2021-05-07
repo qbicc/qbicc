@@ -37,7 +37,7 @@ public class ClassInitializerRegister implements Consumer<CompilationContext>  {
             ctxt.registerEntryPoint(object_clinit);
         }
         // Visit all live subclasses and register their <clinit>
-		rtaInfo.visitLiveSubclassesPreOrder(jlo, sc -> {
+        rtaInfo.visitLiveSubclassesPreOrder(jlo, sc -> {
             InitializerElement initializer = sc.getInitializer();
             if (initializer != null && initializer.hasMethodBody()) {
                 ctxt.registerEntryPoint(initializer);
