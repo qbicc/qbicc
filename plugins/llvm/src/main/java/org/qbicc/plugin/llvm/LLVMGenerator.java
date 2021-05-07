@@ -138,6 +138,9 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                                 obj.threadLocal(map(tlm));
                             }
                             obj.asGlobal(item.getName());
+                            if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
+                                obj.section(sectionName);
+                            }
                         } else {
                             assert item instanceof Data;
                             Literal value = (Literal) ((Data) item).getValue();
@@ -155,6 +158,9 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             }
                             if (((Data) item).isDsoLocal()) {
                                 obj.preemption(RuntimePreemption.LOCAL);
+                            }
+                            if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
+                                obj.section(sectionName);
                             }
                             obj.asGlobal(item.getName());
                         }
