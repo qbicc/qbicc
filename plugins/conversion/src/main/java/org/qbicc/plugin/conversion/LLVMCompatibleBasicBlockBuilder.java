@@ -138,7 +138,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel, final BlockLabel exceptionHandler) {
         MethodElement personalityFunction = UnwindHelper.get(ctxt).getPersonalityMethod();
-        ctxt.getImplicitSection(getCurrentElement()).declareFunction(null, personalityFunction.getName(), personalityFunction.getType());
+        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityFunction.getName(), personalityFunction.getType());
         return super.try_(operation, resumeLabel, exceptionHandler);
     }
 }
