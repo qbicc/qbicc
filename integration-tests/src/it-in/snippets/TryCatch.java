@@ -27,6 +27,10 @@ public class TryCatch {
         throw new DummyException();
     }
 
+    public static int throwExceptionReturnNotVoid() throws DummyException {
+        throw new DummyException();
+    }
+
     public static void throwSubException(int type) throws DummyException {
         if (type == 1) {
             throw new SubException1();
@@ -80,6 +84,36 @@ public class TryCatch {
         return 1;
     }
 
+    public static void bar() throws Exception {
+        throw new ArithmeticException();
+    }
+
+    public static int foo() throws Exception {
+        try {
+            bar();
+        } catch(NullPointerException e) {
+            return 2;
+        }
+        return 3;
+    }
+
+    public static int test5() {
+        try {
+            foo();
+        } catch(Exception e) {
+            return 0;
+        }
+        return 1;
+    }
+
+    public static int test6() {
+        try {
+            return throwExceptionReturnNotVoid();
+        } catch (DummyException e) {
+            return 0;
+        }
+    }
+
     public static void main(String[] args) {
         int rc = test1();
         reportResult(rc);
@@ -89,5 +123,11 @@ public class TryCatch {
         reportResult(rc);
         rc = new TryCatch().test4();
         reportResult(rc);
+        rc = test5();
+        reportResult(rc);
+        /* test6() current results in crash.
+        rc = test6();
+        reportResult(rc);
+         */
     }
 }

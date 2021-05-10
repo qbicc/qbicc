@@ -144,6 +144,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             this.phi = gf.phi(throwable.load().getType().getReference().asNullable(), new BlockLabel());
         }
 
+        private void clearExceptionField() {
+            Value thr = gf.getFirstBuilder().currentThread();
+            FieldElement exceptionField = ctxt.getCompilationContext().getExceptionField();
+            ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(thr), exceptionField);
+            gf.store(handle, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(handle.getValueType()), MemoryAtomicityMode.NONE);
+        }
+
         public BlockLabel getHandler() {
             return phi.getPinnedBlockLabel();
         }
@@ -185,6 +192,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 if (single) {
                     gf.begin(block);
                     push1(gf.bitCast(phi, exType));
+                    clearExceptionField();
                     processNewBlock();
                 } else {
                     push1(gf.bitCast(phi, exType));
