@@ -398,6 +398,12 @@ public final class CoreIntrinsics {
         InstanceValueIntrinsic getClassIntrinsic = (builder, kind, instance, owner, name, descriptor, arguments) ->
             builder.classOf(builder.typeIdOf(builder.referenceHandle(instance)));
         intrinsics.registerIntrinsic(classDesc, "getClass", getClassDesc, getClassIntrinsic);
+
+        // Object#hashCode TODO redo when object headers are set
+        MethodDescriptor hashCodeDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
+        InstanceValueIntrinsic hashCodeIntrinsic = (builder, kind, instance, owner, name, descriptor, arguments)->
+            ctxt.getLiteralFactory().literalOf(0);
+        intrinsics.registerIntrinsic(classDesc, "hashCode", hashCodeDesc, hashCodeIntrinsic);
     }
 
     static Literal literalOf(CompilationContext ctxt, boolean v) {
