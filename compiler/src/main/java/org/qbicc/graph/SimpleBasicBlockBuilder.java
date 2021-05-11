@@ -350,7 +350,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {
-        return new InstanceOf(callSite, element, line, bci, input, expectedType, expectedDimensions, typeSystem.getBooleanType());
+        return asDependency(new InstanceOf(callSite, element, line, bci, requireDependency(), input, expectedType, expectedDimensions, typeSystem.getBooleanType()));
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {

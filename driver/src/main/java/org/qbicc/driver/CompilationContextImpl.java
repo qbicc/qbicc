@@ -637,7 +637,7 @@ final class CompilationContextImpl implements CompilationContext {
                 }
                 try {
                     consumer.accept(element);
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error("An exception was thrown from a queue processing task", e);
                     error(element, "Exception while processing queue task for element: %s", e);
                 }

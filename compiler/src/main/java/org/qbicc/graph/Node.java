@@ -637,6 +637,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final InstanceOf node) {
+                param.copyNode(node.getDependency());
                 return param.getBlockBuilder().instanceOf(param.copyValue(node.getInstance()), node.getCheckType(), node.getCheckDimensions());
             }
 

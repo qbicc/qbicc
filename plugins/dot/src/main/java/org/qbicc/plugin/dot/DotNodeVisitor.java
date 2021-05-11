@@ -11,6 +11,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
@@ -932,6 +933,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "instanceof " + node.getCheckType().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY, "value");
         return name;
     }

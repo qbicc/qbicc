@@ -776,6 +776,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     public LLValue visit(final Void param, final CheckCast node) {
+        map(node.getDependency());
         return map(node.getInput());
     }
 
