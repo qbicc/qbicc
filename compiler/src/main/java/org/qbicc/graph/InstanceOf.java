@@ -4,12 +4,13 @@ import java.util.Objects;
 
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A node that represents a check of the upper bound of the value against the given type.
  */
-public final class InstanceOf extends AbstractValue implements InstanceOperation, OrderedNode {
+public final class InstanceOf extends AbstractValue implements InstanceOperation, OrderedNode, BooleanValue {
     private final Node dependency;
     private final Value input;
     private final ObjectType checkType;
@@ -60,6 +61,19 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
 
     public BooleanType getType() {
         return booleanType;
+    }
+
+    @Override
+    public Value getValueIfTrue(Value input) {
+        return input.equals(this.input) ?
+            new NotNull(getCallSite(), getElement(), getSourceLine(), getBytecodeIndex(),
+                new BitCast(getCallSite(), getElement(), getSourceLine(), getBytecodeIndex(), input, ((ReferenceType)input.getType()).narrow(checkType)))
+            : input;
+    }
+
+    @Override
+    public Value getValueIfFalse(Value input) {
+        return input;
     }
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
