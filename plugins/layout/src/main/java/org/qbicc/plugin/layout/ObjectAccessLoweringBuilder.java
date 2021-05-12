@@ -22,7 +22,7 @@ import org.qbicc.type.definition.element.FieldElement;
 /**
  *
  */
-public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
+public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, ValueHandle> {
     private final CompilationContext ctxt;
 
     public ObjectAccessLoweringBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
@@ -111,57 +111,57 @@ public class ObjectAccessLoweringBuilder extends DelegatingBasicBlockBuilder {
     }
 
     private ValueHandle transform(ValueHandle input) {
-        return input.accept(new ValueHandleVisitor<>() {
-            @Override
-            public ValueHandle visit(ObjectAccessLoweringBuilder b, ElementOf node) {
-                ValueHandle inputHandle = node.getValueHandle();
-                if (inputHandle instanceof ReferenceHandle) {
-                    // Transform array object element handles
-                    Layout layout = Layout.get(ctxt);
-                    ObjectType upperBound = (ObjectType) inputHandle.getValueType();
-                    if (upperBound instanceof ArrayObjectType) {
-                        FieldElement contentField = layout.getArrayContentField(upperBound);
-                        if (upperBound instanceof ReferenceArrayObjectType) {
-                            ValueHandle elementHandle = b.elementOf(b.transform(b.instanceFieldOf(inputHandle, contentField)), node.getIndex());
-                            Value addr = b.addressOf(elementHandle);
-                            ReferenceType elementType = ((ReferenceArrayObjectType) upperBound).getElementType();
-                            return b.transform(b.pointerHandle(b.bitCast(addr, elementType.getPointer().asCollected())));
-                        } else {
-                            assert upperBound instanceof PrimitiveArrayObjectType;
-                            return b.elementOf(b.transform(b.instanceFieldOf(inputHandle, contentField)), node.getIndex());
-                        }
-                    }
-                }
-                // normal array, probably
-                return b.elementOf(b.transform(inputHandle), node.getIndex());
-            }
+        return input.accept(this, null);
+    }
 
-            @Override
-            public ValueHandle visit(ObjectAccessLoweringBuilder b, ReferenceHandle node) {
-                // convert reference to pointer
-                Layout layout = Layout.get(ctxt);
-                ObjectType upperBound = node.getValueType();
-                Layout.LayoutInfo info;
-                if (upperBound instanceof ArrayObjectType) {
-                    info = layout.getInstanceLayoutInfo(layout.getArrayContentField(upperBound).getEnclosingType());
+    @Override
+    public ValueHandle visit(Void param, ElementOf node) {
+        ValueHandle inputHandle = node.getValueHandle();
+        if (inputHandle instanceof ReferenceHandle) {
+            // Transform array object element handles
+            Layout layout = Layout.get(ctxt);
+            ObjectType upperBound = (ObjectType) inputHandle.getValueType();
+            if (upperBound instanceof ArrayObjectType) {
+                FieldElement contentField = layout.getArrayContentField(upperBound);
+                if (upperBound instanceof ReferenceArrayObjectType) {
+                    ValueHandle elementHandle = elementOf(transform(instanceFieldOf(inputHandle, contentField)), node.getIndex());
+                    Value addr = addressOf(elementHandle);
+                    ReferenceType elementType = ((ReferenceArrayObjectType) upperBound).getElementType();
+                    return transform(pointerHandle(bitCast(addr, elementType.getPointer().asCollected())));
                 } else {
-                    info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
+                    assert upperBound instanceof PrimitiveArrayObjectType;
+                    return elementOf(transform(instanceFieldOf(inputHandle, contentField)), node.getIndex());
                 }
-                return b.pointerHandle(b.valueConvert(node.getReferenceValue(), info.getCompoundType().getPointer().asCollected()));
             }
+        }
+        // normal array, probably
+        return elementOf(transform(inputHandle), node.getIndex());
+    }
 
-            @Override
-            public ValueHandle visit(ObjectAccessLoweringBuilder b, InstanceFieldOf node) {
-                Layout layout = Layout.get(ctxt);
-                FieldElement element = node.getVariableElement();
-                return b.memberOf(b.transform(node.getValueHandle()), layout.getInstanceLayoutInfo(element.getEnclosingType()).getMember(element));
-            }
+    @Override
+    public ValueHandle visit(Void param, ReferenceHandle node) {
+        // convert reference to pointer
+        Layout layout = Layout.get(ctxt);
+        ObjectType upperBound = node.getValueType();
+        Layout.LayoutInfo info;
+        if (upperBound instanceof ArrayObjectType) {
+            info = layout.getInstanceLayoutInfo(layout.getArrayContentField(upperBound).getEnclosingType());
+        } else {
+            info = layout.getInstanceLayoutInfo(upperBound.getDefinition());
+        }
+        return pointerHandle(valueConvert(node.getReferenceValue(), info.getCompoundType().getPointer().asCollected()));
+    }
 
-            @Override
-            public ValueHandle visitUnknown(ObjectAccessLoweringBuilder b, ValueHandle node) {
-                // all other handles are fine as-is
-                return node;
-            }
-        }, this);
+    @Override
+    public ValueHandle visit(Void param, InstanceFieldOf node) {
+        Layout layout = Layout.get(ctxt);
+        FieldElement element = node.getVariableElement();
+        return memberOf(transform(node.getValueHandle()), layout.getInstanceLayoutInfo(element.getEnclosingType()).getMember(element));
+    }
+
+    @Override
+    public ValueHandle visitUnknown(Void param, ValueHandle node) {
+        // all other handles are fine as-is
+        return node;
     }
 }
