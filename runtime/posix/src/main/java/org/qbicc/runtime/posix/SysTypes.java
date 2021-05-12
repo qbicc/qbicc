@@ -49,6 +49,7 @@ public final class SysTypes {
     public static final class gid_t extends word {
     }
 
+    @name("int") // integer type
     public static final class mode_t extends word {
     }
 
