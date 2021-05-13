@@ -39,5 +39,6 @@
         <module>try-catch</module>
         <module>verification</module>
         <module>unwind</module>
+        <module>serialization</module>
     </modules>
 </project>

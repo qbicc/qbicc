@@ -1,22 +1,24 @@
 package org.qbicc.runtime.deserialization;
 
-import java.util.ArrayList;
-
 public class ObjectGraph {
-    private final ArrayList<Object> objects = new ArrayList<>();
+    private final Object[] objects; // Tempting to make this ArrayList<Object>, but that makes 1300 more classes reachable
     private int nextId;
 
+    public ObjectGraph(int expected) {
+        objects = new Object[expected];
+    }
+
     public void recordObject(Object obj) {
-        objects.add(nextId, obj);
+        objects[nextId] = obj;
         nextId += 1;
     }
 
     public Object resolveBackref(int backref) {
         int index = nextId - backref;
-        return objects.get(index);
+        return objects[index];
     }
 
     public Object getObject(int index) {
-        return objects.get(index);
+        return objects[index];
     }
 }

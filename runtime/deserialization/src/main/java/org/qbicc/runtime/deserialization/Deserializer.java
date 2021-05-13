@@ -1,7 +1,5 @@
 package org.qbicc.runtime.deserialization;
 
-import java.nio.ByteBuffer;
-
 /**
  * The main Deserializer engine.
  *
@@ -17,13 +15,13 @@ import java.nio.ByteBuffer;
  * </pre>
  */
 public final class Deserializer implements SerializationConstants {
-    private final ByteBuffer in;
+    private final DeserializationBuffer buf;
     private final ObjectGraph objects;
     private final ObjectDeserializer thunk;
 
-    public Deserializer(ByteBuffer bb, ObjectDeserializer thunk) {
-        this.in = bb;
-        this.objects = new ObjectGraph();
+    public Deserializer(byte[] buf, int expectedObjects, ObjectDeserializer thunk) {
+        this.buf = new DeserializationBuffer(buf);
+        this.objects = new ObjectGraph(expectedObjects);
         this.thunk = thunk;
     }
 
@@ -32,7 +30,7 @@ public final class Deserializer implements SerializationConstants {
      * This method is only intended to be used for writing test cases.
      */
     ObjectGraph readAll() {
-        while (in.remaining() > 0) {
+        while (!buf.isEmpty()) {
             readObject();
         }
         return objects;
@@ -45,44 +43,44 @@ public final class Deserializer implements SerializationConstants {
      */
 
     public boolean readBoolean() {
-        byte data = in.get();
-        return data != 0;
+        byte data = buf.get();
+        return (data & 1) != 0;
     }
 
     public byte readByte() {
-        return in.get();
+        return buf.get();
     }
 
     public char readChar() {
-        return in.getChar();
+        return buf.getChar();
     }
 
     public short readShort() {
-        return in.getShort();
+        return buf.getShort();
     }
 
     public float readFloat()  {
-        return in.getFloat();
+        return buf.getFloat();
     }
 
     public int readInt()  {
-        return in.getInt();
+        return buf.getInt();
     }
 
     public double readDouble() {
-        return in.getDouble();
+        return buf.getDouble();
     }
 
     public long readLong() {
-        return in.getLong();
+        return buf.getLong();
     }
 
     public int readU8() {
-        return 0xFF & in.get();
+        return 0xFF & buf.get();
     }
 
     public int readU16() {
-        return 0xFFFF & in.getShort();
+        return 0xFFFF & buf.getShort();
     }
 
     /**
@@ -106,7 +104,7 @@ public final class Deserializer implements SerializationConstants {
                 int typeId = readU16();
                 Object uninitialized = thunk.allocateClass(typeId, tag == OBJECT_LONG_LIVED, tag == OBJECT_IMMORTAL);
                 objects.recordObject(uninitialized); // MUST call recordObject before calling readInstanceFields fields; otherwise cyclic graphs will be off by 1!
-                thunk.readInstanceFields(typeId, uninitialized, this);
+                thunk.deserializeInstanceFields(typeId, uninitialized, this);
                 return uninitialized;
             }
 
@@ -114,7 +112,7 @@ public final class Deserializer implements SerializationConstants {
             case STRING_LARGE_L1: {
                 int length = tag == STRING_SMALL_L1 ? readU8() : readInt();
                 byte[] data = new byte[length];
-                in.get(data);
+                buf.get(data);
                 String str = thunk.createString(data, (byte)0, false, false);
                 objects.recordObject(str);
                 return str;
@@ -123,7 +121,7 @@ public final class Deserializer implements SerializationConstants {
             case STRING_SMALL_U16: {
                 int length = readU8();
                 byte[] data = new byte[length * 2];
-                in.get(data);
+                buf.get(data);
                 String str = thunk.createString(data, (byte)1, false, false);
                 objects.recordObject(str);
                 return str;
@@ -133,7 +131,7 @@ public final class Deserializer implements SerializationConstants {
                 int length = readInt();
                 if (length < Integer.MAX_VALUE / 2) {
                     byte[] data = new byte[length * 2];
-                    in.get(data);
+                    buf.get(data);
                     String str = thunk.createString(data, (byte)1, false, false);
                     objects.recordObject(str);
                     return str;
@@ -161,7 +159,7 @@ public final class Deserializer implements SerializationConstants {
                 int typeId = 10 + (~TAG_MASK & tag);
                 Object theArray = thunk.allocatePrimitiveArray(typeId, length, false, false);
                 objects.recordObject(theArray);
-                thunk.readPrimitiveArrayData(typeId, length, theArray, this);
+                thunk.deserializePrimitiveArrayData(typeId, length, theArray, this);
                 return theArray;
             }
 
@@ -206,7 +204,7 @@ public final class Deserializer implements SerializationConstants {
                 int typeId = 10 + (~TAG_MASK & tag);
                 Object theArray = thunk.allocatePrimitiveArray(typeId, length, false, false);
                 objects.recordObject(theArray);
-                thunk.readPrimitiveArrayData(typeId, length, theArray, this);
+                thunk.deserializePrimitiveArrayData(typeId, length, theArray, this);
                 return theArray;
             }
 

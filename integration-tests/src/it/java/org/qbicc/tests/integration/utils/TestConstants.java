@@ -40,6 +40,11 @@ public final class TestConstants {
                     ".m2", "repository", "org", "qbicc", "qbicc-runtime-unwind", "0.1.0-SNAPSHOT", "qbicc-runtime-unwind-0.1.0-SNAPSHOT.jar")
                     .toString();
 
+    public static final String QBICC_RUNTIME_DESERIALIZATION_JAR = getProperty(
+        new String[]{"QBICC_RUNTIME_DESERIALIZATION_JAR", "qbicc.runtime.deserialization.jar"},
+        Path.of(System.getProperty("user.home"),
+            ".m2", "repository", "org", "qbicc", "qbicc-runtime-deserialization", "0.1.0-SNAPSHOT", "qbicc-runtime-deserialization-0.1.0-SNAPSHOT.jar")
+            .toString());
 
     public static final String QBICC_RT_POSIX_JAR =
             Path.of(System.getProperty("user.home"),
@@ -50,7 +55,4 @@ public final class TestConstants {
             Path.of(System.getProperty("user.home"),
                     ".m2", "repository", "org", "qbicc", "qbicc-runtime-linux", "0.1.0-SNAPSHOT", "qbicc-runtime-linux-0.1.0-SNAPSHOT.jar")
                     .toString();
-
-
-
 }

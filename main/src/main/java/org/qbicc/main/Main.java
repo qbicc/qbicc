@@ -75,6 +75,7 @@ import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
+import org.qbicc.plugin.serialization.HeapSerializer;
 import org.qbicc.plugin.threadlocal.ThreadLocalBasicBlockBuilder;
 import org.qbicc.plugin.threadlocal.ThreadLocalTypeBuilder;
 import org.qbicc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
@@ -329,6 +330,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addElementVisitor(Phase.ANALYZE, new DotGenerator(Phase.ANALYZE, graphGenConfig));
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
+                                builder.addPostHook(Phase.ANALYZE, new HeapSerializer());
 
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);

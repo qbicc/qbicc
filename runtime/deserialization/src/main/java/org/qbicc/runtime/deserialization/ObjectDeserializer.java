@@ -1,12 +1,10 @@
 package org.qbicc.runtime.deserialization;
 
-import java.io.IOException;
-
 /**
  * The compiler-generated deserialization code and low-level qbicc runtime functions
  * will be exposed to the Deserializer engine via a class that implements this interface.
  */
-public interface ObjectDeserializer {
+public abstract class ObjectDeserializer {
     /**
      * Create and initialize a String from the given byte array and coder.
      * @param data the bytes from which to make the string
@@ -15,7 +13,7 @@ public interface ObjectDeserializer {
      * @param immortal is the instance predicted to be immortal?
      * @return the uninitialized object
      */
-    String createString(byte[] data, byte coder, boolean longLived, boolean immortal);
+    public abstract String createString(byte[] data, byte coder, boolean longLived, boolean immortal);
 
     /**
      * Allocate memory for instance of the given typeId and initialize its object header
@@ -24,7 +22,7 @@ public interface ObjectDeserializer {
      * @param immortal is the instance predicted to be immortal?
      * @return the uninitialized object
      */
-    Object allocateClass(int typeId, boolean longLived, boolean immortal);
+    public abstract Object allocateClass(int typeId, boolean longLived, boolean immortal);
 
     /**
      * Allocate memory for a primitive array of the given typeId and initialize its object header
@@ -34,7 +32,7 @@ public interface ObjectDeserializer {
      * @param immortal is the instance predicted to be immortal?
      * @return the uninitialized array
      */
-    Object allocatePrimitiveArray(int typeId, int length, boolean longLived, boolean immortal);
+    public abstract Object allocatePrimitiveArray(int typeId, int length, boolean longLived, boolean immortal);
 
     /**
      * Allocate memory for a reference array containing elements of the given typeId and initialize its object header
@@ -44,7 +42,7 @@ public interface ObjectDeserializer {
      * @param immortal is the instance predicted to be immortal?
      * @return the uninitialized array
      */
-    Object[] allocateReferenceArray(int elementTypeId, int length, boolean longLived, boolean immortal);
+    public abstract Object[] allocateReferenceArray(int elementTypeId, int length, boolean longLived, boolean immortal);
 
     /**
      * Deserialize the instance fields of an object
@@ -52,7 +50,7 @@ public interface ObjectDeserializer {
      * @param obj the object into which the deserialized fields should be stored
      * @param deserializer the Deserializer from which to read the fields
      */
-    void readInstanceFields(int typeId, Object obj, Deserializer deserializer);
+    public abstract void deserializeInstanceFields(int typeId, Object obj, Deserializer deserializer);
 
     /**
      * Deserialize the elements of a primitive array
@@ -61,5 +59,5 @@ public interface ObjectDeserializer {
      * @param array the array object into which the deserialized elements should be stored
      * @param deserializer the Deserializer from which to read the fields
      */
-    void readPrimitiveArrayData(int typeId, int length, Object array, Deserializer deserializer);
+    public abstract void deserializePrimitiveArrayData(int typeId, int length, Object array, Deserializer deserializer);
 }
