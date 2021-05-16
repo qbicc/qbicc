@@ -37,7 +37,6 @@ public final class VMHelpers {
         return isAssignableTo(instance, typeId, dimensions);
     }
 
-    @NoSideEffects
     public static void arrayStoreCheck(Object value, type_id toTypeId, int toDimensions) {
         if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
@@ -45,14 +44,12 @@ public final class VMHelpers {
         raiseArrayStoreException();
     }
 
-    @NoSideEffects
     public static void checkcast_class (Object value, Class<?> cls) {
         type_id toTypeId = ObjectModel.get_type_id_from_class(cls);
         int toDim = ObjectModel.get_dimensions_from_class(cls);
         checkcast_typeId(value, toTypeId, toDim);
     }
 
-    @NoSideEffects
     public static void checkcast_typeId(Object value, type_id toTypeId, int toDimensions) {
         if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
