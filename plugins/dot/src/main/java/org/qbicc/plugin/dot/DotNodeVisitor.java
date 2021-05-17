@@ -708,12 +708,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
             attr(param, "label", "call");
             attr(param, "fixedsize", "shape");
             nl(param);
-            addEdge(param, node, callTarget, EdgeType.VALUE_DEPENDENCY, "fn");
         }
         dependencyList.add(name);
         if (node.hasDependency()) processDependency(param, node.getDependency());
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
+        }
+        if (!(callTarget instanceof SymbolLiteral)) {
+            addEdge(param, node, callTarget, EdgeType.VALUE_DEPENDENCY, "fn");
         }
         return name;
     }
