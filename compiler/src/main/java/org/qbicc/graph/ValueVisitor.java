@@ -411,6 +411,22 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
+        default R visit(T param, Cmp node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpAndSwap node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpG node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpL node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
         default R visit(T param, CompoundLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
