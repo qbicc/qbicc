@@ -5,6 +5,8 @@ import java.util.List;
 import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
 import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -14,9 +16,11 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -281,9 +285,45 @@ public interface BasicBlockBuilder extends Locatable {
 
     ValueHandle localVariable(LocalVariableElement variable);
 
+    ValueHandle exactMethodOf(Value instance, MethodElement method);
+
+    ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
+
+    ValueHandle virtualMethodOf(Value instance, MethodElement method);
+
+    ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
+
+    ValueHandle interfaceMethodOf(Value instance, MethodElement method);
+
+    ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor);
+
+    ValueHandle staticMethod(MethodElement method);
+
+    ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor);
+
+    ValueHandle constructorOf(Value instance, ConstructorElement constructor);
+
+    ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor);
+
+    ValueHandle functionOf(FunctionElement function);
+
+    ValueHandle functionOf(Function function);
+
+    ValueHandle functionOf(FunctionDeclaration function);
+
     // memory
 
     Value addressOf(ValueHandle handle);
+
+    /**
+     * Get a value that is a reference to the given value handle. If the handle's type is not an allocated
+     * object, an exception is thrown.
+     *
+     * @param handle the value handle (must not be {@code null})
+     * @return the reference value (not {@code null})
+     * @throws IllegalArgumentException if the value handle does not refer to something that can be referenced
+     */
+    Value referenceTo(ValueHandle handle) throws IllegalArgumentException;
 
     Value stackAllocate(ValueType type, Value count, Value align);
 
@@ -333,20 +373,50 @@ public interface BasicBlockBuilder extends Locatable {
 
     // method invocation
 
+    /**
+     * Call an invocation target with normal program-order dependency behavior.  The target either does not throw an exception or
+     * the current block does not catch exceptions.
+     *
+     * @param target the invocation target handle (must not be {@code null})
+     * @param arguments the invocation arguments (must not be {@code null})
+     * @return the invocation result (not {@code null})
+     * @see Call
+     */
+    Value call(ValueHandle target, List<Value> arguments);
+
+    /**
+     * Call an invocation target that does not have side-effects (and does not have any program-order dependency relationships).
+     * The target either does not throw an exception or the current block does not catch exceptions.
+     *
+     * @param target the invocation target handle (must not be {@code null})
+     * @param arguments the invocation arguments (must not be {@code null})
+     * @return the invocation result (not {@code null})
+     * @see CallNoSideEffects
+     */
+    Value callNoSideEffects(ValueHandle target, List<Value> arguments);
+
+    @Deprecated
     Node invokeStatic(MethodElement target, List<Value> arguments);
 
+    @Deprecated
     Node invokeStatic(TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
 
+    @Deprecated
     Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
 
+    @Deprecated
     Node invokeInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
 
+    @Deprecated
     Value invokeValueStatic(MethodElement target, List<Value> arguments);
 
+    @Deprecated
     Value invokeValueStatic(TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
 
+    @Deprecated
     Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
 
+    @Deprecated
     Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
 
     /**
@@ -358,12 +428,15 @@ public interface BasicBlockBuilder extends Locatable {
      * @param arguments the constructor arguments (must not be {@code null})
      * @return the initialized value
      */
+    @Deprecated
     Value invokeConstructor(Value instance, ConstructorElement target, List<Value> arguments);
 
+    @Deprecated
     Value invokeConstructor(Value instance, TypeDescriptor owner, MethodDescriptor descriptor, List<Value> arguments);
 
     // misc
 
+    @Deprecated
     Value callFunction(Value callTarget, List<Value> arguments, int flags);
 
     /**
@@ -382,6 +455,66 @@ public interface BasicBlockBuilder extends Locatable {
     Node begin(BlockLabel blockLabel);
 
     // control flow - terminalBlock is updated to point to this terminator
+
+    /**
+     * Call an invocation target that does not return, thus terminating the block.
+     *
+     * @param target the invocation target handle (must not be {@code null})
+     * @param arguments the invocation arguments (must not be {@code null})
+     * @return the terminated block (not {@code null}
+     * @see CallNoReturn
+     */
+    BasicBlock callNoReturn(ValueHandle target, List<Value> arguments);
+
+    /**
+     * Call an invocation target that does not return - thus terminating the block - and catch the thrown exception.
+     *
+     * @param target the invocation target handle (must not be {@code null})
+     * @param arguments the invocation arguments (must not be {@code null})
+     * @param catchLabel the exception handler label (must not be {@code null})
+     * @return the terminated block (not {@code null}
+     * @see InvokeNoReturn
+     */
+    BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel);
+
+    /**
+     * Tail-call an invocation target that returns the same type as this method, thus terminating the block.  The
+     * backend can optimize such calls into tail calls if the calling element is {@linkplain ClassFile#I_ACC_HIDDEN hidden}.
+     *
+     * @param target the invocation target handle (must not be {@code null})
+     * @param arguments the invocation arguments (must not be {@code null})
+     * @return the terminated block (not {@code null}
+     * @see TailCall
+     */
+    BasicBlock tailCall(ValueHandle target, List<Value> arguments);
+
+    /**
+     * Tail-call an invocation target that returns the same type as this method - thus terminating the block - and catch
+     * the thrown exception.  The backend can optimize such calls into tail calls if the calling element is
+     * {@linkplain ClassFile#I_ACC_HIDDEN hidden}.
+     *
+     * @param target the invocation target handle (must not be {@code null})
+     * @param arguments the invocation arguments (must not be {@code null})
+     * @param catchLabel the exception handler label (must not be {@code null})
+     * @return the terminated block (not {@code null}
+     * @see TailInvoke
+     */
+    BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel);
+
+    /**
+     * Call an invocation target and catch the thrown exception, terminating the block.
+     * <b>Note</b>: the terminated block is not returned.
+     * The return value of this method is the return value of the invocation,
+     * which will always be pinned to the {@code resumeLabel} block.
+     *
+     * @param target the invocation target handle (must not be {@code null})
+     * @param arguments the invocation arguments (must not be {@code null})
+     * @param catchLabel the exception handler label (must not be {@code null})
+     * @param resumeLabel the handle of the resume target (must not be {@code null})
+     * @return the invocation result (not {@code null})
+     * @see Invoke
+     */
+    Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel);
 
     /**
      * Generate a {@code goto} termination node.  The terminated block is returned.
@@ -436,6 +569,7 @@ public interface BasicBlockBuilder extends Locatable {
      */
     BasicBlock ret(Value address);
 
+    @Deprecated
     BasicBlock try_(Triable operation, BlockLabel resumeLabel, BlockLabel exceptionHandler);
 
     /**
@@ -445,10 +579,13 @@ public interface BasicBlockBuilder extends Locatable {
      * @param toType the target type ID
      * @return the terminated block
      */
+    @Deprecated
     BasicBlock classCastException(Value fromType, Value toType);
 
+    @Deprecated
     BasicBlock noSuchMethodError(ObjectType owner, MethodDescriptor desc, String name);
 
+    @Deprecated
     BasicBlock classNotFoundError(String name);
 
     /**
@@ -457,6 +594,14 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the current block's entry node
      */
     BlockEntry getBlockEntry();
+
+    /**
+     * Get the most-recently-terminated block.
+     *
+     * @return the most recently terminated block (not {@code null})
+     * @throws IllegalStateException if no block has yet been terminated
+     */
+    BasicBlock getTerminatedBlock();
 
     /**
      * The policy which is used to acquire the exception handler for the current instruction.

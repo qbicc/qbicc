@@ -3,12 +3,15 @@ package org.qbicc.plugin.conversion;
 import java.util.List;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.CastValue;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.StackAllocation;
 import org.qbicc.graph.Triable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -25,6 +28,8 @@ import org.qbicc.type.NumericType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.VoidType;
+import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -140,5 +145,55 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         MethodElement personalityFunction = UnwindHelper.get(ctxt).getPersonalityMethod();
         ctxt.getImplicitSection(rootElement).declareFunction(null, personalityFunction.getName(), personalityFunction.getType());
         return super.try_(operation, resumeLabel, exceptionHandler);
+    }
+
+    @Override
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        // todo: we can support "real" tail calls in certain situations
+        // break tail call
+        Value retVal = super.call(target, arguments);
+        if (isVoidFunction(target)) {
+            return super.return_();
+        } else {
+            return super.return_(retVal);
+        }
+    }
+
+    @Override
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        // declare personality function
+        MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
+        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        return super.invokeNoReturn(target, arguments, catchLabel);
+    }
+
+    @Override
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+        // declare personality function
+        MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
+        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        return super.invoke(target, arguments, catchLabel, resumeLabel);
+    }
+
+    @Override
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        // declare personality function
+        MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
+        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        // todo: we can support "real" tail calls in certain situations
+        // break tail invoke
+        BlockLabel resumeLabel = new BlockLabel();
+        Value retVal = super.invoke(target, arguments, catchLabel, resumeLabel);
+        begin(resumeLabel);
+        if (isVoidFunction(target)) {
+            return super.return_();
+        } else {
+            return super.return_(retVal);
+        }
+    }
+
+    private static boolean isVoidFunction(ValueHandle target) {
+        FunctionType type = (FunctionType) target.getValueType();
+        return type.getReturnType() instanceof VoidType;
     }
 }

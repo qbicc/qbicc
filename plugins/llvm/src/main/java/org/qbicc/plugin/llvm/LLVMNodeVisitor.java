@@ -1,7 +1,6 @@
 package org.qbicc.plugin.llvm;
 
 import static org.qbicc.machine.llvm.Types.*;
-import static org.qbicc.machine.llvm.Values.NULL;
 import static org.qbicc.machine.llvm.Values.ZERO;
 
 import java.util.HashMap;
@@ -12,6 +11,7 @@ import java.util.Set;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
+import org.qbicc.graph.AbstractProgramObjectHandle;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
@@ -19,6 +19,8 @@ import org.qbicc.graph.And;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.CallNoReturn;
+import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
@@ -30,11 +32,15 @@ import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
 import org.qbicc.graph.FunctionCall;
+import org.qbicc.graph.FunctionDeclarationHandle;
+import org.qbicc.graph.FunctionHandle;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InsertElement;
 import org.qbicc.graph.InsertMember;
+import org.qbicc.graph.Invoke;
+import org.qbicc.graph.InvokeNoReturn;
 import org.qbicc.graph.IsEq;
 import org.qbicc.graph.IsGe;
 import org.qbicc.graph.IsGt;
@@ -54,6 +60,7 @@ import org.qbicc.graph.Or;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
+import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.Return;
 import org.qbicc.graph.Select;
 import org.qbicc.graph.Shl;
@@ -62,6 +69,8 @@ import org.qbicc.graph.StackAllocation;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
+import org.qbicc.graph.TailCall;
+import org.qbicc.graph.TailInvoke;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Triable;
 import org.qbicc.graph.TriableVisitor;
@@ -86,7 +95,7 @@ import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.ParameterAttributes;
 import org.qbicc.machine.llvm.Values;
-import org.qbicc.machine.llvm.debuginfo.DILocation;
+import org.qbicc.machine.llvm.impl.LLVM;
 import org.qbicc.machine.llvm.op.Call;
 import org.qbicc.machine.llvm.op.GetElementPtr;
 import org.qbicc.machine.llvm.op.OrderingConstraint;
@@ -765,6 +774,17 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         return builder.insertvalue(compType, comp, valueType, value).arg(index).asLocal();
     }
 
+    public LLValue visit(final Void param, final Invoke.ReturnValue node) {
+        map(node.getDependency());
+        map(node.getInvoke().getTerminatedBlock());
+        // should already be registered by now
+        LLValue llValue = mappedValues.get(node);
+        if (llValue == null) {
+            throw new IllegalStateException();
+        }
+        return llValue;
+    }
+
     public LLValue visit(final Void param, final CheckCast node) {
         return map(node.getInput());
     }
@@ -790,23 +810,197 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
 
     // calls
 
-    public LLValue visit(final Void param, final FunctionCall node) {
-        if (node.hasDependency()) map(node.getDependency());
+    public LLValue visit(Void param, org.qbicc.graph.Call node) {
+        map(node.getDependency());
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();
         LLValue llType = map(functionType);
-        LLValue llTarget = map(node.getCallTarget());
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue llTarget = getCallTarget(valueHandle);
         // two scans - once to populate the maps, and then once to emit the call in the right order
-        for (int i = 0; i < arguments.size(); i++) {
-            ValueType type = arguments.get(i).getType();
-            map(type);
-            map(arguments.get(i));
+        preMapArgumentList(arguments);
+        Call call = builder.call(llType, llTarget).noTail();
+        setCallArguments(call, arguments);
+        setCallReturnValue(call, functionType);
+        return call.asLocal();
+    }
+
+    @Override
+    public LLValue visit(Void param, CallNoSideEffects node) {
+        FunctionType functionType = node.getFunctionType();
+        List<Value> arguments = node.getArguments();
+        LLValue llType = map(functionType);
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue llTarget;
+        llTarget = getCallTarget(valueHandle);
+        // two scans - once to populate the maps, and then once to emit the call in the right order
+        preMapArgumentList(arguments);
+        Call call = builder.call(llType, llTarget).noTail();
+        setCallArguments(call, arguments);
+        setCallReturnValue(call, functionType);
+        return call.asLocal();
+    }
+
+    @Override
+    public Void visit(Void param, CallNoReturn node) {
+        map(node.getDependency());
+        FunctionType functionType = node.getFunctionType();
+        List<Value> arguments = node.getArguments();
+        LLValue llType = map(functionType);
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue llTarget;
+        llTarget = getCallTarget(valueHandle);
+        // two scans - once to populate the maps, and then once to emit the call in the right order
+        preMapArgumentList(arguments);
+        Call call = builder.call(llType, llTarget).noTail().attribute(FunctionAttributes.noreturn);
+        setCallArguments(call, arguments);
+        setCallReturnValue(call, functionType);
+        builder.unreachable();
+        return null;
+    }
+
+    @Override
+    public Void visit(Void param, TailCall node) {
+        map(node.getDependency());
+        FunctionType functionType = node.getFunctionType();
+        List<Value> arguments = node.getArguments();
+        LLValue llType = map(functionType);
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue llTarget;
+        llTarget = getCallTarget(valueHandle);
+        // two scans - once to populate the maps, and then once to emit the call in the right order
+        preMapArgumentList(arguments);
+        Call call = builder.call(llType, llTarget).tail(); // hint only
+        setCallArguments(call, arguments);
+        setCallReturnValue(call, functionType);
+        ValueType returnType = node.getFunctionType().getReturnType();
+        if (returnType instanceof VoidType) {
+            builder.ret();
+        } else {
+            builder.ret(map(returnType), call.asLocal());
         }
-        Call call = builder.call(llType, llTarget);
-        for (int i = 0; i < arguments.size(); i++) {
-            ValueType type = arguments.get(i).getType();
-            Call.Argument arg = call.arg(map(type), map(arguments.get(i)));
-            if (type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
+        return null;
+    }
+
+    @Override
+    public Void visit(Void param, Invoke node) {
+        map(node.getDependency());
+        FunctionType functionType = node.getFunctionType();
+        List<Value> arguments = node.getArguments();
+        LLValue llType = map(functionType);
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue llTarget = getCallTarget(valueHandle);
+        // two scans - once to populate the maps, and then once to emit the call in the right order
+        preMapArgumentList(arguments);
+        LLBasicBlock resume = checkMap(node.getResumeTarget());
+        boolean postMapResume = resume == null;
+        if (postMapResume) {
+            resume = preMap(node.getResumeTarget());
+        }
+        LLBasicBlock catch_ = checkMap(node.getCatchBlock());
+        boolean postMapCatch = catch_ == null;
+        if (postMapCatch) {
+            catch_ = preMap(node.getCatchBlock());
+        }
+        Call call = builder.invoke(llType, llTarget, resume, mapCatch(node.getCatchBlock()));
+        mappedValues.put(node.getReturnValue(), call.asLocal());
+        if (postMapResume) {
+            postMap(node.getResumeTarget(), resume);
+        }
+        if (postMapCatch) {
+            postMap(node.getCatchBlock(), catch_);
+        }
+        setCallArguments(call, arguments);
+        setCallReturnValue(call, functionType);
+        addPersonalityIfNeeded();
+        return null;
+    }
+
+    @Override
+    public Void visit(Void param, InvokeNoReturn node) {
+        map(node.getDependency());
+        FunctionType functionType = node.getFunctionType();
+        List<Value> arguments = node.getArguments();
+        LLValue llType = map(functionType);
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue llTarget = getCallTarget(valueHandle);
+        // two scans - once to populate the maps, and then once to emit the call in the right order
+        preMapArgumentList(arguments);
+        LLBasicBlock unreachableTarget = func.createBlock();
+        LLVM.newBuilder(unreachableTarget).unreachable();
+        LLBasicBlock catch_ = checkMap(node.getCatchBlock());
+        boolean postMapCatch = catch_ == null;
+        if (postMapCatch) {
+            catch_ = preMap(node.getCatchBlock());
+        }
+        Call call = builder.invoke(llType, llTarget, unreachableTarget, mapCatch(node.getCatchBlock())).attribute(FunctionAttributes.noreturn);
+        if (postMapCatch) {
+            postMap(node.getCatchBlock(), catch_);
+        }
+        setCallArguments(call, arguments);
+        setCallReturnValue(call, functionType);
+        addPersonalityIfNeeded();
+        return null;
+    }
+
+    @Override
+    public Void visit(Void param, TailInvoke node) {
+        map(node.getDependency());
+        FunctionType functionType = node.getFunctionType();
+        List<Value> arguments = node.getArguments();
+        LLValue llType = map(functionType);
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue llTarget = getCallTarget(valueHandle);
+        // two scans - once to populate the maps, and then once to emit the call in the right order
+        preMapArgumentList(arguments);
+        LLBasicBlock catch_ = checkMap(node.getCatchBlock());
+        boolean postMapCatch = catch_ == null;
+        if (postMapCatch) {
+            catch_ = preMap(node.getCatchBlock());
+        }
+        LLBasicBlock tailTarget = func.createBlock();
+        Call call = builder.invoke(llType, llTarget, tailTarget, mapCatch(node.getCatchBlock()));
+        if (postMapCatch) {
+            postMap(node.getCatchBlock(), catch_);
+        }
+        setCallArguments(call, arguments);
+        setCallReturnValue(call, functionType);
+        ValueType returnType = node.getFunctionType().getReturnType();
+        if (returnType instanceof VoidType) {
+            LLVM.newBuilder(tailTarget).ret();
+        } else {
+            LLVM.newBuilder(tailTarget).ret(map(returnType), call.asLocal());
+        }
+        addPersonalityIfNeeded();
+        return null;
+    }
+
+    private void preMapArgumentList(final List<Value> arguments) {
+        for (Value argument : arguments) {
+            map(argument.getType());
+            map(argument);
+        }
+    }
+
+    private void setCallReturnValue(final Call call, final FunctionType functionType) {
+        ValueType retType = functionType.getReturnType();
+        Call.Returns ret = call.returns();
+        if (retType instanceof IntegerType && ((IntegerType) retType).getMinBits() < 32) {
+            if (retType instanceof SignedIntegerType) {
+                ret.attribute(ParameterAttributes.signext);
+            } else {
+                ret.attribute(ParameterAttributes.zeroext);
+            }
+        } else if (retType instanceof BooleanType) {
+            ret.attribute(ParameterAttributes.zeroext);
+        }
+    }
+
+    private void setCallArguments(final Call call, final List<Value> arguments) {
+        for (Value argument : arguments) {
+            ValueType type = argument.getType();
+            Call.Argument arg = call.arg(map(type), map(argument));
+            if (type instanceof IntegerType && ((IntegerType) type).getMinBits() < 32) {
                 if (type instanceof SignedIntegerType) {
                     arg.attribute(ParameterAttributes.signext);
                 } else {
@@ -816,17 +1010,34 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
                 arg.attribute(ParameterAttributes.zeroext);
             }
         }
-        ValueType retType = functionType.getReturnType();
-        Call.Returns ret = call.returns();
-        if (retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
-            if (retType instanceof SignedIntegerType) {
-                ret.attribute(ParameterAttributes.signext);
-            } else {
-                ret.attribute(ParameterAttributes.zeroext);
-            }
-        } else if (retType instanceof BooleanType) {
-            ret.attribute(ParameterAttributes.zeroext);
+    }
+
+    private LLValue getCallTarget(final ValueHandle valueHandle) {
+        LLValue llTarget;
+        if (valueHandle instanceof PointerHandle) {
+            // plain pointer; no GEP needed
+            llTarget = map(((PointerHandle) valueHandle).getPointerValue());
+        } else if (valueHandle instanceof FunctionHandle || valueHandle instanceof FunctionDeclarationHandle) {
+            llTarget = Values.global(((AbstractProgramObjectHandle) valueHandle).getProgramObject().getName());
+        } else {
+            llTarget = valueHandle.accept(this, null).asLocal();
         }
+        return llTarget;
+    }
+
+    // old
+
+    public LLValue visit(final Void param, final FunctionCall node) {
+        if (node.hasDependency()) map(node.getDependency());
+        FunctionType functionType = node.getFunctionType();
+        List<Value> arguments = node.getArguments();
+        LLValue llType = map(functionType);
+        LLValue llTarget = map(node.getCallTarget());
+        // two scans - once to populate the maps, and then once to emit the call in the right order
+        preMapArgumentList(arguments);
+        Call call = builder.call(llType, llTarget);
+        setCallArguments(call, arguments);
+        setCallReturnValue(call, functionType);
         return call.asLocal();
     }
 
@@ -842,31 +1053,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             map(arguments.get(i));
         }
         Call call = builder.invoke(llType, llTarget, map(try_.getResumeTarget()), mapCatch(try_.getExceptionHandler()));
-        for (int i = 0; i < arguments.size(); i++) {
-            ValueType type = arguments.get(i).getType();
-            Call.Argument arg = call.arg(map(type), map(arguments.get(i)));
-            if (type instanceof IntegerType && ((IntegerType)type).getMinBits() < 32) {
-                if (type instanceof SignedIntegerType) {
-                    arg.attribute(ParameterAttributes.signext);
-                } else {
-                    arg.attribute(ParameterAttributes.zeroext);
-                }
-            } else if (type instanceof BooleanType) {
-                arg.attribute(ParameterAttributes.zeroext);
-            }
-        }
-        ValueType retType = functionType.getReturnType();
-        Call.Returns ret = call.returns();
-        if (retType instanceof IntegerType && ((IntegerType)retType).getMinBits() < 32) {
-            if (retType instanceof SignedIntegerType) {
-                ret.attribute(ParameterAttributes.signext);
-            } else {
-                ret.attribute(ParameterAttributes.zeroext);
-            }
-        } else if (retType instanceof BooleanType) {
-            ret.attribute(ParameterAttributes.zeroext);
-        }
+        setCallArguments(call, arguments);
+        setCallReturnValue(call, functionType);
 
+        addPersonalityIfNeeded();
+        return call.asLocal();
+    }
+
+    private void addPersonalityIfNeeded() {
         if (!personalityAdded) {
             MethodElement personalityFunction = UnwindHelper.get(ctxt).getPersonalityMethod();
             SymbolLiteral literal = ctxt.getLiteralFactory().literalOfSymbol(personalityFunction.getName(), personalityFunction.getType().getPointer());
@@ -878,7 +1072,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             func.personality(map(literal), map(literal.getType()));
             personalityAdded = true;
         }
-        return call.asLocal();
     }
 
     // GEP
@@ -911,6 +1104,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     @Override
     public GetElementPtr visit(Void param, PointerHandle node) {
         return gep(map(node.getPointerValue()), node).arg(false, i32, ZERO);
+    }
+
+    @Override
+    public GetElementPtr visit(Void param, ReferenceHandle node) {
+        return gep(map(node.getReferenceValue()), node).arg(false, i32, ZERO);
     }
 
     GetElementPtr gep(LLValue ptr, ValueHandle handle) {
@@ -986,13 +1184,24 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     }
 
     private LLBasicBlock map(BasicBlock block) {
-        LLBasicBlock mapped = mappedBlocks.get(block);
+        LLBasicBlock mapped = checkMap(block);
         if (mapped != null) {
             return mapped;
         }
-        mapped = func.createBlock();
-        mappedBlocks.put(block, mapped);
+        return postMap(block, preMap(block));
+    }
 
+    private LLBasicBlock checkMap(final BasicBlock block) {
+        return mappedBlocks.get(block);
+    }
+
+    private LLBasicBlock preMap(final BasicBlock block) {
+        LLBasicBlock mapped = func.createBlock();
+        mappedBlocks.put(block, mapped);
+        return mapped;
+    }
+
+    private LLBasicBlock postMap(final BasicBlock block, LLBasicBlock mapped) {
         LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(block.getTerminator()));
         LLBasicBlock oldBuilderBlock = builder.moveToBlock(mapped);
 

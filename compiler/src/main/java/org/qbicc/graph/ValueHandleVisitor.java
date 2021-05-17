@@ -8,7 +8,27 @@ public interface ValueHandleVisitor<T, R> {
         return null;
     }
 
+    default R visit(T param, ConstructorElementHandle node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, ElementOf node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, ExactMethodElementHandle node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, FunctionDeclarationHandle node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, FunctionElementHandle node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, FunctionHandle node) {
         return visitUnknown(param, node);
     }
 
@@ -17,6 +37,14 @@ public interface ValueHandleVisitor<T, R> {
     }
 
     default R visit(T param, InstanceFieldOf node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, InterfaceMethodElementHandle node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, VirtualMethodElementHandle node) {
         return visitUnknown(param, node);
     }
 
@@ -29,6 +57,10 @@ public interface ValueHandleVisitor<T, R> {
     }
 
     default R visit(T param, StaticField node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, StaticMethodElementHandle node) {
         return visitUnknown(param, node);
     }
 
@@ -49,7 +81,32 @@ public interface ValueHandleVisitor<T, R> {
         }
 
         @Override
+        default R visit(T param, ConstructorElementHandle node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
         default R visit(T param, ElementOf node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
+        default R visit(T param, ExactMethodElementHandle node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
+        default R visit(T param, FunctionDeclarationHandle node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
+        default R visit(T param, FunctionElementHandle node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
+        default R visit(T param, FunctionHandle node) {
             return getDelegateValueHandleVisitor().visit(param, node);
         }
 
@@ -60,6 +117,16 @@ public interface ValueHandleVisitor<T, R> {
 
         @Override
         default R visit(T param, InstanceFieldOf node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
+        default R visit(T param, InterfaceMethodElementHandle node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
+        default R visit(T param, VirtualMethodElementHandle node) {
             return getDelegateValueHandleVisitor().visit(param, node);
         }
 
@@ -75,6 +142,11 @@ public interface ValueHandleVisitor<T, R> {
 
         @Override
         default R visit(T param, StaticField node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
+        default R visit(T param, StaticMethodElementHandle node) {
             return getDelegateValueHandleVisitor().visit(param, node);
         }
 

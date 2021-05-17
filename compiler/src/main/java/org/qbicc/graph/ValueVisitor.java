@@ -68,6 +68,14 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, Call node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, CallNoSideEffects node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, ClassOf node) {
         return visitUnknown(param, node);
     }
@@ -224,6 +232,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, Invoke.ReturnValue node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, Load node) {
         return visitUnknown(param, node);
     }
@@ -285,6 +297,10 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, PhiValue node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, ReferenceTo node) {
         return visitUnknown(param, node);
     }
 
@@ -397,6 +413,14 @@ public interface ValueVisitor<T, R> {
 
         default R visit(T param, ByteArrayLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Call node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CallNoSideEffects node) {
+            return ValueVisitor.super.visit(param, node);
         }
 
         default R visit(T param, CheckCast node) {
@@ -527,6 +551,10 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
+        default R visit(T param, Invoke.ReturnValue node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
         default R visit(T param, IsEq node) {
             return getDelegateValueVisitor().visit(param, node);
         }
@@ -612,6 +640,10 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, PhiValue node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, ReferenceTo node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

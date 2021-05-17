@@ -8,11 +8,23 @@ public interface TerminatorVisitor<T, R> {
         return null;
     }
 
+    default R visit(T param, CallNoReturn node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, Goto node) {
         return visitUnknown(param, node);
     }
 
     default R visit(T param, If node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, Invoke node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, InvokeNoReturn node) {
         return visitUnknown(param, node);
     }
 
@@ -29,6 +41,14 @@ public interface TerminatorVisitor<T, R> {
     }
 
     default R visit(T param, Switch node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, TailCall node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, TailInvoke node) {
         return visitUnknown(param, node);
     }
 
@@ -67,11 +87,23 @@ public interface TerminatorVisitor<T, R> {
             return node.accept(getDelegateTerminatorVisitor(), param);
         }
 
+        default R visit(T param, CallNoReturn node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
         default R visit(T param, Goto node) {
             return getDelegateTerminatorVisitor().visit(param, node);
         }
 
         default R visit(T param, If node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Invoke node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, InvokeNoReturn node) {
             return getDelegateTerminatorVisitor().visit(param, node);
         }
 
@@ -92,6 +124,14 @@ public interface TerminatorVisitor<T, R> {
         }
 
         default R visit(T param, Switch node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, TailCall node) {
+            return getDelegateTerminatorVisitor().visit(param, node);
+        }
+
+        default R visit(T param, TailInvoke node) {
             return getDelegateTerminatorVisitor().visit(param, node);
         }
 

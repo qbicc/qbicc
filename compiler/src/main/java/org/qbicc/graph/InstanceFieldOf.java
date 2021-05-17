@@ -1,7 +1,6 @@
 package org.qbicc.graph;
 
 import org.qbicc.type.PhysicalObjectType;
-import org.qbicc.type.PointerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;

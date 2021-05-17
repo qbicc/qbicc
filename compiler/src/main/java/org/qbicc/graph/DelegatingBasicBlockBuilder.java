@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.qbicc.context.Location;
 import org.qbicc.graph.literal.BlockLiteral;
+import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -14,6 +16,7 @@ import org.qbicc.type.WordType;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -144,8 +147,68 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().localVariable(variable);
     }
 
+    public ValueHandle exactMethodOf(Value instance, MethodElement method) {
+        return getDelegate().exactMethodOf(instance, method);
+    }
+
+    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return getDelegate().exactMethodOf(instance, owner, name, descriptor);
+    }
+
+    public ValueHandle virtualMethodOf(Value instance, MethodElement method) {
+        return getDelegate().virtualMethodOf(instance, method);
+    }
+
+    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return getDelegate().virtualMethodOf(instance, owner, name, descriptor);
+    }
+
+    public ValueHandle interfaceMethodOf(Value instance, MethodElement method) {
+        return getDelegate().interfaceMethodOf(instance, method);
+    }
+
+    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return getDelegate().interfaceMethodOf(instance, owner, name, descriptor);
+    }
+
+    public ValueHandle staticMethod(MethodElement method) {
+        return getDelegate().staticMethod(method);
+    }
+
+    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        return getDelegate().staticMethod(owner, name, descriptor);
+    }
+
+    public ValueHandle constructorOf(Value instance, ConstructorElement constructor) {
+        return getDelegate().constructorOf(instance, constructor);
+    }
+
+    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+        return getDelegate().constructorOf(instance, owner, descriptor);
+    }
+
+    public ValueHandle functionOf(FunctionElement function) {
+        return getDelegate().functionOf(function);
+    }
+
+    public ValueHandle functionOf(Function function) {
+        return getDelegate().functionOf(function);
+    }
+
+    public ValueHandle functionOf(FunctionDeclaration function) {
+        return getDelegate().functionOf(function);
+    }
+
+    public ValueHandle bindArgument(ValueHandle target, Value argument) {
+        return null;
+    }
+
     public Value addressOf(final ValueHandle handle) {
         return getDelegate().addressOf(handle);
+    }
+
+    public Value referenceTo(ValueHandle handle) throws IllegalArgumentException {
+        return getDelegate().referenceTo(handle);
     }
 
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {
@@ -166,6 +229,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public BlockEntry getBlockEntry() {
         return getDelegate().getBlockEntry();
+    }
+
+    public BasicBlock getTerminatedBlock() {
+        return getDelegate().getTerminatedBlock();
     }
 
     public ParameterValue parameter(final ValueType type, String label, final int index) {
@@ -300,6 +367,14 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().monitorExit(obj);
     }
 
+    public Value call(ValueHandle target, List<Value> arguments) {
+        return getDelegate().call(target, arguments);
+    }
+
+    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+        return getDelegate().callNoSideEffects(target, arguments);
+    }
+
     public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
         return getDelegate().invokeStatic(target, arguments);
     }
@@ -334,6 +409,26 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Node begin(final BlockLabel blockLabel) {
         return getDelegate().begin(blockLabel);
+    }
+
+    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+        return getDelegate().callNoReturn(target, arguments);
+    }
+
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        return getDelegate().invokeNoReturn(target, arguments, catchLabel);
+    }
+
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        return getDelegate().tailCall(target, arguments);
+    }
+
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        return getDelegate().tailInvoke(target, arguments, catchLabel);
+    }
+
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+        return getDelegate().invoke(target, arguments, catchLabel, resumeLabel);
     }
 
     public BasicBlock goto_(final BlockLabel resumeLabel) {

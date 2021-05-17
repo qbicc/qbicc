@@ -13,6 +13,7 @@ import org.qbicc.context.Location;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -29,6 +30,7 @@ import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -51,6 +53,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     private BasicBlockBuilder firstBuilder;
     private ExecutableElement element;
     private Node callSite;
+    private BasicBlock terminatedBlock;
 
     SimpleBasicBlockBuilder(final ExecutableElement element, final TypeSystem typeSystem) {
         this.element = element;
@@ -410,8 +413,64 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new LocalVariable(element, line, bci, variable, variable.getType());
     }
 
+    public ValueHandle exactMethodOf(Value instance, MethodElement method) {
+        return new ExactMethodElementHandle(element, line, bci, method, instance);
+    }
+
+    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        throw new IllegalStateException("Unresolved instance method");
+    }
+
+    public ValueHandle virtualMethodOf(Value instance, MethodElement method) {
+        return new VirtualMethodElementHandle(element, line, bci, method, instance);
+    }
+
+    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        throw new IllegalStateException("Unresolved instance method");
+    }
+
+    public ValueHandle interfaceMethodOf(Value instance, MethodElement method) {
+        return new InterfaceMethodElementHandle(element, line, bci, method, instance);
+    }
+
+    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        throw new IllegalStateException("Unresolved instance method");
+    }
+
+    public ValueHandle staticMethod(MethodElement method) {
+        return new StaticMethodElementHandle(element, line, bci, method);
+    }
+
+    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        throw new IllegalStateException("Unresolved static method");
+    }
+
+    public ValueHandle constructorOf(Value instance, ConstructorElement constructor) {
+        return new ConstructorElementHandle(element, line, bci, constructor, instance);
+    }
+
+    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+        throw new IllegalStateException("Unresolved constructor");
+    }
+
+    public ValueHandle functionOf(FunctionElement function) {
+        return new FunctionElementHandle(element, line, bci, function);
+    }
+
+    public ValueHandle functionOf(Function function) {
+        return new FunctionHandle(element, line, bci, function);
+    }
+
+    public ValueHandle functionOf(FunctionDeclaration function) {
+        return new FunctionDeclarationHandle(element, line, bci, function);
+    }
+
     public Value addressOf(ValueHandle handle) {
         return new AddressOf(callSite, element, line, bci, handle);
+    }
+
+    public Value referenceTo(ValueHandle handle) throws IllegalArgumentException {
+        return new ReferenceTo(callSite, element, line, bci, handle);
     }
 
     public Value stackAllocate(final ValueType type, final Value count, final Value align) {
@@ -581,6 +640,14 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new MonitorExit(callSite, element, line, bci, requireDependency(), Assert.checkNotNullParam("obj", obj)));
     }
 
+    public Value call(ValueHandle target, List<Value> arguments) {
+        return asDependency(new Call(callSite, element, line, bci, requireDependency(), target, arguments));
+    }
+
+    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+        return new CallNoSideEffects(callSite, element, line, bci, target, arguments);
+    }
+
     <N extends Node & Triable> N optionallyTry(N op, boolean ordered) {
         ExceptionHandler exceptionHandler = getExceptionHandler();
         // todo: temporarily disable until exception handlers are fixed
@@ -693,6 +760,29 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return dependency = blockEntry = new BlockEntry(callSite, element, blockLabel);
     }
 
+    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+        return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments));
+    }
+
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        return terminate(requireCurrentBlock(), new InvokeNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel));
+    }
+
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments));
+    }
+
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        return terminate(requireCurrentBlock(), new TailInvoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel));
+    }
+
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+        final BlockLabel currentBlock = requireCurrentBlock();
+        Invoke invoke = new Invoke(callSite, element, line, bci, blockEntry, dependency, target, arguments, catchLabel, resumeLabel);
+        terminate(currentBlock, invoke);
+        return invoke.getReturnValue();
+    }
+
     public BasicBlock goto_(final BlockLabel resumeLabel) {
         return terminate(requireCurrentBlock(), new Goto(callSite, element, line, bci, blockEntry, dependency, resumeLabel));
     }
@@ -746,12 +836,21 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return blockEntry;
     }
 
+    public BasicBlock getTerminatedBlock() {
+        BasicBlock block = terminatedBlock;
+        if (block == null) {
+            throw new IllegalStateException("No block terminated yet");
+        }
+        return block;
+    }
+
     public BasicBlock switch_(final Value value, final int[] checkValues, final BlockLabel[] targets, final BlockLabel defaultTarget) {
         return terminate(requireCurrentBlock(), new Switch(callSite, element, line, bci, blockEntry, dependency, defaultTarget, checkValues, targets, value));
     }
 
     private BasicBlock terminate(final BlockLabel block, final Terminator op) {
         BasicBlock realBlock = op.getTerminatedBlock();
+        terminatedBlock = realBlock;
         block.setTarget(realBlock);
         blockEntry = null;
         currentBlock = null;

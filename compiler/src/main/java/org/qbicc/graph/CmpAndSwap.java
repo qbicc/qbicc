@@ -35,6 +35,12 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         this.updateValue = updateValue;
         this.successAtomicityMode = successAtomicityMode;
         this.failureAtomicityMode = failureAtomicityMode;
+        if (! target.isWritable()) {
+            throw new IllegalArgumentException("Handle is not writable");
+        }
+        if (! target.isReadable()) {
+            throw new IllegalArgumentException("Handle is not readable");
+        }
     }
 
     int calcHashCode() {
