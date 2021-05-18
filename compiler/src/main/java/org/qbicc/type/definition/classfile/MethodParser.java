@@ -18,7 +18,6 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.DispatchInvocation;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Ret;
@@ -1306,25 +1305,23 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             if (opcode != OP_INVOKESPECIAL) {
                                 throw new InvalidByteCodeException();
                             }
-                            v2 = gf.invokeConstructor(v1, owner, desc, List.of(args));
+                            v2 = gf.call(gf.constructorOf(gf.referenceHandle(v1), owner, desc), List.of(args));
                             replaceAll(v1, v2);
                         } else {
                             TypeDescriptor returnType = desc.getReturnType();
-                            if (returnType == BaseTypeDescriptor.V) {
-                                if (opcode == OP_INVOKESTATIC) {
-                                    // return type is implicitly void
-                                    gf.invokeStatic(owner, name, desc, List.of(args));
-                                } else {
-                                    // return type is implicitly void
-                                    gf.invokeInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, owner, name, desc, List.of(args));
-                                }
+                            ValueHandle handle;
+                            if (opcode == OP_INVOKESTATIC) {
+                                handle = gf.staticMethodOf(owner, name, desc);
+                            } else if (opcode == OP_INVOKESPECIAL) {
+                                handle = gf.exactMethodOf(gf.referenceHandle(v1), owner, name, desc);
+                            } else if (opcode == OP_INVOKEVIRTUAL) {
+                                handle = gf.virtualMethodOf(gf.referenceHandle(v1), owner, name, desc);
                             } else {
-                                Value result;
-                                if (opcode == OP_INVOKESTATIC) {
-                                    result = gf.invokeValueStatic(owner, name, desc, List.of(args));
-                                } else {
-                                    result = gf.invokeValueInstance(DispatchInvocation.Kind.fromOpcode(opcode), v1, owner, name, desc, List.of(args));
-                                }
+                                assert opcode == OP_INVOKEINTERFACE;
+                                handle = gf.interfaceMethodOf(gf.referenceHandle(v1), owner, name, desc);
+                            }
+                            Value result = gf.call(handle, List.of(args));
+                            if (returnType != BaseTypeDescriptor.V) {
                                 push(promote(result), desc.getReturnType().isClass2());
                             }
                         }
@@ -1359,9 +1356,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         Value callSite = gf.load(holderHandle, holderHandle.getDetectedMode());
                         // Get the method handle instance from the call site
                         ClassTypeDescriptor descOfMethodHandle = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/MethodHandle");
-                        Value methodHandle = gf.invokeValueInstance(DispatchInvocation.Kind.VIRTUAL, callSite,
+                        Value methodHandle = gf.call(gf.virtualMethodOf(gf.referenceHandle(callSite),
                             callSiteDesc, "getTarget",
-                            MethodDescriptor.synthesize(ctxt, descOfMethodHandle, List.of()),
+                            MethodDescriptor.synthesize(ctxt, descOfMethodHandle, List.of())),
                             List.of());
                         // Invoke on the method handle
                         int nameAndTypeRef = getClassFile().getInvokeDynamicNameAndTypeIndex(indyIdx);
@@ -1377,8 +1374,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         for (int i = cnt - 1; i >= 0; i--) {
                             args[i] = pop(parameterTypes.get(i).isClass2());
                         }
-                        Value result = gf.invokeValueInstance(DispatchInvocation.Kind.EXACT, methodHandle, descOfMethodHandle, "invokeExact",
-                            desc, List.of(args));
+                        // todo: promote the method handle directly to a ValueHandle?
+                        Value result = gf.call(gf.virtualMethodOf(gf.referenceHandle(methodHandle), descOfMethodHandle, "invokeExact",
+                            desc), List.of(args));
                         if (! desc.getReturnType().isVoid()) {
                             push(promote(result), desc.getReturnType().isClass2());
                         }
