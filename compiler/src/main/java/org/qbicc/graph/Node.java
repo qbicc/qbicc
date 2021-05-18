@@ -235,7 +235,7 @@ public interface Node {
             return copy;
         }
 
-        List<Value> copyValues(List<Value> list) {
+        public List<Value> copyValues(List<Value> list) {
             if (list.isEmpty()) {
                 return List.of();
             }

@@ -24,6 +24,7 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.ValueType;
+import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -796,6 +797,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public BasicBlock return_(final Value value) {
+        if (value == null || value.getType() instanceof VoidType) {
+            return return_();
+        }
         return terminate(requireCurrentBlock(), new ValueReturn(callSite, element, line, bci, blockEntry, dependency, value));
     }
 
