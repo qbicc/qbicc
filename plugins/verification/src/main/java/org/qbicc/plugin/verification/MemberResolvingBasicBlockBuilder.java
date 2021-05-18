@@ -20,7 +20,6 @@ import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.PoisonType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
@@ -58,6 +57,86 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         return staticField(resolveField(owner, name, type));
+    }
+
+    public ValueHandle exactMethodOf(ValueHandle instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        if (owner instanceof ClassTypeDescriptor) {
+            DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            MethodElement element = definedType.load().resolveMethodElementExact(name, descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme());
+            } else {
+                return exactMethodOf(instance, element);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme());
+        }
+    }
+
+    public ValueHandle virtualMethodOf(ValueHandle instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        if (owner instanceof ClassTypeDescriptor) {
+            DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            MethodElement element = definedType.load().resolveMethodElementVirtual(name, descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme());
+            } else {
+                return virtualMethodOf(instance, element);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme());
+        }
+    }
+
+    public ValueHandle interfaceMethodOf(ValueHandle instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        if (owner instanceof ClassTypeDescriptor) {
+            DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            MethodElement element = definedType.load().resolveMethodElementInterface(name, descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme());
+            } else {
+                return interfaceMethodOf(instance, element);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme());
+        }
+    }
+
+    public ValueHandle staticMethodOf(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        if (owner instanceof ClassTypeDescriptor) {
+            DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            MethodElement element = definedType.load().resolveMethodElementExact(name, descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme());
+            } else {
+                return staticMethodOf(element);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme());
+        }
+    }
+
+    public ValueHandle constructorOf(ValueHandle instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+        if (owner instanceof ClassTypeDescriptor) {
+            DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            ConstructorElement element = definedType.load().resolveConstructorElement(descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme());
+            } else {
+                return constructorOf(instance, element);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme());
+        }
     }
 
     public Value extractInstanceField(Value valueObj, TypeDescriptor owner, String name, TypeDescriptor type) {

@@ -49,6 +49,46 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
+    public ValueHandle exactMethodOf(ValueHandle instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        if (loadClass(owner)) {
+            return super.exactMethodOf(instance, owner, name, descriptor);
+        }
+        // no need to continue
+        throw new BlockEarlyTermination(noClassDefFound(owner));
+    }
+
+    public ValueHandle virtualMethodOf(ValueHandle instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        if (loadClass(owner)) {
+            return super.virtualMethodOf(instance, owner, name, descriptor);
+        }
+        // no need to continue
+        throw new BlockEarlyTermination(noClassDefFound(owner));
+    }
+
+    public ValueHandle interfaceMethodOf(ValueHandle instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        if (loadClass(owner)) {
+            return super.interfaceMethodOf(instance, owner, name, descriptor);
+        }
+        // no need to continue
+        throw new BlockEarlyTermination(noClassDefFound(owner));
+    }
+
+    public ValueHandle staticMethodOf(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        if (loadClass(owner)) {
+            return super.staticMethodOf(owner, name, descriptor);
+        }
+        // no need to continue
+        throw new BlockEarlyTermination(noClassDefFound(owner));
+    }
+
+    public ValueHandle constructorOf(ValueHandle instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+        if (loadClass(owner)) {
+            return super.constructorOf(instance, owner, descriptor);
+        }
+        // no need to continue
+        throw new BlockEarlyTermination(noClassDefFound(owner));
+    }
+
     public Value checkcast(final Value value, TypeDescriptor desc) {
         TypeDescriptor orig = desc;
         while (desc instanceof ArrayTypeDescriptor) {
