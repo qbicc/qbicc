@@ -98,4 +98,16 @@ public class ObjectModel {
      * This will be 1 higher than the highest typeid
      */
     public static native int get_number_of_typeids();
+
+    /**
+     * Call the class initializer for this class if it hasn't already been
+     * called.
+     * 
+     * This operation is racy as the locking is managed by the ClinitState
+     * object in VMHelpers#initialize_class and should only be called by
+     * that method.
+     * 
+     * @param typeId the class to initialize
+     */
+    public static native void call_class_initializer(CNative.type_id typeId);
 }
