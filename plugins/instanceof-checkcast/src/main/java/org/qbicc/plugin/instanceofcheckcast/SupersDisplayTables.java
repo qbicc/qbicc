@@ -20,11 +20,8 @@ import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
-import org.qbicc.type.IntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
-import org.qbicc.type.ValueType;
-import org.qbicc.type.CompoundType.Member;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
@@ -55,7 +52,8 @@ public class SupersDisplayTables {
     private GlobalVariableElement typeIdArrayGlobal;
     private CompoundType typeIdStructType;
 
-    static final String GLOBAL_CLINIT_STATES_ARRAY = "qbicc_clinit_states";
+    static final String GLOBAL_CLINIT_STATES_STRUCT = "qbicc_clinit_states";
+    private GlobalVariableElement clinitStatesGlobal;
 
     /** 
      * This class embodies the typeid for a class and the
@@ -543,7 +541,25 @@ public class SupersDisplayTables {
         return typeids.size() + 10; // invalid zero + 8 prims + void
     }
 
-    public void emitClinitStateTable(LoadedTypeDefinition jlo) {
+    /**
+     * Get the GlobalVariableElement reference to the `qbicc_clinit_states`.
+     * 
+     * As part of it getting it, ensure a reference to it has been recorded into
+     * the ExecutableElement's section.
+     * 
+     * @param originalElement the original element (must not be {@code null})
+     * @return the clinitStates global
+     */
+    public GlobalVariableElement getAndRegisterGlobalClinitStateStruct(ExecutableElement originalElement) {
+        Assert.assertNotNull(clinitStatesGlobal);
+        if (!clinitStatesGlobal.getEnclosingType().equals(originalElement.getEnclosingType())) {
+            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
+            section.declareData(null, clinitStatesGlobal.getName(), clinitStatesGlobal.getType());
+        }
+        return clinitStatesGlobal;
+    }
+
+    public void defineClinitStatesGlobal(LoadedTypeDefinition jlo) {
         // Structure will be laid out as two inline arrays:
         // i8[] initStatus
         // Function[] clinit_function_ptrs
@@ -551,9 +567,9 @@ public class SupersDisplayTables {
         TypeSystem ts = ctxt.getTypeSystem();
         final int numElements = get_number_of_typeids();
 
-       // Sleazy way to get the function type for an Initializer
-       FunctionType clinit_function_type = null;
-       for (LoadedTypeDefinition ltd : typeids.keySet()) {
+        // Sleazy way to get the function type for an Initializer
+        FunctionType clinit_function_type = null;
+        for (LoadedTypeDefinition ltd : typeids.keySet()) {
             InitializerElement ie = ltd.getInitializer();
             if (ie != null) {
                 clinit_function_type = ctxt.getFunctionTypeForElement(ie);
@@ -570,6 +586,25 @@ public class SupersDisplayTables {
             .addNextMember("init_state", init_state_t)
             .addNextMember("class_initializers", class_initializers_t)
             .build();
+
+        // create a GlobalVariable for shared access to the clinitStates struct
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
+        builder.setName(GLOBAL_CLINIT_STATES_STRUCT);
+        builder.setType(clinit_state_t);
+        builder.setEnclosingType(jlo);
+        // void for now, but this is cheating terribly
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        clinitStatesGlobal = builder.build();
+    }
+
+    public void emitClinitStateTable(LoadedTypeDefinition jlo) {
+        // Structure will be laid out as two inline arrays:
+        // i8[] initStatus
+        // Function[] clinit_function_ptrs
+        final int numElements = get_number_of_typeids();
+
+        CompoundType clinit_state_t = (CompoundType)clinitStatesGlobal.getType();
 
         Section section = ctxt.getImplicitSection(jlo);
         LiteralFactory lf = ctxt.getLiteralFactory();
@@ -622,7 +657,7 @@ public class SupersDisplayTables {
         );
         
         /* Write the data into Object's section */
-        section.addData(null, GLOBAL_CLINIT_STATES_ARRAY, clinit_states);
+        section.addData(null, GLOBAL_CLINIT_STATES_STRUCT, clinit_states);
     }
 
     // TODO: implement this for real

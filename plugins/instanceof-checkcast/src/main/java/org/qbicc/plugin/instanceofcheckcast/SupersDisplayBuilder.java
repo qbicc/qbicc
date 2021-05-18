@@ -84,5 +84,6 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         tables.writeTypeIdToClasses();
 
         tables.defineTypeIdStructAndGlobalArray(jlo);
+        tables.defineClinitStatesGlobal(jlo);
     }
 }
