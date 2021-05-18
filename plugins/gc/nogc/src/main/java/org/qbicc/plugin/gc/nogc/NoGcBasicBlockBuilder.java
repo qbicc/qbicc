@@ -56,7 +56,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         while (curClass.hasSuperClass()) {
             curClass.eachField(f -> {
                 if (!f.isStatic()) {
-                    store(instanceFieldOf(oopHandle, f), lf.zeroInitializerLiteralOfType(f.getType()), MemoryAtomicityMode.UNORDERED);
+                    store(instanceFieldOf(oopHandle, f), lf.zeroInitializerLiteralOfType(f.getType()), MemoryAtomicityMode.NONE);
                 }
             });
             curClass = curClass.getSuperClass();
@@ -65,6 +65,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         // now initialize the object header (aka fields of java.lang.Object)
         initializeObjectHeader(oopHandle, layout, type.getDefinition().load().getType());
 
+        fence(MemoryAtomicityMode.RELEASE);
         return oop;
     }
 
@@ -90,12 +91,14 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
         initializeObjectHeader(arrayHandle, layout, arrayContentField.getEnclosingType().load().getType());
 
-        store(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), truncate(size, ctxt.getTypeSystem().getSignedInteger32Type()), MemoryAtomicityMode.UNORDERED);
+        store(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), truncate(size, ctxt.getTypeSystem().getSignedInteger32Type()), MemoryAtomicityMode.NONE);
         if (arrayType instanceof ReferenceArrayObjectType) {
             ReferenceArrayObjectType refArrayType = (ReferenceArrayObjectType)arrayType;
-            store(instanceFieldOf(arrayHandle, layout.getRefArrayDimensionsField()), lf.literalOf(refArrayType.getDimensionCount()), MemoryAtomicityMode.UNORDERED);
-            store(instanceFieldOf(arrayHandle, layout.getRefArrayElementTypeIdField()), lf.literalOfType(refArrayType.getLeafElementType()), MemoryAtomicityMode.UNORDERED);
+            store(instanceFieldOf(arrayHandle, layout.getRefArrayDimensionsField()), lf.literalOf(refArrayType.getDimensionCount()), MemoryAtomicityMode.NONE);
+            store(instanceFieldOf(arrayHandle, layout.getRefArrayElementTypeIdField()), lf.literalOfType(refArrayType.getLeafElementType()), MemoryAtomicityMode.NONE);
         }
+
+        fence(MemoryAtomicityMode.RELEASE);
         return arrayPtr;
     }
 
@@ -119,6 +122,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             // TODO: replace with field-by-field copy once we have a redundant assignment elimination optimization
             // TODO: if/when we put a thinlock, default hashcode, or GC state bits in the object header we need to properly initialize them.
             invokeStatic(noGc.getCopyMethod(), List.of(ptrVal, valueConvert(object, (WordType) ptrVal.getType()), size));
+            fence(MemoryAtomicityMode.RELEASE);
             return valueConvert(ptrVal, type.getReference());
         } else if (objType instanceof ArrayObjectType) {
             ctxt.error(getLocation(), "Array allocations not supported until layout supports arrays");
@@ -131,6 +135,6 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     // Currently there is only one header field, but abstract into a helper method so we only have one place to update later!
     private void initializeObjectHeader(ValueHandle oopHandle, Layout layout, ObjectType objType) {
         FieldElement typeId = layout.getObjectTypeIdField();
-        store(instanceFieldOf(oopHandle, typeId),  ctxt.getLiteralFactory().literalOfType(objType), MemoryAtomicityMode.UNORDERED);
+        store(instanceFieldOf(oopHandle, typeId),  ctxt.getLiteralFactory().literalOfType(objType), MemoryAtomicityMode.NONE);
     }
 }

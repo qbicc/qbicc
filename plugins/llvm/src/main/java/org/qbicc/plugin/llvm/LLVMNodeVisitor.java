@@ -205,6 +205,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         storeInsn.align(valueHandle.getValueType().getAlign());
         if (node.getMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT) {
             storeInsn.atomic(OrderingConstraint.seq_cst);
+        } else if (node.getMode() == MemoryAtomicityMode.UNORDERED) {
+            storeInsn.atomic(OrderingConstraint.unordered);
         }
         return null;
     }
@@ -541,6 +543,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         loadInsn.align(node.getType().getAlign());
         if (node.getMode() == MemoryAtomicityMode.ACQUIRE) {
             loadInsn.atomic(OrderingConstraint.acquire);
+        } else if (node.getMode() == MemoryAtomicityMode.UNORDERED) {
+            loadInsn.atomic(OrderingConstraint.unordered);
         }
         return loadInsn.asLocal();
     }
