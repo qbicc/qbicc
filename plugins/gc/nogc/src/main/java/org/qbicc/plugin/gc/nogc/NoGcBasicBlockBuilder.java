@@ -56,7 +56,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         while (curClass.hasSuperClass()) {
             curClass.eachField(f -> {
                 if (!f.isStatic()) {
-                    store(instanceFieldOf(oopHandle, f), lf.zeroInitializerLiteralOfType(f.getType()), MemoryAtomicityMode.UNORDERED);
+                    store(instanceFieldOf(oopHandle, f), lf.zeroInitializerLiteralOfType(f.getType()), MemoryAtomicityMode.NONE);
                 }
             });
             curClass = curClass.getSuperClass();
@@ -91,11 +91,11 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
         initializeObjectHeader(arrayHandle, layout, arrayContentField.getEnclosingType().load().getType());
 
-        store(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), truncate(size, ctxt.getTypeSystem().getSignedInteger32Type()), MemoryAtomicityMode.UNORDERED);
+        store(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), truncate(size, ctxt.getTypeSystem().getSignedInteger32Type()), MemoryAtomicityMode.NONE);
         if (arrayType instanceof ReferenceArrayObjectType) {
             ReferenceArrayObjectType refArrayType = (ReferenceArrayObjectType)arrayType;
-            store(instanceFieldOf(arrayHandle, layout.getRefArrayDimensionsField()), lf.literalOf(refArrayType.getDimensionCount()), MemoryAtomicityMode.UNORDERED);
-            store(instanceFieldOf(arrayHandle, layout.getRefArrayElementTypeIdField()), lf.literalOfType(refArrayType.getLeafElementType()), MemoryAtomicityMode.UNORDERED);
+            store(instanceFieldOf(arrayHandle, layout.getRefArrayDimensionsField()), lf.literalOf(refArrayType.getDimensionCount()), MemoryAtomicityMode.NONE);
+            store(instanceFieldOf(arrayHandle, layout.getRefArrayElementTypeIdField()), lf.literalOfType(refArrayType.getLeafElementType()), MemoryAtomicityMode.NONE);
         }
 
         fence(MemoryAtomicityMode.RELEASE);
@@ -135,6 +135,6 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     // Currently there is only one header field, but abstract into a helper method so we only have one place to update later!
     private void initializeObjectHeader(ValueHandle oopHandle, Layout layout, ObjectType objType) {
         FieldElement typeId = layout.getObjectTypeIdField();
-        store(instanceFieldOf(oopHandle, typeId),  ctxt.getLiteralFactory().literalOfType(objType), MemoryAtomicityMode.UNORDERED);
+        store(instanceFieldOf(oopHandle, typeId),  ctxt.getLiteralFactory().literalOfType(objType), MemoryAtomicityMode.NONE);
     }
 }
