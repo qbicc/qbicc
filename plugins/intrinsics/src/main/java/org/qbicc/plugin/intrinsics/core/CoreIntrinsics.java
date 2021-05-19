@@ -651,7 +651,7 @@ public final class CoreIntrinsics {
             ValueHandle initializers = builder.memberOf(builder.globalVariable(clinitStates), clinitStates_t.getMember("class_initializers"));
             Value typeIdInit = builder.load(builder.elementOf(initializers, typeId), MemoryAtomicityMode.UNORDERED);
 
-            return builder.callFunction(typeIdInit, List.of(builder.currentThread()));
+            return builder.callFunction(typeIdInit, List.of(builder.currentThread()), 0 /* flags */);
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "call_class_initializer", typeIdVoidDesc, callClassInitializer);
 
