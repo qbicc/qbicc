@@ -110,4 +110,35 @@ public class ObjectModel {
      * @param typeId the class to initialize
      */
     public static native void call_class_initializer(CNative.type_id typeId);
+
+    static final int Flag_typeid_has_clinit = 1;
+    static final int Flag_typeid_declares_default_methods = 2;
+    static final int Flag_typeid_has_default_methods = 4;
+
+    /**
+     * Get the `flags` field from the qbicc_typeid_array for the given
+     * typeid.
+     * 
+     * Flags are:
+     * 1 - has clinit method
+     * 2 - declares default methods
+     * 4 - has default methods
+     * See SupersDisplayTables.calculateTypeIdFlags() for definitive list.
+     * 
+     * @param typeID the class to read the flags for
+     * @return the flags value
+     */
+    public static native int get_typeid_flags(CNative.type_id typeId);
+
+    public static boolean has_class_initializer(CNative.type_id typeId) {
+        return (get_typeid_flags(typeId) & Flag_typeid_has_clinit) == Flag_typeid_has_clinit;
+    }
+
+    public static boolean declares_default_methods(CNative.type_id typeId) {
+        return (get_typeid_flags(typeId) & Flag_typeid_declares_default_methods) == Flag_typeid_declares_default_methods;
+    }
+
+    public static boolean has_default_methods(CNative.type_id typeId) {
+        return (get_typeid_flags(typeId) & Flag_typeid_has_default_methods) == Flag_typeid_has_default_methods;
+    }
 }
