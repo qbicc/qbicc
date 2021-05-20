@@ -12,7 +12,6 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.DispatchInvocation;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Value;
@@ -136,8 +135,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
 
         bb.begin(errorBlock);
         try {
-            bb.invokeStatic(ctxt.getVMHelperMethod("raiseHeapDeserializationError"), List.of());
-            bb.unreachable();
+            bb.callNoReturn(bb.staticMethod(ctxt.getVMHelperMethod("raiseHeapDeserializationError")), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
@@ -145,8 +143,8 @@ public class HeapSerializer implements Consumer<CompilationContext> {
         bb.begin(merge);
         NoGc noGc = NoGc.get(ctxt);
         LoadedTypeDefinition jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
-        Value ptrValue =  bb.invokeValueStatic(noGc.getAllocateMethod(), List.of(sizeInBytes, ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getPointerAlignment())));
-        ptrValue = bb.invokeValueStatic(noGc.getZeroMethod(), List.of(ptrValue, sizeInBytes));
+        Value ptrValue =  bb.call(bb.staticMethod(noGc.getAllocateMethod()), List.of(sizeInBytes, ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getPointerAlignment())));
+        ptrValue = bb.call(bb.staticMethod(noGc.getZeroMethod()), List.of(ptrValue, sizeInBytes));
         Value oop = bb.valueConvert(ptrValue, jlo.getType().getReference());
         bb.store(bb.instanceFieldOf(bb.referenceHandle(oop), layout.getObjectTypeIdField()), original.getParameterValue(0), MemoryAtomicityMode.UNORDERED);
         bb.return_(oop);
@@ -193,8 +191,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
 
         bb.begin(errorBlock);
         try {
-            bb.invokeStatic(ctxt.getVMHelperMethod("raiseHeapDeserializationError"), List.of());
-            bb.unreachable();
+            bb.callNoReturn(bb.staticMethod(ctxt.getVMHelperMethod("raiseHeapDeserializationError")), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
@@ -262,7 +259,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
                 bb.begin(targets[i]);
                 LoadedTypeDefinition curType = classes[i];
                 if (curType.hasSuperClass()) {
-                    bb.invokeInstance(DispatchInvocation.Kind.VIRTUAL, original.getThisValue(), meth,
+                    bb.call(bb.virtualMethodOf(original.getThisValue(), meth),
                         List.of(ctxt.getLiteralFactory().literalOf(curType.getSuperClass().getTypeId()), original.getParameterValue(1), original.getParameterValue(2)));
 
                     ValueHandle baseObj = bb.referenceHandle(bb.bitCast(original.getParameterValue(1), curType.getClassType().getReference()));
@@ -289,7 +286,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
                                 reader = deser.getMethod(deser.findMethodIndex(e -> e.getName().equals("readObject")));
                             }
                             bb.store(bb.instanceFieldOf(baseObj, f),
-                                bb.invokeValueInstance(DispatchInvocation.Kind.VIRTUAL, original.getParameterValue(2), reader, List.of()),
+                                bb.call(bb.virtualMethodOf(original.getParameterValue(2), reader), List.of()),
                                 MemoryAtomicityMode.UNORDERED);
                         }
                     });
@@ -302,8 +299,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
 
         try {
             bb.begin(errorBlock);
-            bb.invokeStatic(ctxt.getVMHelperMethod("raiseHeapDeserializationError"), List.of());
-            bb.unreachable();
+            bb.callNoReturn(bb.staticMethod(ctxt.getVMHelperMethod("raiseHeapDeserializationError")), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
@@ -360,7 +356,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
                     bb.begin(resume);
                     phi.setValueForBlock(ctxt, meth, initial, lf.literalOf(0));
                     bb.store(bb.elementOf(arrayHandle, phi),
-                        bb.invokeValueInstance(DispatchInvocation.Kind.VIRTUAL, original.getParameterValue(3), readers[i], List.of()),
+                        bb.call(bb.virtualMethodOf(original.getParameterValue(3), readers[i]), List.of()),
                         MemoryAtomicityMode.UNORDERED);
                     BasicBlock loopExit = bb.goto_(loop);
                     phi.setValueForBlock(ctxt, meth, loopExit, bb.add(phi, lf.literalOf(1)));
@@ -376,8 +372,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
 
         try {
             bb.begin(errorBlock);
-            bb.invokeStatic(ctxt.getVMHelperMethod("raiseHeapDeserializationError"), List.of());
-            bb.unreachable();
+            bb.callNoReturn(bb.staticMethod(ctxt.getVMHelperMethod("raiseHeapDeserializationError")), List.of());
         } catch (BlockEarlyTermination ignored) {
             //continue
         }
@@ -396,7 +391,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
         bb.begin(new BlockLabel());
         for (BuildtimeHeap.InitializedField initField : heap.getHeapRoots()) {
             bb.store(bb.staticField(initField.field),
-                bb.invokeValueInstance(DispatchInvocation.Kind.VIRTUAL, original.getParameterValue(0), readObject, List.of()),
+                bb.call(bb.virtualMethodOf(original.getParameterValue(0), readObject), List.of()),
                 MemoryAtomicityMode.UNORDERED);
         }
         bb.return_();

@@ -136,10 +136,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, ConstructorInvocation node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, Convert node) {
         return visitUnknown(param, node);
     }
@@ -169,10 +165,6 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, FloatLiteral node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, FunctionCall node) {
         return visitUnknown(param, node);
     }
 
@@ -217,10 +209,6 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, InsertMember node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, InstanceInvocationValue node) {
         return visitUnknown(param, node);
     }
 
@@ -325,10 +313,6 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, StackAllocation node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, StaticInvocationValue node) {
         return visitUnknown(param, node);
     }
 
@@ -459,10 +443,6 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
-        default R visit(T param, ConstructorInvocation node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
         default R visit(T param, Convert node) {
             return getDelegateValueVisitor().visit(param, node);
         }
@@ -488,10 +468,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, FloatLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, FunctionCall node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -536,10 +512,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, InsertMember node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, InstanceInvocationValue node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -668,10 +640,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, StackAllocation node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, StaticInvocationValue node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

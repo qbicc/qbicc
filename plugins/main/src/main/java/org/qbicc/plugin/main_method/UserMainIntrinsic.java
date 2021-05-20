@@ -5,11 +5,10 @@ import java.util.List;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Phase;
 import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.plugin.intrinsics.Intrinsics;
-import org.qbicc.plugin.intrinsics.StaticIntrinsic;
 import org.qbicc.context.ClassContext;
+import org.qbicc.plugin.intrinsics.StaticIntrinsic;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
@@ -27,8 +26,9 @@ public class UserMainIntrinsic implements StaticIntrinsic {
         this.realMain = realMain;
     }
 
-    public Node emitIntrinsic(final BasicBlockBuilder builder, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        return builder.invokeStatic(realMain, arguments);
+    @Override
+    public Value emitIntrinsic(BasicBlockBuilder builder, MethodElement target, List<Value> arguments) {
+        return builder.call(builder.staticMethod(realMain), arguments);
     }
 
     public static void register(CompilationContext ctxt, MethodElement mainMethod) {

@@ -395,49 +395,7 @@ public interface BasicBlockBuilder extends Locatable {
      */
     Value callNoSideEffects(ValueHandle target, List<Value> arguments);
 
-    @Deprecated
-    Node invokeStatic(MethodElement target, List<Value> arguments);
-
-    @Deprecated
-    Node invokeStatic(TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
-
-    @Deprecated
-    Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
-
-    @Deprecated
-    Node invokeInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
-
-    @Deprecated
-    Value invokeValueStatic(MethodElement target, List<Value> arguments);
-
-    @Deprecated
-    Value invokeValueStatic(TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
-
-    @Deprecated
-    Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments);
-
-    @Deprecated
-    Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments);
-
-    /**
-     * Invoke an object instance initializer.  The value returned has an initialized type.  The returned value should
-     * replace all occurrences of the uninitialized value when processing bytecode.
-     *
-     * @param instance the uninitialized instance to initialize (must not be {@code null})
-     * @param target the constructor to invoke (must not be {@code null})
-     * @param arguments the constructor arguments (must not be {@code null})
-     * @return the initialized value
-     */
-    @Deprecated
-    Value invokeConstructor(Value instance, ConstructorElement target, List<Value> arguments);
-
-    @Deprecated
-    Value invokeConstructor(Value instance, TypeDescriptor owner, MethodDescriptor descriptor, List<Value> arguments);
-
     // misc
-
-    @Deprecated
-    Value callFunction(Value callTarget, List<Value> arguments, int flags);
 
     /**
      * No operation.  The returned node is not guaranteed to be unique or of any particular type.
@@ -568,9 +526,6 @@ public interface BasicBlockBuilder extends Locatable {
      * @return the node
      */
     BasicBlock ret(Value address);
-
-    @Deprecated
-    BasicBlock try_(Triable operation, BlockLabel resumeLabel, BlockLabel exceptionHandler);
 
     /**
      * Terminate the block with a class cast exception.

@@ -56,10 +56,6 @@ public interface TerminatorVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, Try node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, ValueReturn node) {
         return visitUnknown(param, node);
     }
@@ -136,10 +132,6 @@ public interface TerminatorVisitor<T, R> {
         }
 
         default R visit(T param, Throw node) {
-            return getDelegateTerminatorVisitor().visit(param, node);
-        }
-
-        default R visit(T param, Try node) {
             return getDelegateTerminatorVisitor().visit(param, node);
         }
 

@@ -9,6 +9,7 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
@@ -43,9 +44,10 @@ public class LocalThrowHandlingBasicBlockBuilder extends DelegatingBasicBlockBui
         LoadedTypeDefinition npeType = classContext.findDefinedType("java/lang/NullPointerException").load();
         Value ex = new_(npeType.getClassType());
         // pre-resolver
-        Value npeVal = invokeConstructor(ex, npeType.getDescriptor(), MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of()), List.of());
+        ValueHandle ctor = constructorOf(ex, npeType.getDescriptor(), MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of()));
+        call(ctor, List.of());
         BasicBlock from2 = goto_(exceptionHandler.getHandler());
-        exceptionHandler.enterHandler(from2, npeVal);
+        exceptionHandler.enterHandler(from2, ex);
         return from;
     }
 }

@@ -7,7 +7,6 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Value;
-import org.qbicc.object.Function;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -30,7 +29,6 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         String functionName = "_Unwind_RaiseException";
         FunctionType functionType = teh.getRaiseExceptionMethod().getType();
         ctxt.getImplicitSection(rootElement).declareFunction(teh.getRaiseExceptionMethod(), functionName, functionType);
-        callFunction(ctxt.getLiteralFactory().literalOfSymbol(functionName, functionType), List.of(ptr), Function.FN_NO_RETURN);
-        return unreachable();
+        return callNoReturn(pointerHandle(ctxt.getLiteralFactory().literalOfSymbol(functionName, functionType.getPointer())), List.of(ptr));
     }
 }

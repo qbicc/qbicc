@@ -15,18 +15,13 @@ import org.qbicc.graph.Call;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.ConstructorElementHandle;
-import org.qbicc.graph.ConstructorInvocation;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.DispatchInvocation;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.Extend;
-import org.qbicc.graph.FunctionCall;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.If;
-import org.qbicc.graph.InstanceInvocation;
-import org.qbicc.graph.InstanceInvocationValue;
 import org.qbicc.graph.Invoke;
 import org.qbicc.graph.InvokeNoReturn;
 import org.qbicc.graph.IsEq;
@@ -48,8 +43,6 @@ import org.qbicc.graph.Rol;
 import org.qbicc.graph.Ror;
 import org.qbicc.graph.Shl;
 import org.qbicc.graph.Shr;
-import org.qbicc.graph.StaticInvocation;
-import org.qbicc.graph.StaticInvocationValue;
 import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
@@ -71,7 +64,6 @@ import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FunctionElement;
-import org.qbicc.type.definition.element.MethodElement;
 
 /**
  * The inliner.  Every method call is speculatively inlined unless it is specifically annotated otherwise.
@@ -268,166 +260,6 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
         } else {
             return null;
         }
-    }
-
-    // old
-
-    public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
-        if (! target.hasAllModifiersOf(ClassFile.I_ACC_NEVER_INLINE)) {
-            if (target.hasMethodBody()) {
-                MethodBody body = target.getPreviousMethodBody();
-                if (body != null) {
-                    float savedCost = this.cost;
-                    boolean alwaysInline = target.hasAllModifiersOf(ClassFile.I_ACC_ALWAYS_INLINE);
-                    BlockLabel inlined = new BlockLabel();
-                    BlockLabel resume = new BlockLabel();
-                    Terminator callSite = goto_(inlined).getTerminator();
-                    Node oldCallSite = setCallSite(callSite);
-                    try {
-                        BasicBlock copied;
-                        try {
-                            copied = Node.Copier.execute(body.getEntryBlock(), getFirstBuilder(), ctxt, (ctxt, visitor) ->
-                                new Visitor(visitor, resume, null, arguments, null, alwaysInline));
-                        } catch (BlockEarlyTermination e) {
-                            copied = e.getTerminatedBlock();
-                        }
-                        // inline successful, now copy all declarations known at this point
-                        copyDeclarations(target);
-                        // jump to the inlined code
-                        inlined.setTarget(copied);
-                        setCallSite(oldCallSite);
-                        // this is the return point (it won't be reachable if the inlined function does not return)
-                        begin(resume);
-                        return nop();
-                    } catch (Cancel ignored) {
-                        // call site was not inlined; restore original inlining cost
-                        this.cost = savedCost;
-                        setCallSite(oldCallSite);
-                        begin(inlined);
-                    }
-                }
-            }
-        }
-        return super.invokeStatic(target, arguments);
-    }
-
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        if (! target.hasAllModifiersOf(ClassFile.I_ACC_NEVER_INLINE)) {
-            if (target.hasMethodBody()) {
-                MethodBody body = target.getPreviousMethodBody();
-                if (body != null) {
-                    float savedCost = this.cost;
-                    boolean alwaysInline = target.hasAllModifiersOf(ClassFile.I_ACC_ALWAYS_INLINE);
-                    BlockLabel inlined = new BlockLabel();
-                    BlockLabel resume = new BlockLabel();
-                    Terminator callSite = goto_(inlined).getTerminator();
-                    Node oldCallSite = setCallSite(callSite);
-                    try {
-                        BasicBlock copied;
-                        try {
-                            copied = Node.Copier.execute(body.getEntryBlock(), getFirstBuilder(), ctxt, (ctxt, visitor) ->
-                                new Visitor(visitor, resume, null, arguments, instance, alwaysInline));
-                        } catch (BlockEarlyTermination e) {
-                            copied = e.getTerminatedBlock();
-                        }
-                        // inline successful, now copy all declarations known at this point
-                        copyDeclarations(target);
-                        // jump to the inlined code
-                        inlined.setTarget(copied);
-                        setCallSite(oldCallSite);
-                        // this is the return point (it won't be reachable if the inlined function does not return)
-                        begin(resume);
-                        return nop();
-                    } catch (Cancel ignored) {
-                        // call site was not inlined; restore original inlining cost
-                        this.cost = savedCost;
-                        setCallSite(oldCallSite);
-                        begin(inlined);
-                    }
-                }
-            }
-        }
-        return super.invokeInstance(kind, instance, target, arguments);
-    }
-
-    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-        if (! target.hasAllModifiersOf(ClassFile.I_ACC_NEVER_INLINE)) {
-            if (target.hasMethodBody()) {
-                MethodBody body = target.getPreviousMethodBody();
-                if (body != null) {
-                    float savedCost = this.cost;
-                    boolean alwaysInline = target.hasAllModifiersOf(ClassFile.I_ACC_ALWAYS_INLINE);
-                    BlockLabel inlined = new BlockLabel();
-                    BlockLabel resume = new BlockLabel();
-                    PhiValue returnVal = phi(target.getType().getReturnType(), resume);
-                    Terminator callSite = goto_(inlined).getTerminator();
-                    Node oldCallSite = setCallSite(callSite);
-                    try {
-                        BasicBlock copied;
-                        try {
-                            copied = Node.Copier.execute(body.getEntryBlock(), getFirstBuilder(), ctxt, (ctxt, visitor) ->
-                                new Visitor(visitor, resume, returnVal, arguments, null, alwaysInline));
-                        } catch (BlockEarlyTermination e) {
-                            copied = e.getTerminatedBlock();
-                        }
-                        // inline successful, now copy all declarations known at this point
-                        copyDeclarations(target);
-                        // jump to the inlined code
-                        inlined.setTarget(copied);
-                        setCallSite(oldCallSite);
-                        // this is the return point (it won't be reachable if the inlined function does not return)
-                        begin(resume);
-                        return returnVal;
-                    } catch (Cancel ignored) {
-                        // call site was not inlined; restore original inlining cost
-                        this.cost = savedCost;
-                        setCallSite(oldCallSite);
-                        begin(inlined);
-                    }
-                }
-            }
-        }
-        return super.invokeValueStatic(target, arguments);
-    }
-
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        if (! target.hasAllModifiersOf(ClassFile.I_ACC_NEVER_INLINE)) {
-            if (target.hasMethodBody()) {
-                MethodBody body = target.getPreviousMethodBody();
-                if (body != null) {
-                    float savedCost = this.cost;
-                    boolean alwaysInline = target.hasAllModifiersOf(ClassFile.I_ACC_ALWAYS_INLINE);
-                    BlockLabel inlined = new BlockLabel();
-                    BlockLabel resume = new BlockLabel();
-                    Terminator callSite = goto_(inlined).getTerminator();
-                    Node oldCallSite = setCallSite(callSite);
-                    PhiValue returnVal = phi(target.getType().getReturnType(), resume);
-                    try {
-                        BasicBlock copied;
-                        try {
-                            copied = Node.Copier.execute(body.getEntryBlock(), getFirstBuilder(), ctxt, (ctxt, visitor) ->
-                                new Visitor(visitor, resume, returnVal, arguments, instance, alwaysInline));
-                        } catch (BlockEarlyTermination e) {
-                            copied = e.getTerminatedBlock();
-                        }
-                        // inline successful, now copy all declarations known at this point
-                        copyDeclarations(target);
-                        // jump to the inlined code
-                        inlined.setTarget(copied);
-                        setCallSite(oldCallSite);
-                        // this is the return point (it won't be reachable if the inlined function does not return)
-                        begin(resume);
-                        return returnVal;
-                    } catch (Cancel ignored) {
-                        // call site was not inlined; restore original inlining cost
-                        this.cost = savedCost;
-                        setCallSite(oldCallSite);
-                        begin(inlined);
-                    }
-                }
-            }
-        }
-        return super.invokeValueInstance(kind, instance, target, arguments);
     }
 
     private void copyDeclarations(final ExecutableElement target) {
@@ -730,39 +562,6 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
         }
 
         // invocations - old
-
-        public Node visit(final Node.Copier param, final InstanceInvocation node) {
-            DispatchInvocation.Kind kind = node.getKind();
-            // todo: this is totally arbitrary
-            addCost(param, kind == DispatchInvocation.Kind.EXACT ? 10 : kind == DispatchInvocation.Kind.VIRTUAL ? 30 : 50);
-            return delegate.visit(param, node);
-        }
-
-        public Node visit(final Node.Copier param, final StaticInvocation node) {
-            addCost(param, 10);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final ConstructorInvocation node) {
-            addCost(param, 10);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final InstanceInvocationValue node) {
-            DispatchInvocation.Kind kind = node.getKind();
-            addCost(param, kind == DispatchInvocation.Kind.EXACT ? 10 : kind == DispatchInvocation.Kind.VIRTUAL ? 30 : 50);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final StaticInvocationValue node) {
-            addCost(param, 10);
-            return delegate.visit(param, node);
-        }
-
-        public Value visit(final Node.Copier param, final FunctionCall node) {
-            addCost(param, 10);
-            return delegate.visit(param, node);
-        }
 
         void addCost(final Node.Copier copier, int amount) {
             if (! alwaysInline) {

@@ -486,9 +486,7 @@ public final class CNative {
          * @param <T> the type of the object
          * @return the cast object
          */
-        public final <T extends object> T cast(Class<T> clazz) {
-            return cast();
-        }
+        public native final <T extends object> T cast(Class<T> clazz);
 
         /**
          * Release the object. Not every object can be released, but objects

@@ -59,6 +59,7 @@ final class NativeInfo {
 
     final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, NativeFunctionInfo>>> nativeFunctions = new ConcurrentHashMap<>();
     final Map<TypeDescriptor, Map<String, Map<MethodDescriptor, MethodElement>>> nativeBindings = new ConcurrentHashMap<>();
+    final Map<FieldElement, FieldElement> nativeFieldBindings = new ConcurrentHashMap<>();
     final Map<TypeDescriptor, Map<String, NativeDataInfo>> nativeFields = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, AtomicReference<ValueType>> nativeTypes = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, MethodElement> functionalInterfaceMethods = new ConcurrentHashMap<>();
@@ -341,8 +342,20 @@ final class NativeInfo {
             .put(origMethod.getDescriptor(), nativeMethod);
     }
 
+    public void registerNativeBinding(final FieldElement origField, final FieldElement mappedField) {
+        nativeFieldBindings.put(origField, mappedField);
+    }
+
     public MethodElement getNativeBinding(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor) {
         return nativeBindings.getOrDefault(owner, Map.of()).getOrDefault(name, Map.of()).get(descriptor);
+    }
+
+    public MethodElement getNativeBinding(final MethodElement original) {
+        return getNativeBinding(original.getEnclosingType().getDescriptor(), original.getName(), original.getDescriptor());
+    }
+
+    public FieldElement getNativeBinding(final FieldElement original) {
+        return nativeFieldBindings.get(original);
     }
 
     void registerLibrary(String library) {

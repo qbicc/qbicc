@@ -1,17 +1,19 @@
 package org.qbicc.plugin.native_;
 
-import org.qbicc.graph.literal.SymbolLiteral;
-import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 
 /**
  *
  */
-final class NativeFunctionInfo {
-    final ExecutableElement origMethod;
-    final SymbolLiteral symbolLiteral;
+abstract class NativeFunctionInfo {
 
-    NativeFunctionInfo(final ExecutableElement origMethod, final SymbolLiteral symbolLiteral) {
-        this.origMethod = origMethod;
-        this.symbolLiteral = symbolLiteral;
+    NativeFunctionInfo() {
     }
+
+    public abstract String getName();
+
+    public abstract FunctionType getType();
+
+    public abstract DefinedTypeDefinition getDeclaringClass();
 }

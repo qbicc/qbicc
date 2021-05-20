@@ -3,23 +3,19 @@ package org.qbicc.plugin.conversion;
 import java.util.List;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.graph.AddressOf;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
-import org.qbicc.graph.CastValue;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.StackAllocation;
-import org.qbicc.graph.Triable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.machine.arch.Cpu;
 import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.unwind.UnwindHelper;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
@@ -29,7 +25,6 @@ import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.VoidType;
-import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -96,9 +91,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     private Value minMaxIntrinsic(String funcName, NumericType numericType, Value v1, Value v2) {
         TypeSystem tps = ctxt.getTypeSystem();
         FunctionType functionType = tps.getFunctionType(numericType, numericType, numericType);
-        SymbolLiteral functionSymbol = ctxt.getLiteralFactory().literalOfSymbol(funcName, functionType);
-        ctxt.getImplicitSection(rootElement).declareFunction(null, funcName, functionType);
-        return getFirstBuilder().callFunction(functionSymbol, List.of(v1, v2), Function.FN_NO_SIDE_EFFECTS);
+        FunctionDeclaration declaration = ctxt.getImplicitSection(rootElement).declareFunction(null, funcName, functionType);
+        return getFirstBuilder().callNoSideEffects(functionOf(declaration), List.of(v1, v2));
     }
 
     @Override
@@ -138,13 +132,6 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         } else {
             return super.store(handle, value, mode);
         }
-    }
-
-    @Override
-    public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel, final BlockLabel exceptionHandler) {
-        MethodElement personalityFunction = UnwindHelper.get(ctxt).getPersonalityMethod();
-        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityFunction.getName(), personalityFunction.getType());
-        return super.try_(operation, resumeLabel, exceptionHandler);
     }
 
     @Override

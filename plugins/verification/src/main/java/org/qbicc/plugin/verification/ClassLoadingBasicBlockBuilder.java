@@ -8,8 +8,6 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.DispatchInvocation;
-import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.context.ClassContext;
@@ -49,7 +47,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle exactMethodOf(ValueHandle instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
             return super.exactMethodOf(instance, owner, name, descriptor);
         }
@@ -57,7 +55,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle virtualMethodOf(ValueHandle instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
             return super.virtualMethodOf(instance, owner, name, descriptor);
         }
@@ -65,7 +63,7 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle interfaceMethodOf(ValueHandle instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
             return super.interfaceMethodOf(instance, owner, name, descriptor);
         }
@@ -73,15 +71,15 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle staticMethodOf(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
-            return super.staticMethodOf(owner, name, descriptor);
+            return super.staticMethod(owner, name, descriptor);
         }
         // no need to continue
         throw new BlockEarlyTermination(noClassDefFound(owner));
     }
 
-    public ValueHandle constructorOf(ValueHandle instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
         if (loadClass(owner)) {
             return super.constructorOf(instance, owner, descriptor);
         }
@@ -152,48 +150,13 @@ public class ClassLoadingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         }
     }
 
-    public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        if (loadClass(owner)) {
-            return super.invokeStatic(owner, name, descriptor, arguments);
-        } else {
-            // no need to continue
-            throw new BlockEarlyTermination(noClassDefFound(owner));
-        }
-    }
-
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        if (loadClass(owner)) {
-            return super.invokeInstance(kind, instance, owner, name, descriptor, arguments);
-        } else {
-            // no need to continue
-            throw new BlockEarlyTermination(noClassDefFound(owner));
-        }
-    }
-
-    public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        if (loadClass(owner)) {
-            return super.invokeValueStatic(owner, name, descriptor, arguments);
-        } else {
-            // no need to continue
-            throw new BlockEarlyTermination(noClassDefFound(owner));
-        }
-    }
-
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        if (loadClass(owner)) {
-            return super.invokeValueInstance(kind, instance, owner, name, descriptor, arguments);
-        } else {
-            // no need to continue
-            throw new BlockEarlyTermination(noClassDefFound(owner));
-        }
-    }
-
     private BasicBlock noClassDefFound(TypeDescriptor desc) {
         ctxt.warning(getLocation(), "Reference to %s always produces NoClassDefFoundError", desc);
         Info info = Info.get(ctxt);
         ClassTypeDescriptor ncdfeClass = info.ncdfeClass;
         // todo: add class name to exception string
-        Value ncdfe = invokeConstructor(new_(ncdfeClass), ncdfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
+        Value ncdfe = new_(ncdfeClass);
+        call(constructorOf(ncdfe, ncdfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
         return throw_(ncdfe);
     }
 

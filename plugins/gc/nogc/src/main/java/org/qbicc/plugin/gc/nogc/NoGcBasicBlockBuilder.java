@@ -46,7 +46,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             ptrVal = stackAllocate(compoundType, lf.literalOf(1), align);
         } else {
             long size = compoundType.getSize();
-            ptrVal = invokeValueStatic(noGc.getAllocateMethod(), List.of(lf.literalOf(size), align));
+            ptrVal = call(staticMethod(noGc.getAllocateMethod()), List.of(lf.literalOf(size), align));
         }
         Value oop = valueConvert(ptrVal, type.getReference());
         ValueHandle oopHandle = referenceHandle(oop);
@@ -83,9 +83,9 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             size = extend(size, ctxt.getTypeSystem().getSignedInteger64Type());
         }
         Value realSize = add(baseSize, multiply(lf.literalOf(arrayType.getElementType().getSize()), size));
-        Value rawMem = invokeValueStatic(noGc.getAllocateMethod(), List.of(realSize, align));
+        Value rawMem = call(staticMethod(noGc.getAllocateMethod()), List.of(realSize, align));
 
-        Value ptrVal = invokeValueStatic(noGc.getZeroMethod(), List.of(rawMem, realSize));
+        Value ptrVal = call(staticMethod(noGc.getZeroMethod()), List.of(rawMem, realSize));
         Value arrayPtr = valueConvert(ptrVal, arrayType.getReference());
         ValueHandle arrayHandle = referenceHandle(arrayPtr);
 
@@ -117,11 +117,11 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             if (type.isSubtypeOf(noGc.getStackObjectType())) {
                 ptrVal = stackAllocate(compoundType, lf.literalOf(1), align);
             } else {
-                ptrVal = invokeValueStatic(noGc.getAllocateMethod(), List.of(size, align));
+                ptrVal = call(staticMethod(noGc.getAllocateMethod()), List.of(size, align));
             }
             // TODO: replace with field-by-field copy once we have a redundant assignment elimination optimization
             // TODO: if/when we put a thinlock, default hashcode, or GC state bits in the object header we need to properly initialize them.
-            invokeStatic(noGc.getCopyMethod(), List.of(ptrVal, valueConvert(object, (WordType) ptrVal.getType()), size));
+            call(staticMethod(noGc.getCopyMethod()), List.of(ptrVal, valueConvert(object, (WordType) ptrVal.getType()), size));
             fence(MemoryAtomicityMode.RELEASE);
             return valueConvert(ptrVal, type.getReference());
         } else if (objType instanceof ArrayObjectType) {

@@ -52,6 +52,10 @@ public final class FunctionType extends ValueType {
         return paramTypes.length;
     }
 
+    public FunctionType withReturnType(final ValueType returnType) {
+        return getTypeSystem().getFunctionType(returnType, paramTypes);
+    }
+
     public StringBuilder toString(final StringBuilder b) {
         b.append("function (");
         Type[] paramTypes = this.paramTypes;

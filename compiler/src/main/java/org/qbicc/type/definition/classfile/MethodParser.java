@@ -1305,20 +1305,19 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             if (opcode != OP_INVOKESPECIAL) {
                                 throw new InvalidByteCodeException();
                             }
-                            v2 = gf.call(gf.constructorOf(gf.referenceHandle(v1), owner, desc), List.of(args));
-                            replaceAll(v1, v2);
+                            gf.call(gf.constructorOf(v1, owner, desc), List.of(args));
                         } else {
                             TypeDescriptor returnType = desc.getReturnType();
                             ValueHandle handle;
                             if (opcode == OP_INVOKESTATIC) {
-                                handle = gf.staticMethodOf(owner, name, desc);
+                                handle = gf.staticMethod(owner, name, desc);
                             } else if (opcode == OP_INVOKESPECIAL) {
-                                handle = gf.exactMethodOf(gf.referenceHandle(v1), owner, name, desc);
+                                handle = gf.exactMethodOf(v1, owner, name, desc);
                             } else if (opcode == OP_INVOKEVIRTUAL) {
-                                handle = gf.virtualMethodOf(gf.referenceHandle(v1), owner, name, desc);
+                                handle = gf.virtualMethodOf(v1, owner, name, desc);
                             } else {
                                 assert opcode == OP_INVOKEINTERFACE;
-                                handle = gf.interfaceMethodOf(gf.referenceHandle(v1), owner, name, desc);
+                                handle = gf.interfaceMethodOf(v1, owner, name, desc);
                             }
                             Value result = gf.call(handle, List.of(args));
                             if (returnType != BaseTypeDescriptor.V) {
@@ -1356,7 +1355,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         Value callSite = gf.load(holderHandle, holderHandle.getDetectedMode());
                         // Get the method handle instance from the call site
                         ClassTypeDescriptor descOfMethodHandle = ClassTypeDescriptor.synthesize(ctxt, "java/lang/invoke/MethodHandle");
-                        Value methodHandle = gf.call(gf.virtualMethodOf(gf.referenceHandle(callSite),
+                        Value methodHandle = gf.call(gf.virtualMethodOf(callSite,
                             callSiteDesc, "getTarget",
                             MethodDescriptor.synthesize(ctxt, descOfMethodHandle, List.of())),
                             List.of());
@@ -1375,7 +1374,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             args[i] = pop(parameterTypes.get(i).isClass2());
                         }
                         // todo: promote the method handle directly to a ValueHandle?
-                        Value result = gf.call(gf.virtualMethodOf(gf.referenceHandle(methodHandle), descOfMethodHandle, "invokeExact",
+                        Value result = gf.call(gf.virtualMethodOf(methodHandle, descOfMethodHandle, "invokeExact",
                             desc), List.of(args));
                         if (! desc.getReturnType().isVoid()) {
                             push(promote(result), desc.getReturnType().isClass2());

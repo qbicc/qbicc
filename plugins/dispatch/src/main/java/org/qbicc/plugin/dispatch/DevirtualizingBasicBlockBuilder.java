@@ -10,8 +10,6 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
 import org.jboss.logging.Logger;
 
-import java.util.List;
-
 public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private static final Logger log = Logger.getLogger("org.qbicc.plugin.dispatch.devirt");
 
@@ -22,44 +20,16 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
         this.ctxt = ctxt;
     }
 
-    public Node invokeInstance(DispatchInvocation.Kind kind, final Value instance, MethodElement target, final List<Value> arguments) {
-        if (kind == DispatchInvocation.Kind.INTERFACE) {
-            MethodElement virtualTarget = virtualizeInvokeInterface(instance, target);
-            if (virtualTarget == null) {
-                return super.invokeInstance(kind, instance, target, arguments);
-            }
-            kind = DispatchInvocation.Kind.VIRTUAL;
-            target = virtualTarget;
-        }
-
-        if (kind == DispatchInvocation.Kind.VIRTUAL) {
-            MethodElement exactTarget = staticallyBind(instance, target);
-            if (exactTarget != null) {
-                return super.invokeInstance(DispatchInvocation.Kind.EXACT, instance, exactTarget, arguments);
-            }
-        }
-
-        return super.invokeInstance(kind, instance, target, arguments);
+    @Override
+    public ValueHandle interfaceMethodOf(Value instance, MethodElement target) {
+        MethodElement virtualTarget = virtualizeInvokeInterface(instance, target);
+        return virtualTarget != null ? virtualMethodOf(instance, virtualTarget) : super.interfaceMethodOf(instance, target);
     }
 
-    public Value invokeValueInstance(DispatchInvocation.Kind kind, final Value instance, MethodElement target, final List<Value> arguments) {
-        if (kind == DispatchInvocation.Kind.INTERFACE) {
-            MethodElement virtualTarget = virtualizeInvokeInterface(instance, target);
-            if (virtualTarget == null) {
-                return super.invokeValueInstance(kind, instance, target, arguments);
-            }
-            kind = DispatchInvocation.Kind.VIRTUAL;
-            target = virtualTarget;
-        }
-
-        if (kind == DispatchInvocation.Kind.VIRTUAL) {
-            MethodElement exactTarget = staticallyBind(instance, target);
-            if (exactTarget != null) {
-                return super.invokeValueInstance(DispatchInvocation.Kind.EXACT, instance, exactTarget, arguments);
-            }
-        }
-
-        return super.invokeValueInstance(kind, instance, target, arguments);
+    @Override
+    public ValueHandle virtualMethodOf(Value instance, MethodElement target) {
+        MethodElement exactTarget = staticallyBind(instance, target);
+        return exactTarget != null ? exactMethodOf(instance, exactTarget) : super.virtualMethodOf(instance, target);
     }
 
     /*

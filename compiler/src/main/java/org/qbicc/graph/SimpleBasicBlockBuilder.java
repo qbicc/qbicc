@@ -27,7 +27,6 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.context.ClassContext;
-import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
@@ -363,8 +362,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
                 CompilationContext ctxt = getCurrentElement().getEnclosingType().getContext().getCompilationContext();
                 ctxt.warning(getLocation(), "Invalid narrow from %s to %s compiled to raiseCCE()", inputType, type);
                 MethodElement helper = ctxt.getVMHelperMethod("raiseClassCastException");
-                invokeStatic(helper, List.of());
-                throw new BlockEarlyTermination(unreachable());
+                throw new BlockEarlyTermination(getFirstBuilder().callNoReturn(getFirstBuilder().staticMethod(helper), List.of()));
             }
         }
         return asDependency(new CheckCast(callSite, element, line, bci, requireDependency(), value, toType, toDimensions, kind, outputType));
@@ -649,14 +647,14 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new CallNoSideEffects(callSite, element, line, bci, target, arguments);
     }
 
-    <N extends Node & Triable> N optionallyTry(N op, boolean ordered) {
+    <N extends Node> N optionallyTry(N op, boolean ordered) {
         ExceptionHandler exceptionHandler = getExceptionHandler();
         // todo: temporarily disable until exception handlers are fixed
         if (true && exceptionHandler != null) {
             BlockLabel resume = new BlockLabel();
             BlockLabel handler = exceptionHandler.getHandler();
             BlockLabel setupHandler = new BlockLabel();
-            try_(op, resume, setupHandler);
+            //try_(op, resume, setupHandler);
             // this is the entry point for the stack unwinder
             begin(setupHandler);
             ClassContext classContext = element.getEnclosingType().getContext();
@@ -691,50 +689,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             begin(handler);
             throw_(exceptionPhi);
         }
-    }
-
-    public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new StaticInvocation(callSite, element, line, bci, requireDependency(), target, arguments), target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS));
-    }
-
-    public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        throw new IllegalStateException("Invoke of unresolved method: " + name);
-    }
-
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new InstanceInvocation(callSite, element, line, bci, requireDependency(), kind, instance, target, arguments), target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS));
-    }
-
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        throw new IllegalStateException("Invoke of unresolved method: " + name);
-    }
-
-    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new StaticInvocationValue(callSite, element, line, bci, requireDependency(), target, target.getType().getReturnType(), arguments), target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS));
-    }
-
-    public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        throw new IllegalStateException("Invoke of unresolved method: " + name);
-    }
-
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        return optionallyTry(new InstanceInvocationValue(callSite, element, line, bci, requireDependency(), kind, instance, target, target.getType().getReturnType(), arguments), target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS));
-    }
-
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        throw new IllegalStateException("Invoke of unresolved method: " + name);
-    }
-
-    public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
-        return optionallyTry(new ConstructorInvocation(callSite, element, line, bci, requireDependency(), instance, target, arguments), target.hasNoModifiersOf(ClassFile.I_ACC_NO_SIDE_EFFECTS));
-    }
-
-    public Value invokeConstructor(final Value instance, final TypeDescriptor owner, final MethodDescriptor descriptor, final List<Value> arguments) {
-        throw new IllegalStateException("Invoke of unresolved constructor");
-    }
-
-    public Value callFunction(final Value callTarget, final List<Value> arguments, int flags) {
-        return optionallyTry(new FunctionCall(callSite, element, line, bci, requireDependency(), callTarget, arguments, flags), (flags & Function.FN_NO_SIDE_EFFECTS) == 0);
     }
 
     public Node nop() {
@@ -817,10 +771,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public BasicBlock ret(final Value address) {
         return terminate(requireCurrentBlock(), new Ret(callSite, element, line, bci, blockEntry, dependency, address));
-    }
-
-    public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel, final BlockLabel exceptionHandler) {
-        return terminate(requireCurrentBlock(), new Try(callSite, element, operation, blockEntry, resumeLabel, exceptionHandler));
     }
 
     public BasicBlock classCastException(final Value fromType, final Value toType) {

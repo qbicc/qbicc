@@ -199,10 +199,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().functionOf(function);
     }
 
-    public ValueHandle bindArgument(ValueHandle target, Value argument) {
-        return null;
-    }
-
     public Value addressOf(final ValueHandle handle) {
         return getDelegate().addressOf(handle);
     }
@@ -373,38 +369,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
         return getDelegate().callNoSideEffects(target, arguments);
-    }
-
-    public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
-        return getDelegate().invokeStatic(target, arguments);
-    }
-
-    public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        return getDelegate().invokeStatic(owner, name, descriptor, arguments);
-    }
-
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        return getDelegate().invokeInstance(kind, instance, target, arguments);
-    }
-
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        return getDelegate().invokeInstance(kind, instance, owner, name, descriptor, arguments);
-    }
-
-    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-        return getDelegate().invokeValueStatic(target, arguments);
-    }
-
-    public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        return getDelegate().invokeValueStatic(owner, name, descriptor, arguments);
-    }
-
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        return getDelegate().invokeValueInstance(kind, instance, target, arguments);
-    }
-
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        return getDelegate().invokeValueInstance(kind, instance, owner, name, descriptor, arguments);
     }
 
     public Node begin(final BlockLabel blockLabel) {
@@ -607,18 +571,6 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().ret(address);
     }
 
-    public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
-        return getDelegate().invokeConstructor(instance, target, arguments);
-    }
-
-    public Value invokeConstructor(final Value instance, final TypeDescriptor owner, final MethodDescriptor descriptor, final List<Value> arguments) {
-        return getDelegate().invokeConstructor(instance, owner, descriptor, arguments);
-    }
-
-    public Value callFunction(final Value callTarget, final List<Value> arguments, int flags) {
-        return getDelegate().callFunction(callTarget, arguments, flags);
-    }
-
     public Node nop() {
         return getDelegate().nop();
     }
@@ -631,7 +583,4 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().classOf(typeId);
     }
 
-    public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel, final BlockLabel exceptionHandler) {
-        return getDelegate().try_(operation, resumeLabel, exceptionHandler);
-    }
 }

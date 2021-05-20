@@ -31,7 +31,6 @@ import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
-import org.qbicc.graph.FunctionCall;
 import org.qbicc.graph.FunctionDeclarationHandle;
 import org.qbicc.graph.FunctionHandle;
 import org.qbicc.graph.GlobalVariable;
@@ -72,10 +71,7 @@ import org.qbicc.graph.Switch;
 import org.qbicc.graph.TailCall;
 import org.qbicc.graph.TailInvoke;
 import org.qbicc.graph.Terminator;
-import org.qbicc.graph.Triable;
-import org.qbicc.graph.TriableVisitor;
 import org.qbicc.graph.Truncate;
-import org.qbicc.graph.Try;
 import org.qbicc.graph.Unreachable;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
@@ -135,7 +131,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     final Map<BasicBlock, LLBasicBlock> mappedBlocks = new HashMap<>();
     final Map<BasicBlock, LLBasicBlock> mappedCatchBlocks = new HashMap<>();
     final MethodBody methodBody;
-    final TriableVisitor<Try, Void> triableVisitor = new Triables();
     final LLBuilder builder;
     final Map<Node, LLValue> inlineLocations = new HashMap<>();
 
@@ -275,11 +270,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         for (int i = 0; i < node.getNumberOfValues(); i++)
             switchInst.case_(Values.intConstant(node.getValueForIndex(i)), map(node.getTargetForIndex(i)));
 
-        return null;
-    }
-
-    public Void visit(final Void param, final Try node) {
-        node.getDelegateOperation().accept(triableVisitor, node);
         return null;
     }
 
@@ -1025,41 +1015,6 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         return llTarget;
     }
 
-    // old
-
-    public LLValue visit(final Void param, final FunctionCall node) {
-        if (node.hasDependency()) map(node.getDependency());
-        FunctionType functionType = node.getFunctionType();
-        List<Value> arguments = node.getArguments();
-        LLValue llType = map(functionType);
-        LLValue llTarget = map(node.getCallTarget());
-        // two scans - once to populate the maps, and then once to emit the call in the right order
-        preMapArgumentList(arguments);
-        Call call = builder.call(llType, llTarget);
-        setCallArguments(call, arguments);
-        setCallReturnValue(call, functionType);
-        return call.asLocal();
-    }
-
-    public LLValue visit(final Try try_, final FunctionCall node) {
-        map(node.getDependency());
-        FunctionType functionType = node.getFunctionType();
-        List<Value> arguments = node.getArguments();
-        LLValue llType = map(functionType);
-        LLValue llTarget = map(node.getCallTarget());
-        // two scans - once to populate the maps, and then once to emit the call in the right order
-        for (int i = 0; i < arguments.size(); i++) {
-            map(functionType.getParameterType(i));
-            map(arguments.get(i));
-        }
-        Call call = builder.invoke(llType, llTarget, map(try_.getResumeTarget()), mapCatch(try_.getExceptionHandler()));
-        setCallArguments(call, arguments);
-        setCallReturnValue(call, functionType);
-
-        addPersonalityIfNeeded();
-        return call.asLocal();
-    }
-
     private void addPersonalityIfNeeded() {
         if (!personalityAdded) {
             MethodElement personalityFunction = UnwindHelper.get(ctxt).getPersonalityMethod();
@@ -1284,16 +1239,5 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
 
     private LLValue map(CompoundType compoundType, CompoundType.Member member) {
         return moduleVisitor.map(compoundType, member);
-    }
-
-    class Triables implements TriableVisitor<Try, Void> {
-        public Void visitUnknown(final Try param, final Triable node) {
-            return LLVMNodeVisitor.this.visitUnknown(null, param);
-        }
-
-        public Void visit(final Try param, final FunctionCall node) {
-            mappedValues.put(node, LLVMNodeVisitor.this.visit(param, node));
-            return null;
-        }
     }
 }
