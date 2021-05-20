@@ -16,6 +16,7 @@ import java.util.function.Consumer;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
+import org.jboss.logging.MDC;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
@@ -355,7 +356,9 @@ public class Driver implements Closeable {
             compilationContext.enqueue(entryPoint);
         }
 
+        MDC.put("phase", "ADD");
         compilationContext.processQueue(element -> {
+            MDC.put("phase", "ADD");
             if (element.hasMethodBody()) {
                 // cause method and field references to be resolved
                 try {
@@ -404,6 +407,7 @@ public class Driver implements Closeable {
 
         compilationContext.setBlockFactory(analyzeBuilderFactory);
 
+        MDC.put("phase", "ANALYZE");
         for (Consumer<? super CompilationContext> hook : preAnalyzeHooks) {
             try {
                 hook.accept(compilationContext);
@@ -424,6 +428,7 @@ public class Driver implements Closeable {
         }
 
         compilationContext.processQueue(element -> {
+            MDC.put("phase", "ANALYZE");
             if (element.hasMethodBody()) {
                 // rewrite the method body
                 ClassContext classContext = element.getEnclosingType().getContext();
@@ -468,6 +473,7 @@ public class Driver implements Closeable {
 
         compilationContext.setBlockFactory(lowerBuilderFactory);
 
+        MDC.put("phase", "LOWER");
         for (Consumer<? super CompilationContext> hook : preLowerHooks) {
             try {
                 hook.accept(compilationContext);
@@ -488,6 +494,7 @@ public class Driver implements Closeable {
         }
 
         compilationContext.processQueue(element -> {
+            MDC.put("phase", "LOWER");
             if (element.hasMethodBody()) {
                 // copy to a function; todo: this should eventually be done in the lowering plugin
                 ClassContext classContext = element.getEnclosingType().getContext();
@@ -549,6 +556,7 @@ public class Driver implements Closeable {
 
         // GENERATE phase
 
+        MDC.put("phase", "GENERATE");
         for (Consumer<? super CompilationContext> hook : preGenerateHooks) {
             try {
                 hook.accept(compilationContext);

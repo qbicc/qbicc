@@ -2,6 +2,11 @@ package org.qbicc.plugin.dispatch;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.*;
+import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.MethodElement;
 import org.jboss.logging.Logger;
 
@@ -62,7 +67,30 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
      * type of the receiver.
      */
     private MethodElement virtualizeInvokeInterface(final Value instance, final MethodElement target) {
-        // TODO:  Eventually implement logic for interface => virtual conversion based on actual compile-time type of `instance`.
+        ClassObjectType classType;
+        ValueType type = instance.getType();
+        if (type instanceof ReferenceType) {
+            PhysicalObjectType upperBound = ((ReferenceType) type).getUpperBound();
+            if (upperBound instanceof ClassObjectType) {
+                classType = (ClassObjectType) upperBound;
+            } else {
+                return null;
+            }
+        } else if (type instanceof ClassObjectType) {
+            classType = (ClassObjectType) type;
+        } else {
+            return null;
+        }
+        // only select the class if it implements the interface; else we risk adding a more general method than we had before
+        if (! classType.isSubtypeOf(target.getEnclosingType().load().getInterfaceType())) {
+            return null;
+        }
+        LoadedTypeDefinition definition = classType.getDefinition().load();
+        int idx = definition.findMethodIndex(target.getName(), target.getDescriptor());
+        if (idx != -1) {
+            log.debugf("Deinterfacing call to %s::%s", target.getEnclosingType().getDescriptor().getClassName(), target.getName());
+            return definition.getMethod(idx);
+        }
         return null;
     }
 
