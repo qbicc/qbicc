@@ -148,4 +148,6 @@ public class ObjectModel {
      * @return superclass's type_id
      */
     public static native CNative.type_id get_superclass_typeid(CNative.type_id typeId);
+
+    public static native CNative.type_id get_first_interface_typeid();
 }
