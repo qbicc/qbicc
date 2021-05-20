@@ -13,13 +13,16 @@ on:
     types: [ opened, synchronize, reopened ]
 jobs:
   build-linux:
-    name: "Linux Build AArch64"
-    runs-on: [self-hosted, linux, arm64]
+    name: "Linux x86_64"
+    runs-on: ubuntu-latest
+    env:
+      CC: gcc
     steps:
-      - name: Cleanup
-        run: |
-          rm -rf ~/.m2/repository/org/qbicc
-          rm -rf ./*
+      - name: Install LLVM
+        uses: KyleMayes/install-llvm-action@v1.3.0
+        with:
+          version: "12.0.0"
+          directory: ${{ runner.temp }}/llvm-install
 
       - name: Clone qbicc
         uses: actions/checkout@v2
@@ -31,31 +34,14 @@ jobs:
           mvn install -pl '!integration-tests'
         working-directory: ./myqbicc
 
-      - name: Get qbicc Class Library HEAD
-        id: qbicc-class-library-head
-        run: |
-          sed -i "/^github.com/d" ~/.ssh/known_hosts
-          ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
-          echo "::set-output name=head::$(git -c core.sshCommand='ssh -i ~/.ssh/id_rsa' ls-remote git@github.com:qbicc/qbicc-class-library.git | sed 's/\([a-z0-9]*\)[ \t]*HEAD/\1/;t;d')"
-        shell: bash
-
-      - uses: actions/cache@v2
-        id: cache
-        with:
-          path: |
-            ~/.m2/repository/org/qbicc/rt/qbicc-rt-annotation
-            ~/.m2/repository/org/qbicc/rt/qbicc-rt-java.base
-            ~/.m2/repository/org/qbicc/rt/qbicc-rt-openjdk-build-tools-maven-plugin
-            ~/.m2/repository/org/qbicc/rt/qbicc-rt-parent
-          key: ${{ steps.qbicc-class-library-head.outputs.head }}
-
       - name: Clone qbicc Class Library
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          git clone --recurse-submodules git@github.com:qbicc/qbicc-class-library.git
+        uses: actions/checkout@v2
+        with:
+          repository: qbicc/qbicc-class-library
+          path: qbicc-class-library
+          submodules: true
 
       - name: Install qbicc Class Library
-        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           mvn install
         working-directory: ./qbicc-class-library
