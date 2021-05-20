@@ -666,6 +666,17 @@ public final class CoreIntrinsics {
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_typeid_flags", typeIdIntDesc, get_typeid_flags);
 
+        // public static native CNative.type_id get_superclass_typeid(CNative.type_id typeId);
+        StaticValueIntrinsic get_superclass_typeid = (builder, owner, name, descriptor, arguments) -> {
+            Value typeId = arguments.get(0);
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
+            ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), typeId);
+            ValueHandle superTypeId = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("superTypeId"));
+            Value superTypeIdValue = builder.load(superTypeId, MemoryAtomicityMode.UNORDERED);
+            return superTypeIdValue;
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_superclass_typeid", typeIdTypeIdDesc, get_superclass_typeid);
+
     }
 
     static void registerOrgQbiccRuntimeValuesIntrinsics(final CompilationContext ctxt) {

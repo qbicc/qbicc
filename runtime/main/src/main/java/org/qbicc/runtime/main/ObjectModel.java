@@ -141,4 +141,11 @@ public class ObjectModel {
     public static boolean has_default_methods(CNative.type_id typeId) {
         return (get_typeid_flags(typeId) & Flag_typeid_has_default_methods) == Flag_typeid_has_default_methods;
     }
+
+    /** 
+     * Fetch the superclass `type_id` from the current `type_id`
+     * @param an existing type_id, don't call this on Object's typeid
+     * @return superclass's type_id
+     */
+    public static native CNative.type_id get_superclass_typeid(CNative.type_id typeId);
 }
