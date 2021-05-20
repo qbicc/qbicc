@@ -480,6 +480,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final CheckCast node) {
+                param.copyNode(node.getDependency());
                 return param.getBlockBuilder().checkcast(param.copyValue(node.getInput()), param.copyValue(node.getToType()),
                     param.copyValue(node.getToDimensions()), node.getKind(), node.getType());
             }

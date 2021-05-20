@@ -856,6 +856,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", node.getKind() + "→" + node.getType().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getToType(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getToDimensions(), EdgeType.VALUE_DEPENDENCY);

@@ -1,5 +1,6 @@
 package org.qbicc.graph;
 
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import org.qbicc.type.ReferenceType;
@@ -10,7 +11,8 @@ import org.qbicc.type.definition.element.ExecutableElement;
  * This node is used to implement two distinct kinds of dynamic checks:
  * arraystorechecks and checkcasts.
  */
-public final class CheckCast extends AbstractValue implements CastValue {
+public final class CheckCast extends AbstractValue implements CastValue, OrderedNode {
+    private final Node dependency;
     /**
      * The input value, which must be of type ReferenceType
      */
@@ -41,14 +43,20 @@ public final class CheckCast extends AbstractValue implements CastValue {
         }
     }
 
-    CheckCast(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, final Value toType,
+    CheckCast(final Node callSite, final ExecutableElement element, final int line, final int bci, final Node dependency, final Value input, final Value toType,
               final Value toDimensions, CastType kind, ReferenceType type) {
         super(callSite, element, line, bci);
+        this.dependency = dependency;
         this.input = input;
         this.toType = toType;
         this.toDimensions = toDimensions;
         this.type = type;
         this.kind = kind;
+    }
+
+    @Override
+    public Node getDependency() throws NoSuchElementException {
+        return dependency;
     }
 
     public Value getInput() {
@@ -98,6 +106,7 @@ public final class CheckCast extends AbstractValue implements CastValue {
 
     public boolean equals(final CheckCast other) {
         return this == other || other != null
+            && dependency.equals(other.dependency)
             && input.equals(other.input)
             && toType.equals(other.toType)
             && toDimensions.equals(other.toDimensions)
