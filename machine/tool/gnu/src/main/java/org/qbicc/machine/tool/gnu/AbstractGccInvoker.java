@@ -95,6 +95,7 @@ abstract class AbstractGccInvoker implements MessagingToolInvoker {
         OutputDestination errorHandler = OutputDestination.of(AbstractGccInvoker::collectError, this, StandardCharsets.UTF_8);
         List<String> cmd = new ArrayList<>();
         cmd.add(getTool().getExecutablePath().toString());
+        cmd.add("-pthread");
         addArguments(cmd);
         ProcessBuilder pb = new ProcessBuilder();
         pb.command(cmd);
