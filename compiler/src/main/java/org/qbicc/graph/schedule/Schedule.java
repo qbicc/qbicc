@@ -1,6 +1,9 @@
 package org.qbicc.graph.schedule;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
@@ -30,6 +33,14 @@ public interface Schedule {
     BasicBlock getBlockForNode(Node node);
 
     /**
+     * Get the list of Nodes scheduled to the given basic block.
+     *
+     * @param block the basic block to look up (must not be {@code null})
+     * @return list of nodes which are scheduled to the basic block
+     */
+    List<Node> getNodesForBlock(BasicBlock block);
+
+    /**
      * Create a schedule for the method whose entry block is the given block.
      *
      * @param entryBlock the entry block
@@ -45,15 +56,6 @@ public interface Schedule {
         BlockInfo root = new BlockInfo(entryBlock, 1);
         root.computeIndices(blockInfos, indexHolder);
         final int maxOneBasedIndex = indexHolder[0];
-        if (maxOneBasedIndex == 2) {
-            // trivial schedule
-            return new Schedule() {
-                public BasicBlock getBlockForNode(final Node node) {
-                    Assert.assertFalse(node instanceof Unschedulable);
-                    return entryBlock;
-                }
-            };
-        }
         BlockInfo[] allBlocks = new BlockInfo[maxOneBasedIndex - 1];
         // a. Map blocks into the array
         for (BlockInfo value : blockInfos.values()) {
@@ -70,13 +72,22 @@ public interface Schedule {
         Map<Node, BlockInfo> scheduledNodes = new HashMap<>();
         scheduleEarly(root, blockInfos, scheduledNodes, entryBlock);
         Map<Node, BasicBlock> finalMapping = new HashMap<>(scheduledNodes.size());
+        Map<BasicBlock, List<Node>> blockToNodesMap = new HashMap<>(allBlocks.length);
         for (Map.Entry<Node, BlockInfo> entry : scheduledNodes.entrySet()) {
             finalMapping.put(entry.getKey(), entry.getValue().block);
+            blockToNodesMap.computeIfAbsent(entry.getValue().block, k -> new ArrayList<>()).add(entry.getKey());
         }
         return new Schedule() {
             public BasicBlock getBlockForNode(final Node node) {
                 Assert.assertFalse(node instanceof Unschedulable);
                 return finalMapping.get(Assert.checkNotNullParam("node", node));
+            }
+            public List<Node> getNodesForBlock(final BasicBlock block) {
+                List<Node> nodes = blockToNodesMap.get(block);
+                if (nodes == null) {
+                    return List.of();
+                }
+                return Collections.unmodifiableList(blockToNodesMap.get(block));
             }
         };
     }

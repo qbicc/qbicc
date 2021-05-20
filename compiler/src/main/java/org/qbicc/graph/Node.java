@@ -26,6 +26,7 @@ import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
+import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
@@ -84,6 +85,7 @@ public interface Node {
         private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
         private final Terminus terminus = new Terminus();
         private final CompilationContext ctxt;
+        private final Schedule schedule;
 
         Copier(BasicBlock entryBlock, BasicBlockBuilder builder, CompilationContext ctxt,
             BiFunction<CompilationContext, NodeVisitor<Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Copier, Value, Node, BasicBlock, ValueHandle>> nodeVisitorFactory
@@ -91,6 +93,7 @@ public interface Node {
             this.entryBlock = entryBlock;
             this.ctxt = ctxt;
             blockBuilder = builder;
+            this.schedule = Schedule.forMethod(entryBlock);
             nodeVisitor = nodeVisitorFactory.apply(ctxt, terminus);
         }
 
@@ -115,7 +118,7 @@ public interface Node {
             while ((block = blockQueue.poll()) != null) {
                 // process and map all queued blocks - might enqueue more blocks or phis
                 blockBuilder.begin(copiedBlocks.get(block));
-                copyTerminator(block.getTerminator());
+                copyScheduledNodes(block);
             }
             // now process all phis (all blocks will have been enqueued)
             PhiValue orig;
@@ -162,11 +165,27 @@ public interface Node {
             return copy;
         }
 
+        public void copyScheduledNodes(BasicBlock block) {
+            try {
+                // copy all nodes except the terminator which should be the last one to be copied
+                for (Node node: schedule.getNodesForBlock(block)) {
+                    if (!(node instanceof Terminator)) {
+                        copyNode(node);
+                    }
+                }
+                copyTerminator(block.getTerminator());
+            } catch (BlockEarlyTermination term) {
+                copiedTerminators.put(block.getTerminator(), term.getTerminatedBlock());
+            }
+        }
+
         public Node copyNode(Node original) {
             if (original instanceof Value) {
                 return copyValue((Value) original);
             } else if (original instanceof Action) {
                 return copyAction((Action) original);
+            } else if (original instanceof ValueHandle) {
+                return copyValueHandle((ValueHandle) original);
             } else {
                 assert original instanceof Terminator;
                 BasicBlock block = copyTerminator((Terminator) original);
@@ -281,6 +300,7 @@ public interface Node {
             return basicBlock;
         }
 
+        // this method is needed even when copyScheduledNodes() is used to allow traversing the outbound values that are of type Unschedulable
         public void copyOutboundValues(Terminator terminator) throws BlockEarlyTermination {
             Map<PhiValue, Value> outboundValues = ((AbstractTerminator) terminator).getOutboundValues();
             for (PhiValue phiValue : outboundValues.keySet()) {
