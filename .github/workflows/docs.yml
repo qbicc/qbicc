@@ -13,8 +13,8 @@ on:
     types: [ opened, synchronize, reopened ]
 jobs:
   build-linux:
-    name: "Linux Build AArch64"
-    runs-on: [self-hosted, linux, arm64]
+    name: "Linux x86_64"
+    runs-on: ubuntu-latest
     steps:
       - name: No-Op
         run: echo Done.
