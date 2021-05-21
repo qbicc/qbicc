@@ -6,6 +6,9 @@ This is the `README` for qbicc.  There's not much here yet but be sure to read l
 
 To build the project, execute `mvn install` in the root.
 
+The first time you build qbicc, the tests will fail as the class library isn't built yet.  Use
+`mvn install -DskipTests` the first time to build so that the class library can be built.
+
 == Class Library
 
 QBICC cannot run without https://github.com/qbicc/qbicc-class-library[`qbicc-class-library`].
@@ -18,6 +21,12 @@ git clone --recurse-submodules git@github.com:qbicc/qbicc-class-library.git
 cd qbicc-class-library
 mvn install
 -----
+
+== Rebuild qbicc
+
+After building the class library, rebuild qbicc with the tests enabled using `mvn clean install` to
+get qbicc is ready for further development and use.
+
 
 == Running
 
@@ -41,3 +50,11 @@ Alternatively, clear the entire cache using:
 -----
 jbang cache clear
 -----
+
+== Requirements
+
+Please ensure the follow are installed and available on your path:
+
+* LLVM 12
+* JDK 11
+* Maven 3.6.1+
