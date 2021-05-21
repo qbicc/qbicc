@@ -363,7 +363,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
                 throw new BlockEarlyTermination(unreachable());
             }
         }
-        return new CheckCast(callSite, element, line, bci, value, toType, toDimensions, kind, outputType);
+        return asDependency(new CheckCast(callSite, element, line, bci, requireDependency(), value, toType, toDimensions, kind, outputType));
     }
 
     public Value checkcast(final Value value, final TypeDescriptor desc) {
