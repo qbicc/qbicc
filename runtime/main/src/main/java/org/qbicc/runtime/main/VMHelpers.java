@@ -309,8 +309,8 @@ public final class VMHelpers {
         }
         // ==== end better at build time section
         assert state != null;
-        boolean wasInterrupted = false;
-        try {
+        // boolean wasInterrupted = false;
+        // try {
             synchronized(state) { // state is the "LC"
                 if (state.isInProgress()) {
                     if (!state.beingInitializedByMe(currentThread)) {
@@ -320,7 +320,7 @@ public final class VMHelpers {
                                 state.wait();
                             } catch (InterruptedException e) {
                                 // Don't repeat, keep waiting
-                                wasInterrupted = true;
+                                // wasInterrupted = true;
                             }
                         }
                     } else {
@@ -385,14 +385,14 @@ public final class VMHelpers {
             if (clinitThrowable != null) {
                 throw clinitThrowable;
             }
-            return;
-        } finally {
-            /* Interrupted status can only be propagated when the initialization sequence
-             * is complete.  Otherwise, classes in progress may be recorded as erroreous.
-             */
-            if (wasInterrupted) {
-                Thread.currentThread().interrupt();
-            }
-        }
+        // } finally {
+        //     /* Interrupted status can only be propagated when the initialization sequence
+        //      * is complete.  Otherwise, classes in progress may be recorded as erroreous.
+        //      */
+        //     if (wasInterrupted) {
+        //         Thread.currentThread().interrupt();
+        //     }
+        // }
+        return;
     }
 }
