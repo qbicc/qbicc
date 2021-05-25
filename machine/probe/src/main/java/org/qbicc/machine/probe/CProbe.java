@@ -30,6 +30,7 @@ import org.qbicc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
@@ -769,6 +770,21 @@ public final class CProbe {
                 return buf.get() & 0xff;
             } else {
                 return 0;
+            }
+        }
+
+        public Literal getValueAsLiteralOfType(TypeSystem ts, LiteralFactory lf, ValueType valueType) {
+            if (valueType instanceof SignedIntegerType) {
+                return lf.literalOf((SignedIntegerType) valueType, getValueAsSignedLong());
+            } else if (valueType instanceof UnsignedIntegerType) {
+                return lf.literalOf((UnsignedIntegerType) valueType, getValueAsUnsignedLong());
+            } else if (valueType instanceof BooleanType) {
+                return lf.literalOf(getValueAsUnsignedLong() != 0);
+            } else if (valueType instanceof ArrayType) {
+                return lf.literalOf((ArrayType) valueType, value);
+            } else {
+                /* try again with the constant's natural type if one of these types is not specified. */
+                return getValueAsLiteral(ts, lf);
             }
         }
 
