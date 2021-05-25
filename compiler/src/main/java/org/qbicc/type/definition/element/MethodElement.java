@@ -57,6 +57,14 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         return hasNoModifiersOf(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.ACC_STATIC);
     }
 
+    public boolean isNative() {
+        return hasAllModifiersOf(ClassFile.ACC_NATIVE);
+    }
+
+    public boolean isSignaturePolymorphic() {
+        return hasAllModifiersOf(ClassFile.I_ACC_SIGNATURE_POLYMORPHIC);
+    }
+
     public <T, R> R accept(final ElementVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
