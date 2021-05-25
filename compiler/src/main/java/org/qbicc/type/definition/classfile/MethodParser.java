@@ -144,6 +144,13 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             this.phi = gf.phi(throwable.load().getType().getReference().asNullable(), new BlockLabel());
         }
 
+        private void clearExceptionField() {
+            Value thr = gf.getFirstBuilder().currentThread();
+            FieldElement exceptionField = ctxt.getCompilationContext().getExceptionField();
+            ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(thr), exceptionField);
+            gf.store(handle, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(handle.getValueType()), MemoryAtomicityMode.NONE);
+        }
+
         public BlockLabel getHandler() {
             return phi.getPinnedBlockLabel();
         }
@@ -180,10 +187,12 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 Value[] stack = saveStack();
                 clearStack();
                 int pos = buffer.position();
+                int previousbci = currentbci;
                 buffer.position(pc);
                 if (single) {
                     gf.begin(block);
                     push1(gf.bitCast(phi, exType));
+                    clearExceptionField();
                     processNewBlock();
                 } else {
                     push1(gf.bitCast(phi, exType));
@@ -191,6 +200,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 }
                 // restore everything like nothing happened...
                 buffer.position(pos);
+                currentbci = previousbci;
                 restoreLocals(locals);
                 restoreStack(stack);
             }

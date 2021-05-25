@@ -25,6 +25,8 @@ public final class Types {
 
     public static final LLValue void_ = LLVM.void_;
 
+    public static final LLValue token = LLVM.token;
+
     public static final LLValue metadata = LLVM.metadata;
 
     public static LLValue ptrTo(LLValue type) {

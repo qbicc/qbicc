@@ -584,7 +584,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     <N extends Node & Triable> N optionallyTry(N op, boolean ordered) {
         ExceptionHandler exceptionHandler = getExceptionHandler();
         // todo: temporarily disable until exception handlers are fixed
-        if (false && exceptionHandler != null) {
+        if (true && exceptionHandler != null) {
             BlockLabel resume = new BlockLabel();
             BlockLabel handler = exceptionHandler.getHandler();
             BlockLabel setupHandler = new BlockLabel();
@@ -597,7 +597,6 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
             FieldElement exceptionField = ctxt.getExceptionField();
             ValueHandle handle = instanceFieldOf(referenceHandle(thr), exceptionField);
             Value exceptionValue = load(handle, MemoryAtomicityMode.NONE);
-            store(handle, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(handle.getValueType()), MemoryAtomicityMode.NONE);
             BasicBlock sourceBlock = goto_(handler);
             exceptionHandler.enterHandler(sourceBlock, exceptionValue);
             begin(resume);
