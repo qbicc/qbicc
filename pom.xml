@@ -323,12 +323,6 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>qbicc-plugin-patcher</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-plugin-reachability</artifactId>
                 <version>${project.version}</version>
             </dependency>
