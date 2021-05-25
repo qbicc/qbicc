@@ -97,6 +97,8 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
 
     private void processConstant(final FieldElement fieldElement) {
         Constants constants = Constants.get(ctxt);
+        /* Capture location during the ADD phase since constants are defined lazily. */
+        Location location = getLocation();
         constants.registerConstant(fieldElement, () -> {
             CProbe.Builder builder = CProbe.builder();
             // get the element's info
@@ -114,7 +116,6 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
                 ProbeUtils.processCommonAnnotation(builder, annotation);
             }
             // todo: recursively process enclosing types (requires InnerClasses support)
-            Location location = getLocation();
             builder.probeConstant(name, location.getSourceFilePath(), location.getLineNumber());
             // run the probe
             CProbe probe = builder.build();
