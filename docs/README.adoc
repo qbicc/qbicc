@@ -58,3 +58,25 @@ Please ensure the follow are installed and available on your path:
 * LLVM 12
 * JDK 11
 * Maven 3.6.1+
+
+=== MacOS
+
+The `libgcc_s.dylib` is also required to be available and must be present (or symlinked) to
+`/usr/local/lib/libgcc_s.dylib`.
+
+One way to get this library, if it's not already on your system, is to `brew install gcc`
+and symlink the file.
+
+For Catalina, it may already be present and the following symlink will resolve the compile
+failures
+[source,shell]
+-----
+ln -s /usr/lib/libgcc_s.1.dylib /usr/local/lib/libgcc_s.dylib
+-----
+
+For BigSur, the `brew install gcc` path is likely necessary and following symlink resolves
+the issue
+[source,shell]
+-----
+ln -s /usr/local/Cellar/gcc/11.1.0/lib/gcc/11/libgcc_s.1.dylib /usr/local/lib/libgcc_s.dylib
+-----
