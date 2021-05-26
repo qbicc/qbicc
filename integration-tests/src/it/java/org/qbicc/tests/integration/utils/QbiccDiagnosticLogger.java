@@ -19,6 +19,7 @@ public class QbiccDiagnosticLogger implements Consumer<Iterable<Diagnostic>> {
             switch (diagnostic.getLevel()) {
                 case ERROR:
                     logger.error(message);
+                    break;
                 case WARNING:
                     logger.warn(message);
                     break;
