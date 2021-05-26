@@ -124,7 +124,7 @@ public interface Schedule {
                 selected = candidate;
             }
         }
-        if (node instanceof OrderedNode && ((OrderedNode) node).hasDependency()) {
+        if (node instanceof OrderedNode) {
             Node dependency = ((OrderedNode) node).getDependency();
             BlockInfo candidate = scheduleEarly(root, blockInfos, scheduledNodes, dependency);
             if (candidate.domDepth > selected.domDepth) {
