@@ -640,36 +640,45 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value call(ValueHandle target, List<Value> arguments) {
+        // todo: this should be done in a separate BBB
+        ExceptionHandler exceptionHandler = getExceptionHandler();
+        if (exceptionHandler != null) {
+            // promote to invoke
+            return promoteToInvoke(target, arguments, exceptionHandler);
+        }
         return asDependency(new Call(callSite, element, line, bci, requireDependency(), target, arguments));
     }
 
     public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+        // todo: this should be done in a separate BBB
+        ExceptionHandler exceptionHandler = getExceptionHandler();
+        if (exceptionHandler != null) {
+            // promote to invoke
+            return promoteToInvoke(target, arguments, exceptionHandler);
+        }
         return new CallNoSideEffects(callSite, element, line, bci, target, arguments);
     }
 
-    <N extends Node> N optionallyTry(N op, boolean ordered) {
-        ExceptionHandler exceptionHandler = getExceptionHandler();
-        // todo: temporarily disable until exception handlers are fixed
-        if (true && exceptionHandler != null) {
-            BlockLabel resume = new BlockLabel();
-            BlockLabel handler = exceptionHandler.getHandler();
-            BlockLabel setupHandler = new BlockLabel();
-            //try_(op, resume, setupHandler);
-            // this is the entry point for the stack unwinder
-            begin(setupHandler);
-            ClassContext classContext = element.getEnclosingType().getContext();
-            CompilationContext ctxt = classContext.getCompilationContext();
-            Value thr = getFirstBuilder().currentThread();
-            FieldElement exceptionField = ctxt.getExceptionField();
-            ValueHandle handle = instanceFieldOf(referenceHandle(thr), exceptionField);
-            Value exceptionValue = load(handle, MemoryAtomicityMode.NONE);
-            BasicBlock sourceBlock = goto_(handler);
-            exceptionHandler.enterHandler(sourceBlock, exceptionValue);
-            begin(resume);
-            return op;
-        } else {
-            return ordered ? asDependency(op) : op;
-        }
+    private Value promoteToInvoke(final ValueHandle target, final List<Value> arguments, final ExceptionHandler exceptionHandler) {
+        BlockLabel resume = new BlockLabel();
+        BlockLabel setupHandler = new BlockLabel();
+        Value result = invoke(target, arguments, setupHandler, resume);
+        // this is the entry point for the stack unwinder
+        setUpHandler(exceptionHandler, setupHandler);
+        begin(resume);
+        return result;
+    }
+
+    private void setUpHandler(final ExceptionHandler exceptionHandler, final BlockLabel setupHandler) {
+        begin(setupHandler);
+        ClassContext classContext = element.getEnclosingType().getContext();
+        CompilationContext ctxt = classContext.getCompilationContext();
+        Value thr = getFirstBuilder().currentThread();
+        FieldElement exceptionField = ctxt.getExceptionField();
+        ValueHandle handle = instanceFieldOf(referenceHandle(thr), exceptionField);
+        Value exceptionValue = load(handle, MemoryAtomicityMode.NONE);
+        BasicBlock sourceBlock = goto_(exceptionHandler.getHandler());
+        exceptionHandler.enterHandler(sourceBlock, exceptionValue);
     }
 
     public BlockLabel getHandler() {
@@ -716,6 +725,16 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+        // todo: this should be done in a separate BBB
+        ExceptionHandler exceptionHandler = getExceptionHandler();
+        if (exceptionHandler != null) {
+            // promote to invoke
+            BlockLabel setupHandler = new BlockLabel();
+            BasicBlock result = invokeNoReturn(target, arguments, setupHandler);
+            // this is the entry point for the stack unwinder
+            setUpHandler(exceptionHandler, setupHandler);
+            return result;
+        }
         return terminate(requireCurrentBlock(), new CallNoReturn(callSite, element, line, bci, blockEntry, dependency, target, arguments));
     }
 
@@ -724,6 +743,16 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        // todo: this should be done in a separate BBB
+        ExceptionHandler exceptionHandler = getExceptionHandler();
+        if (exceptionHandler != null) {
+            // promote to invoke
+            BlockLabel setupHandler = new BlockLabel();
+            BasicBlock result = tailInvoke(target, arguments, setupHandler);
+            // this is the entry point for the stack unwinder
+            setUpHandler(exceptionHandler, setupHandler);
+            return result;
+        }
         return terminate(requireCurrentBlock(), new TailCall(callSite, element, line, bci, blockEntry, dependency, target, arguments));
     }
 
