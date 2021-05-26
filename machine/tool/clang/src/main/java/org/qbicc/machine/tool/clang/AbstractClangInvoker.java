@@ -45,7 +45,8 @@ abstract class AbstractClangInvoker implements MessagingToolInvoker {
         return tool.getExecutablePath();
     }
 
-    static final Pattern DIAG_PATTERN = Pattern.compile("([^:]+):(\\d+):(?:(\\d+):)? (?i:error|warning|note): (.*)(?: \\[-[^]]+])?");
+    static final Pattern DIAG_PATTERN = Pattern.compile(
+        "([^ :]+):(?:(\\d+):(?:(\\d+):)?)? (?i:(?<levelStr>error|warning|note): )?(?<msg>.*)(?: \\[-[^]]+])?");
 
     void collectError(final Reader reader) throws IOException {
         final ToolMessageHandler handler = getMessageHandler();
@@ -54,19 +55,29 @@ abstract class AbstractClangInvoker implements MessagingToolInvoker {
             Matcher matcher;
             while ((line = br.readLine()) != null) {
                 matcher = DIAG_PATTERN.matcher(line.trim());
+                ToolMessageHandler.Level level = ToolMessageHandler.Level.ERROR;
+                String fileOrExecutable = "";
+                String msg = line;
+                int lnum = -1;
                 if (matcher.matches()) {
-                    String levelStr = matcher.group(4);
-                    ToolMessageHandler.Level level;
-                    String msg;
-                    switch (levelStr) {
-                        case "note": level = ToolMessageHandler.Level.INFO; msg = matcher.group(5); break;
-                        case "warning": level = ToolMessageHandler.Level.WARNING; msg = matcher.group(5); break;
-                        case "error": level = ToolMessageHandler.Level.ERROR; msg = matcher.group(5); break;
-                        default: level = ToolMessageHandler.Level.ERROR; msg = levelStr; break;
+                    fileOrExecutable = matcher.group(1);
+                    try {
+                        lnum = Integer.parseInt(matcher.group(2));
+                    } catch (NumberFormatException e) {
+                        // just keep lnum at -1
                     }
-                    // don't log potentially misleading line numbers
-                    handler.handleMessage(this, level, matcher.group(1), Integer.parseInt(matcher.group(2)), -1, msg);
+                    String levelStr = matcher.group("levelStr");
+                    msg = matcher.group("msg");
+                    if (levelStr != null) {
+                        switch (levelStr) {
+                            case "note": level = ToolMessageHandler.Level.INFO; break;
+                            case "warning": level = ToolMessageHandler.Level.WARNING; break;
+                            case "error": level = ToolMessageHandler.Level.ERROR; break;
+                        }
+                    }
                 }
+                // don't log potentially misleading line numbers
+                handler.handleMessage(this, level, fileOrExecutable, lnum, -1, msg);
             }
         }
     }
