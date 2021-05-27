@@ -3,7 +3,6 @@ package org.qbicc.graph;
 import java.util.Objects;
 
 import org.qbicc.type.ArrayType;
-import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**

@@ -1,9 +1,7 @@
 package org.qbicc.plugin.lowering;
 
 import org.qbicc.context.CompilationContext;
-import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
-import org.qbicc.type.definition.element.MethodElement;
 
 import java.util.function.Consumer;
 

@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import org.qbicc.context.Diagnostic;
 import org.qbicc.context.DiagnosticContext;
 import org.qbicc.tests.integration.utils.TestConstants;
 import org.qbicc.tests.integration.utils.Javac;
