@@ -196,6 +196,9 @@ public interface Node {
         public Value copyValue(Value original) {
             Value copy = (Value) copiedNodes.get(original);
             if (copy == null) {
+                if (! (original instanceof Unschedulable) && schedule.getBlockForNode(original) == null) {
+                    throw new IllegalStateException("Missing schedule for node");
+                }
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
@@ -250,6 +253,9 @@ public interface Node {
         public Node copyAction(Action original) {
             Node copy = copiedNodes.get(original);
             if (copy == null) {
+                if (! (original instanceof Unschedulable) && schedule.getBlockForNode(original) == null) {
+                    throw new IllegalStateException("Missing schedule for node");
+                }
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
@@ -271,6 +277,9 @@ public interface Node {
         public BasicBlock copyTerminator(Terminator original) {
             BasicBlock basicBlock = copiedTerminators.get(original);
             if (basicBlock == null) {
+                if (! (original instanceof Unschedulable) && schedule.getBlockForNode(original) == null) {
+                    throw new IllegalStateException("Missing schedule for node");
+                }
                 // copy the terminator and its dependencies
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
