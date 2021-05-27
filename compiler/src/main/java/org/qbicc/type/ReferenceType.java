@@ -233,8 +233,7 @@ public final class ReferenceType extends NullableType {
         }
         InterfaceObjectType[] newArray = new InterfaceObjectType[newSize];
         int j = 0;
-        for (int i = 0; i < len; i++) {
-            InterfaceObjectType item = array[i];
+        for (InterfaceObjectType item : array) {
             if (item != null) {
                 newArray[j++] = item;
             }
@@ -300,8 +299,7 @@ public final class ReferenceType extends NullableType {
                 otherArray[i] = null;
                 continue;
             }
-            for (int j = 0; j < ourSize; j ++) {
-                InterfaceObjectType ourItem = ourArray[j];
+            for (InterfaceObjectType ourItem : ourArray) {
                 if (ourItem.isSubtypeOf(theirItem)) {
                     // ours is better than theirs; drop theirs
                     otherArray[i] = null;
@@ -314,8 +312,7 @@ public final class ReferenceType extends NullableType {
         // now spin through ourArray and punch out holes for bounds covered by theirs
         nextOurs: for (int i = 0; i < ourSize; i++) {
             InterfaceObjectType ourItem = ourArray[i];
-            for (int j = 0; j < otherSize; j ++) {
-                InterfaceObjectType theirItem = otherArray[j];
+            for (InterfaceObjectType theirItem : otherArray) {
                 if (theirItem != null && theirItem.isSubtypeOf(ourItem)) {
                     // theirs is better than ours; drop ours
                     ourArray[i] = null;
