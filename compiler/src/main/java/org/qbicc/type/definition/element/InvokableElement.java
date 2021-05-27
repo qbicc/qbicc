@@ -34,6 +34,7 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     volatile MethodBody methodBody;
     final int minimumLineNumber;
     final int maximumLineNumber;
+    boolean inProgress;
 
     InvokableElement() {
         super();
@@ -94,12 +95,43 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
                 synchronized (this) {
                     methodBody = this.methodBody;
                     if (methodBody == null) {
-                        this.methodBody = previousMethodBody = methodBody = factory.createMethodBody(methodBodyFactoryIndex, this);
+                        if (inProgress) {
+                            throw new IllegalStateException("Recursive method body creation");
+                        }
+                        inProgress = true;
+                        try {
+                            this.methodBody = previousMethodBody = methodBody = factory.createMethodBody(methodBodyFactoryIndex, this);
+                        } finally {
+                            inProgress = false;
+                        }
                     }
                 }
             }
         }
         return methodBody;
+    }
+
+    public void tryCreateMethodBody() {
+        MethodBody methodBody = this.methodBody;
+        if (methodBody == null) {
+            MethodBodyFactory factory = this.methodBodyFactory;
+            if (factory != null) {
+                synchronized (this) {
+                    methodBody = this.methodBody;
+                    if (methodBody == null) {
+                        if (inProgress) {
+                            return;
+                        }
+                        inProgress = true;
+                        try {
+                            this.methodBody = previousMethodBody = factory.createMethodBody(methodBodyFactoryIndex, this);
+                        } finally {
+                            inProgress = false;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void replaceMethodBody(final MethodBody replacement) {

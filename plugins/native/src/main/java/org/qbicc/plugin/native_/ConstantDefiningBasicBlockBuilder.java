@@ -37,13 +37,21 @@ import org.qbicc.type.descriptor.ClassTypeDescriptor;
 public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, Value> {
     private final CompilationContext ctxt;
 
-    public ConstantDefiningBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    private ConstantDefiningBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         ExecutableElement element = getCurrentElement();
         if (element instanceof InitializerElement) {
             NativeInfo.get(ctxt).registerInitializer((InitializerElement) element);
         }
         this.ctxt = ctxt;
+    }
+
+    public static BasicBlockBuilder createIfNeeded(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+        if (delegate.getCurrentElement() instanceof InitializerElement) {
+            return new ConstantDefiningBasicBlockBuilder(ctxt, delegate);
+        } else {
+            return delegate;
+        }
     }
 
     @Override
