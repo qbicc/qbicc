@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.AbstractProgramObjectHandle;
@@ -94,8 +95,10 @@ import org.qbicc.machine.llvm.Values;
 import org.qbicc.machine.llvm.impl.LLVM;
 import org.qbicc.machine.llvm.op.Call;
 import org.qbicc.machine.llvm.op.GetElementPtr;
+import org.qbicc.machine.llvm.op.Instruction;
 import org.qbicc.machine.llvm.op.OrderingConstraint;
 import org.qbicc.machine.llvm.op.Phi;
+import org.qbicc.machine.llvm.op.YieldingInstruction;
 import org.qbicc.object.Function;
 import org.qbicc.plugin.unwind.UnwindHelper;
 import org.qbicc.type.BooleanType;
@@ -115,7 +118,7 @@ import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
-final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, GetElementPtr> {
+final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, Instruction, GetElementPtr> {
     final CompilationContext ctxt;
     final Module module;
     final LLVMModuleDebugInfo debugInfo;
@@ -191,12 +194,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
 
     // actions
 
-    public Void visit(final Void param, final BlockEntry node) {
+    public Instruction visit(final Void param, final BlockEntry node) {
         // no operation
         return null;
     }
 
-    public Void visit(final Void param, final Store node) {
+    public Instruction visit(final Void param, final Store node) {
         map(node.getDependency());
         ValueHandle valueHandle = node.getValueHandle();
         LLValue ptr;
@@ -213,70 +216,60 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         } else if (node.getMode() == MemoryAtomicityMode.UNORDERED) {
             storeInsn.atomic(OrderingConstraint.unordered);
         }
-        return null;
+        return storeInsn;
     }
 
-    public Void visit(final Void param, final Fence node) {
+    public Instruction visit(final Void param, final Fence node) {
         map(node.getDependency());
         MemoryAtomicityMode mode = node.getAtomicityMode();
         switch (mode) {
             case ACQUIRE:
-                builder.fence(OrderingConstraint.acquire);
-                break;
+                return builder.fence(OrderingConstraint.acquire);
             case RELEASE:
-                builder.fence(OrderingConstraint.release);
-                break;
+                return builder.fence(OrderingConstraint.release);
             case ACQUIRE_RELEASE:
-                builder.fence(OrderingConstraint.acq_rel);
-                break;
+                return builder.fence(OrderingConstraint.acq_rel);
             case SEQUENTIALLY_CONSISTENT:
-                builder.fence(OrderingConstraint.seq_cst);
-                break;
+                return builder.fence(OrderingConstraint.seq_cst);
         }
-        return null;
+        throw Assert.unreachableCode();
     }
 
     // terminators
 
-    public Void visit(final Void param, final Goto node) {
+    public Instruction visit(final Void param, final Goto node) {
         map(node.getDependency());
-        builder.br(map(node.getResumeTarget()));
-        return null;
+        return builder.br(map(node.getResumeTarget()));
     }
 
-    public Void visit(final Void param, final If node) {
+    public Instruction visit(final Void param, final If node) {
         map(node.getDependency());
-        builder.br(map(node.getCondition()), map(node.getTrueBranch()), map(node.getFalseBranch()));
-        return null;
+        return builder.br(map(node.getCondition()), map(node.getTrueBranch()), map(node.getFalseBranch()));
     }
 
-    public Void visit(final Void param, final Return node) {
+    public Instruction visit(final Void param, final Return node) {
         map(node.getDependency());
-        builder.ret();
-        return null;
+        return builder.ret();
     }
 
-    public Void visit(final Void param, final Unreachable node) {
+    public Instruction visit(final Void param, final Unreachable node) {
         map(node.getDependency());
-        builder.unreachable();
-        return null;
+        return builder.unreachable();
     }
 
-
-    public Void visit(final Void param, final Switch node) {
+    public Instruction visit(final Void param, final Switch node) {
         map(node.getDependency());
         org.qbicc.machine.llvm.op.Switch switchInst = builder.switch_(i32, map(node.getSwitchValue()), map(node.getDefaultTarget()));
 
         for (int i = 0; i < node.getNumberOfValues(); i++)
             switchInst.case_(Values.intConstant(node.getValueForIndex(i)), map(node.getTargetForIndex(i)));
 
-        return null;
+        return switchInst;
     }
 
-    public Void visit(final Void param, final ValueReturn node) {
+    public Instruction visit(final Void param, final ValueReturn node) {
         map(node.getDependency());
-        builder.ret(map(node.getReturnValue().getType()), map(node.getReturnValue()));
-        return null;
+        return builder.ret(map(node.getReturnValue().getType()), map(node.getReturnValue()));
     }
 
     // values
@@ -766,11 +759,13 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
 
     public LLValue visit(final Void param, final Invoke.ReturnValue node) {
         map(node.getDependency());
-        map(node.getInvoke().getTerminatedBlock());
-        // should already be registered by now
+        LLBasicBlock invokeBlock = map(node.getInvoke().getTerminatedBlock());
+        // should already be registered by now in most cases
         LLValue llValue = mappedValues.get(node);
         if (llValue == null) {
-            throw new IllegalStateException();
+            // map late
+            postMap(node.getInvoke().getTerminatedBlock(), invokeBlock);
+            llValue = mappedValues.get(node);
         }
         return llValue;
     }
@@ -832,7 +827,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     }
 
     @Override
-    public Void visit(Void param, CallNoReturn node) {
+    public Instruction visit(Void param, CallNoReturn node) {
         map(node.getDependency());
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();
@@ -845,12 +840,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         Call call = builder.call(llType, llTarget).noTail().attribute(FunctionAttributes.noreturn);
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        builder.unreachable();
-        return null;
+        return builder.unreachable();
     }
 
     @Override
-    public Void visit(Void param, TailCall node) {
+    public Instruction visit(Void param, TailCall node) {
         map(node.getDependency());
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();
@@ -865,15 +859,14 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         setCallReturnValue(call, functionType);
         ValueType returnType = node.getFunctionType().getReturnType();
         if (returnType instanceof VoidType) {
-            builder.ret();
+            return builder.ret();
         } else {
-            builder.ret(map(returnType), call.asLocal());
+            return builder.ret(map(returnType), call.asLocal());
         }
-        return null;
     }
 
     @Override
-    public Void visit(Void param, Invoke node) {
+    public Instruction visit(Void param, Invoke node) {
         map(node.getDependency());
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();
@@ -882,6 +875,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         LLValue llTarget = getCallTarget(valueHandle);
         // two scans - once to populate the maps, and then once to emit the call in the right order
         preMapArgumentList(arguments);
+        if (mappedValues.containsKey(node.getReturnValue())) {
+            // already done
+            return null;
+        }
         LLBasicBlock resume = checkMap(node.getResumeTarget());
         boolean postMapResume = resume == null;
         if (postMapResume) {
@@ -903,11 +900,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        return null;
+        return call;
     }
 
     @Override
-    public Void visit(Void param, InvokeNoReturn node) {
+    public Instruction visit(Void param, InvokeNoReturn node) {
         map(node.getDependency());
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();
@@ -930,11 +927,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
-        return null;
+        return call;
     }
 
     @Override
-    public Void visit(Void param, TailInvoke node) {
+    public Instruction visit(Void param, TailInvoke node) {
         map(node.getDependency());
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();
@@ -962,7 +959,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             LLVM.newBuilder(tailTarget).ret(map(returnType), call.asLocal());
         }
         addPersonalityIfNeeded();
-        return null;
+        return call;
     }
 
     private void preMapArgumentList(final List<Value> arguments) {
@@ -1039,7 +1036,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         if (nextHandle instanceof PointerHandle) {
             PointerHandle ptrHandle = (PointerHandle) nextHandle;
             // special case: element-of-pointer
-            return gep(map(ptrHandle.getPointerValue()), ptrHandle).arg(false, indexType, index);
+            GetElementPtr gep = gep(map(ptrHandle.getPointerValue()), ptrHandle);
+            gep.comment("index [" + node.getIndex() + "]");
+            return gep.arg(false, indexType, index);
         }
         return nextHandle.accept(this, param).arg(false, indexType, index);
     }
@@ -1047,7 +1046,9 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     @Override
     public GetElementPtr visit(Void param, MemberOf node) {
         LLValue index = map(node.getStructType(), node.getMember());
-        return node.getValueHandle().accept(this, param).arg(false, i32, index);
+        GetElementPtr gep = node.getValueHandle().accept(this, param);
+        gep.comment("member " + node.getMember().getName());
+        return gep.arg(false, i32, index);
     }
 
     @Override
@@ -1081,12 +1082,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         return node.accept(moduleVisitor, null);
     }
 
-    public Void visitUnknown(final Void param, final Action node) {
+    public Instruction visitUnknown(final Void param, final Action node) {
         ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unrecognized action %s", node.getClass());
         return null;
     }
 
-    public Void visitUnknown(final Void param, final Terminator node) {
+    public Instruction visitUnknown(final Void param, final Terminator node) {
         ctxt.error(functionObj.getOriginalElement(), node, "llvm: Unrecognized terminator %s", node.getClass());
         return null;
     }
@@ -1157,10 +1158,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
     }
 
     private LLBasicBlock postMap(final BasicBlock block, LLBasicBlock mapped) {
-        LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(block.getTerminator()));
+        Terminator terminator = block.getTerminator();
+        LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(terminator));
         LLBasicBlock oldBuilderBlock = builder.moveToBlock(mapped);
 
-        block.getTerminator().accept(this, null);
+        Instruction instruction = terminator.accept(this, null);
+        addLineComment(terminator, instruction);
 
         builder.setDebugLocation(oldBuilderDebugLocation);
         builder.moveToBlock(oldBuilderBlock);
@@ -1196,7 +1199,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
             LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(action));
             LLBasicBlock oldBuilderBlock = builder.moveToBlock(map(schedule.getBlockForNode(action)));
 
-            action.accept(this, null);
+            Instruction instruction = action.accept(this, null);
+            addLineComment(action, instruction);
 
             builder.setDebugLocation(oldBuilderDebugLocation);
             builder.moveToBlock(oldBuilderBlock);
@@ -1219,12 +1223,20 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Void, Void, Ge
         if (mapped == null) {
             LLValue oldBuilderDebugLocation = builder.setDebugLocation(dbg(value));
             mapped = value.accept(this, null);
+            YieldingInstruction instruction = mapped.getInstruction();
+            addLineComment(value, instruction);
             mappedValues.put(value, mapped);
             builder.setDebugLocation(oldBuilderDebugLocation);
         }
 
         builder.moveToBlock(oldBuilderBlock);
         return mapped;
+    }
+
+    private void addLineComment(final Node node, final Instruction instruction) {
+        if (instruction != null) {
+            instruction.comment(node.getElement().getSourceFileName() + ":" + node.getSourceLine() + " bci@" + node.getBytecodeIndex());
+        }
     }
 
     private void map(Node unknown) {

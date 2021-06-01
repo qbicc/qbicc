@@ -37,7 +37,7 @@ abstract class AbstractYieldingInstruction extends AbstractInstruction implement
     }
 
     public LLValue asLocal(final String name) {
-        return setLValue(new NamedLocalValueOf(name));
+        return setLValue(new NamedLocalValueOf(this, name));
     }
 
     AbstractValue setLValue(AbstractValue value) {
