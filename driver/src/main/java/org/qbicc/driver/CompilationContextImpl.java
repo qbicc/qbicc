@@ -228,6 +228,7 @@ final class CompilationContextImpl implements CompilationContext {
     }
 
     public void registerEntryPoint(final ExecutableElement method) {
+        enqueue(method);
         entryPoints.add(method);
     }
 
