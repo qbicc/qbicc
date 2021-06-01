@@ -43,10 +43,8 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
         // cause the class to be initialized
-        InitializerElement initializer = target.getEnclosingType().load().getInitializer();
-        if (initializer != null) {
-            ctxt.enqueue(initializer);
-        }
+        LoadedTypeDefinition ltd = target.getEnclosingType().load();
+        enqueueClassInitializers(ltd);
         ctxt.enqueue(target);
         return super.invokeStatic(target, arguments);
     }
@@ -62,10 +60,8 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
         // cause the class to be initialized
-        InitializerElement initializer = target.getEnclosingType().load().getInitializer();
-        if (initializer != null) {
-            ctxt.enqueue(initializer);
-        }
+        LoadedTypeDefinition ltd = target.getEnclosingType().load();
+        enqueueClassInitializers(ltd);
         ctxt.enqueue(target);
         return super.invokeValueStatic(target, arguments);
     }
@@ -81,11 +77,10 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
 
     public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
         // cause the class to be initialized
-        InitializerElement initializer = target.getEnclosingType().load().getInitializer();
-        if (initializer != null) {
-            ctxt.enqueue(initializer);
-        }
-        processInstantiatedClass(target.getEnclosingType().load(), true, false);
+        LoadedTypeDefinition ltd = target.getEnclosingType().load();
+        enqueueClassInitializers(ltd);
+        
+        processInstantiatedClass(ltd, true, false);
         ctxt.enqueue(target);
         return super.invokeConstructor(instance, target, arguments);
     }
@@ -123,7 +118,8 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
     public ValueHandle staticField(FieldElement field) {
         DefinedTypeDefinition enclosingType = field.getEnclosingType();
         // initialize referenced field
-        ctxt.enqueue(enclosingType.load().getInitializer());
+        LoadedTypeDefinition ltd = enclosingType.load();
+        enqueueClassInitializers(ltd);
         return super.staticField(field);
     }
 
@@ -132,6 +128,36 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         MethodElement methodElement = ctxt.getVMHelperMethod("classof_from_typeid");
         ctxt.enqueue(methodElement);
         return super.classOf(typeId);
+    }
+
+    void enqueueClassInitializers(final LoadedTypeDefinition ltd) {
+        if (ltd.isInterface()) {
+            // a static field access or static method call on an interface
+            // only enqueues the interface's <clinit>, not it's super class
+            // or interfaces
+            ctxt.enqueue(ltd.getInitializer());
+        } else {
+            // For a class, walk the class heirarchy and enqueue the all
+            // <clinit> in the superclass chain
+            LoadedTypeDefinition iterator = ltd;
+            while (iterator != null) {
+                InitializerElement initializer = iterator.getInitializer();
+                if (initializer != null) {
+                    ctxt.enqueue(initializer);
+                }
+                iterator = iterator.getSuperClass();
+            }
+            // Walk all interfaces implemented by the current class and its supers
+            // and enqueue their <clinit> if they have a default method
+            ltd.forEachInterfaceFullImplementedSet(i -> {
+                if (i.declaresDefaultMethods()) {
+                    InitializerElement initializer = i.getInitializer();
+                    if (initializer != null) {
+                        ctxt.enqueue(initializer);
+                    }
+                }
+            });
+        }
     }
 
     private void processInstantiatedClass(final LoadedTypeDefinition type, boolean directlyInstantiated, boolean arrayElement) {

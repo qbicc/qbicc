@@ -38,7 +38,21 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
 
     LoadedTypeDefinition getInterface(int index) throws IndexOutOfBoundsException;
 
+    /**
+     * Walk the locally declared interfaces
+     * 
+     * @return an array of LoadedTypeDefinition declared by this class.
+     */
     LoadedTypeDefinition[] getInterfaces();
+
+    /**
+     * Walk the set of interfaces implemented by this class and its superclasses.
+     *
+     * Note, interfaces may occur more than once in this walk.
+     *
+     * @param function the Consumer of the interfaces
+     */
+    void forEachInterfaceFullImplementedSet(Consumer<LoadedTypeDefinition> function);
 
     default boolean isSubtypeOf(LoadedTypeDefinition other) {
         return getType().isSubtypeOf(other.getType());

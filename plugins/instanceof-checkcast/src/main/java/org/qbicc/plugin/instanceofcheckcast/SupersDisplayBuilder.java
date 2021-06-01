@@ -83,7 +83,7 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
 
         tables.writeTypeIdToClasses();
 
-        // emit the typeid[] into Object's file
-        tables.emitTypeIdTable(jlo);
+        tables.defineTypeIdStructAndGlobalArray(jlo);
+        tables.defineClinitStatesGlobal(jlo);
     }
 }

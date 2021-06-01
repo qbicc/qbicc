@@ -13,16 +13,19 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.object.Function;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables.IdAndRange.Factory;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.generic.BaseTypeSignature;
 import io.smallrye.common.constraint.Assert;
@@ -48,6 +51,9 @@ public class SupersDisplayTables {
     static final String GLOBAL_TYPEID_ARRAY = "qbicc_typeid_array";
     private GlobalVariableElement typeIdArrayGlobal;
     private CompoundType typeIdStructType;
+
+    static final String GLOBAL_CLINIT_STATES_STRUCT = "qbicc_clinit_states";
+    private GlobalVariableElement clinitStatesGlobal;
 
     /** 
      * This class embodies the typeid for a class and the
@@ -361,7 +367,31 @@ public class SupersDisplayTables {
         return List.of(literals);
     }
 
-    void emitTypeIdTable(LoadedTypeDefinition jlo) {
+    /**
+     * Flags:
+     * 1 - has clinit method
+     * 2 - declares default methods
+     * 4 - has default methods
+     */
+    Literal calculateTypeIdFlags(final UnsignedIntegerType type, LoadedTypeDefinition ltd) {
+        int flags = 0;
+        InitializerElement initializer = ltd.getInitializer();
+        if (initializer != null && initializer.hasMethodBody()) {
+            flags |= 1;
+        }
+        if (ltd.declaresDefaultMethods()) {
+            flags |= 2;
+        }
+        if (ltd.hasDefaultMethods()) {
+            flags |= 4;
+        }
+        
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        supersLog.debug("[[Flags] ID["+ ltd.getTypeId() + "] Flags = " + Integer.toBinaryString(flags) + ltd.getInternalName() + "]");
+        return lf.literalOf(type, flags);
+    }
+
+    void defineTypeIdStructAndGlobalArray(LoadedTypeDefinition jlo) {
         TypeSystem ts = ctxt.getTypeSystem();
         UnsignedIntegerType u8 = ts.getUnsignedInteger8Type();
         int typeIdSize = ts.getTypeIdSize();
@@ -408,52 +438,8 @@ public class SupersDisplayTables {
             .addNextMember("interfaceBits", interfaceBitsType)
             .addNextMember("flags", u32)
             .build();
-        List<CompoundType.Member> members = typeIdStruct.getMembers();
-        
-        Section section = ctxt.getImplicitSection(jlo);
-        Literal[] typeIdTable = new Literal[typeids.size() + 10]; // invalid zero + 8 prims + void
-        LiteralFactory literalFactory = ctxt.getLiteralFactory();
-        
-        /* Set up the implementedInterface[] for primitives */
-        List<Literal> primitivesInterfaceBits = new ArrayList<>();
-        Literal zero = literalFactory.literalOf(0);
-        for (int i = 0; i < interfaceBitsType.getElementCount(); i++) {
-            primitivesInterfaceBits.add(zero);
-        }
 
-        /* Primitives don't support instanceOf but they are only implemented by themselves */
-        for (int i = 0; i < 10; i++) {
-            typeIdTable[i] = literalFactory.literalOf(typeIdStruct, 
-                Map.of(
-                    members.get(0), literalFactory.literalOf(uTypeId, i),
-                    members.get(1), literalFactory.literalOf(uTypeId, i),
-                    members.get(2), literalFactory.literalOf(uTypeId, 0),  /* Set super for prims to posion */
-                    members.get(3), literalFactory.literalOf(interfaceBitsType, primitivesInterfaceBits),
-                    members.get(4), literalFactory.literalOf(u32, 0)  /* no flags for prims */
-                )
-            );
-        }
-        for (Map.Entry<LoadedTypeDefinition, IdAndRange> e : typeids.entrySet()) {
-            LoadedTypeDefinition vtd = e.getKey();
-            IdAndRange idRange = e.getValue();
-            int superTypeId = 0;
-            if (vtd.hasSuperClass()) {
-                IdAndRange superRange = typeids.get(vtd.getSuperClass());
-                superTypeId = superRange.typeid;
-            }
-            typeIdTable[vtd.getTypeId()] = literalFactory.literalOf(typeIdStruct, 
-                Map.of(
-                    members.get(0), literalFactory.literalOf(uTypeId, idRange.typeid),
-                    members.get(1), literalFactory.literalOf(uTypeId, idRange.maximumSubtypeId),
-                    members.get(2), literalFactory.literalOf(uTypeId, superTypeId),
-                    members.get(3), literalFactory.literalOf(interfaceBitsType, convertByteArrayToValuesList(literalFactory, getImplementedInterfaceBits(vtd))),
-                    members.get(4), literalFactory.literalOf(u32, 0)  /* TODO: calculate flags */
-                )
-            );
-        }
-        ArrayType typeIdsArrayType = ctxt.getTypeSystem().getArrayType(typeIdStruct, typeIdTable.length);
-        Literal typeIdsValue = ctxt.getLiteralFactory().literalOf(typeIdsArrayType, List.of(typeIdTable));
-        section.addData(null, GLOBAL_TYPEID_ARRAY, typeIdsValue);
+        ArrayType typeIdsArrayType = ts.getArrayType(typeIdStruct, get_number_of_typeids());
 
         // create a GlobalVariable for shared access to the typeId array
         GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
@@ -465,6 +451,57 @@ public class SupersDisplayTables {
         builder.setSignature(BaseTypeSignature.V);
         typeIdArrayGlobal = builder.build();
         typeIdStructType = typeIdStruct;
+    }
+    
+    void emitTypeIdTable(LoadedTypeDefinition jlo) {
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        
+        /* Set up the implementedInterface[] for primitives */
+        List<Literal> primitivesInterfaceBits = new ArrayList<>();
+        Literal zero = lf.literalOf(0);
+        ArrayType interfaceBitsType = (ArrayType)typeIdStructType.getMember("interfaceBits").getType();
+        for (int i = 0; i < interfaceBitsType.getElementCount(); i++) {
+            primitivesInterfaceBits.add(zero);
+        }
+        
+        List<CompoundType.Member> members = typeIdStructType.getMembers();
+        Literal[] typeIdTable = new Literal[get_number_of_typeids()];
+
+        /* Primitives don't support instanceOf but they are only implemented by themselves */
+        for (int i = 0; i < 10; i++) {
+            typeIdTable[i] = lf.literalOf(typeIdStructType, 
+                Map.of(
+                    members.get(0), lf.literalOf((UnsignedIntegerType)members.get(0).getType(), i),
+                    members.get(1), lf.literalOf((UnsignedIntegerType)members.get(1).getType(), i),
+                    members.get(2), lf.literalOf((UnsignedIntegerType)members.get(2).getType(), 0),  /* Set super for prims to posion */
+                    members.get(3), lf.literalOf(interfaceBitsType, primitivesInterfaceBits),
+                    members.get(4), lf.literalOf((UnsignedIntegerType)members.get(4).getType(), 0)  /* no flags for prims */
+                )
+            );
+        }
+        for (Map.Entry<LoadedTypeDefinition, IdAndRange> e : typeids.entrySet()) {
+            LoadedTypeDefinition vtd = e.getKey();
+            IdAndRange idRange = e.getValue();
+            int superTypeId = 0;
+            if (vtd.hasSuperClass()) {
+                IdAndRange superRange = typeids.get(vtd.getSuperClass());
+                superTypeId = superRange.typeid;
+            }
+            typeIdTable[vtd.getTypeId()] = lf.literalOf(typeIdStructType, 
+                Map.of(
+                    members.get(0), lf.literalOf((UnsignedIntegerType)members.get(0).getType(), idRange.typeid),
+                    members.get(1), lf.literalOf((UnsignedIntegerType)members.get(1).getType(), idRange.maximumSubtypeId),
+                    members.get(2), lf.literalOf((UnsignedIntegerType)members.get(2).getType(), superTypeId),
+                    members.get(3), lf.literalOf(interfaceBitsType, convertByteArrayToValuesList(lf, getImplementedInterfaceBits(vtd))),
+                    members.get(4), calculateTypeIdFlags((UnsignedIntegerType)members.get(4).getType(), vtd)
+                )
+            );
+        }
+        Literal typeIdsValue = ctxt.getLiteralFactory().literalOf((ArrayType)typeIdArrayGlobal.getType(), List.of(typeIdTable));
+        
+        /* Write the data into Object's section */
+        Section section = ctxt.getImplicitSection(jlo);
+        section.addData(null, GLOBAL_TYPEID_ARRAY, typeIdsValue);
     }
 
     /**
@@ -496,6 +533,136 @@ public class SupersDisplayTables {
     public CompoundType getGlobalTypeIdStructType() {
         Assert.assertNotNull(typeIdStructType);
         return typeIdStructType;
+    }
+
+    public int get_number_of_typeids() {
+        Assert.assertTrue(idAndRange.typeid_index == (typeids.size() + 10));
+        supersLog.debug("get_highest_typeid == " + (typeids.size() + 10));
+        return typeids.size() + 10; // invalid zero + 8 prims + void
+    }
+
+    /**
+     * Get the GlobalVariableElement reference to the `qbicc_clinit_states`.
+     * 
+     * As part of it getting it, ensure a reference to it has been recorded into
+     * the ExecutableElement's section.
+     * 
+     * @param originalElement the original element (must not be {@code null})
+     * @return the clinitStates global
+     */
+    public GlobalVariableElement getAndRegisterGlobalClinitStateStruct(ExecutableElement originalElement) {
+        Assert.assertNotNull(clinitStatesGlobal);
+        if (!clinitStatesGlobal.getEnclosingType().equals(originalElement.getEnclosingType())) {
+            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
+            section.declareData(null, clinitStatesGlobal.getName(), clinitStatesGlobal.getType());
+        }
+        return clinitStatesGlobal;
+    }
+
+    public void defineClinitStatesGlobal(LoadedTypeDefinition jlo) {
+        // Structure will be laid out as two inline arrays:
+        // i8[] initStatus
+        // Function[] clinit_function_ptrs
+
+        TypeSystem ts = ctxt.getTypeSystem();
+        final int numElements = get_number_of_typeids();
+
+        // Sleazy way to get the function type for an Initializer
+        FunctionType clinit_function_type = null;
+        for (LoadedTypeDefinition ltd : typeids.keySet()) {
+            InitializerElement ie = ltd.getInitializer();
+            if (ie != null) {
+                clinit_function_type = ctxt.getFunctionTypeForElement(ie);
+                break;
+            }
+        }
+
+        ArrayType init_state_t = ts.getArrayType(ts.getUnsignedInteger8Type(), numElements);
+        ArrayType class_initializers_t = ts.getArrayType(clinit_function_type.getPointer(), numElements);
+        CompoundType clinit_state_t =  CompoundType.builder(ts)
+            .setTag(CompoundType.Tag.STRUCT)
+            .setName("qbicc_clinit_state")
+            .setOverallAlignment(ts.getPointerAlignment())
+            .addNextMember("init_state", init_state_t)
+            .addNextMember("class_initializers", class_initializers_t)
+            .build();
+
+        // create a GlobalVariable for shared access to the clinitStates struct
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
+        builder.setName(GLOBAL_CLINIT_STATES_STRUCT);
+        builder.setType(clinit_state_t);
+        builder.setEnclosingType(jlo);
+        // void for now, but this is cheating terribly
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        clinitStatesGlobal = builder.build();
+    }
+
+    public void emitClinitStateTable(LoadedTypeDefinition jlo) {
+        // Structure will be laid out as two inline arrays:
+        // i8[] initStatus
+        // Function[] clinit_function_ptrs
+        final int numElements = get_number_of_typeids();
+
+        CompoundType clinit_state_t = (CompoundType)clinitStatesGlobal.getType();
+
+        Section section = ctxt.getImplicitSection(jlo);
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        List<Literal> init_state_literals = new ArrayList<>();
+        List<Literal> class_initializers_literals = new ArrayList<>();
+        Literal uninitialized = lf.literalOf(0);
+        Literal initialized = lf.literalOf(1);
+        Literal nullInitializer = lf.zeroInitializerLiteralOfType(clinit_state_t.getMember("class_initializers").getType());
+         // poison
+        init_state_literals.add(uninitialized);
+        class_initializers_literals.add(nullInitializer);
+        // primitives
+        for (int i = 1; i < 10; i++) {
+            init_state_literals.add(initialized);
+            class_initializers_literals.add(nullInitializer);
+        }
+        // real types
+        typeids.entrySet().stream()
+            .sorted((a, b) -> a.getValue().typeid - b.getValue().typeid)
+            .forEach(es -> {            
+                LoadedTypeDefinition ltd = es.getKey();
+                Literal init_state = initialized;
+                Literal initializer = nullInitializer;
+                if (!isAlreadyInitialized(ltd)) {
+                    init_state = uninitialized;
+                    InitializerElement ie = ltd.getInitializer();
+                    if (ie != null && ie.hasMethodBody()) {
+                        FunctionType funType = ctxt.getFunctionTypeForElement(ie);
+                        Function impl = ctxt.getExactFunction(ie);
+                        if (!ie.getEnclosingType().load().equals(jlo)) {
+                            section.declareFunction(ie, impl.getName(), funType);
+                        }
+                        initializer = impl.getLiteral();
+                    }
+                }
+                init_state_literals.add(init_state);
+                class_initializers_literals.add(initializer);
+            }
+        );
+        Assert.assertTrue(init_state_literals.size() == numElements);
+  
+        ArrayType init_states = (ArrayType)clinit_state_t.getMember("init_state").getType();
+        ArrayType class_initializers = (ArrayType)clinit_state_t.getMember("class_initializers").getType();
+
+        Literal clinit_states = lf.literalOf(clinit_state_t, 
+            Map.of(
+                clinit_state_t.getMember(0), lf.literalOf(init_states, init_state_literals),
+                clinit_state_t.getMember(1), lf.literalOf(class_initializers, class_initializers_literals)
+            )
+        );
+        
+        /* Write the data into Object's section */
+        section.addData(null, GLOBAL_CLINIT_STATES_STRUCT, clinit_states);
+    }
+
+    // TODO: implement this for real
+    boolean isAlreadyInitialized(LoadedTypeDefinition ltd) {
+        return false;
     }
 }
 

@@ -175,10 +175,14 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
-    static void raiseIncompatibleClassChangeError() { throw new IncompatibleClassChangeError(); }
+    static void raiseIncompatibleClassChangeError() {
+        throw new IncompatibleClassChangeError(); 
+    }
 
     // TODO: mark this with a "NoInline" annotation
-    static void raiseNegativeArraySizeException() { throw new NegativeArraySizeException(); }
+    static void raiseNegativeArraySizeException() {
+        throw new NegativeArraySizeException(); 
+    }
 
     // TODO: mark this with a "NoInline" annotation
     static void raiseNullPointerException() {
@@ -186,5 +190,209 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
-    static void raiseUnsatisfiedLinkError() { throw new UnsatisfiedLinkError(); }
+    static void raiseUnsatisfiedLinkError() {
+        throw new UnsatisfiedLinkError(); 
+    }
+ 
+    // TODO: mark with "must be build time initialized" annotation
+    static class ClinitState {
+        static final byte STATE_UNINITIALIZED = 0;
+        static final byte STATE_INPROGRESS = 1;
+        static final byte STATE_INITIALIZED = 2;
+        static final byte STATE_FAILED = 3;
+
+        Thread initializerThread;
+        Throwable errorInInitializer;
+        // Must be one of:
+        // 0 - uninitialized
+        // 1 - in-progress
+        // 2 - initialized
+        // 3 - failed
+        byte initializedState;
+        /* TODO: once we have Class objects for every class with a typeid, move
+         * this state to the Class itself
+         */
+
+        ClinitState(Thread currentThread) {
+            initializerThread = currentThread;
+            initializedState = STATE_UNINITIALIZED;
+        }
+
+        boolean beingInitializedByMe(Thread currentThread) {
+            return currentThread == initializerThread;
+        }
+
+        boolean isInitialized() {
+            return initializedState == STATE_INITIALIZED;
+        }
+
+        boolean isInProgress() {
+            return initializedState == STATE_INPROGRESS;
+        }
+
+        boolean isFailed() {
+            return initializedState == STATE_FAILED;
+        }
+
+        void setInProgress() {
+            assert initializedState == STATE_UNINITIALIZED;
+            initializedState = STATE_INPROGRESS;
+        }
+
+        void setFailed(Throwable t) {
+            errorInInitializer = t;
+            initializedState = STATE_FAILED;
+        }
+
+        void setInitialized() {
+            initializedState = STATE_INITIALIZED;
+            initializerThread = null;
+        }
+
+        /**
+         * Is initialization in a final state?
+         * Both Failed and Initialized are final states
+         * 
+         * @return true if it is, false otherwise
+         */
+        boolean isInTerminalInitializedState() {
+            switch(initializedState) {
+                case STATE_FAILED:
+                case STATE_INITIALIZED:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        Throwable initializationAlreadyFailed(type_id typeid) {
+            // TODO: convert type_id to a class name
+            NoClassDefFoundError e = new NoClassDefFoundError("initialization failed: " + typeid.intValue());
+            e.initCause(errorInInitializer);
+            throw e;
+        }
+    }
+    
+    // This probably needs to be an Object[] or we need to force ClinitState to be
+    // initialized at build time or there will be recursive issues - initializing
+    // depends on the array, but it depends on a not-yet initialized class.
+    // Eventually, array and elements will be build time intialized with null
+    // elements for classes that are already initailized.  Makes for a cheaper
+    // check as elements can be nulled when initialized.
+    static ClinitState[] clinitStates;
+
+    static void initialize_class(Thread currentThread, type_id typeid) throws Throwable {
+        ClinitState state;
+        // ==== Code in this section would be better done at build time
+        if (clinitStates == null) {
+            int size = ObjectModel.get_number_of_typeids();
+            synchronized(ClinitState.class) {
+                if (clinitStates == null) {
+                    clinitStates = new ClinitState[size];
+                }
+            }
+        }
+        int typeid_value = typeid.intValue();
+        ClinitState arrayState = clinitStates[typeid_value];
+        if (arrayState == null) {
+            state = new ClinitState(currentThread);
+            synchronized(clinitStates) {
+                arrayState = clinitStates[typeid_value];
+                if (arrayState == null) {
+                    clinitStates[typeid_value] = state;
+                } else {
+                    state = arrayState;
+                }
+            }
+        } else {
+            state = arrayState;
+        }
+        // ==== end better at build time section
+        assert state != null;
+        // boolean wasInterrupted = false;
+        // try {
+            synchronized(state) { // state is the "LC"
+                if (state.isInProgress()) {
+                    if (!state.beingInitializedByMe(currentThread)) {
+                        while (!state.isInTerminalInitializedState()) {
+                            // `C` is being initialized by another thread, wait on it
+                            try {
+                                state.wait();
+                            } catch (InterruptedException e) {
+                                // Don't repeat, keep waiting
+                                // wasInterrupted = true;
+                            }
+                        }
+                    } else {
+                        assert !state.isInTerminalInitializedState();
+                        // curentThread is in the process of initializing,
+                        // complete normally as this is a recursive request
+                        return;
+                    }
+                }
+                
+                // Not an else if as both the current initializing thread and waiting
+                // threads need to execute this section
+                if (state.isInitialized()) {
+                    // Successfully initialized, complete normally
+                    return;
+                } else if (state.isFailed()) {
+                    // release and throw NoClassDefFoundError
+                    throw state.initializationAlreadyFailed(typeid);
+                } else {
+                    assert state.beingInitializedByMe(currentThread);
+                    state.setInProgress();
+                }
+            }
+            // LC is released at this point, and in-progress by current thread
+            // Static field preparation happens at build time
+            if (ObjectModel.is_class(typeid)) {
+                try {
+                    if (!ObjectModel.is_java_lang_object(typeid)) {
+                        initialize_class(currentThread, ObjectModel.get_superclass_typeid(typeid));
+                    }
+                    // TODO: initialize the super interfaces - may be issues with ordering requirements depending on the data we preserve  
+                } catch (Throwable t) {
+                    synchronized(state) {
+                        state.setFailed(t);
+                        state.notifyAll();;
+                    }
+                    throw t;
+                }
+            }
+            // Assertions are never enabled for images, so no check required
+            Error clinitThrowable = null;
+            try {
+                if (ObjectModel.has_class_initializer(typeid)) {
+                    ObjectModel.call_class_initializer(typeid);
+                }
+            } catch (Throwable t) {
+                if (t instanceof Error) {
+                    clinitThrowable = (Error)t;
+                } else {
+                    clinitThrowable = new ExceptionInInitializerError(t);
+                }
+            }
+            synchronized(state) {
+                if (clinitThrowable == null) {
+                    // completed successfully
+                    state.setInitialized();
+                } else {
+                    state.setFailed(clinitThrowable);
+                }
+                state.notifyAll();
+            }
+            if (clinitThrowable != null) {
+                throw clinitThrowable;
+            }
+        // } finally {
+        //     /* Interrupted status can only be propagated when the initialization sequence
+        //      * is complete.  Otherwise, classes in progress may be recorded as erroreous.
+        //      */
+        //     if (wasInterrupted) {
+        //         Thread.currentThread().interrupt();
+        //     }
+        // }
+        return;
+    }
 }

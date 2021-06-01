@@ -31,6 +31,7 @@ import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
 import org.qbicc.plugin.intrinsics.StaticValueIntrinsic;
 import org.qbicc.plugin.layout.Layout;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
@@ -86,6 +87,7 @@ public final class CoreIntrinsics {
         MethodDescriptor classToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(jlcDesc));
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor emptyToString = MethodDescriptor.synthesize(classContext, jlsDesc, List.of());
+        MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
         MethodDescriptor stringToClass = MethodDescriptor.synthesize(classContext, jlcDesc, List.of(jlsDesc));
         MethodDescriptor objToObj = MethodDescriptor.synthesize(classContext, jloDesc, List.of(jloDesc));
 
@@ -93,6 +95,9 @@ public final class CoreIntrinsics {
 
         // todo: this probably belongs in the class libraries rather than here
         StaticValueIntrinsic desiredAssertionStatus0 = (builder, owner, name, descriptor, arguments) ->
+            classContext.getLiteralFactory().literalOf(false);
+
+        InstanceValueIntrinsic desiredAssertionStatus =  (builder, kind, instance, owner, name, descriptor, arguments) -> 
             classContext.getLiteralFactory().literalOf(false);
 
         InstanceValueIntrinsic cast =  (builder, kind, instance, owner, name, descriptor, arguments) -> {
@@ -147,6 +152,7 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(jlcDesc, "cast", objToObj, cast);
         intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus0", classToBool, desiredAssertionStatus0);
+        intrinsics.registerIntrinsic(jlcDesc, "desiredAssertionStatus", emptyToBool, desiredAssertionStatus);
         intrinsics.registerIntrinsic(jlcDesc, "registerNatives", emptyToVoid, registerNatives);
         intrinsics.registerIntrinsic(jlcDesc, "initClassName", emptyToString, initClassName);
         intrinsics.registerIntrinsic(jlcDesc, "getPrimitiveClass", stringToClass, getPrimitiveClass);
@@ -525,8 +531,12 @@ public final class CoreIntrinsics {
         MethodDescriptor typeIdTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(typeIdDesc));
         MethodDescriptor typeIdBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(typeIdDesc));
         MethodDescriptor typeIdTypeIdBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(typeIdDesc, typeIdDesc));
+        MethodDescriptor typeIdVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(typeIdDesc));
+        MethodDescriptor typeIdIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(typeIdDesc));
         MethodDescriptor clsTypeId = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(clsDesc));
         MethodDescriptor clsInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(clsDesc));
+        MethodDescriptor IntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
+        MethodDescriptor emptyTotypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of());
 
         StaticValueIntrinsic typeOf = (builder, owner, name, descriptor, arguments) ->
             builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
@@ -622,6 +632,57 @@ public final class CoreIntrinsics {
         StaticValueIntrinsic getTypeIdFromClass = (builder, owner, name, descriptor, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), layout.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_type_id_from_class", clsTypeId, getTypeIdFromClass);
+
+        StaticValueIntrinsic getNumberOfTypeIds = (builder, owner, name, descriptor, arguments) -> lf.literalOf(tables.get_number_of_typeids());
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_number_of_typeids", IntDesc, getNumberOfTypeIds);
+
+        StaticIntrinsic callClassInitializer = (builder, owner, name, descriptor, arguments) -> {
+            Value typeId = arguments.get(0);
+        
+            // CompoundType clinit_state_t =  CompoundType.builder(ts)
+            //     .setTag(CompoundType.Tag.STRUCT)
+            //     .setName("qbicc_clinit_state")
+            //     .setOverallAlignment(ts.getPointerAlignment())
+            //     .addNextMember("init_state", init_state_t)
+            //     .addNextMember("class_initializers", class_initializers_t)
+            //     .build();
+
+            GlobalVariableElement clinitStates = tables.getAndRegisterGlobalClinitStateStruct(builder.getCurrentElement());
+            CompoundType clinitStates_t = (CompoundType) clinitStates.getType();
+            ValueHandle initializers = builder.memberOf(builder.globalVariable(clinitStates), clinitStates_t.getMember("class_initializers"));
+            Value typeIdInit = builder.load(builder.elementOf(initializers, typeId), MemoryAtomicityMode.UNORDERED);
+
+            return builder.callFunction(typeIdInit, List.of(builder.currentThread()), 0 /* flags */);
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "call_class_initializer", typeIdVoidDesc, callClassInitializer);
+
+        // int get_typeid_flags(CNative.type_id typeID);
+        StaticValueIntrinsic get_typeid_flags = (builder, owner, name, descriptor, arguments) -> {
+            Value typeId = arguments.get(0);
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
+            ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), typeId);
+            ValueHandle flags = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("flags"));
+            Value flagValue = builder.load(flags, MemoryAtomicityMode.UNORDERED);
+            return flagValue;
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_typeid_flags", typeIdIntDesc, get_typeid_flags);
+
+        // public static native CNative.type_id get_superclass_typeid(CNative.type_id typeId);
+        StaticValueIntrinsic get_superclass_typeid = (builder, owner, name, descriptor, arguments) -> {
+            Value typeId = arguments.get(0);
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
+            ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), typeId);
+            ValueHandle superTypeId = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("superTypeId"));
+            Value superTypeIdValue = builder.load(superTypeId, MemoryAtomicityMode.UNORDERED);
+            return superTypeIdValue;
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_superclass_typeid", typeIdTypeIdDesc, get_superclass_typeid);
+
+        // public static native CNative.type_id get_first_interface_typeid();
+        StaticValueIntrinsic get_first_interface_typeid = (builder, owner, name, descriptor, arguments) -> {
+            return lf.literalOf(tables.getFirstInterfaceTypeId());
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_first_interface_typeid", emptyTotypeIdDesc, get_first_interface_typeid);
     }
 
     static void registerOrgQbiccRuntimeValuesIntrinsics(final CompilationContext ctxt) {
