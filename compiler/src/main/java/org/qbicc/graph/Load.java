@@ -18,6 +18,9 @@ public class Load extends AbstractValue implements OrderedNode {
         this.dependency = dependency;
         this.handle = handle;
         this.mode = mode;
+        if (! handle.isReadable()) {
+            throw new IllegalArgumentException("Handle is not readable");
+        }
     }
 
     @Override

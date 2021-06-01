@@ -17,6 +17,12 @@ abstract class AbstractReadModifyWriteValue extends AbstractValue implements Rea
         this.target = target;
         this.updateValue = updateValue;
         this.atomicityMode = atomicityMode;
+        if (! target.isWritable()) {
+            throw new IllegalArgumentException("Handle is not writable");
+        }
+        if (! target.isReadable()) {
+            throw new IllegalArgumentException("Handle is not readable");
+        }
     }
 
     public ValueType getType() {

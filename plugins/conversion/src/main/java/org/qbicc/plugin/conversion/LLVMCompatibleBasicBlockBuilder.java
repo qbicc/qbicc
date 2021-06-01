@@ -9,14 +9,13 @@ import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
-import org.qbicc.graph.Triable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.machine.arch.Cpu;
 import org.qbicc.object.Function;
+import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.unwind.UnwindHelper;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
@@ -25,6 +24,7 @@ import org.qbicc.type.NumericType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
+import org.qbicc.type.VoidType;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
@@ -91,9 +91,8 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     private Value minMaxIntrinsic(String funcName, NumericType numericType, Value v1, Value v2) {
         TypeSystem tps = ctxt.getTypeSystem();
         FunctionType functionType = tps.getFunctionType(numericType, numericType, numericType);
-        SymbolLiteral functionSymbol = ctxt.getLiteralFactory().literalOfSymbol(funcName, functionType);
-        ctxt.getImplicitSection(rootElement).declareFunction(null, funcName, functionType);
-        return getFirstBuilder().callFunction(functionSymbol, List.of(v1, v2), Function.FN_NO_SIDE_EFFECTS);
+        FunctionDeclaration declaration = ctxt.getImplicitSection(rootElement).declareFunction(null, funcName, functionType);
+        return getFirstBuilder().callNoSideEffects(functionOf(declaration), List.of(v1, v2));
     }
 
     @Override
@@ -136,9 +135,52 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
-    public BasicBlock try_(final Triable operation, final BlockLabel resumeLabel, final BlockLabel exceptionHandler) {
-        MethodElement personalityFunction = UnwindHelper.get(ctxt).getPersonalityMethod();
-        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityFunction.getName(), personalityFunction.getType());
-        return super.try_(operation, resumeLabel, exceptionHandler);
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        // todo: we can support "real" tail calls in certain situations
+        // break tail call
+        Value retVal = super.call(target, arguments);
+        if (isVoidFunction(target)) {
+            return super.return_();
+        } else {
+            return super.return_(retVal);
+        }
+    }
+
+    @Override
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        // declare personality function
+        MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
+        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        return super.invokeNoReturn(target, arguments, catchLabel);
+    }
+
+    @Override
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+        // declare personality function
+        MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
+        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        return super.invoke(target, arguments, catchLabel, resumeLabel);
+    }
+
+    @Override
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        // declare personality function
+        MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
+        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        // todo: we can support "real" tail calls in certain situations
+        // break tail invoke
+        BlockLabel resumeLabel = new BlockLabel();
+        Value retVal = super.invoke(target, arguments, catchLabel, resumeLabel);
+        begin(resumeLabel);
+        if (isVoidFunction(target)) {
+            return super.return_();
+        } else {
+            return super.return_(retVal);
+        }
+    }
+
+    private static boolean isVoidFunction(ValueHandle target) {
+        FunctionType type = (FunctionType) target.getValueType();
+        return type.getReturnType() instanceof VoidType;
     }
 }

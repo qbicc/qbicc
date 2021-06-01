@@ -68,6 +68,14 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, Call node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, CallNoSideEffects node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, ClassOf node) {
         return visitUnknown(param, node);
     }
@@ -128,10 +136,6 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, ConstructorInvocation node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, Convert node) {
         return visitUnknown(param, node);
     }
@@ -161,10 +165,6 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, FloatLiteral node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, FunctionCall node) {
         return visitUnknown(param, node);
     }
 
@@ -212,15 +212,15 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, InstanceInvocationValue node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, InstanceOf node) {
         return visitUnknown(param, node);
     }
 
     default R visit(T param, IntegerLiteral node) {
+        return visitUnknown(param, node);
+    }
+
+    default R visit(T param, Invoke.ReturnValue node) {
         return visitUnknown(param, node);
     }
 
@@ -288,6 +288,10 @@ public interface ValueVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, ReferenceTo node) {
+        return visitUnknown(param, node);
+    }
+
     default R visit(T param, Rol node) {
         return visitUnknown(param, node);
     }
@@ -309,10 +313,6 @@ public interface ValueVisitor<T, R> {
     }
 
     default R visit(T param, StackAllocation node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, StaticInvocationValue node) {
         return visitUnknown(param, node);
     }
 
@@ -399,6 +399,14 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
+        default R visit(T param, Call node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CallNoSideEffects node) {
+            return ValueVisitor.super.visit(param, node);
+        }
+
         default R visit(T param, CheckCast node) {
             return getDelegateValueVisitor().visit(param, node);
         }
@@ -411,15 +419,27 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
+        default R visit(T param, Cmp node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpAndSwap node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpG node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, CmpL node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
         default R visit(T param, CompoundLiteral node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
         default R visit(T param, ConstantLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, ConstructorInvocation node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -448,10 +468,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, FloatLiteral node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, FunctionCall node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -499,15 +515,15 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
-        default R visit(T param, InstanceInvocationValue node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
         default R visit(T param, InstanceOf node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
         default R visit(T param, IntegerLiteral node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
+        default R visit(T param, Invoke.ReturnValue node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 
@@ -599,6 +615,10 @@ public interface ValueVisitor<T, R> {
             return getDelegateValueVisitor().visit(param, node);
         }
 
+        default R visit(T param, ReferenceTo node) {
+            return getDelegateValueVisitor().visit(param, node);
+        }
+
         default R visit(T param, Rol node) {
             return getDelegateValueVisitor().visit(param, node);
         }
@@ -620,10 +640,6 @@ public interface ValueVisitor<T, R> {
         }
 
         default R visit(T param, StackAllocation node) {
-            return getDelegateValueVisitor().visit(param, node);
-        }
-
-        default R visit(T param, StaticInvocationValue node) {
             return getDelegateValueVisitor().visit(param, node);
         }
 

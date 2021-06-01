@@ -10,7 +10,6 @@ import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import org.qbicc.context.CompilationContext;
@@ -27,7 +26,6 @@ import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.tool.CToolChain;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
-import org.qbicc.plugin.conversion.CloneConversionBasicBlockBuilder;
 import org.qbicc.plugin.conversion.LLVMCompatibleBasicBlockBuilder;
 import org.qbicc.plugin.conversion.MethodCallFixupBasicBlockBuilder;
 import org.qbicc.plugin.conversion.NumericalConversionBasicBlockBuilder;
@@ -65,6 +63,8 @@ import org.qbicc.plugin.native_.ConstantDefiningBasicBlockBuilder;
 import org.qbicc.plugin.native_.ExternExportTypeBuilder;
 import org.qbicc.plugin.native_.FunctionTypeResolver;
 import org.qbicc.plugin.native_.NativeBasicBlockBuilder;
+import org.qbicc.plugin.native_.NativeBindingBasicBlockBuilder;
+import org.qbicc.plugin.native_.NativeBindingTypeBuilder;
 import org.qbicc.plugin.native_.NativeTypeBuilder;
 import org.qbicc.plugin.native_.NativeTypeResolver;
 import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
@@ -269,6 +269,7 @@ public class Main implements Callable<DiagnosticContext> {
 
                                 builder.addTypeBuilderFactory(ExternExportTypeBuilder::new);
                                 builder.addTypeBuilderFactory(NativeTypeBuilder::new);
+                                builder.addTypeBuilderFactory(NativeBindingTypeBuilder::new);
                                 builder.addTypeBuilderFactory(ThreadLocalTypeBuilder::new);
                                 builder.addTypeBuilderFactory(CoreAnnotationTypeBuilder::new);
 
@@ -290,11 +291,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NoGcMultiNewArrayBasicBlockBuilder::new);
                                 }
-                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, CloneConversionBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, LocalThrowHandlingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassLoadingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBindingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PointerBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ConstantDefiningBasicBlockBuilder::new);

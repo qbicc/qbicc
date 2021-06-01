@@ -19,6 +19,9 @@ import org.qbicc.graph.ArrayLength;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEntry;
+import org.qbicc.graph.Call;
+import org.qbicc.graph.CallNoReturn;
+import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CastValue;
 import org.qbicc.graph.ClassCastErrorNode;
 import org.qbicc.graph.ClassNotFoundErrorNode;
@@ -27,12 +30,20 @@ import org.qbicc.graph.Clone;
 import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
+import org.qbicc.graph.ConstructorElementHandle;
+import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractInstanceField;
 import org.qbicc.graph.ExtractMember;
 import org.qbicc.graph.Fence;
+import org.qbicc.graph.FunctionDeclarationHandle;
+import org.qbicc.graph.FunctionElementHandle;
+import org.qbicc.graph.FunctionHandle;
 import org.qbicc.graph.InsertElement;
 import org.qbicc.graph.InsertMember;
+import org.qbicc.graph.InterfaceMethodElementHandle;
+import org.qbicc.graph.Invoke;
+import org.qbicc.graph.InvokeNoReturn;
 import org.qbicc.graph.IsEq;
 import org.qbicc.graph.IsGe;
 import org.qbicc.graph.IsGt;
@@ -40,22 +51,19 @@ import org.qbicc.graph.IsLe;
 import org.qbicc.graph.IsLt;
 import org.qbicc.graph.IsNe;
 import org.qbicc.graph.CommutativeBinaryValue;
-import org.qbicc.graph.ConstructorInvocation;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.CurrentThreadRead;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.Extend;
-import org.qbicc.graph.FunctionCall;
 import org.qbicc.graph.GlobalVariable;
 import org.qbicc.graph.Goto;
 import org.qbicc.graph.If;
 import org.qbicc.graph.InstanceFieldOf;
-import org.qbicc.graph.InstanceInvocation;
-import org.qbicc.graph.InstanceInvocationValue;
 import org.qbicc.graph.InstanceOf;
 import org.qbicc.graph.Jsr;
 import org.qbicc.graph.Load;
+import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.Max;
 import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.Min;
@@ -86,21 +94,22 @@ import org.qbicc.graph.Shl;
 import org.qbicc.graph.Shr;
 import org.qbicc.graph.StackAllocation;
 import org.qbicc.graph.StaticField;
-import org.qbicc.graph.StaticInvocation;
-import org.qbicc.graph.StaticInvocationValue;
+import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Store;
 import org.qbicc.graph.Sub;
 import org.qbicc.graph.Switch;
+import org.qbicc.graph.TailCall;
+import org.qbicc.graph.TailInvoke;
 import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Throw;
 import org.qbicc.graph.Truncate;
-import org.qbicc.graph.Try;
 import org.qbicc.graph.TypeIdOf;
 import org.qbicc.graph.UnaryValue;
 import org.qbicc.graph.Unreachable;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueReturn;
+import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.Xor;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
@@ -235,21 +244,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return name;
     }
 
-    public String visit(final Appendable param, final InstanceInvocation node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "label", "invoke" + node.getKind() + "\\n" + node.getInvocationTarget().toString());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        if (node.hasDependency()) processDependency(param, node.getDependency());
-        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
-        for (Value arg : node.getArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
-        return name;
-    }
-
     public String visit(final Appendable param, final MemberOf node) {
         String name = register(node);
         appendTo(param, name);
@@ -312,17 +306,195 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return name;
     }
 
-    public String visit(final Appendable param, final StaticInvocation node) {
+    // value handles
+
+    public String visit(Appendable param, ConstructorElementHandle node) {
         String name = register(node);
         appendTo(param, name);
-        attr(param, "label", "invokestatic\\n" + node.getInvocationTarget().toString());
+        nl(param);
+        attr(param, "label", "constructor\\n" + node.getExecutable());
+        nl(param);
+        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(Appendable param, ExactMethodElementHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        nl(param);
+        attr(param, "label", "method (exact)\\n" + node.getExecutable());
+        nl(param);
+        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(Appendable param, FunctionDeclarationHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        nl(param);
+        attr(param, "label", "function\\n" + node.getProgramObject());
+        nl(param);
+        return name;
+    }
+
+    public String visit(Appendable param, FunctionElementHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        nl(param);
+        attr(param, "label", "function\\n" + node.getExecutable());
+        nl(param);
+        return name;
+    }
+
+    public String visit(Appendable param, FunctionHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        nl(param);
+        attr(param, "label", "function\\n" + node.getProgramObject());
+        nl(param);
+        return name;
+    }
+
+    public String visit(Appendable param, InterfaceMethodElementHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        nl(param);
+        attr(param, "label", "method (interface)\\n" + node.getExecutable());
+        nl(param);
+        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(Appendable param, VirtualMethodElementHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        nl(param);
+        attr(param, "label", "method (virtual)\\n" + node.getExecutable());
+        nl(param);
+        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(Appendable param, LocalVariable node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "local\n\n"+node.getVariableElement().getName());
+        nl(param);
+        return name;
+    }
+
+    public String visit(Appendable param, StaticMethodElementHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        nl(param);
+        attr(param, "label", "method (static)\\n" + node.getExecutable());
+        nl(param);
+        return name;
+    }
+
+    // terminators
+
+    public String visit(final Appendable param, final CallNoReturn node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "style", "diagonals, filled");
+        attr(param, "label", "call (no return)\\n" + node.getValueHandle().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
         dependencyList.add(name);
-        if (node.hasDependency()) processDependency(param, node.getDependency());
+        processDependency(param, node.getDependency());
+        processDependencyList(param);
+        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
         }
+        appendTo(param, "}");
+        nl(param);
+        return name;
+    }
+
+    @Override
+    public String visit(Appendable param, Invoke node) {
+        String name = register(node);
+        visited.put(node.getReturnValue(), name);
+        appendTo(param, name);
+        attr(param, "style", "diagonals, filled");
+        attr(param, "label", "invoke (no return)\\n" + node.getValueHandle().toString());
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
+        processDependencyList(param);
+        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
+        for (Value arg : node.getArguments()) {
+            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
+        }
+        appendTo(param, "}");
+        nl(param);
+        addBBConnection(param, node, node.getCatchBlock(), "catch");
+        addBBConnection(param, node, node.getResumeTarget(), "resume");
+        return name;
+    }
+
+    @Override
+    public String visit(Appendable param, InvokeNoReturn node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "style", "diagonals, filled");
+        attr(param, "label", "invoke (no return)\\n" + node.getValueHandle().toString());
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
+        processDependencyList(param);
+        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
+        for (Value arg : node.getArguments()) {
+            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
+        }
+        appendTo(param, "}");
+        nl(param);
+        addBBConnection(param, node, node.getCatchBlock(), "catch");
+        return name;
+    }
+
+    @Override
+    public String visit(Appendable param, TailCall node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "style", "diagonals, filled");
+        attr(param, "label", "tail call\\n" + node.getValueHandle().toString());
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
+        processDependencyList(param);
+        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
+        for (Value arg : node.getArguments()) {
+            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
+        }
+        appendTo(param, "}");
+        nl(param);
+        return name;
+    }
+
+    @Override
+    public String visit(Appendable param, TailInvoke node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "style", "diagonals, filled");
+        attr(param, "label", "tail invoke\\n" + node.getValueHandle().toString());
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
+        processDependencyList(param);
+        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
+        for (Value arg : node.getArguments()) {
+            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
+        }
+        appendTo(param, "}");
+        nl(param);
+        addBBConnection(param, node, node.getCatchBlock(), "catch");
         return name;
     }
 
@@ -412,6 +584,11 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return name;
     }
 
+    public String visit(final Appendable param, final Invoke.ReturnValue node) {
+        processDependency(param, node.getInvoke());
+        return visited.get(node.getInvoke());
+    }
+
     public String visit(final Appendable param, final Unreachable node) {
         String name = register(node);
         appendTo(param, name);
@@ -463,24 +640,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         addEdge(param, node, node.getThrownValue(), EdgeType.VALUE_DEPENDENCY);
         appendTo(param, "}");
         nl(param);
-        return name;
-    }
-
-    public String visit(final Appendable param, final Try node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "style", "diagonals, filled");
-        attr(param, "label", "try");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDelegateOperation());
-        processDependencyList(param);
-        appendTo(param, "}");
-        nl(param);
-        addBBConnection(param, node, node.getResumeBranch(), "resume");
-        addBBConnection(param, node, node.getExceptionHandlerBranch(), "exception");
         return name;
     }
 
@@ -591,6 +750,34 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return literal(param, String.valueOf(node.booleanValue()));
     }
 
+    public String visit(final Appendable param, final Call node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "call" + "\\n" + node.getValueHandle().toString());
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
+        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
+        for (Value arg : node.getArguments()) {
+            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
+        }
+        return name;
+    }
+
+    public String visit(final Appendable param, final CallNoSideEffects node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "call (NSE)" + "\\n" + node.getValueHandle().toString());
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
+        for (Value arg : node.getArguments()) {
+            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
+        }
+        return name;
+    }
+
     public String visit(final Appendable param, final ClassOf node) {
         return node(param, "classOf", node);
     }
@@ -604,21 +791,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         dependencyList.add(name);
         processDependency(param, node.getDependency());
-        return name;
-    }
-
-    public String visit(final Appendable param, final ConstructorInvocation node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "label", "init\\n" + node.getInvocationTarget().toString());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        if (node.hasDependency()) processDependency(param, node.getDependency());
-        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
-        for (Value arg : node.getArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
         return name;
     }
 
@@ -696,30 +868,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return literal(param, String.valueOf(node.doubleValue()));
     }
 
-    public String visit(final Appendable param, final FunctionCall node) {
-        String name = register(node);
-        appendTo(param, name);
-        Value callTarget = node.getCallTarget();
-        if (callTarget instanceof SymbolLiteral) {
-            attr(param, "label", "call @" + ((SymbolLiteral) callTarget).getName());
-            attr(param, "fixedsize", "shape");
-            nl(param);
-        } else {
-            attr(param, "label", "call");
-            attr(param, "fixedsize", "shape");
-            nl(param);
-        }
-        dependencyList.add(name);
-        if (node.hasDependency()) processDependency(param, node.getDependency());
-        for (Value arg : node.getArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
-        if (!(callTarget instanceof SymbolLiteral)) {
-            addEdge(param, node, callTarget, EdgeType.VALUE_DEPENDENCY, "fn");
-        }
-        return name;
-    }
-
     public String visit(Appendable param, InsertElement node) {
         String name = register(node);
         appendTo(param, name);
@@ -742,21 +890,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         addEdge(param, node, node.getInsertedValue(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getCompoundValue(), EdgeType.VALUE_DEPENDENCY);
-        return name;
-    }
-
-    public String visit(final Appendable param, final InstanceInvocationValue node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "label", "invoke" + node.getKind() + "\\n" + node.getInvocationTarget().toString());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        if (node.hasDependency()) processDependency(param, node.getDependency());
-        addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
-        for (Value arg : node.getArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
         return name;
     }
 
@@ -972,20 +1105,6 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         addEdge(param, node, node.getCount(), EdgeType.VALUE_DEPENDENCY, "count");
         nl(param);
-        return name;
-    }
-
-    public String visit(final Appendable param, final StaticInvocationValue node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "label", "invokestatic\\n" + node.getInvocationTarget().toString());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        if (node.hasDependency()) processDependency(param, node.getDependency());
-        for (Value arg : node.getArguments()) {
-            addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
-        }
         return name;
     }
 

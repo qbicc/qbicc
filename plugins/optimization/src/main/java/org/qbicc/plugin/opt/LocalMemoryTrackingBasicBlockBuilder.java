@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
@@ -141,33 +142,39 @@ public class LocalMemoryTrackingBasicBlockBuilder extends DelegatingBasicBlockBu
     }
 
     @Override
-    public Node invokeStatic(MethodElement target, List<Value> arguments) {
+    public Value call(ValueHandle target, List<Value> arguments) {
         knownValues.clear();
-        return super.invokeStatic(target, arguments);
+        return super.call(target, arguments);
     }
 
     @Override
-    public Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
+    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
         knownValues.clear();
-        return super.invokeInstance(kind, instance, target, arguments);
+        return super.callNoReturn(target, arguments);
     }
 
     @Override
-    public Value invokeValueStatic(MethodElement target, List<Value> arguments) {
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
         knownValues.clear();
-        return super.invokeValueStatic(target, arguments);
+        return super.invokeNoReturn(target, arguments, catchLabel);
     }
 
     @Override
-    public Value invokeConstructor(Value instance, ConstructorElement target, List<Value> arguments) {
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
         knownValues.clear();
-        return super.invokeConstructor(instance, target, arguments);
+        return super.tailCall(target, arguments);
     }
 
     @Override
-    public Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
         knownValues.clear();
-        return super.invokeValueInstance(kind, instance, target, arguments);
+        return super.tailInvoke(target, arguments, catchLabel);
+    }
+
+    @Override
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+        knownValues.clear();
+        return super.invoke(target, arguments, catchLabel, resumeLabel);
     }
 
     private static ValueHandle findRoot(ValueHandle handle) {

@@ -3,12 +3,19 @@ package org.qbicc.plugin.reachability;
 import java.util.List;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.DispatchInvocation;
-import org.qbicc.graph.Node;
+import org.qbicc.graph.ExactMethodElementHandle;
+import org.qbicc.graph.FunctionElementHandle;
+import org.qbicc.graph.InterfaceMethodElementHandle;
+import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
@@ -20,6 +27,7 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.FunctionElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.jboss.logging.Logger;
@@ -29,7 +37,7 @@ import org.jboss.logging.Logger;
  * We implement an RTA-style analysis to identify reachable virtual methods based on
  * the set of reachable call sites and instantiated types.
  */
-public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
+public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, Void> {
     static final Logger rtaLog = Logger.getLogger("org.qbicc.plugin.reachability.rta");
 
     private final CompilationContext ctxt;
@@ -41,48 +49,111 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         this.originalElement = delegate.getCurrentElement();
     }
 
-    public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
+    @Override
+    public Value call(ValueHandle target, List<Value> arguments) {
+        target.accept(this, null);
+        return super.call(target, arguments);
+    }
+
+    @Override
+    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+        target.accept(this, null);
+        return super.callNoSideEffects(target, arguments);
+    }
+
+    @Override
+    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+        target.accept(this, null);
+        return super.callNoReturn(target, arguments);
+    }
+
+    @Override
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        target.accept(this, null);
+        return super.invokeNoReturn(target, arguments, catchLabel);
+    }
+
+    @Override
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        target.accept(this, null);
+        return super.tailCall(target, arguments);
+    }
+
+    @Override
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        target.accept(this, null);
+        return super.tailInvoke(target, arguments, catchLabel);
+    }
+
+    @Override
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+        target.accept(this, null);
+        return super.invoke(target, arguments, catchLabel, resumeLabel);
+    }
+
+    @Override
+    public Void visit(Void param, ConstructorElementHandle node) {
+        ConstructorElement target = node.getExecutable();
         // cause the class to be initialized
         LoadedTypeDefinition ltd = target.getEnclosingType().load();
         enqueueClassInitializers(ltd);
-        ctxt.enqueue(target);
-        return super.invokeStatic(target, arguments);
-    }
 
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        if (!ctxt.wasEnqueued(target)) {
-            rtaLog.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
-            ctxt.enqueue(target);
-            processInvokeTarget(target);
-        }
-        return super.invokeInstance(kind, instance, target, arguments);
-    }
-
-    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-        // cause the class to be initialized
-        LoadedTypeDefinition ltd = target.getEnclosingType().load();
-        enqueueClassInitializers(ltd);
-        ctxt.enqueue(target);
-        return super.invokeValueStatic(target, arguments);
-    }
-
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        if (!ctxt.wasEnqueued(target)) {
-            rtaLog.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
-            ctxt.enqueue(target);
-            processInvokeTarget(target);
-        }
-        return super.invokeValueInstance(kind, instance, target, arguments);
-    }
-
-    public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
-        // cause the class to be initialized
-        LoadedTypeDefinition ltd = target.getEnclosingType().load();
-        enqueueClassInitializers(ltd);
-        
         processInstantiatedClass(ltd, true, false);
         ctxt.enqueue(target);
-        return super.invokeConstructor(instance, target, arguments);
+        return null;
+    }
+
+    @Override
+    public Void visit(Void param, FunctionElementHandle node) {
+        FunctionElement target = node.getExecutable();
+        if (!ctxt.wasEnqueued(target)) {
+            rtaLog.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
+            ctxt.enqueue(target);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visit(Void param, ExactMethodElementHandle node) {
+        MethodElement target = node.getExecutable();
+        if (!ctxt.wasEnqueued(target)) {
+            rtaLog.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
+            ctxt.enqueue(target);
+            processInvokeTarget(target);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visit(Void param, VirtualMethodElementHandle node) {
+        MethodElement target = node.getExecutable();
+        if (!ctxt.wasEnqueued(target)) {
+            rtaLog.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
+            ctxt.enqueue(target);
+            processInvokeTarget(target);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visit(Void param, InterfaceMethodElementHandle node) {
+        MethodElement target = node.getExecutable();
+        if (!ctxt.wasEnqueued(target)) {
+            rtaLog.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
+            ctxt.enqueue(target);
+            processInvokeTarget(target);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visit(Void param, StaticMethodElementHandle node) {
+        MethodElement target = node.getExecutable();
+        // cause the class to be initialized
+        LoadedTypeDefinition ltd = target.getEnclosingType().load();
+        enqueueClassInitializers(ltd);
+        ctxt.enqueue(target);
+        return null;
     }
 
     public Value newArray(final ArrayObjectType arrayType, Value size) {
@@ -114,6 +185,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder {
         return super.multiNewArray(arrayType, dimensions);
     }
 
+    // TODO: only enqueue the enclosing type if the static field is used for something
     @Override
     public ValueHandle staticField(FieldElement field) {
         DefinedTypeDefinition enclosingType = field.getEnclosingType();

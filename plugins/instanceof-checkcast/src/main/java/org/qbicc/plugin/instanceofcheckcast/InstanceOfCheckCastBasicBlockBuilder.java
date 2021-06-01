@@ -78,8 +78,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         try {
             begin(fail);
             MethodElement thrower = ctxt.getVMHelperMethod(kind.equals(CheckCast.CastType.Cast) ? "raiseClassCastException" : "raiseArrayStoreException");
-            getFirstBuilder().invokeStatic(thrower, List.of());
-            unreachable();
+            getFirstBuilder().callNoReturn(getFirstBuilder().staticMethod(thrower), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
@@ -103,7 +102,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
                 } else {
                     helperName = "arrayStoreCheck";
                 }
-                getFirstBuilder().invokeStatic(ctxt.getVMHelperMethod(helperName), List.of(input, toType, toDimensions));
+                getFirstBuilder().call(getFirstBuilder().staticMethod(ctxt.getVMHelperMethod(helperName)), List.of(input, toType, toDimensions));
                 goto_(pass);
             }
         } catch (BlockEarlyTermination ignored) {
@@ -163,7 +162,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             boolean inlinedTest = generateTypeTest(input, expectedType, expectedDimensions, passInline, fail);
             if (!inlinedTest) {
                 MethodElement helper = ctxt.getVMHelperMethod("instanceof_typeId");
-                passResult = getFirstBuilder().invokeValueStatic(helper, List.of(input, lf.literalOfType(expectedType), lf.literalOf(expectedDimensions)));
+                passResult = getFirstBuilder().call(getFirstBuilder().staticMethod(helper), List.of(input, lf.literalOfType(expectedType), lf.literalOf(expectedDimensions)));
                 passLabel = notNull;
                 goto_(allDone);
             } else {
@@ -199,7 +198,7 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
 
         ctxt.warning(getLocation(), "Lowering classOf to incomplete VMHelper stub");
         List<Value> args = List.of(typeId);
-        return getFirstBuilder().invokeValueStatic(methodElement, args);
+        return getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement), args);
     }
 
     // Used when we know the exact type we are testing for at compile time (checkcast and instanceof bytecodes)

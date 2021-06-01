@@ -196,6 +196,9 @@ public interface Node {
         public Value copyValue(Value original) {
             Value copy = (Value) copiedNodes.get(original);
             if (copy == null) {
+                if (! (original instanceof Unschedulable) && schedule.getBlockForNode(original) == null) {
+                    throw new IllegalStateException("Missing schedule for node");
+                }
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
@@ -235,7 +238,10 @@ public interface Node {
             return copy;
         }
 
-        List<Value> copyValues(List<Value> list) {
+        public List<Value> copyValues(List<Value> list) {
+            if (list.isEmpty()) {
+                return List.of();
+            }
             Value[] values = new Value[list.size()];
             int i = 0;
             for (Value original : list) {
@@ -247,6 +253,9 @@ public interface Node {
         public Node copyAction(Action original) {
             Node copy = copiedNodes.get(original);
             if (copy == null) {
+                if (! (original instanceof Unschedulable) && schedule.getBlockForNode(original) == null) {
+                    throw new IllegalStateException("Missing schedule for node");
+                }
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
                 ExecutableElement oldElement = blockBuilder.setCurrentElement(original.getElement());
@@ -265,18 +274,12 @@ public interface Node {
             return copy;
         }
 
-        public Node copyTriable(Triable original) {
-            if (original instanceof Action) {
-                return copyAction((Action) original);
-            } else {
-                assert original instanceof Value;
-                return copyValue((Value) original);
-            }
-        }
-
         public BasicBlock copyTerminator(Terminator original) {
             BasicBlock basicBlock = copiedTerminators.get(original);
             if (basicBlock == null) {
+                if (! (original instanceof Unschedulable) && schedule.getBlockForNode(original) == null) {
+                    throw new IllegalStateException("Missing schedule for node");
+                }
                 // copy the terminator and its dependencies
                 int oldLine = blockBuilder.setLineNumber(original.getSourceLine());
                 int oldBci = blockBuilder.setBytecodeIndex(original.getBytecodeIndex());
@@ -306,7 +309,12 @@ public interface Node {
             for (PhiValue phiValue : outboundValues.keySet()) {
                 // check to make sure the value is actually reachable
                 if (terminator.getTerminatedBlock().isSucceededBy(phiValue.getPinnedBlock())) {
-                    copyValue(phiValue.getValueForInput(terminator));
+                    Value valueForInput = phiValue.getValueForInput(terminator);
+                    if (valueForInput instanceof Invoke.ReturnValue) {
+                        // do not (yet) copy the value representing invocation returns, else we'll loop
+                        continue;
+                    }
+                    copyValue(valueForInput);
                 }
             }
         }
@@ -329,13 +337,12 @@ public interface Node {
                 throw Assert.unreachableCode();
             }
 
-            public Node visit(Copier param, BlockEntry node) {
-                return param.getBlockBuilder().getBlockEntry();
+            public ValueHandle visitUnknown(Copier param, ValueHandle node) {
+                throw Assert.unreachableCode();
             }
 
-            public Node visit(Copier param, InstanceInvocation node) {
-                if (node.hasDependency()) param.copyNode(node.getDependency());
-                return param.getBlockBuilder().invokeInstance(node.getKind(), param.copyValue(node.getInstance()), node.getInvocationTarget(), param.copyValues(node.getArguments()));
+            public Node visit(Copier param, BlockEntry node) {
+                return param.getBlockBuilder().getBlockEntry();
             }
 
             public Node visit(Copier param, MonitorEnter node) {
@@ -348,14 +355,15 @@ public interface Node {
                 return param.getBlockBuilder().monitorExit(param.copyValue(node.getInstance()));
             }
 
-            public Node visit(Copier param, StaticInvocation node) {
-                if (node.hasDependency()) param.copyNode(node.getDependency());
-                return param.getBlockBuilder().invokeStatic(node.getInvocationTarget(), param.copyValues(node.getArguments()));
-            }
-
             public Node visit(Copier param, Fence node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().fence(node.getAtomicityMode());
+            }
+
+            public BasicBlock visit(Copier param, CallNoReturn node) {
+                param.copyNode(node.getDependency());
+                param.copyOutboundValues(node);
+                return param.getBlockBuilder().callNoReturn(param.copyValueHandle(node.getValueHandle()), param.copyValues(node.getArguments()));
             }
 
             public BasicBlock visit(Copier param, Goto node) {
@@ -368,6 +376,20 @@ public interface Node {
                 param.copyNode(node.getDependency());
                 param.copyOutboundValues(node);
                 return param.getBlockBuilder().if_(param.copyValue(node.getCondition()), param.copyBlock(node.getTrueBranch()), param.copyBlock(node.getFalseBranch()));
+            }
+
+            public BasicBlock visit(Copier param, Invoke node) {
+                param.copyNode(node.getDependency());
+                param.copyOutboundValues(node);
+                // special case: seed the copied return value proactively
+                param.copiedNodes.put(node.getReturnValue(), param.getBlockBuilder().invoke(param.copyValueHandle(node.getValueHandle()), param.copyValues(node.getArguments()), param.copyBlock(node.getCatchBlock()), param.copyBlock(node.getResumeTarget())));
+                return param.getBlockBuilder().getTerminatedBlock();
+            }
+
+            public BasicBlock visit(Copier param, InvokeNoReturn node) {
+                param.copyNode(node.getDependency());
+                param.copyOutboundValues(node);
+                return param.getBlockBuilder().invokeNoReturn(param.copyValueHandle(node.getValueHandle()), param.copyValues(node.getArguments()), param.copyBlock(node.getCatchBlock()));
             }
 
             public BasicBlock visit(Copier param, Jsr node) {
@@ -388,11 +410,6 @@ public interface Node {
                 return param.getBlockBuilder().return_();
             }
 
-            public BasicBlock visit(Copier param, Unreachable node) {
-                param.copyNode(node.getDependency());
-                return param.getBlockBuilder().unreachable();
-            }
-
             public BasicBlock visit(Copier param, Switch node) {
                 param.copyNode(node.getDependency());
                 param.copyOutboundValues(node);
@@ -404,22 +421,27 @@ public interface Node {
                 return param.getBlockBuilder().switch_(param.copyValue(node.getSwitchValue()), node.getValues(), targetsCopy, param.copyBlock(node.getDefaultTarget()));
             }
 
+            public BasicBlock visit(Copier param, TailCall node) {
+                param.copyNode(node.getDependency());
+                param.copyOutboundValues(node);
+                return param.getBlockBuilder().callNoReturn(param.copyValueHandle(node.getValueHandle()), param.copyValues(node.getArguments()));
+            }
+
+            public BasicBlock visit(Copier param, TailInvoke node) {
+                param.copyNode(node.getDependency());
+                param.copyOutboundValues(node);
+                return param.getBlockBuilder().invokeNoReturn(param.copyValueHandle(node.getValueHandle()), param.copyValues(node.getArguments()), param.copyBlock(node.getCatchBlock()));
+            }
+
             public BasicBlock visit(Copier param, Throw node) {
                 param.copyNode(node.getDependency());
                 param.copyOutboundValues(node);
                 return param.getBlockBuilder().throw_(param.copyValue(node.getThrownValue()));
             }
 
-            public BasicBlock visit(Copier param, Try node) {
+            public BasicBlock visit(Copier param, Unreachable node) {
                 param.copyNode(node.getDependency());
-                param.copyOutboundValues(node);
-                Node copied = param.copyTriable(node.getDelegateOperation());
-                BlockLabel resumeLabel = param.copyBlock(node.getResumeTarget());
-                if (copied instanceof Triable) {
-                    return param.getBlockBuilder().try_((Triable) copied, resumeLabel, param.copyBlock(BlockLabel.getTargetOf(node.getExceptionHandlerLabel())));
-                } else {
-                    return param.getBlockBuilder().goto_(resumeLabel);
-                }
+                return param.getBlockBuilder().unreachable();
             }
 
             public BasicBlock visit(Copier param, ValueReturn node) {
@@ -479,6 +501,15 @@ public interface Node {
                 return node;
             }
 
+            public Value visit(final Copier param, final Call node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().call(param.copyValueHandle(node.getValueHandle()), param.copyValues(node.getArguments()));
+            }
+
+            public Value visit(final Copier param, final CallNoSideEffects node) {
+                return param.getBlockBuilder().callNoSideEffects(param.copyValueHandle(node.getValueHandle()), param.copyValues(node.getArguments()));
+            }
+
             public Value visit(final Copier param, final CheckCast node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().checkcast(param.copyValue(node.getInput()), param.copyValue(node.getToType()),
@@ -520,9 +551,8 @@ public interface Node {
                 return node;
             }
 
-            public Value visit(final Copier param, final ConstructorInvocation node) {
-                if (node.hasDependency()) param.copyNode(node.getDependency());
-                return param.getBlockBuilder().invokeConstructor(param.copyValue(node.getInstance()), node.getInvocationTarget(), param.copyValues(node.getArguments()));
+            public ValueHandle visit(Copier param, ConstructorElementHandle node) {
+                return param.getBlockBuilder().constructorOf(param.copyValue(node.getInstance()), node.getExecutable());
             }
 
             public Value visit(final Copier param, final Convert node) {
@@ -540,6 +570,22 @@ public interface Node {
 
             public ValueHandle visit(Copier param, ElementOf node) {
                 return param.getBlockBuilder().elementOf(param.copyValueHandle(node.getValueHandle()), param.copyValue(node.getIndex()));
+            }
+
+            public ValueHandle visit(Copier param, ExactMethodElementHandle node) {
+                return param.getBlockBuilder().exactMethodOf(param.copyValue(node.getInstance()), node.getExecutable());
+            }
+
+            public ValueHandle visit(Copier param, FunctionDeclarationHandle node) {
+                return param.getBlockBuilder().functionOf(node.getProgramObject());
+            }
+
+            public ValueHandle visit(Copier param, FunctionElementHandle node) {
+                return param.getBlockBuilder().functionOf(node.getExecutable());
+            }
+
+            public ValueHandle visit(Copier param, FunctionHandle node) {
+                return param.getBlockBuilder().functionOf(node.getProgramObject());
             }
 
             public Value visit(final Copier param, final Extend node) {
@@ -560,11 +606,6 @@ public interface Node {
 
             public Value visit(final Copier param, final FloatLiteral node) {
                 return node;
-            }
-
-            public Value visit(final Copier param, final FunctionCall node) {
-                if (node.hasDependency()) param.copyNode(node.getDependency());
-                return param.getBlockBuilder().callFunction(param.copyValue(node.getCallTarget()), param.copyValues(node.getArguments()), node.getFlags());
             }
 
             public Value visit(final Copier param, final GetAndAdd node) {
@@ -624,11 +665,6 @@ public interface Node {
                 return param.getBlockBuilder().globalVariable(node.getVariableElement());
             }
 
-            public Value visit(final Copier param, final InstanceInvocationValue node) {
-                if (node.hasDependency()) param.copyNode(node.getDependency());
-                return param.getBlockBuilder().invokeValueInstance(node.getKind(), param.copyValue(node.getInstance()), node.getInvocationTarget(), param.copyValues(node.getArguments()));
-            }
-
             public Value visit(final Copier param, final InstanceOf node) {
                 return param.getBlockBuilder().instanceOf(param.copyValue(node.getInstance()), node.getCheckType(), node.getCheckDimensions());
             }
@@ -663,6 +699,14 @@ public interface Node {
 
             public ValueHandle visit(Copier param, InstanceFieldOf node) {
                 return param.getBlockBuilder().instanceFieldOf(param.copyValueHandle(node.getValueHandle()), node.getVariableElement());
+            }
+
+            public ValueHandle visit(Copier param, InterfaceMethodElementHandle node) {
+                return param.getBlockBuilder().interfaceMethodOf(param.copyValue(node.getInstance()), node.getExecutable());
+            }
+
+            public ValueHandle visit(Copier param, VirtualMethodElementHandle node) {
+                return param.getBlockBuilder().virtualMethodOf(param.copyValue(node.getInstance()), node.getExecutable());
             }
 
             public Value visit(final Copier param, final Load node) {
@@ -742,6 +786,10 @@ public interface Node {
                 return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()));
             }
 
+            public Value visit(Copier param, ReferenceTo node) {
+                return param.getBlockBuilder().referenceTo(param.copyValueHandle(node.getValueHandle()));
+            }
+
             public Value visit(final Copier param, final Rol node) {
                 return param.getBlockBuilder().rol(param.copyValue(node.getLeftInput()), param.copyValue(node.getRightInput()));
             }
@@ -778,9 +826,8 @@ public interface Node {
                 return param.getBlockBuilder().staticField(node.getVariableElement());
             }
 
-            public Value visit(final Copier param, final StaticInvocationValue node) {
-                if (node.hasDependency()) param.copyNode(node.getDependency());
-                return param.getBlockBuilder().invokeValueStatic(node.getInvocationTarget(), param.copyValues(node.getArguments()));
+            public ValueHandle visit(Copier param, StaticMethodElementHandle node) {
+                return param.getBlockBuilder().staticMethod(node.getExecutable());
             }
 
             public Node visit(final Copier param, final Store node) {

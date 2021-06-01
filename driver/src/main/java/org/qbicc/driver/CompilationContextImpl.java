@@ -291,6 +291,9 @@ final class CompilationContextImpl implements CompilationContext {
         if (function != null) {
             return function;
         }
+        if (! queued.contains(element)) {
+            throw new IllegalArgumentException("Cannot access function for un-lowered element " + element);
+        }
         return exactFunctions.computeIfAbsent(element, e -> {
             Section implicit = getImplicitSection(element);
             FunctionType elementType = element.getType();
@@ -543,6 +546,7 @@ final class CompilationContextImpl implements CompilationContext {
                 try {
                     task.accept(lock);
                 } catch (Throwable t) {
+                    log.error("An exception was thrown from a parallel task", t);
                     error(t, "A task threw an uncaught exception");
                 }
             }

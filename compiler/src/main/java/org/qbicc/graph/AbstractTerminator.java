@@ -12,11 +12,13 @@ abstract class AbstractTerminator extends AbstractNode implements Terminator {
         super(callSite, element, line, bci);
     }
 
-    Value getOutboundValue(PhiValue phi) {
+    @Override
+    public Value getOutboundValue(PhiValue phi) {
         return outboundValues.get(phi);
     }
 
-    boolean registerValue(PhiValue phi, Value val) {
+    @Override
+    public boolean registerValue(PhiValue phi, Value val) {
         Map<PhiValue, Value> outboundValues = this.outboundValues;
         if (outboundValues.containsKey(phi)) {
             return false;
@@ -35,7 +37,8 @@ abstract class AbstractTerminator extends AbstractNode implements Terminator {
         return true;
     }
 
-    Map<PhiValue, Value> getOutboundValues() {
+    @Override
+    public Map<PhiValue, Value> getOutboundValues() {
         return outboundValues;
     }
 }

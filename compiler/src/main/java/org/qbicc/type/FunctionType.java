@@ -28,6 +28,10 @@ public final class FunctionType extends ValueType {
         return false;
     }
 
+    public boolean isVariadic() {
+        return paramTypes.length > 0 && paramTypes[paramTypes.length - 1] instanceof VariadicType;
+    }
+
     public long getSize() {
         throw new UnsupportedOperationException("Incomplete type");
     }
@@ -46,6 +50,10 @@ public final class FunctionType extends ValueType {
 
     public int getParameterCount() {
         return paramTypes.length;
+    }
+
+    public FunctionType withReturnType(final ValueType returnType) {
+        return getTypeSystem().getFunctionType(returnType, paramTypes);
     }
 
     public StringBuilder toString(final StringBuilder b) {

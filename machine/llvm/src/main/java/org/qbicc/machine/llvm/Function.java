@@ -3,7 +3,7 @@ package org.qbicc.machine.llvm;
 /**
  *
  */
-public interface Function extends Metable {
+public interface Function extends Metable, Attributable {
     // basic stuff
 
     Returns returns(LLValue returnType);

@@ -2,42 +2,41 @@ package org.qbicc.plugin.verification;
 
 import java.util.List;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.DispatchInvocation;
-import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
+import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
-import org.qbicc.type.PoisonType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.descriptor.TypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
-import io.smallrye.common.constraint.Assert;
 
 /**
  * A block builder that resolves member references to their elements.
@@ -58,6 +57,86 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
 
     public ValueHandle staticField(TypeDescriptor owner, String name, TypeDescriptor type) {
         return staticField(resolveField(owner, name, type));
+    }
+
+    public ValueHandle exactMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        DefinedTypeDefinition definedType = resolveDescriptor(owner);
+        if (definedType != null) {
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            MethodElement element = definedType.load().resolveMethodElementExact(name, descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme());
+            } else {
+                return exactMethodOf(instance, element);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme());
+        }
+    }
+
+    public ValueHandle virtualMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        DefinedTypeDefinition definedType = resolveDescriptor(owner);
+        if (definedType != null) {
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            MethodElement element = definedType.load().resolveMethodElementVirtual(name, descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme());
+            } else {
+                return virtualMethodOf(instance, element);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme());
+        }
+    }
+
+    public ValueHandle interfaceMethodOf(Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        DefinedTypeDefinition definedType = resolveDescriptor(owner);
+        if (definedType != null) {
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            MethodElement element = definedType.load().resolveMethodElementInterface(name, descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme());
+            } else {
+                return interfaceMethodOf(instance, element);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme());
+        }
+    }
+
+    public ValueHandle staticMethod(TypeDescriptor owner, String name, MethodDescriptor descriptor) {
+        DefinedTypeDefinition definedType = resolveDescriptor(owner);
+        if (definedType != null) {
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            MethodElement element = definedType.load().resolveMethodElementExact(name, descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme());
+            } else {
+                return staticMethod(element);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme());
+        }
+    }
+
+    public ValueHandle constructorOf(Value instance, TypeDescriptor owner, MethodDescriptor descriptor) {
+        DefinedTypeDefinition definedType = resolveDescriptor(owner);
+        if (definedType != null) {
+            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
+            ConstructorElement element = definedType.load().resolveConstructorElement(descriptor);
+            if (element == null) {
+                throw new BlockEarlyTermination(nsme());
+            } else {
+                return constructorOf(instance, element);
+            }
+        } else {
+            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
+            throw new BlockEarlyTermination(nsme());
+        }
     }
 
     public Value extractInstanceField(Value valueObj, TypeDescriptor owner, String name, TypeDescriptor type) {
@@ -163,69 +242,9 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return super.multiNewArray(desc, dimensions);
     }
 
-    public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        return invokeStatic(resolveMethod(DispatchInvocation.Kind.EXACT, owner, name, descriptor), arguments);
-    }
-
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        return invokeInstance(kind, instance, resolveMethod(kind, owner, name, descriptor), arguments);
-    }
-
-    public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        return invokeValueStatic(resolveMethod(DispatchInvocation.Kind.EXACT, owner, name, descriptor), arguments);
-    }
-
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        return invokeValueInstance(kind, instance, resolveMethod(kind, owner, name, descriptor), arguments);
-    }
-
-    public Value invokeConstructor(final Value instance, final TypeDescriptor owner, final MethodDescriptor descriptor, final List<Value> arguments) {
-        return invokeConstructor(instance, resolveConstructor(owner, descriptor), arguments);
-    }
-
-    private MethodElement resolveMethod(final DispatchInvocation.Kind kind, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor) {
-        if (owner instanceof ClassTypeDescriptor) {
-            DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
-            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-            MethodElement element;
-            if (kind == DispatchInvocation.Kind.EXACT) {
-                element = definedType.load().resolveMethodElementExact(name, descriptor);
-            } else if (kind == DispatchInvocation.Kind.VIRTUAL) {
-                element = definedType.load().resolveMethodElementVirtual(name, descriptor);
-            } else {
-                assert kind == DispatchInvocation.Kind.INTERFACE;
-                element = definedType.load().resolveMethodElementInterface(name, descriptor);
-            }
-            if (element == null) {
-                throw new BlockEarlyTermination(nsme());
-            } else {
-                return element;
-            }
-        } else {
-            ctxt.error(getLocation(), "Resolve method on a non-class type `%s` (did you forget a plugin?)", owner);
-            throw new BlockEarlyTermination(nsme());
-        }
-    }
-
-    private ConstructorElement resolveConstructor(final TypeDescriptor owner, final MethodDescriptor descriptor) {
-        if (owner instanceof ClassTypeDescriptor) {
-            DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
-            // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
-            ConstructorElement element = definedType.load().resolveConstructorElement(descriptor);
-            if (element == null) {
-                throw new BlockEarlyTermination(nsme());
-            } else {
-                return element;
-            }
-        } else {
-            ctxt.error(getLocation(), "Resolve constructor on a non-class type `%s` (did you forget a plugin?)", owner);
-            throw new BlockEarlyTermination(nsme());
-        }
-    }
-
     private FieldElement resolveField(final TypeDescriptor owner, final String name, final TypeDescriptor desc) {
-        if (owner instanceof ClassTypeDescriptor) {
-            DefinedTypeDefinition definedType = resolveDescriptor((ClassTypeDescriptor) owner);
+        DefinedTypeDefinition definedType = resolveDescriptor(owner);
+        if (definedType != null) {
             // it is present else {@link org.qbicc.plugin.verification.ClassLoadingBasicBlockBuilder} would have failed
             FieldElement element = definedType.load().resolveField(desc, name);
             if (element == null) {
@@ -240,27 +259,59 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         }
     }
 
-    private DefinedTypeDefinition resolveDescriptor(final ClassTypeDescriptor owner) {
-        final String typeName;
-        if (owner.getPackageName().isEmpty()) {
-            typeName = owner.getClassName();
-        } else {
-            typeName = owner.getPackageName() + "/" + owner.getClassName();
+    private DefinedTypeDefinition resolveDescriptor(final TypeDescriptor owner) {
+        if (owner instanceof ClassTypeDescriptor) {
+            final String typeName;
+            if (((ClassTypeDescriptor) owner).getPackageName().isEmpty()) {
+                typeName = ((ClassTypeDescriptor) owner).getClassName();
+            } else {
+                typeName = ((ClassTypeDescriptor) owner).getPackageName() + "/" + ((ClassTypeDescriptor) owner).getClassName();
+            }
+            return getClassContext().findDefinedType(typeName);
+        } else if (owner instanceof ArrayTypeDescriptor) {
+            Layout layout = Layout.get(ctxt);
+            ArrayTypeDescriptor atd = (ArrayTypeDescriptor) owner;
+            TypeDescriptor elementDesc = atd.getElementTypeDescriptor();
+            if (elementDesc instanceof BaseTypeDescriptor) {
+                // find out which one it belongs to
+                if (elementDesc == BaseTypeDescriptor.B) {
+                    return layout.getByteArrayContentField().getEnclosingType();
+                } else if (elementDesc == BaseTypeDescriptor.C) {
+                    return layout.getCharArrayContentField().getEnclosingType();
+                } else if (elementDesc == BaseTypeDescriptor.D) {
+                    return layout.getDoubleArrayContentField().getEnclosingType();
+                } else if (elementDesc == BaseTypeDescriptor.F) {
+                    return layout.getFloatArrayContentField().getEnclosingType();
+                } else if (elementDesc == BaseTypeDescriptor.I) {
+                    return layout.getIntArrayContentField().getEnclosingType();
+                } else if (elementDesc == BaseTypeDescriptor.J) {
+                    return layout.getLongArrayContentField().getEnclosingType();
+                } else if (elementDesc == BaseTypeDescriptor.S) {
+                    return layout.getShortArrayContentField().getEnclosingType();
+                } else {
+                    assert elementDesc == BaseTypeDescriptor.Z;
+                    return layout.getShortArrayContentField().getEnclosingType();
+                }
+            } else if (elementDesc instanceof ClassTypeDescriptor || elementDesc instanceof ArrayTypeDescriptor) {
+                return layout.getRefArrayContentField().getEnclosingType();
+            }
         }
-        return getClassContext().findDefinedType(typeName);
+        return null;
     }
 
     private BasicBlock nsfe() {
         Info info = Info.get(ctxt);
         // todo: add class name to exception string
-        Value nsfe = invokeConstructor(new_(info.nsfeClass), info.nsfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
+        Value nsfe = new_(info.nsfeClass);
+        call(constructorOf(nsfe, info.nsfeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
         return throw_(nsfe);
     }
 
     private BasicBlock nsme() {
         Info info = Info.get(ctxt);
         // todo: add class name to exception string
-        Value nsme = invokeConstructor(new_(info.nsmeClass), info.nsmeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR, List.of());
+        Value nsme = new_(info.nsmeClass);
+        call(constructorOf(nsme, info.nsmeClass, MethodDescriptor.VOID_METHOD_DESCRIPTOR), List.of());
         return throw_(nsme);
     }
 

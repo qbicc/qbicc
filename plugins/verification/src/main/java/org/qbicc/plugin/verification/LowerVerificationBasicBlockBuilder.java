@@ -7,7 +7,6 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.DispatchInvocation;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -15,8 +14,6 @@ import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ObjectType;
-import org.qbicc.type.definition.element.ConstructorElement;
-import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.MethodDescriptor;
 
 /**
@@ -69,31 +66,6 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
     public Node monitorExit(final Value obj) {
         invalidNode("monitorExit");
         return nop();
-    }
-
-    public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
-        invalidNode("invokeStatic");
-        return nop();
-    }
-
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        invalidNode("invokeInstance");
-        return nop();
-    }
-
-    public Value invokeValueStatic(final MethodElement target, final List<Value> arguments) {
-        invalidNode("invokeValueStatic");
-        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
-    }
-
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final MethodElement target, final List<Value> arguments) {
-        invalidNode("invokeValueInstance");
-        return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
-    }
-
-    public Value invokeConstructor(final Value instance, final ConstructorElement target, final List<Value> arguments) {
-        invalidNode("invokeConstructor");
-        return instance;
     }
 
     public Value new_(final ClassObjectType type) {

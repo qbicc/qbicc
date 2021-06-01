@@ -224,7 +224,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     origMethod.getEnclosingType().getDescriptor(),
                     origMethod.getName(),
                     origMethod.getDescriptor(),
-                    new NativeFunctionInfo(origMethod, ctxt.getLiteralFactory().literalOfSymbol(name, type))
+                    new ExternalFunctionInfo(origMethod.getEnclosingType(), name, type)
                 );
             }
 
@@ -251,7 +251,8 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                     origMethod.getEnclosingType().getDescriptor(),
                     name,
                     origMethod.getDescriptor(),
-                    new NativeFunctionInfo(function, ctxt.getLiteralFactory().literalOfSymbol(name, fnType)));
+                    new ExportedFunctionInfo(function)
+                );
                 ctxt.registerEntryPoint(function);
             }
         }, index);

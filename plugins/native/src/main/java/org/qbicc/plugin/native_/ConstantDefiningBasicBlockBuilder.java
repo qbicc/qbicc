@@ -7,13 +7,16 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.driver.Driver;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CastValue;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.StaticField;
+import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.probe.CProbe;
@@ -26,14 +29,12 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
-import org.qbicc.type.descriptor.MethodDescriptor;
-import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  * This block builder replaces calls to the {@link CNative#constant()} method with a registration of the constant
  * field value.
  */
-public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, Value> {
     private final CompilationContext ctxt;
 
     public ConstantDefiningBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
@@ -85,14 +86,38 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
     }
 
     @Override
-    public Value invokeValueStatic(MethodElement target, List<Value> arguments) {
+    public Value call(ValueHandle target, List<Value> arguments) {
+        Value result = target.accept(this, null);
+        return result == null ? super.call(target, arguments) : result;
+    }
+
+    @Override
+    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+        Value result = target.accept(this, null);
+        return result == null ? super.callNoSideEffects(target, arguments) : result;
+    }
+
+    @Override
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+        Value result = target.accept(this, null);
+        if (result == null) {
+            return super.invoke(target, arguments, catchLabel, resumeLabel);
+        } else {
+            goto_(resumeLabel);
+            return result;
+        }
+    }
+
+    @Override
+    public Value visit(Void param, StaticMethodElementHandle node) {
+        MethodElement target = node.getExecutable();
         if (target.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.C_NATIVE)) {
             if (target.getName().equals("constant")) {
                 // it's a constant but we don't yet know its type
                 return ctxt.getLiteralFactory().constantLiteralOfType(ctxt.getTypeSystem().getPoisonType());
             }
         }
-        return super.invokeValueStatic(target, arguments);
+        return null;
     }
 
     private void processConstant(final FieldElement fieldElement) {

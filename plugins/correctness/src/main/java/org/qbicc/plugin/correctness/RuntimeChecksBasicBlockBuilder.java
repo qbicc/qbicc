@@ -2,6 +2,7 @@ package org.qbicc.plugin.correctness;
 
 import java.util.List;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Phase;
 import org.qbicc.graph.BasicBlock;
@@ -9,17 +10,22 @@ import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CheckCast;
+import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.DispatchInvocation;
 import org.qbicc.graph.ElementOf;
+import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.InstanceFieldOf;
+import org.qbicc.graph.InstanceMethodElementHandle;
+import org.qbicc.graph.InterfaceMethodElementHandle;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.StaticField;
+import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.plugin.intrinsics.Intrinsics;
@@ -35,8 +41,6 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.descriptor.MethodDescriptor;
-import org.qbicc.type.descriptor.TypeDescriptor;
 
 /**
  * This builder injects runtime checks and transformations to:
@@ -86,89 +90,45 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     @Override
-    public Node invokeStatic(MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) && !target.getEnclosingType().internalPackageAndNameEquals("org/qbicc/runtime", "CNative") &&
-            null == Intrinsics.get(ctxt).getStaticIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
-            throwUnsatisfiedLinkError();
-            return nop();
-        }
-        if (target.isVirtual()) {
-            throwIncompatibleClassChangeError();
-            return nop();
-        }
-        return super.invokeStatic(target, arguments);
+    public Value call(ValueHandle target, List<Value> arguments) {
+        check(target);
+        return super.call(target, arguments);
     }
 
     @Override
-    public Value invokeValueStatic(MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) && !target.getEnclosingType().internalPackageAndNameEquals("org/qbicc/runtime", "CNative") &&
-            null == Intrinsics.get(ctxt).getStaticValueIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
-            throwUnsatisfiedLinkError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
-        }
-        if (target.isVirtual()) {
-            throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
-        }
-        return super.invokeValueStatic(target, arguments);
+    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+        check(target);
+        return super.callNoSideEffects(target, arguments);
     }
 
     @Override
-    public Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
-            null == Intrinsics.get(ctxt).getInstanceIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
-            throwUnsatisfiedLinkError();
-            return nop();
-        }
-        if (target.isStatic()) {
-            throwIncompatibleClassChangeError();
-            return nop();
-        }
-        nullCheck(instance);
-        return super.invokeInstance(kind, instance, target, arguments);
+    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+        check(target);
+        return super.callNoReturn(target, arguments);
     }
 
     @Override
-    public Node invokeInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments) {
-        nullCheck(instance);
-        return super.invokeInstance(kind, instance, owner, name, descriptor, arguments);
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        check(target);
+        return super.invokeNoReturn(target, arguments, catchLabel);
     }
 
     @Override
-    public Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
-            null == Intrinsics.get(ctxt).getInstanceValueIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
-            throwUnsatisfiedLinkError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
-        }
-        if (target.isStatic()) {
-            throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
-        }
-        nullCheck(instance);
-        return super.invokeValueInstance(kind, instance, target, arguments);
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        check(target);
+        return super.tailCall(target, arguments);
     }
 
     @Override
-    public Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, TypeDescriptor owner, String name, MethodDescriptor descriptor, List<Value> arguments) {
-        nullCheck(instance);
-        return super.invokeValueInstance(kind, instance, owner, name, descriptor, arguments);
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        check(target);
+        return super.tailInvoke(target, arguments, catchLabel);
     }
 
     @Override
-    public Value invokeConstructor(Value instance, ConstructorElement target, List<Value> arguments) {
-        nullCheck(instance);
-        if (target.isStatic()) {
-            throwIncompatibleClassChangeError();
-            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
-        }
-        return super.invokeConstructor(instance, target, arguments);
-    }
-
-    @Override
-    public Value invokeConstructor(Value instance, TypeDescriptor owner, MethodDescriptor descriptor, List<Value> arguments) {
-        nullCheck(instance);
-        return super.invokeConstructor(instance, owner, descriptor, arguments);
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+        check(target);
+        return super.invoke(target, arguments, catchLabel, resumeLabel);
     }
 
     @Override
@@ -219,8 +179,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
             try {
                 begin(throwIt);
                 MethodElement helper = ctxt.getVMHelperMethod("raiseArithmeticException");
-                invokeStatic(helper, List.of());
-                unreachable();
+                callNoReturn(staticMethod(helper), List.of());
             } catch (BlockEarlyTermination ignored) {
                 // continue
             }
@@ -231,14 +190,12 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
     private void throwUnsatisfiedLinkError() {
         MethodElement helper = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
-        invokeStatic(helper, List.of());
-        throw new BlockEarlyTermination(unreachable());
+        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
     }
 
     private void throwIncompatibleClassChangeError() {
         MethodElement helper = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
-        invokeStatic(helper, List.of());
-        throw new BlockEarlyTermination(unreachable());
+        throw new BlockEarlyTermination(callNoReturn(staticMethod(helper), List.of()));
     }
 
     private Value check(ValueHandle handle) {
@@ -286,6 +243,65 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 nullCheck(node.getReferenceValue());
                 return null;
             }
+
+            @Override
+            public Value visit(Void param, ConstructorElementHandle node) {
+                ConstructorElement target = node.getExecutable();
+                nullCheck(node.getInstance());
+                if (target.isStatic()) {
+                    throwIncompatibleClassChangeError();
+                    throw Assert.unreachableCode();
+                }
+                // return value unused in this case
+                return null;
+            }
+
+            @Override
+            public Value visit(Void param, ExactMethodElementHandle node) {
+                return visit(node);
+            }
+
+            @Override
+            public Value visit(Void param, InterfaceMethodElementHandle node) {
+                return visit(node);
+            }
+
+            @Override
+            public Value visit(Void param, VirtualMethodElementHandle node) {
+                return visit(node);
+            }
+
+            private Value visit(InstanceMethodElementHandle node) {
+                MethodElement target = node.getExecutable();
+                if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
+                    null == Intrinsics.get(ctxt).getInstanceIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
+                    throwUnsatisfiedLinkError();
+                    throw Assert.unreachableCode();
+                }
+                if (target.isStatic()) {
+                    throwIncompatibleClassChangeError();
+                    throw Assert.unreachableCode();
+                }
+                nullCheck(node.getInstance());
+                // return value unused in this case
+                return null;
+            }
+
+            @Override
+            public Value visit(Void param, StaticMethodElementHandle node) {
+                MethodElement target = node.getExecutable();
+                if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) && !target.getEnclosingType().internalPackageAndNameEquals("org/qbicc/runtime", "CNative") &&
+                    null == Intrinsics.get(ctxt).getStaticIntrinsic(Phase.LOWER, target.getEnclosingType().getDescriptor(), target.getName(), target.getDescriptor())) {
+                    throwUnsatisfiedLinkError();
+                    throw Assert.unreachableCode();
+                }
+                if (target.isVirtual()) {
+                    throwIncompatibleClassChangeError();
+                    throw Assert.unreachableCode();
+                }
+                // return value unused in this case
+                return null;
+            }
         }, null);
     }
 
@@ -301,8 +317,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = ctxt.getVMHelperMethod("raiseNullPointerException");
-            invokeStatic(helper, List.of());
-            unreachable();
+            callNoReturn(staticMethod(helper), List.of());
         } catch (BlockEarlyTermination ignored) {
             //continue
         }
@@ -327,8 +342,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = ctxt.getVMHelperMethod("raiseArrayIndexOutOfBoundsException");
-            invokeStatic(helper, List.of());
-            unreachable();
+            callNoReturn(staticMethod(helper), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }
@@ -343,8 +357,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         try {
             begin(throwIt);
             MethodElement helper = ctxt.getVMHelperMethod("raiseNegativeArraySizeException");
-            invokeStatic(helper, List.of());
-            unreachable();
+            callNoReturn(staticMethod(helper), List.of());
         } catch (BlockEarlyTermination ignored) {
             // continue
         }

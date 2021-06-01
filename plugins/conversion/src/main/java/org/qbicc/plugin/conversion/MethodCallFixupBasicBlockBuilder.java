@@ -3,11 +3,17 @@ package org.qbicc.plugin.conversion;
 import java.util.List;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.DispatchInvocation;
-import org.qbicc.graph.Node;
+import org.qbicc.graph.ExactMethodElementHandle;
+import org.qbicc.graph.InterfaceMethodElementHandle;
+import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
@@ -16,10 +22,6 @@ import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
-import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.ConstructorElement;
-import org.qbicc.type.definition.element.InvokableElement;
-import org.qbicc.type.definition.element.MethodElement;
 
 /**
  * Automatically truncate parameters to method calls.  This is the complement to the {@code promote} method in the
@@ -27,7 +29,7 @@ import org.qbicc.type.definition.element.MethodElement;
  * however, demotion cannot happen until we know the target type of each argument, which does not happen until after
  * type resolution.
  */
-public class MethodCallFixupBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+public class MethodCallFixupBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<List<Value>, List<Value>> {
     private final CompilationContext ctxt;
 
     public MethodCallFixupBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
@@ -36,42 +38,38 @@ public class MethodCallFixupBasicBlockBuilder extends DelegatingBasicBlockBuilde
     }
 
     @Override
-    public Node invokeStatic(MethodElement target, List<Value> arguments) {
-        return super.invokeStatic(target, fixArguments(target, arguments));
+    public Value call(ValueHandle target, List<Value> arguments) {
+        return super.call(target, target.accept(this, arguments));
     }
 
     @Override
-    public Node invokeInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
-        return super.invokeInstance(kind, instance, target, fixArguments(target, arguments));
+    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+        return super.callNoSideEffects(target, target.accept(this, arguments));
     }
 
     @Override
-    public Value invokeValueStatic(MethodElement target, List<Value> arguments) {
-        return super.invokeValueStatic(target, fixArguments(target, arguments));
+    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+        return super.callNoReturn(target, target.accept(this, arguments));
     }
 
     @Override
-    public Value invokeValueInstance(DispatchInvocation.Kind kind, Value instance, MethodElement target, List<Value> arguments) {
-        return super.invokeValueInstance(kind, instance, target, fixArguments(target, arguments));
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        return super.invokeNoReturn(target, target.accept(this, arguments), catchLabel);
     }
 
     @Override
-    public Value invokeConstructor(Value instance, ConstructorElement target, List<Value> arguments) {
-        return super.invokeConstructor(instance, target, fixArguments(target, arguments));
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        return super.tailCall(target, target.accept(this, arguments));
     }
 
     @Override
-    public Value callFunction(Value callTarget, List<Value> arguments, int flags) {
-        return super.callFunction(callTarget, fixArguments(callTarget.getType(), arguments), flags);
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        return super.tailInvoke(target, target.accept(this, arguments), catchLabel);
     }
 
-    private List<Value> fixArguments(final InvokableElement target, final List<Value> arguments) {
-        if (target.hasAllModifiersOf(ClassFile.I_ACC_SIGNATURE_POLYMORPHIC)) {
-            // TODO: extract the signature from the method handle instance!
-            return arguments;
-        } else {
-            return fixArguments(target.getType(), arguments);
-        }
+    @Override
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+        return super.invoke(target, target.accept(this, arguments), catchLabel, resumeLabel);
     }
 
     private List<Value> fixArguments(final ValueType targetType, final List<Value> arguments) {
@@ -140,5 +138,46 @@ public class MethodCallFixupBasicBlockBuilder extends DelegatingBasicBlockBuilde
         }
         ctxt.error("Invalid coercion of %s to %s", type, toType);
         return orig;
+    }
+
+    @Override
+    public List<Value> visitUnknown(List<Value> arguments, ValueHandle valueHandle) {
+        return fixArguments(valueHandle.getValueType(), arguments);
+    }
+
+    @Override
+    public List<Value> visit(List<Value> arguments, ExactMethodElementHandle valueHandle) {
+        if (valueHandle.getExecutable().isSignaturePolymorphic()) {
+            return arguments;
+        } else {
+            return fixArguments(valueHandle.getValueType(), arguments);
+        }
+    }
+
+    @Override
+    public List<Value> visit(List<Value> arguments, InterfaceMethodElementHandle valueHandle) {
+        if (valueHandle.getExecutable().isSignaturePolymorphic()) {
+            return arguments;
+        } else {
+            return fixArguments(valueHandle.getValueType(), arguments);
+        }
+    }
+
+    @Override
+    public List<Value> visit(List<Value> arguments, VirtualMethodElementHandle valueHandle) {
+        if (valueHandle.getExecutable().isSignaturePolymorphic()) {
+            return arguments;
+        } else {
+            return fixArguments(valueHandle.getValueType(), arguments);
+        }
+    }
+
+    @Override
+    public List<Value> visit(List<Value> arguments, StaticMethodElementHandle valueHandle) {
+        if (valueHandle.getExecutable().isSignaturePolymorphic()) {
+            return arguments;
+        } else {
+            return fixArguments(valueHandle.getValueType(), arguments);
+        }
     }
 }

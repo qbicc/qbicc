@@ -4,14 +4,18 @@ import java.util.List;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Phase;
+import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.DispatchInvocation;
-import org.qbicc.graph.Node;
+import org.qbicc.graph.ExactMethodElementHandle;
+import org.qbicc.graph.InterfaceMethodElementHandle;
+import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.descriptor.MethodDescriptor;
-import org.qbicc.type.descriptor.TypeDescriptor;
 import org.jboss.logging.Logger;
 
 /**
@@ -21,8 +25,46 @@ import org.jboss.logging.Logger;
  * methods to be replaced by intrinsics originate from descriptors (ie: classfile
  * parsing).
  */
-public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilder {
+public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, MethodElement> {
     public static final Logger log = Logger.getLogger("org.qbicc.plugin.intrinsics");
+
+    private static final ValueHandleVisitor<Void, MethodElement> GET_METHOD = new ValueHandleVisitor<Void, MethodElement>() {
+        @Override
+        public MethodElement visit(Void param, ExactMethodElementHandle node) {
+            return node.getExecutable();
+        }
+
+        @Override
+        public MethodElement visit(Void param, InterfaceMethodElementHandle node) {
+            return node.getExecutable();
+        }
+
+        @Override
+        public MethodElement visit(Void param, VirtualMethodElementHandle node) {
+            return node.getExecutable();
+        }
+
+        @Override
+        public MethodElement visit(Void param, StaticMethodElementHandle node) {
+            return node.getExecutable();
+        }
+    };
+    private static final ValueHandleVisitor<Void, Value> GET_INSTANCE = new ValueHandleVisitor<Void, Value>() {
+        @Override
+        public Value visit(Void param, ExactMethodElementHandle node) {
+            return node.getInstance();
+        }
+
+        @Override
+        public Value visit(Void param, InterfaceMethodElementHandle node) {
+            return node.getInstance();
+        }
+
+        @Override
+        public Value visit(Void param, VirtualMethodElementHandle node) {
+            return node.getInstance();
+        }
+    };
 
     private final CompilationContext ctxt;
     private final Phase phase;
@@ -41,87 +83,202 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
         return new IntrinsicBasicBlockBuilder(ctxt, delegate, Phase.LOWER);
     }
 
-    public Node invokeStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, owner, name, descriptor);
-        if (intrinsic != null) {
-            log.debugf("found StaticIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
-            return intrinsic.emitIntrinsic(this, owner, name, descriptor, arguments);
+    @Override
+    public Value call(ValueHandle target, List<Value> arguments) {
+        MethodElement decodedTarget = target.accept(GET_METHOD, null);
+        if (decodedTarget != null) {
+            if (decodedTarget.isStatic()) {
+                StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
+                        decodedTarget,
+                        arguments);
+                    return result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType());
+                }
+            } else {
+                // instance
+                InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value instance = target.accept(GET_INSTANCE, null);
+                    Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
+                        instance,
+                        decodedTarget,
+                        arguments);
+                    return result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType());
+                }
+            }
         }
-        return super.invokeStatic(owner, name, descriptor, arguments);
+        return super.call(target, arguments);
     }
 
-    public Node invokeStatic(final MethodElement target, final List<Value> arguments) {
-        TypeDescriptor owner = target.getEnclosingType().getDescriptor();
-        String name = target.getName();
-        MethodDescriptor descriptor = target.getDescriptor();
-        StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, owner, name, descriptor);
-        if (intrinsic != null) {
-            log.debugf("found StaticIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
-            return intrinsic.emitIntrinsic(this, owner, name, descriptor, arguments);
+    @Override
+    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
+        MethodElement decodedTarget = target.accept(this, null);
+        if (decodedTarget != null) {
+            if (decodedTarget.isStatic()) {
+                StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
+                        decodedTarget,
+                        arguments);
+                    return result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType());
+                }
+            } else {
+                // instance
+                InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value instance = target.accept(GET_INSTANCE, null);
+                    Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
+                        instance,
+                        decodedTarget,
+                        arguments);
+                    return result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType());
+                }
+            }
         }
-        return super.invokeStatic(target, arguments);
+        return super.callNoSideEffects(target, arguments);
     }
 
-    public Value invokeValueStatic(final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        StaticValueIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticValueIntrinsic(phase, owner, name, descriptor);
-        if (intrinsic != null) {
-            log.debugf("found StaticValueIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
-            return intrinsic.emitIntrinsic(this, owner, name, descriptor, arguments);
+    @Override
+    public BasicBlock callNoReturn(ValueHandle target, List<Value> arguments) {
+        MethodElement decodedTarget = target.accept(this, null);
+        if (decodedTarget != null) {
+            if (decodedTarget.isStatic()) {
+                StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    intrinsic.emitIntrinsic(getFirstBuilder(),
+                        decodedTarget,
+                        arguments);
+                    return unreachable();
+                }
+            } else {
+                // instance
+                InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value instance = target.accept(GET_INSTANCE, null);
+                    intrinsic.emitIntrinsic(getFirstBuilder(),
+                        instance,
+                        decodedTarget,
+                        arguments);
+                    return unreachable();
+                }
+            }
         }
-        return super.invokeValueStatic(owner, name, descriptor, arguments);
+        return super.callNoReturn(target, arguments);
     }
 
-    public Value invokeValueStatic(MethodElement target, final List<Value> arguments) {
-        TypeDescriptor owner = target.getEnclosingType().getDescriptor();
-        String name = target.getName();
-        MethodDescriptor descriptor = target.getDescriptor();
-        StaticValueIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticValueIntrinsic(phase, owner, name, descriptor);
-        if (intrinsic != null) {
-            log.debugf("found StaticValueIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
-            return intrinsic.emitIntrinsic(this, owner, name, descriptor, arguments);
+    @Override
+    public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        MethodElement decodedTarget = target.accept(this, null);
+        if (decodedTarget != null) {
+            if (decodedTarget.isStatic()) {
+                StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    intrinsic.emitIntrinsic(getFirstBuilder(),
+                        decodedTarget,
+                        arguments);
+                    return unreachable();
+                }
+            } else {
+                // instance
+                InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value instance = target.accept(GET_INSTANCE, null);
+                    intrinsic.emitIntrinsic(getFirstBuilder(),
+                        instance,
+                        decodedTarget,
+                        arguments);
+                    return unreachable();
+                }
+            }
         }
-        return super.invokeValueStatic(target, arguments);
+        return super.invokeNoReturn(target, arguments, catchLabel);
     }
 
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, owner, name, descriptor);
-        if (intrinsic != null) {
-            log.debugf("found InstanceIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
-            return intrinsic.emitIntrinsic(this, kind, instance, owner, name, descriptor, arguments);
+    @Override
+    public BasicBlock tailCall(ValueHandle target, List<Value> arguments) {
+        MethodElement decodedTarget = target.accept(this, null);
+        if (decodedTarget != null) {
+            if (decodedTarget.isStatic()) {
+                StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
+                        decodedTarget,
+                        arguments);
+                    return return_(result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType()));
+                }
+            } else {
+                // instance
+                InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value instance = target.accept(GET_INSTANCE, null);
+                    Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
+                        instance,
+                        decodedTarget,
+                        arguments);
+                    return return_(result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType()));
+                }
+            }
         }
-        return super.invokeInstance(kind, instance, owner, name, descriptor, arguments);
+        return super.tailCall(target, arguments);
     }
 
-    public Node invokeInstance(final DispatchInvocation.Kind kind, final Value instance, MethodElement target, final List<Value> arguments) {
-        TypeDescriptor owner = target.getEnclosingType().getDescriptor();
-        String name = target.getName();
-        MethodDescriptor descriptor = target.getDescriptor();
-        InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, owner, name, descriptor);
-        if (intrinsic != null) {
-            log.debugf("found InstanceIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
-            return intrinsic.emitIntrinsic(this, kind, instance, owner, name, descriptor, arguments);
+    @Override
+    public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
+        MethodElement decodedTarget = target.accept(this, null);
+        if (decodedTarget != null) {
+            if (decodedTarget.isStatic()) {
+                StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
+                        decodedTarget,
+                        arguments);
+                    return return_(result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType()));
+                }
+            } else {
+                // instance
+                InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value instance = target.accept(GET_INSTANCE, null);
+                    Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
+                        instance,
+                        decodedTarget,
+                        arguments);
+                    return return_(result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType()));
+                }
+            }
         }
-        return super.invokeInstance(kind, instance, target, arguments);
+        return super.tailInvoke(target, arguments, catchLabel);
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, final TypeDescriptor owner, final String name, final MethodDescriptor descriptor, final List<Value> arguments) {
-        InstanceValueIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceValueIntrinsic(phase, owner, name, descriptor);
-        if (intrinsic != null) {
-            log.debugf("found InstanceValueIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
-            return intrinsic.emitIntrinsic(this, kind, instance, owner, name, descriptor, arguments);
+    @Override
+    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
+        MethodElement decodedTarget = target.accept(GET_METHOD, null);
+        if (decodedTarget != null) {
+            if (decodedTarget.isStatic()) {
+                StaticIntrinsic intrinsic = Intrinsics.get(ctxt).getStaticIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
+                        decodedTarget,
+                        arguments);
+                    goto_(resumeLabel);
+                    return result;
+                }
+            } else {
+                // instance
+                InstanceIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceIntrinsic(phase, decodedTarget);
+                if (intrinsic != null) {
+                    Value instance = target.accept(GET_INSTANCE, null);
+                    Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
+                        instance,
+                        decodedTarget,
+                        arguments);
+                    goto_(resumeLabel);
+                    return result;
+                }
+            }
         }
-        return super.invokeValueInstance(kind, instance, owner, name, descriptor, arguments);
+        return super.invoke(target, arguments, catchLabel, resumeLabel);
     }
 
-    public Value invokeValueInstance(final DispatchInvocation.Kind kind, final Value instance, MethodElement target, final List<Value> arguments) {
-        TypeDescriptor owner = target.getEnclosingType().getDescriptor();
-        String name = target.getName();
-        MethodDescriptor descriptor = target.getDescriptor();
-        InstanceValueIntrinsic intrinsic = Intrinsics.get(ctxt).getInstanceValueIntrinsic(phase, owner, name, descriptor);
-        if (intrinsic != null) {
-            log.debugf("found InstanceValueIntrinsic for owner(%s) name(%s) descriptor(%s)", owner, name, descriptor);
-            return intrinsic.emitIntrinsic(this, kind, instance, owner, name, descriptor, arguments);
-        }
-        return super.invokeValueInstance(kind, instance, target, arguments);
-    }
 }

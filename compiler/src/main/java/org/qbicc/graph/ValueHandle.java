@@ -33,6 +33,15 @@ public interface ValueHandle extends Unschedulable {
     }
 
     /**
+     * Determine whether this handle is readable.
+     *
+     * @return {@code true} if the handle is readable, {@code false} otherwise
+     */
+    default boolean isReadable() {
+        return true;
+    }
+
+    /**
      * Get the detected access mode for this handle.
      *
      * @return the detected access mode for this handle (must not be {@code null})

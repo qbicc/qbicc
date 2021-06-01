@@ -2,6 +2,7 @@ package org.qbicc.machine.llvm.op;
 
 import java.util.Set;
 
+import org.qbicc.machine.llvm.Attributable;
 import org.qbicc.machine.llvm.CallingConvention;
 import org.qbicc.machine.llvm.FastMathFlag;
 import org.qbicc.machine.llvm.LLValue;
@@ -9,7 +10,7 @@ import org.qbicc.machine.llvm.LLValue;
 /**
  *
  */
-public interface Call extends YieldingInstruction {
+public interface Call extends YieldingInstruction, Attributable {
     Call withFlags(Set<FastMathFlag> flags);
 
     Call tail();
@@ -27,6 +28,8 @@ public interface Call extends YieldingInstruction {
     Call comment(String comment);
 
     Call meta(String name, LLValue data);
+
+    Call attribute(LLValue attribute);
 
     Argument arg(LLValue type, LLValue value);
 

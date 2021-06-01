@@ -19,6 +19,7 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
     final ReturnsImpl returns = new ReturnsImpl();
     final BasicBlockImpl normal;
     final BasicBlockImpl unwind;
+    final List<AbstractValue> attributes = new ArrayList<>();
     Set<FastMathFlag> flags = Set.of();
     TailType tailType = TailType.notail;
     CallingConvention cconv = CallingConvention.C;
@@ -35,6 +36,12 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
 
     public Call meta(final String name, final LLValue data) {
         super.meta(name, data);
+        return this;
+    }
+
+    @Override
+    public Call attribute(LLValue attribute) {
+        attributes.add((AbstractValue) Assert.checkNotNullParam("attribute", attribute));
         return this;
     }
 
@@ -111,7 +118,10 @@ final class InvokeImpl extends AbstractYieldingInstruction implements Call {
             lastArg.appendTo(target);
         }
         target.append(')');
-        // todo func attrs
+        for (AbstractValue attribute : attributes) {
+            target.append(' ');
+            attribute.appendTo(target);
+        }
         // todo operand bundles
         target.append(' ');
         target.append("to label ");

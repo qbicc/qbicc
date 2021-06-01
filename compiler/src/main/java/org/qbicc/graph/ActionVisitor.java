@@ -12,7 +12,7 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, InstanceInvocation node) {
+    default R visit(T param, Fence node) {
         return visitUnknown(param, node);
     }
 
@@ -24,15 +24,7 @@ public interface ActionVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
-    default R visit(T param, StaticInvocation node) {
-        return visitUnknown(param, node);
-    }
-
     default R visit(T param, Store node) {
-        return visitUnknown(param, node);
-    }
-
-    default R visit(T param, Fence node) {
         return visitUnknown(param, node);
     }
 
@@ -47,7 +39,7 @@ public interface ActionVisitor<T, R> {
             return getDelegateActionVisitor().visit(param, node);
         }
 
-        default R visit(T param, InstanceInvocation node) {
+        default R visit(T param, Fence node) {
             return getDelegateActionVisitor().visit(param, node);
         }
 
@@ -59,11 +51,7 @@ public interface ActionVisitor<T, R> {
             return getDelegateActionVisitor().visit(param, node);
         }
 
-        default R visit(T param, StaticInvocation node) {
-            return getDelegateActionVisitor().visit(param, node);
-        }
-
-        default R visit(T param, Fence node) {
+        default R visit(T param, Store node) {
             return getDelegateActionVisitor().visit(param, node);
         }
     }
