@@ -146,9 +146,13 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         PHI_INCOMING ("green", "dashed"),
         PHI_INCOMING_UNREACHABLE ("brown", "dashed"),
         PHI_PINNED_NODE ("red", "dashed"),
-        VALUE_DEPENDENCY ("blue", "dashed"),
-        ORDER_DEPENDENCY ("black", "solid"),
-        CONTROL_FLOW ("black", "bold");
+        VALUE_DEPENDENCY ("blue", "solid"),
+        COND_DEPENDENCY ("blueviolet", "solid"),
+        ORDER_DEPENDENCY ("black", "dotted"),
+        CONTROL_FLOW ("black", "bold"),
+        COND_TRUE_FLOW ("brown", "bold"),
+        COND_FALSE_FLOW ("darkgreen", "bold"),
+        RET_RESUME_FLOW ("darkgreen", "dashed, bold");
 
         private String color;
         private String style;
@@ -165,19 +169,35 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         }
     }
 
+    private enum NodeType {
+        START_NODE ("orange"),
+        RETURN_NODE ("orange"),
+        CALL_NO_RETURN ("wheat"),
+        EXCEPTION_EXIT ("wheat");
+
+        NodeType(String color) {
+            this.color = color;
+        }
+        private String color;
+    }
+
     private static class NodePair {
         private Node n1;
         private Node n2;
         private String label;
+        private EdgeType edgeType;
 
         NodePair(Node n1, Node n2) {
             this(n1, n2, "");
         }
 
-        NodePair(Node n1, Node n2, String label) {
+        NodePair(Node n1, Node n2, String label) { this(n1, n2, label, EdgeType.CONTROL_FLOW); }
+
+        NodePair(Node n1, Node n2, String label, EdgeType edgeType) {
             this.n1 = n1;
             this.n2 = n2;
             this.label = label;
+            this.edgeType = edgeType;
         }
     }
 
@@ -197,6 +217,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         String label = "";
         if (node.getPinnedBlock() == entryBlock) {
             label = "start";
+            attr(param, "style", "filled");
+            attr(param, "fillcolor", NodeType.START_NODE.color);
         }
         attr(param, "label", label);
         nl(param);
@@ -397,9 +419,11 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     public String visit(final Appendable param, final CallNoReturn node) {
         String name = register(node);
         appendTo(param, name);
+        attr(param, "shape", "rectangle");
         attr(param, "style", "diagonals, filled");
         attr(param, "label", "call (no return)\\n" + node.getValueHandle().toString());
         attr(param, "fixedsize", "shape");
+        attr(param, "fillcolor", NodeType.CALL_NO_RETURN.color);
         nl(param);
         dependencyList.add(name);
         processDependency(param, node.getDependency());
@@ -418,8 +442,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         String name = register(node);
         visited.put(node.getReturnValue(), name);
         appendTo(param, name);
-        attr(param, "style", "diagonals, filled");
-        attr(param, "label", "invoke (no return)\\n" + node.getValueHandle().toString());
+        attr(param, "label", "invoke\\n" + node.getValueHandle().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
         dependencyList.add(name);
@@ -440,9 +463,11 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     public String visit(Appendable param, InvokeNoReturn node) {
         String name = register(node);
         appendTo(param, name);
+        attr(param, "shape", "rectangle");
         attr(param, "style", "diagonals, filled");
         attr(param, "label", "invoke (no return)\\n" + node.getValueHandle().toString());
         attr(param, "fixedsize", "shape");
+        attr(param, "fillcolor", NodeType.CALL_NO_RETURN.color);
         nl(param);
         dependencyList.add(name);
         processDependency(param, node.getDependency());
@@ -461,6 +486,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     public String visit(Appendable param, TailCall node) {
         String name = register(node);
         appendTo(param, name);
+        attr(param, "shape", "rectangle");
         attr(param, "style", "diagonals, filled");
         attr(param, "label", "tail call\\n" + node.getValueHandle().toString());
         attr(param, "fixedsize", "shape");
@@ -481,6 +507,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     public String visit(Appendable param, TailInvoke node) {
         String name = register(node);
         appendTo(param, name);
+        attr(param, "shape", "rectangle");
         attr(param, "style", "diagonals, filled");
         attr(param, "label", "tail invoke\\n" + node.getValueHandle().toString());
         attr(param, "fixedsize", "shape");
@@ -526,11 +553,11 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         dependencyList.add(name);
         processDependency(param, node.getDependency());
         processDependencyList(param);
-        addEdge(param, node, node.getCondition(), EdgeType.VALUE_DEPENDENCY, "cond");
+        addEdge(param, node, node.getCondition(), EdgeType.COND_DEPENDENCY, "cond");
         appendTo(param, "}");
         nl(param);
-        addBBConnection(param, node, node.getTrueBranch(), "true");
-        addBBConnection(param, node, node.getFalseBranch(), "false");
+        addBBConnection(param, node, node.getTrueBranch(), "true", EdgeType.COND_TRUE_FLOW);
+        addBBConnection(param, node, node.getFalseBranch(), "false", EdgeType.COND_FALSE_FLOW);
         return name;
     }
 
@@ -547,7 +574,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         processDependencyList(param);
         appendTo(param, "}");
         nl(param);
-        addBBConnection(param, node, node.getResumeTarget(), "ret");
+        addBBConnection(param, node, node.getResumeTarget(), "ret", EdgeType.RET_RESUME_FLOW);
         addBBConnection(param, node, node.getJsrTarget(), "to");
         return name;
     }
@@ -573,6 +600,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, name);
         attr(param, "shape", "rectangle");
         attr(param, "style", "diagonals, filled");
+        attr(param, "fillcolor", NodeType.RETURN_NODE.color);
         attr(param, "label", "return");
         attr(param, "fixedsize", "shape");
         nl(param);
@@ -594,6 +622,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, name);
         attr(param, "shape", "rectangle");
         attr(param, "style", "diagonals, filled");
+        attr(param, "fillcolor", NodeType.EXCEPTION_EXIT.color);
         attr(param, "label", "unreachable");
         attr(param, "fixedsize", "shape");
         nl(param);
@@ -616,12 +645,13 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         dependencyList.add(name);
         processDependency(param, node.getDependency());
         processDependencyList(param);
-        addEdge(param, node, node.getSwitchValue(), EdgeType.VALUE_DEPENDENCY, "on");
+        addEdge(param, node, node.getSwitchValue(), EdgeType.COND_DEPENDENCY, "on");
         appendTo(param, "}");
         nl(param);
         int cnt = node.getNumberOfValues();
         for (int i = 0; i < cnt; i++) {
-            addBBConnection(param, node, node.getTargetForIndex(i), String.valueOf(node.getValueForIndex(i)));
+            addBBConnection(param, node, node.getTargetForIndex(i), String.valueOf(node.getValueForIndex(i)),
+                            EdgeType.COND_TRUE_FLOW);
         }
         return name;
     }
@@ -648,6 +678,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, name);
         attr(param, "shape", "rectangle");
         attr(param, "style", "diagonals, filled");
+        attr(param, "fillcolor", NodeType.RETURN_NODE.color);
         attr(param, "label", "return");
         attr(param, "fixedsize", "shape");
         nl(param);
@@ -1083,9 +1114,9 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "select");
         attr(param, "fixedsize", "shape");
         nl(param);
-        addEdge(param, node, node.getCondition(), EdgeType.VALUE_DEPENDENCY,"cond");
-        addEdge(param, node, node.getTrueValue(), EdgeType.CONTROL_FLOW, "T");
-        addEdge(param, node, node.getFalseValue(), EdgeType.CONTROL_FLOW, "F");
+        addEdge(param, node, node.getCondition(), EdgeType.COND_DEPENDENCY,"cond");
+        addEdge(param, node, node.getTrueValue(), EdgeType.COND_TRUE_FLOW, "T");
+        addEdge(param, node, node.getFalseValue(), EdgeType.COND_FALSE_FLOW, "F");
         return name;
     }
 
@@ -1266,7 +1297,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
             }
         }
         attr(param, "style", EdgeType.ORDER_DEPENDENCY.style());
-        attr(param, "style", EdgeType.ORDER_DEPENDENCY.color());
+        attr(param, "color", EdgeType.ORDER_DEPENDENCY.color());
         nl(param);
     }
 
@@ -1277,6 +1308,11 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     private void addBBConnection(Appendable param, Terminator from, BasicBlock to, String label) {
         bbConnections.add(new NodePair(from, to.getBlockEntry(), label));
+        addToQueue(to);
+    }
+
+    private void addBBConnection(Appendable param, Terminator from, BasicBlock to, String label, EdgeType style) {
+        bbConnections.add(new NodePair(from, to.getBlockEntry(), label, style));
         addToQueue(to);
     }
 
@@ -1450,8 +1486,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
             appendTo(param, " -> ");
             appendTo(param, visited.get(pair.n2));
             attr(param, "label", pair.label);
-            attr(param, "style", EdgeType.CONTROL_FLOW.style());
-            attr(param, "color", EdgeType.CONTROL_FLOW.color());
+            attr(param, "style", pair.edgeType.style());
+            attr(param, "color", pair.edgeType.color());
             nl(param);
         }
     }
