@@ -6,7 +6,7 @@ import java.util.Objects;
  * A type that represents the type of a value that is itself a type.  Values of this type are lowered to type identifiers
  * once the full set of reachable types is determined.
  */
-public final class TypeType extends org.qbicc.type.ValueType {
+public final class TypeType extends WordType {
     private final ValueType upperBound;
 
     TypeType(final TypeSystem typeSystem, final ValueType upperBound) {
@@ -44,5 +44,10 @@ public final class TypeType extends org.qbicc.type.ValueType {
 
     public StringBuilder toFriendlyString(final StringBuilder b) {
         return upperBound.toFriendlyString(b.append("typeof").append('.'));
+    }
+
+    @Override
+    public int getMinBits() {
+        return typeSystem.getTypeIdSize() * typeSystem.getByteBits();
     }
 }
