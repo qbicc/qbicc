@@ -738,6 +738,7 @@ public final class CoreIntrinsics {
         MethodDescriptor clsInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(clsDesc));
         MethodDescriptor IntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
         MethodDescriptor emptyTotypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of());
+        MethodDescriptor typeIdIntToByteDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.B, List.of(typeIdDesc, BaseTypeDescriptor.I));
 
         StaticIntrinsic typeOf = (builder, target, arguments) ->
             builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
@@ -884,6 +885,24 @@ public final class CoreIntrinsics {
             return lf.literalOf(tables.getFirstInterfaceTypeId());
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_first_interface_typeid", emptyTotypeIdDesc, get_first_interface_typeid);
+
+        // public static native int get_number_of_bytes_in_interface_bits_array();
+        StaticValueIntrinsic get_number_of_bytes_in_interface_bits_array = (builder, owner, name, descriptor, arguments) -> {
+            return lf.literalOf(tables.getNumberOfBytesInInterfaceBitsArray());
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_number_of_bytes_in_interface_bits_array", IntDesc, get_number_of_bytes_in_interface_bits_array);
+
+        // public static native byte get_byte_of_interface_bits(CNative.type_id typeId, int index);
+        StaticValueIntrinsic get_byte_of_interface_bits = (builder, owner, name, descriptor, arguments) -> {
+            Value typeId = arguments.get(0);
+            Value index = arguments.get(1);
+            GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
+            ValueHandle typeIdStruct = builder.elementOf(builder.globalVariable(typeIdGlobal), typeId);
+            ValueHandle bits = builder.memberOf(typeIdStruct, tables.getGlobalTypeIdStructType().getMember("interfaceBits"));
+            Value dataByte = builder.load(builder.elementOf(bits, index), MemoryAtomicityMode.UNORDERED);
+            return dataByte;
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_byte_of_interface_bits", typeIdIntToByteDesc, get_byte_of_interface_bits);
     }
 
     static void registerOrgQbiccRuntimeValuesIntrinsics(final CompilationContext ctxt) {
