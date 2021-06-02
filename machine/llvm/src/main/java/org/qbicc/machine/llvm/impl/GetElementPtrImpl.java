@@ -52,7 +52,7 @@ final class GetElementPtrImpl extends AbstractYieldingInstruction implements Get
         if (lastArg != null) {
             lastArg.appendTo(target);
         }
-        return target;
+        return appendTrailer(target);
     }
 
     static final class ArgImpl extends AbstractEmittable {
