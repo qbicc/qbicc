@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 public class BuildtimeHeap {
-    private static final AttachmentKey<BuildtimeHeap> KEY = new AttachmentKey();
+    private static final AttachmentKey<BuildtimeHeap> KEY = new AttachmentKey<>();
 
     private final CompilationContext ctxt;
     private final List<InitializedField> heapRoots = new ArrayList<>();

@@ -207,7 +207,7 @@ public class SupersDisplayTables {
             LoadedTypeDefinition next = cls;
             do {
                 superDisplay.add(next);
-                if (!info.isLiveClass(next)) {
+                if (!info.isReachableClass(next)) {
                     // TODO - can we optimize here if RTA doesn't see this class as live? Can that happen?
                     log.debug("Found RTA non-live super: " + cls.getDescriptor());
                 }
@@ -613,6 +613,7 @@ public class SupersDisplayTables {
         Literal uninitialized = lf.literalOf(0);
         Literal initialized = lf.literalOf(1);
         Literal nullInitializer = lf.zeroInitializerLiteralOfType(clinit_state_t.getMember("class_initializers").getType());
+        RTAInfo info = RTAInfo.get(ctxt);
          // poison
         init_state_literals.add(uninitialized);
         class_initializers_literals.add(nullInitializer);
@@ -630,14 +631,16 @@ public class SupersDisplayTables {
                 Literal initializer = nullInitializer;
                 if (!isAlreadyInitialized(ltd)) {
                     init_state = uninitialized;
-                    InitializerElement ie = ltd.getInitializer();
-                    if (ie != null && ie.hasMethodBody()) {
-                        FunctionType funType = ctxt.getFunctionTypeForElement(ie);
-                        Function impl = ctxt.getExactFunction(ie);
-                        if (!ie.getEnclosingType().load().equals(jlo)) {
-                            section.declareFunction(ie, impl.getName(), funType);
+                    if (info.isInitializedType(ltd)) {
+                        InitializerElement ie = ltd.getInitializer();
+                        if (ie != null && ie.hasMethodBody()) {
+                            FunctionType funType = ctxt.getFunctionTypeForElement(ie);
+                            Function impl = ctxt.getExactFunction(ie);
+                            if (!ie.getEnclosingType().load().equals(jlo)) {
+                                section.declareFunction(ie, impl.getName(), funType);
+                            }
+                            initializer = impl.getLiteral();
                         }
-                        initializer = impl.getLiteral();
                     }
                 }
                 init_state_literals.add(init_state);

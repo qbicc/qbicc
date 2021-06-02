@@ -135,11 +135,11 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
         if (expectedType instanceof ClassObjectType || expectedType instanceof InterfaceObjectType) {
             LoadedTypeDefinition vtd = expectedType.getDefinition().load();
             if (vtd.isInterface()) {
-                if (!info.isLiveInterface(vtd)) {
+                if (!info.isReachableInterface(vtd)) {
                     return ctxt.getLiteralFactory().literalOf(false);
                 }
             } else {
-                if (!info.isLiveClass(vtd)) {
+                if (!info.isReachableClass(vtd)) {
                     return ctxt.getLiteralFactory().literalOf(false);
                 }
             }

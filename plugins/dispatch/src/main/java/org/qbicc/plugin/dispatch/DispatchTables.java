@@ -217,6 +217,9 @@ public class DispatchTables {
         MethodElement ameStub = ctxt.getVMHelperMethod("raiseAbstractMethodError");
         Function ameImpl = ctxt.getExactFunction(ameStub);
         SymbolLiteral ameLiteral = lf.literalOfSymbol(ameImpl.getLiteral().getName(), ameImpl.getLiteral().getType().getPointer());
+        MethodElement uleStub = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
+        Function uleImpl = ctxt.getExactFunction(ameStub);
+        SymbolLiteral uleLiteral = lf.literalOfSymbol(ameImpl.getLiteral().getName(), ameImpl.getLiteral().getType().getPointer());
         final int pointerSize = ctxt.getTypeSystem().getPointerSize();
         for (Map.Entry<LoadedTypeDefinition, ITableInfo> entry: itables.entrySet()) {
             LoadedTypeDefinition currentInterface = entry.getKey();
@@ -249,7 +252,7 @@ public class DispatchTables {
             emittedInterfaceITableBytes += rootTable.length * pointerSize;
 
             // Now build all the implementing class itables and update the rootTable
-            rtaInfo.visitLiveImplementors(currentInterface, cls -> {
+            rtaInfo.visitReachableImplementors(currentInterface, cls -> {
                 if (!cls.isAbstract() && !cls.isInterface()) {
                     // Build the itable for an instantiable class
                     tlog.debugf("\temitting itable for %s", cls.getDescriptor().getClassName());
@@ -268,13 +271,18 @@ public class DispatchTables {
                         } else {
                             Function impl = ctxt.getExactFunctionIfExists(methImpl);
                             if (impl == null) {
-                                ctxt.error(methImpl, "Missing method implementation for vtable of %s", cls.getInternalName());
-                                continue;
+                                if (RTAInfo.get(ctxt).isInvokableMethod(methImpl)) {
+                                    ctxt.error(methImpl, "Missing method implementation for vtable of %s", cls.getInternalName());
+                                } else {
+                                    cSection.declareFunction(uleStub, uleImpl.getName(), uleImpl.getType());
+                                    valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(uleLiteral, implType.getPointer()));
+                                }
+                            } else {
+                                if (!methImpl.getEnclosingType().load().equals(cls)) {
+                                    cSection.declareFunction(methImpl, impl.getName(), implType);
+                                }
+                                valueMap.put(itableInfo.getType().getMember(i), impl.getLiteral());
                             }
-                            if (!methImpl.getEnclosingType().load().equals(cls)) {
-                                cSection.declareFunction(methImpl, impl.getName(), implType);
-                            }
-                            valueMap.put(itableInfo.getType().getMember(i), impl.getLiteral());
                         }
                     }
                     // Emit itable and refer to it in rootTable
