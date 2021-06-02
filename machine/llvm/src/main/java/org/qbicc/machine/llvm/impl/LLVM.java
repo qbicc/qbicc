@@ -2,6 +2,7 @@ package org.qbicc.machine.llvm.impl;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.qbicc.machine.llvm.Array;
 import org.qbicc.machine.llvm.LLBasicBlock;
@@ -18,6 +19,8 @@ import org.qbicc.machine.llvm.debuginfo.DIExpression;
 public final class LLVM {
 
     private LLVM() {}
+
+    private static AtomicInteger statepointId = new AtomicInteger(0);
 
     public static Module newModule() {
         return new ModuleImpl();
@@ -152,5 +155,9 @@ public final class LLVM {
     public static LLValue valueAttribute(final String attribute, final String value) {
         // TODO Should we have a separate class for this?
         return new SingleWord(attribute + "=" + value);
+    }
+
+    public static int getNextStatepointId() {
+        return statepointId.getAndIncrement();
     }
 }

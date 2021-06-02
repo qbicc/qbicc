@@ -847,6 +847,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
+        call.attribute(FunctionAttributes.statepointId(LLVM.getNextStatepointId()));
         return call.asLocal();
     }
 
@@ -863,6 +864,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
+        call.attribute(FunctionAttributes.statepointId(LLVM.getNextStatepointId()));
         return call.asLocal();
     }
 
@@ -880,6 +882,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail().attribute(FunctionAttributes.noreturn);
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
+        call.attribute(FunctionAttributes.statepointId(LLVM.getNextStatepointId()));
         builder.unreachable();
         return call;
     }
@@ -898,6 +901,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).tail(); // hint only
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
+        call.attribute(FunctionAttributes.statepointId(LLVM.getNextStatepointId()));
         ValueType returnType = node.getFunctionType().getReturnType();
         if (returnType instanceof VoidType) {
             return builder.ret();
