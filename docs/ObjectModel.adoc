@@ -301,7 +301,8 @@ that is indexed by `typeId` and contains pointers to each class's
 `vtable`.  Therefore an `invokevirtual` dispatch is simply three
 dependent loads and an indirect call.
 
-```
+[source]
+----
   # Load the `typeId` from the receiver (%L1)
   %L7 = getelementptr %T.test.InvokeVirtual$Data, %T.test.InvokeVirtual$Data* %L1, i32 0, i32 0
   %L8 = load i32, i32* %L7, align 4, !dbg !24
@@ -314,7 +315,7 @@ dependent loads and an indirect call.
   %LD = load i32 (i64, i64)*, i32 (i64, i64)** %LC, align 8, !dbg !22
   # Invoke the target function
   %LE = call i32 (i64, i64) %LD(i64 %thr0, i64 %L5), !dbg !21
-```
+----
 
 ==== invokeinterface
 
@@ -333,7 +334,8 @@ the receiver object actually implements the interface.
 Therefore an `invokeinterface` dispatch is simply three
 dependent loads and an indirect call.
 
-```
+[source]
+----
   # Load the `typeId` from the receiver (%L1)
   %L1 = inttoptr i64 %L0 to %T.java.lang.Object*, !dbg !27
   %L2 = getelementptr %T.java.lang.Object, %T.java.lang.Object* %L1, i32 0, i32 0
@@ -346,7 +348,7 @@ dependent loads and an indirect call.
   %L7 = load i32 (i64, i64)*, i32 (i64, i64)** %L6, align 8, !dbg !22
   # Invoke the target function
   %L8 = call i32 (i64, i64) %L7(i64 %thr0, i64 %L0), !dbg !21
-```
+----
 
 ==== instanceof/checkcast (of a class)
 
@@ -354,23 +356,26 @@ We have assigned typeIds via a postorder traversal of the class hierarchy. There
 
 We will use the following trivial class hierarchy to illustrate the cases:
 
-```java
+[source,java]
+----
 class A {}
 final class B extends A {}
 class C extends A implements I {}
 interface I {}
-```
+----
 We can implement this test with a single branch by using unsigned comparisons by doing the test:
 `o.typeId - C.minTypeId <= (C.maxTypeId - C.minTypeId)`
 As `C.minTypeId` and `C.maxTypeId` are compile time constants, we can get a tight 4 instruction sequence: load, add immediate, unsigned compare, branch.
 
-```java
+[source,java]
+----
 static boolean test1(Object a) { return a instanceof A; }
-```
+----
 
 Compiles into:
 
-```
+[source]
+----
 B0:
   # test for a != null
   %L0 = icmp ne i64 %p0, zeroinitializer, !dbg !69
@@ -388,18 +393,20 @@ B1:
 B2:
   %L4 = phi i1 [ %L6, %B1 ], [ false, %B0 ], !dbg !76
   ret i1 %L4, !dbg !74
-```
+----
 
 
 If `C` is a leaf class (no live subclasses), we can do a simple load, cmp eq, branch.
 
-```java
+[source,java]
+----
 static boolean test2(Object a) { return a instanceof B; }
-```
+----
 
 Compiles into:
 
-```
+[source]
+----
 B0:
   # test for a != null
   %L0 = icmp ne i64 %p0, zeroinitializer, !dbg !83
@@ -415,7 +422,7 @@ B1:
 B2:
   %L4 = phi i1 [ %L5, %B1 ], [ false, %B0 ], !dbg !90
   ret i1 %L4, !dbg !88
-```
+----
 
 ==== instanceof/checkcast (of an array)
 
@@ -445,13 +452,15 @@ TODO: Finish implementation and fill in above with generated LLVM IR sequences.
 We generate a byte array for each interface that is indexed by `typeId` and contains
 `0` or `1` values to indicate whether or not the class implements the interface.
 
-```java
+[source,java]
+----
 static boolean test3(Object a) { return a instanceof I; }
-```
+----
 
 Compiles into:
 
-```
+[source]
+----
 B0:
   %L0 = icmp ne i64 %p0, zeroinitializer, !dbg !96
   %L1 = inttoptr i64 %p0 to %T.java.lang.Object*, !dbg !101
@@ -467,7 +476,7 @@ B1:
 B2:
   %L6 = phi i1 [ %L8, %B1 ], [ false, %B0 ], !dbg !104
   ret i1 %L6, !dbg !102
-```
+----
 
 ==== getClass()
 

@@ -30,7 +30,6 @@ import org.qbicc.machine.tool.process.InputSource;
 import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
-import org.qbicc.type.ObjectType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
