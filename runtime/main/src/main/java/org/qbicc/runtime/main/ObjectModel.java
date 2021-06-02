@@ -150,4 +150,8 @@ public class ObjectModel {
     public static native CNative.type_id get_superclass_typeid(CNative.type_id typeId);
 
     public static native CNative.type_id get_first_interface_typeid();
+
+    public static native int get_number_of_bytes_in_interface_bits_array();
+
+    public static native byte get_byte_of_interface_bits(CNative.type_id typeId, int index);
 }
