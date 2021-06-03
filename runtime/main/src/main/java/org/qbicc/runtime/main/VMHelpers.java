@@ -1,5 +1,6 @@
 package org.qbicc.runtime.main;
 
+import org.qbicc.runtime.CNative;
 import org.qbicc.runtime.NoSideEffects;
 import org.qbicc.runtime.deserialization.HeapDeserializationError;
 import org.qbicc.runtime.stdc.Stddef;
@@ -281,9 +282,7 @@ public final class VMHelpers {
     // check as elements can be nulled when initialized.
     static ClinitState[] clinitStates;
 
-    static void initialize_class(Thread currentThread, type_id typeid) throws Throwable {
-        ClinitState state;
-        // ==== Code in this section would be better done at build time
+    static void ensureClinitStatesArray() {
         if (clinitStates == null) {
             int size = ObjectModel.get_number_of_typeids();
             synchronized(ClinitState.class) {
@@ -292,24 +291,43 @@ public final class VMHelpers {
                 }
             }
         }
-        int typeid_value = typeid.intValue();
-        ClinitState arrayState = clinitStates[typeid_value];
-        if (arrayState == null) {
-            state = new ClinitState(currentThread);
-            synchronized(clinitStates) {
-                arrayState = clinitStates[typeid_value];
-                if (arrayState == null) {
-                    clinitStates[typeid_value] = state;
-                } else {
-                    state = arrayState;
-                }
-            }
-        } else {
-            state = arrayState;
-        }
-        // ==== end better at build time section
+    }
+
+    // TODO: this should live on the j.l.Class object
+    static ClinitState getClinitState(Thread currentThread, type_id typeid) {
+        // TODO: re-enable this code when the scheduling bug that results in 
+        // array elements always being non null is fixed
+        // int typeid_value = typeid.intValue();
+        // ClinitState arrayState = clinitStates[typeid_value];
+        // if (arrayState != null) {
+        //     return arrayState;
+        // }
+        ClinitState state = new ClinitState(currentThread);
+        // synchronized(clinitStates) {
+        //     arrayState = clinitStates[typeid_value];
+        //     if (arrayState == null) {
+        //         clinitStates[typeid_value] = state;
+        //     } else {
+        //         state = arrayState;
+        //     }
+        // }
+        return state;
+    }
+
+    static void initialize_class(Thread currentThread, type_id typeid) throws Throwable {
+        /* Uncomment to trace class init */
+        // putchar('I');
+        // putchar('N');
+        // putchar('I');
+        // putchar('T');
+        // putchar('<');
+        // printTypeId(typeid);
+        // putchar('>');
+        // putchar('\n');
+        ensureClinitStatesArray();
+        ClinitState state = getClinitState(currentThread, typeid);
         assert state != null;
-        // boolean wasInterrupted = false;
+        boolean wasInterrupted = false;
         // try {
             synchronized(state) { // state is the "LC"
                 if (state.isInProgress()) {
@@ -320,7 +338,7 @@ public final class VMHelpers {
                                 state.wait();
                             } catch (InterruptedException e) {
                                 // Don't repeat, keep waiting
-                                // wasInterrupted = true;
+                                wasInterrupted = true;
                             }
                         }
                     } else {
@@ -330,7 +348,6 @@ public final class VMHelpers {
                         return;
                     }
                 }
-                
                 // Not an else if as both the current initializing thread and waiting
                 // threads need to execute this section
                 if (state.isInitialized()) {
@@ -348,14 +365,42 @@ public final class VMHelpers {
             // Static field preparation happens at build time
             if (ObjectModel.is_class(typeid)) {
                 try {
+                    // Initialize the super class (and its superclasses if not already initialized)
                     if (!ObjectModel.is_java_lang_object(typeid)) {
                         initialize_class(currentThread, ObjectModel.get_superclass_typeid(typeid));
                     }
-                    // TODO: initialize the super interfaces - may be issues with ordering requirements depending on the data we preserve  
+                    // Initialize the super interfaces, at least those that declare default methods
+                    // We calculate if a class has default methods during image build and we elide
+                    // this entire process if it doesn't have any default methods as there are no
+                    // interfaces that would need initailization.  See LoadedTypeDefinitionImpl's
+                    // constructor for where this is calculated
+                    if (ObjectModel.has_default_methods(typeid)) {
+                        // TODO: The ordering of superinterface intialization isn't correct here as it should start 
+                        // recursively based on the directly declared interfaces.  This does all interfaces implemented.
+                        type_id interfaceId = ObjectModel.get_first_interface_typeid();
+                        for (int i = 0; i < ObjectModel.get_number_of_bytes_in_interface_bits_array(); i++) {
+                            byte b = ObjectModel.get_byte_of_interface_bits(typeid, i);
+                            if (b == 0) {
+                                // no interfaces in this byte - advance to the next one
+                                interfaceId = CNative.<type_id>word(interfaceId.intValue() + 8);
+                            } else {
+                                // walk the byte to find the interfaces
+                                for (int j = 0; j < 8; j++) {
+                                    if ((b & 1) == 1) {
+                                        if (ObjectModel.declares_default_methods(interfaceId)) {
+                                            initialize_class(currentThread, interfaceId);
+                                        }
+                                    }
+                                    b = (byte)(b >> 1);
+                                    interfaceId = CNative.<type_id>word(interfaceId.intValue() + 1);
+                                }
+                            }
+                        }
+                    }
                 } catch (Throwable t) {
                     synchronized(state) {
                         state.setFailed(t);
-                        state.notifyAll();;
+                        state.notifyAll();
                     }
                     throw t;
                 }
@@ -395,4 +440,41 @@ public final class VMHelpers {
         // }
         return;
     }
+
+    // Temporary helper methods to print to stdout
+    // TODO: remove these once we have better runtime trace facilities
+
+    @extern
+    public static native int putchar(int arg);
+
+    static void printTypeId(type_id typeid) {
+        int n = typeid.intValue();
+        printInt(n);
+    }
+
+    static void printInt(int n) {
+        char[] numbers = new char[] {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+        boolean seenNonZero = false;
+        int divsor = 1000000000;
+        do {
+            int i = n / divsor;
+            if (!seenNonZero && i == 0) {
+                // skip
+            } else { 
+                seenNonZero = true;
+                putchar(numbers[i]);
+            }
+            n %= divsor;
+            divsor /= 10;
+        } while (divsor != 0);
+        if (!seenNonZero) {
+            putchar(numbers[0]);
+        }
+    }
+
+    // Temporary testing method
+    public static void testClinit(Object o) throws Throwable {
+        initialize_class(Thread.currentThread(), ObjectModel.type_id_of(o));
+    }
+
 }
