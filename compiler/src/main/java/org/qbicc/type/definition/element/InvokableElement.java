@@ -84,34 +84,14 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     }
 
     public MethodBody getMethodBody() {
-        return methodBody;
-    }
-
-    public MethodBody getOrCreateMethodBody() {
         MethodBody methodBody = this.methodBody;
         if (methodBody == null) {
-            MethodBodyFactory factory = this.methodBodyFactory;
-            if (factory != null) {
-                synchronized (this) {
-                    methodBody = this.methodBody;
-                    if (methodBody == null) {
-                        if (inProgress) {
-                            throw new IllegalStateException("Recursive method body creation");
-                        }
-                        inProgress = true;
-                        try {
-                            this.methodBody = previousMethodBody = methodBody = factory.createMethodBody(methodBodyFactoryIndex, this);
-                        } finally {
-                            inProgress = false;
-                        }
-                    }
-                }
-            }
+            throw new IllegalStateException("No method body is present on this element");
         }
         return methodBody;
     }
 
-    public void tryCreateMethodBody() {
+    public boolean tryCreateMethodBody() {
         MethodBody methodBody = this.methodBody;
         if (methodBody == null) {
             MethodBodyFactory factory = this.methodBodyFactory;
@@ -120,7 +100,7 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
                     methodBody = this.methodBody;
                     if (methodBody == null) {
                         if (inProgress) {
-                            return;
+                            return true;
                         }
                         inProgress = true;
                         try {
@@ -130,8 +110,11 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
                         }
                     }
                 }
+            } else {
+                return false;
             }
         }
+        return true;
     }
 
     public void replaceMethodBody(final MethodBody replacement) {

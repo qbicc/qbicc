@@ -362,7 +362,7 @@ public class Driver implements Closeable {
             if (element.hasMethodBody()) {
                 // cause method and field references to be resolved
                 try {
-                    element.getOrCreateMethodBody();
+                    element.tryCreateMethodBody();
                 } catch (Exception e) {
                     log.error("An exception was thrown while constructing a method body", e);
                     compilationContext.error(element, "Exception while constructing method body: %s", e);
@@ -432,7 +432,7 @@ public class Driver implements Closeable {
             if (element.hasMethodBody()) {
                 // rewrite the method body
                 ClassContext classContext = element.getEnclosingType().getContext();
-                MethodBody original = element.getOrCreateMethodBody();
+                MethodBody original = element.getMethodBody();
                 BasicBlock entryBlock = original.getEntryBlock();
                 BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
                 BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, addToAnalyzeCopiers);

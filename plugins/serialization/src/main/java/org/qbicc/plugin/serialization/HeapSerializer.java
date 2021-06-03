@@ -109,7 +109,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
     // Implementation of RuntimeObjectDeserializer.allocateClass(int, bool, bool)
     private static void allocateClassImpl(CompilationContext ctxt, MethodElement meth, LoadedTypeDefinition[] classes) {
         BasicBlockBuilder bb = ctxt.getBootstrapClassContext().newBasicBlockBuilder(meth);
-        MethodBody original = meth.getOrCreateMethodBody();
+        MethodBody original = meth.getMethodBody();
         Layout layout = Layout.get(ctxt);
 
         int numCases = classes.length;
@@ -156,7 +156,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
     // Implementation of RuntimeObjectDeserializer.allocatePrimitiveArray(int, int, bool, bool)
     private static void allocatePrimitiveArrayImpl(CompilationContext ctxt, MethodElement meth) {
         BasicBlockBuilder bb = ctxt.getBootstrapClassContext().newBasicBlockBuilder(meth);
-        MethodBody original = meth.getOrCreateMethodBody();
+        MethodBody original = meth.getMethodBody();
 
         PrimitiveArrayObjectType[] primArrays = new PrimitiveArrayObjectType[8];
         primArrays[0] = ctxt.getTypeSystem().getBooleanType().getPrimitiveArrayObjectType();
@@ -204,7 +204,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
     // Implementation of RuntimeObjectDeserializer.allocateReferenceArray(int, int, bool, bool)
     private static void allocateReferenceArrayImpl(CompilationContext ctxt, MethodElement meth) {
         BasicBlockBuilder bb = ctxt.getBootstrapClassContext().newBasicBlockBuilder(meth);
-        MethodBody original = meth.getOrCreateMethodBody();
+        MethodBody original = meth.getMethodBody();
         LoadedTypeDefinition jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
         Layout layout = Layout.get(ctxt);
 
@@ -223,7 +223,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
     // Implementation of RuntimeObjectDeserializer.createString(byte[], byte, bool, bool)
     private static void createStringImpl(CompilationContext ctxt, MethodElement meth) {
         BasicBlockBuilder bb = ctxt.getBootstrapClassContext().newBasicBlockBuilder(meth);
-        MethodBody original = meth.getOrCreateMethodBody();
+        MethodBody original = meth.getMethodBody();
 
         bb.begin(new BlockLabel());
         LoadedTypeDefinition jls = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load();
@@ -239,7 +239,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
     // Implementation of RuntimeObjectDeserializer.deserializeInstanceFields(int, Object, Deserializer)
     private static void deserializeInstanceFieldsImpl(CompilationContext ctxt, MethodElement meth, LoadedTypeDefinition[] classes) {
         BasicBlockBuilder bb = ctxt.getBootstrapClassContext().newBasicBlockBuilder(meth);
-        MethodBody original = meth.getOrCreateMethodBody();
+        MethodBody original = meth.getMethodBody();
         LoadedTypeDefinition deser = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/deserialization/Deserializer").load();
 
         int numCases = classes.length;
@@ -311,7 +311,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
     // Implementation of RuntimeObjectDeserializer.deserializePrimitiveArrayData(int, int, Object, Deserializer)
     private static void deserializePrimitiveArrayDataImpl(CompilationContext ctxt, MethodElement meth) {
         BasicBlockBuilder bb = ctxt.getBootstrapClassContext().newBasicBlockBuilder(meth);
-        MethodBody original = meth.getOrCreateMethodBody();
+        MethodBody original = meth.getMethodBody();
         LiteralFactory lf = ctxt.getLiteralFactory();
 
         LoadedTypeDefinition deser = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/deserialization/Deserializer").load();
@@ -384,7 +384,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
     // Implementation of RuntimeObjectDeserializer.deserializeHeap(Deserializer)
     private static void deserializeHeapImpl(CompilationContext ctxt, MethodElement meth, BuildtimeHeap heap) {
         BasicBlockBuilder bb = ctxt.getBootstrapClassContext().newBasicBlockBuilder(meth);
-        MethodBody original = meth.getOrCreateMethodBody();
+        MethodBody original = meth.getMethodBody();
         LoadedTypeDefinition deserializerType = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/deserialization/Deserializer").load();
         MethodElement readObject = deserializerType.getMethod(deserializerType.findMethodIndex(e -> "readObject".equals(e.getName())));
 
@@ -403,7 +403,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
     // Implementation of RuntimeObjectDeserializer.getNumberOfPickledObjects()
     private static void getNumberOfPickledObjectsImpl(CompilationContext ctxt, MethodElement meth, BuildtimeHeap heap) {
         BasicBlockBuilder bb = ctxt.getBootstrapClassContext().newBasicBlockBuilder(meth);
-        MethodBody original = meth.getOrCreateMethodBody();
+        MethodBody original = meth.getMethodBody();
 
         bb.begin(new BlockLabel());
         bb.return_(ctxt.getLiteralFactory().literalOf(heap.getNumberOfObjects()));
@@ -415,7 +415,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
     // Implementation of RuntimeObjectDeserializer.getPickledHeap()
     private static void getPickledHeapImpl(CompilationContext ctxt, MethodElement meth, CompoundType heapCT) {
         BasicBlockBuilder bb = ctxt.getBootstrapClassContext().newBasicBlockBuilder(meth);
-        MethodBody original = meth.getOrCreateMethodBody();
+        MethodBody original = meth.getMethodBody();
 
         bb.begin(new BlockLabel());
         bb.return_(bb.bitCast(ctxt.getLiteralFactory().literalOfSymbol(heapSymbol, heapCT.getPointer()),

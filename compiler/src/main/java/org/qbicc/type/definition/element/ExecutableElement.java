@@ -14,22 +14,21 @@ public interface ExecutableElement extends MemberElement {
 
     MethodBody getPreviousMethodBody();
 
-    MethodBody getMethodBody();
-
     /**
-     * Get the executable body, or create it if it has not yet been created.  Note that this method
-     * should only be called from the top level of compilation and not reentered unless it is guaranteed that
-     * the method body has already been created.
+     * Get the executable body.  If no body was created, or the method has none, an exception is thrown.
      *
-     * @return the method body (must not be {@code null})
+     * @return the executable body (not {@code null})
+     * @throws IllegalStateException if this executable has no body
      */
-    MethodBody getOrCreateMethodBody();
+    MethodBody getMethodBody() throws IllegalStateException;
 
     /**
-     * Attempt to initiate the creation of the method body if it has not yet been initiated.  Unlike
-     * {@link #getOrCreateMethodBody()}, this method is safe to call from a reentrant context.
+     * Attempt to initiate the creation of the method body if it has not yet been initiated.
+     * This method is safe to call from a reentrant context.
+     *
+     * @return {@code true} if the element has a method body; {@code false} otherwise
      */
-    void tryCreateMethodBody();
+    boolean tryCreateMethodBody();
 
     void replaceMethodBody(MethodBody replacement);
 
