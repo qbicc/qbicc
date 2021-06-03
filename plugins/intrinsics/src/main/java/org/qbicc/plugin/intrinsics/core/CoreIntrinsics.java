@@ -887,13 +887,13 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_first_interface_typeid", emptyTotypeIdDesc, get_first_interface_typeid);
 
         // public static native int get_number_of_bytes_in_interface_bits_array();
-        StaticValueIntrinsic get_number_of_bytes_in_interface_bits_array = (builder, owner, name, descriptor, arguments) -> {
+        StaticIntrinsic get_number_of_bytes_in_interface_bits_array = (builder, target, arguments) -> {
             return lf.literalOf(tables.getNumberOfBytesInInterfaceBitsArray());
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_number_of_bytes_in_interface_bits_array", IntDesc, get_number_of_bytes_in_interface_bits_array);
 
         // public static native byte get_byte_of_interface_bits(CNative.type_id typeId, int index);
-        StaticValueIntrinsic get_byte_of_interface_bits = (builder, owner, name, descriptor, arguments) -> {
+        StaticIntrinsic get_byte_of_interface_bits = (builder, target, arguments) -> {
             Value typeId = arguments.get(0);
             Value index = arguments.get(1);
             GlobalVariableElement typeIdGlobal = tables.getAndRegisterGlobalTypeIdArray(builder.getCurrentElement());
