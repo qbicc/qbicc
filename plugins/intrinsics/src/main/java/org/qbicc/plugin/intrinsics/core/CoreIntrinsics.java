@@ -428,6 +428,12 @@ public final class CoreIntrinsics {
             ctxt.getLiteralFactory().literalOf(0);
         intrinsics.registerIntrinsic(objDesc, "hashCode", hashCodeDesc, hashCodeIntrinsic);
 
+        // TODO: replace this do nothing stub of notifyAll with real implementation
+        MethodDescriptor notifyAllDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+        InstanceIntrinsic notifyAllIntrinsic = (builder, instance, target, arguments) -> 
+            ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType()); // Do nothing
+        intrinsics.registerIntrinsic(objDesc, "notifyAll", notifyAllDesc, notifyAllIntrinsic);
+
         InstanceIntrinsic clone = (builder, instance, target, arguments) -> {
             ValueType instanceType = instance.getType();
             if (instanceType instanceof ReferenceType) {
