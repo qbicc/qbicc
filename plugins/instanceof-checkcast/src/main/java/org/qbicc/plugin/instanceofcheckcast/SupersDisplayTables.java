@@ -324,25 +324,13 @@ public class SupersDisplayTables {
 
     byte[] getImplementedInterfaceBits(LoadedTypeDefinition cls) {
         byte[] setBits = new byte[getNumberOfBytesInInterfaceBitsArray()];
-        ArrayDeque<LoadedTypeDefinition> worklist = new ArrayDeque<>();
-        if (cls.isInterface()) {
-            worklist.add(cls);
-        } else {
-            LoadedTypeDefinition cur = cls;
-            while (cur != null) {
-                worklist.addAll(List.of(cur.getInterfaces()));
-                cur = cur.getSuperClass();
-            }
-        }
-        while (!worklist.isEmpty()) {
-            LoadedTypeDefinition i = worklist.pop();
-            worklist.addAll(List.of(i.getInterfaces()));
+        cls.forEachInterfaceFullImplementedSet(i -> {
             IdAndRange idRange = typeids.get(i);
             if (idRange != null) {
                 int index = idRange.implementedInterfaceByteIndex();
                 setBits[index] |= idRange.implementedInterfaceBitMask();
             }
-        }
+        });
 
         return setBits;
     }
