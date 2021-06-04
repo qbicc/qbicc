@@ -97,8 +97,10 @@ public interface Schedule {
         if (! scheduledNodes.containsKey(terminator)) {
             scheduleToPinnedBlock(root, blockInfos, scheduledNodes, terminator, block);
             // schedule all outbound values
-            for (Value value : terminator.getOutboundValues().values()) {
-                scheduleEarly(root, blockInfos, scheduledNodes, value);
+            for (Map.Entry<PhiValue, Value> entry : terminator.getOutboundValues().entrySet()) {
+                if (entry.getKey().getPinnedBlock().isReachable()) {
+                    scheduleEarly(root, blockInfos, scheduledNodes, entry.getValue());
+                }
             }
             int cnt = terminator.getSuccessorCount();
             for (int i = 0; i < cnt; i ++) {
@@ -160,7 +162,9 @@ public interface Schedule {
 
     private static BlockInfo scheduleToPinnedBlock(final BlockInfo root, final Map<BasicBlock, BlockInfo> blockInfos, final Map<Node, BlockInfo> scheduledNodes, final Node node, final BasicBlock pinnedBlock) {
         BlockInfo selected = blockInfos.get(pinnedBlock);
-        assert selected != null;
+        if (selected == null) {
+            throw new IllegalStateException("No block selected");
+        }
         scheduledNodes.put(node, selected);
         scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
         if (node instanceof PhiValue) {
