@@ -1,22 +1,18 @@
 package org.qbicc.plugin.native_;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Location;
 import org.qbicc.driver.Driver;
 import org.qbicc.graph.BasicBlockBuilder;
-import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.CastValue;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.StaticField;
-import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
-import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.literal.ConstantLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.machine.probe.CProbe;
@@ -27,17 +23,16 @@ import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
-import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
 
 /**
  * This block builder replaces calls to the {@link CNative#constant()} method with a registration of the constant
  * field value.
  */
-public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, Value> {
+public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
 
-    public ConstantDefiningBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+    private ConstantDefiningBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         ExecutableElement element = getCurrentElement();
         if (element instanceof InitializerElement) {
@@ -46,21 +41,12 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
         this.ctxt = ctxt;
     }
 
-    @Override
-    public Value load(ValueHandle handle, MemoryAtomicityMode mode) {
-        if (handle instanceof StaticField) {
-            FieldElement fieldElement = ((StaticField) handle).getVariableElement();
-            if (fieldElement.isReallyFinal()) {
-                // initialize the constant if any
-                InitializerElement initializerElement = fieldElement.getEnclosingType().load().getInitializer();
-                if (NativeInfo.get(ctxt).registerInitializer(initializerElement)) {
-                    if (initializerElement.hasMethodBody()) {
-                        initializerElement.getOrCreateMethodBody();
-                    }
-                }
-            }
+    public static BasicBlockBuilder createIfNeeded(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
+        if (delegate.getCurrentElement() instanceof InitializerElement) {
+            return new ConstantDefiningBasicBlockBuilder(ctxt, delegate);
+        } else {
+            return delegate;
         }
-        return super.load(handle, mode);
     }
 
     @Override
@@ -83,41 +69,6 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             return nop();
         }
         return super.store(handle, value, mode);
-    }
-
-    @Override
-    public Value call(ValueHandle target, List<Value> arguments) {
-        Value result = target.accept(this, null);
-        return result == null ? super.call(target, arguments) : result;
-    }
-
-    @Override
-    public Value callNoSideEffects(ValueHandle target, List<Value> arguments) {
-        Value result = target.accept(this, null);
-        return result == null ? super.callNoSideEffects(target, arguments) : result;
-    }
-
-    @Override
-    public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
-        Value result = target.accept(this, null);
-        if (result == null) {
-            return super.invoke(target, arguments, catchLabel, resumeLabel);
-        } else {
-            goto_(resumeLabel);
-            return result;
-        }
-    }
-
-    @Override
-    public Value visit(Void param, StaticMethodElementHandle node) {
-        MethodElement target = node.getExecutable();
-        if (target.getEnclosingType().internalPackageAndNameEquals(Native.NATIVE_PKG, Native.C_NATIVE)) {
-            if (target.getName().equals("constant")) {
-                // it's a constant but we don't yet know its type
-                return ctxt.getLiteralFactory().constantLiteralOfType(ctxt.getTypeSystem().getPoisonType());
-            }
-        }
-        return null;
     }
 
     private void processConstant(final FieldElement fieldElement) {

@@ -19,6 +19,7 @@ public final class InitializerElement extends BasicElement implements Executable
     volatile MethodBody methodBody;
     final int minimumLineNumber;
     final int maximumLineNumber;
+    boolean inProgress;
 
     InitializerElement(Builder builder) {
         super(builder);
@@ -37,10 +38,14 @@ public final class InitializerElement extends BasicElement implements Executable
     }
 
     public MethodBody getMethodBody() {
+        MethodBody methodBody = this.methodBody;
+        if (methodBody == null) {
+            throw new IllegalStateException("No method body is present on this element");
+        }
         return methodBody;
     }
 
-    public MethodBody getOrCreateMethodBody() {
+    public boolean tryCreateMethodBody() {
         MethodBody methodBody = this.methodBody;
         if (methodBody == null) {
             MethodBodyFactory factory = this.methodBodyFactory;
@@ -48,12 +53,22 @@ public final class InitializerElement extends BasicElement implements Executable
                 synchronized (this) {
                     methodBody = this.methodBody;
                     if (methodBody == null) {
-                        this.methodBody = methodBody = factory.createMethodBody(methodBodyFactoryIndex, this);
+                        if (inProgress) {
+                            return true;
+                        }
+                        inProgress = true;
+                        try {
+                            this.methodBody = previousMethodBody = factory.createMethodBody(methodBodyFactoryIndex, this);
+                        } finally {
+                            inProgress = false;
+                        }
                     }
                 }
+            } else {
+                return false;
             }
         }
-        return methodBody;
+        return true;
     }
 
     public void replaceMethodBody(final MethodBody replacement) {

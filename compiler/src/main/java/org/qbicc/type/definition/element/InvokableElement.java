@@ -34,6 +34,7 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     volatile MethodBody methodBody;
     final int minimumLineNumber;
     final int maximumLineNumber;
+    boolean inProgress;
 
     InvokableElement() {
         super();
@@ -83,10 +84,14 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
     }
 
     public MethodBody getMethodBody() {
+        MethodBody methodBody = this.methodBody;
+        if (methodBody == null) {
+            throw new IllegalStateException("No method body is present on this element");
+        }
         return methodBody;
     }
 
-    public MethodBody getOrCreateMethodBody() {
+    public boolean tryCreateMethodBody() {
         MethodBody methodBody = this.methodBody;
         if (methodBody == null) {
             MethodBodyFactory factory = this.methodBodyFactory;
@@ -94,12 +99,22 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
                 synchronized (this) {
                     methodBody = this.methodBody;
                     if (methodBody == null) {
-                        this.methodBody = previousMethodBody = methodBody = factory.createMethodBody(methodBodyFactoryIndex, this);
+                        if (inProgress) {
+                            return true;
+                        }
+                        inProgress = true;
+                        try {
+                            this.methodBody = previousMethodBody = factory.createMethodBody(methodBodyFactoryIndex, this);
+                        } finally {
+                            inProgress = false;
+                        }
                     }
                 }
+            } else {
+                return false;
             }
         }
-        return methodBody;
+        return true;
     }
 
     public void replaceMethodBody(final MethodBody replacement) {

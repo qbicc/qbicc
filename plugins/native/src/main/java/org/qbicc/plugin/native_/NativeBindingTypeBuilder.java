@@ -52,14 +52,14 @@ public class NativeBindingTypeBuilder implements DefinedTypeDefinition.Builder.D
                     if (nativeType != null) {
                         // found the native type; check for corresponding method
                         MethodElement nativeMethod = nativeType.load().resolveMethodElementExact(origMethod.getName(), origMethod.getDescriptor());
-                        if (nativeMethod != null && nativeMethod.hasMethodBody()) {
+                        if (nativeMethod != null && nativeMethod.tryCreateMethodBody()) {
                             // there's a match
                             if (isBinding) {
                                 // register reverse binding to remap calls
                                 NativeInfo.get(ctxt).registerNativeBinding(nativeMethod, origMethod);
                             } else {
                                 // plug in replacement method body, let calls flow naturally
-                                origMethod.replaceMethodBody(origMethod.getOrCreateMethodBody());
+                                origMethod.replaceMethodBody(nativeMethod.getMethodBody());
                             }
                         } else {
                             log.debugf("No match found for native method %s in bindings class %s", origMethod, nativeType.getInternalName());

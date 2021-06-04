@@ -65,9 +65,11 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
     public Void visitUnknown(final CompilationContext param, final BasicElement basicElement) {
         if (basicElement instanceof ExecutableElement) {
             ExecutableElement element = (ExecutableElement) basicElement;
-            MethodBody methodBody = element.getOrCreateMethodBody();
-            if (methodBody != null && filter != null && filter.accept(element, phase)) {
-                process(element, methodBody);
+            if (element.hasMethodBody()) {
+                MethodBody methodBody = element.getMethodBody();
+                if (filter != null && filter.accept(element, phase)) {
+                    process(element, methodBody);
+                }
             }
         }
         return null;
