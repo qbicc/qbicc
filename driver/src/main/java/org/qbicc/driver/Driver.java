@@ -359,7 +359,7 @@ public class Driver implements Closeable {
         MDC.put("phase", "ADD");
         compilationContext.processQueue(element -> {
             MDC.put("phase", "ADD");
-            if (element.hasMethodBody()) {
+            if (element.hasMethodBodyFactory()) {
                 // cause method and field references to be resolved
                 try {
                     element.tryCreateMethodBody();

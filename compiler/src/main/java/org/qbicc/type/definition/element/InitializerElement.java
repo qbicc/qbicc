@@ -29,8 +29,12 @@ public final class InitializerElement extends BasicElement implements Executable
         this.maximumLineNumber = builder.maximumLineNumber;
     }
 
-    public boolean hasMethodBody() {
+    public boolean hasMethodBodyFactory() {
         return methodBodyFactory != null;
+    }
+
+    public boolean hasMethodBody() {
+        return methodBody != null;
     }
 
     public MethodBody getPreviousMethodBody() {

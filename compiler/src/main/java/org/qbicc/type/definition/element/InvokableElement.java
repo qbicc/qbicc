@@ -63,8 +63,12 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         this.type = builder.type;
     }
 
-    public boolean hasMethodBody() {
+    public boolean hasMethodBodyFactory() {
         return methodBodyFactory != null;
+    }
+
+    public boolean hasMethodBody() {
+        return methodBody != null;
     }
 
     public MethodBodyFactory getMethodBodyFactory() {

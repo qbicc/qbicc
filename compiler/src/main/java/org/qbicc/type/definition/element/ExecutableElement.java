@@ -10,6 +10,19 @@ import org.qbicc.type.generic.MethodSignature;
  *
  */
 public interface ExecutableElement extends MemberElement {
+    /**
+     * Determine whether this element has a body factory.  An element with a body factory will
+     * produce a body when {@link #tryCreateMethodBody()} is called.
+     *
+     * @return {@code true} if there is a body factory, {@code false} otherwise
+     */
+    boolean hasMethodBodyFactory();
+
+    /**
+     * Determine whether a body was produced for this element.
+     *
+     * @return {@code true} if a body was produced, {@code false} otherwise
+     */
     boolean hasMethodBody();
 
     MethodBody getPreviousMethodBody();
