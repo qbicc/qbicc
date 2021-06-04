@@ -3,6 +3,7 @@ package org.qbicc.graph;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 abstract class AbstractTerminator extends AbstractNode implements Terminator {
@@ -14,7 +15,9 @@ abstract class AbstractTerminator extends AbstractNode implements Terminator {
 
     @Override
     public Value getOutboundValue(PhiValue phi) {
-        return outboundValues.get(phi);
+        Value value = outboundValues.get(phi);
+        LiteralFactory lf = getElement().getEnclosingType().getContext().getLiteralFactory();
+        return value != null ? value : lf.undefinedLiteralOfType(phi.getType());
     }
 
     @Override
