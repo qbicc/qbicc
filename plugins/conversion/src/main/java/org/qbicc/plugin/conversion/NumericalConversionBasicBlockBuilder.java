@@ -16,6 +16,7 @@ import org.qbicc.type.IntegerType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
+import org.qbicc.type.TypeType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
@@ -230,6 +231,13 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
             }
         } else if (fromTypeRaw instanceof ReferenceType) {
             if (toTypeRaw instanceof PointerType) {
+                return super.valueConvert(from, toTypeRaw);
+            }
+        } else if (fromTypeRaw instanceof TypeType) {
+            if (toTypeRaw instanceof IntegerType) {
+                if (fromTypeRaw.getSize() > toTypeRaw.getSize()) {
+                    ctxt.error(getLocation(), "Invalid typeid conversion to narrower type %s", fromTypeRaw);
+                }
                 return super.valueConvert(from, toTypeRaw);
             }
         }
