@@ -83,9 +83,9 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             size = extend(size, ctxt.getTypeSystem().getSignedInteger64Type());
         }
         Value realSize = add(baseSize, multiply(lf.literalOf(arrayType.getElementType().getSize()), size));
-        Value rawMem = call(staticMethod(noGc.getAllocateMethod()), List.of(realSize, align));
+        Value ptrVal = notNull(call(staticMethod(noGc.getAllocateMethod()), List.of(realSize, align)));
 
-        Value ptrVal = notNull(call(staticMethod(noGc.getZeroMethod()), List.of(rawMem, realSize)));
+        call(staticMethod(noGc.getZeroMethod()), List.of(ptrVal, realSize));
         Value arrayPtr = valueConvert(ptrVal, arrayType.getReference());
         ValueHandle arrayHandle = referenceHandle(arrayPtr);
 
