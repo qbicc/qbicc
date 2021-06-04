@@ -1,6 +1,8 @@
 package org.qbicc.object;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -162,6 +164,8 @@ public final class Section extends ProgramObject {
     }
 
     public Iterable<ProgramObject> contents() {
-        return List.of(definedObjects.values().toArray(ProgramObject[]::new));
+        ProgramObject[] array = definedObjects.values().toArray(ProgramObject[]::new);
+        Arrays.sort(array, Comparator.comparing(ProgramObject::getName));
+        return List.of(array);
     }
 }
