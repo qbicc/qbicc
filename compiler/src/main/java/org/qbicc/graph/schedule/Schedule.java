@@ -3,6 +3,7 @@ package org.qbicc.graph.schedule;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -69,7 +70,7 @@ public interface Schedule {
         }
 
         // now, use the dominator depths to calculate the simplest possible schedule.
-        Map<Node, BlockInfo> scheduledNodes = new HashMap<>();
+        Map<Node, BlockInfo> scheduledNodes = new LinkedHashMap<>();
         scheduleEarly(root, blockInfos, scheduledNodes, entryBlock);
         Map<Node, BasicBlock> finalMapping = new HashMap<>(scheduledNodes.size());
         Map<BasicBlock, List<Node>> blockToNodesMap = new HashMap<>(allBlocks.length);
