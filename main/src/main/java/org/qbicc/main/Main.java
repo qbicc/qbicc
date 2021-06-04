@@ -341,6 +341,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
                                 }
+                                if (optPhis) {
+                                    builder.addCopyFactory(Phase.LOWER, PhiOptimizerVisitor::new);
+                                }
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
