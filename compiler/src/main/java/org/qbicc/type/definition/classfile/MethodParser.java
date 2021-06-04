@@ -136,6 +136,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         private final int index;
         private final BasicBlockBuilder.ExceptionHandler delegate;
         private final PhiValue phi;
+        private PhiValue[] locals;
+        private boolean entered;
 
         ExceptionHandlerImpl(final int index, final BasicBlockBuilder.ExceptionHandler delegate) {
             this.index = index;
@@ -159,7 +161,28 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             // generate the `if` branch for the current handler's type
             BlockLabel label = phi.getPinnedBlockLabel();
             phi.setValueForBlock(ctxt.getCompilationContext(), gf.getCurrentElement(), from, exceptionValue);
-            if (! label.hasTarget()) {
+            if (entered) {
+                // subsequent time - populate local phis
+                for (int i = 0; i < locals.length; i ++) {
+                    PhiValue local = locals[i];
+                    Value ourValue = MethodParser.this.locals[i];
+                    if (local == null) {
+                        if (ourValue != null) {
+                            // populate late!
+                            local = locals[i] = gf.phi(ourValue.getType(), phi.getPinnedBlockLabel());
+                            local.setValueForBlock(ctxt.getCompilationContext(), phi.getElement(), from, ourValue);
+                        }
+                    } else {
+                        if (ourValue != null) {
+                            local.setValueForBlock(ctxt.getCompilationContext(), phi.getElement(), from, ourValue);
+                        }
+                    }
+                }
+            } else {
+                // first time
+                entered = true;
+                Value[] locals = saveLocals();
+                Value[] stack = saveStack();
                 // first time being entered
                 gf.begin(label);
                 int exTypeIdx = info.getExTableEntryTypeIdx(index);
@@ -174,17 +197,28 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 if (single) {
                     block = new BlockLabel();
                 }
+                PhiValue[] localPhis = new PhiValue[locals.length];
+                this.locals = localPhis;
+                // make a phi for each local var
+                for (int i = 0; i < locals.length; i ++) {
+                    Value local = locals[i];
+                    if (local != null) {
+                        localPhis[i] = gf.phi(local.getType(), phi.getPinnedBlockLabel());
+                        localPhis[i].setValueForBlock(ctxt.getCompilationContext(), phi.getElement(), from, local);
+                    }
+                }
                 gf.setBytecodeIndex(pc);
                 gf.setLineNumber(info.getLineNumber(pc));
                 // Safe to pass the upperBound as the classFileType to the instanceOf node here as catch blocks can
                 // only catch subclasses of Throwable as enforced by the verifier
                 BasicBlock innerFrom = gf.if_(gf.instanceOf(phi, exType.getUpperBound(), 0), block, delegate.getHandler());
                 // enter the delegate handler
+                clearStack();
+                restoreLocals(localPhis);
                 delegate.enterHandler(innerFrom, phi);
                 // enter our handler
-                Value[] locals = saveLocals();
-                Value[] stack = saveStack();
                 clearStack();
+                restoreLocals(localPhis);
                 int pos = buffer.position();
                 int previousbci = currentbci;
                 buffer.position(pc);
