@@ -78,6 +78,7 @@ final class ClangLinkerInvokerImpl extends AbstractClangInvoker implements Clang
         } else {
             cmd.add("-no-pie");
         }
+        cmd.add("-pthread");
 
         for (Path libraryPath : libraryPaths) {
             cmd.add("-L" + libraryPath.toString());

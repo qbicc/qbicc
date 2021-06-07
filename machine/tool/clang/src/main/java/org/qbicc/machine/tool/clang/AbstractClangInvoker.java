@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.tool.CompilationFailureException;
 import org.qbicc.machine.tool.MessagingToolInvoker;
 import org.qbicc.machine.tool.ToolMessageHandler;
@@ -92,7 +93,6 @@ abstract class AbstractClangInvoker implements MessagingToolInvoker {
         OutputDestination errorHandler = OutputDestination.of(AbstractClangInvoker::collectError, this, StandardCharsets.UTF_8);
         List<String> cmd = new ArrayList<>();
         cmd.add(getTool().getExecutablePath().toString());
-        cmd.add("-pthread");
         addArguments(cmd);
         ProcessBuilder pb = new ProcessBuilder();
         pb.command(cmd);
