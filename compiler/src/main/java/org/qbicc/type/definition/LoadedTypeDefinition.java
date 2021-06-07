@@ -133,7 +133,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         int cnt = getFieldCount();
         for (int i = 0; i < cnt; i ++) {
             FieldElement field = getField(i);
-            if ((field.getModifiers() & ClassFile.I_ACC_HIDDEN) == 0 && field.nameEquals(name)) {
+            if (field.hasNoModifiersOf(ClassFile.I_ACC_NO_RESOLVE) && field.nameEquals(name)) {
                 return i;
             }
         }
@@ -155,12 +155,16 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
      *
      * @param name       the method name (must not be {@code null})
      * @param descriptor the method descriptor (must not be {@code null})
+     * @param includePrivate {@code true} to include private methods, or {@code false} to exclude them
      * @return the index of the method, or {@code -1} if it is not present on this class
      */
-    default int findMethodIndex(String name, MethodDescriptor descriptor) {
+    default int findMethodIndex(String name, MethodDescriptor descriptor, boolean includePrivate) {
         int cnt = getMethodCount();
         for (int i = 0; i < cnt; i ++) {
             MethodElement method = getMethod(i);
+            if (method.hasAllModifiersOf(ClassFile.I_ACC_NO_RESOLVE) || method.hasAllModifiersOf(ClassFile.ACC_PRIVATE) && ! includePrivate) {
+                continue;
+            }
             if (method.nameEquals(name)) {
                 if ((method.getModifiers() & ClassFile.I_ACC_SIGNATURE_POLYMORPHIC) != 0) {
                     return i;
@@ -170,6 +174,18 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
             }
         }
         return -1;
+    }
+
+    /**
+     * Get the method index of the exactly matching method on this class.  If the method is not directly present on this class,
+     * {@code -1} is returned.
+     *
+     * @param name       the method name (must not be {@code null})
+     * @param descriptor the method descriptor (must not be {@code null})
+     * @return the index of the method, or {@code -1} if it is not present on this class
+     */
+    default int findMethodIndex(String name, MethodDescriptor descriptor) {
+        return findMethodIndex(name, descriptor, true);
     }
 
     default int findMethodIndex(Predicate<MethodElement> predicate) {
@@ -189,6 +205,10 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
     }
 
     default MethodElement resolveMethodElementVirtual(String name, MethodDescriptor descriptor) {
+        return resolveMethodElementVirtual(name, descriptor, true);
+    }
+
+    default MethodElement resolveMethodElementVirtual(String name, MethodDescriptor descriptor, boolean includePrivate) {
         // JVMS 5.4.4.3
 
         // 1. If C is an interface, method resolution throws an IncompatibleClassChangeError.
@@ -210,29 +230,25 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         // 2.b Otherwise, if C declares a method with the name and descriptor specified by
         // the method reference, method lookup succeeds.
 
-        int result = findMethodIndex(name, descriptor);
+        int result = findMethodIndex(name, descriptor, includePrivate);
         if (result != -1) {
             return getMethod(result);
         }
 
         // 2.c Otherwise, if C has a superclass, step 2 of method resolution is recursively
         // invoked on the direct superclass of C.
+        //
+        // We exclude private methods from this search because they cannot be inherited.
 
         LoadedTypeDefinition superClass = getSuperClass();
         if ( superClass != null ) {
-            MethodElement superCandidate = superClass.resolveMethodElementVirtual(name, descriptor);
+            MethodElement superCandidate = superClass.resolveMethodElementVirtual(name, descriptor, false);
             if ( superCandidate != null ) {
                 return superCandidate;
             }
         }
 
-        int interfaceCount = getInterfaceCount();
-        for (int i = 0; i < interfaceCount; i ++) {
-            MethodElement interfaceCandidate = getInterface(i).resolveMethodElementInterface(name, descriptor);
-            if (interfaceCandidate != null) {
-                return interfaceCandidate;
-            }
-        }
+        // We do not need to search interfaces because we've already registered interface methods onto the class.
 
         // Otherwise, it's not found.
 
@@ -255,7 +271,7 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         // 2. Otherwise, if C declares a method with the name and descriptor specified
         // by the interface method reference, method lookup succeeds.
 
-        int result = findMethodIndex(name, descriptor);
+        int result = findMethodIndex(name, descriptor, ! virtualOnly);
         if (result != -1) {
             return getMethod(result);
         }

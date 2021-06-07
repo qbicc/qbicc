@@ -87,6 +87,9 @@ public interface ClassFile extends FieldResolver,
      */
     int I_ACC_PINNED = 1 << 16;
     int I_ACC_DEPRECATED = 1 << 17;
+    /**
+     * On methods, hide from stack traces.
+     */
     int I_ACC_HIDDEN = 1 << 18;
     /**
      * For static fields that are thread-local.
@@ -98,6 +101,14 @@ public interface ClassFile extends FieldResolver,
      * For methods which have no side-effects.
      */
     int I_ACC_NO_SIDE_EFFECTS = 1 << 22;
+    /**
+     * For members and types which should not appear to reflection.
+     */
+    int I_ACC_NO_REFLECT = 1 << 23;
+    /**
+     * For members which should never be symbolically resolvable.
+     */
+    int I_ACC_NO_RESOLVE = 1 << 24;
 
     int OP_NOP = 0x00;
     int OP_ACONST_NULL = 0x01;

@@ -86,7 +86,7 @@ public final class Layout {
         // inject a field to hold the object typeId
         // TODO: This should be a 16 bit unsigned field.  It is being generated as an i32 currently.
         FieldElement.Builder builder = FieldElement.builder();
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         builder.setName("typeId");
         builder.setEnclosingType(jloDef);
         builder.setDescriptor(typeTypeDescriptor);
@@ -99,7 +99,7 @@ public final class Layout {
         // now inject a field of ClassObjectType into Class to hold the corresponding run time type
         // TODO: This should be a 16 bit unsigned field.  It is being generated as an i32 currently.
         builder = FieldElement.builder();
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         builder.setName("id");
         builder.setEnclosingType(jlcDef);
         builder.setDescriptor(typeTypeDescriptor);
@@ -112,7 +112,7 @@ public final class Layout {
         // now inject a field of int into Class to hold the corresponding run time dimensionality
         // TODO: This could be a 8 bit unsigned field.  It is being generated as an i32 currently.
         builder = FieldElement.builder();
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_HIDDEN);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         builder.setName("dimension");
         builder.setEnclosingType(jlcDef);
         builder.setDescriptor(BaseTypeDescriptor.I);
@@ -138,7 +138,7 @@ public final class Layout {
         typeBuilder.addInterfaceName("java/io/Serializable");
         typeBuilder.setSimpleName("base_array_type");
         typeBuilder.setContext(classContext);
-        typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_HIDDEN);
+        typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_NO_REFLECT);
         typeBuilder.setName("base_array_type");
         typeBuilder.addField(Layout::makeLengthField, 0);
         typeBuilder.setInitializer(EMPTY_INIT, 0);
@@ -179,7 +179,7 @@ public final class Layout {
         typeBuilder.setSuperClassName(superClass.getInternalName());
         typeBuilder.setSimpleName(simpleName);
         typeBuilder.setContext(classContext);
-        typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_HIDDEN);
+        typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_NO_REFLECT);
         typeBuilder.setName(internalName);
         // add fields in this order, which is relied upon up above
         int idx = 0;
@@ -203,7 +203,7 @@ public final class Layout {
         fieldBuilder.setIndex(index);
         fieldBuilder.setName("dims");
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getSignedInteger32Type());
-        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
+        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
     }
 
@@ -215,7 +215,7 @@ public final class Layout {
         fieldBuilder.setIndex(index);
         fieldBuilder.setName("length");
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getSignedInteger32Type());
-        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
+        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
     }
 
@@ -228,7 +228,7 @@ public final class Layout {
         fieldBuilder.setIndex(index);
         fieldBuilder.setName("elementType");
         fieldBuilder.setType(jlo.load().getClassType().getReference().getTypeType());
-        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
+        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
     }
 
@@ -240,7 +240,7 @@ public final class Layout {
         fieldBuilder.setIndex(index);
         fieldBuilder.setName("content");
         fieldBuilder.setType(enclosing.getContext().getTypeSystem().getArrayType(realMemberType, 0));
-        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
+        fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
     }
 

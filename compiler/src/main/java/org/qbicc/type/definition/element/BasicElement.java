@@ -73,6 +73,13 @@ public abstract class BasicElement implements Element {
 
         Builder() {}
 
+        Builder(final BasicElement original) {
+            enclosingType = original.enclosingType;
+            sourceFileName = original.sourceFileName;
+            modifiers = original.modifiers;
+            index = original.index;
+        }
+
         public void setSourceFileName(final String sourceFileName) {
             this.sourceFileName = sourceFileName;
         }

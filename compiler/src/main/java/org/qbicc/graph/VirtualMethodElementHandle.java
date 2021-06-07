@@ -10,6 +10,9 @@ public final class VirtualMethodElementHandle extends InstanceMethodElementHandl
 
     VirtualMethodElementHandle(ExecutableElement element, int line, int bci, MethodElement methodElement, Value instance) {
         super(element, line, bci, methodElement, instance);
+        if (methodElement.isStatic() || methodElement.getEnclosingType().isInterface()) {
+            throw new IllegalArgumentException("Wrong argument kind for virtual method handle");
+        }
     }
 
     int calcHashCode() {
