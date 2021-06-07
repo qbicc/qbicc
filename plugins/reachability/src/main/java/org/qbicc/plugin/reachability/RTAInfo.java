@@ -245,7 +245,9 @@ public class RTAInfo {
                 rtaLog.debugf("Adding method %s (directly invoked in %s)", target, originalElement);
                 invokableMethods.add(target);
                 ctxt.enqueue(target);
-                processInvokableInstanceMethod(target);
+                if (!target.isPrivate()) {
+                    propagateInvokabilityToOverrides(target);
+                }
             } else {
                 rtaLog.debugf("Deferring method %s (invoked in %s, but no instantiated receiver)", target, originalElement);
                 addReachableClass(definingClass);
@@ -416,12 +418,12 @@ public class RTAInfo {
         initializedTypes.add(type);
     }
 
-    private void processInvokableInstanceMethod(final MethodElement target) {
+    private void propagateInvokabilityToOverrides(final MethodElement target) {
         LoadedTypeDefinition definingClass = target.getEnclosingType().load();
 
         if (definingClass.isInterface()) {
             // Traverse the reachable extenders and implementors and handle as-if we just saw
-            // an invoke of their overriding/implementing method
+            // an invokevirtual/invokeinterface  of their overriding/implementing method
             visitReachableImplementors(definingClass, (c) -> {
                 MethodElement cand = null;
                 if (c.isInterface()) {
@@ -433,7 +435,7 @@ public class RTAInfo {
                     rtaLog.debugf("\tadding method (implements): %s", cand);
                     invokableMethods.add(cand);
                     ctxt.enqueue(cand);
-                    processInvokableInstanceMethod(cand);
+                    propagateInvokabilityToOverrides(cand);
                 }
             });
         } else {
