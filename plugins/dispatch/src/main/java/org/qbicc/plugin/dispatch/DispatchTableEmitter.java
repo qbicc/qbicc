@@ -20,7 +20,7 @@ public class DispatchTableEmitter implements Consumer<CompilationContext>  {
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         LoadedTypeDefinition jlo = jloDef.load();
         tables.emitVTable(jlo);
-        info.visitLiveSubclassesPreOrder(jlo, cls -> tables.emitVTable(cls));
+        info.visitReachableSubclassesPreOrder(jlo, cls -> tables.emitVTable(cls));
 
         // Emit the table of all program vtables in the object file for java.lang.Object
         tables.emitVTableTable(jlo);

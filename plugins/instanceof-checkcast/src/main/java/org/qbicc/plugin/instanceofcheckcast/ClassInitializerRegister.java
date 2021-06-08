@@ -23,28 +23,10 @@ public class ClassInitializerRegister implements Consumer<CompilationContext>  {
     @Override
     public void accept(CompilationContext ctxt) {
         RTAInfo rtaInfo = RTAInfo.get(ctxt);
-		
-        ClassContext classContext = ctxt.getBootstrapClassContext();
-        DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
-        LoadedTypeDefinition jlo = jloDef.load();
 
         // Code below uses #hasMethodBody() to filter out the empty
         // class initializers and to avoid processing internal arrays
-
-        // Register Object's <clinit> if it exists
-        InitializerElement object_clinit = jlo.getInitializer();
-        if (object_clinit != null && object_clinit.hasMethodBody()) {
-            ctxt.registerEntryPoint(object_clinit);
-        }
-        // Visit all live subclasses and register their <clinit>
-        rtaInfo.visitLiveSubclassesPreOrder(jlo, sc -> {
-            InitializerElement initializer = sc.getInitializer();
-            if (initializer != null && initializer.hasMethodBody()) {
-                ctxt.registerEntryPoint(initializer);
-            }
-        });
-        // Visit all live interfaces and register their <clinit>
-        rtaInfo.visitLiveInterfaces(sc -> {
+        rtaInfo.visitInitializedTypes(sc -> {
             InitializerElement initializer = sc.getInitializer();
             if (initializer != null && initializer.hasMethodBody()) {
                 ctxt.registerEntryPoint(initializer);

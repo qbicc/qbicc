@@ -383,6 +383,8 @@ public class Driver implements Closeable {
             return false;
         }
 
+        compilationContext.lockEnqueuedSet();
+
         for (Consumer<? super CompilationContext> hook : postAddHooks) {
             try {
                 hook.accept(compilationContext);
@@ -401,7 +403,7 @@ public class Driver implements Closeable {
             return false;
         }
 
-        compilationContext.lockEnqueuedSet();
+        compilationContext.clearEnqueuedSet();
 
         // ANALYZE phase
 
@@ -454,6 +456,8 @@ public class Driver implements Closeable {
             return false;
         }
 
+        compilationContext.lockEnqueuedSet();
+
         for (Consumer<? super CompilationContext> hook : postAnalyzeHooks) {
             try {
                 hook.accept(compilationContext);
@@ -467,7 +471,7 @@ public class Driver implements Closeable {
             }
         }
 
-        compilationContext.lockEnqueuedSet();
+        compilationContext.clearEnqueuedSet();
 
         // LOWER phase
 
@@ -539,6 +543,8 @@ public class Driver implements Closeable {
             return false;
         }
 
+        compilationContext.lockEnqueuedSet();
+
         for (Consumer<? super CompilationContext> hook : postLowerHooks) {
             try {
                 hook.accept(compilationContext);
@@ -551,8 +557,6 @@ public class Driver implements Closeable {
                 return false;
             }
         }
-
-        compilationContext.lockEnqueuedSet();
 
         // GENERATE phase
 

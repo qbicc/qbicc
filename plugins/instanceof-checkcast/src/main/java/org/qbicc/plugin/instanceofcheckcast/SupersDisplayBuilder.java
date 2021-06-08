@@ -30,7 +30,7 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         LoadedTypeDefinition jlo = jloDef.load();
         tables.buildSupersDisplay(jlo);
-        info.visitLiveSubclassesPreOrder(jlo, tables::buildSupersDisplay);
+        info.visitReachableSubclassesPreOrder(jlo, tables::buildSupersDisplay);
         // Assign typeIDs to classes
         // [0] Poisioned entry for easier debugging
         // primitives
@@ -69,13 +69,13 @@ public class SupersDisplayBuilder implements Consumer<CompilationContext> {
         tables.assignTypeID(layout.getArrayLoadedTypeDefinition("[ref"));
 
         // subclasses of object
-        info.visitLiveSubclassesPreOrder(jlo, tables::assignTypeID);
+        info.visitReachableSubclassesPreOrder(jlo, tables::assignTypeID);
 
         // back propagate max subclass typeid
-        info.visitLiveSubclassesPostOrder(jlo, tables::assignMaximumSubtypeId);
+        info.visitReachableSubclassesPostOrder(jlo, tables::assignMaximumSubtypeId);
 
         // visit all interfaces implemented as determined by the RTAInfo
-        info.visitLiveInterfaces(tables::assignInterfaceId);
+        info.visitReachableInterfaces(tables::assignInterfaceId);
 
         tables.updateJLORange(jlo);
 

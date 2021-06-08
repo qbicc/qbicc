@@ -221,12 +221,14 @@ final class CompilationContextImpl implements CompilationContext {
 
     void lockEnqueuedSet() {
         allowedSet = Set.copyOf(queued);
-        synchronized (queue) {
-            queued.clear();
-        }
+    }
+
+    void clearEnqueuedSet() {
+        queued.clear();
     }
 
     public void registerEntryPoint(final ExecutableElement method) {
+        enqueue(method);
         entryPoints.add(method);
     }
 

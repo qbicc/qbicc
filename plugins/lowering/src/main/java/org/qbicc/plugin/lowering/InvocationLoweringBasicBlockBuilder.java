@@ -3,6 +3,7 @@ package org.qbicc.plugin.lowering;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
@@ -24,6 +25,7 @@ import org.qbicc.object.Function;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
 import org.qbicc.plugin.dispatch.DispatchTables;
+import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -114,6 +116,10 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public ValueHandle visit(ArrayList<Value> args, ExactMethodElementHandle node) {
+        if (!RTAInfo.get(ctxt).isInvokableMethod(node.getExecutable())) {
+            // No realized invocation targets are possible for this method!
+            throw new BlockEarlyTermination(unreachable());
+        }
         final BasicBlockBuilder fb = getFirstBuilder();
         // insert "this" and current thread
         args.addAll(0, List.of(fb.currentThread(), node.getInstance()));
@@ -129,12 +135,13 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         // insert "this" and current thread
         args.addAll(0, List.of(fb.currentThread(), node.getInstance()));
         final MethodElement target = node.getExecutable();
-        DispatchTables dt = DispatchTables.get(ctxt);
-        DispatchTables.VTableInfo info = dt.getVTableInfo(target.getEnclosingType().load());
-        if (info == null) {
+        if (!RTAInfo.get(ctxt).isInvokableMethod(target)) {
             // No realized invocation targets are possible for this method!
             throw new BlockEarlyTermination(unreachable());
         }
+        DispatchTables dt = DispatchTables.get(ctxt);
+        DispatchTables.VTableInfo info = dt.getVTableInfo(target.getEnclosingType().load());
+        Assert.assertNotNull(info); // If the target method is invokable, there must be a VTableInfo for it.
         GlobalVariableElement vtables = dt.getVTablesGlobal();
         if (!vtables.getEnclosingType().equals(originalElement.getEnclosingType())) {
             Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
