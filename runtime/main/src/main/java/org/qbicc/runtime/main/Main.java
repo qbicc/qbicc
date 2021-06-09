@@ -39,7 +39,7 @@ public final class Main {
         RuntimeObjectDeserializer.initializeHeap();
 
         // TEMP: Remove watermark check once we are using heap serialization to initialize statics
-        if (watermark.length != 2 || (watermark[0] + watermark[1] != 42)) {
+        if (watermark.length != 15 || (watermark[0] + watermark[14] != 611)) {
             if (Build.Target.isPosix()) {
                 pthread_exit(word(1L).cast(void_ptr.class));
             }

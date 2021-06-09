@@ -3,6 +3,7 @@ package org.qbicc.type;
 import java.lang.invoke.ConstantBootstraps;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,6 +24,7 @@ public final class TypeSystem {
     private final int referenceAlign;
     private final int typeIdSize;
     private final int typeIdAlign;
+    private final ByteOrder endianness;
     private final VariadicType variadicType = new VariadicType(this);
     private final PoisonType poisonType = new PoisonType(this);
     private final VoidType voidType = new VoidType(this);
@@ -56,6 +58,7 @@ public final class TypeSystem {
         booleanType = new BooleanType(this, builder.getBoolSize(), builder.getBoolAlignment());
         typeIdSize = builder.getTypeIdSize();
         typeIdAlign = builder.getTypeIdAlignment();
+        endianness = builder.getEndianness();
         int float32Size = builder.getFloat32Size();
         if (float32Size * byteBits < 32) {
             throw typeTooSmall("float32");
@@ -168,6 +171,10 @@ public final class TypeSystem {
      */
     public int getTypeIdAlignment() {
         return typeIdAlign;
+    }
+
+    public ByteOrder getEndianness() {
+        return endianness;
     }
 
     public CompoundType.Member getCompoundTypeMember(String name, ValueType type, int offset, int align) {
@@ -418,6 +425,7 @@ public final class TypeSystem {
             int typeIdAlignment = 4;
             int referenceSize = 4;
             int referenceAlignment = 4;
+            ByteOrder endianness = ByteOrder.nativeOrder();
 
             public int getByteBits() {
                 return byteBits;
@@ -617,6 +625,14 @@ public final class TypeSystem {
                 this.referenceAlignment = alignment;
             }
 
+            public ByteOrder getEndianness() {
+                return endianness;
+            }
+
+            public void setEndianness(ByteOrder endianness) {
+                this.endianness = endianness;
+            }
+
             public TypeSystem build() {
                 return new TypeSystem(this);
             }
@@ -714,6 +730,10 @@ public final class TypeSystem {
         int getReferenceAlignment();
 
         void setReferenceAlignment(int alignment);
+
+        ByteOrder getEndianness();
+
+        void setEndianness(ByteOrder endianness);
 
         TypeSystem build();
     }

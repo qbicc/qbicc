@@ -7,9 +7,10 @@ package org.qbicc.runtime.deserialization;
  * (since their static fields are being initialized by this code).
  */
 public final class DeserializationBuffer {
-    // Eventually buf will be serialized using the native endianness of the target platform.
-    // For now, we are serializing with a DataOutputStream, so it is always BigEndian.
-    static final boolean LE = false;
+    // TODO: This should be set at compile-time based on the endianness of the target.
+    //       However, we are going to get rid of all of this deserialization code in
+    //       favor of writing a fully formed heap soon, so just hardwire to LE as an expedient.
+    static final boolean LE = true;
 
     private final byte[] buf;
     private int current;

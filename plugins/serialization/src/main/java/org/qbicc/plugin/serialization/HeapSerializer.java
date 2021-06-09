@@ -50,7 +50,7 @@ public class HeapSerializer implements Consumer<CompilationContext> {
         // TEMP TESTING: Serialize an int[] with known values to a known static field just to get the plumbing worked out
         LoadedTypeDefinition main = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/Main").load();
         FieldElement f = main.findField("watermark");
-        heap.addStaticField(f, new int[]{10, 32});
+        heap.addStaticField(f, new int[]{1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610 });
         // END TEMP TESTING
 
         heap.serializeHeap();

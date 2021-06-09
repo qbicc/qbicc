@@ -1,70 +1,48 @@
 package org.qbicc.plugin.serialization;
 
+import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.util.Set;
+
 import org.qbicc.context.CompilationContext;
 import org.qbicc.runtime.deserialization.SerializationConstants;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.nio.charset.StandardCharsets;
-import java.util.IdentityHashMap;
-import java.util.Set;
-
 public class Serializer implements SerializationConstants {
     private final CompilationContext ctxt;
-    private final IdentityHashMap<Object, Integer> objects = new IdentityHashMap<>();
-    private final ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
-    private final DataOutputStream out = new DataOutputStream(outBytes);
-    private int lastIndex = 0;
+    private final HeapOutputStream out;
 
     public Serializer(CompilationContext ctxt) {
         this.ctxt = ctxt;
+        out  = new HeapOutputStream(ctxt.getTypeSystem().getEndianness());
     }
 
-    private int getBackref(Object obj) {
-        if (objects.containsKey(obj)) {
-            Integer prevIdx = objects.get(obj);
-            return lastIndex - prevIdx;
-        } else {
-            lastIndex += 1;
-            objects.put(obj, lastIndex);
-            return -1;
-        }
-    }
-
-    public void flush() throws IOException {
-        out.flush();
-    }
-
-    public byte[] getBytes() throws IOException {
-        flush();
-        return outBytes.toByteArray();
+    public byte[] getBytes() {
+        return out.getBytes();
     }
 
     public int getNumberOfObjects() {
-        return lastIndex;
+        return out.getNumberOfObjects();
     }
 
-    public void writeObject(Object obj, Set<LoadedTypeDefinition> writtenClasses) throws IOException {
+    public void writeObject(Object obj, Set<LoadedTypeDefinition> writtenClasses) {
         if (obj == null) {
-            out.writeByte(NULL);
+            out.putByte(NULL);
             return;
         }
 
-        int possibleBackRef = getBackref(obj);
+        int possibleBackRef = out.getBackref(obj);
         if (possibleBackRef >= 0) {
             if (possibleBackRef < 128) {
-                out.writeByte(TINY_REF_TAG_BIT | possibleBackRef);
+                out.putByte((byte)(TINY_REF_TAG_BIT | possibleBackRef));
             } else if (possibleBackRef <= 0xFFFF) {
-                out.writeByte(BACKREF_SMALL);
-                out.writeShort(possibleBackRef);
+                out.putByte(BACKREF_SMALL);
+                out.putShort((short)possibleBackRef);
             } else {
-                out.writeByte(BACKREF_LARGE);
-                out.writeInt(possibleBackRef);
+                out.putByte(BACKREF_LARGE);
+                out.putInt(possibleBackRef);
             }
             return;
         }
@@ -74,125 +52,125 @@ public class Serializer implements SerializationConstants {
             // TODO: Check to see if the String really can be encoded as a LATIN-1 string!
             byte[] bytes = str.getBytes(StandardCharsets.ISO_8859_1);
             if (bytes.length < 128) {
-                out.writeByte(STRING_SMALL_L1);
-                out.writeByte(bytes.length);
+                out.putByte(STRING_SMALL_L1);
+                out.putByte((byte)bytes.length);
             } else {
-                out.writeByte(STRING_LARGE_L1);
-                out.writeInt(bytes.length);
+                out.putByte(STRING_LARGE_L1);
+                out.putInt(bytes.length);
             }
-            out.write(bytes);
+            out.put(bytes);
             return;
         }
 
         if (obj instanceof boolean[]) {
             boolean[] array = (boolean[])obj;
             if (array.length < 128) {
-                out.writeByte(ARRAY_SMALL_BOOLEAN);
-                out.writeByte(array.length);
+                out.putByte(ARRAY_SMALL_BOOLEAN);
+                out.putByte((byte)array.length);
             } else {
-                out.writeByte(ARRAY_LARGE_BOOLEAN);
-                out.writeInt(array.length);
+                out.putByte(ARRAY_LARGE_BOOLEAN);
+                out.putInt(array.length);
             }
             for (boolean b : array) {
-                out.writeBoolean(b);
+                out.putBoolean(b);
             }
             return;
         }
         if (obj instanceof byte[]) {
             byte[] array = (byte[])obj;
             if (array.length < 128) {
-                out.writeByte(ARRAY_SMALL_BYTE);
-                out.writeByte(array.length);
+                out.putByte(ARRAY_SMALL_BYTE);
+                out.putByte((byte)array.length);
             } else {
-                out.writeByte(ARRAY_LARGE_BYTE);
-                out.writeInt(array.length);
+                out.putByte(ARRAY_LARGE_BYTE);
+                out.putInt(array.length);
             }
             for (byte b : array) {
-                out.writeByte(b);
+                out.putByte(b);
             }
             return;
         }
         if (obj instanceof short[]) {
             short[] array = (short[])obj;
             if (array.length < 128) {
-                out.writeByte(ARRAY_SMALL_SHORT);
-                out.writeByte(array.length);
+                out.putByte(ARRAY_SMALL_SHORT);
+                out.putByte((byte)array.length);
             } else {
-                out.writeByte(ARRAY_LARGE_SHORT);
-                out.writeInt(array.length);
+                out.putByte(ARRAY_LARGE_SHORT);
+                out.putInt(array.length);
             }
             for (short value : array) {
-                out.writeShort(value);
+                out.putShort(value);
             }
             return;
         }
         if (obj instanceof char[]) {
             char[] array = (char[])obj;
             if (array.length < 128) {
-                out.writeByte(ARRAY_SMALL_CHAR);
-                out.writeByte(array.length);
+                out.putByte(ARRAY_SMALL_CHAR);
+                out.putByte((byte)array.length);
             } else {
-                out.writeByte(ARRAY_LARGE_CHAR);
-                out.writeInt(array.length);
+                out.putByte(ARRAY_LARGE_CHAR);
+                out.putInt(array.length);
             }
             for (char c : array) {
-                out.writeChar(c);
+                out.putChar(c);
             }
             return;
         }
         if (obj instanceof int[]) {
             int[] array = (int[])obj;
             if (array.length < 128) {
-                out.writeByte(ARRAY_SMALL_INT);
-                out.writeByte(array.length);
+                out.putByte(ARRAY_SMALL_INT);
+                out.putByte((byte)array.length);
             } else {
-                out.writeByte(ARRAY_LARGE_INT);
-                out.writeInt(array.length);
+                out.putByte(ARRAY_LARGE_INT);
+                out.putInt(array.length);
             }
             for (int j : array) {
-                out.writeInt(j);
+                out.putInt(j);
             }
             return;
         }
         if (obj instanceof float[]) {
             float[] array = (float[])obj;
             if (array.length < 128) {
-                out.writeByte(ARRAY_SMALL_FLOAT);
-                out.writeByte(array.length);
+                out.putByte(ARRAY_SMALL_FLOAT);
+                out.putByte((byte)array.length);
             } else {
-                out.writeByte(ARRAY_LARGE_FLOAT);
-                out.writeInt(array.length);
+                out.putByte(ARRAY_LARGE_FLOAT);
+                out.putInt(array.length);
             }
             for (float v : array) {
-                out.writeFloat(v);
+                out.putFloat(v);
             }
             return;
         }
         if (obj instanceof long[]) {
             long[] array = (long[])obj;
             if (array.length < 128) {
-                out.writeByte(ARRAY_SMALL_LONG);
-                out.writeByte(array.length);
+                out.putByte(ARRAY_SMALL_LONG);
+                out.putByte((byte)array.length);
             } else {
-                out.writeByte(ARRAY_LARGE_LONG);
-                out.writeInt(array.length);
+                out.putByte(ARRAY_LARGE_LONG);
+                out.putInt(array.length);
             }
             for (long l : array) {
-                out.writeLong(l);
+                out.putLong(l);
             }
             return;
         }
         if (obj instanceof double[]) {
             double[] array = (double[])obj;
             if (array.length < 128) {
-                out.writeByte(ARRAY_SMALL_DOUBLE);
-                out.writeByte(array.length);
+                out.putByte(ARRAY_SMALL_DOUBLE);
+                out.putByte((byte)array.length);
             } else {
-                out.writeByte(ARRAY_LARGE_DOUBLE);
-                out.writeInt(array.length);
+                out.putByte(ARRAY_LARGE_DOUBLE);
+                out.putInt(array.length);
             }
             for (double v : array) {
-                out.writeDouble(v);
+                out.putDouble(v);
             }
             return;
         }
@@ -201,27 +179,27 @@ public class Serializer implements SerializationConstants {
             Object[] array = (Object[])obj;
             if (obj instanceof String[]) {
                 if (array.length < 128) {
-                    out.writeByte(ARRAY_SMALL_STRING);
-                    out.writeByte(array.length);
+                    out.putByte(ARRAY_SMALL_STRING);
+                    out.putByte((byte)array.length);
                 } else {
-                    out.writeLong(ARRAY_LARGE_STRING);
-                    out.writeInt(array.length);
+                    out.putLong(ARRAY_LARGE_STRING);
+                    out.putInt(array.length);
                 }
             } else if (obj.getClass().getComponentType().equals(Object.class)) {
                 if (array.length < 128) {
-                    out.writeByte(ARRAY_SMALL_OBJECT);
-                    out.writeByte(array.length);
+                    out.putByte(ARRAY_SMALL_OBJECT);
+                    out.putByte((byte)array.length);
                 } else {
-                    out.writeLong(ARRAY_LARGE_OBJECT);
-                    out.writeInt(array.length);
+                    out.putLong(ARRAY_LARGE_OBJECT);
+                    out.putInt(array.length);
                 }
             } else {
                 if (array.length < 128) {
-                    out.writeByte(ARRAY_SMALL_CLASS);
-                    out.writeByte(array.length);
+                    out.putByte(ARRAY_SMALL_CLASS);
+                    out.putByte((byte)array.length);
                 } else {
-                    out.writeLong(ARRAY_LARGE_CLASS);
-                    out.writeInt(array.length);
+                    out.putLong(ARRAY_LARGE_CLASS);
+                    out.putInt(array.length);
                 }
             }
             for (Object elem : array) {
@@ -237,11 +215,11 @@ public class Serializer implements SerializationConstants {
         serializeInstance(obj, writtenClasses);
     }
 
-    private void serializeInstance(Object obj, Set<LoadedTypeDefinition> writtenClasses) throws IOException {
+    private void serializeInstance(Object obj, Set<LoadedTypeDefinition> writtenClasses) {
         Class<?> cls = obj.getClass();
         LoadedTypeDefinition ltd = ctxt.getBootstrapClassContext().findDefinedType(cls.getName()).load();
-        out.writeByte(OBJECT);
-        out.writeShort(ltd.getTypeId());
+        out.putByte(OBJECT);
+        out.putShort((short)ltd.getTypeId());
         try {
             serializeInstanceFields(obj, ltd, writtenClasses);
         } catch (IllegalAccessException | NoSuchFieldException e) {
@@ -249,7 +227,7 @@ public class Serializer implements SerializationConstants {
         }
     }
 
-    private void serializeInstanceFields(Object obj, LoadedTypeDefinition cur, Set<LoadedTypeDefinition> writtenClasses) throws IllegalAccessException, NoSuchFieldException, IOException {
+    private void serializeInstanceFields(Object obj, LoadedTypeDefinition cur, Set<LoadedTypeDefinition> writtenClasses) throws IllegalAccessException, NoSuchFieldException {
         if (cur.hasSuperClass()) {
             serializeInstanceFields(obj, cur.getSuperClass(), writtenClasses);
         }
@@ -259,21 +237,21 @@ public class Serializer implements SerializationConstants {
             if (!qf.isStatic()) {
                 Field jf = obj.getClass().getField(qf.getName());
                 if (qf.getTypeDescriptor().equals(BaseTypeDescriptor.Z)){
-                    out.writeBoolean(jf.getBoolean(obj));
+                    out.putBoolean(jf.getBoolean(obj));
                 } else if (qf.getTypeDescriptor().equals(BaseTypeDescriptor.B)) {
-                    out.writeByte(jf.getByte(obj));
+                    out.putByte(jf.getByte(obj));
                 } else if (qf.getTypeDescriptor().equals(BaseTypeDescriptor.S)) {
-                    out.writeShort(jf.getShort(obj));
+                    out.putShort(jf.getShort(obj));
                 } else if (qf.getTypeDescriptor().equals(BaseTypeDescriptor.C)) {
-                    out.writeChar(jf.getChar(obj));
+                    out.putChar(jf.getChar(obj));
                 } else if (qf.getTypeDescriptor().equals(BaseTypeDescriptor.I)) {
-                    out.writeInt(jf.getInt(obj));
+                    out.putInt(jf.getInt(obj));
                 } else if (qf.getTypeDescriptor().equals(BaseTypeDescriptor.F)) {
-                    out.writeFloat(jf.getFloat(obj));
+                    out.putFloat(jf.getFloat(obj));
                 } else if (qf.getTypeDescriptor().equals(BaseTypeDescriptor.J)) {
-                    out.writeLong(jf.getLong(obj));
+                    out.putLong(jf.getLong(obj));
                 } else if (qf.getTypeDescriptor().equals(BaseTypeDescriptor.D)) {
-                    out.writeDouble(jf.getDouble(obj));
+                    out.putDouble(jf.getDouble(obj));
                 } else {
                     writeObject(jf.get(obj), writtenClasses);
                 }
