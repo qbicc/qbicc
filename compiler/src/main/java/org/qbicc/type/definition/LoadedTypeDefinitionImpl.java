@@ -124,6 +124,9 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
             Collections.addAll(worklist, cur.getInterfaces());
             cur = cur.getSuperClass();
         }
+        if (this.isInterface()) {
+            worklist.add(this);
+        }
         // worklist contains all directly implemented interfaces in the super class chain
         HashSet<LoadedTypeDefinition> visited = new HashSet<>();
         while (!worklist.isEmpty()) {
