@@ -5,7 +5,6 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -41,22 +40,13 @@ public class BuildtimeHeap {
     }
 
     public void serializeHeap() {
-        try {
-            for (InitializedField initField : heapRoots) {
-                ser.writeObject(initField.value, usedClasses);
-            }
-        } catch (IOException e) {
-            ctxt.error(e,"Error serializing build-time heap");
+        for (InitializedField initField : heapRoots) {
+            ser.writeObject(initField.value, usedClasses);
         }
     }
 
     public byte[] getHeapBytes() {
-        try {
-            return ser.getBytes();
-        } catch (IOException e) {
-            ctxt.error(e,"Error serializing build-time heap");
-            return new byte[0];
-        }
+        return ser.getBytes();
     }
 
     public List<InitializedField> getHeapRoots() {
