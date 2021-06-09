@@ -4,6 +4,7 @@ import org.qbicc.context.CompilationContext;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 
 class HeapOutputStream {
@@ -23,10 +24,8 @@ class HeapOutputStream {
 
     private void ensureCapacity(int desired) {
         if (out.position() + desired >= out.limit()) {
-            byte[] newBuf = new byte[buffer.length + CHUNK_SIZE];
-            System.arraycopy(buffer, 0, newBuf, 0, out.position());
-            out = ByteBuffer.wrap(newBuf).position(out.position()).order(endianness);
-            buffer = newBuf;
+            buffer = Arrays.copyOf(buffer, buffer.length + CHUNK_SIZE);
+            out = ByteBuffer.wrap(buffer).position(out.position()).order(endianness);
         }
     }
 
@@ -42,9 +41,7 @@ class HeapOutputStream {
     }
 
     byte[] getBytes() {
-        byte[] ans = new byte[out.position()];
-        System.arraycopy(buffer, 0, ans, 0, out.position());
-        return ans;
+        return Arrays.copyOf(buffer, out.position());
     }
 
     int getNumberOfObjects() {

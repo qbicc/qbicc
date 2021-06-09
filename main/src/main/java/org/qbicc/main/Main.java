@@ -230,8 +230,7 @@ public class Main implements Callable<DiagnosticContext> {
                             // for now, type IDs == int32
                             tsBuilder.setTypeIdSize((int) probeResult.getTypeInfo(int32_t).getSize());
                             tsBuilder.setTypeIdAlignment((int) probeResult.getTypeInfo(int32_t).getAlign());
-                            // todo: endianness probe
-                            tsBuilder.setEndianness(ByteOrder.LITTLE_ENDIAN);
+                            tsBuilder.setEndianness(probeResult.getByteOrder());
                             if (nogc) {
                                 new NoGcTypeSystemConfigurator().accept(tsBuilder);
                             }
