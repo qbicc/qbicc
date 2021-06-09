@@ -375,7 +375,7 @@ public class SupersDisplayTables {
         }
         
         LiteralFactory lf = ctxt.getLiteralFactory();
-        supersLog.debug("[[Flags] ID["+ ltd.getTypeId() + "] Flags = " + Integer.toBinaryString(flags) + ltd.getInternalName() + "]");
+        supersLog.debug("[[Flags] ID["+ ltd.getTypeId() + "] Flags = " + Integer.toBinaryString(flags) + " : " + ltd.getInternalName() + "]");
         return lf.literalOf(type, flags);
     }
 
