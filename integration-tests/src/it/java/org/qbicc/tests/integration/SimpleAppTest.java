@@ -46,7 +46,7 @@ public class SimpleAppTest {
 
         StringBuilder stdOut = new StringBuilder();
         StringBuilder stdErr = new StringBuilder();
-        NativeExecutable.run(outputExecutable, stdOut, stdErr, LOGGER);
+        NativeExecutable.run(appName, outputExecutable, stdOut, stdErr, LOGGER);
 
         assertTrue(stdErr.toString().isBlank(), "Native image execution should produce no error. " + stdErr);
         assertEquals("hello world", stdOut.toString().trim());
@@ -75,7 +75,7 @@ public class SimpleAppTest {
 
         StringBuilder stdOut = new StringBuilder();
         StringBuilder stdErr = new StringBuilder();
-        NativeExecutable.run(outputExecutable, stdOut, stdErr, LOGGER);
+        NativeExecutable.run(appName, outputExecutable, stdOut, stdErr, LOGGER);
 
         assertTrue(stdErr.toString().isBlank(), "Native image execution should produce no error. " + stdErr);
         assertEquals("1 1", stdOut.toString().trim());
