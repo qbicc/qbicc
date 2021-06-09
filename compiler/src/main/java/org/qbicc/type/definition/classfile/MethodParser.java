@@ -158,7 +158,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             builder.setIndex(lvi++);
                             builder.setEnclosingType(gf.getCurrentElement().getEnclosingType());
                             builder.setType(varType);
-                            builder.setTypeParameterContext((TypeParameterContext) gf.getCurrentElement());
+                            builder.setTypeParameterContext(gf.getCurrentElement().getTypeParameterContext());
                             // todo
                             builder.setDescriptor(BaseTypeDescriptor.V);
                             builder.setSignature(BaseTypeSignature.V);
