@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.regex.Pattern;
 
 import org.qbicc.context.DiagnosticContext;
+import org.qbicc.machine.tool.ToolExecutionFailureException;
 import org.qbicc.tests.integration.utils.Javac;
 import org.qbicc.tests.integration.utils.NativeExecutable;
 import org.qbicc.tests.integration.utils.Qbicc;
@@ -49,7 +50,12 @@ public class SnippetsTest {
 
         StringBuilder stdOut = new StringBuilder();
         StringBuilder stdErr = new StringBuilder();
-        NativeExecutable.run(outputExecutable, stdOut, stdErr, LOGGER);
+        try {
+            NativeExecutable.run(snippetName, outputExecutable, stdOut, stdErr, LOGGER);
+        } catch(ToolExecutionFailureException e) {
+            // ensure snippet name gets included in the output message
+            throw new ToolExecutionFailureException("Failed building: `"+ snippetName +"`", e);
+        }
 
         assertTrue(stdErr.toString().isBlank(), "Native image execution should produce no error. " + stdErr);
 
