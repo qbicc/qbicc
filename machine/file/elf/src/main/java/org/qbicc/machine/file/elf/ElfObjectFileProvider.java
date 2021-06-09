@@ -128,6 +128,24 @@ public class ElfObjectFileProvider implements ObjectFileProvider {
                 };
             }
 
+            @Override
+            public String getRelocationSymbolForSymbolValue(String symbol) {
+                ElfSymbolTableEntry symbolEntry = findSymbol(symbol);
+                /* Search relocation info section for the data section i.e. section with name ".rel.data" or ".rela.data" */
+                ElfRelocationTableEntry entry = elfHeader.findReloEntryForOffset(".rel.data", symbolEntry.getValue());
+                if (entry == null) {
+                    entry = elfHeader.findReloEntryForOffset(".rela.data", symbolEntry.getValue());
+                    if (entry == null) {
+                        return null;
+                    }
+                }
+                ElfSymbolTableEntry reloSymbol = elfHeader.findSymbol(entry.getSymbolIndex());
+                if (reloSymbol == null) {
+                    return null;
+                }
+                return reloSymbol.getName();
+            }
+
             private ElfSymbolTableEntry findSymbol(final String name) {
                 final ElfSymbolTableEntry symbol = elfHeader.findSymbol(name);
                 if (symbol == null) {

@@ -17,6 +17,7 @@ public abstract class ElfHeader {
     final Map<String, ElfSectionHeaderEntry> sectionCache = new HashMap<>();
     final ArrayList<ElfSymbolTableEntry> staticSymbols = new ArrayList<>(0);
     final ArrayList<ElfSymbolTableEntry> dynamicSymbols = new ArrayList<>(0);
+    final Map<String, ArrayList<ElfRelocationTableEntry>> relocationEntries = new HashMap<>();
     final Map<String, ElfSymbolTableEntry> symbolCache = new HashMap<>();
     final MappedBitSet<Elf.Flag> flags;
 
@@ -405,6 +406,10 @@ public abstract class ElfHeader {
         }
     }
 
+    public ElfSymbolTableEntry findSymbol(int index) {
+        return getSymbolTableEntry(index, false);
+    }
+
     public ElfSymbolTableEntry getSymbolTableEntry(int index, boolean dynamic) {
         final Elf.Section.Type.Std type = dynamic ? Elf.Section.Type.Std.DYN_SYM : Elf.Section.Type.Std.SYM_TAB;
         final ArrayList<ElfSymbolTableEntry> list = dynamic ? dynamicSymbols : staticSymbols;
@@ -431,6 +436,47 @@ public abstract class ElfHeader {
         }
         entry = constructSymbolTableEntry(symtab, symtab.getOffset() + relative);
         list.set(index, entry);
+        return entry;
+    }
+
+    public ElfRelocationTableEntry findReloEntryForOffset(String reloSectionName, long offset) {
+        int index = 0;
+        ElfRelocationTableEntry entry = getRelocationTableEntry(reloSectionName, index);;
+        while (entry != null) {
+            if (entry.getOffset() == offset) {
+                break;
+            }
+            index += 1;
+            entry = getRelocationTableEntry(reloSectionName, index);
+        }
+        return entry;
+    }
+
+    public ElfRelocationTableEntry getRelocationTableEntry(String reloSectionName, int index) {
+        ElfSectionHeaderEntry relocationSection = getSectionHeaderTableEntry(reloSectionName);
+        if (relocationSection == null) {
+            return null;
+        }
+        ArrayList<ElfRelocationTableEntry> entryList = relocationEntries.computeIfAbsent(reloSectionName, k -> new ArrayList<>(0));
+        long relative = relocationSection.getFixedEntrySize() * index;
+        if (relative > relocationSection.getSize()) {
+            return null;
+        }
+        ElfRelocationTableEntry entry = null;
+        int listSize = entryList.size();
+        if (index < listSize) {
+            entry = entryList.get(index);
+            if (entry != null) {
+                return entry;
+            }
+        } else {
+            entryList.ensureCapacity(index + 1);
+            do {
+                entryList.add(null);
+            } while (index > listSize++);
+        }
+        entry = constructRelocationTableEntry(relocationSection, relocationSection.getOffset() + relative);
+        entryList.add(index, entry);
         return entry;
     }
 

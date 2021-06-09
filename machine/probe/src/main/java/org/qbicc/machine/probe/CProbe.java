@@ -116,8 +116,8 @@ public final class CProbe {
                 final Map<String, FunctionInfo> functionInfos = new HashMap<>(cnt);
                 for (int i = 0; i < cnt; i ++) {
                     String name = functions.get(i);
-                    // get the symbol value (todo)
-                    throw new UnsupportedOperationException("Read symbol relocation data from object file");
+                    String fnName = objectFile.getRelocationSymbolForSymbolValue("fn_address" + i);
+                    functionInfos.put(name, new FunctionInfo(fnName));
                 }
                 cnt = types.size();
                 final Map<Type, Type.Info> typeInfos = new HashMap<>(cnt);
@@ -840,7 +840,15 @@ public final class CProbe {
     }
 
     public static final class FunctionInfo {
+        private final String resolvedName;
 
+        FunctionInfo(String resolvedName) {
+            this.resolvedName = resolvedName;
+        }
+
+        public String getResolvedName() {
+            return resolvedName;
+        }
     }
 
 

@@ -236,6 +236,11 @@ public final class MachOObjectFile implements ObjectFile {
         };
     }
 
+    @Override
+    public String getRelocationSymbolForSymbolValue(String symbol) {
+        return null;
+    }
+
     public void close() {
         buffer.close();
     }
