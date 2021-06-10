@@ -93,7 +93,9 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                     Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
                         decodedTarget,
                         arguments);
-                    return result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType());
+                    if (result != null) {
+                        return result;
+                    }
                 }
             } else {
                 // instance
@@ -104,7 +106,9 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                         instance,
                         decodedTarget,
                         arguments);
-                    return result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType());
+                    if (result != null) {
+                        return result;
+                    }
                 }
             }
         }
@@ -121,7 +125,9 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                     Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
                         decodedTarget,
                         arguments);
-                    return result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType());
+                    if (result != null) {
+                        return result;
+                    }
                 }
             } else {
                 // instance
@@ -132,7 +138,9 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                         instance,
                         decodedTarget,
                         arguments);
-                    return result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType());
+                    if (result != null) {
+                        return result;
+                    }
                 }
             }
         }
@@ -205,7 +213,9 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                     Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
                         decodedTarget,
                         arguments);
-                    return return_(result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType()));
+                    if (result != null) {
+                        return return_(result);
+                    }
                 }
             } else {
                 // instance
@@ -216,7 +226,9 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                         instance,
                         decodedTarget,
                         arguments);
-                    return return_(result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType()));
+                    if (result != null) {
+                        return return_(result);
+                    }
                 }
             }
         }
@@ -233,7 +245,9 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                     Value result = intrinsic.emitIntrinsic(getFirstBuilder(),
                         decodedTarget,
                         arguments);
-                    return return_(result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType()));
+                    if (result != null) {
+                        return return_(result);
+                    }
                 }
             } else {
                 // instance
@@ -244,7 +258,9 @@ public final class IntrinsicBasicBlockBuilder extends DelegatingBasicBlockBuilde
                         instance,
                         decodedTarget,
                         arguments);
-                    return return_(result != null ? result : ctxt.getLiteralFactory().zeroInitializerLiteralOfType(decodedTarget.getType().getReturnType()));
+                    if (result != null) {
+                        return return_(result);
+                    }
                 }
             }
         }

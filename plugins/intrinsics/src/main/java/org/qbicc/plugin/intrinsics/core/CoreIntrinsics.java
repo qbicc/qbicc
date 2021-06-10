@@ -602,7 +602,7 @@ public final class CoreIntrinsics {
 
         InstanceIntrinsic set = (builder, instance, target, arguments) -> {
             builder.store(builder.elementOf(builder.pointerHandle(instance), arguments.get(0)), arguments.get(1), MemoryAtomicityMode.NONE);
-            return null;
+            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
         };
 
         intrinsics.registerIntrinsic(ptrDesc, "set", MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.I, nObjDesc)), set);
