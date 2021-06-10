@@ -154,4 +154,23 @@ public class ObjectModel {
     public static native int get_number_of_bytes_in_interface_bits_array();
 
     public static native byte get_byte_of_interface_bits(CNative.type_id typeId, int index);
+
+    /**
+     * Check the `clinit_states` native structure to see if this typeid is initialized.
+     * 
+     * This is a fast check reading a bit in the structure.  A "true" value can be trusted
+     * as a fast path check while a "false" value requires the state-machine defined in
+     * VMHelpers.initialize_class() to validate the result and handle the transition.
+     * 
+     * @return true if initialized.  False if the state machine needs to validate.
+     */
+    public static native boolean is_initialized(CNative.type_id typdId);
+
+    /**
+     * Set the class initialized.  
+     * 
+     * This should only be done by the MHelpers.initialize_class() statemachine
+     * @param typdId the class to mark initialized
+     */
+    public static native void set_initialized(CNative.type_id typdId);
 }
