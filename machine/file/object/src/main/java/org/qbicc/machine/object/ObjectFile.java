@@ -29,4 +29,6 @@ public interface ObjectFile extends Closeable {
     ObjectType getObjectType();
 
     Section getSection(String name);
+
+    String getRelocationSymbolForSymbolValue(String symbol);
 }
