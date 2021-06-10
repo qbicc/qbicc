@@ -29,10 +29,13 @@ public interface LlvmToolChain extends Tool {
 
     OptInvoker newOptInvoker();
 
+    LlvmLinkInvoker newLlvmLinkInvoker();
+
     static Iterable<LlvmToolChain> findAllLlvmToolChains(Platform platform, Predicate<? super LlvmToolChain> filter, ClassLoader classLoader) {
         Path llcPath = ToolUtil.findExecutable("llc");
-        if (llcPath != null) {
-            Path optPath = ToolUtil.findExecutable("opt");
+        Path optPath = ToolUtil.findExecutable("opt");
+        Path llvmLinkPath = ToolUtil.findExecutable("llvm-link");
+        if (llcPath != null && optPath != null && llvmLinkPath != null) {
             if (optPath != null) {
                 // check versions
                 ProcessBuilder pb = new ProcessBuilder(List.of(llcPath.toString(), "--version"));
@@ -46,7 +49,7 @@ public interface LlvmToolChain extends Tool {
                 Matcher matcher = Llvm.LLVM_VERSION_PATTERN.matcher(stdOut);
                 if (matcher.find()) {
                     String version = matcher.group(1);
-                    return List.of(new LlvmToolChainImpl(llcPath, optPath, platform, version));
+                    return List.of(new LlvmToolChainImpl(llcPath, optPath, llvmLinkPath, platform, version));
                 }
                 Llvm.log.warn("Failed to identify LLVM version string; skipping");
             }
