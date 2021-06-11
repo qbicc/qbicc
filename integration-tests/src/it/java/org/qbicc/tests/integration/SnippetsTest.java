@@ -60,7 +60,8 @@ public class SnippetsTest {
         assertTrue(stdErr.toString().isBlank(), "Native image execution should produce no error. " + stdErr);
 
         assertTrue(outputPattern.matcher(stdOut.toString()).matches(),
-            "Standard output should have matched the pattern: " +
-                outputPattern.pattern());
+            "Standard output should have matched the pattern:\n[" +
+                outputPattern.pattern() +
+                "] but output was:\n["+ stdOut.toString() + "]");
     }
 }

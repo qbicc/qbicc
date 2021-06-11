@@ -1,6 +1,9 @@
 package org.qbicc.type.definition;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -115,13 +118,24 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     }
 
     public void forEachInterfaceFullImplementedSet(Consumer<LoadedTypeDefinition> function) {
-        for (LoadedTypeDefinition i : interfaces) {
-            function.accept(i);
+        ArrayDeque<LoadedTypeDefinition> worklist = new ArrayDeque<>();
+        LoadedTypeDefinition cur = this;
+        while (cur != null) {
+            Collections.addAll(worklist, cur.getInterfaces());
+            cur = cur.getSuperClass();
         }
-        // Walk up the heirarchy and visit each inteface from the the superclass
-        LoadedTypeDefinition superClass = getSuperClass();
-        if (superClass != null) {
-            superClass.forEachInterfaceFullImplementedSet(function);
+        if (this.isInterface()) {
+            worklist.add(this);
+        }
+        // worklist contains all directly implemented interfaces in the super class chain
+        HashSet<LoadedTypeDefinition> visited = new HashSet<>();
+        while (!worklist.isEmpty()) {
+            LoadedTypeDefinition ltd = worklist.pop();
+            if (visited.add(ltd)) {
+                function.accept(ltd);
+                // Now add the interface's superinterface hierarchy to the worklist
+                Collections.addAll(worklist, ltd.getInterfaces());
+            }
         }
     }
 
@@ -219,4 +233,3 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         return hasDefaultMethods;
     }
 }
-
