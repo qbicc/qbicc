@@ -131,8 +131,7 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         HashSet<LoadedTypeDefinition> visited = new HashSet<>();
         while (!worklist.isEmpty()) {
             LoadedTypeDefinition ltd = worklist.pop();
-            if (!visited.contains(ltd)) {
-                visited.add(ltd);
+            if (visited.add(ltd)) {
                 function.accept(ltd);
                 // Now add the interface's superinterface hierarchy to the worklist
                 Collections.addAll(worklist, ltd.getInterfaces());
@@ -226,4 +225,3 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         return hasDefaultMethods;
     }
 }
-
