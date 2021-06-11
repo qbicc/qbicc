@@ -2,6 +2,7 @@ package org.qbicc.plugin.serialization;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.util.IdentityHashMap;
 import java.util.Set;
 
 import org.qbicc.context.CompilationContext;
@@ -12,11 +13,13 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 
 public class Serializer implements SerializationConstants {
     private final CompilationContext ctxt;
-    private final HeapOutputStream out;
+    private final GrowableByteBuffer out;
+    private final IdentityHashMap<Object, Integer> objects = new IdentityHashMap<>();
+    private int lastIndex = 0;
 
     public Serializer(CompilationContext ctxt) {
         this.ctxt = ctxt;
-        out  = new HeapOutputStream(ctxt.getTypeSystem().getEndianness());
+        out  = new GrowableByteBuffer(ctxt.getTypeSystem().getEndianness());
     }
 
     public byte[] getBytes() {
@@ -24,7 +27,7 @@ public class Serializer implements SerializationConstants {
     }
 
     public int getNumberOfObjects() {
-        return out.getNumberOfObjects();
+        return lastIndex;
     }
 
     public void writeObject(Object obj, Set<LoadedTypeDefinition> writtenClasses) {
@@ -33,7 +36,7 @@ public class Serializer implements SerializationConstants {
             return;
         }
 
-        int possibleBackRef = out.getBackref(obj);
+        int possibleBackRef = getBackref(obj);
         if (possibleBackRef >= 0) {
             if (possibleBackRef < 128) {
                 out.putByte((byte)(TINY_REF_TAG_BIT | possibleBackRef));
@@ -213,6 +216,18 @@ public class Serializer implements SerializationConstants {
         }
 
         serializeInstance(obj, writtenClasses);
+    }
+
+
+    private int getBackref(Object obj) {
+        if (objects.containsKey(obj)) {
+            Integer prevIdx = objects.get(obj);
+            return lastIndex - prevIdx;
+        } else {
+            lastIndex += 1;
+            objects.put(obj, lastIndex);
+            return -1;
+        }
     }
 
     private void serializeInstance(Object obj, Set<LoadedTypeDefinition> writtenClasses) {

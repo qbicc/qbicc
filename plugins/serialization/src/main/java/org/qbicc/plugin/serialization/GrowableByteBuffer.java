@@ -7,16 +7,17 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.IdentityHashMap;
 
-class HeapOutputStream {
+/**
+ * A utility class that provides an array-backed automatically resized ByteBuffer
+ */
+class GrowableByteBuffer {
     private static final int CHUNK_SIZE = 16; // 128 * 1024;  TODO: Set very small to test growing logic...don't leave it like this for long!
 
     private final ByteOrder endianness;
-    private final IdentityHashMap<Object, Integer> objects = new IdentityHashMap<>();
-    private int lastIndex = 0;
     private byte[] buffer;
     private ByteBuffer out;
 
-    HeapOutputStream(ByteOrder endianness) {
+    GrowableByteBuffer(ByteOrder endianness) {
         this.endianness = endianness;
         buffer = new byte[CHUNK_SIZE];
         out = ByteBuffer.wrap(buffer).order(endianness);
@@ -24,28 +25,23 @@ class HeapOutputStream {
 
     private void ensureCapacity(int desired) {
         if (out.position() + desired >= out.limit()) {
-            buffer = Arrays.copyOf(buffer, buffer.length + CHUNK_SIZE);
+            int increment = desired < CHUNK_SIZE / 2 ? CHUNK_SIZE : desired * 2;
+            buffer = Arrays.copyOf(buffer, buffer.length + increment);
             out = ByteBuffer.wrap(buffer).position(out.position()).order(endianness);
         }
     }
 
-    int getBackref(Object obj) {
-        if (objects.containsKey(obj)) {
-            Integer prevIdx = objects.get(obj);
-            return lastIndex - prevIdx;
-        } else {
-            lastIndex += 1;
-            objects.put(obj, lastIndex);
-            return -1;
+    void align(int alignment) {
+        int cur = out.position();
+        int aligned = (cur + alignment-1) & alignment;
+        if (aligned != cur) {
+            ensureCapacity(alignment);
+            out.position(aligned);
         }
     }
 
     byte[] getBytes() {
         return Arrays.copyOf(buffer, out.position());
-    }
-
-    int getNumberOfObjects() {
-        return lastIndex;
     }
 
     void putBoolean(boolean v) {
