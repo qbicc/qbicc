@@ -36,7 +36,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
         if (element.isStatic()) {
             monitor = classOf(ctxt.getLiteralFactory().literalOfType(enclosing.load().getType()));
         } else {
-            monitor = parameter(enclosing.load().getType().getReference().asNullable(), "this", 0);
+            monitor = notNull(parameter(enclosing.load().getType().getReference(), "this", 0));
         }
         throwable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Throwable").load().getClassType().getReference();
     }
@@ -63,7 +63,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
 
         ExceptionHandlerImpl(final ExceptionHandler delegate) {
             this.delegate = delegate;
-            phi = phi(throwable, new BlockLabel());
+            phi = phi(throwable, new BlockLabel(), PhiValue.Flag.NOT_NULL);
         }
 
         public BlockLabel getHandler() {

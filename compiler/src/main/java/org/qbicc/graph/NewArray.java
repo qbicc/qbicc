@@ -59,4 +59,9 @@ public final class NewArray extends AbstractValue implements OrderedNode {
     public boolean equals(final Object other) {
         return this == other;
     }
+
+    @Override
+    public boolean isNullable() {
+        return false;
+    }
 }

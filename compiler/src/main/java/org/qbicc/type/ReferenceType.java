@@ -13,28 +13,13 @@ public final class ReferenceType extends NullableType {
     private final Set<InterfaceObjectType> interfaceBounds;
     private final int size;
     private final int align;
-    private final ReferenceType asNotNull;
-    private final ReferenceType asNullable;
 
-    private ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, Set<InterfaceObjectType> interfaceBounds, final ReferenceType notNull, final int size, final int align) {
-        super(typeSystem, ((Objects.hash(upperBound, interfaceBounds) * 19 + size) * 19 + ReferenceType.class.hashCode()) * 19 + Boolean.hashCode(notNull != null));
+    ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, final Set<InterfaceObjectType> interfaceBounds, final int size, final int align) {
+        super(typeSystem, (Objects.hash(upperBound, interfaceBounds) * 19 + size) * 19 + ReferenceType.class.hashCode());
         this.upperBound = upperBound;
         this.interfaceBounds = interfaceBounds;
         this.size = size;
         this.align = align;
-        if (notNull != null) {
-            // a non-null view was passed in, so this must be the nullable view
-            this.asNullable = this;
-            this.asNotNull = notNull;
-        } else {
-            // null was passed in for the non-null view, so this must be the non-null view; construct nullable view
-            this.asNullable = new ReferenceType(typeSystem, this.upperBound, interfaceBounds, this, size, align);
-            this.asNotNull = this;
-        }
-    }
-
-    ReferenceType(final TypeSystem typeSystem, final PhysicalObjectType upperBound, final Set<InterfaceObjectType> interfaceBounds, final int size, final int align) {
-        this(typeSystem, upperBound, interfaceBounds, null, size, align);
     }
 
     public ReferenceType getConstraintType() {
@@ -61,18 +46,6 @@ public final class ReferenceType extends NullableType {
      */
     public Set<InterfaceObjectType> getInterfaceBounds() {
         return interfaceBounds;
-    }
-
-    public boolean isNullable() {
-        return this == asNullable;
-    }
-
-    public ReferenceType asNullable() {
-        return asNullable;
-    }
-
-    public ReferenceType asNotNull() {
-        return asNotNull;
     }
 
     public int getMinBits() {
@@ -108,10 +81,7 @@ public final class ReferenceType extends NullableType {
     }
 
     public ReferenceType join(final ReferenceType other) {
-        boolean nullable = isNullable() || other.isNullable();
-        ReferenceType result = getUpperBound().getCommonSupertype(other.getUpperBound()).getReference();
-        if (nullable) result = result.asNullable();
-        return result;
+        return getUpperBound().getCommonSupertype(other.getUpperBound()).getReference();
     }
 
     /**
@@ -143,7 +113,7 @@ public final class ReferenceType extends NullableType {
         if (otherType.isSupertypeOf(upperBound)) {
             return this;
         } else if (otherType.isSubtypeOf(upperBound)) {
-            return new ReferenceType(typeSystem, otherType, filtered(interfaceBounds, otherType), isNullable() ? asNotNull : null, size, align);
+            return new ReferenceType(typeSystem, otherType, filtered(interfaceBounds, otherType), size, align);
         } else {
             // no valid narrowing
             return null;
@@ -163,7 +133,7 @@ public final class ReferenceType extends NullableType {
             // already implicitly narrowed to this type
             return this;
         } else {
-            return new ReferenceType(typeSystem, upperBound, filteredWith(interfaceBounds, otherType), isNullable() ? asNotNull : null, size, align);
+            return new ReferenceType(typeSystem, upperBound, filteredWith(interfaceBounds, otherType), size, align);
         }
     }
 
@@ -274,7 +244,7 @@ public final class ReferenceType extends NullableType {
             // they were equal
             return this;
         }
-        return new ReferenceType(typeSystem, upperBound, union, isNullable() ? asNotNull : null, size, align);
+        return new ReferenceType(typeSystem, upperBound, union, size, align);
     }
 
     private Set<InterfaceObjectType> union(Set<InterfaceObjectType> ours, Set<InterfaceObjectType> others, PhysicalObjectType upperBound) {
@@ -405,9 +375,6 @@ public final class ReferenceType extends NullableType {
 
     public StringBuilder toString(final StringBuilder b) {
         super.toString(b);
-        if (isNullable()) {
-            b.append("nullable").append(' ');
-        }
         b.append("reference");
         upperBound.toString(b.append('('));
         for (InterfaceObjectType interfaceBound : interfaceBounds) {

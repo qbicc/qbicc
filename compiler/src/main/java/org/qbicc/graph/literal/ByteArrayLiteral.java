@@ -48,6 +48,11 @@ public final class ByteArrayLiteral extends Literal {
         return hashCode;
     }
 
+    @Override
+    public boolean isNullable() {
+        return false;
+    }
+
     public String toString() {
         return toString(new StringBuilder()).toString();
     }

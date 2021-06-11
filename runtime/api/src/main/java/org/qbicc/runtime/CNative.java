@@ -405,6 +405,26 @@ public final class CNative {
         return new String(bytes, StandardCharsets.US_ASCII);
     }
 
+    // conversions
+
+    /**
+     * <b>Warning:</b> this is a potentially dangerous operation and should only be performed by internal components.
+     * Directly convert a pointer to a reference.
+     *
+     * @param ptr the pointer (may be {@code null})
+     * @return the reference (may be {@code null})
+     */
+    public static native Object ptrToRef(ptr<?> ptr);
+
+    /**
+     * <b>Warning:</b> this is a potentially dangerous operation and should only be performed by internal components.
+     * Directly convert a reference to a pointer.
+     *
+     * @param ref the reference (may be {@code null})
+     * @return the pointer (may be {@code null})
+     */
+    public static native <P extends ptr<?>> P refToPtr(Object ref);
+
     // built-in
 
     /**

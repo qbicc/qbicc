@@ -633,7 +633,7 @@ public class SupersDisplayTables {
                     init_state = uninitialized;
                     if (info.isInitializedType(ltd)) {
                         InitializerElement ie = ltd.getInitializer();
-                        if (ie != null && ie.hasMethodBody()) {
+                        if (ie != null && ie.hasMethodBody() && ctxt.wasEnqueued(ie)) {
                             FunctionType funType = ctxt.getFunctionTypeForElement(ie);
                             Function impl = ctxt.getExactFunction(ie);
                             if (!ie.getEnclosingType().load().equals(jlo)) {

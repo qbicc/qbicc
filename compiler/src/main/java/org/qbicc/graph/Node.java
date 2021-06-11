@@ -637,6 +637,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final InstanceOf node) {
+                param.copyNode(node.getDependency());
                 return param.getBlockBuilder().instanceOf(param.copyValue(node.getInstance()), node.getCheckType(), node.getCheckDimensions());
             }
 
@@ -736,6 +737,10 @@ public interface Node {
                 return param.getBlockBuilder().newArray(node.getArrayType(), param.copyValue(node.getSize()));
             }
 
+            public Value visit(final Copier param, final NotNull node) {
+                return param.getBlockBuilder().notNull(param.copyValue(node.getInput()));
+            }
+
             public Value visit(final Copier param, final NullLiteral node) {
                 return node;
             }
@@ -752,9 +757,12 @@ public interface Node {
                 return node;
             }
 
+            static final PhiValue.Flag[] NO_FLAGS = new PhiValue.Flag[0];
+            static final PhiValue.Flag[] NOT_NULL_FLAGS = new PhiValue.Flag[] { PhiValue.Flag.NOT_NULL };
+
             public Value visit(final Copier param, final PhiValue node) {
                 param.enqueue(node);
-                return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()));
+                return param.getBlockBuilder().phi(node.getType(), param.copyBlock(node.getPinnedBlock()), node.possibleValuesAreNullable() ? NO_FLAGS : NOT_NULL_FLAGS);
             }
 
             public Value visit(Copier param, ReferenceTo node) {

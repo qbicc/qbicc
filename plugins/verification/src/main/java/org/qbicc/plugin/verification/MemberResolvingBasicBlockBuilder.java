@@ -154,16 +154,14 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().undefinedLiteralOfType(castType);
         } else if (castType instanceof ReferenceType) {
-            if (value.getType() instanceof ReferenceType && ((ReferenceType) value.getType()).isNullable()) {
-                castType = ((ReferenceType)castType).asNullable();
-            }
-            ObjectType toType = ((ReferenceType) castType).getUpperBound();
+            ReferenceType referenceType = (ReferenceType) castType;
+            ObjectType toType = referenceType.getUpperBound();
             int toDimensions = 0;
             if (toType instanceof ReferenceArrayObjectType) {
                 toDimensions = ((ReferenceArrayObjectType) toType).getDimensionCount();
                 toType = ((ReferenceArrayObjectType) toType).getLeafElementType();
             }
-            return checkcast(value, cc.getLiteralFactory().literalOfType(toType), cc.getLiteralFactory().literalOf(toDimensions), CheckCast.CastType.Cast, (ReferenceType) castType);
+            return checkcast(value, cc.getLiteralFactory().literalOfType(toType), cc.getLiteralFactory().literalOf(toDimensions), CheckCast.CastType.Cast, referenceType);
         } else if (castType instanceof WordType) {
             // A checkcast in the bytecodes, but it is actually a WordType coming from some native magic...just bitcast it.
             WordType toType = (WordType) castType;

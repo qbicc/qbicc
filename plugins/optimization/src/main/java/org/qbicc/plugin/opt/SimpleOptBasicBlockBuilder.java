@@ -108,9 +108,9 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value isEq(final Value v1, final Value v2) {
-        if (isAlwaysNull(v1) && isAlwaysNull(v2) || v1.isDefEq(v2)) {
+        if (v1.isDefEq(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
-        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2) || v1.isDefNe(v2)) {
+        } else if (!v1.isNullable() && isAlwaysNull(v2) || isAlwaysNull(v1) && !v2.isNullable() || v1.isDefNe(v2)) {
             return ctxt.getLiteralFactory().literalOf(false);
         }
 
@@ -140,9 +140,9 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     }
 
     public Value isNe(final Value v1, final Value v2) {
-        if (isAlwaysNull(v1) && isAlwaysNull(v2) || v1.isDefEq(v2)) {
+        if (v1.isDefEq(v2)) {
             return ctxt.getLiteralFactory().literalOf(false);
-        } else if (isNeverNull(v1) && isAlwaysNull(v2) || isAlwaysNull(v1) && isNeverNull(v2) || v1.isDefNe(v2)) {
+        } else if (!v1.isNullable() && isAlwaysNull(v2) || isAlwaysNull(v1) && !v2.isNullable() || v1.isDefNe(v2)) {
             return ctxt.getLiteralFactory().literalOf(true);
         }
 
@@ -347,14 +347,6 @@ public class SimpleOptBasicBlockBuilder extends DelegatingBasicBlockBuilder {
             }
         }
         return super.valueConvert(input, toType);
-    }
-
-    private boolean isNeverNull(final Value v1) {
-        ValueType type = v1.getType();
-        if (isAlwaysNull(v1)) {
-            return false;
-        }
-        return ! (type instanceof ReferenceType) || ! ((ReferenceType) type).isNullable();
     }
 
     public Value arrayLength(final ValueHandle arrayHandle) {

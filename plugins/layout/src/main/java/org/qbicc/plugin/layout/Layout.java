@@ -162,7 +162,7 @@ public final class Layout {
 
         // now the reference array class
 
-        LoadedTypeDefinition refArrayType = defineArrayType(classContext, baseType, jlo.getClassType().getReference().asNullable(), "[L").load();
+        LoadedTypeDefinition refArrayType = defineArrayType(classContext, baseType, jlo.getClassType().getReference(), "[L").load();
         refArrayDimensionsField = refArrayType.getField(0);
         refArrayElementTypeIdField = refArrayType.getField(1);
         refArrayContentField = refArrayType.getField(2);

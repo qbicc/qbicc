@@ -4,20 +4,23 @@ import java.util.Objects;
 
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  * A node that represents a check of the upper bound of the value against the given type.
  */
-public final class InstanceOf extends AbstractValue implements InstanceOperation {
+public final class InstanceOf extends AbstractValue implements InstanceOperation, OrderedNode, BooleanValue {
+    private final Node dependency;
     private final Value input;
     private final ObjectType checkType;
     private final int checkDimensions;
     private final BooleanType booleanType;
 
-    InstanceOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input,
+    InstanceOf(final Node callSite, final ExecutableElement element, final int line, final int bci, Node dependency, final Value input,
                final ObjectType checkType, final int checkDimensions, final BooleanType booleanType) {
         super(callSite, element, line, bci);
+        this.dependency = dependency;
         this.input = input;
         this.checkType = checkType;
         this.checkDimensions = checkDimensions;
@@ -33,7 +36,7 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
      }
 
     int calcHashCode() {
-        return Objects.hash(input, checkType, checkDimensions);
+        return Objects.hash(dependency, input, checkType, checkDimensions);
     }
 
     public boolean equals(final Object other) {
@@ -41,7 +44,7 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
     }
 
     public boolean equals(final InstanceOf other) {
-        return this == other || other != null && input.equals(other.input) && checkType.equals(other.checkType) && checkDimensions == other.checkDimensions;
+        return this == other || other != null && dependency.equals(other.dependency) && input.equals(other.input) && checkType.equals(other.checkType) && checkDimensions == other.checkDimensions;
     }
 
     public int getValueDependencyCount() {
@@ -60,7 +63,25 @@ public final class InstanceOf extends AbstractValue implements InstanceOperation
         return booleanType;
     }
 
+    @Override
+    public Value getValueIfTrue(Value input) {
+        return input.equals(this.input) ?
+            new NotNull(getCallSite(), getElement(), getSourceLine(), getBytecodeIndex(),
+                new BitCast(getCallSite(), getElement(), getSourceLine(), getBytecodeIndex(), input, ((ReferenceType)input.getType()).narrow(checkType)))
+            : input;
+    }
+
+    @Override
+    public Value getValueIfFalse(Value input) {
+        return input;
+    }
+
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    @Override
+    public Node getDependency() {
+        return dependency;
     }
 }

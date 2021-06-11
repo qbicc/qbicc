@@ -3,6 +3,7 @@ package org.qbicc.graph.schedule;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -69,7 +70,7 @@ public interface Schedule {
         }
 
         // now, use the dominator depths to calculate the simplest possible schedule.
-        Map<Node, BlockInfo> scheduledNodes = new HashMap<>();
+        Map<Node, BlockInfo> scheduledNodes = new LinkedHashMap<>();
         scheduleEarly(root, blockInfos, scheduledNodes, entryBlock);
         Map<Node, BasicBlock> finalMapping = new HashMap<>(scheduledNodes.size());
         Map<BasicBlock, List<Node>> blockToNodesMap = new HashMap<>(allBlocks.length);
@@ -97,8 +98,10 @@ public interface Schedule {
         if (! scheduledNodes.containsKey(terminator)) {
             scheduleToPinnedBlock(root, blockInfos, scheduledNodes, terminator, block);
             // schedule all outbound values
-            for (Value value : terminator.getOutboundValues().values()) {
-                scheduleEarly(root, blockInfos, scheduledNodes, value);
+            for (Map.Entry<PhiValue, Value> entry : terminator.getOutboundValues().entrySet()) {
+                if (entry.getKey().getPinnedBlock().isReachable()) {
+                    scheduleEarly(root, blockInfos, scheduledNodes, entry.getValue());
+                }
             }
             int cnt = terminator.getSuccessorCount();
             for (int i = 0; i < cnt; i ++) {
@@ -160,7 +163,9 @@ public interface Schedule {
 
     private static BlockInfo scheduleToPinnedBlock(final BlockInfo root, final Map<BasicBlock, BlockInfo> blockInfos, final Map<Node, BlockInfo> scheduledNodes, final Node node, final BasicBlock pinnedBlock) {
         BlockInfo selected = blockInfos.get(pinnedBlock);
-        assert selected != null;
+        if (selected == null) {
+            throw new IllegalStateException("No block selected");
+        }
         scheduledNodes.put(node, selected);
         scheduleDependenciesEarly(root, blockInfos, scheduledNodes, node);
         if (node instanceof PhiValue) {

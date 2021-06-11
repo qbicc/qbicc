@@ -158,7 +158,7 @@ public interface BasicBlockBuilder extends Locatable {
 
     // phi
 
-    PhiValue phi(ValueType type, BlockLabel owner);
+    PhiValue phi(ValueType type, BlockLabel owner, PhiValue.Flag... flags);
 
     // ternary
 
@@ -213,6 +213,8 @@ public interface BasicBlockBuilder extends Locatable {
     Value cmpL(Value v1, Value v2);
 
     // unary
+
+    Value notNull(Value v);
 
     Value negate(Value v); // neg is only needed for FP; ints should use 0-n
 

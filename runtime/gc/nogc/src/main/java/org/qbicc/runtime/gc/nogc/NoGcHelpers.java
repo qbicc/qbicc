@@ -14,7 +14,7 @@ import org.qbicc.runtime.Build;
 public final class NoGcHelpers {
     private NoGcHelpers() {}
 
-    public static ptr<?> allocate(long size, int align) {
+    public static Object allocate(long size, int align) {
         if (false && Build.Target.isPosix()) {
             void_ptr ptr = auto();
             c_int res = posix_memalign(addr_of(ptr), word((long)align), word(size));
@@ -34,13 +34,13 @@ public final class NoGcHelpers {
                 ptrdiff_t word = word(((~ misAlign) & mask) + 1);
                 ptr = ptr.plus(word);
             }
-            return ptr;
+            return ptrToRef(ptr);
         }
     }
 
-    public static void_ptr clear(void_ptr ptr, long size) { return memset(ptr, word(0), word(size)); }
+    public static void clear(Object ptr, long size) { memset(refToPtr(ptr), word(0), word(size)); }
 
-    public static void copy(void_ptr to, const_void_ptr from, long size) {
-        memcpy(to, from, word(size));
+    public static void copy(Object to, Object from, long size) {
+        memcpy(refToPtr(to), refToPtr(from), word(size));
     }
 }

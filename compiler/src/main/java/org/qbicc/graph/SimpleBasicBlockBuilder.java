@@ -301,6 +301,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new CmpL(callSite, element, line, bci, v1, v2, typeSystem.getSignedInteger32Type());
     }
 
+    public Value notNull(Value v) {
+        return v.isNullable() ? new NotNull(callSite, element, line, bci, v) : v;
+    }
+
     public Value negate(final Value v) {
         return new Neg(callSite, element, line, bci, v);
     }
@@ -346,7 +350,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Value instanceOf(final Value input, final ObjectType expectedType, final int expectedDimensions) {
-        return new InstanceOf(callSite, element, line, bci, input, expectedType, expectedDimensions, typeSystem.getBooleanType());
+        return asDependency(new InstanceOf(callSite, element, line, bci, requireDependency(), input, expectedType, expectedDimensions, typeSystem.getBooleanType()));
     }
 
     public Value instanceOf(final Value input, final TypeDescriptor desc) {
@@ -509,8 +513,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new InsertMember(callSite, element, line, bci, compound, value, member);
     }
 
-    public PhiValue phi(final ValueType type, final BlockLabel owner) {
-        return new PhiValue(callSite, element, line, bci, type, owner);
+    public PhiValue phi(final ValueType type, final BlockLabel owner, PhiValue.Flag... flags) {
+        boolean nullable = (flags.length == 0 || flags[0] != PhiValue.Flag.NOT_NULL);
+        return new PhiValue(callSite, element, line, bci, type, owner, nullable);
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {
@@ -527,7 +532,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         ValueType idType = typeIdType.getUpperBound();
         if (idType instanceof ReferenceType) {
             CompilationContext ctxt = classContext.getCompilationContext();
-            ctxt.warning(getLocation(), "TODO: class type ID argument is given as a reference type which is not allowed");
+//            ctxt.warning(getLocation(), "TODO: class type ID argument is given as a reference type which is not allowed");
             // decode the expected type
             PhysicalObjectType upperBound = ((ReferenceType) idType).getUpperBound();
             LiteralFactory lf = classContext.getLiteralFactory();
@@ -676,7 +681,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         Value thr = getFirstBuilder().currentThread();
         FieldElement exceptionField = ctxt.getExceptionField();
         ValueHandle handle = instanceFieldOf(referenceHandle(thr), exceptionField);
-        Value exceptionValue = load(handle, MemoryAtomicityMode.NONE);
+        Value exceptionValue = notNull(load(handle, MemoryAtomicityMode.NONE));
         BasicBlock sourceBlock = goto_(exceptionHandler.getHandler());
         exceptionHandler.enterHandler(sourceBlock, exceptionValue);
     }
@@ -686,7 +691,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         if (exceptionPhi == null) {
             // first time called
             ClassObjectType typeId = getCurrentElement().getEnclosingType().getContext().findDefinedType("java/lang/Throwable").load().getClassType();
-            exceptionPhi = this.exceptionPhi = phi(typeId.getReference(), new BlockLabel());
+            exceptionPhi = this.exceptionPhi = phi(typeId.getReference(), new BlockLabel(), PhiValue.Flag.NOT_NULL);
         }
         return exceptionPhi.getPinnedBlockLabel();
     }

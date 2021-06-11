@@ -1,5 +1,6 @@
 package org.qbicc.graph.literal;
 
+import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueVisitor;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
@@ -44,6 +45,16 @@ public final class NullLiteral extends WordLiteral {
 
     public <T, R> R accept(final ValueVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
+    }
+
+    @Override
+    public boolean isDefNe(Value other) {
+        return ! other.isNullable();
+    }
+
+    @Override
+    public boolean isDefEq(Value other) {
+        return other instanceof NullLiteral;
     }
 
     public int hashCode() {

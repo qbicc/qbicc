@@ -1,12 +1,15 @@
 package org.qbicc.object;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.definition.DefinedTypeDefinition;
-import io.smallrye.common.constraint.Assert;
 
 /**
  *
@@ -36,6 +39,8 @@ public final class ProgramModule {
     }
 
     public Iterable<Section> sections() {
-        return sections.values();
+        Section[] array = this.sections.values().toArray(Section[]::new);
+        Arrays.sort(array, Comparator.comparing(ProgramObject::getName));
+        return List.of(array);
     }
 }

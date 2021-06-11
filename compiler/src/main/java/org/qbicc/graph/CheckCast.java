@@ -97,7 +97,7 @@ public final class CheckCast extends AbstractValue implements CastValue, Ordered
     }
 
     int calcHashCode() {
-        return Objects.hash(CheckCast.class, input, toType, toDimensions, kind, type);
+        return Objects.hash(CheckCast.class, dependency, input, toType, toDimensions, kind, type);
     }
 
     public boolean equals(final Object other) {

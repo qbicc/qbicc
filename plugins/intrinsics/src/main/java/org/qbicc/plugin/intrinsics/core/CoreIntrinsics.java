@@ -225,7 +225,7 @@ public final class CoreIntrinsics {
         // Null and no-operation intrinsics
 
         StaticIntrinsic returnNull = (builder, target, arguments) ->
-            classContext.getLiteralFactory().zeroInitializerLiteralOfType(jls.getClassType().getReference().asNullable());
+            classContext.getLiteralFactory().zeroInitializerLiteralOfType(jls.getClassType().getReference());
         intrinsics.registerIntrinsic(systemDesc, "getSecurityManager",
             MethodDescriptor.synthesize(classContext,
                 ClassTypeDescriptor.synthesize(classContext,"java/lang/SecurityManager"), List.of()),
@@ -724,6 +724,12 @@ public final class CoreIntrinsics {
             ctxt.getLiteralFactory().constantLiteralOfType(ctxt.getTypeSystem().getPoisonType());
 
         intrinsics.registerIntrinsic(cNativeDesc, "constant", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), constant);
+
+        StaticIntrinsic bitCast = (builder, target, arguments) ->
+            builder.bitCast(arguments.get(0), (WordType) target.getType().getReturnType());
+
+        intrinsics.registerIntrinsic(cNativeDesc, "ptrToRef", MethodDescriptor.synthesize(classContext, objDesc, List.of(ptrDesc)), bitCast);
+        intrinsics.registerIntrinsic(cNativeDesc, "refToPtr", MethodDescriptor.synthesize(classContext, ptrDesc, List.of(objDesc)), bitCast);
     }
 
     static void registerOrgQbiccObjectModelIntrinsics(final CompilationContext ctxt) {

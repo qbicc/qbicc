@@ -143,9 +143,8 @@ public class HeapSerializer implements Consumer<CompilationContext> {
         bb.begin(merge);
         NoGc noGc = NoGc.get(ctxt);
         LoadedTypeDefinition jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
-        Value ptrValue =  bb.call(bb.staticMethod(noGc.getAllocateMethod()), List.of(sizeInBytes, ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getPointerAlignment())));
-        ptrValue = bb.call(bb.staticMethod(noGc.getZeroMethod()), List.of(ptrValue, sizeInBytes));
-        Value oop = bb.valueConvert(ptrValue, jlo.getType().getReference());
+        Value oop =  bb.call(bb.staticMethod(noGc.getAllocateMethod()), List.of(sizeInBytes, ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getPointerAlignment())));
+        bb.call(bb.staticMethod(noGc.getZeroMethod()), List.of(oop, sizeInBytes));
         bb.store(bb.instanceFieldOf(bb.referenceHandle(oop), layout.getObjectTypeIdField()), original.getParameterValue(0), MemoryAtomicityMode.UNORDERED);
         bb.return_(oop);
         bb.finish();

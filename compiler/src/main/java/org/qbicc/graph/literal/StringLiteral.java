@@ -53,6 +53,11 @@ public final class StringLiteral extends WordLiteral {
         return this == other || other != null && type.equals(other.type) && value.equals(other.value);
     }
 
+    @Override
+    public boolean isNullable() {
+        return false;
+    }
+
     public int hashCode() {
         return value.hashCode();
     }

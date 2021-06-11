@@ -11,6 +11,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.graph.Action;
 import org.qbicc.graph.Add;
 import org.qbicc.graph.AddressOf;
@@ -80,6 +81,7 @@ import org.qbicc.graph.NoSuchMethodErrorNode;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NonCommutativeBinaryValue;
+import org.qbicc.graph.NotNull;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
@@ -931,6 +933,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "instanceof " + node.getCheckType().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY, "value");
         return name;
     }
@@ -1059,6 +1063,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         processDependency(param, node.getDependency());
         addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
         return name;
+    }
+
+    public String visit(final Appendable param, final NotNull node) {
+        return node(param, "not-null", node);
     }
 
     public String visit(final Appendable param, final NullLiteral node) {

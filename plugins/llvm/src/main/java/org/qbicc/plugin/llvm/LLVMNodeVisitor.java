@@ -56,6 +56,7 @@ import org.qbicc.graph.CheckCast;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
+import org.qbicc.graph.NotNull;
 import org.qbicc.graph.Or;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
@@ -549,6 +550,10 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         return builder.fneg(inputType, llvmInput).asLocal();
     }
 
+    public LLValue visit(Void param, NotNull node) {
+        return map(node.getInput());
+    }
+
     public LLValue visit(final Void param, final Shr node) {
         LLValue inputType = map(node.getType());
         LLValue llvmLeft = map(node.getLeftInput());
@@ -771,6 +776,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     public LLValue visit(final Void param, final CheckCast node) {
+        map(node.getDependency());
         return map(node.getInput());
     }
 
@@ -840,7 +846,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail().attribute(FunctionAttributes.noreturn);
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
-        return builder.unreachable();
+        builder.unreachable();
+        return call;
     }
 
     @Override

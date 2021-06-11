@@ -16,7 +16,6 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.schedule.Schedule;
-import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
@@ -1205,7 +1204,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             int j = 0;
             if (nonStatic) {
                 // instance method or constructor
-                thisValue = gf.parameter(enclosing.load().getType().getReference().asNullable(), "this", 0);
+                thisValue = gf.parameter(enclosing.load().getType().getReference(), "this", 0);
                 currentVarTypes[j] = thisValue.getType();
                 methodParser.setLocal1(j++, thisValue);
             } else {
@@ -1401,22 +1400,18 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             return ts.getSignedInteger64Type();
         } else if (viTag == 5) { // null
             // todo: bottom object type?
-            return ctxt.findDefinedType("java/lang/Object").load().getClassType().getReference().asNullable();
+            return ctxt.findDefinedType("java/lang/Object").load().getClassType().getReference();
         } else if (viTag == 6) { // uninitialized this
-            return element.getEnclosingType().load().getType().getReference().asNullable();
+            return element.getEnclosingType().load().getType().getReference();
         } else if (viTag == 7) { // object
             int cpIdx = sm.getShort() & 0xffff;
-            return nullable(getTypeConstant(cpIdx, TypeParameterContext.of(element)));
+            return getTypeConstant(cpIdx, TypeParameterContext.of(element));
         } else if (viTag == 8) { // uninitialized object
             int newIdx = sm.getShort() & 0xffff;
             int cpIdx = byteCode.getShort(newIdx + 1) & 0xffff;
-            return nullable(getTypeConstant(cpIdx, TypeParameterContext.of(element)));
+            return getTypeConstant(cpIdx, TypeParameterContext.of(element));
         } else {
             throw new IllegalStateException("Invalid variable info tag " + viTag);
         }
-    }
-
-    ValueType nullable(ValueType v) {
-        return v instanceof ReferenceType ? ((ReferenceType) v).asNullable() : v;
     }
 }

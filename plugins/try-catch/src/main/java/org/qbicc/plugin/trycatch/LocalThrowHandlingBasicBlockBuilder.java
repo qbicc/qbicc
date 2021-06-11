@@ -35,18 +35,19 @@ public class LocalThrowHandlingBasicBlockBuilder extends DelegatingBasicBlockBui
         LiteralFactory lf = ctxt.getLiteralFactory();
         // null check
         BlockLabel npe = new BlockLabel();
-        BasicBlock from = if_(isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), npe, exceptionHandler.getHandler());
+        BasicBlockBuilder fb = getFirstBuilder();
+        BasicBlock from = fb.if_(fb.isEq(value, lf.zeroInitializerLiteralOfType(value.getType())), npe, exceptionHandler.getHandler());
         // dispatch to the exception handler
-        exceptionHandler.enterHandler(from, value);
+        exceptionHandler.enterHandler(from, fb.notNull(value));
         // throw an NPE to the handler instead
-        begin(npe);
+        fb.begin(npe);
         ClassContext classContext = ctxt.getBootstrapClassContext();
         LoadedTypeDefinition npeType = classContext.findDefinedType("java/lang/NullPointerException").load();
-        Value ex = new_(npeType.getClassType());
+        Value ex = fb.new_(npeType.getClassType());
         // pre-resolver
-        ValueHandle ctor = constructorOf(ex, npeType.getDescriptor(), MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of()));
-        call(ctor, List.of());
-        BasicBlock from2 = goto_(exceptionHandler.getHandler());
+        ValueHandle ctor = fb.constructorOf(ex, npeType.getDescriptor(), MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of()));
+        fb.call(ctor, List.of());
+        BasicBlock from2 = fb.goto_(exceptionHandler.getHandler());
         exceptionHandler.enterHandler(from2, ex);
         return from;
     }

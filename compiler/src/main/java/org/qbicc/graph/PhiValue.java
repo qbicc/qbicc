@@ -14,11 +14,13 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class PhiValue extends AbstractValue implements PinnedNode {
     private final ValueType type;
     private final BlockLabel blockLabel;
+    private final boolean nullable;
 
-    PhiValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueType type, final BlockLabel blockLabel) {
+    PhiValue(final Node callSite, final ExecutableElement element, final int line, final int bci, final ValueType type, final BlockLabel blockLabel, boolean nullable) {
         super(callSite, element, line, bci);
         this.type = type;
         this.blockLabel = blockLabel;
+        this.nullable = nullable;
     }
 
     public Value getValueForInput(final Terminator input) {
@@ -36,6 +38,9 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
                 ctxt.warning(element, this, "Invalid input value for phi: expected %s, got %s", expected, actual);
             }
         }
+        if (! nullable && value.isNullable()) {
+            ctxt.error(element, this, "Cannot set nullable value %s for phi", value);
+        }
         if (! ((AbstractTerminator) input).registerValue(this, value)) {
             ctxt.error(element, this, "Phi already has a value for block %s", input.getTerminatedBlock());
             return;
@@ -50,6 +55,11 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         setValueForBlock(ctxt, element, BlockLabel.getTargetOf(input), value);
     }
 
+    @Override
+    public boolean isNullable() {
+        return nullable;
+    }
+
     /**
      * Get all of the possible non-phi values for this phi.
      *
@@ -59,6 +69,15 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
         LinkedHashSet<Value> possibleValues = new LinkedHashSet<>();
         getPossibleValues(possibleValues, new HashSet<>());
         return possibleValues;
+    }
+
+    public boolean possibleValuesAreNullable() {
+        for (Value value : getPossibleValues()) {
+            if (value.isNullable()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void getPossibleValues(Set<Value> current, Set<PhiValue> visited) {
@@ -98,5 +117,10 @@ public final class PhiValue extends AbstractValue implements PinnedNode {
     public boolean equals(final Object other) {
         // every phi is globally unique
         return this == other;
+    }
+
+    public enum Flag {
+        NOT_NULL,
+        ;
     }
 }

@@ -67,13 +67,11 @@ public final class BasicBlock {
     }
 
     public boolean setReachableFrom(BasicBlock from) {
-        if (from != null) {
+        if (from != null && ! incoming.contains(from)) {
             if (incoming.isEmpty()) {
                 incoming = Set.of(from);
             } else if (incoming.size() == 1) {
-                if (! incoming.contains(from)) {
-                    incoming = Set.of(from, incoming.iterator().next());
-                }
+                incoming = Set.of(from, incoming.iterator().next());
             } else if (incoming.size() == 2) {
                 Set<BasicBlock> old = this.incoming;
                 incoming = new LinkedHashSet<>();

@@ -263,8 +263,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().insertMember(compound, member, value);
     }
 
-    public PhiValue phi(final ValueType type, final BlockLabel owner) {
-        return getDelegate().phi(type, owner);
+    public PhiValue phi(final ValueType type, final BlockLabel owner, PhiValue.Flag... flags) {
+        return getDelegate().phi(type, owner, flags);
     }
 
     public Value select(final Value condition, final Value trueValue, final Value falseValue) {
@@ -513,6 +513,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
 
     public Value cmpL(Value v1, Value v2) {
         return getDelegate().cmpL(v1, v2);
+    }
+
+    public Value notNull(final Value v) {
+        return getDelegate().notNull(v);
     }
 
     public Value negate(final Value v) {

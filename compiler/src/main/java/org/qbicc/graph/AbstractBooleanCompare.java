@@ -6,7 +6,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 /**
  *
  */
-public abstract class AbstractBooleanCompare extends AbstractBinaryValue {
+public abstract class AbstractBooleanCompare extends AbstractBinaryValue implements BooleanValue {
     private final BooleanType booleanType;
 
     AbstractBooleanCompare(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value left, final Value right, final BooleanType booleanType) {
@@ -14,7 +14,18 @@ public abstract class AbstractBooleanCompare extends AbstractBinaryValue {
         this.booleanType = booleanType;
     }
 
+    @Override
     public BooleanType getType() {
         return booleanType;
+    }
+
+    @Override
+    public Value getValueIfTrue(Value input) {
+        return input;
+    }
+
+    @Override
+    public Value getValueIfFalse(Value input) {
+        return input;
     }
 }
