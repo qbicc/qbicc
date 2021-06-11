@@ -73,6 +73,16 @@ public final class MethodElement extends InvokableElement implements NamedElemen
         return new Builder();
     }
 
+    public boolean overrides(final MethodElement other) {
+        // todo: account for access control cases
+        return ! isStatic()
+            && ! other.isStatic()
+            && ! other.isFinal()
+            && getDescriptor().equals(other.getDescriptor())
+            && getName().equals(other.getName())
+            && getEnclosingType().load().getType().isSubtypeOf(other.getEnclosingType().load().getType());
+    }
+
     public static final class Builder extends InvokableElement.Builder implements NamedElement.Builder {
         String name;
 

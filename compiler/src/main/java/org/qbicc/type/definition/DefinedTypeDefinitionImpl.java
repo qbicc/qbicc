@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 
@@ -433,8 +434,8 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
 
     private int findInterfaceImplementations(LoadedTypeDefinition[] interfaces, HashMap<String, HashSet<MethodDescriptor>> visited, HashMap<String, HashMap<MethodDescriptor, List<MethodElement>>> toAdd, int depth) {
         int processed = 0;
-        for (int i = 0; i < interfaces.length; i ++) {
-            processed += findInterfaceImplementations(interfaces[i], visited, toAdd, depth);
+        for (LoadedTypeDefinition interface_ : interfaces) {
+            processed += findInterfaceImplementations(interface_, visited, toAdd, depth);
         }
         return processed;
     }
@@ -444,7 +445,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             return findInterfaceImplementations(currentInterface.getInterfaces(), visited, toAdd, depth - 1);
         } else {
             int cnt = currentInterface.getMethodCount();
-            for (int i = 0; i < cnt; i ++) {
+            search: for (int i = 0; i < cnt; i ++) {
                 MethodElement method = currentInterface.getMethod(i);
                 if (addMethodToVisitedSet(method, visited)) {
                     // we didn't have this one before
@@ -455,8 +456,20 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                     if (map1 != null) {
                         List<MethodElement> list = map1.get(method.getDescriptor());
                         if (list != null) {
+                            // first make sure that this method element does not override any of the already-known method elements
+                            ListIterator<MethodElement> iter = list.listIterator();
+                            while (iter.hasNext()) {
+                                MethodElement current = iter.next();
+                                if (method.overrides(current)) {
+                                    // remove old candidate
+                                    iter.remove();
+                                } else if (current.overrides(method)) {
+                                    // no action needed since a better choice already exists
+                                    continue search;
+                                }
+                            }
                             // we have another impl option for this
-                            list.add(method);
+                            iter.add(method);
                         }
                     }
                 }
