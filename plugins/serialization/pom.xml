@@ -19,10 +19,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-runtime-deserialization</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-layout</artifactId>
         </dependency>
         <dependency>

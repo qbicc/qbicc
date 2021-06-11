@@ -28,6 +28,7 @@ public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<N
 
     public Value visit(final Node.Copier param, final StringLiteral node) {
         BuildtimeHeap heap = BuildtimeHeap.get(ctxt);
+        int offset = heap.serializeStringLiteral(node.getValue());
         return getDelegateValueVisitor().visit(param, node);
     }
 }

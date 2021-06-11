@@ -2,7 +2,6 @@ package org.qbicc.runtime.main;
 
 import org.qbicc.runtime.CNative;
 import org.qbicc.runtime.NoSideEffects;
-import org.qbicc.runtime.deserialization.HeapDeserializationError;
 import org.qbicc.runtime.stdc.Stddef;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -176,11 +175,6 @@ public final class VMHelpers {
     // TODO: mark this with a "NoInline" annotation
     static void raiseClassCastException() {
         throw new ClassCastException();
-    }
-
-    // TODO: mark this with a "NoInline" annotation
-    static void raiseHeapDeserializationError() {
-        throw new HeapDeserializationError();
     }
 
     // TODO: mark this with a "NoInline" annotation

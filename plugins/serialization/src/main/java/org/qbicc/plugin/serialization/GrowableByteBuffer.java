@@ -1,6 +1,7 @@
 package org.qbicc.plugin.serialization;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.type.CompoundType;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -14,78 +15,83 @@ class GrowableByteBuffer {
     private static final int CHUNK_SIZE = 16; // 128 * 1024;  TODO: Set very small to test growing logic...don't leave it like this for long!
 
     private final ByteOrder endianness;
+    private final int pointerSize;
     private byte[] buffer;
     private ByteBuffer out;
+    private int allocPtr;
 
-    GrowableByteBuffer(ByteOrder endianness) {
+    GrowableByteBuffer(ByteOrder endianness, int pointerSize) {
         this.endianness = endianness;
+        this.pointerSize = pointerSize;
         buffer = new byte[CHUNK_SIZE];
         out = ByteBuffer.wrap(buffer).order(endianness);
+        allocPtr = 0;
     }
 
-    private void ensureCapacity(int desired) {
-        if (out.position() + desired >= out.limit()) {
-            int increment = desired < CHUNK_SIZE / 2 ? CHUNK_SIZE : desired * 2;
-            buffer = Arrays.copyOf(buffer, buffer.length + increment);
-            out = ByteBuffer.wrap(buffer).position(out.position()).order(endianness);
+    /**
+     * Return an offset into the ByteBuffer that has been "allocated"
+     * with the proper alignment and size to accommodate an instance
+     * of the argument CompoundType.
+     */
+    int allocate(CompoundType ct, int trailingBytes) {
+        int cur = allocPtr;
+        int aligned = (cur + ct.getAlign()-1) & ~(ct.getAlign()-1);
+        allocPtr = aligned + (int)ct.getSize() + trailingBytes;
+        if (allocPtr >= buffer.length) {
+            int newSize = buffer.length + CHUNK_SIZE;
+            while (newSize < allocPtr) {
+                newSize += CHUNK_SIZE;
+            }
+            buffer = Arrays.copyOf(buffer, newSize);
+            out = ByteBuffer.wrap(buffer).order(endianness);
         }
+        return aligned;
     }
 
-    void align(int alignment) {
-        int cur = out.position();
-        int aligned = (cur + alignment-1) & alignment;
-        if (aligned != cur) {
-            ensureCapacity(alignment);
-            out.position(aligned);
-        }
-    }
+
+
 
     byte[] getBytes() {
-        return Arrays.copyOf(buffer, out.position());
+        return Arrays.copyOf(buffer, allocPtr);
     }
 
-    void putBoolean(boolean v) {
-        ensureCapacity(1);
-        out.put(v ? (byte)1 : (byte)0);
+    void putBoolean(int pos, boolean v) {
+        out.put(pos, v ? (byte)1 : (byte)0);
     }
 
-    void putByte(byte v) {
-        ensureCapacity(1);
-        out.put(v);
+    void putByte(int pos, byte v) {
+        out.put(pos, v);
     }
 
-    void putShort(short v) {
-        ensureCapacity(2);
-        out.putShort(v);
+    void putShort(int pos, short v) {
+        out.putShort(pos, v);
     }
 
-    void putChar(char v) {
-        ensureCapacity(2);
-        out.putChar(v);
+    void putChar(int pos, char v) {
+        out.putChar(pos, v);
     }
 
-    void putInt(int v) {
-        ensureCapacity(4);
-        out.putInt(v);
+    void putInt(int pos, int v) {
+        out.putInt(pos, v);
     }
 
-    void putFloat(float v) {
-        ensureCapacity(4);
-        out.putFloat(v);
+    void putFloat(int pos, float v) {
+        out.putFloat(pos, v);
     }
 
-    void putLong(long v) {
-        ensureCapacity(8);
-        out.putLong(v);
+    void putLong(int pos, long v) {
+        out.putLong(pos, v);
     }
 
-    void putDouble(double v) {
-        ensureCapacity(8);
-        out.putDouble(v);
+    void putDouble(int pos, double v) {
+        out.putDouble(pos, v);
     }
 
-    void put(byte[] bytes) {
-        ensureCapacity(bytes.length);
-        out.put(bytes);
+    void putPointer(int pos, int ptr) {
+        if (pointerSize == 4) {
+            this.putInt(pos, ptr);
+        } else {
+            this.putLong(pos, ptr);
+        }
     }
 }

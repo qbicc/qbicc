@@ -27,7 +27,6 @@
         <module>unwind</module>
 
         <!-- Plugin implementation modules -->
-        <module>deserialization</module>
         <module>gc</module>
     </modules>
 
