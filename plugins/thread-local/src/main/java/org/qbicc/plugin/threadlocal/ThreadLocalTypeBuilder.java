@@ -55,7 +55,7 @@ public class ThreadLocalTypeBuilder implements DefinedTypeDefinition.Builder.Del
                             // remove unwanted modifiers
                             modifiers &= ~(ClassFile.I_ACC_THREAD_LOCAL | ClassFile.ACC_STATIC);
                             // add these modifiers
-                            modifiers |= ClassFile.I_ACC_HIDDEN;
+                            modifiers |= ClassFile.I_ACC_NO_RESOLVE | ClassFile.I_ACC_NO_REFLECT;
                             injectedFieldBuilder.setModifiers(modifiers);
                             injectedFieldBuilder.setName(resolved.getName());
                             injectedFieldBuilder.setSourceFileName(resolved.getSourceFileName());

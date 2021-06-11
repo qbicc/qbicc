@@ -4,10 +4,22 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 import java.util.Objects;
 
 import org.qbicc.context.ClassContext;
+import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.ParameterValue;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.schedule.Schedule;
+import org.qbicc.type.FunctionType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.classfile.BootstrapMethod;
@@ -17,9 +29,13 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
+import org.qbicc.type.definition.element.ParameterElement;
+import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.descriptor.MethodDescriptor;
 import org.qbicc.type.generic.ClassSignature;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.generic.MethodSignature;
 
 /**
  *
@@ -192,9 +208,135 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             fields.add(fieldResolvers[i].resolveField(fieldIndexes[i], this));
         }
         cnt = getMethodCount();
-        MethodElement[] methods = cnt == 0 ? MethodElement.NO_METHODS : new MethodElement[cnt];
-        for (int i = 0; i < cnt; i ++) {
-            methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i], this);
+        MethodElement[] methods;
+        if (isInterface()) {
+            methods = cnt == 0 ? MethodElement.NO_METHODS : new MethodElement[cnt];
+            for (int i = 0; i < cnt; i ++) {
+                methods[i] = methodResolvers[i].resolveMethod(methodIndexes[i], this);
+            }
+        } else {
+            List<MethodElement> methodsList = new ArrayList<>(cnt + (cnt >> 1)); // 1.5x size
+            for (int i = 0; i < cnt; i ++) {
+                methodsList.add(methodResolvers[i].resolveMethod(methodIndexes[i], this));
+            }
+            // now add methods for any maximally-specific interface methods that are not implemented by this class
+            // - but, if the method is default, let's copy it in, body and all
+            HashMap<String, HashSet<MethodDescriptor>> visited = new HashMap<>();
+            // populate the set of methods that we already have implementations for
+            for (MethodElement method : methodsList) {
+                addMethodToVisitedSet(method, visited);
+            }
+            addMethodsToVisitedSet(superType, visited);
+            // now the visited set contains all methods we do not need to implement
+            // next we find the set of methods that we're missing
+            for (int depth = 0;; depth ++) {
+                // at each depth stage, create a new to-add set
+                HashMap<String, HashMap<MethodDescriptor, List<MethodElement>>> toAdd = new HashMap<>();
+                if (findInterfaceImplementations(interfaces, visited, toAdd, depth) == 0) {
+                    break;
+                }
+                // we may have found methods to add
+                for (Map.Entry<String, HashMap<MethodDescriptor, List<MethodElement>>> entry : toAdd.entrySet()) {
+                    String name = entry.getKey();
+                    HashMap<MethodDescriptor, List<MethodElement>> subMap = entry.getValue();
+                    nextMethod: for (Map.Entry<MethodDescriptor, List<MethodElement>> entry2 : subMap.entrySet()) {
+                        MethodDescriptor descriptor = entry2.getKey();
+                        List<MethodElement> elementList = entry2.getValue();
+                        MethodElement defaultMethod = null;
+                        MethodElement oneOfTheMethods = null;
+                        for (MethodElement element : elementList) {
+                            if (oneOfTheMethods == null) {
+                                oneOfTheMethods = element;
+                            }
+                            if (! element.isAbstract()) {
+                                // found a default method
+                                if (defaultMethod == null) {
+                                    defaultMethod = element;
+                                } else {
+                                    // conflict method! Synthesize a method that throws ICCE
+                                    MethodElement.Builder builder = MethodElement.builder();
+                                    builder.setName(name);
+                                    builder.setDescriptor(descriptor);
+                                    builder.setEnclosingType(this);
+                                    // inheritable interface methods are public
+                                    builder.setModifiers(ClassFile.ACC_PUBLIC);
+                                    builder.setInvisibleAnnotations(List.of());
+                                    builder.setVisibleAnnotations(List.of());
+                                    builder.setSignature(MethodSignature.synthesize(context, descriptor));
+                                    // synthesize parameter objects
+                                    builder.setParameters(copyParametersFrom(element));
+                                    builder.setMethodBodyFactory((index, e) -> {
+                                        LoadedTypeDefinition ltd = e.getEnclosingType().load();
+                                        BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
+                                        ReferenceType thisType = ltd.getType().getReference();
+                                        ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
+                                        FunctionType type = e.getType();
+                                        int pcnt = type.getParameterCount();
+                                        List<ParameterValue> paramValues = new ArrayList<>(pcnt);
+                                        for (int i = 0; i < pcnt; i ++) {
+                                            paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
+                                        }
+                                        // build the entry block
+                                        BlockLabel entryLabel = new BlockLabel();
+                                        bbb.begin(entryLabel);
+                                        ClassContext bc = context.getCompilationContext().getBootstrapClassContext();
+                                        LoadedTypeDefinition vmHelpers = bc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
+                                        MethodElement icce = vmHelpers.resolveMethodElementExact("raiseIncompatibleClassChangeError", MethodDescriptor.synthesize(bc, BaseTypeDescriptor.V, List.of()));
+                                        BasicBlock entryBlock = bbb.callNoReturn(bbb.staticMethod(icce), List.of());
+                                        Schedule schedule = Schedule.forMethod(entryBlock);
+                                        return MethodBody.of(entryBlock, schedule, thisValue, paramValues);
+                                    }, 0);
+                                    methodsList.add(builder.build());
+                                    continue nextMethod;
+                                }
+                            }
+                        }
+                        assert oneOfTheMethods != null;
+                        // non-conflict method
+                        MethodElement.Builder builder = MethodElement.builder();
+                        builder.setName(name);
+                        builder.setDescriptor(descriptor);
+                        builder.setEnclosingType(this);
+                        builder.setInvisibleAnnotations(List.of());
+                        builder.setVisibleAnnotations(List.of());
+                        builder.setSignature(MethodSignature.synthesize(context, descriptor));
+                        builder.setParameters(copyParametersFrom(oneOfTheMethods));
+                        if (defaultMethod == null) {
+                            // add an abstract method
+                            // inheritable interface methods are public
+                            builder.setModifiers(ClassFile.ACC_PUBLIC | ClassFile.ACC_ABSTRACT);
+                        } else {
+                            // add the default method
+                            // inheritable interface methods are public
+                            builder.setModifiers(ClassFile.ACC_PUBLIC | ClassFile.I_ACC_HIDDEN);
+                            // synthesize a tail-calling exact delegation to the default method
+                            MethodElement finalDefaultMethod = defaultMethod;
+                            builder.setMethodBodyFactory((index, e) -> {
+                                LoadedTypeDefinition ltd = e.getEnclosingType().load();
+                                BasicBlockBuilder bbb = context.newBasicBlockBuilder(e);
+                                ReferenceType thisType = ltd.getType().getReference();
+                                ParameterValue thisValue = bbb.parameter(thisType, "this", 0);
+                                FunctionType type = e.getType();
+                                int pcnt = type.getParameterCount();
+                                List<ParameterValue> paramValues = new ArrayList<>(pcnt);
+                                for (int i = 0; i < pcnt; i ++) {
+                                    paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
+                                }
+                                // build the entry block
+                                BlockLabel entryLabel = new BlockLabel();
+                                bbb.begin(entryLabel);
+                                // just cast the list because it's fine; todo: maybe this method should accept List<? extends Value>
+                                //noinspection unchecked,rawtypes
+                                BasicBlock entryBlock = bbb.tailCall(bbb.exactMethodOf(thisValue, finalDefaultMethod), (List<Value>) (List) paramValues);
+                                Schedule schedule = Schedule.forMethod(entryBlock);
+                                return MethodBody.of(entryBlock, schedule, thisValue, paramValues);
+                            }, 0);
+                        }
+                        methodsList.add(builder.build());
+                    }
+                }
+            }
+            methods = methodsList.toArray(MethodElement[]::new);
         }
         cnt = getConstructorCount();
         ConstructorElement[] ctors = cnt == 0 ? ConstructorElement.NO_CONSTRUCTORS : new ConstructorElement[cnt];
@@ -252,6 +394,100 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
             this.loaded = validated;
             return validated.load();
         }
+    }
+
+    private List<ParameterElement> copyParametersFrom(final MethodElement element) {
+        List<ParameterElement> parameters = new ArrayList<>(element.getParameters().size());
+        for (ParameterElement original : element.getParameters()) {
+            ParameterElement.Builder paramBuilder = ParameterElement.builder(original);
+            paramBuilder.setEnclosingType(this);
+            paramBuilder.setSourceFileName(null);
+            parameters.add(paramBuilder.build());
+        }
+        return parameters;
+    }
+
+    private void addMethodsToVisitedSet(final LoadedTypeDefinition ltd, final HashMap<String, HashSet<MethodDescriptor>> visited) {
+        if (ltd == null) {
+            return;
+        }
+        int cnt = ltd.getMethodCount();
+        for (int i = 0; i < cnt; i ++) {
+            addMethodToVisitedSet(ltd.getMethod(i), visited);
+        }
+        addMethodsToVisitedSet(ltd.getSuperClass(), visited);
+    }
+
+    /**
+     * Add one method to the visited set.
+     * @param method the method to add
+     * @param visited the visited set
+     * @return {@code true} if the method is not static or private and was not previously in the set, or {@code false} if no new method was added
+     */
+    private boolean addMethodToVisitedSet(final MethodElement method, final HashMap<String, HashSet<MethodDescriptor>> visited) {
+        if (method.isStatic() || method.isPrivate()) {
+            return false;
+        } else {
+            return visited.computeIfAbsent(method.getName(), DefinedTypeDefinitionImpl::newSet).add(method.getDescriptor());
+        }
+    }
+
+    private int findInterfaceImplementations(LoadedTypeDefinition[] interfaces, HashMap<String, HashSet<MethodDescriptor>> visited, HashMap<String, HashMap<MethodDescriptor, List<MethodElement>>> toAdd, int depth) {
+        int processed = 0;
+        for (LoadedTypeDefinition interface_ : interfaces) {
+            processed += findInterfaceImplementations(interface_, visited, toAdd, depth);
+        }
+        return processed;
+    }
+
+    private int findInterfaceImplementations(LoadedTypeDefinition currentInterface, HashMap<String, HashSet<MethodDescriptor>> visited, HashMap<String, HashMap<MethodDescriptor, List<MethodElement>>> toAdd, int depth) {
+        if (depth > 0) {
+            return findInterfaceImplementations(currentInterface.getInterfaces(), visited, toAdd, depth - 1);
+        } else {
+            int cnt = currentInterface.getMethodCount();
+            search: for (int i = 0; i < cnt; i ++) {
+                MethodElement method = currentInterface.getMethod(i);
+                if (addMethodToVisitedSet(method, visited)) {
+                    // we didn't have this one before
+                    toAdd.computeIfAbsent(method.getName(), DefinedTypeDefinitionImpl::newMap).computeIfAbsent(method.getDescriptor(), DefinedTypeDefinitionImpl::newList).add(method);
+                } else {
+                    // check to see whether we need to add this one to our level
+                    HashMap<MethodDescriptor, List<MethodElement>> map1 = toAdd.get(method.getName());
+                    if (map1 != null) {
+                        List<MethodElement> list = map1.get(method.getDescriptor());
+                        if (list != null) {
+                            // first make sure that this method element does not override any of the already-known method elements
+                            ListIterator<MethodElement> iter = list.listIterator();
+                            while (iter.hasNext()) {
+                                MethodElement current = iter.next();
+                                if (method.overrides(current)) {
+                                    // remove old candidate
+                                    iter.remove();
+                                } else if (current.overrides(method)) {
+                                    // no action needed since a better choice already exists
+                                    continue search;
+                                }
+                            }
+                            // we have another impl option for this
+                            iter.add(method);
+                        }
+                    }
+                }
+            }
+            return 1;
+        }
+    }
+
+    private static <E> HashSet<E> newSet(final Object ignored) {
+        return new HashSet<>(4);
+    }
+
+    private static <K, V> HashMap<K, V> newMap(final Object ignored) {
+        return new HashMap<>(4);
+    }
+
+    private static <E> ArrayList<E> newList(final Object ignored) {
+        return new ArrayList<>(3);
     }
 
     private NestedClassElement[] resolveEnclosedClasses(final EnclosedClassResolver[] resolvers, final int[] indexes, final int inIdx, final int outIdx) {

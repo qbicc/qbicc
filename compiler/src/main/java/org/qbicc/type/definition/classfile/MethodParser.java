@@ -1342,7 +1342,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         FieldElement.Builder callSiteBuilder = FieldElement.builder();
                         callSiteBuilder.setDescriptor(callSiteDesc);
                         callSiteBuilder.setName("callSite_" + gf.getCurrentElement().getIndex() + "_" + src);
-                        callSiteBuilder.setModifiers(ACC_STATIC | ACC_FINAL | I_ACC_HIDDEN);
+                        callSiteBuilder.setModifiers(ACC_STATIC | ACC_FINAL | I_ACC_NO_RESOLVE | I_ACC_NO_REFLECT);
                         callSiteBuilder.setSignature(TypeSignature.synthesize(ctxt, callSiteDesc));
                         callSiteBuilder.setEnclosingType(enclosingType);
                         FieldElement callSiteHolder = callSiteBuilder.build();

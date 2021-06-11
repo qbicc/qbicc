@@ -56,10 +56,10 @@ public class DevirtualizingBasicBlockBuilder extends DelegatingBasicBlockBuilder
             return null;
         }
         LoadedTypeDefinition definition = classType.getDefinition().load();
-        int idx = definition.findMethodIndex(target.getName(), target.getDescriptor());
-        if (idx != -1) {
+        MethodElement virtual = definition.resolveMethodElementVirtual(target.getName(), target.getDescriptor());
+        if (virtual != null) {
             log.debugf("Deinterfacing call to %s::%s", target.getEnclosingType().getDescriptor().getClassName(), target.getName());
-            return definition.getMethod(idx);
+            return virtual;
         }
         return null;
     }

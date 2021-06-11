@@ -157,14 +157,22 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     public void injectField(final FieldElement field) {
         Assert.checkNotNullParam("field", field);
-        if ((field.getModifiers() & ClassFile.I_ACC_HIDDEN) == 0) {
-            throw new IllegalArgumentException("Injected fields must be hidden");
+        if ((field.getModifiers() & ClassFile.I_ACC_NO_RESOLVE) == 0) {
+            throw new IllegalArgumentException("Injected fields must be unresolvable");
         }
         fields.add(field);
     }
 
+    public int getMethodCount() {
+        return methods.length;
+    }
+
     public MethodElement getMethod(final int index) {
         return methods[index];
+    }
+
+    public int getConstructorCount() {
+        return ctors.length;
     }
 
     public ConstructorElement getConstructor(final int index) {

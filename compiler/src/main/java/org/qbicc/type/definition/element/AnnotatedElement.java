@@ -39,6 +39,12 @@ public abstract class AnnotatedElement extends BasicElement {
 
         Builder() {}
 
+        Builder(final AnnotatedElement original) {
+            super(original);
+            visibleAnnotations = original.visibleAnnotations;
+            invisibleAnnotations = original.invisibleAnnotations;
+        }
+
         public void setVisibleAnnotations(List<Annotation> annotations) {
             visibleAnnotations = Assert.checkNotNullParam("annotations", annotations);
         }

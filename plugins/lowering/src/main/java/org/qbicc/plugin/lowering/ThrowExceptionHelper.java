@@ -28,7 +28,7 @@ public class ThrowExceptionHelper {
         ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/unwind/Unwind$struct__Unwind_Exception");
         builder.setDescriptor(desc);
         builder.setSignature(TypeSignature.synthesize(classContext, desc));
-        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_RESOLVE | ClassFile.I_ACC_NO_REFLECT);
         DefinedTypeDefinition jltDefined = classContext.findDefinedType("java/lang/Thread");
         builder.setEnclosingType(jltDefined);
         FieldElement field = builder.build();

@@ -106,6 +106,17 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
 
         Builder() {}
 
+        Builder(final VariableElement original) {
+            super(original);
+            name = original.name;
+            typeDescriptor = original.typeDescriptor;
+            typeSignature = original.typeSignature;
+            visibleTypeAnnotations = original.visibleTypeAnnotations;
+            invisibleTypeAnnotations = original.invisibleTypeAnnotations;
+            typeParameterContext = original.typeParameterContext;
+            type = original.type;
+        }
+
         public void setName(final String name) {
             this.name = name;
         }

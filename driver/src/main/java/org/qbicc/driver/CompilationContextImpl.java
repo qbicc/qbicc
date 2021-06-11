@@ -366,7 +366,7 @@ final class CompilationContextImpl implements CompilationContext {
                     ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Throwable");
                     builder.setDescriptor(desc);
                     builder.setSignature(TypeSignature.synthesize(classContext, desc));
-                    builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_HIDDEN);
+                    builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
                     builder.setEnclosingType(jlt);
                     fieldElement = builder.build();
                     jlt.load().injectField(fieldElement);
