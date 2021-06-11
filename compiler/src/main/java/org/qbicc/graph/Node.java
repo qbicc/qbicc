@@ -790,6 +790,7 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final StackAllocation node) {
+                param.copyNode(node.getDependency());
                 return param.getBlockBuilder().stackAllocate(node.getType().getPointeeType(), param.copyValue(node.getCount()), param.copyValue(node.getAlign()));
             }
 
