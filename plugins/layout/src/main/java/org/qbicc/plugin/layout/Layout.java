@@ -413,10 +413,13 @@ public final class Layout {
         }
         LoadedTypeDefinition superClass = validated.getSuperClass();
         LayoutInfo superLayout;
+        int minAlignment;
         if (superClass != null) {
             superLayout = getInstanceLayoutInfo(superClass);
+            minAlignment = superLayout.getCompoundType().getAlign();
         } else {
             superLayout = null;
+            minAlignment = ctxt.getTypeSystem().getPointerAlignment(); // All objects have at least pointer alignment.
         }
         BitSet allocated = new BitSet();
         if (superLayout != null) {
@@ -430,13 +433,17 @@ public final class Layout {
             if (field.isStatic()) {
                 continue;
             }
-            fieldToMember.put(field, computeMember(allocated, field));
+            CompoundType.Member member = computeMember(allocated, field);
+            if (member.getAlign() > minAlignment) {
+                minAlignment = member.getAlign();
+            }
+            fieldToMember.put(field, member);
         }
         int size = allocated.length();
         CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
         Arrays.sort(membersArray);
         List<CompoundType.Member> membersList = List.of(membersArray);
-        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, 1, () -> membersList);
+        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, minAlignment, () -> membersList);
         layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
         LayoutInfo appearing = instanceLayouts.putIfAbsent(validated, layoutInfo);
         return appearing != null ? appearing : layoutInfo;
