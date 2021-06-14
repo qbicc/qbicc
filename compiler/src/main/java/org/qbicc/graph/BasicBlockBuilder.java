@@ -367,6 +367,8 @@ public interface BasicBlockBuilder extends Locatable {
 
     Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode);
 
+    Node classInitCheck(ObjectType objectType);
+
     Node fence(MemoryAtomicityMode fenceType);
 
     Node monitorEnter(Value obj);
