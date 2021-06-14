@@ -653,6 +653,9 @@ public class SupersDisplayTables {
 
     // TODO: implement this for real
     boolean isAlreadyInitialized(LoadedTypeDefinition ltd) {
+        if (ltd.internalNameEquals("org/qbicc/runtime/main/VMHelpers$ClinitState")) { 
+            return true;
+        }
         return false;
     }
 }

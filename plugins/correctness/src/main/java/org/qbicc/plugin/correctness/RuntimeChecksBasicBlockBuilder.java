@@ -32,7 +32,9 @@ import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ArrayType;
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
@@ -40,6 +42,7 @@ import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -53,10 +56,12 @@ import org.qbicc.type.definition.element.MethodElement;
  */
 public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
+    private final ExecutableElement originalElement;
 
     public RuntimeChecksBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+        this.originalElement = delegate.getCurrentElement();
     }
 
     @Override
@@ -111,6 +116,12 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
         check(target);
         return super.invokeNoReturn(target, arguments, catchLabel);
+    }
+
+    @Override
+    public Value new_(final ClassObjectType type) {
+        initCheck(type);
+        return super.new_(type);
     }
 
     @Override
@@ -235,6 +246,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (! node.getVariableElement().isStatic()) {
                     throwIncompatibleClassChangeError();
                 }
+                initCheck(node.getElement().getEnclosingType().load().getType());
                 return null;
             }
 
@@ -258,6 +270,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
             @Override
             public Value visit(Void param, ExactMethodElementHandle node) {
+                //maybe needs an initCheck?
                 return visit(node);
             }
 
@@ -299,10 +312,20 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                     throwIncompatibleClassChangeError();
                     throw Assert.unreachableCode();
                 }
+                initCheck(node.getElement().getEnclosingType().load().getType());
                 // return value unused in this case
                 return null;
             }
         }, null);
+    }
+
+    private void initCheck(ObjectType objectType) {
+        if (objectType.equals(originalElement.getEnclosingType().load().getType())) {
+            // Same type, must already be initialized.
+            return;
+        }
+        // TODO: further tuning of places init checks can be skipped
+        classInitCheck(objectType);
     }
 
     private void nullCheck(Value value) {

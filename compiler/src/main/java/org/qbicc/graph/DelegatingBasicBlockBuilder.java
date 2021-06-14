@@ -351,6 +351,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().store(handle, value, mode);
     }
 
+    public Node classInitCheck(final ObjectType objectType) {
+        return getDelegate().classInitCheck(objectType);
+    }
+
     public Node fence(final MemoryAtomicityMode fenceType) {
         return getDelegate().fence(fenceType);
     }

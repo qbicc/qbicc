@@ -32,6 +32,7 @@ import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
@@ -45,6 +46,7 @@ import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.WordType;
+import org.qbicc.type.CompoundType.Member;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -920,6 +922,35 @@ public final class CoreIntrinsics {
             return dataByte;
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_byte_of_interface_bits", typeIdIntToByteDesc, get_byte_of_interface_bits);
+
+        // public static native boolean is_initialized(CNative.type_id typdId);
+        StaticIntrinsic is_initialized = (builder, target, arguments) -> {
+            Value typeId = arguments.get(0);
+
+            GlobalVariableElement clinitStates = tables.getAndRegisterGlobalClinitStateStruct(builder.getCurrentElement());
+            CompoundType clinitStates_t = (CompoundType) clinitStates.getType();
+            ValueHandle init_state_array = builder.memberOf(builder.globalVariable(clinitStates), clinitStates_t.getMember("init_state"));
+            Value state = builder.load(builder.elementOf(init_state_array, typeId), MemoryAtomicityMode.ACQUIRE);
+
+            return builder.isEq(state, lf.literalOf(1));
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_initialized", typeIdBooleanDesc, is_initialized);
+
+        // public static native void set_initialized(CNative.type_id typdId);
+        StaticIntrinsic set_initialized = (builder, target, arguments) -> {
+            Value typeId = arguments.get(0);
+
+            GlobalVariableElement clinitStates = tables.getAndRegisterGlobalClinitStateStruct(builder.getCurrentElement());
+            CompoundType clinitStates_t = (CompoundType) clinitStates.getType();
+            Member init_state_t = clinitStates_t.getMember("init_state");
+            IntegerType init_state_element_t = (IntegerType)((ArrayType)clinitStates_t.getMember("init_state").getType()).getElementType();
+            ValueHandle init_state_array = builder.memberOf(builder.globalVariable(clinitStates), init_state_t);
+            builder.store(builder.elementOf(init_state_array, typeId), lf.literalOf(init_state_element_t, 1), MemoryAtomicityMode.RELEASE);
+
+            return lf.zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "set_initialized", typeIdVoidDesc, set_initialized);
     }
 
     static void registerOrgQbiccRuntimeValuesIntrinsics(final CompilationContext ctxt) {
