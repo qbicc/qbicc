@@ -62,6 +62,14 @@ public final class VMHelpers {
     @NoSideEffects
     private static boolean isAssignableTo(Object value, type_id toTypeId, int toDimensions) {
         type_id valueTypeId = ObjectModel.type_id_of(value);
+        // putchar('A');
+        // putchar(':');
+        // printTypeId(valueTypeId);
+        // putchar(':');
+        // printTypeId(toTypeId);
+        // putchar(':');
+        // printInt(toDimensions);
+        // putchar('\n');
         if (toDimensions == 0) {
             return isAssignableToLeaf(valueTypeId, toTypeId);
         } else if (ObjectModel.is_reference_array(valueTypeId)) {
@@ -295,22 +303,20 @@ public final class VMHelpers {
 
     // TODO: this should live on the j.l.Class object
     static ClinitState getClinitState(Thread currentThread, type_id typeid) {
-        // TODO: re-enable this code when the scheduling bug that results in 
-        // array elements always being non null is fixed
-        // int typeid_value = typeid.intValue();
-        // ClinitState arrayState = clinitStates[typeid_value];
-        // if (arrayState != null) {
-        //     return arrayState;
-        // }
+        int typeid_value = typeid.intValue();
+        ClinitState arrayState = clinitStates[typeid_value];
+        if (arrayState != null) {
+            return arrayState;
+        }
         ClinitState state = new ClinitState(currentThread);
-        // synchronized(clinitStates) {
-        //     arrayState = clinitStates[typeid_value];
-        //     if (arrayState == null) {
-        //         clinitStates[typeid_value] = state;
-        //     } else {
-        //         state = arrayState;
-        //     }
-        // }
+        synchronized(clinitStates) {
+            arrayState = clinitStates[typeid_value];
+            if (arrayState == null) {
+                clinitStates[typeid_value] = state;
+            } else {
+                state = arrayState;
+            }
+        }
         return state;
     }
 
@@ -325,6 +331,10 @@ public final class VMHelpers {
         // putchar('>');
         // putchar('\n');
         ensureClinitStatesArray();
+        if (ObjectModel.is_initialized(typeid)) {
+            // early exit - is this right for getting the correct memory effects?
+            return;
+        }
         ClinitState state = getClinitState(currentThread, typeid);
         assert state != null;
         boolean wasInterrupted = false;
@@ -422,6 +432,8 @@ public final class VMHelpers {
                 if (clinitThrowable == null) {
                     // completed successfully
                     state.setInitialized();
+                    // update the native data as well for fast checks
+                    ObjectModel.set_initialized(typeid);
                 } else {
                     state.setFailed(clinitThrowable);
                 }
@@ -474,7 +486,18 @@ public final class VMHelpers {
 
     // Temporary testing method
     public static void testClinit(Object o) throws Throwable {
+        putchar(isInitialized(o) ? 'Y' : 'N');
         initialize_class(Thread.currentThread(), ObjectModel.type_id_of(o));
+        setInitialized(o);
+        putchar(isInitialized(o) ? 'Y' : 'N');
+    }
+
+    public static boolean isInitialized(Object o) throws Throwable {
+        return ObjectModel.is_initialized(ObjectModel.type_id_of(o));
+    }
+
+    public static void setInitialized(Object o) throws Throwable {
+        ObjectModel.set_initialized(ObjectModel.type_id_of(o));
     }
 
 }
