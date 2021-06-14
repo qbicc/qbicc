@@ -1205,7 +1205,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             if (nonStatic) {
                 // instance method or constructor
                 thisValue = gf.parameter(enclosing.load().getType().getReference(), "this", 0);
-                currentVarTypes[j] = thisValue.getType();
+                currentVarTypes[j++] = thisValue.getType();
             } else {
                 thisValue = null;
             }
