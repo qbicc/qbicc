@@ -68,6 +68,11 @@ public class LowerVerificationBasicBlockBuilder extends DelegatingBasicBlockBuil
         return nop();
     }
 
+    public Node classInitCheck(final ObjectType objectType) {
+        invalidNode("classInitCheck");
+        return nop();
+    }
+
     public Value new_(final ClassObjectType type) {
         invalidNode("new");
         return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(type.getReference());
