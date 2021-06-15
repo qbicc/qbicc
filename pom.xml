@@ -233,6 +233,12 @@
 
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-plugin-core-classes</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>qbicc-plugin-correctness</artifactId>
                 <version>${project.version}</version>
             </dependency>

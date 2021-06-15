@@ -10,7 +10,7 @@
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>qbicc-plugin-layout</artifactId>
+    <artifactId>qbicc-plugin-core-classes</artifactId>
 
     <dependencies>
         <dependency>
@@ -20,11 +20,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-driver</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>qbicc-plugin-core-classes</artifactId>
         </dependency>
     </dependencies>
 
