@@ -99,7 +99,7 @@ public class StaticFieldLoweringBasicBlockBuilder extends DelegatingBasicBlockBu
     @Override
     public ValueHandle visit(Void param, StaticField node) {
         final FieldElement fieldElement = node.getVariableElement();
-        GlobalVariableElement global = LoweredStaticFields.get(ctxt).getGlobalForField(fieldElement);
+        GlobalVariableElement global = Lowering.get(ctxt).getGlobalForField(fieldElement);
         DefinedTypeDefinition fieldHolder = fieldElement.getEnclosingType();
         if (! fieldHolder.equals(ourHolder)) {
             // we have to declare it in our translation unit

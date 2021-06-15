@@ -150,7 +150,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 varsByEntryPoint[i] = new LocalVariableElement[slots];
                 for (int j = 0; j < slots; j++) {
                     ValueType varType = varTypes[j];
-                    if (varType != null) {
+                    if (varType != null && ! (varType instanceof PoisonType)) {
                         Map<ValueType, LocalVariableElement> varsByType = varsBySlotList.get(j);
                         LocalVariableElement element = varsByType.get(varType);
                         if (element == null) {

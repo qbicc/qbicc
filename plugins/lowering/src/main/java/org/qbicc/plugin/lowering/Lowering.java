@@ -1,6 +1,8 @@
 package org.qbicc.plugin.lowering;
 
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.qbicc.context.AttachmentKey;
@@ -18,20 +20,23 @@ import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.LocalVariableElement;
 
-public class LoweredStaticFields {
+public class Lowering {
     public static final String GLOBAL_REFERENCES = "QBICC_GLOBALS";
 
-    private static final AttachmentKey<LoweredStaticFields> KEY = new AttachmentKey<>();
+    private static final AttachmentKey<Lowering> KEY = new AttachmentKey<>();
 
     private final Map<FieldElement, GlobalVariableElement> globals = new ConcurrentHashMap<>();
+    private final Map<ExecutableElement, LinkedHashSet<LocalVariableElement>> usedVariables = new ConcurrentHashMap<>();
 
-    private LoweredStaticFields() {}
+    private Lowering() {}
 
-    public static LoweredStaticFields get(CompilationContext ctxt) {
-        return ctxt.computeAttachmentIfAbsent(KEY, LoweredStaticFields::new);
+    public static Lowering get(CompilationContext ctxt) {
+        return ctxt.computeAttachmentIfAbsent(KEY, Lowering::new);
     }
 
     public GlobalVariableElement getGlobalForField(FieldElement fieldElement) {
@@ -95,5 +100,20 @@ public class LoweredStaticFields {
         data.setLinkage(linkage);
         data.setDsoLocal();
         return global;
+    }
+
+
+    LinkedHashSet<LocalVariableElement> createUsedVariableSet(ExecutableElement element) {
+        final LinkedHashSet<LocalVariableElement> set = new LinkedHashSet<>();
+        usedVariables.put(element, set);
+        return set;
+    }
+
+    LinkedHashSet<LocalVariableElement> removeUsedVariableSet(ExecutableElement element) {
+        final LinkedHashSet<LocalVariableElement> set = usedVariables.remove(element);
+        if (set == null) {
+            throw new NoSuchElementException();
+        }
+        return set;
     }
 }
