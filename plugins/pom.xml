@@ -18,6 +18,7 @@
         <module>constants</module>
         <module>conversion</module>
         <module>core</module>
+        <module>core-classes</module>
         <module>correctness</module>
         <module>dispatch</module>
         <module>dot</module>

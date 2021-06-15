@@ -1,7 +1,6 @@
 package org.qbicc.main;
 
 import java.io.IOException;
-import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,6 +25,7 @@ import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.tool.CToolChain;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.constants.ConstantBasicBlockBuilder;
 import org.qbicc.plugin.conversion.LLVMCompatibleBasicBlockBuilder;
 import org.qbicc.plugin.conversion.MethodCallFixupBasicBlockBuilder;
@@ -47,7 +47,6 @@ import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
 import org.qbicc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import org.qbicc.plugin.intrinsics.core.CoreIntrinsics;
-import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.layout.ObjectAccessLoweringBuilder;
 import org.qbicc.plugin.linker.LinkStage;
 import org.qbicc.plugin.llvm.LLVMCompileStage;
@@ -283,7 +282,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addResolverFactory(NativeTypeResolver::new);
 
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
-                                builder.addPreHook(Phase.ADD, Layout::get);
+                                builder.addPreHook(Phase.ADD, CoreClasses::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
                                 builder.addPreHook(Phase.ADD, new VMHelpersSetupHook());
                                 builder.addPreHook(Phase.ADD, new AddMainClassHook());
