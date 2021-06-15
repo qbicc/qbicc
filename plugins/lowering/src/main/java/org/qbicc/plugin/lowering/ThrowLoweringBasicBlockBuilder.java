@@ -12,12 +12,10 @@ import org.qbicc.type.definition.element.ExecutableElement;
 
 public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
-    private final ExecutableElement rootElement;
 
     public ThrowLoweringBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
-        rootElement = getCurrentElement();
     }
 
     public BasicBlock throw_(final Value value) {
@@ -28,7 +26,7 @@ public class ThrowLoweringBasicBlockBuilder extends DelegatingBasicBlockBuilder 
 
         String functionName = "_Unwind_RaiseException";
         FunctionType functionType = teh.getRaiseExceptionMethod().getType();
-        ctxt.getImplicitSection(rootElement).declareFunction(teh.getRaiseExceptionMethod(), functionName, functionType);
+        ctxt.getImplicitSection(getRootElement()).declareFunction(teh.getRaiseExceptionMethod(), functionName, functionType);
         return callNoReturn(pointerHandle(ctxt.getLiteralFactory().literalOfSymbol(functionName, functionType.getPointer())), List.of(ptr));
     }
 }

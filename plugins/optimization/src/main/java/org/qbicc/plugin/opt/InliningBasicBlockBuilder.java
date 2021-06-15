@@ -70,14 +70,12 @@ import org.qbicc.type.definition.element.FunctionElement;
  */
 public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder implements ValueHandleVisitor<Void, ExecutableElement> {
     private final CompilationContext ctxt;
-    private final ExecutableElement rootElement;
     // todo: this is arbitrary
     private final float costThreshold = 80.0f;
     private float cost;
 
     public InliningBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        rootElement = getCurrentElement();
         this.ctxt = ctxt;
     }
 
@@ -263,7 +261,7 @@ public class  InliningBasicBlockBuilder extends DelegatingBasicBlockBuilder impl
     }
 
     private void copyDeclarations(final ExecutableElement target) {
-        ProgramModule ourModule = ctxt.getOrAddProgramModule(rootElement.getEnclosingType());
+        ProgramModule ourModule = ctxt.getOrAddProgramModule(getRootElement().getEnclosingType());
         ProgramModule module = ctxt.getOrAddProgramModule(target.getEnclosingType());
         for (Section section : module.sections()) {
             for (ProgramObject object : section.contents()) {
