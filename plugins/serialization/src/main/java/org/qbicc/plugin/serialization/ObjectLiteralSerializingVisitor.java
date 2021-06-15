@@ -4,14 +4,18 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
+import org.qbicc.graph.NotNull;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.StringLiteral;
+import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.object.Section;
+import org.qbicc.type.PointerType;
 
 /**
  * A visitor that finds object literals, serializes them to the initial heap
- * and replaces the literal with an array load at the proper offset of the
- * initial heap.
+ * and replaces the object literal with a reference to the data declaration
+ * in the initial heap.
  */
 public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
     private final CompilationContext ctxt;
@@ -28,7 +32,12 @@ public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<N
 
     public Value visit(final Node.Copier param, final StringLiteral node) {
         BuildtimeHeap heap = BuildtimeHeap.get(ctxt);
-        int offset = heap.serializeStringLiteral(node.getValue());
-        return getDelegateValueVisitor().visit(param, node);
+        SymbolLiteral literal = heap.serializeStringLiteral(node.getValue());
+        SymbolLiteral refToLiteral = ctxt.getLiteralFactory().literalOfSymbol(literal.getName(), literal.getType().getPointer().asCollected());
+
+        Section section = ctxt.getImplicitSection(param.getBlockBuilder().getRootElement());
+        section.declareData(null, literal.getName(), literal.getType()).setAddrspace(1);
+
+        return param.getBlockBuilder().notNull(ctxt.getLiteralFactory().bitcastLiteral(refToLiteral, node.getType()));
     }
 }

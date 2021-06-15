@@ -31,9 +31,6 @@ public final class Main {
         // next set up the initial thread
         attachNewThread("main", createSystemThreadGroup());
 
-        // now that we can know the actual address of the initial heap, relocate its interior pointers.
-        InitialHeap.relocatePointers();
-
         // now cause the initial thread to invoke main
         final String[] args = new String[argc.intValue()];
         for (int i = 1; i < argc.intValue(); i++) {
