@@ -33,12 +33,10 @@ import org.qbicc.type.descriptor.TypeDescriptor;
  */
 public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
-    private final ExecutableElement rootElement;
 
     public NativeBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
-        rootElement = getCurrentElement();
     }
 
     @Override
@@ -139,13 +137,13 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
                 ExportedFunctionInfo efi = (ExportedFunctionInfo) functionInfo;
                 // we define it
                 DefinedTypeDefinition declaringClass = efi.getDeclaringClass();
-                if (rootElement.getEnclosingType() == declaringClass) {
+                if (getRootElement().getEnclosingType() == declaringClass) {
                     // we do not have to declare it; we call it directly
                     return functionOf(efi.getFunctionElement());
                 }
             }
             // declare it
-            return functionOf(ctxt.getImplicitSection(rootElement)
+            return functionOf(ctxt.getImplicitSection(getRootElement())
                 .declareFunction(null, functionInfo.getName(), functionInfo.getType()));
         }
         return super.staticMethod(owner, name, descriptor);
@@ -164,8 +162,7 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
 
     private SymbolLiteral getAndDeclareSymbolLiteral(final NativeDataInfo fieldInfo) {
         SymbolLiteral sym = fieldInfo.symbolLiteral;
-        // todo: fix this for inlining
-        DefinedTypeDefinition ourType = rootElement.getEnclosingType();
+        DefinedTypeDefinition ourType = getRootElement().getEnclosingType();
         if (!fieldInfo.defined || fieldInfo.fieldElement.getEnclosingType() != ourType) {
             // declare it
             Section section = ctxt.getImplicitSection(ourType);

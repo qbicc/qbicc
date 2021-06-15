@@ -57,6 +57,13 @@ public interface BasicBlockBuilder extends Locatable {
     ExecutableElement getCurrentElement();
 
     /**
+     * Get the root element currently being built.
+     *
+     * @return the root element currently being built
+     */
+    ExecutableElement getRootElement();
+
+    /**
      * Set the element currently being built, returning the previously-set element.  Used for inlining.
      *
      * @param element the new current element

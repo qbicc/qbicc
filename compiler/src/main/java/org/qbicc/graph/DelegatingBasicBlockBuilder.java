@@ -55,6 +55,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().getCurrentElement();
     }
 
+    public ExecutableElement getRootElement() {
+        return getDelegate().getRootElement();
+    }
+
     public ExecutableElement setCurrentElement(final ExecutableElement element) {
         return getDelegate().setCurrentElement(element);
     }

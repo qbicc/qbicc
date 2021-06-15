@@ -52,12 +52,14 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     private PhiValue exceptionPhi;
     private BasicBlockBuilder firstBuilder;
     private ExecutableElement element;
+    private final ExecutableElement rootElement;
     private Node callSite;
     private BasicBlock terminatedBlock;
 
     SimpleBasicBlockBuilder(final ExecutableElement element, final TypeSystem typeSystem) {
         this.element = element;
         this.typeSystem = typeSystem;
+        this.rootElement = element;
         bci = - 1;
     }
 
@@ -72,6 +74,8 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     public ExecutableElement getCurrentElement() {
         return element;
     }
+
+    public ExecutableElement getRootElement() { return rootElement; }
 
     public ExecutableElement setCurrentElement(final ExecutableElement element) {
         ExecutableElement old = this.element;

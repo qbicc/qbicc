@@ -30,12 +30,10 @@ import org.qbicc.type.definition.element.MethodElement;
 
 public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
-    private final ExecutableElement rootElement;
 
     public LLVMCompatibleBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
-        rootElement = getCurrentElement();
     }
 
     @Override
@@ -91,7 +89,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     private Value minMaxIntrinsic(String funcName, NumericType numericType, Value v1, Value v2) {
         TypeSystem tps = ctxt.getTypeSystem();
         FunctionType functionType = tps.getFunctionType(numericType, numericType, numericType);
-        FunctionDeclaration declaration = ctxt.getImplicitSection(rootElement).declareFunction(null, funcName, functionType);
+        FunctionDeclaration declaration = ctxt.getImplicitSection(getRootElement()).declareFunction(null, funcName, functionType);
         return getFirstBuilder().callNoSideEffects(functionOf(declaration), List.of(v1, v2));
     }
 
@@ -150,7 +148,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public BasicBlock invokeNoReturn(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
-        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        ctxt.getImplicitSection(getRootElement()).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
         return super.invokeNoReturn(target, arguments, catchLabel);
     }
 
@@ -158,7 +156,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public Value invoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel, BlockLabel resumeLabel) {
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
-        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        ctxt.getImplicitSection(getRootElement()).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
         return super.invoke(target, arguments, catchLabel, resumeLabel);
     }
 
@@ -166,7 +164,7 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public BasicBlock tailInvoke(ValueHandle target, List<Value> arguments, BlockLabel catchLabel) {
         // declare personality function
         MethodElement personalityMethod = UnwindHelper.get(ctxt).getPersonalityMethod();
-        ctxt.getImplicitSection(rootElement).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
+        ctxt.getImplicitSection(getRootElement()).declareFunction(null, personalityMethod.getName(), personalityMethod.getType());
         // todo: we can support "real" tail calls in certain situations
         // break tail invoke
         BlockLabel resumeLabel = new BlockLabel();
