@@ -386,7 +386,11 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         return null;
     }
 
-    Value getLocal(int index) {
+    Value getLocal(int index, int bci) {
+        final LocalVariableElement lve = getLocalVariableElement(bci, index);
+        if (lve != null) {
+            return gf.load(gf.localVariable(lve), MemoryAtomicityMode.NONE);
+        }
         Value value = locals[index];
         if (value == null) {
             throw new IllegalStateException("Invalid get local (no value)");
@@ -596,41 +600,41 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_ILOAD:
                     case OP_FLOAD:
                     case OP_ALOAD:
-                        push1(getLocal(getWidenableValue(buffer, wide)));
+                        push1(getLocal(getWidenableValue(buffer, wide), src));
                         break;
                     case OP_LLOAD:
                     case OP_DLOAD:
-                        push2(getLocal(getWidenableValue(buffer, wide)));
+                        push2(getLocal(getWidenableValue(buffer, wide), src));
                         break;
                     case OP_ILOAD_0:
                     case OP_ILOAD_1:
                     case OP_ILOAD_2:
                     case OP_ILOAD_3:
-                        push1(getLocal(opcode - OP_ILOAD_0));
+                        push1(getLocal(opcode - OP_ILOAD_0, src));
                         break;
                     case OP_LLOAD_0:
                     case OP_LLOAD_1:
                     case OP_LLOAD_2:
                     case OP_LLOAD_3:
-                        push2(getLocal(opcode - OP_LLOAD_0));
+                        push2(getLocal(opcode - OP_LLOAD_0, src));
                         break;
                     case OP_FLOAD_0:
                     case OP_FLOAD_1:
                     case OP_FLOAD_2:
                     case OP_FLOAD_3:
-                        push1(getLocal(opcode - OP_FLOAD_0));
+                        push1(getLocal(opcode - OP_FLOAD_0, src));
                         break;
                     case OP_DLOAD_0:
                     case OP_DLOAD_1:
                     case OP_DLOAD_2:
                     case OP_DLOAD_3:
-                        push2(getLocal(opcode - OP_DLOAD_0));
+                        push2(getLocal(opcode - OP_DLOAD_0, src));
                         break;
                     case OP_ALOAD_0:
                     case OP_ALOAD_1:
                     case OP_ALOAD_2:
                     case OP_ALOAD_3:
-                        push1(getLocal(opcode - OP_ALOAD_0));
+                        push1(getLocal(opcode - OP_ALOAD_0, src));
                         break;
                     case OP_AALOAD: {
                         v2 = pop1();
@@ -991,7 +995,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     case OP_IINC:
                         int idx = getWidenableValue(buffer, wide);
-                        setLocal1(idx, gf.add(getLocal(idx), lf.literalOf(getWidenableValueSigned(buffer, wide))), src);
+                        setLocal1(idx, gf.add(getLocal(idx, src), lf.literalOf(getWidenableValueSigned(buffer, wide))), src);
                         break;
                     case OP_I2L:
                         push2(gf.extend(pop1(), ts.getSignedInteger64Type()));
