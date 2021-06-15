@@ -1,6 +1,11 @@
 package org.qbicc.plugin.reachability;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayDeque;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +21,7 @@ import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -78,6 +84,8 @@ public class RTAInfo {
     private final Set<LoadedTypeDefinition> instantiatedClasses = ConcurrentHashMap.newKeySet();
     // Tracks classes and interfaces whose <clinit> could be invoked at runtime
     private final Set<LoadedTypeDefinition> initializedTypes = ConcurrentHashMap.newKeySet();
+    // Set of interfaces whose META-INF files have been searched for service implementations
+    private final Set<LoadedTypeDefinition> searchedServiceInterfaces = ConcurrentHashMap.newKeySet();
 
     // Set of invokable instance methods
     private final Set<MethodElement> invokableMethods = ConcurrentHashMap.newKeySet();
@@ -109,6 +117,7 @@ public class RTAInfo {
         info.interfaceHierarchy.clear();
         info.instantiatedClasses.clear();
         info.initializedTypes.clear();
+        info.searchedServiceInterfaces.clear();
         info.invokableMethods.clear();
         info.deferredInstanceMethods.clear();
     }
@@ -360,9 +369,57 @@ public class RTAInfo {
         }
     }
 
+    synchronized void processServiceInterface(final LoadedTypeDefinition ltd, final String internalName) {
+        if (ltd.isInterface() && !isServiceSearched(ltd)) {
+            /* process service interface */
+            addReachableInterface(ltd);
+
+            /* find and load service implementations */
+            String fileName = "META-INF/services/" + internalName.replace("/", ".");
+            try {
+                Enumeration<URL> servicefiles = ClassLoader.getSystemResources(fileName);
+                while (servicefiles.hasMoreElements()) {
+                    URL file = servicefiles.nextElement();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(file.openStream()));
+
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        if (!line.isBlank()) {
+                            DefinedTypeDefinition serviceImplDefinition = ctxt.getBootstrapClassContext().findDefinedType(line.replace(".", "/"));
+                            LoadedTypeDefinition serviceImpl = serviceImplDefinition.load();
+                            addReachableClass(serviceImpl);
+                            addServiceMethods(serviceImpl);
+                        }
+                    }
+                    in.close();
+
+                }
+                addSearchedServiceInterface(ltd);
+            } catch(IOException e) {
+                ctxt.error(e, "Failed to read " + fileName);
+            }
+        }
+    }
+
     /*
      * RTA Helper methods.
      */
+
+    private boolean isServiceSearched(LoadedTypeDefinition ltd) {
+        return searchedServiceInterfaces.contains(ltd);
+    }
+
+    private void addSearchedServiceInterface(LoadedTypeDefinition ltd) {
+        searchedServiceInterfaces.add(ltd);
+    }
+
+    private void addServiceMethods(LoadedTypeDefinition ltd) {
+        for (int i = 0; i < ltd.getMethodCount(); i++) {
+            MethodElement method = ltd.getMethod(i);
+            invokableMethods.add(method);
+            ctxt.enqueue(method);
+        }
+    }
 
     private void addReachableInterface(LoadedTypeDefinition type) {
         if (isReachableInterface(type)) return;

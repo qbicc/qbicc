@@ -6,6 +6,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
+import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.ConstructorElementHandle;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ExactMethodElementHandle;
@@ -16,9 +17,13 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
+import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -46,6 +51,42 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     @Override
     public Value call(ValueHandle target, List<Value> arguments) {
         target.accept(this, null);
+
+        /* Load service interfaces and implementations. Use META-INF/services files (TODO and eventually module-info)
+         * to identify possible service implementations.
+         *
+         * ServiceLoader methods to look for are:
+         * - load(Class<S> service)
+         * - load(Class<S> service, ClassLoader loader)
+         * - load(ModuleLayer layer, Class<S> service)
+         * - loadInstalled(Class<S> service)
+         *
+         * TODO care about other parameters eventually... classloaders and modulelayer
+         */
+        if (target instanceof StaticMethodElementHandle) {
+            StaticMethodElementHandle methodTarget = (StaticMethodElementHandle)target;
+            MethodElement e = methodTarget.getExecutable();
+            if (e.getSourceFileName().equals("ServiceLoader.java") && (e.getName().equals("load") || e.getName().equals("loadInstalled"))) {
+                Value serviceInterfaceArg = arguments.get(0);
+                if (arguments.size() == 2 && !(serviceInterfaceArg instanceof ClassOf)) {
+                    /* For load(ModuleLayer layer, Class<S> service) service interface is the second argument */
+                    serviceInterfaceArg = arguments.get(1);
+                }
+                if (serviceInterfaceArg instanceof ClassOf) {
+                    Value input = ((ClassOf) serviceInterfaceArg).getInput();
+                    if (input instanceof TypeLiteral) {
+                        ValueType type = ((TypeLiteral) input).getValue();
+                        if (type instanceof InterfaceObjectType) {
+                            DefinedTypeDefinition serviceInterfaceDefinition = ((InterfaceObjectType) type).getDefinition();
+                            LoadedTypeDefinition serviceInterface = serviceInterfaceDefinition.load();
+                            info.processServiceInterface(serviceInterface, serviceInterfaceDefinition.getInternalName());
+                        }
+                    }
+                }
+            }
+
+        }
+
         return super.call(target, arguments);
     }
 
