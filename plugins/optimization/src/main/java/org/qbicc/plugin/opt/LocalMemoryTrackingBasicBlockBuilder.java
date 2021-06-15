@@ -9,7 +9,6 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
-import org.qbicc.graph.DispatchInvocation;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.MemberOf;
 import org.qbicc.graph.MemoryAtomicityMode;
@@ -17,8 +16,6 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
-import org.qbicc.type.definition.element.ConstructorElement;
-import org.qbicc.type.definition.element.MethodElement;
 
 /**
  *
