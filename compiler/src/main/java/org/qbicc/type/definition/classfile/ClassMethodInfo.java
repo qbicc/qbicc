@@ -6,14 +6,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.BitSet;
 
-import org.qbicc.type.Type;
-import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.InvokableElement;
-import org.qbicc.type.descriptor.TypeDescriptor;
-import org.qbicc.type.generic.TypeParameterContext;
-import org.qbicc.type.generic.TypeSignature;
 
 /**
  * The defined method information.
@@ -53,8 +46,6 @@ final class ClassMethodInfo {
     private final int visibleTypeAnnotationsLen;
     private final int invisibleTypeAnnotationsOffs;
     private final int invisibleTypeAnnotationsLen;
-
-    private final Type[][] variableTypes;
 
     ClassMethodInfo(final ClassFileImpl classFile, ExecutableElement element, final int modifiers, final int index, final ByteBuffer codeAttr) {
         this.classFile = classFile;
@@ -346,30 +337,6 @@ final class ClassMethodInfo {
         this.invisibleTypeAnnotationsLen = invisibleTypeAnnotationsLen;
         this.entryPoints = entryPoints;
         codeAttr.position(save);
-        Type[][] variableTypes1 = new Type[maxLocals][];
-        TypeParameterContext paramCtxt = element instanceof InvokableElement ? (InvokableElement) element : element.getEnclosingType();
-        for (int i = 0; i < maxLocals; i ++) {
-            int cnt = getLocalVarEntryCount(i);
-            Type[] array = variableTypes1[i] = new Type[cnt];
-            for (int j = 0; j < cnt; j ++) {
-                int idx = getLocalVarDescriptorIndex(i, j);
-                if (idx == 0) {
-                    throw new MissingLocalVariableDescriptorException();
-                }
-                TypeDescriptor desc = (TypeDescriptor) classFile.getDescriptorConstant(idx);
-                ClassContext ctxt = classFile.getClassContext();
-                idx = getLocalVarSignatureIndex(i, j);
-                TypeSignature sig;
-                if (idx == 0) {
-                    sig = TypeSignature.synthesize(ctxt, desc);
-                } else {
-                    sig = TypeSignature.parse(ctxt, classFile.getUtf8ConstantAsBuffer(idx));
-                }
-                array[j] = ctxt.resolveTypeFromDescriptor(desc,
-                    paramCtxt, sig, TypeAnnotationList.empty(), TypeAnnotationList.empty());
-            }
-        }
-        this.variableTypes = variableTypes1;
         this.lineNumberTable = lineNumberTable.build();
     }
 
@@ -758,6 +725,24 @@ final class ClassMethodInfo {
 
     int getLocalVarSignatureIndex(int varIdx, int entryIdx) {
         return localVariables[varIdx][entryIdx * 5 + 4] & 0xffff;
+    }
+
+    int getLocalVarEntryIndex(int varIdx, int bci) {
+        int low = 0;
+        int high = getLocalVarEntryCount(varIdx) - 1;
+        while (low <= high) {
+            int mid = (low + high) >>> 1;
+            int midVal = getLocalVarStartPc(varIdx, mid);
+            if (midVal + getLocalVarLength(varIdx, mid) <= bci) {
+                low = mid + 1;
+            } else if (midVal > bci) {
+                high = mid - 1;
+            } else {
+                // found it exactly or else in range
+                return mid;
+            }
+        }
+        return -low - 1;
     }
 
     int getCodeOffs() {

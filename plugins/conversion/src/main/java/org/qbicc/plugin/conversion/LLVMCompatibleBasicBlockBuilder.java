@@ -17,6 +17,7 @@ import org.qbicc.machine.arch.Cpu;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
 import org.qbicc.plugin.unwind.UnwindHelper;
+import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
@@ -124,6 +125,12 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
 
     @Override
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
+        if (handle.getValueType() instanceof BooleanType) {
+            ctxt.error("Invalid boolean-typed handle %s", handle);
+        }
+        if (value.getType() instanceof BooleanType) {
+            ctxt.error("Invalid boolean-typed value %s", value);
+        }
         if (mode == MemoryAtomicityMode.VOLATILE) {
             fence(MemoryAtomicityMode.RELEASE);
             return super.store(handle, value, MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);

@@ -115,7 +115,7 @@ public class NumericalConversionBasicBlockBuilder extends DelegatingBasicBlockBu
                 // otherwise not OK (fall out)
             } else if ((fromType instanceof UnsignedIntegerType) || (fromType instanceof BooleanType)) {
                 if (toType instanceof UnsignedIntegerType) {
-                    if (fromType.getMinBits() < toType.getMinBits()) {
+                    if (fromType.getMinBits() < toType.getMinBits() || fromType instanceof BooleanType) {
                         // OK
                         return super.extend(from, toType);
                     } else if (fromType.getMinBits() >= toType.getMinBits()) {
