@@ -10,6 +10,7 @@ import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.Struct;
 import org.qbicc.machine.llvm.StructType;
+import org.qbicc.machine.llvm.debuginfo.DIExpression;
 
 /**
  *
@@ -98,6 +99,10 @@ public final class LLVM {
 
     public static LLValue ptrtointConstant(LLValue val, LLValue fromType, LLValue toType) {
         return new PtrToIntConstant(val, fromType, toType);
+    }
+
+    public static DIExpression diExpression() {
+        return new DIExpressionImpl();
     }
 
     public static Array array(LLValue elementType) {

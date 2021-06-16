@@ -20,14 +20,15 @@ abstract class AbstractMetadataNode extends AbstractCommentable implements Metad
     }
 
     public Appendable appendTo(final Appendable target) throws IOException {
-        target.append('!');
-
-        if (index >= 0)
-            appendDecimal(target, index);
-        else
+        if (name != null) {
+            target.append('!');
             target.append(name);
-
-        target.append(" = ");
+            target.append(" = ");
+        } else if (index >= 0) {
+            target.append('!');
+            appendDecimal(target, index);
+            target.append(" = ");
+        }
         return target;
     }
 

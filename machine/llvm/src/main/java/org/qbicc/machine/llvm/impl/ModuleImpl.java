@@ -19,7 +19,9 @@ import org.qbicc.machine.llvm.debuginfo.DICompileUnit;
 import org.qbicc.machine.llvm.debuginfo.DICompositeType;
 import org.qbicc.machine.llvm.debuginfo.DIDerivedType;
 import org.qbicc.machine.llvm.debuginfo.DIEncoding;
+import org.qbicc.machine.llvm.debuginfo.DIExpression;
 import org.qbicc.machine.llvm.debuginfo.DIFile;
+import org.qbicc.machine.llvm.debuginfo.DILocalVariable;
 import org.qbicc.machine.llvm.debuginfo.DILocation;
 import org.qbicc.machine.llvm.debuginfo.DISubprogram;
 import org.qbicc.machine.llvm.debuginfo.DISubrange;
@@ -110,7 +112,7 @@ final class ModuleImpl implements Module {
     }
 
     public DILocation diLocation(final int line, final int column, final LLValue scope, final LLValue inlinedAt) {
-        Assert.checkNotNullParam("file", scope);
+        Assert.checkNotNullParam("scope", scope);
         return add(meta, new DILocationImpl(nextMetadataNodeId(), line, column, (AbstractValue)scope, (AbstractValue)inlinedAt));
     }
 
@@ -142,6 +144,18 @@ final class ModuleImpl implements Module {
     public DISubroutineType diSubroutineType(final LLValue types) {
         Assert.checkNotNullParam("types", types);
         return add(meta, new DISubroutineTypeImpl(nextMetadataNodeId(), (AbstractValue)types));
+    }
+
+    public DILocalVariable diLocalVariable(final String name, final LLValue type, final LLValue scope, final LLValue file, final int line, final int align) {
+        Assert.checkNotNullParam("name", name);
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("scope", scope);
+        Assert.checkNotNullParam("file", file);
+        return add(meta, new DILocalVariableImpl(nextMetadataNodeId(), name, (AbstractValue) type, (AbstractValue) scope, (AbstractValue) file, line, align));
+    }
+
+    public DIExpression diExpression() {
+        return add(meta, new DIExpressionImpl(nextMetadataNodeId()));
     }
 
     int nextGlobalId() {
