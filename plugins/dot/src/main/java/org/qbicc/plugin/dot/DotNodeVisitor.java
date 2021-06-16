@@ -25,6 +25,7 @@ import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CastValue;
 import org.qbicc.graph.ClassCastErrorNode;
+import org.qbicc.graph.ClassInitCheck;
 import org.qbicc.graph.ClassNotFoundErrorNode;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Clone;
@@ -700,6 +701,19 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "shape", "rectangle");
         attr(param, "style", "diagonals, filled");
         attr(param, "label", "class cast exception");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
+        return name;
+    }
+
+    public String visit(Appendable param, ClassInitCheck node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "rectangle");
+        attr(param, "style", "diagonals, filled");
+        attr(param, "label", "check init " + node.getObjectType());
         attr(param, "fixedsize", "shape");
         nl(param);
         dependencyList.add(name);
