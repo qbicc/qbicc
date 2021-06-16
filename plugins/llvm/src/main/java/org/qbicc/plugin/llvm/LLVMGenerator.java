@@ -80,6 +80,11 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                     module.addFlag(ModuleFlagBehavior.Max, "PIE Level", Types.i32, Values.intConstant(pieLevel));
                 }
 
+                // declare debug function here
+                org.qbicc.machine.llvm.Function decl = module.declare("llvm.dbg.addr");
+                decl.returns(Types.void_);
+                decl.param(Types.metadata).param(Types.metadata).param(Types.metadata);
+
                 for (Section section : programModule.sections()) {
                     String sectionName = section.getName();
                     for (ProgramObject item : section.contents()) {
@@ -98,7 +103,8 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             LLValue topSubprogram = null;
 
                             if (isExact) {
-                                functionDefinition.meta("dbg", debugInfo.getDebugInfoForFunction(element).getSubprogram());
+                                topSubprogram = debugInfo.getDebugInfoForFunction(element).getSubprogram();
+                                functionDefinition.meta("dbg", topSubprogram);
                             } else {
                                 topSubprogram = debugInfo.createThunkSubprogram((Function) item).asRef();
                                 functionDefinition.meta("dbg", topSubprogram);
@@ -116,7 +122,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             nodeVisitor.execute();
                         } else if (item instanceof FunctionDeclaration) {
                             FunctionDeclaration fn = (FunctionDeclaration) item;
-                            org.qbicc.machine.llvm.Function decl = module.declare(name).linkage(linkage);
+                            decl = module.declare(name).linkage(linkage);
                             FunctionType fnType = fn.getType();
                             decl.returns(moduleVisitor.map(fnType.getReturnType()));
                             int cnt = fnType.getParameterCount();

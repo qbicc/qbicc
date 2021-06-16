@@ -109,9 +109,12 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
             varsByTableEntry[slot] = new LocalVariableElement[entryCount];
             for (int entry = 0; entry < entryCount; entry ++) {
                 LocalVariableElement.Builder builder = LocalVariableElement.builder();
-                if (info.getLocalVarStartPc(slot, entry) == 0) {
+                int startPc = info.getLocalVarStartPc(slot, entry);
+                if (startPc == 0) {
                     builder.setReflectsParameter(true);
                 }
+                builder.setBci(startPc);
+                builder.setLine(info.getLineNumber(startPc));
                 int cons = info.getLocalVarNameIndex(slot, entry);
                 if (cons == 0) {
                     builder.setName("var" + slot + "_" + entry);

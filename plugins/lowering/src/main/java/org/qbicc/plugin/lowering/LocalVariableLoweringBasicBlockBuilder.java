@@ -55,7 +55,16 @@ public final class LocalVariableLoweringBasicBlockBuilder extends DelegatingBasi
                     // widen booleans to 8 bits
                     varType = unsignedInteger8Type;
                 }
-                allocatedVariables.put(lve, stackAllocate(varType, one, lf.literalOf(varType.getAlign())));
+                int oldLine = setLineNumber(lve.getLine());
+                int oldBci = setBytecodeIndex(lve.getBci());
+                try {
+                    Value address = stackAllocate(varType, one, lf.literalOf(varType.getAlign()));
+                    allocatedVariables.put(lve, address);
+                    declareDebugAddress(lve, address);
+                } finally {
+                    setLineNumber(oldLine);
+                    setBytecodeIndex(oldBci);
+                }
             }
         }
         return node;

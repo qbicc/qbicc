@@ -87,7 +87,7 @@ final class LLVMModuleDebugInfo {
         return b.toString();
     }
 
-    private LLValue createSourceFile(final Element element) {
+    public LLValue createSourceFile(final Element element) {
         String sourceFileNameFull = element.getSourceFileName();
 
         LLValue file = files.get(sourceFileNameFull);

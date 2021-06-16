@@ -339,6 +339,11 @@ public interface Node {
                 return param.getBlockBuilder().classInitCheck(node.getObjectType());
             }
 
+            public Node visit(Copier param, DebugAddressDeclaration node) {
+                param.copyNode(node.getDependency());
+                return param.getBlockBuilder().declareDebugAddress(node.getVariable(), param.copyValue(node.getAddress()));
+            }
+
             public Node visit(Copier param, Fence node) {
                 param.copyNode(node.getDependency());
                 return param.getBlockBuilder().fence(node.getAtomicityMode());
