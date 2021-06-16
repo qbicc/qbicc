@@ -104,6 +104,8 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
         } catch (UncheckedIOException e) {
             IOException cause = e.getCause();
             failedToWrite(ctxt, path, cause);
+        } catch (TooBigException e) {
+            ctxt.warning("Element \"%s\" is too big to graph", element);
         }
     }
 

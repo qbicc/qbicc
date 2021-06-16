@@ -136,6 +136,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     final Map<Node, String> visited = new HashMap<>();
     private final Set<BasicBlock> blockQueued = ConcurrentHashMap.newKeySet();
     private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
+    int depth;
     int counter;
     int bbCounter;
     boolean attr;
@@ -1296,7 +1297,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     void processDependency(Appendable param, Node node) {
-        getNodeName(param, node);
+        if (depth++ > 500) {
+            throw new TooBigException();
+        }
+        try {
+            getNodeName(param, node);
+        } finally {
+            depth--;
+        }
     }
 
     void processDependencyList(Appendable param) {
