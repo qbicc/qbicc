@@ -25,6 +25,7 @@ import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.CastValue;
 import org.qbicc.graph.ClassCastErrorNode;
+import org.qbicc.graph.ClassInitCheck;
 import org.qbicc.graph.ClassNotFoundErrorNode;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Clone;
@@ -136,6 +137,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     final Map<Node, String> visited = new HashMap<>();
     private final Set<BasicBlock> blockQueued = ConcurrentHashMap.newKeySet();
     private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
+    int depth;
     int counter;
     int bbCounter;
     boolean attr;
@@ -699,6 +701,19 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "shape", "rectangle");
         attr(param, "style", "diagonals, filled");
         attr(param, "label", "class cast exception");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
+        return name;
+    }
+
+    public String visit(Appendable param, ClassInitCheck node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "rectangle");
+        attr(param, "style", "diagonals, filled");
+        attr(param, "label", "check init " + node.getObjectType());
         attr(param, "fixedsize", "shape");
         nl(param);
         dependencyList.add(name);
@@ -1296,7 +1311,14 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     void processDependency(Appendable param, Node node) {
-        getNodeName(param, node);
+        if (depth++ > 500) {
+            throw new TooBigException();
+        }
+        try {
+            getNodeName(param, node);
+        } finally {
+            depth--;
+        }
     }
 
     void processDependencyList(Appendable param) {
