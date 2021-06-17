@@ -71,6 +71,7 @@ import org.qbicc.plugin.native_.NativeTypeResolver;
 import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
+import org.qbicc.plugin.opt.FenceOptimizer;
 import org.qbicc.plugin.opt.GotoRemovingVisitor;
 import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
@@ -113,6 +114,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean optPhis;
     private final boolean optGotos;
     private final boolean optInlining;
+    private final boolean optFence;
     private final Platform platform;
 
     Main(Builder builder) {
@@ -128,6 +130,7 @@ public class Main implements Callable<DiagnosticContext> {
         optInlining = builder.optInlining;
         optPhis = builder.optPhis;
         optGotos = builder.optGotos;
+        optFence = builder.optFence;
         platform = builder.platform;
     }
 
@@ -369,6 +372,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addElementVisitor(Phase.LOWER, new DotGenerator(Phase.LOWER, graphGenConfig));
+                                if (optFence) {
+                                    builder.addPostHook(Phase.LOWER, new FenceOptimizer());
+                                }
 
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
@@ -422,6 +428,7 @@ public class Main implements Callable<DiagnosticContext> {
             .setOptInlining(optionsProcessor.optArgs.optInlining)
             .setOptGotos(optionsProcessor.optArgs.optGotos)
             .setOptPhis(optionsProcessor.optArgs.optPhis)
+            .setOptFence(optionsProcessor.optArgs.optFence)
             .setGraphGenConfig(optionsProcessor.graphGenConfig);
         Platform platform = optionsProcessor.platform;
         if (platform != null) {
@@ -482,6 +489,8 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugSupers;
         @CommandLine.Option(names = "--debug-devirt")
         private boolean debugDevirt;
+        @CommandLine.Option(names = "--debug-optFence")
+        private boolean debugOptFence;
         @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
         private GCType gc;
         @CommandLine.Option(names = "--pie", negatable = true, defaultValue = "false", description = "[Disable|Enable] generation of position independent executable")
@@ -525,6 +534,8 @@ public class Main implements Callable<DiagnosticContext> {
             boolean optPhis;
             @CommandLine.Option(names = "--opt-gotos", negatable = true, defaultValue = "true", description = "Enable/disable `goto` elimination")
             boolean optGotos;
+            @CommandLine.Option(names = "--opt-fence", negatable = true, defaultValue = "false", description = "Enable/disable `fence` optimization")
+            boolean optFence;
         }
 
         public CmdResult process(String[] args) {
@@ -557,6 +568,9 @@ public class Main implements Callable<DiagnosticContext> {
             if (debugDevirt) {
                 Logger.getLogger("org.qbicc.plugin.dispatch.devirt").setLevel(Level.DEBUG);
             }
+	    if (debugOptFence) {
+                Logger.getLogger("org.qbicc.plugin.opt.fence").setLevel(Level.DEBUG);
+	    }
             if (outputPath == null) {
                 outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qbicc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));
             }
@@ -595,6 +609,7 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean optInlining = false;
         private boolean optPhis = true;
         private boolean optGotos = true;
+        private boolean optFence = false;
         private GraphGenConfig graphGenConfig;
 
         Builder() {}
@@ -678,6 +693,11 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setOptGotos(boolean optGotos) {
             this.optGotos = optGotos;
+            return this;
+        }
+
+        public Builder setOptFence(boolean optFence) {
+            this.optFence = optFence;
             return this;
         }
 

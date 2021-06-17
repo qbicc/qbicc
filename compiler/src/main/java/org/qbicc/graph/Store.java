@@ -11,7 +11,7 @@ public class Store extends AbstractNode implements Action, OrderedNode {
     private final Node dependency;
     private final ValueHandle handle;
     private final Value value;
-    private final MemoryAtomicityMode mode;
+    private MemoryAtomicityMode mode;
 
     Store(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle handle, Value value, MemoryAtomicityMode mode) {
         super(callSite, element, line, bci);
@@ -35,6 +35,10 @@ public class Store extends AbstractNode implements Action, OrderedNode {
 
     public MemoryAtomicityMode getMode() {
         return mode;
+    }
+
+    public void setMode(MemoryAtomicityMode mode) {
+        this.mode = mode;
     }
 
     int calcHashCode() {

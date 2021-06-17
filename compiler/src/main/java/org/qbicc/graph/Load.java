@@ -1,6 +1,8 @@
 package org.qbicc.graph;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -11,7 +13,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public class Load extends AbstractValue implements OrderedNode {
     private final Node dependency;
     private final ValueHandle handle;
-    private final MemoryAtomicityMode mode;
+    private MemoryAtomicityMode mode;
 
     Load(Node callSite, ExecutableElement element, int line, int bci, Node dependency, ValueHandle handle, MemoryAtomicityMode mode) {
         super(callSite, element, line, bci);
@@ -46,6 +48,10 @@ public class Load extends AbstractValue implements OrderedNode {
 
     public MemoryAtomicityMode getMode() {
         return mode;
+    }
+
+    public void setMode(MemoryAtomicityMode mode) {
+        this.mode = mode;
     }
 
     @Override

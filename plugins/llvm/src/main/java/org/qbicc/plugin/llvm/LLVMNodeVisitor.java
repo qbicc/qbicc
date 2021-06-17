@@ -232,6 +232,8 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
                 return builder.fence(OrderingConstraint.acq_rel);
             case SEQUENTIALLY_CONSISTENT:
                 return builder.fence(OrderingConstraint.seq_cst);
+            case UNORDERED:
+                return null;
         }
         throw Assert.unreachableCode();
     }
