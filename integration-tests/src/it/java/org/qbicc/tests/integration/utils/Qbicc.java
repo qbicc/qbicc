@@ -20,7 +20,6 @@ public class Qbicc {
                 Path.of(QBICC_RUNTIME_API_JAR),
                 Path.of(QBICC_RUNTIME_MAIN_JAR),
                 Path.of(QBICC_RUNTIME_NOGC_JAR),
-                Path.of(QBICC_RUNTIME_DESERIALIZATION_JAR),
                 outputPath))
             .setOutputPath(nativeOutputPath)
             .setDiagnosticsHandler(new QbiccDiagnosticLogger(logger))
