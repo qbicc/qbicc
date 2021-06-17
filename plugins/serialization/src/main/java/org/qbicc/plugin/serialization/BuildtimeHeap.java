@@ -11,6 +11,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
@@ -22,11 +23,17 @@ import org.qbicc.type.descriptor.BaseTypeDescriptor;
 
 public class BuildtimeHeap {
     private static final AttachmentKey<BuildtimeHeap> KEY = new AttachmentKey<>();
+    private static final String prefix = "qbicc_initial_heap_obj_";
 
     private final CompilationContext ctxt;
     private final Layout layout;
+    /** For lazy definition of array types for literals */
+    private final HashMap<String, CompoundType> arrayTypes = new HashMap<>();
+    /** For interning string literals */
     private final HashMap<String, SymbolLiteral>  stringLiterals = new HashMap<>();
+    /** For interning objects */
     private final IdentityHashMap<Object, SymbolLiteral> objects = new IdentityHashMap<>();
+    /** The initial heap */
     private final HashMap<SymbolLiteral, Literal> initialHeap = new HashMap<>();
     private int literalCounter = 0;
 
@@ -99,8 +106,7 @@ public class BuildtimeHeap {
     }
 
     private String nextLiteralName() {
-        int lc = this.literalCounter++;
-        return "qbicc_initial_heap_obj_"+lc;
+        return prefix+(this.literalCounter++);
     }
 
     private SymbolLiteral serializeObject(LoadedTypeDefinition concreteType, Object instance) {
@@ -165,30 +171,39 @@ public class BuildtimeHeap {
         return objName;
     }
 
+    private CompoundType arrayLiteralType(FieldElement contents, int length) {
+        LoadedTypeDefinition ltd = contents.getEnclosingType().load();
+        String typeName = ltd.getInternalName() + "_"+length;
+        CompoundType sizedArrayType = arrayTypes.get(typeName);
+        if (sizedArrayType == null) {
+            TypeSystem ts = ctxt.getTypeSystem();
+            Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(ltd);
+            CompoundType arrayCT = objLayout.getCompoundType();
+
+            CompoundType.Member contentMem = objLayout.getMember(contents);
+            ArrayType sizedContentMem = ts.getArrayType(((ArrayType)contents.getType()).getElementType(), length);
+            CompoundType.Member realContentMem = ts.getCompoundTypeMember(contentMem.getName(), sizedContentMem, contentMem.getOffset(), contentMem.getAlign());
+
+            sizedArrayType = ts.getCompoundType(CompoundType.Tag.STRUCT, typeName,arrayCT.getSize() + sizedContentMem.getSize(),
+                arrayCT.getAlign(), () -> List.of(arrayCT.getMember(0), arrayCT.getMember(1), realContentMem));
+
+            arrayTypes.put(typeName, sizedArrayType);
+        }
+        return sizedArrayType;
+    }
+
+
     private SymbolLiteral serializeArray(byte[] array) {
-        TypeSystem ts = ctxt.getTypeSystem();
         LiteralFactory lf = ctxt.getLiteralFactory();
-        String myName = nextLiteralName();
-
-        LoadedTypeDefinition arrayLTD = layout.getByteArrayContentField().getEnclosingType().load();
-        Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(arrayLTD);
-        CompoundType arrayCT = objLayout.getCompoundType();
-
-        CompoundType.Member contentMem = objLayout.getMember(layout.getByteArrayContentField());
-        ArrayType s8ArrayType = ts.getArrayType(ts.getSignedInteger8Type(), array.length);
-        CompoundType.Member realContentMem = ts.getCompoundTypeMember(contentMem.getName(), s8ArrayType, contentMem.getOffset(), contentMem.getAlign());
-
-        CompoundType literalCT = ts.getCompoundType(CompoundType.Tag.STRUCT, myName+"_type",arrayCT.getSize() + s8ArrayType.getSize(),
-            arrayCT.getAlign(), () -> List.of(arrayCT.getMember(0), arrayCT.getMember(1), realContentMem));
-
+        FieldElement contentsField = CoreClasses.get(ctxt).getByteArrayContentField();
+        CompoundType literalCT = arrayLiteralType(contentsField, array.length);
         Literal arrayLiteral = lf.literalOf(literalCT, Map.of(
-            literalCT.getMember(0), lf.literalOf(arrayLTD.getTypeId()),
+            literalCT.getMember(0), lf.literalOf(contentsField.getEnclosingType().load().getTypeId()),
             literalCT.getMember(1), lf.literalOf(array.length),
-            realContentMem, lf.literalOf(s8ArrayType, array)
+            literalCT.getMember(2), lf.literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getSignedInteger8Type(), array.length), array)
         ));
-        SymbolLiteral arrayName = lf.literalOfSymbol(myName, literalCT);
+        SymbolLiteral arrayName = lf.literalOfSymbol(nextLiteralName(), literalCT);
         initialHeap.put(arrayName, arrayLiteral);
-
         return arrayName;
     }
 
