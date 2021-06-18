@@ -19,10 +19,6 @@
         </dependency>
         <dependency>
             <groupId>org.qbicc</groupId>
-            <artifactId>qbicc-runtime-deserialization</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.qbicc</groupId>
             <artifactId>qbicc-runtime-posix</artifactId>
         </dependency>
         <dependency>

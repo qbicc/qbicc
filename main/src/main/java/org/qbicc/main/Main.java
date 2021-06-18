@@ -79,6 +79,7 @@ import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.serialization.HeapSerializer;
+import org.qbicc.plugin.serialization.ObjectLiteralSerializingVisitor;
 import org.qbicc.plugin.threadlocal.ThreadLocalBasicBlockBuilder;
 import org.qbicc.plugin.threadlocal.ThreadLocalTypeBuilder;
 import org.qbicc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
@@ -338,7 +339,6 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.ANALYZE, new ClassInitializerRegister());
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
-                                builder.addPostHook(Phase.ANALYZE, new HeapSerializer());
 
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
@@ -346,6 +346,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optPhis) {
                                     builder.addCopyFactory(Phase.LOWER, PhiOptimizerVisitor::new);
                                 }
+                                builder.addCopyFactory(Phase.LOWER, ObjectLiteralSerializingVisitor::new);
 
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, ThrowLoweringBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, DevirtualizingBasicBlockBuilder::new);
@@ -370,6 +371,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
                                 builder.addElementVisitor(Phase.LOWER, new DotGenerator(Phase.LOWER, graphGenConfig));
 
+                                builder.addPreHook(Phase.GENERATE, new HeapSerializer());
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());
                                 builder.addPreHook(Phase.GENERATE, new DispatchTableEmitter());
                                 builder.addPreHook(Phase.GENERATE, new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0));

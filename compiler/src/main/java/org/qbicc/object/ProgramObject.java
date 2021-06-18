@@ -12,6 +12,7 @@ public abstract class ProgramObject {
     final SymbolLiteral literal;
     volatile Linkage linkage = Linkage.EXTERNAL;
     volatile ThreadLocalMode threadLocalMode;
+    volatile int addrspace = 0;
 
     ProgramObject(final String name, final SymbolLiteral literal) {
         this.name = name;
@@ -44,5 +45,13 @@ public abstract class ProgramObject {
 
     public void setThreadLocalMode(ThreadLocalMode threadLocalMode) {
         this.threadLocalMode = threadLocalMode;
+    }
+
+    public int getAddrspace() {
+        return addrspace;
+    }
+
+    public void setAddrspace(int as) {
+        this.addrspace = as;
     }
 }

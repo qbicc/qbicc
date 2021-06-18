@@ -5,7 +5,6 @@ import static org.qbicc.machine.llvm.Types.*;
 import static org.qbicc.machine.llvm.Values.*;
 import static java.lang.Math.max;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,9 +23,7 @@ import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
-import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.NullLiteral;
-import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
@@ -35,7 +32,6 @@ import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.machine.llvm.Array;
 import org.qbicc.machine.llvm.IdentifiedType;
 import org.qbicc.machine.llvm.LLValue;
-import org.qbicc.machine.llvm.Linkage;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.Struct;
 import org.qbicc.machine.llvm.StructType;
@@ -55,27 +51,22 @@ import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.Type;
-import org.qbicc.type.TypeSystem;
 import org.qbicc.type.TypeType;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.VariadicType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
-import org.qbicc.type.definition.DefinedTypeDefinition;
 import io.smallrye.common.constraint.Assert;
 
 final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     final AtomicInteger anonCnt = new AtomicInteger();
-    final AtomicInteger slCnt = new AtomicInteger();
     final Module module;
     final CompilationContext ctxt;
 
     final Map<Type, LLValue> types = new HashMap<>();
     final Map<CompoundType, Map<CompoundType.Member, LLValue>> structureOffsets = new HashMap<>();
     final Map<Value, LLValue> globalValues = new HashMap<>();
-
-    final Map<String, LLValue> TEMPORARY_stringLiterals = new HashMap<>();
 
     LLVMModuleNodeVisitor(final Module module, final CompilationContext ctxt) {
         this.module = module;
@@ -405,57 +396,5 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
     public LLValue visitUnknown(final Void param, final Value node) {
         ctxt.error(Location.builder().setNode(node).build(), "llvm: Unrecognized value %s", node.getClass());
         return LLVM.FALSE;
-    }
-
-    // === TEMPORARY until heap serialization is functional ===
-
-    public LLValue visit(Void param, StringLiteral node) {
-        String value = node.getValue();
-        LLValue v = TEMPORARY_stringLiterals.get(value);
-        if (v == null) {
-            int id = slCnt.getAndIncrement();
-            Layout layout = Layout.get(ctxt);
-            LiteralFactory lf = ctxt.getLiteralFactory();
-            TypeSystem ts = ctxt.getTypeSystem();
-
-            DefinedTypeDefinition jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object");
-            Layout.LayoutInfo jloLayout = layout.getInstanceLayoutInfo(jlo);
-            CompoundType.Member typeIdMem = jloLayout.getMember(layout.getObjectTypeIdField());
-
-            DefinedTypeDefinition a = layout.getArrayLengthField().getEnclosingType();
-            Layout.LayoutInfo aLayout = layout.getInstanceLayoutInfo(a);
-            CompoundType.Member lengthMem = aLayout.getMember(layout.getArrayLengthField());
-
-            DefinedTypeDefinition ba = layout.getByteArrayContentField().getEnclosingType();
-            Layout.LayoutInfo baLayout = layout.getInstanceLayoutInfo(ba);
-            CompoundType.Member contentMem = baLayout.getMember(layout.getByteArrayContentField());
-
-            byte[] bytes = node.getValue().getBytes(node.isLatin1() ? StandardCharsets.ISO_8859_1 : StandardCharsets.UTF_16BE);
-            ArrayType s8ArrayType = ts.getArrayType(ts.getSignedInteger8Type(), bytes.length);
-            CompoundType.Member realContentMem = ts.getCompoundTypeMember(contentMem.getName(), s8ArrayType, contentMem.getOffset(), contentMem.getAlign());
-
-            CompoundType baType = ts.getCompoundType(CompoundType.Tag.NONE, "ba" + id, 0, 1, () -> List.of(typeIdMem, lengthMem, realContentMem));
-
-            Literal baLit = lf.literalOf(baType, Map.of(
-                typeIdMem, lf.literalOfType(ba.load().getType()),
-                lengthMem, lf.literalOf(bytes.length),
-                realContentMem, lf.literalOf(s8ArrayType, bytes)
-            ));
-            module.global(map(baType)).value(map(baLit)).linkage(Linkage.PRIVATE).addressSpace(1).asGlobal("ba" + id);
-
-            DefinedTypeDefinition jls = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String");
-            Layout.LayoutInfo jlsLayout = layout.getInstanceLayoutInfo(jls);
-            CompoundType.Member coderMem = jlsLayout.getMember(jls.load().findField("coder"));
-            CompoundType.Member valueMem = jlsLayout.getMember(jls.load().findField("value"));
-            CompoundType stringType = ts.getCompoundType(CompoundType.Tag.NONE, "str" + id, 0, 1, () -> List.of(typeIdMem, coderMem, valueMem));
-            Literal lit = lf.literalOf(stringType, Map.of(
-                typeIdMem, lf.literalOfType(jls.load().getType()),
-                coderMem, lf.literalOf(node.isLatin1() ? 0 : 1),
-                valueMem, lf.valueConvertLiteral(lf.literalOfSymbol("ba" + id, baType.getPointer().asCollected()), jls.load().getType().getReference())
-            ));
-            module.constant(map(stringType)).value(lit.accept(this, param)).linkage(Linkage.PRIVATE).addressSpace(1).asGlobal("str" + id);
-            TEMPORARY_stringLiterals.put(value, v = map(lf.valueConvertLiteral(lf.literalOfSymbol("str" + id, lit.getType().getPointer().asCollected()), jls.load().getClassType().getReference())));
-        }
-        return v;
     }
 }

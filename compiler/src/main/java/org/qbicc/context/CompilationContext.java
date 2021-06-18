@@ -27,6 +27,8 @@ public interface CompilationContext extends DiagnosticContext {
 
     String IMPLICIT_SECTION_NAME = "__implicit__";
 
+    String INITIAL_HEAP_SECTION_NAME = "QBICC_I_HEAP";
+
     Platform getPlatform();
 
     TypeSystem getTypeSystem();

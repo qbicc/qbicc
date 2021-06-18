@@ -141,6 +141,9 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                                 obj.section(sectionName);
                             }
+                            if (item.getAddrspace() != 0) {
+                                obj.addressSpace(item.getAddrspace());
+                            }
                         } else {
                             assert item instanceof Data;
                             Literal value = (Literal) ((Data) item).getValue();
@@ -161,6 +164,9 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                             }
                             if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
                                 obj.section(sectionName);
+                            }
+                            if (item.getAddrspace() != 0) {
+                                obj.addressSpace(item.getAddrspace());
                             }
                             obj.asGlobal(item.getName());
                         }
