@@ -1,6 +1,5 @@
 package org.qbicc.graph;
 
-import java.util.NoSuchElementException;
 import java.util.Objects;
 
 import org.qbicc.type.ReferenceType;
@@ -55,7 +54,7 @@ public final class CheckCast extends AbstractValue implements CastValue, Ordered
     }
 
     @Override
-    public Node getDependency() throws NoSuchElementException {
+    public Node getDependency() {
         return dependency;
     }
 
