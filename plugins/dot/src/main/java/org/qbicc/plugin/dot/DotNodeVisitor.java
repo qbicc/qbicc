@@ -114,6 +114,7 @@ import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueReturn;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.Xor;
+import org.qbicc.graph.literal.BitCastLiteral;
 import org.qbicc.graph.literal.BlockLiteral;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.ConstantLiteral;
@@ -781,6 +782,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final BitCast node) {
         return node(param, "bit cast", node);
+    }
+
+    public String visit(final Appendable param, final BitCastLiteral node) {
+        return literal(param, "bit cast →" + node.getType().toString());
     }
 
     public String visit(final Appendable param, final BlockLiteral node) {
