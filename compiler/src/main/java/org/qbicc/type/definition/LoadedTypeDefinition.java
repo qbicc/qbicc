@@ -58,10 +58,6 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
         return getType().isSubtypeOf(other.getType());
     }
 
-    FieldSet getInstanceFieldSet();
-
-    FieldSet getStaticFieldSet();
-
     MethodElement[] getInstanceMethods();
 
     NestedClassElement getEnclosingNestedClass();

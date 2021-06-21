@@ -30,8 +30,6 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     private final MethodElement[] instanceMethods;
     private final ConstructorElement[] ctors;
     private final InitializerElement init;
-    private final FieldSet staticFieldSet;
-    private final FieldSet instanceFieldSet;
     private final NestedClassElement enclosingClass;
     private final NestedClassElement[] enclosedClasses;
     private int typeId = -1;
@@ -60,8 +58,6 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         } else {
             type = getContext().getTypeSystem().generateClassObjectType(delegate, superType == null ? null : superType.getClassType(), List.of(interfaceTypes));
         }
-        instanceFieldSet = new FieldSet(this, false);
-        staticFieldSet = new FieldSet(this, true);
 
         /* Walk methods of interfaces looking for default methods */
         boolean buildDeclaresDefaultMethods = false;
@@ -146,10 +142,6 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     public MethodElement[] getInstanceMethods() { return instanceMethods; }
 
-    public FieldSet getStaticFieldSet() {
-        return staticFieldSet;
-    }
-
     public NestedClassElement getEnclosingNestedClass() {
         return enclosingClass;
     }
@@ -160,10 +152,6 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     public NestedClassElement getEnclosedNestedClass(final int index) throws IndexOutOfBoundsException {
         return enclosedClasses[index];
-    }
-
-    public FieldSet getInstanceFieldSet() {
-        return instanceFieldSet;
     }
 
     public int getFieldCount() {
