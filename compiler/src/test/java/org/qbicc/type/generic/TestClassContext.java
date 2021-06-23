@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -13,8 +14,12 @@ import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.Location;
+import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.Node;
+import org.qbicc.graph.NodeVisitor;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.interpreter.VmObject;
@@ -141,6 +146,10 @@ public class TestClassContext implements ClassContext {
         }
 
         public void runParallelTask(Consumer<CompilationContext> task) throws IllegalStateException {
+        }
+
+        public BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> getCopier() {
+            return null;
         }
 
         public <T> T getAttachment(final AttachmentKey<T> key) {
