@@ -55,6 +55,7 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     private final ExecutableElement rootElement;
     private Node callSite;
     private BasicBlock terminatedBlock;
+    private boolean started;
 
     SimpleBasicBlockBuilder(final ExecutableElement element, final TypeSystem typeSystem) {
         this.element = element;
@@ -119,6 +120,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
 
     public void setExceptionHandlerPolicy(final ExceptionHandlerPolicy policy) {
         this.policy = policy;
+    }
+
+    public void startMethod(List<ParameterValue> arguments) {
+        started = true;
     }
 
     public void finish() {
@@ -723,6 +728,9 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
     }
 
     public Node begin(final BlockLabel blockLabel) {
+        if (!started) {
+            throw new IllegalStateException("begin() called before startMethod()");
+        }
         Assert.checkNotNullParam("blockLabel", blockLabel);
         if (blockLabel.hasTarget()) {
             throw new IllegalStateException("Block already terminated");
