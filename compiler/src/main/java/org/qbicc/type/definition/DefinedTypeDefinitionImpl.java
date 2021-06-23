@@ -276,6 +276,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                         for (int i = 0; i < pcnt; i ++) {
                                             paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
                                         }
+                                        bbb.startMethod(paramValues);
                                         // build the entry block
                                         BlockLabel entryLabel = new BlockLabel();
                                         bbb.begin(entryLabel);
@@ -322,6 +323,7 @@ final class DefinedTypeDefinitionImpl implements DefinedTypeDefinition {
                                 for (int i = 0; i < pcnt; i ++) {
                                     paramValues.add(bbb.parameter(type.getParameterType(i), "p", i));
                                 }
+                                bbb.startMethod(paramValues);
                                 // build the entry block
                                 BlockLabel entryLabel = new BlockLabel();
                                 bbb.begin(entryLabel);

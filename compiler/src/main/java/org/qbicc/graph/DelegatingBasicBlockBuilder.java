@@ -91,6 +91,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         getDelegate().setExceptionHandlerPolicy(policy);
     }
 
+    public void startMethod(List<ParameterValue> arguments) {
+        getDelegate().startMethod(arguments);
+    }
+
     public void finish() {
         getDelegate().finish();
     }

@@ -1224,6 +1224,9 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             parameters = ParameterValue.NO_PARAMETER_VALUES;
             currentVarTypes = NO_TYPES;
         }
+
+        gf.startMethod(List.of(parameters));
+
         // create type information for phi generation
         int smtOff = classMethodInfo.getStackMapTableOffs();
         if (smtOff == -1) {

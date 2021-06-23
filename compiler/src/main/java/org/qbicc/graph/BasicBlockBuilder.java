@@ -130,6 +130,11 @@ public interface BasicBlockBuilder extends Locatable {
     void setExceptionHandlerPolicy(ExceptionHandlerPolicy policy);
 
     /**
+     * Signal method entry with the given arguments.
+     */
+    void startMethod(List<ParameterValue> arguments);
+
+    /**
      * Indicate that all construction is complete.
      */
     void finish();

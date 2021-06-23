@@ -437,6 +437,7 @@ public class Driver implements Closeable {
                 MethodBody original = element.getMethodBody();
                 BasicBlock entryBlock = original.getEntryBlock();
                 BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
+                builder.startMethod(original.getParameterValues());
                 BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, addToAnalyzeCopiers);
                 builder.finish();
                 element.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), original.getThisValue(), original.getParameterValues()));
@@ -522,6 +523,7 @@ public class Driver implements Closeable {
                     }
                     paramValues.addAll(origParamValues);
                 }
+                builder.startMethod(paramValues);
                 Function function = compilationContext.getExactFunction(element);
                 BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, analyzeToLowerCopiers);
                 builder.finish();
