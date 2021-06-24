@@ -5,7 +5,10 @@ import org.qbicc.type.ValueType;
 
 /**
  * A literal representing a linkable external symbol reference.
+ *
+ * @deprecated Prefer {@code ProgramObject} value handles instead.
  */
+@Deprecated
 public final class SymbolLiteral extends Literal {
     private final String name;
     private final ValueType type;
