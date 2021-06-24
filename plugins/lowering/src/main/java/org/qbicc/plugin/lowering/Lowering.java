@@ -69,6 +69,7 @@ public class Lowering {
         if (appearing != null) {
             return appearing;
         }
+
         Section section = ctxt.getOrAddProgramModule(enclosingType).getOrAddSection(sectionName);
         Value initialValue = fieldElement.getInitialValue();
         Linkage linkage = Linkage.EXTERNAL;

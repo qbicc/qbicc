@@ -40,5 +40,6 @@
         <module>verification</module>
         <module>unwind</module>
         <module>serialization</module>
+        <module>methodinfo</module>
     </modules>
 </project>

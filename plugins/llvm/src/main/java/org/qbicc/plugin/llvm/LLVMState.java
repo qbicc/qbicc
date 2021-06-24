@@ -26,5 +26,4 @@ final class LLVMState {
             return List.copyOf(modulePaths);
         }
     }
-
 }

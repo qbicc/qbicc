@@ -105,6 +105,10 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public ProgramModule getProgramModule(final DefinedTypeDefinition type) {
+            return null;
+        }
+
         public ProgramModule getOrAddProgramModule(final DefinedTypeDefinition type) {
             return null;
         }

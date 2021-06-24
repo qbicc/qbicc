@@ -53,6 +53,151 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
         this.pieLevel = pieLevel;
     }
 
+    public Path processProgramModule(final CompilationContext ctxt, final ProgramModule programModule) {
+        DefinedTypeDefinition def = programModule.getTypeDefinition();
+        Path outputFile = ctxt.getOutputFile(def, "ll");
+        final Module module = Module.newModule();
+        final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(module, ctxt);
+        final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(module, ctxt);
+        final LLVMPseudoIntrinsics pseudoIntrinsics = new LLVMPseudoIntrinsics(module);
+
+        if (picLevel != 0) {
+            module.addFlag(ModuleFlagBehavior.Max, "PIC Level", Types.i32, Values.intConstant(picLevel));
+        }
+
+        if (pieLevel != 0) {
+            module.addFlag(ModuleFlagBehavior.Max, "PIE Level", Types.i32, Values.intConstant(pieLevel));
+        }
+
+        // declare debug function here
+        org.qbicc.machine.llvm.Function decl = module.declare("llvm.dbg.addr");
+        decl.returns(Types.void_);
+        decl.param(Types.metadata).param(Types.metadata).param(Types.metadata);
+
+        for (Section section : programModule.sections()) {
+            String sectionName = section.getName();
+            for (ProgramObject item : section.contents()) {
+                String name = item.getName();
+                Linkage linkage = map(item.getLinkage());
+                if (item instanceof Function) {
+                    ExecutableElement element = ((Function) item).getOriginalElement();
+                    MethodBody body = ((Function) item).getBody();
+                    boolean isExact = item == ctxt.getExactFunction(element);
+                    if (body == null) {
+                        ctxt.error("Function `%s` has no body", name);
+                        continue;
+                    }
+                    BasicBlock entryBlock = body.getEntryBlock();
+                    FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
+                    LLValue topSubprogram = null;
+
+                    if (isExact) {
+                        topSubprogram = debugInfo.getDebugInfoForFunction(element).getSubprogram();
+                        functionDefinition.meta("dbg", topSubprogram);
+                    } else {
+                        topSubprogram = debugInfo.createThunkSubprogram((Function) item).asRef();
+                        functionDefinition.meta("dbg", topSubprogram);
+                    }
+                    functionDefinition.attribute(FunctionAttributes.framePointer("non-leaf"));
+                    functionDefinition.attribute(FunctionAttributes.uwtable);
+                    functionDefinition.gc("statepoint-example");
+
+                    LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
+                    if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
+                        functionDefinition.section(sectionName);
+                    }
+
+                    nodeVisitor.execute();
+                } else if (item instanceof FunctionDeclaration) {
+                    FunctionDeclaration fn = (FunctionDeclaration) item;
+                    decl = module.declare(name).linkage(linkage);
+                    FunctionType fnType = fn.getType();
+                    decl.returns(moduleVisitor.map(fnType.getReturnType()));
+                    int cnt = fnType.getParameterCount();
+                    for (int i = 0; i < cnt; i++) {
+                        ValueType type = fnType.getParameterType(i);
+                        if (type instanceof VariadicType) {
+                            if (i < cnt - 1) {
+                                throw new IllegalStateException("Variadic type as non-final parameter type");
+                            }
+                            decl.variadic();
+                        } else {
+                            decl.param(moduleVisitor.map(type));
+                        }
+                    }
+                } else if (item instanceof DataDeclaration) {
+                    Global obj = module.global(moduleVisitor.map(item.getType())).linkage(Linkage.EXTERNAL);
+                    ThreadLocalMode tlm = item.getThreadLocalMode();
+                    if (tlm != null) {
+                        obj.threadLocal(map(tlm));
+                    }
+                    obj.asGlobal(item.getName());
+                    if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
+                        obj.section(sectionName);
+                    }
+                    if (item.getAddrspace() != 0) {
+                        obj.addressSpace(item.getAddrspace());
+                    }
+                } else if (item instanceof DataDeclaration) {
+                    Global obj = module.global(moduleVisitor.map(item.getType())).linkage(Linkage.EXTERNAL);
+                    ThreadLocalMode tlm = item.getThreadLocalMode();
+                    if (tlm != null) {
+                        obj.threadLocal(map(tlm));
+                    }
+                    obj.asGlobal(item.getName());
+                    if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
+                        obj.section(sectionName);
+                    }
+                    if (item.getAddrspace() != 0) {
+                        obj.addressSpace(item.getAddrspace());
+                    }
+                } else {
+                    assert item instanceof Data;
+                    Literal value = (Literal) ((Data) item).getValue();
+                    Global obj = module.global(moduleVisitor.map(item.getType()));
+                    if (value != null) {
+                        obj.value(moduleVisitor.map(value));
+                    } else {
+                        obj.value(Values.zeroinitializer);
+                    }
+                    obj.alignment(item.getType().getAlign());
+                    obj.linkage(linkage);
+                    ThreadLocalMode tlm = item.getThreadLocalMode();
+                    if (tlm != null) {
+                        obj.threadLocal(map(tlm));
+                    }
+                    if (((Data) item).isDsoLocal()) {
+                        obj.preemption(RuntimePreemption.LOCAL);
+                    }
+                    if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
+                        obj.section(sectionName);
+                    }
+                    if (item.getAddrspace() != 0) {
+                        obj.addressSpace(item.getAddrspace());
+                    }
+                    obj.asGlobal(item.getName());
+                }
+            }
+        }
+        try {
+            Path parent = outputFile.getParent();
+            if (! Files.exists(parent)) {
+                Files.createDirectories(parent);
+            }
+            try (BufferedWriter writer = Files.newBufferedWriter(outputFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+                module.writeTo(writer);
+            }
+        } catch (IOException e) {
+            ctxt.error("Failed to write \"%s\": %s", outputFile, e.getMessage());
+            try {
+                Files.deleteIfExists(outputFile);
+            } catch (IOException e2) {
+                ctxt.warning("Failed to clean \"%s\": %s", outputFile, e.getMessage());
+            }
+        }
+        return outputFile;
+    }
+
     public void accept(final CompilationContext compilationContext) {
         List<ProgramModule> allProgramModules = compilationContext.getAllProgramModules();
         Iterator<ProgramModule> iterator = allProgramModules.iterator();
@@ -65,135 +210,7 @@ public class LLVMGenerator implements Consumer<CompilationContext>, ValueVisitor
                     }
                     programModule = iterator.next();
                 }
-                DefinedTypeDefinition def = programModule.getTypeDefinition();
-                Path outputFile = ctxt.getOutputFile(def, "ll");
-                final Module module = Module.newModule();
-                final LLVMModuleNodeVisitor moduleVisitor = new LLVMModuleNodeVisitor(module, ctxt);
-                final LLVMModuleDebugInfo debugInfo = new LLVMModuleDebugInfo(module, ctxt);
-                final LLVMPseudoIntrinsics pseudoIntrinsics = new LLVMPseudoIntrinsics(module);
-
-                if (picLevel != 0) {
-                    module.addFlag(ModuleFlagBehavior.Max, "PIC Level", Types.i32, Values.intConstant(picLevel));
-                }
-
-                if (pieLevel != 0) {
-                    module.addFlag(ModuleFlagBehavior.Max, "PIE Level", Types.i32, Values.intConstant(pieLevel));
-                }
-
-                // declare debug function here
-                org.qbicc.machine.llvm.Function decl = module.declare("llvm.dbg.addr");
-                decl.returns(Types.void_);
-                decl.param(Types.metadata).param(Types.metadata).param(Types.metadata);
-
-                for (Section section : programModule.sections()) {
-                    String sectionName = section.getName();
-                    for (ProgramObject item : section.contents()) {
-                        String name = item.getName();
-                        Linkage linkage = map(item.getLinkage());
-                        if (item instanceof Function) {
-                            ExecutableElement element = ((Function) item).getOriginalElement();
-                            MethodBody body = ((Function) item).getBody();
-                            boolean isExact = item == ctxt.getExactFunction(element);
-                            if (body == null) {
-                                ctxt.error("Function `%s` has no body", name);
-                                continue;
-                            }
-                            BasicBlock entryBlock = body.getEntryBlock();
-                            FunctionDefinition functionDefinition = module.define(name).linkage(linkage);
-                            LLValue topSubprogram = null;
-
-                            if (isExact) {
-                                topSubprogram = debugInfo.getDebugInfoForFunction(element).getSubprogram();
-                                functionDefinition.meta("dbg", topSubprogram);
-                            } else {
-                                topSubprogram = debugInfo.createThunkSubprogram((Function) item).asRef();
-                                functionDefinition.meta("dbg", topSubprogram);
-                            }
-
-                            functionDefinition.attribute(FunctionAttributes.framePointer("non-leaf"));
-                            functionDefinition.attribute(FunctionAttributes.uwtable);
-                            functionDefinition.gc("statepoint-example");
-
-                            LLVMNodeVisitor nodeVisitor = new LLVMNodeVisitor(ctxt, module, debugInfo, pseudoIntrinsics, topSubprogram, moduleVisitor, Schedule.forMethod(entryBlock), ((Function) item), functionDefinition);
-                            if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
-                                functionDefinition.section(sectionName);
-                            }
-
-                            nodeVisitor.execute();
-                        } else if (item instanceof FunctionDeclaration) {
-                            FunctionDeclaration fn = (FunctionDeclaration) item;
-                            decl = module.declare(name).linkage(linkage);
-                            FunctionType fnType = fn.getType();
-                            decl.returns(moduleVisitor.map(fnType.getReturnType()));
-                            int cnt = fnType.getParameterCount();
-                            for (int i = 0; i < cnt; i++) {
-                                ValueType type = fnType.getParameterType(i);
-                                if (type instanceof VariadicType) {
-                                    if (i < cnt - 1) {
-                                        throw new IllegalStateException("Variadic type as non-final parameter type");
-                                    }
-                                    decl.variadic();
-                                } else {
-                                    decl.param(moduleVisitor.map(type));
-                                }
-                            }
-                        } else if (item instanceof DataDeclaration) {
-                            Global obj = module.global(moduleVisitor.map(item.getType())).linkage(Linkage.EXTERNAL);
-                            ThreadLocalMode tlm = item.getThreadLocalMode();
-                            if (tlm != null) {
-                                obj.threadLocal(map(tlm));
-                            }
-                            obj.asGlobal(item.getName());
-                            if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
-                                obj.section(sectionName);
-                            }
-                            if (item.getAddrspace() != 0) {
-                                obj.addressSpace(item.getAddrspace());
-                            }
-                        } else {
-                            assert item instanceof Data;
-                            Literal value = (Literal) ((Data) item).getValue();
-                            Global obj = module.global(moduleVisitor.map(item.getType()));
-                            if (value != null) {
-                                obj.value(moduleVisitor.map(value));
-                            } else {
-                                obj.value(Values.zeroinitializer);
-                            }
-                            obj.alignment(item.getType().getAlign());
-                            obj.linkage(linkage);
-                            ThreadLocalMode tlm = item.getThreadLocalMode();
-                            if (tlm != null) {
-                                obj.threadLocal(map(tlm));
-                            }
-                            if (((Data) item).isDsoLocal()) {
-                                obj.preemption(RuntimePreemption.LOCAL);
-                            }
-                            if (! sectionName.equals(CompilationContext.IMPLICIT_SECTION_NAME)) {
-                                obj.section(sectionName);
-                            }
-                            if (item.getAddrspace() != 0) {
-                                obj.addressSpace(item.getAddrspace());
-                            }
-                            obj.asGlobal(item.getName());
-                        }
-                    }
-                }
-                try {
-                    Path parent = outputFile.getParent();
-                    if (! Files.exists(parent)) {
-                        Files.createDirectories(parent);
-                    }
-                    try (BufferedWriter writer = Files.newBufferedWriter(outputFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
-                        module.writeTo(writer);
-                    }
-                } catch (IOException e) {
-                    ctxt.error("Failed to write \"%s\": %s", outputFile, e.getMessage());
-                    try {
-                        Files.deleteIfExists(outputFile);
-                    } catch (IOException e2) {
-                        ctxt.warning("Failed to clean \"%s\": %s", outputFile, e.getMessage());
-                    }
-                }
+                Path outputFile = processProgramModule(compilationContext, programModule);
                 LLVMState llvmState = ctxt.computeAttachmentIfAbsent(LLVMState.KEY, LLVMState::new);
                 llvmState.addModulePath(outputFile);
             }

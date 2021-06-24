@@ -28,39 +28,93 @@ public class LLVMCompileStage implements Consumer<CompilationContext> {
         this.isPie = isPie;
     }
 
-    public void accept(final CompilationContext context) {
-        LLVMState llvmState = context.getAttachment(LLVMState.KEY);
-        if (llvmState == null) {
-            context.note("No LLVM compilation units detected");
+    public void compileModule(final CompilationContext context, Path modulePath) {
+        LlcInvoker llcInvoker = createLlcInvoker(context);
+        OptInvoker optInvoker = createOptInvoker(context);
+        CCompilerInvoker ccInvoker = createCCompilerInvoker(context);
+
+        if (llcInvoker == null || optInvoker == null || ccInvoker == null) {
             return;
         }
-        LlvmToolChain llvmToolChain = context.getAttachment(Driver.LLVM_TOOL_KEY);
-        if (llvmToolChain == null) {
-            context.error("No LLVM tool chain is available");
-            return;
-        }
+
+        compileModule(context, modulePath, llcInvoker, optInvoker, ccInvoker);
+    }
+
+    private void compileModule(final CompilationContext context, Path modulePath, LlcInvoker llcInvoker, OptInvoker optInvoker, CCompilerInvoker ccInvoker) {
         CToolChain cToolChain = context.getAttachment(Driver.C_TOOL_CHAIN_KEY);
         if (cToolChain == null) {
             context.error("No C tool chain is available");
             return;
         }
 
-        Linker linker = Linker.get(context);
+        String moduleName = modulePath.getFileName().toString();
+        if (moduleName.endsWith(".ll")) {
+            String baseName = moduleName.substring(0, moduleName.length() - 3);
+            String optBitCodeName = baseName + "_opt.bc";
+            String assemblyName = baseName + ".s";
+            String objectName = baseName + "." + cToolChain.getPlatform().getObjectType().objectSuffix();
+
+            Path optBitCodePath = modulePath.resolveSibling(optBitCodeName);
+            Path assemblyPath = modulePath.resolveSibling(assemblyName);
+            Path objectPath = modulePath.resolveSibling(objectName);
+
+            optInvoker.setSource(InputSource.from(modulePath));
+            optInvoker.setDestination(OutputDestination.of(optBitCodePath));
+            int errCnt = context.errors();
+            try {
+                optInvoker.invoke();
+            } catch (IOException e) {
+                if (errCnt == context.errors()) {
+                    // whatever the problem was, it wasn't reported, so add an additional error here
+                    context.error(Location.builder().setSourceFilePath(modulePath.toString()).build(), "`opt` invocation has failed: %s", e.toString());
+                }
+                return;
+            }
+
+            llcInvoker.setSource(InputSource.from(optBitCodePath));
+            llcInvoker.setDestination(OutputDestination.of(assemblyPath));
+            errCnt = context.errors();
+            try {
+                llcInvoker.invoke();
+            } catch (IOException e) {
+                if (errCnt == context.errors()) {
+                    // whatever the problem was, it wasn't reported, so add an additional error here
+                    context.error(Location.builder().setSourceFilePath(modulePath.toString()).build(), "`llc` invocation has failed: %s", e.toString());
+                }
+                return;
+            }
+
+            // now compile it
+            ccInvoker.setSource(InputSource.from(assemblyPath));
+            ccInvoker.setOutputPath(objectPath);
+            try {
+                ccInvoker.invoke();
+            } catch (IOException e) {
+                context.error("Compiler invocation has failed for %s: %s", modulePath, e.toString());
+                return;
+            }
+            Linker.get(context).addObjectFilePath(objectPath);
+        } else {
+            context.warning("Ignoring unknown module file name \"%s\"", modulePath);
+        }
+    }
+
+    public void accept(final CompilationContext context) {
+        LLVMState llvmState = context.getAttachment(LLVMState.KEY);
+        if (llvmState == null) {
+            context.note("No LLVM compilation units detected");
+            return;
+        }
 
         Iterator<Path> iterator = llvmState.getModulePaths().iterator();
         context.runParallelTask(ctxt -> {
-            LlcInvoker llcInvoker = llvmToolChain.newLlcInvoker();
-            llcInvoker.setMessageHandler(ToolMessageHandler.reporting(ctxt));
-            llcInvoker.setOutputFormat(OutputFormat.ASM);
-            llcInvoker.setRelocationModel(isPie ? RelocationModel.Pic : RelocationModel.Static);
+            LlcInvoker llcInvoker = createLlcInvoker(ctxt);
+            OptInvoker optInvoker = createOptInvoker(ctxt);
+            CCompilerInvoker ccInvoker = createCCompilerInvoker(ctxt);
 
-            OptInvoker optInvoker = llvmToolChain.newOptInvoker();
-            optInvoker.addOptimizationPass(OptPass.RewriteStatepointsForGc);
-            optInvoker.addOptimizationPass(OptPass.AlwaysInline);
-
-            CCompilerInvoker ccInvoker = cToolChain.newCompilerInvoker();
-            ccInvoker.setMessageHandler(ToolMessageHandler.reporting(ctxt));
-            ccInvoker.setSourceLanguage(CCompilerInvoker.SourceLanguage.ASM);
+            if (llcInvoker == null || optInvoker == null || ccInvoker == null) {
+                return;
+            }
 
             for (;;) {
                 Path modulePath;
@@ -70,57 +124,45 @@ public class LLVMCompileStage implements Consumer<CompilationContext> {
                     }
                     modulePath = iterator.next();
                 }
-                String moduleName = modulePath.getFileName().toString();
-                if (moduleName.endsWith(".ll")) {
-                    String baseName = moduleName.substring(0, moduleName.length() - 3);
-                    String optBitCodeName = baseName + "_opt.bc";
-                    String assemblyName = baseName + ".s";
-                    String objectName = baseName + "." + cToolChain.getPlatform().getObjectType().objectSuffix();
-
-                    Path optBitCodePath = modulePath.resolveSibling(optBitCodeName);
-                    Path assemblyPath = modulePath.resolveSibling(assemblyName);
-                    Path objectPath = modulePath.resolveSibling(objectName);
-
-                    optInvoker.setSource(InputSource.from(modulePath));
-                    optInvoker.setDestination(OutputDestination.of(optBitCodePath));
-                    int errCnt = ctxt.errors();
-                    try {
-                        optInvoker.invoke();
-                    } catch (IOException e) {
-                        if (errCnt == ctxt.errors()) {
-                            // whatever the problem was, it wasn't reported, so add an additional error here
-                            ctxt.error(Location.builder().setSourceFilePath(modulePath.toString()).build(), "`opt` invocation has failed: %s", e.toString());
-                        }
-                        continue;
-                    }
-
-                    llcInvoker.setSource(InputSource.from(optBitCodePath));
-                    llcInvoker.setDestination(OutputDestination.of(assemblyPath));
-                    errCnt = ctxt.errors();
-                    try {
-                        llcInvoker.invoke();
-                    } catch (IOException e) {
-                        if (errCnt == ctxt.errors()) {
-                            // whatever the problem was, it wasn't reported, so add an additional error here
-                            ctxt.error(Location.builder().setSourceFilePath(modulePath.toString()).build(), "`llc` invocation has failed: %s", e.toString());
-                        }
-                        continue;
-                    }
-
-                    // now compile it
-                    ccInvoker.setSource(InputSource.from(assemblyPath));
-                    ccInvoker.setOutputPath(objectPath);
-                    try {
-                        ccInvoker.invoke();
-                    } catch (IOException e) {
-                        ctxt.error("Compiler invocation has failed for %s: %s", modulePath, e.toString());
-                        continue;
-                    }
-                    linker.addObjectFilePath(objectPath);
-                } else {
-                    ctxt.warning("Ignoring unknown module file name \"%s\"", modulePath);
-                }
+                compileModule(ctxt, modulePath, llcInvoker, optInvoker, ccInvoker);
             }
         });
+    }
+
+    private CCompilerInvoker createCCompilerInvoker(CompilationContext context) {
+        CToolChain cToolChain = context.getAttachment(Driver.C_TOOL_CHAIN_KEY);
+        if (cToolChain == null) {
+            context.error("No C tool chain is available");
+            return null;
+        }
+        CCompilerInvoker ccInvoker = cToolChain.newCompilerInvoker();
+        ccInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
+        ccInvoker.setSourceLanguage(CCompilerInvoker.SourceLanguage.ASM);
+        return ccInvoker;
+    }
+
+    private OptInvoker createOptInvoker(CompilationContext context) {
+        LlvmToolChain llvmToolChain = context.getAttachment(Driver.LLVM_TOOL_KEY);
+        if (llvmToolChain == null) {
+            context.error("No LLVM tool chain is available");
+            return null;
+        }
+        OptInvoker optInvoker = llvmToolChain.newOptInvoker();
+        optInvoker.addOptimizationPass(OptPass.RewriteStatepointsForGc);
+        optInvoker.addOptimizationPass(OptPass.AlwaysInline);
+        return optInvoker;
+    }
+
+    private LlcInvoker createLlcInvoker(CompilationContext context) {
+        LlvmToolChain llvmToolChain = context.getAttachment(Driver.LLVM_TOOL_KEY);
+        if (llvmToolChain == null) {
+            context.error("No LLVM tool chain is available");
+            return null;
+        }
+        LlcInvoker llcInvoker = llvmToolChain.newLlcInvoker();
+        llcInvoker.setMessageHandler(ToolMessageHandler.reporting(context));
+        llcInvoker.setOutputFormat(OutputFormat.ASM);
+        llcInvoker.setRelocationModel(isPie ? RelocationModel.Pic : RelocationModel.Static);
+        return llcInvoker;
     }
 }

@@ -65,6 +65,7 @@ import org.qbicc.plugin.lowering.ThrowLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.VMHelpersSetupHook;
 import org.qbicc.plugin.main_method.AddMainClassHook;
 import org.qbicc.plugin.main_method.MainMethod;
+import org.qbicc.plugin.methodinfo.MethodDataEmitter;
 import org.qbicc.plugin.native_.ConstTypeResolver;
 import org.qbicc.plugin.native_.ConstantDefiningBasicBlockBuilder;
 import org.qbicc.plugin.native_.ExternExportTypeBuilder;
@@ -393,6 +394,7 @@ public class Main implements Callable<DiagnosticContext> {
 
                                 builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
                                 builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie));
+                                builder.addPostHook(Phase.GENERATE, new MethodDataEmitter(isPie));
                                 builder.addPostHook(Phase.GENERATE, new LinkStage(isPie));
 
                                 CompilationContext ctxt;

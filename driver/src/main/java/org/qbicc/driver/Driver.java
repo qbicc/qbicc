@@ -544,7 +544,7 @@ public class Driver implements Closeable {
             try {
                 hook.accept(compilationContext);
             } catch (Exception e) {
-                log.error("An exception was thrown in a post-generate hook", e);
+                log.error("An exception was thrown in a post-generate hook " + hook.getClass().getName(), e);
                 compilationContext.error("Post-generate hook failed: %s", e);
             }
             if (compilationContext.errors() > 0) {

@@ -286,6 +286,10 @@ final class CompilationContextImpl implements CompilationContext {
         }
     }
 
+    public ProgramModule getProgramModule(final DefinedTypeDefinition type) {
+        return programModules.get(type);
+    }
+
     public ProgramModule getOrAddProgramModule(final DefinedTypeDefinition type) {
         return programModules.computeIfAbsent(type, t -> new ProgramModule(t, typeSystem, literalFactory));
     }
