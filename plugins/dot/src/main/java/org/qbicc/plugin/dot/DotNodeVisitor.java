@@ -33,6 +33,8 @@ import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.ConstructorElementHandle;
+import org.qbicc.graph.DataDeclarationHandle;
+import org.qbicc.graph.DataHandle;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractInstanceField;
@@ -342,6 +344,24 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "constructor\\n" + node.getExecutable());
         nl(param);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(Appendable param, DataDeclarationHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        nl(param);
+        attr(param, "label", "data\\n" + node.getProgramObject());
+        nl(param);
+        return name;
+    }
+
+    public String visit(Appendable param, DataHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        nl(param);
+        attr(param, "label", "data\\n" + node.getProgramObject());
+        nl(param);
         return name;
     }
 

@@ -26,6 +26,8 @@ import org.qbicc.graph.Cmp;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.Convert;
+import org.qbicc.graph.DataDeclarationHandle;
+import org.qbicc.graph.DataHandle;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.Extend;
@@ -1034,6 +1036,16 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     // GEP
+
+    @Override
+    public GetElementPtr visit(Void param, DataDeclarationHandle node) {
+        return gep(Values.global(node.getProgramObject().getName()), node).arg(false, i32, ZERO);
+    }
+
+    @Override
+    public GetElementPtr visit(Void param, DataHandle node) {
+        return gep(Values.global(node.getProgramObject().getName()), node).arg(false, i32, ZERO);
+    }
 
     @Override
     public GetElementPtr visit(Void param, ElementOf node) {
