@@ -286,8 +286,8 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
     }
 
     private void compileMethodDataModule(CompilationContext context, Path modulePath) {
-        LLVMCompileStage compileStage = new LLVMCompileStage(isPie);
-        compileStage.compileModule(context, modulePath);
+        LLVMCompiler compiler = new LLVMCompiler(context, isPie);
+        compiler.compileModule(context, modulePath);
     }
 
     @Override
