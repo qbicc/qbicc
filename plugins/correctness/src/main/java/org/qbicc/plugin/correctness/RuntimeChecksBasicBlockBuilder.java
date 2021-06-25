@@ -246,7 +246,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 if (! node.getVariableElement().isStatic()) {
                     throwIncompatibleClassChangeError();
                 }
-                initCheck(node.getElement().getEnclosingType().load().getType());
+                initCheck(node.getVariableElement().getEnclosingType().load().getType());
                 return null;
             }
 
@@ -312,7 +312,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                     throwIncompatibleClassChangeError();
                     throw Assert.unreachableCode();
                 }
-                initCheck(node.getElement().getEnclosingType().load().getType());
+                initCheck(node.getExecutable().getEnclosingType().load().getType());
                 // return value unused in this case
                 return null;
             }
