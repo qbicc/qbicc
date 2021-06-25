@@ -67,8 +67,13 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         boolean buildDeclaresDefaultMethods = false;
         if (isInterface()) {
             for (MethodElement method : instanceMethods) {
-                if (!method.isStatic() && !method.isAbstract()) {
-                    buildDeclaresDefaultMethods = true;
+                /* Only look at locally defined methods to determine if 
+                 * this class has default methods 
+                 */
+                if (method.getEnclosingType().equals(delegate)) {
+                    if (!method.isStatic() && !method.isAbstract()) {
+                        buildDeclaresDefaultMethods = true;
+                    }
                 }
             }
         }
