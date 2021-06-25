@@ -108,7 +108,7 @@ public final class CoreClasses {
         builder.setEnclosingType(jlcDef);
         builder.setDescriptor(BaseTypeDescriptor.V);
         builder.setSignature(BaseTypeSignature.V);
-        builder.setType(ts.getSignedInteger32Type());
+        builder.setType(ts.getUnsignedInteger8Type());
         field = builder.build();
         jlc.injectField(field);
         classDimensionField = field;
@@ -189,11 +189,11 @@ public final class CoreClasses {
         FieldElement.Builder fieldBuilder = FieldElement.builder();
         fieldBuilder.setEnclosingType(enclosing);
         // TODO: This should be a 8 bit unsigned field. (max dimensions is 255 from multianewarray)
-        fieldBuilder.setDescriptor(BaseTypeDescriptor.I);
-        fieldBuilder.setSignature(BaseTypeSignature.I);
+        fieldBuilder.setDescriptor(BaseTypeDescriptor.V);
+        fieldBuilder.setSignature(BaseTypeSignature.V);
         fieldBuilder.setIndex(index);
         fieldBuilder.setName("dims");
-        fieldBuilder.setType(enclosing.getContext().getTypeSystem().getSignedInteger32Type());
+        fieldBuilder.setType(enclosing.getContext().getTypeSystem().getUnsignedInteger8Type());
         fieldBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PRIVATE | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         return fieldBuilder.build();
     }

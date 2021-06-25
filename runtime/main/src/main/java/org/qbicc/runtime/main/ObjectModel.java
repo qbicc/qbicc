@@ -1,6 +1,7 @@
 package org.qbicc.runtime.main;
 
 import org.qbicc.runtime.CNative;
+import org.qbicc.runtime.stdc.Stdint;
 
 /**
  * Intrinsics for accessing implementation-dependent object header fields
@@ -16,7 +17,7 @@ public class ObjectModel {
      * Get the dimensionality for the represented type from a java.lang.Class instance.
      * Classes and interfaces have dimensionality 0.
      */
-    public static native int get_dimensions_from_class(Class<?> cls);
+    public static native Stdint.uint8_t get_dimensions_from_class(Class<?> cls);
 
     /**
      * Get the concrete type ID for the represented type from a java.lang.Class instance.
@@ -38,7 +39,7 @@ public class ObjectModel {
      * @param arrayReference the array reference (must not be {@code null} and must be an Object[])
      * @return the dimensionality of the array
      */
-    public static native int dimensions_of(Object arrayReference); // Object not Object[] because we use this in the impl of cast
+    public static native Stdint.uint8_t dimensions_of(Object arrayReference); // Object not Object[] because we use this in the impl of cast
 
     /**
      * Get the element type ID value of the referenced array.

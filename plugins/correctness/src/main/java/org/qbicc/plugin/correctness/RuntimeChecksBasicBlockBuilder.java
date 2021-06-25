@@ -224,7 +224,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                     indexOutOfBoundsCheck(arrayHandle, node.getIndex());
                     if (arrayType instanceof ReferenceArrayObjectType && storedValue != null) {
                         Value toTypeId = load(instanceFieldOf(arrayHandle, Layout.get(ctxt).getRefArrayElementTypeIdField()), MemoryAtomicityMode.UNORDERED);
-                        Value toDimensions = ctxt.getLiteralFactory().literalOf(((ReferenceArrayObjectType) arrayType).getDimensionCount() - 1);
+                        Value toDimensions = ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), ((ReferenceArrayObjectType) arrayType).getDimensionCount() - 1);
                         return checkcast(storedValue, toTypeId, toDimensions, CheckCast.CastType.ArrayStore, ((ReferenceArrayObjectType) arrayType).getElementType());
                     }
                 }

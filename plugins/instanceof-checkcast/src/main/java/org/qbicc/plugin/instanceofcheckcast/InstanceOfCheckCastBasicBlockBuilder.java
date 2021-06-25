@@ -162,7 +162,8 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             boolean inlinedTest = generateTypeTest(input, expectedType, expectedDimensions, passInline, fail);
             if (!inlinedTest) {
                 MethodElement helper = ctxt.getVMHelperMethod("instanceof_typeId");
-                passResult = getFirstBuilder().call(getFirstBuilder().staticMethod(helper), List.of(input, lf.literalOfType(expectedType), lf.literalOf(expectedDimensions)));
+                passResult = getFirstBuilder().call(getFirstBuilder().staticMethod(helper),
+                    List.of(input, lf.literalOfType(expectedType), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), expectedDimensions)));
                 passLabel = notNull;
                 goto_(allDone);
             } else {

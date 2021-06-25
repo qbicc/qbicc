@@ -94,7 +94,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         store(instanceFieldOf(arrayHandle, layout.getArrayLengthField()), truncate(size, ctxt.getTypeSystem().getSignedInteger32Type()), MemoryAtomicityMode.NONE);
         if (arrayType instanceof ReferenceArrayObjectType) {
             ReferenceArrayObjectType refArrayType = (ReferenceArrayObjectType)arrayType;
-            store(instanceFieldOf(arrayHandle, layout.getRefArrayDimensionsField()), lf.literalOf(refArrayType.getDimensionCount()), MemoryAtomicityMode.NONE);
+            store(instanceFieldOf(arrayHandle, layout.getRefArrayDimensionsField()), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), refArrayType.getDimensionCount()), MemoryAtomicityMode.NONE);
             store(instanceFieldOf(arrayHandle, layout.getRefArrayElementTypeIdField()), lf.literalOfType(refArrayType.getLeafElementType()), MemoryAtomicityMode.NONE);
         }
 

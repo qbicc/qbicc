@@ -3,12 +3,14 @@ package org.qbicc.runtime.main;
 import org.qbicc.runtime.CNative;
 import org.qbicc.runtime.NoSideEffects;
 import org.qbicc.runtime.stdc.Stddef;
+import org.qbicc.runtime.stdc.Stdint;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.PThread.*;
+import static org.qbicc.runtime.stdc.Stdint.*;
 import static org.qbicc.runtime.stdc.Stdlib.*;
 
 /**
@@ -25,19 +27,19 @@ public final class VMHelpers {
             return false;
         }
         type_id toTypeId = ObjectModel.get_type_id_from_class(cls);
-        int toDim = ObjectModel.get_dimensions_from_class(cls);
+        uint8_t toDim = ObjectModel.get_dimensions_from_class(cls);
         return isAssignableTo(instance, toTypeId, toDim);
     }
 
     @NoSideEffects
-    public static boolean instanceof_typeId(Object instance, type_id typeId, int dimensions) {
+    public static boolean instanceof_typeId(Object instance, type_id typeId, uint8_t dimensions) {
         if (instance == null) {
             return false;
         }
         return isAssignableTo(instance, typeId, dimensions);
     }
 
-    public static void arrayStoreCheck(Object value, type_id toTypeId, int toDimensions) {
+    public static void arrayStoreCheck(Object value, type_id toTypeId, uint8_t toDimensions) {
         if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
         }
@@ -46,11 +48,11 @@ public final class VMHelpers {
 
     public static void checkcast_class (Object value, Class<?> cls) {
         type_id toTypeId = ObjectModel.get_type_id_from_class(cls);
-        int toDim = ObjectModel.get_dimensions_from_class(cls);
+        uint8_t toDim = ObjectModel.get_dimensions_from_class(cls);
         checkcast_typeId(value, toTypeId, toDim);
     }
 
-    public static void checkcast_typeId(Object value, type_id toTypeId, int toDimensions) {
+    public static void checkcast_typeId(Object value, type_id toTypeId, uint8_t toDimensions) {
         if (value == null || isAssignableTo(value, toTypeId, toDimensions)) {
             return;
         }
@@ -59,7 +61,7 @@ public final class VMHelpers {
 
     // Invariant: value is not null
     @NoSideEffects
-    private static boolean isAssignableTo(Object value, type_id toTypeId, int toDimensions) {
+    private static boolean isAssignableTo(Object value, type_id toTypeId, uint8_t toDimensions) {
         type_id valueTypeId = ObjectModel.type_id_of(value);
         // putchar('A');
         // putchar(':');
@@ -69,13 +71,14 @@ public final class VMHelpers {
         // putchar(':');
         // printInt(toDimensions);
         // putchar('\n');
-        if (toDimensions == 0) {
+        int intDim = toDimensions.intValue();
+        if (intDim == 0) {
             return isAssignableToLeaf(valueTypeId, toTypeId);
         } else if (ObjectModel.is_reference_array(valueTypeId)) {
-            int valueDims = ObjectModel.dimensions_of(value);
+            uint8_t valueDims = ObjectModel.dimensions_of(value);
             if (valueDims == toDimensions) {
                 return isAssignableToLeaf(ObjectModel.element_type_id_of(value), toTypeId);
-            } else if (valueDims > toDimensions) {
+            } else if (valueDims.intValue() > toDimensions.intValue()) {
                 return ObjectModel.is_java_lang_object(toTypeId) ||
                     ObjectModel.is_java_io_serializable(toTypeId) ||
                     ObjectModel.is_java_lang_cloneable(toTypeId);
