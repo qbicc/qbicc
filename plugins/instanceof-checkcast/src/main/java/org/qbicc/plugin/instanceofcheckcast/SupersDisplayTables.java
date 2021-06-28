@@ -656,6 +656,9 @@ public class SupersDisplayTables {
         if (ltd.internalNameEquals("org/qbicc/runtime/main/VMHelpers$ClinitState")) { 
             return true;
         }
+        if (ltd.internalNameEquals("org/qbicc/runtime/main/ObjectModel")) { 
+            return true;
+        }
         return false;
     }
 }
