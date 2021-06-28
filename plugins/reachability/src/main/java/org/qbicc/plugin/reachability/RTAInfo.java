@@ -4,6 +4,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -12,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
@@ -369,35 +374,42 @@ public class RTAInfo {
         }
     }
 
-    synchronized void processServiceInterface(final LoadedTypeDefinition ltd, final String internalName) {
-        if (ltd.isInterface() && !isServiceSearched(ltd)) {
-            /* process service interface */
-            addReachableInterface(ltd);
-
-            /* find and load service implementations */
-            String fileName = "META-INF/services/" + internalName.replace("/", ".");
-            try {
-                Enumeration<URL> servicefiles = ClassLoader.getSystemResources(fileName);
-                while (servicefiles.hasMoreElements()) {
-                    URL file = servicefiles.nextElement();
-                    BufferedReader in = new BufferedReader(new InputStreamReader(file.openStream()));
-
-                    String line;
-                    while ((line = in.readLine()) != null) {
-                        if (!line.isBlank()) {
-                            DefinedTypeDefinition serviceImplDefinition = ctxt.getBootstrapClassContext().findDefinedType(line.replace(".", "/"));
-                            LoadedTypeDefinition serviceImpl = serviceImplDefinition.load();
-                            addReachableClass(serviceImpl);
-                            addServiceMethods(serviceImpl);
-                        }
-                    }
-                    in.close();
-
-                }
-                addSearchedServiceInterface(ltd);
-            } catch(IOException e) {
-                ctxt.error(e, "Failed to read " + fileName);
+    synchronized void processServiceClass(final LoadedTypeDefinition ltd, final String internalName) {
+        if (!isServiceSearched(ltd)) {
+            if (ltd.isInterface()) {
+                addReachableInterface(ltd);
+            } else {
+                processInstantiatedClass(ltd, true, null);
             }
+
+            /* find and load service implementations.
+             *
+             *  TODO this method should be looking for services metadata on the application class path.
+             *  Since that has not yet been implemented the bootstrapClassPath is being used temporarily.
+             */
+            String fileName = "META-INF/services/" + internalName.replace("/", ".");
+            List<String> files = ctxt.findBootstrapConfigurationFiles(fileName);
+            for (String file : files) {
+                String[] lines = file.split(System.lineSeparator());
+                for (String line : lines) {
+                    /* filter '#' comments from line */
+                    int commentStart = line.indexOf('#');
+                    if (commentStart != -1) {
+                        line = line.substring(0, commentStart).trim();
+                    }
+                    line = line.trim();
+                    if (!line.isBlank()) {
+                        DefinedTypeDefinition serviceImplDefinition = ctxt.getBootstrapClassContext().findDefinedType(line.replace(".", "/"));
+                        if (serviceImplDefinition == null) {
+                            ctxt.error("Could not find service loader implementation class " + line);
+                            return;
+                        }
+                        LoadedTypeDefinition serviceImpl = serviceImplDefinition.load();
+                        processInstantiatedClass(serviceImpl, true, null);
+                    }
+                }
+            }
+            addSearchedServiceInterface(ltd);
         }
     }
 
@@ -411,14 +423,6 @@ public class RTAInfo {
 
     private void addSearchedServiceInterface(LoadedTypeDefinition ltd) {
         searchedServiceInterfaces.add(ltd);
-    }
-
-    private void addServiceMethods(LoadedTypeDefinition ltd) {
-        for (int i = 0; i < ltd.getMethodCount(); i++) {
-            MethodElement method = ltd.getMethod(i);
-            invokableMethods.add(method);
-            ctxt.enqueue(method);
-        }
     }
 
     private void addReachableInterface(LoadedTypeDefinition type) {

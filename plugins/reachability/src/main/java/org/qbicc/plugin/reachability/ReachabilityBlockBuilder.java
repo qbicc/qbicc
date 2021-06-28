@@ -20,8 +20,9 @@ import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
-import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -52,7 +53,7 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     public Value call(ValueHandle target, List<Value> arguments) {
         target.accept(this, null);
 
-        /* Load service interfaces and implementations. Use META-INF/services files (TODO and eventually module-info)
+        /* Load services and implementations. Use META-INF/services files (TODO and eventually module-info)
          * to identify possible service implementations.
          *
          * ServiceLoader methods to look for are:
@@ -67,19 +68,19 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
             StaticMethodElementHandle methodTarget = (StaticMethodElementHandle)target;
             MethodElement e = methodTarget.getExecutable();
             if (e.getSourceFileName().equals("ServiceLoader.java") && (e.getName().equals("load") || e.getName().equals("loadInstalled"))) {
-                Value serviceInterfaceArg = arguments.get(0);
-                if (arguments.size() == 2 && !(serviceInterfaceArg instanceof ClassOf)) {
-                    /* For load(ModuleLayer layer, Class<S> service) service interface is the second argument */
-                    serviceInterfaceArg = arguments.get(1);
+                Value serviceClassArg = arguments.get(0);
+                if (arguments.size() == 2 && !(serviceClassArg instanceof ClassOf)) {
+                    /* For load(ModuleLayer layer, Class<S> service) service class is the second argument */
+                    serviceClassArg = arguments.get(1);
                 }
-                if (serviceInterfaceArg instanceof ClassOf) {
-                    Value input = ((ClassOf) serviceInterfaceArg).getInput();
+                if (serviceClassArg instanceof ClassOf) {
+                    Value input = ((ClassOf) serviceClassArg).getInput();
                     if (input instanceof TypeLiteral) {
                         ValueType type = ((TypeLiteral) input).getValue();
-                        if (type instanceof InterfaceObjectType) {
-                            DefinedTypeDefinition serviceInterfaceDefinition = ((InterfaceObjectType) type).getDefinition();
-                            LoadedTypeDefinition serviceInterface = serviceInterfaceDefinition.load();
-                            info.processServiceInterface(serviceInterface, serviceInterfaceDefinition.getInternalName());
+                        if (type instanceof ObjectType) {
+                            DefinedTypeDefinition serviceClassDefinition = ((ObjectType) type).getDefinition();
+                            LoadedTypeDefinition serviceClass = serviceClassDefinition.load();
+                            info.processServiceClass(serviceClass, serviceClassDefinition.getInternalName());
                         }
                     }
                 }

@@ -1,8 +1,10 @@
 package org.qbicc.driver;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -71,11 +73,12 @@ final class CompilationContextImpl implements CompilationContext {
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
     private final AtomicReference<FieldElement> exceptionFieldHolder = new AtomicReference<>();
     private final SymbolLiteral qbiccBoundThread;
+    private final List<ClassPathElement> bootClassPath;
 
     // mutable state
     private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
 
-    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories) {
+    CompilationContextImpl(final BaseDiagnosticContext baseDiagnosticContext, Platform platform, final TypeSystem typeSystem, final LiteralFactory literalFactory, final BiFunction<VmObject, String, DefinedTypeDefinition> finder, final Path outputDir, final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories, List<ClassPathElement> bootClassPath) {
         this.baseDiagnosticContext = baseDiagnosticContext;
         this.platform = platform;
         this.typeSystem = typeSystem;
@@ -83,8 +86,26 @@ final class CompilationContextImpl implements CompilationContext {
         this.finder = finder;
         this.outputDir = outputDir;
         this.resolverFactories = resolverFactories;
+        this.bootClassPath = bootClassPath;
         bootstrapClassContext = new ClassContextImpl(this, null);
         qbiccBoundThread = getLiteralFactory().literalOfSymbol("_qbicc_bound_thread", getTypeSystem().getVoidType().getPointer().asCollected().getPointer());
+    }
+
+    public List<String> findBootstrapConfigurationFiles(String fullFilePath) {
+        List<String> configurationBuffers = new ArrayList<>();
+        for (ClassPathElement cpElement : bootClassPath) {
+            try (ClassPathElement.Resource configuration = cpElement.getResource(fullFilePath)) {
+                ByteBuffer buffer = configuration.getBuffer();
+                if (buffer != null) {
+                    /* service metadata files must be encoded in UTF-8 */
+                    String fileContents = StandardCharsets.UTF_8.decode(buffer).toString();
+                    configurationBuffers.add(fileContents);
+                }
+            } catch (Throwable e) {
+                error("Failed to read configuration file from class path element  \"%s\": %s", fullFilePath, e);
+            }
+        }
+        return configurationBuffers;
     }
 
     public <T> T getAttachment(final AttachmentKey<T> key) {

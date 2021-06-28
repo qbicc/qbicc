@@ -86,6 +86,8 @@ public interface CompilationContext extends DiagnosticContext {
 
     FieldElement getExceptionField();
 
+    List<String> findBootstrapConfigurationFiles(String fileName);
+
     /**
      * Run a task on every compiler thread.  When the task has returned on all threads, this method will return.  This
      * method must not be called from a compiler thread or an exception will be thrown.

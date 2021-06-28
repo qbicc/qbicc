@@ -194,7 +194,7 @@ public class Driver implements Closeable {
             finder = this::defaultFinder;
         }
 
-        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, finder, outputDir, resolverFactories);
+        compilationContext = new CompilationContextImpl(initialContext, builder.targetPlatform, typeSystem, literalFactory, finder, outputDir, resolverFactories, bootClassPath);
         // start with ADD
         compilationContext.setBlockFactory(addBuilderFactory);
 

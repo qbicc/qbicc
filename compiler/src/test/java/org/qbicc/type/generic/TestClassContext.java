@@ -140,6 +140,11 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        @Override
+        public List<String> findBootstrapConfigurationFiles(String fileName) {
+            return null;
+        }
+
         public void runParallelTask(Consumer<CompilationContext> task) throws IllegalStateException {
         }
 
