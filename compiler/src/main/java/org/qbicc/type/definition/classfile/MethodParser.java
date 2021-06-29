@@ -386,7 +386,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     Value getLocal(int index, int bci) {
         final LocalVariableElement lve = getLocalVariableElement(bci, index);
         if (lve != null) {
-            return promote(gf.load(gf.localVariable(lve), MemoryAtomicityMode.NONE));
+            return promote(gf.load(gf.localVariable(lve), MemoryAtomicityMode.NONE), lve.getTypeDescriptor());
         }
         Value value = locals[index];
         if (value == null) {
@@ -1319,7 +1319,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         String name = getNameOfFieldRef(fieldRef);
                         // todo: signature context
                         ValueHandle handle = gf.staticField(owner, name, desc);
-                        Value value = promote(gf.load(handle, handle.getDetectedMode()));
+                        Value value = promote(gf.load(handle, handle.getDetectedMode()), desc);
                         push(value, desc.isClass2());
                         break;
                     }
@@ -1341,7 +1341,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         String name = getNameOfFieldRef(fieldRef);
                         // todo: signature context
                         ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(pop1()), owner, name, desc);
-                        Value value = promote(gf.load(handle, handle.getDetectedMode()));
+                        Value value = promote(gf.load(handle, handle.getDetectedMode()), desc);
                         push(value, desc.isClass2());
                         break;
                     }
@@ -1416,7 +1416,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             }
                             Value result = gf.call(handle, List.of(args));
                             if (returnType != BaseTypeDescriptor.V) {
-                                push(promote(result), desc.getReturnType().isClass2());
+                                push(promote(result, returnType), desc.getReturnType().isClass2());
                             }
                         }
                         break;
@@ -1471,8 +1471,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         // todo: promote the method handle directly to a ValueHandle?
                         Value result = gf.call(gf.virtualMethodOf(methodHandle, descOfMethodHandle, "invokeExact",
                             desc), List.of(args));
-                        if (! desc.getReturnType().isVoid()) {
-                            push(promote(result), desc.getReturnType().isClass2());
+                        TypeDescriptor returnType = desc.getReturnType();
+                        if (! returnType.isVoid()) {
+                            push(promote(result, returnType), returnType.isClass2());
                         }
                         break;
                     }
@@ -1616,6 +1617,14 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         } else {
             processBlock(from);
         }
+    }
+
+    Value promote(Value value, TypeDescriptor desc) {
+        if (desc instanceof BaseTypeDescriptor && desc != BaseTypeDescriptor.V) {
+            return promote(value);
+        }
+        // no promote necessary
+        return value;
     }
 
     Value promote(Value value) {

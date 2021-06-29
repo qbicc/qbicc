@@ -1213,7 +1213,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 ValueType type = elementParameters.get(i).getType();
                 parameters[i] = gf.parameter(type, "p", i);
                 boolean class2 = elementParameters.get(i).hasClass2Type();
-                Value promoted = methodParser.promote(parameters[i]);
+                Value promoted = methodParser.promote(parameters[i], elementParameters.get(i).getTypeDescriptor());
                 currentVarTypes[j] = promoted.getType();
                 j += class2 ? 2 : 1;
             }
@@ -1386,7 +1386,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
             for (int i = 0; i < paramCount; i ++) {
                 boolean class2 = elementParameters.get(i).hasClass2Type();
-                Value promoted = methodParser.promote(parameters[i]);
+                Value promoted = methodParser.promote(parameters[i], elementParameters.get(i).getTypeDescriptor());
                 methodParser.setLocal(j, promoted, class2, 0);
                 j += class2 ? 2 : 1;
             }
