@@ -265,21 +265,6 @@ public class FenceOptimizer implements Consumer<CompilationContext> {
     }
 
     private boolean weaken(Store store, Node prev) {
-        if (prev instanceof Store) {
-            Store prev_store = (Store) prev;
-            //
-            // prev_store
-            //  seq_cst
-            //     +
-            //  release   <- not needed
-            //   store
-            //
-            if (prev_store.getMode() == MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT
-                    && store.getMode() == MemoryAtomicityMode.RELEASE) {
-                store.setMode(MemoryAtomicityMode.UNORDERED);
-            }
-        }
-
         return true;
     }
 
