@@ -18,6 +18,9 @@ import org.qbicc.context.DiagnosticContext;
 import org.qbicc.driver.BaseDiagnosticContext;
 import org.qbicc.driver.BuilderStage;
 import org.qbicc.driver.Driver;
+import org.qbicc.driver.ElementBodyCopier;
+import org.qbicc.driver.ElementBodyCreator;
+import org.qbicc.driver.ElementVisitorAdapter;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.Phase;
 import org.qbicc.driver.plugin.DriverPlugin;
@@ -52,6 +55,7 @@ import org.qbicc.plugin.linker.LinkStage;
 import org.qbicc.plugin.llvm.LLVMCompileStage;
 import org.qbicc.plugin.llvm.LLVMGenerator;
 import org.qbicc.plugin.lowering.BooleanAccessBasicBlockBuilder;
+import org.qbicc.plugin.lowering.FunctionLoweringElementHandler;
 import org.qbicc.plugin.lowering.InvocationLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.StaticFieldLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.ThrowExceptionHelper;
@@ -291,6 +295,8 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addPreHook(Phase.ADD, new NoGcSetupHook());
                                 }
                                 builder.addPreHook(Phase.ADD, RTAInfo::forceCoreClassesReachable);
+                                builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
+                                builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NoGcMultiNewArrayBasicBlockBuilder::new);
@@ -315,10 +321,11 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.CORRECT, LocalThrowHandlingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.OPTIMIZE, SimpleOptBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                                builder.addElementVisitor(Phase.ADD, new DotGenerator(Phase.ADD, graphGenConfig));
                                 builder.addPostHook(Phase.ADD, RTAInfo::clear);
 
                                 builder.addPreHook(Phase.ANALYZE, RTAInfo::forceCoreClassesReachable);
+                                builder.addElementHandler(Phase.ANALYZE, new ElementBodyCopier());
+                                builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig)));
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
                                 }
@@ -335,11 +342,12 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
                                 }
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
-                                builder.addElementVisitor(Phase.ANALYZE, new DotGenerator(Phase.ANALYZE, graphGenConfig));
                                 builder.addPostHook(Phase.ANALYZE, new ClassInitializerRegister());
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
 
+                                builder.addElementHandler(Phase.LOWER, new FunctionLoweringElementHandler());
+                                builder.addElementHandler(Phase.LOWER, new ElementVisitorAdapter(new DotGenerator(Phase.LOWER, graphGenConfig)));
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.LOWER, GotoRemovingVisitor::new);
                                 }
@@ -369,7 +377,6 @@ public class Main implements Callable<DiagnosticContext> {
                                     builder.addBuilderFactory(Phase.LOWER, BuilderStage.TRANSFORM, LocalMemoryTrackingBasicBlockBuilder::new);
                                 }
                                 builder.addBuilderFactory(Phase.LOWER, BuilderStage.INTEGRITY, LowerVerificationBasicBlockBuilder::new);
-                                builder.addElementVisitor(Phase.LOWER, new DotGenerator(Phase.LOWER, graphGenConfig));
 
                                 builder.addPreHook(Phase.GENERATE, new HeapSerializer());
                                 builder.addPreHook(Phase.GENERATE, new SupersDisplayEmitter());

@@ -13,11 +13,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
+import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 import org.jboss.logging.MDC;
 import org.qbicc.context.AttachmentKey;
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.context.Diagnostic;
 import org.qbicc.context.Location;
@@ -25,31 +29,22 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
-import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.schedule.Schedule;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.machine.tool.CToolChain;
-import org.qbicc.object.Function;
 import org.qbicc.tool.llvm.LlvmToolChain;
 import org.qbicc.type.TypeSystem;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
-import org.qbicc.type.definition.MethodBody;
-import org.qbicc.type.definition.ModuleDefinition;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.ModuleDefinition;
 import org.qbicc.type.definition.classfile.ClassFile;
-import org.qbicc.type.definition.element.ElementVisitor;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.FunctionElement;
-import io.smallrye.common.constraint.Assert;
-import org.jboss.logging.Logger;
 
 /**
  * A simple driver to run all the stages of compilation.
@@ -69,19 +64,19 @@ public class Driver implements Closeable {
     final List<Consumer<? super CompilationContext>> preAddHooks;
     final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> addBuilderFactory;
-    final List<ElementVisitor<CompilationContext, Void>> addElementVisitors;
+    final List<Consumer<ExecutableElement>> addElementHandlers;
     final List<Consumer<? super CompilationContext>> postAddHooks;
     // at this point, the phase is switched to ANALYZE
     final List<Consumer<? super CompilationContext>> preAnalyzeHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> addToAnalyzeCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> analyzeBuilderFactory;
-    final List<ElementVisitor<CompilationContext, Void>> analyzeElementVisitors;
+    final List<Consumer<ExecutableElement>> analyzeElementHandlers;
     final List<Consumer<? super CompilationContext>> postAnalyzeHooks;
     // at this point, the phase is switched to LOWER
     final List<Consumer<? super CompilationContext>> preLowerHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> analyzeToLowerCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> lowerBuilderFactory;
-    final List<ElementVisitor<CompilationContext, Void>> lowerElementVisitors;
+    final List<Consumer<ExecutableElement>> lowerElementHandlers;
     final List<Consumer<? super CompilationContext>> postLowerHooks;
     // at this point, the phase is switched to GENERATE
     final List<Consumer<? super CompilationContext>> preGenerateHooks;
@@ -160,21 +155,21 @@ public class Driver implements Closeable {
         preAddHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ADD, List.of()));
         // (no copiers)
         addBuilderFactory = constructFactory(builder, Phase.ADD);
-        addElementVisitors = List.copyOf(builder.elementVisitors.getOrDefault(Phase.ADD, List.of()));
+        addElementHandlers = List.copyOf(builder.elementHandlers.getOrDefault(Phase.ADD, List.of()));
         postAddHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ADD, List.of()));
 
         // ANALYZE phase
         preAnalyzeHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ANALYZE, List.of()));
         addToAnalyzeCopiers = constructCopiers(builder, Phase.ANALYZE);
         analyzeBuilderFactory = constructFactory(builder, Phase.ANALYZE);
-        analyzeElementVisitors = List.copyOf(builder.elementVisitors.getOrDefault(Phase.ANALYZE, List.of()));
+        analyzeElementHandlers = List.copyOf(builder.elementHandlers.getOrDefault(Phase.ANALYZE, List.of()));
         postAnalyzeHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ANALYZE, List.of()));
 
         // LOWER phase
         preLowerHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.LOWER, List.of()));
         analyzeToLowerCopiers = constructCopiers(builder, Phase.LOWER);
         lowerBuilderFactory = constructFactory(builder, Phase.LOWER);
-        lowerElementVisitors = List.copyOf(builder.elementVisitors.getOrDefault(Phase.LOWER, List.of()));
+        lowerElementHandlers = List.copyOf(builder.elementHandlers.getOrDefault(Phase.LOWER, List.of()));
         postLowerHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.LOWER, List.of()));
 
         // GENERATE phase
@@ -210,11 +205,13 @@ public class Driver implements Closeable {
         if (list.size() == 1) {
             return list.get(0);
         }
-        ArrayList<BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>>> copy = new ArrayList<>(list);
+        // `var` because the type is absurdly long
+        var copy = new ArrayList<>(list);
         Collections.reverse(copy);
         return (c, v) -> {
-            for (int i = 0; i < copy.size(); i ++) {
-                v = copy.get(i).apply(c, v);
+            // `var` because the type is absurdly long
+            for (var fn : copy) {
+                v = fn.apply(c, v);
             }
             return v;
         };
@@ -244,8 +241,8 @@ public class Driver implements Closeable {
         List<BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder>> copy = new ArrayList<>(list);
         Collections.reverse(copy);
         return (c, builder) -> {
-            for (int i = 0; i < copy.size(); i ++) {
-                builder = copy.get(i).apply(c, builder);
+            for (BiFunction<? super CompilationContext, BasicBlockBuilder, BasicBlockBuilder> fn : copy) {
+                builder = fn.apply(c, builder);
             }
             return builder;
         };
@@ -319,6 +316,23 @@ public class Driver implements Closeable {
         }
     }
 
+    public Consumer<ExecutableElement> constructCopyingStage(
+        Phase phase,
+        Function<
+            BiFunction<
+                CompilationContext,
+                NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>,
+                NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>
+            >,
+            Consumer<ExecutableElement>
+        > constructor) {
+        switch (phase) {
+            case ANALYZE: return constructor.apply(addToAnalyzeCopiers);
+            case LOWER: return constructor.apply(analyzeToLowerCopiers);
+            default: throw new IllegalArgumentException();
+        }
+    }
+
     boolean execute0() {
         CompilationContextImpl compilationContext = this.compilationContext;
 
@@ -359,22 +373,11 @@ public class Driver implements Closeable {
         MDC.put("phase", "ADD");
         compilationContext.processQueue(element -> {
             MDC.put("phase", "ADD");
-            if (element.hasMethodBodyFactory()) {
-                // cause method and field references to be resolved
-                try {
-                    element.tryCreateMethodBody();
-                } catch (Exception e) {
-                    log.error("An exception was thrown while constructing a method body", e);
-                    compilationContext.error(element, "Exception while constructing method body: %s", e);
-                }
-            }
-            for (ElementVisitor<CompilationContext, Void> elementVisitor : this.addElementVisitors) {
-                try {
-                    element.accept(elementVisitor, compilationContext);
-                } catch (Exception e) {
-                    log.error("An exception was thrown in an element visitor", e);
-                    compilationContext.error(element, "Element visitor threw an exception: %s", e);
-                }
+            for (Consumer<ExecutableElement> handler : addElementHandlers) try {
+                handler.accept(element);
+            } catch (Exception e) {
+                log.error("An exception was thrown in an element handler", e);
+                compilationContext.error(element, "Element handler threw an exception: %s", e);
             }
         });
 
@@ -408,6 +411,7 @@ public class Driver implements Closeable {
         // ANALYZE phase
 
         compilationContext.setBlockFactory(analyzeBuilderFactory);
+        compilationContext.setCopier(addToAnalyzeCopiers);
 
         MDC.put("phase", "ANALYZE");
         for (Consumer<? super CompilationContext> hook : preAnalyzeHooks) {
@@ -431,24 +435,11 @@ public class Driver implements Closeable {
 
         compilationContext.processQueue(element -> {
             MDC.put("phase", "ANALYZE");
-            if (element.hasMethodBody()) {
-                // rewrite the method body
-                ClassContext classContext = element.getEnclosingType().getContext();
-                MethodBody original = element.getMethodBody();
-                BasicBlock entryBlock = original.getEntryBlock();
-                BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
-                builder.startMethod(original.getParameterValues());
-                BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, addToAnalyzeCopiers);
-                builder.finish();
-                element.replaceMethodBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), original.getThisValue(), original.getParameterValues()));
-            }
-            for (ElementVisitor<CompilationContext, Void> elementVisitor : this.analyzeElementVisitors) {
-                try {
-                    element.accept(elementVisitor, compilationContext);
-                } catch (Exception e) {
-                    log.error("An exception was thrown in an element visitor", e);
-                    compilationContext.error(element, "Element visitor threw an exception: %s", e);
-                }
+            for (Consumer<ExecutableElement> handler : analyzeElementHandlers) try {
+                handler.accept(element);
+            } catch (Exception e) {
+                log.error("An exception was thrown in an element handler", e);
+                compilationContext.error(element, "Element handler threw an exception: %s", e);
             }
         });
 
@@ -477,6 +468,7 @@ public class Driver implements Closeable {
         // LOWER phase
 
         compilationContext.setBlockFactory(lowerBuilderFactory);
+        compilationContext.setCopier(analyzeToLowerCopiers);
 
         MDC.put("phase", "LOWER");
         for (Consumer<? super CompilationContext> hook : preLowerHooks) {
@@ -500,43 +492,11 @@ public class Driver implements Closeable {
 
         compilationContext.processQueue(element -> {
             MDC.put("phase", "LOWER");
-            if (element.hasMethodBody()) {
-                // copy to a function; todo: this should eventually be done in the lowering plugin
-                ClassContext classContext = element.getEnclosingType().getContext();
-                MethodBody original = element.getMethodBody();
-                BasicBlock entryBlock = original.getEntryBlock();
-                List<ParameterValue> paramValues;
-                ParameterValue thisValue;
-                BasicBlockBuilder builder = classContext.newBasicBlockBuilder(element);
-                if (element instanceof FunctionElement) {
-                    paramValues = original.getParameterValues();
-                    thisValue = null;
-                } else {
-                    List<ParameterValue> origParamValues = original.getParameterValues();
-                    paramValues = new ArrayList<>(origParamValues.size() + 2);
-                    paramValues.add(builder.parameter(threadClass.getClassType().getReference(), "thr", 0));
-                    if (! element.isStatic()) {
-                        thisValue = original.getThisValue();
-                        paramValues.add(thisValue);
-                    } else {
-                        thisValue = null;
-                    }
-                    paramValues.addAll(origParamValues);
-                }
-                builder.startMethod(paramValues);
-                Function function = compilationContext.getExactFunction(element);
-                BasicBlock copyBlock = Node.Copier.execute(entryBlock, builder, compilationContext, analyzeToLowerCopiers);
-                builder.finish();
-                function.replaceBody(MethodBody.of(copyBlock, Schedule.forMethod(copyBlock), thisValue, paramValues));
-                element.replaceMethodBody(function.getBody());
-            }
-            for (ElementVisitor<CompilationContext, Void> elementVisitor : this.lowerElementVisitors) {
-                try {
-                    element.accept(elementVisitor, compilationContext);
-                } catch (Exception e) {
-                    log.error("An exception was thrown in an element visitor", e);
-                    compilationContext.error(element, "Element visitor threw an exception: %s", e);
-                }
+            for (Consumer<ExecutableElement> handler : lowerElementHandlers) try {
+                handler.accept(element);
+            } catch (Exception e) {
+                log.error("An exception was thrown in an element handler", e);
+                compilationContext.error(element, "Element handler threw an exception: %s", e);
             }
         });
 
@@ -561,6 +521,8 @@ public class Driver implements Closeable {
         }
 
         // GENERATE phase
+
+        compilationContext.setCopier(null);
 
         MDC.put("phase", "GENERATE");
         for (Consumer<? super CompilationContext> hook : preGenerateHooks) {
@@ -625,7 +587,7 @@ public class Driver implements Closeable {
         final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>();
         final Map<Phase, List<Consumer<? super CompilationContext>>> preHooks = new EnumMap<>(Phase.class);
         final Map<Phase, List<Consumer<? super CompilationContext>>> postHooks = new EnumMap<>(Phase.class);
-        final Map<Phase, List<ElementVisitor<CompilationContext, Void>>> elementVisitors = new EnumMap<>(Phase.class);
+        final Map<Phase, List<Consumer<ExecutableElement>>> elementHandlers = new EnumMap<>(Phase.class);
 
         Path outputDirectory = Path.of(".");
         BaseDiagnosticContext initialContext;
@@ -721,9 +683,9 @@ public class Driver implements Closeable {
             return this;
         }
 
-        public Builder addElementVisitor(Phase phase, ElementVisitor<CompilationContext, Void> visitor) {
-            Assert.checkNotNullParam("visitor", visitor);
-            elementVisitors.computeIfAbsent(phase, Builder::newArrayList).add(visitor);
+        public Builder addElementHandler(Phase phase, Consumer<ExecutableElement> handler) {
+            Assert.checkNotNullParam("handler", handler);
+            elementHandlers.computeIfAbsent(phase, Builder::newArrayList).add(handler);
             return this;
         }
 
