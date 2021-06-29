@@ -11,6 +11,9 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.object.Data;
+import org.qbicc.object.Linkage;
+import org.qbicc.object.Section;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayType;
@@ -27,19 +30,23 @@ public class BuildtimeHeap {
 
     private final CompilationContext ctxt;
     private final Layout layout;
-    /** For lazy definition of array types for literals */
+    /** For lazy definition of native array types for literals */
     private final HashMap<String, CompoundType> arrayTypes = new HashMap<>();
     /** For interning string literals */
-    private final HashMap<String, SymbolLiteral>  stringLiterals = new HashMap<>();
+    private final HashMap<String, Data>  stringLiterals = new HashMap<>();
     /** For interning objects */
-    private final IdentityHashMap<Object, SymbolLiteral> objects = new IdentityHashMap<>();
+    private final IdentityHashMap<Object, Data> objects = new IdentityHashMap<>();
     /** The initial heap */
-    private final HashMap<SymbolLiteral, Literal> initialHeap = new HashMap<>();
+    private final Section heapSection;
+
     private int literalCounter = 0;
 
     private BuildtimeHeap(CompilationContext ctxt) {
         this.ctxt = ctxt;
         this.layout = Layout.get(ctxt);
+
+        LoadedTypeDefinition ih = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/main/InitialHeap").load();
+        this.heapSection = ctxt.getOrAddProgramModule(ih).getOrAddSection(ctxt.IMPLICIT_SECTION_NAME); // TODO: use ctxt.INITIAL_HEAP_SECTION_NAME
     }
 
     public static BuildtimeHeap get(CompilationContext ctxt) {
@@ -54,66 +61,68 @@ public class BuildtimeHeap {
         return heap;
     }
 
-    public Map<SymbolLiteral, Literal> getHeap() {
-        return initialHeap;
-    }
-
-    public synchronized SymbolLiteral serializeStringLiteral(String value) {
+    public synchronized Data serializeStringLiteral(String value) {
         // String literals are interned via equals, not ==
         if (stringLiterals.containsKey(value)) {
             return stringLiterals.get(value);
         }
         LoadedTypeDefinition jls = ctxt.getBootstrapClassContext().findDefinedType("java/lang/String").load();
-        SymbolLiteral sl = serializeObject(jls, value);
+        Data sl = serializeObject(jls, value);
         stringLiterals.put(value, sl);
         return sl;
     }
 
-    public synchronized SymbolLiteral serializeObject(Object obj) {
+    public synchronized Data serializeObject(Object obj) {
         if (objects.containsKey(obj)) {
             return objects.get(obj);
         }
 
         Class<?> cls = obj.getClass();
-        SymbolLiteral lit;
+        Data data;
         if (cls.isArray()) {
             if (obj instanceof byte[]) {
-                lit = serializeArray((byte[]) obj);
+                data = serializeArray((byte[]) obj);
             } else if (obj instanceof boolean[]) {
-                lit = serializeArray((boolean[]) obj);
+                data = serializeArray((boolean[]) obj);
             } else if (obj instanceof char[]) {
-                lit =  serializeArray((char[]) obj);
+                data =  serializeArray((char[]) obj);
             } else if (obj instanceof short[]) {
-                lit =  serializeArray((short[]) obj);
+                data =  serializeArray((short[]) obj);
             } else if (obj instanceof int[]) {
-                lit = serializeArray((int[]) obj);
+                data = serializeArray((int[]) obj);
             } else if (obj instanceof float[]) {
-                lit = serializeArray((float[]) obj);
+                data = serializeArray((float[]) obj);
             } else if (obj instanceof long[]) {
-                lit = serializeArray((long[]) obj);
+                data = serializeArray((long[]) obj);
             } else if (obj instanceof double[]) {
-                lit = serializeArray((double[]) obj);
+                data = serializeArray((double[]) obj);
             } else {
-                lit = serializeArray((Object[]) obj);
+                data = serializeArray((Object[]) obj);
             }
         } else {
             LoadedTypeDefinition ltd = ctxt.getBootstrapClassContext().findDefinedType(cls.getName()).load();
-            lit = serializeObject(ltd, obj);
+            data = serializeObject(ltd, obj);
         }
 
-        objects.put(obj, lit);
-        return lit;
+        objects.put(obj, data);
+        return data;
     }
 
     private String nextLiteralName() {
         return prefix+(this.literalCounter++);
     }
 
-    private SymbolLiteral serializeObject(LoadedTypeDefinition concreteType, Object instance) {
+    private Data defineData(String name, Literal value) {
+        Data d = heapSection.addData(null,name, value);
+        d.setLinkage(Linkage.EXTERNAL);
+        d.setAddrspace(1);
+        return d;
+    }
+
+    private Data serializeObject(LoadedTypeDefinition concreteType, Object instance) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         Layout.LayoutInfo objLayout = layout.getInstanceLayoutInfo(concreteType);
         CompoundType objType = objLayout.getCompoundType();
-        String myName = nextLiteralName();
         HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
 
         // Object header
@@ -150,7 +159,7 @@ public class BuildtimeHeap {
                             if (fieldContents == null) {
                                 memberMap.put(member, lf.zeroInitializerLiteralOfType(member.getType()));
                             } else {
-                                SymbolLiteral contents = serializeObject(fieldContents);
+                                Data contents = serializeObject(fieldContents);
                                 SymbolLiteral refToContents = lf.literalOfSymbol(contents.getName(), contents.getType().getPointer().asCollected());
                                 memberMap.put(member, lf.bitcastLiteral(refToContents, (WordType)member.getType()));
                             }
@@ -164,11 +173,7 @@ public class BuildtimeHeap {
             jClass = jClass.getSuperclass();
         }
 
-        Literal objLiteral = ctxt.getLiteralFactory().literalOf(objType, memberMap);
-        SymbolLiteral objName = lf.literalOfSymbol(myName, objType);
-        initialHeap.put(objName, objLiteral);
-
-        return objName;
+        return defineData(nextLiteralName(), ctxt.getLiteralFactory().literalOf(objType, memberMap));
     }
 
     private CompoundType arrayLiteralType(FieldElement contents, int length) {
@@ -192,8 +197,7 @@ public class BuildtimeHeap {
         return sizedArrayType;
     }
 
-
-    private SymbolLiteral serializeArray(byte[] array) {
+    private Data serializeArray(byte[] array) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         FieldElement contentsField = CoreClasses.get(ctxt).getByteArrayContentField();
         CompoundType literalCT = arrayLiteralType(contentsField, array.length);
@@ -202,47 +206,45 @@ public class BuildtimeHeap {
             literalCT.getMember(1), lf.literalOf(array.length),
             literalCT.getMember(2), lf.literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getSignedInteger8Type(), array.length), array)
         ));
-        SymbolLiteral arrayName = lf.literalOfSymbol(nextLiteralName(), literalCT);
-        initialHeap.put(arrayName, arrayLiteral);
-        return arrayName;
+        return defineData(nextLiteralName(), arrayLiteral);
     }
 
-    private SymbolLiteral serializeArray(boolean[] array) {
+    private Data serializeArray(boolean[] array) {
         // TODO:
         return null;
     }
 
-    private SymbolLiteral serializeArray(char[] array) {
+    private Data serializeArray(char[] array) {
         // TODO:
         return null;
     }
 
-    private SymbolLiteral serializeArray(short[] array) {
+    private Data serializeArray(short[] array) {
         // TODO:
         return null;
     }
 
-    private SymbolLiteral serializeArray(int[] array) {
+    private Data serializeArray(int[] array) {
         // TODO:
         return null;
     }
 
-    private SymbolLiteral serializeArray(float[] array) {
+    private Data serializeArray(float[] array) {
         // TODO:
         return null;
     }
 
-    private SymbolLiteral serializeArray(long[] array) {
+    private Data serializeArray(long[] array) {
         // TODO:
         return null;
     }
 
-    private SymbolLiteral serializeArray(double[] array) {
+    private Data serializeArray(double[] array) {
         // TODO:
         return null;
     }
 
-    private SymbolLiteral serializeArray(Object[] array) {
+    private Data serializeArray(Object[] array) {
         // TODO:
         return null;
     }
