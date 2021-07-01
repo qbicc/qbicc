@@ -14,7 +14,7 @@ public final class BaseTypeDescriptor extends TypeDescriptor {
     public static final BaseTypeDescriptor I = new BaseTypeDescriptor('I', "int", false);
     public static final BaseTypeDescriptor J = new BaseTypeDescriptor('J', "long", true);
     public static final BaseTypeDescriptor S = new BaseTypeDescriptor('S', "short", false);
-    public static final BaseTypeDescriptor Z = new BaseTypeDescriptor('Z', "long", false);
+    public static final BaseTypeDescriptor Z = new BaseTypeDescriptor('Z', "boolean", false);
 
     public static final BaseTypeDescriptor V = new BaseTypeDescriptor('V', "void", false);
 
