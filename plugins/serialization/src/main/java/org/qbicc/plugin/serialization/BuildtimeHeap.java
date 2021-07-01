@@ -1,10 +1,12 @@
 package org.qbicc.plugin.serialization;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
@@ -189,63 +191,133 @@ public class BuildtimeHeap {
             ArrayType sizedContentMem = ts.getArrayType(((ArrayType)contents.getType()).getElementType(), length);
             CompoundType.Member realContentMem = ts.getCompoundTypeMember(contentMem.getName(), sizedContentMem, contentMem.getOffset(), contentMem.getAlign());
 
-            sizedArrayType = ts.getCompoundType(CompoundType.Tag.STRUCT, typeName,arrayCT.getSize() + sizedContentMem.getSize(),
-                arrayCT.getAlign(), () -> List.of(arrayCT.getMember(0), arrayCT.getMember(1), realContentMem));
+            Supplier<List<CompoundType.Member>> thunk;
+            if (contents.equals(CoreClasses.get(ctxt).getRefArrayContentField())) {
+                thunk = () -> List.of(arrayCT.getMember(0), arrayCT.getMember(1), arrayCT.getMember(2), arrayCT.getMember(3), realContentMem);
+            } else {
+                thunk = () -> List.of(arrayCT.getMember(0), arrayCT.getMember(1), realContentMem);
+            }
 
+            sizedArrayType = ts.getCompoundType(CompoundType.Tag.STRUCT, typeName,arrayCT.getSize() + sizedContentMem.getSize(), arrayCT.getAlign(), thunk);
             arrayTypes.put(typeName, sizedArrayType);
         }
         return sizedArrayType;
     }
 
-    private Data serializeArray(byte[] array) {
+    private Literal javaPrimitiveArrayLiteral(FieldElement contentsField, int length, Literal data) {
         LiteralFactory lf = ctxt.getLiteralFactory();
-        FieldElement contentsField = CoreClasses.get(ctxt).getByteArrayContentField();
-        CompoundType literalCT = arrayLiteralType(contentsField, array.length);
-        Literal arrayLiteral = lf.literalOf(literalCT, Map.of(
+        CompoundType literalCT = arrayLiteralType(contentsField, length);
+        return lf.literalOf(literalCT, Map.of(
             literalCT.getMember(0), lf.literalOf(contentsField.getEnclosingType().load().getTypeId()),
-            literalCT.getMember(1), lf.literalOf(array.length),
-            literalCT.getMember(2), lf.literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getSignedInteger8Type(), array.length), array)
+            literalCT.getMember(1), lf.literalOf(length),
+            literalCT.getMember(2), data
         ));
-        return defineData(nextLiteralName(), arrayLiteral);
+    }
+
+    private Data serializeArray(byte[] array) {
+        Literal al = javaPrimitiveArrayLiteral(CoreClasses.get(ctxt).getByteArrayContentField(), array.length,
+            ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getSignedInteger8Type(), array.length), array));
+        return defineData(nextLiteralName(), al);
     }
 
     private Data serializeArray(boolean[] array) {
-        // TODO:
-        return null;
+        List<Literal> elements = new ArrayList<>(array.length);
+        for (boolean v: array) {
+            elements.add(ctxt.getLiteralFactory().literalOf(v));
+        }
+        Literal al = javaPrimitiveArrayLiteral(CoreClasses.get(ctxt).getBooleanArrayContentField(), array.length,
+            ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getUnsignedInteger8Type(), array.length), elements));
+        return defineData(nextLiteralName(), al);
     }
 
     private Data serializeArray(char[] array) {
-        // TODO:
-        return null;
+        List<Literal> elements = new ArrayList<>(array.length);
+        for (char v: array) {
+            elements.add(ctxt.getLiteralFactory().literalOf(v));
+        }
+        Literal al = javaPrimitiveArrayLiteral(CoreClasses.get(ctxt).getCharArrayContentField(), array.length,
+            ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getUnsignedInteger16Type(), array.length), elements));
+        return defineData(nextLiteralName(), al);
     }
 
     private Data serializeArray(short[] array) {
-        // TODO:
-        return null;
+        List<Literal> elements = new ArrayList<>(array.length);
+        for (short v: array) {
+            elements.add(ctxt.getLiteralFactory().literalOf(v));
+        }
+        Literal al = javaPrimitiveArrayLiteral(CoreClasses.get(ctxt).getShortArrayContentField(), array.length,
+            ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getSignedInteger16Type(), array.length), elements));
+        return defineData(nextLiteralName(), al);
     }
 
     private Data serializeArray(int[] array) {
-        // TODO:
-        return null;
+        List<Literal> elements = new ArrayList<>(array.length);
+        for (int v: array) {
+            elements.add(ctxt.getLiteralFactory().literalOf(v));
+        }
+        Literal al = javaPrimitiveArrayLiteral(CoreClasses.get(ctxt).getIntArrayContentField(), array.length,
+            ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getSignedInteger32Type(), array.length), elements));
+        return defineData(nextLiteralName(), al);
     }
 
     private Data serializeArray(float[] array) {
-        // TODO:
-        return null;
+        List<Literal> elements = new ArrayList<>(array.length);
+        for (float v: array) {
+            elements.add(ctxt.getLiteralFactory().literalOf(v));
+        }
+        Literal al = javaPrimitiveArrayLiteral(CoreClasses.get(ctxt).getFloatArrayContentField(), array.length,
+            ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getFloat32Type(), array.length), elements));
+        return defineData(nextLiteralName(), al);
     }
 
     private Data serializeArray(long[] array) {
-        // TODO:
-        return null;
+        List<Literal> elements = new ArrayList<>(array.length);
+        for (long v: array) {
+            elements.add(ctxt.getLiteralFactory().literalOf(v));
+        }
+        Literal al = javaPrimitiveArrayLiteral(CoreClasses.get(ctxt).getLongArrayContentField(), array.length,
+            ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getSignedInteger64Type(), array.length), elements));
+        return defineData(nextLiteralName(), al);
     }
 
     private Data serializeArray(double[] array) {
-        // TODO:
-        return null;
+        List<Literal> elements = new ArrayList<>(array.length);
+        for (double v: array) {
+            elements.add(ctxt.getLiteralFactory().literalOf(v));
+        }
+        Literal al = javaPrimitiveArrayLiteral(CoreClasses.get(ctxt).getDoubleArrayContentField(), array.length,
+            ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getArrayType(ctxt.getTypeSystem().getFloat64Type(), array.length), elements));
+        return defineData(nextLiteralName(), al);
     }
 
     private Data serializeArray(Object[] array) {
-        // TODO:
-        return null;
+        LoadedTypeDefinition jlo = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
+        Class<?> cls = array.getClass();
+        int dimensions = 0;
+        Class<?> leafElementClass = cls.getComponentType();
+        while (leafElementClass.isArray()) {
+            dimensions += 1;
+            leafElementClass = leafElementClass.getComponentType();
+        }
+        LoadedTypeDefinition leafLTD = ctxt.getBootstrapClassContext().findDefinedType(leafElementClass.getName()).load();
+
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        List<Literal> elements = new ArrayList<>(array.length);
+        for (Object o: array) {
+            Data elem = serializeObject(o);
+            elements.add(lf.bitcastLiteral(lf.literalOfSymbol(elem.getName(), elem.getType().getPointer().asCollected()), jlo.getClassType().getReference()));
+        }
+        FieldElement contentsField = CoreClasses.get(ctxt).getRefArrayContentField();
+
+        CompoundType literalCT = arrayLiteralType(contentsField, array.length);
+        Literal al = lf.literalOf(literalCT, Map.of(
+            literalCT.getMember(0), lf.literalOf(contentsField.getEnclosingType().load().getTypeId()),
+            literalCT.getMember(1), lf.literalOf(array.length),
+            literalCT.getMember(2), lf.literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), dimensions),
+            literalCT.getMember(3), lf.literalOf(leafLTD.getTypeId()),
+            literalCT.getMember(4), ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getArrayType(jlo.getClassType().getReference(), array.length), elements)
+        ));
+
+        return defineData(nextLiteralName(), al);
     }
 }
