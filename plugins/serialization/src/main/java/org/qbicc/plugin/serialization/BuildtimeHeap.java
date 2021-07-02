@@ -64,6 +64,14 @@ public class BuildtimeHeap {
     }
 
     public synchronized Data serializeStringLiteral(String value) {
+        if (literalCounter == 0) {
+            // TODO: Temp testing for Object[] and prim arrays; remove once the interpreter is ready and we have real calls to serializeObject
+            int[] dummy = new int[] { 1, 2, 3};
+            Object[] dummy2 = new Object[] { dummy, "This is a test", dummy };
+            Object[][] dummy3 = new Object[][] { new Object[] { dummy2, dummy }, new String[] { "Another test string" }};
+            serializeObject(dummy3);
+        }
+
         // String literals are interned via equals, not ==
         if (stringLiterals.containsKey(value)) {
             return stringLiterals.get(value);
@@ -102,7 +110,7 @@ public class BuildtimeHeap {
                 data = serializeArray((Object[]) obj);
             }
         } else {
-            LoadedTypeDefinition ltd = ctxt.getBootstrapClassContext().findDefinedType(cls.getName()).load();
+            LoadedTypeDefinition ltd = ctxt.getBootstrapClassContext().findDefinedType(cls.getName().replace('.', '/')).load();
             data = serializeObject(ltd, obj);
         }
 
@@ -299,7 +307,7 @@ public class BuildtimeHeap {
             dimensions += 1;
             leafElementClass = leafElementClass.getComponentType();
         }
-        LoadedTypeDefinition leafLTD = ctxt.getBootstrapClassContext().findDefinedType(leafElementClass.getName()).load();
+        LoadedTypeDefinition leafLTD = ctxt.getBootstrapClassContext().findDefinedType(leafElementClass.getName().replace('.', '/')).load();
 
         LiteralFactory lf = ctxt.getLiteralFactory();
         List<Literal> elements = new ArrayList<>(array.length);
