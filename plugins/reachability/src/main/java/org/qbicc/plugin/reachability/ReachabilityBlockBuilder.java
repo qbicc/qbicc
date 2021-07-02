@@ -16,7 +16,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
-import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -89,16 +89,14 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     public Void visit(Void param, ConstructorElementHandle node) {
         ConstructorElement target = node.getExecutable();
         LoadedTypeDefinition ltd = target.getEnclosingType().load();
-        info.processClassInitialization(ltd);
-        info.processInstantiatedClass(ltd, true, originalElement);
-        ctxt.enqueue(target);
+        info.processReachableConstructorInvoke(ltd, target, originalElement);
         return null;
     }
 
     @Override
     public Void visit(Void param, FunctionElementHandle node) {
         FunctionElement target = node.getExecutable();
-        ctxt.enqueue(target);
+        info.processReachableStaticInvoke(target, originalElement);
         return null;
     }
 
@@ -123,8 +121,8 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     @Override
     public Void visit(Void param, StaticMethodElementHandle node) {
         MethodElement target = node.getExecutable();
-        info.processStaticElementInitialization(target.getEnclosingType().load());
-        ctxt.enqueue(target);
+        info.processStaticElementInitialization(target.getEnclosingType().load(), target, originalElement);
+        info.processReachableStaticInvoke(target, originalElement);
         return null;
     }
 
@@ -133,7 +131,6 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
             // Force the array's leaf element type to be reachable (and thus assigned a typeId).
             info.processArrayElementType(((ReferenceArrayObjectType)arrayType).getLeafElementType());
         }
-        info.processInstantiatedClass(Layout.get(ctxt).getArrayContentField(arrayType).getEnclosingType().load(), true, originalElement);
         return super.newArray(arrayType, size);
     }
 
@@ -145,10 +142,10 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
         return super.multiNewArray(arrayType, dimensions);
     }
 
-    // TODO: only enqueue the enclosing type if the static field is used for something
+    // TODO: only initialize the enclosing type if the static field is actually used for something
     @Override
     public ValueHandle staticField(FieldElement field) {
-        info.processStaticElementInitialization(field.getEnclosingType().load());
+        info.processStaticElementInitialization(field.getEnclosingType().load(), field, originalElement);
         return super.staticField(field);
     }
 

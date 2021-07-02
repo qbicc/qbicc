@@ -16,6 +16,14 @@ public final class FieldElement extends VariableElement implements MemberElement
         this.initialValue = builder.initialValue;
     }
 
+    public String toString() {
+        final String packageName = getEnclosingType().getDescriptor().getPackageName();
+        if (packageName.isEmpty()) {
+            return getEnclosingType().getDescriptor().getClassName()+"."+getName();
+        }
+        return packageName+"."+getEnclosingType().getDescriptor().getClassName()+"."+getName();
+    }
+
     public boolean isVolatile() {
         int masked = getModifiers() & (ClassFile.ACC_VOLATILE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NOT_REALLY_FINAL);
         return masked == ClassFile.ACC_VOLATILE || masked == (ClassFile.ACC_FINAL | ClassFile.I_ACC_NOT_REALLY_FINAL);

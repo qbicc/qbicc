@@ -12,12 +12,15 @@ import io.smallrye.common.constraint.Assert;
 import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.plugin.layout.Layout;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.BasicElement;
+import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
+import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 /**
@@ -104,7 +107,6 @@ public class RTAInfo {
 
     public static void clear(CompilationContext ctxt) {
         RTAInfo info = get(ctxt);
-        rtaLog.debugf("Clearing RTAInfo %s classes; %s interfaces", info.classHierarchy.size(), info.interfaceHierarchy.size());
         info.classHierarchy.clear();
         info.interfaceHierarchy.clear();
         info.instantiatedClasses.clear();
@@ -113,22 +115,33 @@ public class RTAInfo {
         info.deferredInstanceMethods.clear();
     }
 
+    public static void reportStats(CompilationContext ctxt) {
+        RTAInfo info = get(ctxt);
+        rtaLog.debug("RTA Reachability Statistics");
+        rtaLog.debugf("  Reachable interfaces:       %s", info.interfaceHierarchy.size());
+        rtaLog.debugf("  Reachable classes:          %s", info.classHierarchy.size());
+        rtaLog.debugf("  Instantiated classes:       %s", info.instantiatedClasses.size());
+        rtaLog.debugf("  Initialized types:          %s", info.initializedTypes.size());
+        rtaLog.debugf("  Invokable instance methods: %s", info.invokableMethods.size());
+        rtaLog.debugf("  Deferred instance methods:  %s", info.deferredInstanceMethods.size());
+    }
+
     // We force some fundamental types to be considered reachable even if the program doesn't use them.
     // This simplifies the implementation of the core runtime.
     public static void forceCoreClassesReachable(CompilationContext ctxt) {
         RTAInfo info = get(ctxt);
-        Layout layout = Layout.get(ctxt);
+        CoreClasses cc = CoreClasses.get(ctxt);
         rtaLog.debugf("Forcing all array types reachable/instantiated");
         String[] desc = { "[Z", "[B", "[C", "[S", "[I", "[F", "[J", "[D", "[ref" };
         LoadedTypeDefinition obj = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Object").load();
         LoadedTypeDefinition cloneable = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Cloneable").load();
         LoadedTypeDefinition serializable = ctxt.getBootstrapClassContext().findDefinedType("java/io/Serializable").load();
-        info.processClassInitialization(obj);
         info.processInstantiatedClass(obj, true, null);
+        info.processClassInitialization(obj);
         info.addReachableInterface(cloneable);
         info.addReachableInterface(serializable);
         for (String d : desc) {
-            LoadedTypeDefinition at = layout.getArrayLoadedTypeDefinition(d);
+            LoadedTypeDefinition at = cc.getArrayLoadedTypeDefinition(d);
             info.addInterfaceEdge(at, cloneable);
             info.addInterfaceEdge(at, serializable);
             info.addInitializedType(at);
@@ -137,15 +150,16 @@ public class RTAInfo {
 
         rtaLog.debugf("Forcing java.lang.Class reachable/instantiated");
         LoadedTypeDefinition clz = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
-        info.processClassInitialization(clz);
         info.processInstantiatedClass(clz, true, null);
+        info.processClassInitialization(clz);
 
         rtaLog.debugf("Forcing jdk.internal.misc.Unsafe reachable/instantiated");
         LoadedTypeDefinition unsafe = ctxt.getBootstrapClassContext().findDefinedType("jdk/internal/misc/Unsafe").load();
-        info.processClassInitialization(unsafe);
         info.processInstantiatedClass(unsafe, true, null);
+        info.processClassInitialization(unsafe);
 
         // Hack around the way NoGC entrypoints are registered and then not used until LOWERING PHASE...
+        rtaLog.debugf("Forcing org.qbicc.runtime.gc.nogc.NoGcHelpers reachable");
         LoadedTypeDefinition nogc = ctxt.getBootstrapClassContext().findDefinedType("org/qbicc/runtime/gc/nogc/NoGcHelpers").load();
         info.processClassInitialization(nogc);
     }
@@ -238,6 +252,22 @@ public class RTAInfo {
         }
     }
 
+    synchronized void processReachableStaticInvoke(final InvokableElement target, ExecutableElement originalElement) {
+        if (!ctxt.wasEnqueued(target)) {
+            rtaLog.debugf("Adding method %s (statically invoked in %s)", target, originalElement);
+            ctxt.enqueue(target);
+        }
+    }
+
+    synchronized void processReachableConstructorInvoke(LoadedTypeDefinition ltd, ConstructorElement target, ExecutableElement originalElement) {
+        processInstantiatedClass(ltd, true, originalElement);
+        processClassInitialization(ltd);
+        if (!ctxt.wasEnqueued(target)) {
+            rtaLog.debugf("Adding <init> %s (invoked in %s)", target, originalElement);
+            ctxt.enqueue(target);
+        }
+    }
+
     synchronized void processReachableInstanceMethodInvoke(final MethodElement target, ExecutableElement originalElement) {
         if (!isInvokableMethod(target)) {
             LoadedTypeDefinition definingClass = target.getEnclosingType().load();
@@ -256,14 +286,18 @@ public class RTAInfo {
         }
     }
 
-    synchronized void processStaticElementInitialization(final LoadedTypeDefinition ltd) {
+    synchronized void processStaticElementInitialization(final LoadedTypeDefinition ltd, BasicElement cause, ExecutableElement originalElement) {
         if (isInitializedType(ltd)) return;
+        rtaLog.debugf("Initializing %s (static access to %s in %s)", ltd.getInternalName(), cause, originalElement);
         if (ltd.isInterface()) {
             addReachableInterface(ltd);
             // JLS: accessing a static field/method of an interface only causes local <clinit> execution
             addInitializedType(ltd);
             if (ltd.getInitializer() != null) {
-                ctxt.enqueue(ltd.getInitializer());
+                if (!ctxt.wasEnqueued(ltd.getInitializer())) {
+                    rtaLog.debugf("\tadding <clinit> %s (interface static member)", ltd.getInitializer());
+                    ctxt.enqueue(ltd.getInitializer());
+                }
             }
         } else {
             // JLS: accessing a static field/method of a class <clinit> all the way up the class/interface hierarchy
@@ -283,7 +317,10 @@ public class RTAInfo {
         addInitializedType(ltd);
 
         if (ltd.getInitializer() != null) {
-            ctxt.enqueue(ltd.getInitializer());
+            if (!ctxt.wasEnqueued(ltd.getInitializer())) {
+                rtaLog.debugf("\tadding <clinit> %s (class initialization)", ltd.getInitializer());
+                ctxt.enqueue(ltd.getInitializer());
+            }
         }
 
         // Annoyingly, because an intermediate interface could be marked initialized due to a static field
@@ -295,7 +332,10 @@ public class RTAInfo {
             if (i.declaresDefaultMethods() && !isInitializedType(i)) {
                 addInitializedType(i);
                 if (i.getInitializer() != null) {
-                    ctxt.enqueue(i.getInitializer());
+                    if (!ctxt.wasEnqueued(i.getInitializer())) {
+                        rtaLog.debugf("\tadding <clinit> %s (class initialization)", i.getInitializer());
+                        ctxt.enqueue(i.getInitializer());
+                    }
                 }
             }
             worklist.addAll(List.of(i.getInterfaces()));
