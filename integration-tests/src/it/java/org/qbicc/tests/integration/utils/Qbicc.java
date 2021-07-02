@@ -4,6 +4,7 @@ import java.nio.file.Path;
 
 import org.jboss.logging.Logger;
 import org.qbicc.context.DiagnosticContext;
+import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.main.ClassPathEntry;
 import org.qbicc.main.Main;
 
@@ -12,6 +13,7 @@ public class Qbicc {
         return Main.builder().appendBootPath(ClassPathEntry.of(outputPath))
             .setOutputPath(nativeOutputPath)
             .setDiagnosticsHandler(new QbiccDiagnosticLogger(logger))
+            .setGraphGenConfig(new GraphGenConfig())
             .setMainClass(mainClass)
             .build()
             .call();
