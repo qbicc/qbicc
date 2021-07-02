@@ -21,6 +21,10 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-driver</artifactId>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-layout</artifactId>
+        </dependency>
     </dependencies>
 
 </project>
