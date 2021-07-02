@@ -7,7 +7,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import org.jboss.logging.Logger;
@@ -16,7 +22,13 @@ import org.qbicc.context.Diagnostic;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.GraphGenFilter;
 import org.qbicc.driver.Phase;
+import org.qbicc.graph.Action;
 import org.qbicc.graph.BasicBlock;
+import org.qbicc.graph.Node;
+import org.qbicc.graph.NodeVisitor;
+import org.qbicc.graph.Terminator;
+import org.qbicc.graph.Value;
+import org.qbicc.graph.ValueHandle;
 import org.qbicc.object.Function;
 import org.qbicc.object.ProgramModule;
 import org.qbicc.object.ProgramObject;
@@ -27,7 +39,6 @@ import org.qbicc.type.definition.classfile.ClassFile;
 import org.qbicc.type.definition.element.BasicElement;
 import org.qbicc.type.definition.element.ElementVisitor;
 import org.qbicc.type.definition.element.ExecutableElement;
-import org.qbicc.type.definition.element.MemberElement;
 
 /**
  *
@@ -36,15 +47,27 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
     private static final Logger log = Logger.getLogger("org.qbicc.plugin.dot");
 
     private final Phase phase;
+    private final String name;
     private final GraphGenFilter filter;
+    private final List<BiFunction<DotGenerationContext, NodeVisitor<Appendable, String, String, String, String>, NodeVisitor<Appendable, String, String, String, String>>> visitorFactories = new ArrayList<>();
 
     public DotGenerator(Phase p, GraphGenConfig graphGenConfig) {
+        this(p, p.toString(), graphGenConfig);
+    }
+
+    public DotGenerator(Phase p, String name, GraphGenConfig graphGenConfig) {
         this.phase = p;
+        this.name = name;
         if (graphGenConfig != null) {
             filter = graphGenConfig.getFilter();
         } else {
             filter = null;
         }
+    }
+
+    public DotGenerator addVisitorFactory(BiFunction<DotGenerationContext, NodeVisitor<Appendable, String, String, String, String>, NodeVisitor<Appendable, String, String, String, String>> factory) {
+        visitorFactories.add(factory);
+        return this;
     }
 
     static final class Producer {
@@ -85,7 +108,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
                 if (fn == null) {
                     return;
                 }
-                MemberElement element = fn.getOriginalElement();
+                ExecutableElement element = fn.getOriginalElement();
                 MethodBody body = fn.getBody();
                 if (body != null && filter != null && filter.accept(element, phase)) {
                     process(element, body);
@@ -107,7 +130,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
         return null;
     }
 
-    private void process(final MemberElement element, MethodBody methodBody) {
+    private void process(final ExecutableElement element, MethodBody methodBody) {
         if (element.hasAllModifiersOf(ClassFile.ACC_ABSTRACT)) return;
         DefinedTypeDefinition def = element.getEnclosingType();
         CompilationContext ctxt = def.getContext().getCompilationContext();
@@ -119,7 +142,7 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
             failedToWrite(ctxt, dir, e);
             return;
         }
-        Path path = dir.resolve(phase.toString() + ".dot");
+        Path path = dir.resolve(name + ".dot");
         try {
             try (BufferedWriter bw = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
                 bw.write("digraph {");
@@ -129,7 +152,11 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
                 bw.write("edge [ splines = true ];");
                 bw.newLine();
                 bw.newLine();
-                DotNodeVisitor visitor = new DotNodeVisitor(entryBlock);
+                Map<Node, String> visited = new HashMap<>();
+                var decorators = constructDecorators();
+                final Terminus terminus = new Terminus(visited);
+                final DotGenerationContext dctxt = new DotGenerationContext(ctxt, element, visited);
+                DotNodeVisitor visitor = new DotNodeVisitor(entryBlock, visited, decorators.apply(dctxt, terminus));
                 visitor.process(bw);
                 bw.write("}");
             } catch (IOException e) {
@@ -154,5 +181,53 @@ public class DotGenerator implements ElementVisitor<CompilationContext, Void>, C
 
     private static Diagnostic failedToWrite(final CompilationContext ctxt, final Path path, final IOException cause) {
         return ctxt.warning("Failed to write \"%s\": %s", path, cause);
+    }
+
+    private BiFunction<DotGenerationContext, NodeVisitor<Appendable, String, String, String, String>, NodeVisitor<Appendable, String, String, String, String>> constructDecorators() {
+        if (visitorFactories.isEmpty()) {
+            return (dtxt, v) -> v;
+        }
+        if (visitorFactories.size() == 1) {
+            return visitorFactories.get(0);
+        }
+        // `var` because the type is absurdly long
+        var copy = new ArrayList<>(visitorFactories);
+        Collections.reverse(copy);
+        return (dtxt, v) -> {
+            // `var` because the type is absurdly long
+            for (var fn : copy) {
+                v = fn.apply(dtxt, v);
+            }
+            return v;
+        };
+    }
+
+    private static final class Terminus implements NodeVisitor<Appendable, String, String, String, String>
+    {
+        private final Map<Node, String> visited;
+
+        private Terminus(Map<Node, String> visited) {
+            this.visited = visited;
+        }
+
+        @Override
+        public String visitUnknown(Appendable param, Action node) {
+            return visited.get(node);
+        }
+
+        @Override
+        public String visitUnknown(Appendable param, Terminator node) {
+            return visited.get(node);
+        }
+
+        @Override
+        public String visitUnknown(Appendable param, ValueHandle node) {
+            return visited.get(node);
+        }
+
+        @Override
+        public String visitUnknown(Appendable param, Value node) {
+            return visited.get(node);
+        }
     }
 }

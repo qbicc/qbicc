@@ -150,11 +150,12 @@ import org.qbicc.graph.literal.ZeroInitializerLiteral;
 /**
  * A node visitor which generates a GraphViz graph for a method or function body.
  */
-public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, String, String> {
+public class DotNodeVisitor implements NodeVisitor.Delegating<Appendable, String, String, String, String> {
     final BasicBlock entryBlock;
-    final Map<Node, String> visited = new HashMap<>();
+    final Map<Node, String> visited;
     private final Set<BasicBlock> blockQueued = ConcurrentHashMap.newKeySet();
     private final Queue<BasicBlock> blockQueue = new ArrayDeque<>();
+    private final NodeVisitor<Appendable, String, String, String, String> delegate;
     int depth;
     int counter;
     int bbCounter;
@@ -163,6 +164,11 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     Queue<String> dependencyList = new ArrayDeque();
     List<NodePair> bbConnections = new ArrayList<>(); // stores pair of Terminator, BlockEntry
     private final Queue<PhiValue> phiQueue = new ArrayDeque<>();
+
+    @Override
+    public NodeVisitor<Appendable, String, String, String, String> getDelegateNodeVisitor() {
+        return delegate;
+    }
 
     private enum EdgeType {
         PHI_INCOMING ("green", "dashed"),
@@ -223,8 +229,10 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         }
     }
 
-    DotNodeVisitor(final BasicBlock entryBlock) {
+    DotNodeVisitor(final BasicBlock entryBlock, Map<Node, String> visited, NodeVisitor<Appendable, String, String, String, String> delegate) {
         this.entryBlock = entryBlock;
+        this.visited = visited;
+        this.delegate = delegate;
     }
 
     public String visitUnknown(final Appendable param, Value node) {
@@ -236,7 +244,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, name);
         attr(param, "label", "asm(" + node.getInstruction() + "," + node.getConstraints() + ")");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final BlockEntry node) {
@@ -253,26 +261,29 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", label);
         nl(param);
         dependencyList.add(name);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Cmp node) {
-        return node(param, "cmp", node);
+        node(param, "cmp", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final CmpAndSwap node) {
-        String name = node(param, "cmpAndSwap", node);
+        node(param, "cmpAndSwap", node);
         addEdge(param, node, node.getExpectedValue(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getUpdateValue(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final CmpL node) {
-        return node(param, "cmpl", node);
+        node(param, "cmpl", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final CmpG node) {
-        return node(param, "cmpg", node);
+        node(param, "cmpg", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final ElementOf node) {
@@ -283,7 +294,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getIndex(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final GlobalVariable node) {
@@ -291,7 +302,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, name);
         attr(param, "label", "global\n\n"+node.getVariableElement().getName());
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final InstanceFieldOf node) {
@@ -300,7 +311,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "field access\\n"+node.getVariableElement().getName());
         nl(param);
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final MemberOf node) {
@@ -309,19 +320,19 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "memberOf");
         nl(param);
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final MonitorEnter node) {
-        String name = node(param, "monitorenter", node);
+        node(param, "monitorenter", node);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final MonitorExit node) {
-        String name = node(param, "monitorexit", node);
+        node(param, "monitorexit", node);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final PointerHandle node) {
@@ -330,7 +341,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "ptr");
         nl(param);
         addEdge(param, node, node.getPointerValue(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final ReferenceHandle node) {
@@ -339,7 +350,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "ref");
         nl(param);
         addEdge(param, node, node.getReferenceValue(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final StaticField node) {
@@ -348,7 +359,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         attr(param, "label", "static field\\n" + node.getVariableElement().toString());
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     // value handles
@@ -360,7 +371,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "constructor\\n" + node.getExecutable());
         nl(param);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final CurrentThread node) {
@@ -369,7 +380,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         attr(param, "label", "currentThread");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, ExactMethodElementHandle node) {
@@ -379,7 +390,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "method (exact)\\n" + node.getExecutable());
         nl(param);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, FunctionElementHandle node) {
@@ -388,7 +399,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         attr(param, "label", "function\\n" + node.getExecutable());
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, InterfaceMethodElementHandle node) {
@@ -398,7 +409,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "method (interface)\\n" + node.getExecutable());
         nl(param);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, VirtualMethodElementHandle node) {
@@ -408,7 +419,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "method (virtual)\\n" + node.getExecutable());
         nl(param);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, LocalVariable node) {
@@ -416,7 +427,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, name);
         attr(param, "label", "local\\n\\n"+node.getVariableElement().getName());
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, StaticMethodElementHandle node) {
@@ -425,7 +436,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         attr(param, "label", "method (static)\\n" + node.getExecutable());
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final UnsafeHandle node) {
@@ -436,7 +447,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getOffset(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     // terminators
@@ -459,7 +470,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         }
         appendTo(param, "}");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     @Override
@@ -481,7 +492,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         addBBConnection(param, node, node.getCatchBlock(), "catch");
         addBBConnection(param, node, node.getResumeTarget(), "resume");
-        return name;
+        return delegate.visit(param, node);
     }
 
     @Override
@@ -504,7 +515,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, "}");
         nl(param);
         addBBConnection(param, node, node.getCatchBlock(), "catch");
-        return name;
+        return delegate.visit(param, node);
     }
 
     @Override
@@ -525,7 +536,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         }
         appendTo(param, "}");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     @Override
@@ -547,7 +558,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, "}");
         nl(param);
         addBBConnection(param, node, node.getCatchBlock(), "catch");
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Goto node) {
@@ -564,7 +575,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         appendTo(param, "}");
         nl(param);
         addBBConnection(param, node, node.getResumeTarget());
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final If node) {
@@ -583,7 +594,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         addBBConnection(param, node, node.getTrueBranch(), "true", EdgeType.COND_TRUE_FLOW);
         addBBConnection(param, node, node.getFalseBranch(), "false", EdgeType.COND_FALSE_FLOW);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Jsr node) {
@@ -601,7 +612,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         addBBConnection(param, node, node.getResumeTarget(), "ret", EdgeType.RET_RESUME_FLOW);
         addBBConnection(param, node, node.getJsrTarget(), "to");
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Ret node) {
@@ -617,7 +628,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         processDependencyList(param);
         appendTo(param, "}");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Return node) {
@@ -634,7 +645,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         processDependencyList(param);
         appendTo(param, "}");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Invoke.ReturnValue node) {
@@ -656,7 +667,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         processDependencyList(param);
         appendTo(param, "}");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Switch node) {
@@ -678,7 +689,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
             addBBConnection(param, node, node.getTargetForIndex(i), String.valueOf(node.getValueForIndex(i)),
                             EdgeType.COND_TRUE_FLOW);
         }
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Throw node) {
@@ -695,7 +706,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         addEdge(param, node, node.getThrownValue(), EdgeType.VALUE_DEPENDENCY);
         appendTo(param, "}");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final ValueReturn node) {
@@ -713,7 +724,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         addEdge(param, node, node.getReturnValue(), EdgeType.VALUE_DEPENDENCY);
         appendTo(param, "}");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, InitCheck node) {
@@ -727,7 +738,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         dependencyList.add(name);
         processDependency(param, node.getDependency());
         addEdge(param, node, node.getInitThunk(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     @Override
@@ -742,7 +753,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         dependencyList.add(name);
         addEdge(param, node, node.getAddress(), EdgeType.VALUE_DEPENDENCY);
         processDependency(param, node.getDependency());
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final DebugValueDeclaration node) {
@@ -760,7 +771,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final Add node) {
-        return node(param, "+", node);
+        node(param, "+", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final AddressOf node) {
@@ -771,15 +783,17 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final And node) {
-        return node(param, "&", node);
+        node(param, "&", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final BitCast node) {
-        return node(param, "bit cast", node);
+        node(param, "bit cast", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final BitCastLiteral node) {
@@ -787,7 +801,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final BitReverse node) {
-        return node(param, "bit reverse", node);
+        node(param, "bit reverse", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final BlockLiteral node) {
@@ -798,7 +813,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         addEdge(param, node, node.getBlock().getBlockEntry(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final BooleanLiteral node) {
@@ -812,11 +827,12 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "byte array [" + node.getValues().length + "]");
         attr(param, "fixedsize", "shape");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final ByteSwap node) {
-        return node(param, "byte swap", node);
+        node(param, "byte swap", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Call node) {
@@ -831,7 +847,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
         }
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final CallNoSideEffects node) {
@@ -844,7 +860,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         for (Value arg : node.getArguments()) {
             addEdge(param, node, arg, EdgeType.VALUE_DEPENDENCY);
         }
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final ClassOf node) {
@@ -856,31 +872,37 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getDimensions(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Comp node) {
-        return node(param, "~", node);
+        node(param, "~", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final CountLeadingZeros node) {
-        return node(param, "clz", node);
+        node(param, "clz", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final CountTrailingZeros node) {
-        return node(param, "ctz", node);
+        node(param, "ctz", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Convert node) {
-        return node(param, "convert", node);
+        node(param, "convert", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Div node) {
-        return node(param, "/", node);
+        node(param, "/", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Extend node) {
-        return node(param, "extend", node);
+        node(param, "extend", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, ExtractElement node) {
@@ -892,7 +914,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         addEdge(param, node, node.getIndex(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getArrayValue(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, ExtractInstanceField node) {
@@ -903,7 +925,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         addEdge(param, node, node.getObjectValue(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, ExtractMember node) {
@@ -914,11 +936,12 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         addEdge(param, node, node.getCompoundValue(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, Fence node) {
-        return node(param, "fence", node);
+        node(param, "fence", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final FloatLiteral node) {
@@ -940,46 +963,55 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(Appendable param, GetAndAdd node) {
-        return node(param, "get-and-add", (ReadModifyWriteValue) node);
+        node(param, "get-and-add", (ReadModifyWriteValue) node);
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, GetAndSet node) {
-        return node(param, "get-and-set", (ReadModifyWriteValue) node);
+        node(param, "get-and-set", (ReadModifyWriteValue) node);
+        return delegate.visit(param, node);
     }
 
     @Override
     public String visit(Appendable param, GetAndBitwiseAnd node) {
-        return node(param, "get-and-and", (ReadModifyWriteValue) node);
+        node(param, "get-and-and", (ReadModifyWriteValue) node);
+        return delegate.visit(param, node);
     }
 
     @Override
     public String visit(Appendable param, GetAndBitwiseNand node) {
-        return node(param, "get-and-nand", (ReadModifyWriteValue) node);
+        node(param, "get-and-nand", (ReadModifyWriteValue) node);
+        return delegate.visit(param, node);
     }
 
     @Override
     public String visit(Appendable param, GetAndBitwiseOr node) {
-        return node(param, "get-and-or", (ReadModifyWriteValue) node);
+        node(param, "get-and-or", (ReadModifyWriteValue) node);
+        return delegate.visit(param, node);
     }
 
     @Override
     public String visit(Appendable param, GetAndBitwiseXor node) {
-        return node(param, "get-and-xor", (ReadModifyWriteValue) node);
+        node(param, "get-and-xor", (ReadModifyWriteValue) node);
+        return delegate.visit(param, node);
     }
 
     @Override
     public String visit(Appendable param, GetAndSetMax node) {
-        return node(param, "get-and-set-max", (ReadModifyWriteValue) node);
+        node(param, "get-and-set-max", (ReadModifyWriteValue) node);
+        return delegate.visit(param, node);
     }
 
     @Override
     public String visit(Appendable param, GetAndSetMin node) {
-        return node(param, "get-and-set-min", (ReadModifyWriteValue) node);
+        node(param, "get-and-set-min", (ReadModifyWriteValue) node);
+        return delegate.visit(param, node);
     }
 
     @Override
     public String visit(Appendable param, GetAndSub node) {
-        return node(param, "get-and-sub", (ReadModifyWriteValue) node);
+        node(param, "get-and-sub", (ReadModifyWriteValue) node);
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, InsertElement node) {
@@ -992,7 +1024,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         addEdge(param, node, node.getIndex(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getInsertedValue(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getArrayValue(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(Appendable param, InsertMember node) {
@@ -1004,13 +1036,13 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         addEdge(param, node, node.getInsertedValue(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getCompoundValue(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final InstanceOf node) {
-        String name = node(param, "instanceof " + node.getCheckType().toString(), node);
+        node(param, "instanceof " + node.getCheckType().toString(), node);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY, "value");
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final IntegerLiteral node) {
@@ -1018,27 +1050,33 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final IsEq node) {
-        return node(param, "eq", node);
+        node(param, "eq", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final IsGe node) {
-        return node(param, "≥", node);
+        node(param, "≥", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final IsGt node) {
-        return node(param, ">", node);
+        node(param, ">", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final IsLe node) {
-        return node(param, "≤", node);
+        node(param, "≤", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final IsLt node) {
-        return node(param, "<", node);
+        node(param, "<", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final IsNe node) {
-        return node(param, "neq", node);
+        node(param, "neq", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Load node) {
@@ -1049,7 +1087,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         dependencyList.add(name);
         processDependency(param, node.getDependency());
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final MethodHandleLiteral node) {
@@ -1057,7 +1095,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final Max node) {
-        return node(param, "max", node);
+        node(param, "max", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final MemberSelector node) {
@@ -1067,27 +1106,30 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         nl(param);
         dependencyList.add(name);
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Min node) {
-        return node(param, "min", node);
+        node(param, "min", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Mod node) {
-        return node(param, "%", node);
+        node(param, "%", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final MultiNewArray node) {
-        String name = node(param, "new multi array\\n" + node.getArrayType().toString(), node);
+        node(param, "new multi array\\n" + node.getArrayType().toString(), node);
         for (Value dimension : node.getDimensions()) {
             addEdge(param, node, dimension, EdgeType.VALUE_DEPENDENCY, "dim");
         }
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Multiply node) {
-        return node(param, "*", node);
+        node(param, "*", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final OffsetOfField node) {
@@ -1097,7 +1139,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "offset-of " + node.getFieldElement().toString());
         attr(param, "fixedsize", "shape");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final CheckCast node) {
@@ -1112,7 +1154,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getToType(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getToDimensions(), EdgeType.VALUE_DEPENDENCY);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final ConstantLiteral node) {
@@ -1120,33 +1162,35 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final Neg node) {
-        return node(param, "neg", node);
+        node(param, "neg", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final New node) {
-        String name = node(param, "new\\n" + node.getType().getUpperBound().toString(), node);
+        node(param, "new\\n" + node.getType().getUpperBound().toString(), node);
         addEdge(param, node, node.getTypeId(), EdgeType.VALUE_DEPENDENCY, "typeId");
         addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
         addEdge(param, node, node.getAlign(), EdgeType.VALUE_DEPENDENCY, "align");
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final NewArray node) {
-        String name = node(param, "new array\\n" + node.getArrayType().toString(), node);
+        node(param, "new array\\n" + node.getArrayType().toString(), node);
         addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final NewReferenceArray node) {
-        String name = node(param, "new reference array\\n" + node.getArrayType().toString(), node);
+        node(param, "new reference array\\n" + node.getArrayType().toString(), node);
         addEdge(param, node, node.getElemTypeId(), EdgeType.VALUE_DEPENDENCY, "elemTypeId");
         addEdge(param, node, node.getDimensions(), EdgeType.VALUE_DEPENDENCY, "dimensions");
         addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final NotNull node) {
-        return node(param, "not-null", node);
+        node(param, "not-null", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final NullLiteral node) {
@@ -1162,7 +1206,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final Or node) {
-        return node(param, "|", node);
+        node(param, "|", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final ParameterValue node) {
@@ -1184,19 +1229,22 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         phiQueue.add(node);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final PopCount node) {
-        return node(param, "pop count", node);
+        node(param, "pop count", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Rol node) {
-        return node(param, "|<<", node);
+        node(param, "|<<", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Ror node) {
-        return node(param, "|>>", node);
+        node(param, "|>>", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Select node) {
@@ -1209,22 +1257,24 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         addEdge(param, node, node.getCondition(), EdgeType.COND_DEPENDENCY,"cond");
         addEdge(param, node, node.getTrueValue(), EdgeType.COND_TRUE_FLOW, "T");
         addEdge(param, node, node.getFalseValue(), EdgeType.COND_FALSE_FLOW, "F");
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Shl node) {
-        return node(param, "<<", node);
+        node(param, "<<", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Shr node) {
-        return node(param, ">>", node);
+        node(param, ">>", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final StackAllocation node) {
-        String name = node(param, "alloca " + node.getType(), node);
+        node(param, "alloca " + node.getType(), node);
         addEdge(param, node, node.getCount(), EdgeType.VALUE_DEPENDENCY, "count");
         nl(param);
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Store node) {
@@ -1236,7 +1286,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         processDependency(param, node.getDependency());
         addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
         addEdge(param, node, node.getValue(), EdgeType.VALUE_DEPENDENCY, "value");
-        return name;
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final StringLiteral node) {
@@ -1248,11 +1298,13 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final Sub node) {
-        return node(param, "-", node);
+        node(param, "-", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final Truncate node) {
-        return node(param, "trunc", node);
+        node(param, "trunc", node);
+        return delegate.visit(param, node);
     }
 
     public String visit(final Appendable param, final TypeLiteral node) {
@@ -1268,7 +1320,8 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final Xor node) {
-        return node(param, "^", node);
+        node(param, "^", node);
+        return delegate.visit(param, node);
     }
 
     private String literal(final Appendable param, final String label) {
@@ -1354,7 +1407,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         quote(param, val);
     }
 
-    void quote(Appendable output, String orig) {
+    static void quote(Appendable output, String orig) {
         appendTo(output, '"');
         int cp;
         for (int i = 0; i < orig.length(); i += Character.charCount(cp)) {
