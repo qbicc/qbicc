@@ -8,6 +8,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.object.Data;
 import org.qbicc.object.Section;
 
 /**
@@ -29,8 +30,7 @@ public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<N
     }
 
     public Value visit(final Node.Copier param, final StringLiteral node) {
-        BuildtimeHeap heap = BuildtimeHeap.get(ctxt);
-        SymbolLiteral literal = heap.serializeStringLiteral(node.getValue());
+        Data literal = BuildtimeHeap.get(ctxt).serializeStringLiteral(node.getValue());
 
         Section section = ctxt.getImplicitSection(param.getBlockBuilder().getRootElement());
         section.declareData(null, literal.getName(), literal.getType()).setAddrspace(1);
