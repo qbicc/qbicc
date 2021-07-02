@@ -2,6 +2,7 @@ package org.qbicc.plugin.llvm;
 
 import static org.qbicc.machine.llvm.Types.*;
 import static org.qbicc.machine.llvm.Values.ZERO;
+import static org.qbicc.machine.llvm.Values.diExpression;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,6 +29,7 @@ import org.qbicc.graph.CmpL;
 import org.qbicc.graph.Convert;
 import org.qbicc.graph.DataDeclarationHandle;
 import org.qbicc.graph.DataHandle;
+import org.qbicc.graph.DebugAddressDeclaration;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
 import org.qbicc.graph.Extend;
@@ -95,6 +97,7 @@ import org.qbicc.machine.llvm.LLValue;
 import org.qbicc.machine.llvm.Module;
 import org.qbicc.machine.llvm.ParameterAttributes;
 import org.qbicc.machine.llvm.Values;
+import org.qbicc.machine.llvm.debuginfo.MetadataNode;
 import org.qbicc.machine.llvm.impl.LLVM;
 import org.qbicc.machine.llvm.op.Call;
 import org.qbicc.machine.llvm.op.GetElementPtr;
@@ -119,6 +122,7 @@ import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.MethodBody;
 import org.qbicc.type.definition.element.GlobalVariableElement;
+import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 
 final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, Instruction, GetElementPtr> {
@@ -139,6 +143,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     final MethodBody methodBody;
     final LLBuilder builder;
     final Map<Node, LLValue> inlineLocations = new HashMap<>();
+    final Map<LocalVariableElement, MetadataNode> localVariables = new HashMap<>();
 
     private boolean personalityAdded;
 
@@ -200,6 +205,32 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     public Instruction visit(final Void param, final BlockEntry node) {
         // no operation
         return null;
+    }
+
+    private static final LLValue llvm_dbg_addr = Values.global("llvm.dbg.addr");
+    private static final LLValue emptyExpr = diExpression().asValue();
+
+    @Override
+    public Instruction visit(final Void param, final DebugAddressDeclaration node) {
+        map(node.getDependency());
+        Value address = node.getAddress();
+        LLValue mappedAddress = map(address);
+        PointerType pointerType = (PointerType) address.getType();
+        LLValue mappedPointerType = map(pointerType);
+        ValueType actualType = pointerType.getPointeeType();
+        LocalVariableElement variable = node.getVariable();
+        MetadataNode metadataNode = localVariables.get(variable);
+        if (metadataNode == null) {
+            // first occurrence
+            // todo: get alignment from variable
+            metadataNode = module.diLocalVariable(variable.getName(), debugInfo.getType(actualType), topSubprogram, debugInfo.createSourceFile(node.getElement()), node.getSourceLine(), actualType.getAlign());
+            localVariables.put(variable, metadataNode);
+        }
+        Call call = builder.call(void_, llvm_dbg_addr);
+        call.arg(metadata(mappedPointerType), mappedAddress)
+            .arg(metadata, metadataNode.asRef())
+            .arg(metadata, emptyExpr);
+        return call;
     }
 
     public Instruction visit(final Void param, final Store node) {
@@ -794,6 +825,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     }
 
     public LLValue visit(final Void param, final StackAllocation node) {
+        map(node.getDependency());
         LLValue pointeeType = map(node.getType().getPointeeType());
         LLValue countType = map(node.getCount().getType());
         LLValue count = map(node.getCount());

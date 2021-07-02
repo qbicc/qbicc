@@ -168,6 +168,10 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value insertMember(Value compound, CompoundType.Member member, Value value);
 
+    // debug
+
+    Node declareDebugAddress(LocalVariableElement variable, Value address);
+
     // phi
 
     PhiValue phi(ValueType type, BlockLabel owner, PhiValue.Flag... flags);

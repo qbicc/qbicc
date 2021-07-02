@@ -3,6 +3,7 @@ package org.qbicc.type.definition.element;
 import org.qbicc.context.Locatable;
 import org.qbicc.context.Location;
 import org.qbicc.type.definition.DefinedTypeDefinition;
+import org.qbicc.type.generic.TypeParameterContext;
 
 /**
  *
@@ -21,6 +22,10 @@ public interface Element extends Locatable {
     <T, R> R accept(ElementVisitor<T, R> visitor, T param);
 
     DefinedTypeDefinition getEnclosingType();
+
+    default TypeParameterContext getTypeParameterContext() {
+        return getEnclosingType();
+    }
 
     @Override
     default Location getLocation() {

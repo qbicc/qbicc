@@ -8,7 +8,9 @@ import org.qbicc.machine.llvm.debuginfo.DICompileUnit;
 import org.qbicc.machine.llvm.debuginfo.DICompositeType;
 import org.qbicc.machine.llvm.debuginfo.DIDerivedType;
 import org.qbicc.machine.llvm.debuginfo.DIEncoding;
+import org.qbicc.machine.llvm.debuginfo.DIExpression;
 import org.qbicc.machine.llvm.debuginfo.DIFile;
+import org.qbicc.machine.llvm.debuginfo.DILocalVariable;
 import org.qbicc.machine.llvm.debuginfo.DILocation;
 import org.qbicc.machine.llvm.debuginfo.DISubprogram;
 import org.qbicc.machine.llvm.debuginfo.DISubrange;
@@ -47,6 +49,8 @@ public interface Module {
     DIDerivedType diDerivedType(DITag tag, long size, int align);
     DICompositeType diCompositeType(DITag tag, long size, int align);
     DISubroutineType diSubroutineType(LLValue types);
+    DILocalVariable diLocalVariable(String name, LLValue type, LLValue scope, LLValue file, int line, int align);
+    DIExpression diExpression();
 
     void addFlag(ModuleFlagBehavior behavior, String name, LLValue type, LLValue value);
 

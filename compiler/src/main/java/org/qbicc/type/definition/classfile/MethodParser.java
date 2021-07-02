@@ -43,6 +43,7 @@ import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.descriptor.ArrayTypeDescriptor;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
@@ -67,6 +68,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
     private final TypeSystem ts;
     private final DefinedTypeDefinition jlo;
     private final DefinedTypeDefinition throwable;
+    private final LocalVariableElement[][] varsByTableEntry;
     private int currentbci;
     /**
      * Exception handlers by index, then by delegate.
@@ -82,7 +84,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         ts = ctxt.getTypeSystem();
         this.info = info;
         stack = new Value[info.getMaxStack()];
-        locals = new Value[info.getMaxLocals()];
+        int maxLocals = info.getMaxLocals();
+        locals = new Value[maxLocals];
         this.buffer = buffer;
         currentbci = buffer.position();
         int cnt = info.getEntryPointCount();
@@ -100,6 +103,43 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         exceptionHandlers = exCnt == 0 ? List.of() : new ArrayList<>(Collections.nCopies(exCnt, null));
         jlo = ctxt.findDefinedType("java/lang/Object");
         throwable = ctxt.findDefinedType("java/lang/Throwable");
+        LocalVariableElement[][] varsByTableEntry = new LocalVariableElement[maxLocals][];
+        for (int slot = 0; slot < maxLocals; slot ++) {
+            int entryCount = info.getLocalVarEntryCount(slot);
+            varsByTableEntry[slot] = new LocalVariableElement[entryCount];
+            for (int entry = 0; entry < entryCount; entry ++) {
+                LocalVariableElement.Builder builder = LocalVariableElement.builder();
+                int startPc = info.getLocalVarStartPc(slot, entry);
+                if (startPc == 0) {
+                    builder.setReflectsParameter(true);
+                }
+                builder.setBci(startPc);
+                builder.setLine(info.getLineNumber(startPc));
+                int cons = info.getLocalVarNameIndex(slot, entry);
+                if (cons == 0) {
+                    builder.setName("var" + slot + "_" + entry);
+                } else {
+                    builder.setName(info.getClassFile().getUtf8Constant(cons));
+                }
+                builder.setIndex(slot);
+                builder.setEnclosingType(gf.getCurrentElement().getEnclosingType());
+                builder.setTypeParameterContext(gf.getCurrentElement().getTypeParameterContext());
+                cons = info.getLocalVarDescriptorIndex(slot, entry);
+                if (cons == 0) {
+                    throw new IllegalStateException("No descriptor for local variable");
+                }
+                TypeDescriptor typeDescriptor = (TypeDescriptor) info.getClassFile().getDescriptorConstant(cons);
+                builder.setDescriptor(typeDescriptor);
+                cons = info.getLocalVarSignatureIndex(slot, entry);
+                if (cons == 0) {
+                    builder.setSignature(TypeSignature.synthesize(ctxt, typeDescriptor));
+                } else {
+                    builder.setSignature(TypeSignature.parse(ctxt, info.getClassFile().getUtf8ConstantAsBuffer(cons)));
+                }
+                varsByTableEntry[slot][entry] = builder.build();
+            }
+        }
+        this.varsByTableEntry = varsByTableEntry;
     }
 
     // exception handler policy
@@ -310,24 +350,44 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
 
     // Locals manipulation
 
-    void setLocal2(int index, Value value) {
+    void setLocal2(int index, Value value, int bci) {
         locals[index] = value;
         locals[index + 1] = null;
-    }
-
-    void setLocal1(int index, Value value) {
-        locals[index] = value;
-    }
-
-    void setLocal(int index, Value value, boolean class2) {
-        if (class2) {
-            setLocal2(index, value);
-        } else {
-            setLocal1(index, value);
+        LocalVariableElement lve = getLocalVariableElement(bci, index);
+        if (lve != null) {
+            gf.store(gf.localVariable(lve), storeTruncate(value, lve.getTypeDescriptor()), MemoryAtomicityMode.NONE);
         }
     }
 
-    Value getLocal(int index) {
+    void setLocal1(int index, Value value, int bci) {
+        locals[index] = value;
+        LocalVariableElement lve = getLocalVariableElement(bci, index);
+        if (lve != null) {
+            gf.store(gf.localVariable(lve), storeTruncate(value, lve.getTypeDescriptor()), MemoryAtomicityMode.NONE);
+        }
+    }
+
+    void setLocal(int index, Value value, boolean class2, int bci) {
+        if (class2) {
+            setLocal2(index, value, bci);
+        } else {
+            setLocal1(index, value, bci);
+        }
+    }
+
+    LocalVariableElement getLocalVariableElement(int bci, int index) {
+        int idx = info.getLocalVarEntryIndex(index, bci);
+        if (idx >= 0) {
+            return varsByTableEntry[index][idx];
+        }
+        return null;
+    }
+
+    Value getLocal(int index, int bci) {
+        final LocalVariableElement lve = getLocalVariableElement(bci, index);
+        if (lve != null) {
+            return promote(gf.load(gf.localVariable(lve), MemoryAtomicityMode.NONE), lve.getTypeDescriptor());
+        }
         Value value = locals[index];
         if (value == null) {
             throw new IllegalStateException("Invalid get local (no value)");
@@ -537,41 +597,41 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_ILOAD:
                     case OP_FLOAD:
                     case OP_ALOAD:
-                        push1(getLocal(getWidenableValue(buffer, wide)));
+                        push1(getLocal(getWidenableValue(buffer, wide), src));
                         break;
                     case OP_LLOAD:
                     case OP_DLOAD:
-                        push2(getLocal(getWidenableValue(buffer, wide)));
+                        push2(getLocal(getWidenableValue(buffer, wide), src));
                         break;
                     case OP_ILOAD_0:
                     case OP_ILOAD_1:
                     case OP_ILOAD_2:
                     case OP_ILOAD_3:
-                        push1(getLocal(opcode - OP_ILOAD_0));
+                        push1(getLocal(opcode - OP_ILOAD_0, src));
                         break;
                     case OP_LLOAD_0:
                     case OP_LLOAD_1:
                     case OP_LLOAD_2:
                     case OP_LLOAD_3:
-                        push2(getLocal(opcode - OP_LLOAD_0));
+                        push2(getLocal(opcode - OP_LLOAD_0, src));
                         break;
                     case OP_FLOAD_0:
                     case OP_FLOAD_1:
                     case OP_FLOAD_2:
                     case OP_FLOAD_3:
-                        push1(getLocal(opcode - OP_FLOAD_0));
+                        push1(getLocal(opcode - OP_FLOAD_0, src));
                         break;
                     case OP_DLOAD_0:
                     case OP_DLOAD_1:
                     case OP_DLOAD_2:
                     case OP_DLOAD_3:
-                        push2(getLocal(opcode - OP_DLOAD_0));
+                        push2(getLocal(opcode - OP_DLOAD_0, src));
                         break;
                     case OP_ALOAD_0:
                     case OP_ALOAD_1:
                     case OP_ALOAD_2:
                     case OP_ALOAD_3:
-                        push1(getLocal(opcode - OP_ALOAD_0));
+                        push1(getLocal(opcode - OP_ALOAD_0, src));
                         break;
                     case OP_AALOAD: {
                         v2 = pop1();
@@ -602,41 +662,41 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_ISTORE:
                     case OP_FSTORE:
                     case OP_ASTORE:
-                        setLocal1(getWidenableValue(buffer, wide), pop1());
+                        setLocal1(getWidenableValue(buffer, wide), pop1(), buffer.position());
                         break;
                     case OP_LSTORE:
                     case OP_DSTORE:
-                        setLocal2(getWidenableValue(buffer, wide), pop2());
+                        setLocal2(getWidenableValue(buffer, wide), pop2(), buffer.position());
                         break;
                     case OP_ISTORE_0:
                     case OP_ISTORE_1:
                     case OP_ISTORE_2:
                     case OP_ISTORE_3:
-                        setLocal1(opcode - OP_ISTORE_0, pop1());
+                        setLocal1(opcode - OP_ISTORE_0, pop1(), buffer.position());
                         break;
                     case OP_LSTORE_0:
                     case OP_LSTORE_1:
                     case OP_LSTORE_2:
                     case OP_LSTORE_3:
-                        setLocal2(opcode - OP_LSTORE_0, pop2());
+                        setLocal2(opcode - OP_LSTORE_0, pop2(), buffer.position());
                         break;
                     case OP_FSTORE_0:
                     case OP_FSTORE_1:
                     case OP_FSTORE_2:
                     case OP_FSTORE_3:
-                        setLocal1(opcode - OP_FSTORE_0, pop1());
+                        setLocal1(opcode - OP_FSTORE_0, pop1(), buffer.position());
                         break;
                     case OP_DSTORE_0:
                     case OP_DSTORE_1:
                     case OP_DSTORE_2:
                     case OP_DSTORE_3:
-                        setLocal2(opcode - OP_DSTORE_0, pop2());
+                        setLocal2(opcode - OP_DSTORE_0, pop2(), buffer.position());
                         break;
                     case OP_ASTORE_0:
                     case OP_ASTORE_1:
                     case OP_ASTORE_2:
                     case OP_ASTORE_3:
-                        setLocal1(opcode - OP_ASTORE_0, pop1());
+                        setLocal1(opcode - OP_ASTORE_0, pop1(), buffer.position());
                         break;
                     case OP_IASTORE:
                     case OP_FASTORE:
@@ -932,7 +992,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     case OP_IINC:
                         int idx = getWidenableValue(buffer, wide);
-                        setLocal1(idx, gf.add(getLocal(idx), lf.literalOf(getWidenableValueSigned(buffer, wide))));
+                        // it's unlikely but possible that the identity of the var has changed between load and store
+                        setLocal1(idx, gf.add(getLocal(idx, src), lf.literalOf(getWidenableValueSigned(buffer, wide))), buffer.position());
                         break;
                     case OP_I2L:
                         push2(gf.extend(pop1(), ts.getSignedInteger64Type()));
@@ -1258,7 +1319,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         String name = getNameOfFieldRef(fieldRef);
                         // todo: signature context
                         ValueHandle handle = gf.staticField(owner, name, desc);
-                        Value value = promote(gf.load(handle, handle.getDetectedMode()));
+                        Value value = promote(gf.load(handle, handle.getDetectedMode()), desc);
                         push(value, desc.isClass2());
                         break;
                     }
@@ -1280,7 +1341,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         String name = getNameOfFieldRef(fieldRef);
                         // todo: signature context
                         ValueHandle handle = gf.instanceFieldOf(gf.referenceHandle(pop1()), owner, name, desc);
-                        Value value = promote(gf.load(handle, handle.getDetectedMode()));
+                        Value value = promote(gf.load(handle, handle.getDetectedMode()), desc);
                         push(value, desc.isClass2());
                         break;
                     }
@@ -1355,7 +1416,7 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                             }
                             Value result = gf.call(handle, List.of(args));
                             if (returnType != BaseTypeDescriptor.V) {
-                                push(promote(result), desc.getReturnType().isClass2());
+                                push(promote(result, returnType), desc.getReturnType().isClass2());
                             }
                         }
                         break;
@@ -1410,8 +1471,9 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         // todo: promote the method handle directly to a ValueHandle?
                         Value result = gf.call(gf.virtualMethodOf(methodHandle, descOfMethodHandle, "invokeExact",
                             desc), List.of(args));
-                        if (! desc.getReturnType().isVoid()) {
-                            push(promote(result), desc.getReturnType().isClass2());
+                        TypeDescriptor returnType = desc.getReturnType();
+                        if (! returnType.isVoid()) {
+                            push(promote(result, returnType), returnType.isClass2());
                         }
                         break;
                     }
@@ -1555,6 +1617,14 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         } else {
             processBlock(from);
         }
+    }
+
+    Value promote(Value value, TypeDescriptor desc) {
+        if (desc instanceof BaseTypeDescriptor && desc != BaseTypeDescriptor.V) {
+            return promote(value);
+        }
+        // no promote necessary
+        return value;
     }
 
     Value promote(Value value) {

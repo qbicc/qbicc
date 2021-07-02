@@ -1,5 +1,6 @@
 package org.qbicc.machine.llvm;
 
+import org.qbicc.machine.llvm.debuginfo.DIExpression;
 import org.qbicc.machine.llvm.impl.LLVM;
 
 /**
@@ -31,6 +32,10 @@ public final class Values {
 
     public static LLValue ptrtointConstant(LLValue value, LLValue fromType, LLValue toType) {
         return LLVM.ptrtointConstant(value, fromType, toType);
+    }
+
+    public static DIExpression diExpression() {
+        return LLVM.diExpression();
     }
 
     public static LLValue intConstant(int val) {

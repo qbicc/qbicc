@@ -75,6 +75,11 @@ public abstract class InvokableElement extends AnnotatedElement implements Execu
         return methodBodyFactory;
     }
 
+    @Override
+    public TypeParameterContext getTypeParameterContext() {
+        return this;
+    }
+
     public int getMethodBodyFactoryIndex() {
         return methodBodyFactoryIndex;
     }

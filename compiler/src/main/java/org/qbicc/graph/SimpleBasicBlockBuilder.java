@@ -522,6 +522,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new InsertMember(callSite, element, line, bci, compound, value, member);
     }
 
+    public Node declareDebugAddress(LocalVariableElement variable, Value address) {
+        return asDependency(new DebugAddressDeclaration(callSite, element, line, bci, requireDependency(), variable, address));
+    }
+
     public PhiValue phi(final ValueType type, final BlockLabel owner, PhiValue.Flag... flags) {
         boolean nullable = (flags.length == 0 || flags[0] != PhiValue.Flag.NOT_NULL);
         return new PhiValue(callSite, element, line, bci, type, owner, nullable);

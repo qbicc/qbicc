@@ -1205,8 +1205,7 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             if (nonStatic) {
                 // instance method or constructor
                 thisValue = gf.parameter(enclosing.load().getType().getReference(), "this", 0);
-                currentVarTypes[j] = thisValue.getType();
-                methodParser.setLocal1(j++, thisValue);
+                currentVarTypes[j++] = thisValue.getType();
             } else {
                 thisValue = null;
             }
@@ -1214,9 +1213,8 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
                 ValueType type = elementParameters.get(i).getType();
                 parameters[i] = gf.parameter(type, "p", i);
                 boolean class2 = elementParameters.get(i).hasClass2Type();
-                Value promoted = methodParser.promote(parameters[i]);
+                Value promoted = methodParser.promote(parameters[i], elementParameters.get(i).getTypeDescriptor());
                 currentVarTypes[j] = promoted.getType();
-                methodParser.setLocal(j, promoted, class2);
                 j += class2 ? 2 : 1;
             }
         } else {
@@ -1363,19 +1361,42 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             }
         }
         methodParser.setTypeInformation(varTypesByEntryPoint, stackTypesByEntryPoint);
-        // process the main entry point
+        // set up method for initial values
         BlockLabel entryBlockHandle = methodParser.getBlockForIndexIfExists(0);
-        if (entryBlockHandle == null) {
+        boolean noLoop = entryBlockHandle == null;
+        byteCode.position(0);
+        BlockLabel newLabel = null;
+        if (noLoop) {
             // no loop to start block; just process it as a new block
             entryBlockHandle = new BlockLabel();
             gf.begin(entryBlockHandle);
+        } else {
             byteCode.position(0);
+            newLabel = new BlockLabel();
+            gf.begin(newLabel);
+        }
+        // set initial values
+        if (element instanceof InvokableElement) {
+            List<ParameterElement> elementParameters = ((InvokableElement) element).getParameters();
+            int paramCount = elementParameters.size();
+            int j = 0;
+            if (nonStatic) {
+                // instance method or constructor
+                methodParser.setLocal1(j++, thisValue, 0);
+            }
+            for (int i = 0; i < paramCount; i ++) {
+                boolean class2 = elementParameters.get(i).hasClass2Type();
+                Value promoted = methodParser.promote(parameters[i], elementParameters.get(i).getTypeDescriptor());
+                methodParser.setLocal(j, promoted, class2, 0);
+                j += class2 ? 2 : 1;
+            }
+        }
+        // process the main entry point
+        if (noLoop) {
+            // no loop to start block; just process it as a new block
             methodParser.processNewBlock();
         } else {
             // we have to jump into it because there is a loop that includes index 0
-            byteCode.position(0);
-            BlockLabel newLabel = new BlockLabel();
-            gf.begin(newLabel);
             methodParser.processBlock(gf.goto_(entryBlockHandle));
             entryBlockHandle = newLabel;
         }
