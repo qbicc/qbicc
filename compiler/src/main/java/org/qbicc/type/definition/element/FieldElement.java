@@ -2,6 +2,7 @@ package org.qbicc.type.definition.element;
 
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 
 /**
