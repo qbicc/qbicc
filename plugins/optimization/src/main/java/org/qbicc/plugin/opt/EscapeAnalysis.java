@@ -18,6 +18,11 @@ public class EscapeAnalysis {
     private static final AttachmentKey<EscapeAnalysis> KEY = new AttachmentKey<>();
     private final Map<ExecutableElement, ConnectionGraph> connectionGraphs = new ConcurrentHashMap<>();
 
+    public void setGlobalEscape(ExecutableElement element, Value value) {
+        final ConnectionGraph cg = connectionGraph(element);
+        cg.escapeStates.put(value, EscapeState.GLOBAL_ESCAPE);
+    }
+
     void setNoEscape(ExecutableElement element, Value value) {
         final ConnectionGraph cg = connectionGraph(element);
         cg.escapeStates.put(value, EscapeState.NO_ESCAPE);
