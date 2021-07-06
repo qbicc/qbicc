@@ -22,10 +22,13 @@ import java.util.List;
 
 public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
+    private final EscapeAnalysis.ConnectionGraph connectionGraph;
 
     public EscapeAnalysisBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
+        this.connectionGraph = new EscapeAnalysis.ConnectionGraph(delegate.getCurrentElement());
+        EscapeAnalysis.get(this.ctxt).addConnectionGraph(this.connectionGraph);
     }
 
     @Override
@@ -34,7 +37,7 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
 
         // new T(...);
         // Default object to no escape
-        EscapeAnalysis.get(ctxt).setNoEscape(getCurrentElement(), result);
+        connectionGraph.setNoEscape(result);
 
         return result;
     }
@@ -54,8 +57,8 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
 
     private void handleInstanceFieldOf(InstanceFieldOf result, ValueHandle handle, Node target) {
         if (target instanceof New) {
-            EscapeAnalysis.get(ctxt).addFieldEdgeIfAbsent(getCurrentElement(), (New) target, result);
-            EscapeAnalysis.get(ctxt).addPointsToEdgeIfAbsent(getCurrentElement(), handle, (New) target);
+            connectionGraph.addFieldEdgeIfAbsent((New) target, result);
+            connectionGraph.addPointsToEdgeIfAbsent(handle, (New) target);
         } else if (target instanceof Store) {
             final Value value = ((Store) target).getValue();
             if (value instanceof New) {
@@ -78,10 +81,10 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
 
         if (handle instanceof StaticField) {
             // static T a = new T();
-            EscapeAnalysis.get(ctxt).setGlobalEscape(getCurrentElement(), value);
+            connectionGraph.setGlobalEscape(value);
         } else if (handle instanceof InstanceFieldOf && value instanceof New) {
             // p.f = new T(); // where p is a parameter
-            EscapeAnalysis.get(ctxt).addPointsToEdgeIfAbsent(getCurrentElement(), handle, (New) value);
+            connectionGraph.addPointsToEdgeIfAbsent(handle, (New) value);
         }
 
         return result;
@@ -90,19 +93,19 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public void startMethod(List<ParameterValue> arguments) {
         super.startMethod(arguments);
-        arguments.forEach(arg -> EscapeAnalysis.get(ctxt).setArgEscape(getCurrentElement(), arg));
+        arguments.forEach(connectionGraph::setArgEscape);
     }
 
     @Override
     public BasicBlock return_(Value value) {
         final BasicBlock result = super.return_(value);
-        EscapeAnalysis.get(ctxt).setArgEscape(getCurrentElement(), value);
+        connectionGraph.setArgEscape(value);
         return result;
     }
 
     @Override
     public void finish() {
-        EscapeAnalysis.get(ctxt).methodExit(getCurrentElement());
+        connectionGraph.methodExit();
         super.finish();
     }
 }
