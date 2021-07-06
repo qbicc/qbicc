@@ -2,6 +2,7 @@ package org.qbicc.type.definition.element;
 
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.type.definition.classfile.ClassFile;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 
 /**
@@ -14,6 +15,15 @@ public final class FieldElement extends VariableElement implements MemberElement
     FieldElement(Builder builder) {
         super(builder);
         this.initialValue = builder.initialValue;
+    }
+
+    public String toString() {
+        final ClassTypeDescriptor desc = getEnclosingType().getDescriptor();
+        final String packageName = desc.getPackageName();
+        if (packageName.isEmpty()) {
+            return desc.getClassName()+"."+getName();
+        }
+        return packageName + "." + desc.getClassName() + "." + getName();
     }
 
     public boolean isVolatile() {
