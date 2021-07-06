@@ -59,8 +59,8 @@ public class EscapeAnalysis {
     }
 
     static final class ConnectionGraph {
-        private final Map<ValueHandle, Value> pointsToEdges = new ConcurrentHashMap<>(); // solid (P) edges
-        private final Map<Value, ValueHandle> deferredEdges = new ConcurrentHashMap<>(); // dashed (D) edges
+        private final Map<Node, Value> pointsToEdges = new ConcurrentHashMap<>(); // solid (P) edges
+        private final Map<Node, ValueHandle> deferredEdges = new ConcurrentHashMap<>(); // dashed (D) edges
         private final Map<Value, Set<ValueHandle>> fieldEdges = new ConcurrentHashMap<>(); // solid (F) edges
         private final Map<Node, EscapeState> escapeStates = new ConcurrentHashMap<>();
 
@@ -72,8 +72,8 @@ public class EscapeAnalysis {
             this.element = element;
         }
 
-        void setArgEscape(Value value) {
-            escapeStates.put(value, EscapeState.ARG_ESCAPE);
+        void setArgEscape(Node node) {
+            escapeStates.put(node, EscapeState.ARG_ESCAPE);
         }
 
         void setGlobalEscape(Value value) {
@@ -84,58 +84,42 @@ public class EscapeAnalysis {
             escapeStates.put(value, EscapeState.NO_ESCAPE);
         }
 
-        public boolean addFieldEdgeIfAbsent(New new_, ValueHandle field) {
+        public boolean addFieldEdgeIfAbsent(New from, ValueHandle to) {
             return fieldEdges
-                .computeIfAbsent(new_, obj -> new HashSet<>())
-                .add(field);
+                .computeIfAbsent(from, obj -> new HashSet<>())
+                .add(to);
         }
 
-        public boolean addPointsToEdgeIfAbsent(ValueHandle ref, New new_) {
-            return pointsToEdges.putIfAbsent(ref, new_) == null;
+        public boolean addPointsToEdgeIfAbsent(ValueHandle from, New to) {
+            return pointsToEdges.putIfAbsent(from, to) == null;
+        }
+
+        public boolean addDeferredEdgeIfAbsent(Node from, ValueHandle to) {
+            return deferredEdges.putIfAbsent(from, to) == null;
         }
 
         void methodExit() {
-//        final ConnectionGraph cg = connectionGraph(element);
-//
-//        // TODO: compute set of nodes reachable from GlobalEscape node(s)
-//
-//        // TODO: compute set of nodes reachable from ArgEscape (nodes), but not any GlobalEscape node
-//        cg.escapeStates.entrySet().stream()
-//            .filter(e -> e.getValue().isArgEscape())
-//            .forEach(e -> computeArgEscapeOnly(element, e.getKey()));
-//
-//        // TODO: compute set of nodes not reachable from GlobalEscape or ArgEscape
+            // TODO: 1. compute set of nodes reachable from GlobalEscape node(s)
+
+            // TODO: 2. compute set of nodes reachable from ArgEscape (nodes), but not any GlobalEscape node
+            escapeStates.entrySet().stream()
+                .filter(e -> e.getValue().isArgEscape())
+                .forEach(e -> computeArgEscapeOnly(e.getKey()));
+
+            // TODO: 3. compute set of nodes not reachable from GlobalEscape or ArgEscape
         }
 
-//    private void computeArgEscapeOnly(ExecutableElement element, Node node) {
-//        final ConnectionGraph cg = connectionGraph(element);
-//        for (Map.Entry<ValueHandle, Value> pointsToEntry : cg.pointsToEdges.entrySet()) {
-//            final boolean isReachable = isReachable(element, node, pointsToEntry.getKey());
-//            if (isReachable) {
-//                cg.escapeStates.put(pointsToEntry.getValue(), EscapeState.ARG_ESCAPE);
-//            }
-//        }
+        private void computeArgEscapeOnly(Node from) {
+            // TODO filter that not global reachable
 
-//    }
-//    private boolean isReachable(ExecutableElement element, Node node, Node from) {
-//        if (node == from)
-//            return true;
-//
-//        // TODO filter that not global reachable
-//
-//        if (from.hasValueHandleDependency()) {
-//            final ConnectionGraph cg = connectionGraph(element);
-//            boolean isReachable = isReachable(element, node, from.getValueHandle());
-//            if (isReachable) {
-//                // TODO Only mark as arg escape New nodes?
-//                cg.escapeStates.put(from, EscapeState.ARG_ESCAPE);
-//            }
-//            return isReachable;
-//        }
-//
-//        return false;
+            final Node to = deferredEdges.get(from) != null
+                ? deferredEdges.get(from)
+                : pointsToEdges.get(from);
 
-//    }
-
+            if (to != null) {
+                setArgEscape(to);
+                computeArgEscapeOnly(to);
+            }
+        }
     }
 }

@@ -13,6 +13,7 @@ import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Store;
+import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.ClassObjectType;
@@ -59,6 +60,8 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
         if (target instanceof New) {
             connectionGraph.addFieldEdgeIfAbsent((New) target, result);
             connectionGraph.addPointsToEdgeIfAbsent(handle, (New) target);
+        } else if (target instanceof ParameterValue) {
+            connectionGraph.addDeferredEdgeIfAbsent(target, result);
         } else if (target instanceof Store) {
             final Value value = ((Store) target).getValue();
             if (value instanceof New) {
@@ -99,7 +102,10 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
     @Override
     public BasicBlock return_(Value value) {
         final BasicBlock result = super.return_(value);
+
+        // TODO navigate fully
         connectionGraph.setArgEscape(value);
+
         return result;
     }
 
