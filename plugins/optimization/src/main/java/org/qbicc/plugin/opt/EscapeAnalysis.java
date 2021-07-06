@@ -2,6 +2,7 @@ package org.qbicc.plugin.opt;
 
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.New;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
@@ -17,6 +18,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class EscapeAnalysis {
     private static final AttachmentKey<EscapeAnalysis> KEY = new AttachmentKey<>();
     private final Map<ExecutableElement, ConnectionGraph> connectionGraphs = new ConcurrentHashMap<>();
+
+    void setArgEscape(ExecutableElement element, Value value) {
+        final ConnectionGraph cg = connectionGraph(element);
+        cg.escapeStates.put(value, EscapeState.ARG_ESCAPE);
+    }
 
     public void setGlobalEscape(ExecutableElement element, Value value) {
         final ConnectionGraph cg = connectionGraph(element);
@@ -41,8 +47,46 @@ public class EscapeAnalysis {
     }
 
     void methodExit(ExecutableElement element) {
-        // TODO: summarise method cg
+//        final ConnectionGraph cg = connectionGraph(element);
+//
+//        // TODO: compute set of nodes reachable from GlobalEscape node(s)
+//
+//        // TODO: compute set of nodes reachable from ArgEscape (nodes), but not any GlobalEscape node
+//        cg.escapeStates.entrySet().stream()
+//            .filter(e -> e.getValue().isArgEscape())
+//            .forEach(e -> computeArgEscapeOnly(element, e.getKey()));
+//
+//        // TODO: compute set of nodes not reachable from GlobalEscape or ArgEscape
     }
+
+//    private void computeArgEscapeOnly(ExecutableElement element, Node node) {
+//        final ConnectionGraph cg = connectionGraph(element);
+//        for (Map.Entry<ValueHandle, Value> pointsToEntry : cg.pointsToEdges.entrySet()) {
+//            final boolean isReachable = isReachable(element, node, pointsToEntry.getKey());
+//            if (isReachable) {
+//                cg.escapeStates.put(pointsToEntry.getValue(), EscapeState.ARG_ESCAPE);
+//            }
+//        }
+//    }
+
+//    private boolean isReachable(ExecutableElement element, Node node, Node from) {
+//        if (node == from)
+//            return true;
+//
+//        // TODO filter that not global reachable
+//
+//        if (from.hasValueHandleDependency()) {
+//            final ConnectionGraph cg = connectionGraph(element);
+//            boolean isReachable = isReachable(element, node, from.getValueHandle());
+//            if (isReachable) {
+//                // TODO Only mark as arg escape New nodes?
+//                cg.escapeStates.put(from, EscapeState.ARG_ESCAPE);
+//            }
+//            return isReachable;
+//        }
+//
+//        return false;
+//    }
 
     boolean notEscapingMethod(Node node) {
         return escapeState(node)
@@ -76,6 +120,10 @@ public class EscapeAnalysis {
 
     enum EscapeState {
         GLOBAL_ESCAPE, ARG_ESCAPE, NO_ESCAPE;
+
+        boolean isArgEscape() {
+            return this == ARG_ESCAPE;
+        }
     }
 
     private static final class ConnectionGraph {

@@ -1,6 +1,7 @@
 package org.qbicc.plugin.opt;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.InstanceFieldOf;
@@ -8,6 +9,7 @@ import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.New;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.OrderedNode;
+import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.ReferenceHandle;
 import org.qbicc.graph.StaticField;
 import org.qbicc.graph.Store;
@@ -15,6 +17,8 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.definition.element.FieldElement;
+
+import java.util.List;
 
 public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
@@ -72,12 +76,27 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
         final Node result = super.store(handle, value, mode);
 
-        // static T a;
-        // a = new T();
         if (handle instanceof StaticField) {
+            // static T a = new T();
             EscapeAnalysis.get(ctxt).setGlobalEscape(getCurrentElement(), value);
+        } else if (handle instanceof InstanceFieldOf && value instanceof New) {
+            // p.f = new T(); // where p is a parameter
+            EscapeAnalysis.get(ctxt).addPointsToEdgeIfAbsent(getCurrentElement(), handle, (New) value);
         }
 
+        return result;
+    }
+
+    @Override
+    public void startMethod(List<ParameterValue> arguments) {
+        super.startMethod(arguments);
+        arguments.forEach(arg -> EscapeAnalysis.get(ctxt).setArgEscape(getCurrentElement(), arg));
+    }
+
+    @Override
+    public BasicBlock return_(Value value) {
+        final BasicBlock result = super.return_(value);
+        EscapeAnalysis.get(ctxt).setArgEscape(getCurrentElement(), value);
         return result;
     }
 
