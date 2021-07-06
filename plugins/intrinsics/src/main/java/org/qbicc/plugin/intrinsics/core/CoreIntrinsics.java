@@ -72,6 +72,7 @@ public final class CoreIntrinsics {
         registerJavaLangObjectIntrinsics(ctxt);
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
+        registerJavaLangRuntimeIntrinsics(ctxt);
         registerOrgQbiccRuntimeCNativeIntrinsics(ctxt);
         registerOrgQbiccObjectModelIntrinsics(ctxt);
         registerOrgQbiccRuntimeMainIntrinsics(ctxt);
@@ -1274,5 +1275,22 @@ public final class CoreIntrinsics {
         } else {
             return builder.valueConvert(input, toType);
         }
+    }
+
+    private static void registerJavaLangRuntimeIntrinsics(CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor runtimeClassDescriptor = ClassTypeDescriptor.synthesize(classContext, "java/lang/Runtime");
+
+        InstanceIntrinsic availableProcessorsIntrinsic = (builder, instance, target, arguments) -> {
+            // TODO this should reflect the target platform
+            int numProcessors = Runtime.getRuntime().availableProcessors();
+            return ctxt.getLiteralFactory().literalOf(numProcessors);
+        };
+
+        MethodDescriptor availableProcessorsMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
+
+        intrinsics.registerIntrinsic(runtimeClassDescriptor, "availableProcessors", availableProcessorsMethodDesc, availableProcessorsIntrinsic);
     }
 }
