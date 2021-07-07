@@ -65,14 +65,6 @@ public class EscapeAnalysis {
         private final Map<Value, Set<ValueHandle>> fieldEdges = new HashMap<>(); // solid (F) edges
         private final Map<Node, EscapeState> escapeStates = new HashMap<>();
 
-        // TODO remove when it's possible to bind a collection and add GCs into it,
-        //  see https://downloads.jboss.org/byteman/4.0.16/byteman-programmers-guide.html#linkmaps
-        private final ExecutableElement element;
-
-        ConnectionGraph(ExecutableElement element) {
-            this.element = element;
-        }
-
         void setArgEscape(Node node) {
             escapeStates.put(node, EscapeState.ARG_ESCAPE);
         }

@@ -28,7 +28,7 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public EscapeAnalysisBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
-        this.connectionGraph = new EscapeAnalysis.ConnectionGraph(delegate.getCurrentElement());
+        this.connectionGraph = new EscapeAnalysis.ConnectionGraph();
         EscapeAnalysis.get(this.ctxt).addConnectionGraph(this.connectionGraph);
     }
 
