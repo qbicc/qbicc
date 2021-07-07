@@ -183,27 +183,26 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         // Search loop to find the itableDictEntry with the typeId of the target interface.
         // If we hit the sentinel (typeid 0), then there was an IncompatibleClassChangeError
         BlockLabel failLabel = new BlockLabel();
-        BlockLabel validEntry = new BlockLabel();
+        BlockLabel checkForICCE = new BlockLabel();
         BlockLabel exitMatched = new BlockLabel();
         BlockLabel loop = new BlockLabel();
 
         BasicBlock initial = goto_(loop);
         begin(loop);
         PhiValue phi = phi(ctxt.getTypeSystem().getSignedInteger32Type(), loop);
+        phi.setValueForBlock(ctxt, getCurrentElement(), initial, ctxt.getLiteralFactory().literalOf(0));
         Value candidateId = fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("typeId")), MemoryAtomicityMode.UNORDERED);
-        if_(isEq(candidateId, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(info.getInterface().getType().getTypeType())), failLabel, validEntry);
+        if_(isEq(candidateId, ctxt.getLiteralFactory().literalOf(info.getInterface().getTypeId())), exitMatched, checkForICCE);
         try {
+            begin(checkForICCE);
+            BasicBlock body = if_(isEq(candidateId, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(info.getInterface().getType().getTypeType())), failLabel, loop);
+            phi.setValueForBlock(ctxt, getCurrentElement(), body, fb.add(phi, ctxt.getLiteralFactory().literalOf(1)));
+
             begin(failLabel);
             callNoReturn(staticMethod(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError")), List.of());
         } catch (BlockEarlyTermination ignored) {
             // ignore; continue to generate validEntry block
         }
-        begin(validEntry);
-        BasicBlock validEntryBlock = if_(isEq(candidateId, ctxt.getLiteralFactory().literalOf(info.getInterface().getTypeId())), exitMatched, loop);
-
-        phi.setValueForBlock(ctxt, getCurrentElement(), initial, ctxt.getLiteralFactory().literalOf(0));
-        phi.setValueForBlock(ctxt, getCurrentElement(), validEntryBlock, fb.add(phi, ctxt.getLiteralFactory().literalOf(1)));
-
         begin(exitMatched);
         Value itable = fb.bitCast(fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("itable")), MemoryAtomicityMode.UNORDERED), info.getType().getPointer());
         final Value ptr = fb.load(memberOf(fb.pointerHandle(itable), info.getType().getMember(dt.getITableIndex(target))), MemoryAtomicityMode.UNORDERED);
