@@ -94,6 +94,11 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
+    public Value call(ValueHandle target, List<Value> arguments) {
+        return super.call(target, arguments);    // TODO: Customise this generated block
+    }
+
+    @Override
     public void startMethod(List<ParameterValue> arguments) {
         super.startMethod(arguments);
         arguments.forEach(connectionGraph::setArgEscape);
@@ -103,8 +108,11 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public BasicBlock return_(Value value) {
         final BasicBlock result = super.return_(value);
 
-        // TODO navigate fully
-        connectionGraph.setArgEscape(value);
+        // Skip primtive values truncated, they are not objects
+        if (!(value instanceof Truncate)) {
+            // TODO navigate fully, if object
+            connectionGraph.setArgEscape(value);
+        }
 
         return result;
     }
