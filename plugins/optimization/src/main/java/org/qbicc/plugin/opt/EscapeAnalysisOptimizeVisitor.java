@@ -18,11 +18,11 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 
-public class EscapeOptimizeBasicBlockBuilder implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
+public class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
     private final CompilationContext ctxt;
     private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate;
 
-    public EscapeOptimizeBasicBlockBuilder(final CompilationContext ctxt, final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate) {
+    public EscapeAnalysisOptimizeVisitor(final CompilationContext ctxt, final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate) {
         this.ctxt = ctxt;
         this.delegate = delegate;
     }
