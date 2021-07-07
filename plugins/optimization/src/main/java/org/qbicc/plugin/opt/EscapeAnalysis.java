@@ -1,5 +1,14 @@
 package org.qbicc.plugin.opt;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
+
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.New;
@@ -7,14 +16,6 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.type.definition.element.ExecutableElement;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class EscapeAnalysis {
     private static final AttachmentKey<EscapeAnalysis> KEY = new AttachmentKey<>();
@@ -59,10 +60,10 @@ public class EscapeAnalysis {
     }
 
     static final class ConnectionGraph {
-        private final Map<Node, Value> pointsToEdges = new ConcurrentHashMap<>(); // solid (P) edges
-        private final Map<Node, ValueHandle> deferredEdges = new ConcurrentHashMap<>(); // dashed (D) edges
-        private final Map<Value, Set<ValueHandle>> fieldEdges = new ConcurrentHashMap<>(); // solid (F) edges
-        private final Map<Node, EscapeState> escapeStates = new ConcurrentHashMap<>();
+        private final Map<Node, Value> pointsToEdges = new HashMap<>(); // solid (P) edges
+        private final Map<Node, ValueHandle> deferredEdges = new HashMap<>(); // dashed (D) edges
+        private final Map<Value, Set<ValueHandle>> fieldEdges = new HashMap<>(); // solid (F) edges
+        private final Map<Node, EscapeState> escapeStates = new HashMap<>();
 
         // TODO remove when it's possible to bind a collection and add GCs into it,
         //  see https://downloads.jboss.org/byteman/4.0.16/byteman-programmers-guide.html#linkmaps
@@ -102,9 +103,12 @@ public class EscapeAnalysis {
             // TODO: 1. compute set of nodes reachable from GlobalEscape node(s)
 
             // TODO: 2. compute set of nodes reachable from ArgEscape (nodes), but not any GlobalEscape node
-            escapeStates.entrySet().stream()
+            final List<Node> argEscapeOnly = escapeStates.entrySet().stream()
                 .filter(e -> e.getValue().isArgEscape())
-                .forEach(e -> computeArgEscapeOnly(e.getKey()));
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+            // Separate computing from filtering since it modifies the collection itself
+            argEscapeOnly.forEach(this::computeArgEscapeOnly);
 
             // TODO: 3. compute set of nodes not reachable from GlobalEscape or ArgEscape
         }
