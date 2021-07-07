@@ -14,6 +14,7 @@ import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.ExactMethodElementHandle;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.InterfaceMethodElementHandle;
+import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.VirtualMethodElementHandle;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.StaticMethodElementHandle;
@@ -154,10 +155,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
         return pointerHandle(ptr);
     }
 
-    // Current implementation strategy is "directly indexed itable" in the terminology of [Alpern et al 2001].
-    // Very fast dispatch; but significant wasted data space due to sparse per-interface itables[].
-    // However, all the invalid slots in the itable contain a pointer to VMHelpers.raiseIncompatibleClassChangerError()
-    // so we do not need an explicit test at the call site.
+    // Current implementation strategy is "searched itables" in the terminology of [Alpern et al 2001].
     @Override
     public ValueHandle visit(ArrayList<Value> args, InterfaceMethodElementHandle node) {
         final BasicBlockBuilder fb = getFirstBuilder();
@@ -170,12 +168,45 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
             // No realized invocation targets are possible for this method!
             throw new BlockEarlyTermination(fb.callNoReturn(staticMethod(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError")), List.of()));
         }
+
         Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
-        section.declareData(null, info.getGlobal().getName(), info.getGlobal().getType());
-        int index = dt.getITableIndex(target);
+        GlobalVariableElement rootITables = dt.getITablesGlobal();
+        if (!rootITables.getEnclosingType().equals(originalElement.getEnclosingType())) {
+            section.declareData(null, rootITables.getName(), rootITables.getType());
+        }
+
+        // Use the receiver's typeId to get the itable dictionary for its class
         Value typeId = fb.typeIdOf(fb.referenceHandle(node.getInstance()));
-        Value itable = fb.load(elementOf(globalVariable(info.getGlobal()), typeId), MemoryAtomicityMode.UNORDERED);
-        final Value ptr = fb.load(memberOf(pointerHandle(itable), info.getType().getMember(index)), MemoryAtomicityMode.UNORDERED);
+        Value itableDict = fb.load(elementOf(globalVariable(rootITables), typeId), MemoryAtomicityMode.UNORDERED);
+        ValueHandle zeroElementHandle = fb.elementOf(fb.pointerHandle(itableDict), ctxt.getLiteralFactory().literalOf(0));
+
+        // Search loop to find the itableDictEntry with the typeId of the target interface.
+        // If we hit the sentinel (typeid 0), then there was an IncompatibleClassChangeError
+        BlockLabel failLabel = new BlockLabel();
+        BlockLabel validEntry = new BlockLabel();
+        BlockLabel exitMatched = new BlockLabel();
+        BlockLabel loop = new BlockLabel();
+
+        BasicBlock initial = goto_(loop);
+        begin(loop);
+        PhiValue phi = phi(ctxt.getTypeSystem().getSignedInteger32Type(), loop);
+        Value candidateId = fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("typeId")), MemoryAtomicityMode.UNORDERED);
+        if_(isEq(candidateId, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(info.getInterface().getType().getTypeType())), failLabel, validEntry);
+        try {
+            begin(failLabel);
+            callNoReturn(staticMethod(ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError")), List.of());
+        } catch (BlockEarlyTermination ignored) {
+            // ignore; continue to generate validEntry block
+        }
+        begin(validEntry);
+        BasicBlock validEntryBlock = if_(isEq(candidateId, ctxt.getLiteralFactory().literalOf(info.getInterface().getTypeId())), exitMatched, loop);
+
+        phi.setValueForBlock(ctxt, getCurrentElement(), initial, ctxt.getLiteralFactory().literalOf(0));
+        phi.setValueForBlock(ctxt, getCurrentElement(), validEntryBlock, fb.add(phi, ctxt.getLiteralFactory().literalOf(1)));
+
+        begin(exitMatched);
+        Value itable = fb.bitCast(fb.load(fb.memberOf(fb.elementOf(zeroElementHandle, phi), dt.getItableDictType().getMember("itable")), MemoryAtomicityMode.UNORDERED), info.getType().getPointer());
+        final Value ptr = fb.load(memberOf(fb.pointerHandle(itable), info.getType().getMember(dt.getITableIndex(target))), MemoryAtomicityMode.UNORDERED);
         return pointerHandle(ptr);
     }
 
