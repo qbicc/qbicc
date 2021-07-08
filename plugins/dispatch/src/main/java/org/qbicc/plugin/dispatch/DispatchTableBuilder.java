@@ -20,12 +20,13 @@ public class DispatchTableBuilder implements Consumer<CompilationContext>  {
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         LoadedTypeDefinition jlo = jloDef.load();
         tables.buildFilteredVTable(jlo);
-        info.visitReachableSubclassesPreOrder(jlo, cls -> tables.buildFilteredVTable(cls));
+        info.visitReachableSubclassesPreOrder(jlo, tables::buildFilteredVTable);
 
-        // Synthesize GlobalVariable for vtables[]
+        // Synthesize GlobalVariable for vtables[] and itable_dict[]
         tables.buildVTablesGlobal(jlo);
+        tables.buildITablesGlobal(jlo);
 
         // Now build the interface dispatching structures for the reachable methods
-        info.visitReachableInterfaces(i -> tables.buildFilteredITableForInterface(i));
+        info.visitReachableInterfaces(tables::buildFilteredITableForInterface);
     }
 }

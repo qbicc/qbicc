@@ -3,10 +3,14 @@ package org.qbicc.plugin.dispatch;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.smallrye.common.constraint.Assert;
+import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
@@ -28,8 +32,6 @@ import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 import org.qbicc.type.generic.BaseTypeSignature;
-import io.smallrye.common.constraint.Assert;
-import org.jboss.logging.Logger;
 
 public class DispatchTables {
     private static final Logger slog = Logger.getLogger("org.qbicc.plugin.dispatch.stats");
@@ -40,16 +42,18 @@ public class DispatchTables {
     private final CompilationContext ctxt;
     private final Map<LoadedTypeDefinition, VTableInfo> vtables = new ConcurrentHashMap<>();
     private final Map<LoadedTypeDefinition, ITableInfo> itables = new ConcurrentHashMap<>();
+    private final Set<LoadedTypeDefinition> classesWithITables = ConcurrentHashMap.newKeySet();
     private GlobalVariableElement vtablesGlobal;
+    private GlobalVariableElement itablesGlobal;
+    private CompoundType itableDictType;
 
     // Used to accumulate statistics
     private int emittedVTableCount;
     private int emittedVTableBytes;
     private int emittedClassITableCount;
     private int emittedClassITableBytes;
-    private int emittedInterfaceITableCount;
-    private int emittedInterfaceITableBytes;
-    private int emittedInterfaceITableUsefulBytes;
+    private int emittedClassITableDictBytes;
+    private int emittedClassITableDictCount;
 
     private DispatchTables(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -123,19 +127,7 @@ public class DispatchTables {
         CompoundType itableType = ts.getCompoundType(CompoundType.Tag.STRUCT, itableName, itable.length * ts.getPointerSize(),
             ts.getPointerAlignment(), () -> List.of(functions));
 
-        // Define the GlobalVariable that will hold the itables[] for this interface.
-        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
-        builder.setName("qbicc_itables_array_"+itableType.getName());
-        // Yet another table indexed by typeId (like the VTableGlobal) that will only contain entries for instantiated classes.
-        // Use the VTableGlobal to set the size to avoid replicating that logic...
-        builder.setType(ctxt.getTypeSystem().getArrayType(itableType.getPointer(), ((ArrayType)vtablesGlobal.getType()).getElementCount()));
-        builder.setEnclosingType(cls);
-        // void for now, but this is cheating terribly
-        builder.setDescriptor(BaseTypeDescriptor.V);
-        builder.setSignature(BaseTypeSignature.V);
-        GlobalVariableElement itablesGlobal = builder.build();
-
-        itables.put(cls, new ITableInfo(itable, itableType, cls, itablesGlobal));
+        itables.put(cls, new ITableInfo(itable, itableType, cls));
     }
 
     void buildVTablesGlobal(DefinedTypeDefinition containingType) {
@@ -151,37 +143,57 @@ public class DispatchTables {
         vtablesGlobal = builder.build();
     }
 
+    void buildITablesGlobal(DefinedTypeDefinition containingType) {
+        TypeSystem ts = ctxt.getTypeSystem();
+        CompoundType.Member itableMember = ts.getCompoundTypeMember("itable", ts.getVoidType().getPointer(), 0,  ts.getPointerAlignment());
+        CompoundType.Member typeIdMember = ts.getCompoundTypeMember("typeId", ts.getSignedInteger32Type(), ts.getPointerSize(),  ts.getTypeIdAlignment());
+        itableDictType = ts.getCompoundType(CompoundType.Tag.STRUCT, "qbicc_itable_dict_entry", ts.getPointerSize() + ts.getTypeIdSize(),
+            ts.getPointerAlignment(), () -> List.of(itableMember, typeIdMember));
+
+        GlobalVariableElement.Builder builder = GlobalVariableElement.builder();
+        builder.setName("qbicc_itable_dicts_array");
+        // Invariant: typeIds are assigned from 1...N, where N is the number of reachable classes as computed by RTA
+        // plus 18 for 8 primitive types, void, 8 primitive arrays and reference array.
+        builder.setType(ts.getArrayType(ts.getArrayType(itableDictType, 0).getPointer(), vtables.size()+19));  //TODO: communicate this +19 better
+        builder.setEnclosingType(containingType);
+        // void for now, but this is cheating terribly
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        itablesGlobal = builder.build();
+    }
+
     void emitVTable(LoadedTypeDefinition cls) {
-        if (!cls.isAbstract()) {
-            VTableInfo info = getVTableInfo(cls);
-            MethodElement[] vtable = info.getVtable();
-            Section section = ctxt.getImplicitSection(cls);
-            HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
-            for (int i = 0; i < vtable.length; i++) {
-                FunctionType funType = ctxt.getFunctionTypeForElement(vtable[i]);
-                if (vtable[i].isAbstract() || vtable[i].hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
-                    MethodElement stub = ctxt.getVMHelperMethod(vtable[i].isAbstract() ? "raiseAbstractMethodError" : "raiseUnsatisfiedLinkError");
-                    Function stubImpl = ctxt.getExactFunction(stub);
-                    SymbolLiteral literal = ctxt.getLiteralFactory().literalOfSymbol(stubImpl.getLiteral().getName(), stubImpl.getType().getPointer());
-                    section.declareFunction(stub, stubImpl.getName(), stubImpl.getType());
-                    valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getFunctionTypeForElement(vtable[i]).getPointer()));
-                } else {
-                    Function impl = ctxt.getExactFunctionIfExists(vtable[i]);
-                    if (impl == null) {
-                        ctxt.error(vtable[i], "Missing method implementation for vtable of %s", cls.getInternalName());
-                        continue;
-                    }
-                    if (!vtable[i].getEnclosingType().load().equals(cls)) {
-                        section.declareFunction(vtable[i], impl.getName(), funType);
-                    }
-                    valueMap.put(info.getType().getMember(i), impl.getLiteral());
-                }
-            }
-            Literal vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
-            section.addData(null, info.getSymbol().getName(), vtableLiteral).setLinkage(Linkage.EXTERNAL);
-            emittedVTableCount += 1;
-            emittedVTableBytes += info.getType().getMemberCount() * ctxt.getTypeSystem().getPointerSize();
+        if (cls.isAbstract()) {
+            return;
         }
+        VTableInfo info = getVTableInfo(cls);
+        MethodElement[] vtable = info.getVtable();
+        Section section = ctxt.getImplicitSection(cls);
+        HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
+        for (int i = 0; i < vtable.length; i++) {
+            FunctionType funType = ctxt.getFunctionTypeForElement(vtable[i]);
+            if (vtable[i].isAbstract() || vtable[i].hasAllModifiersOf(ClassFile.ACC_NATIVE)) {
+                MethodElement stub = ctxt.getVMHelperMethod(vtable[i].isAbstract() ? "raiseAbstractMethodError" : "raiseUnsatisfiedLinkError");
+                Function stubImpl = ctxt.getExactFunction(stub);
+                SymbolLiteral literal = ctxt.getLiteralFactory().literalOfSymbol(stubImpl.getLiteral().getName(), stubImpl.getType().getPointer());
+                section.declareFunction(stub, stubImpl.getName(), stubImpl.getType());
+                valueMap.put(info.getType().getMember(i), ctxt.getLiteralFactory().bitcastLiteral(literal, ctxt.getFunctionTypeForElement(vtable[i]).getPointer()));
+            } else {
+                Function impl = ctxt.getExactFunctionIfExists(vtable[i]);
+                if (impl == null) {
+                    ctxt.error(vtable[i], "Missing method implementation for vtable of %s", cls.getInternalName());
+                    continue;
+                }
+                if (!vtable[i].getEnclosingType().load().equals(cls)) {
+                    section.declareFunction(vtable[i], impl.getName(), funType);
+                }
+                valueMap.put(info.getType().getMember(i), impl.getLiteral());
+            }
+        }
+        Literal vtableLiteral = ctxt.getLiteralFactory().literalOf(info.getType(), valueMap);
+        section.addData(null, info.getSymbol().getName(), vtableLiteral).setLinkage(Linkage.EXTERNAL);
+        emittedVTableCount += 1;
+        emittedVTableBytes += info.getType().getMemberCount() * ctxt.getTypeSystem().getPointerSize();
     }
 
     void emitVTableTable(LoadedTypeDefinition jlo) {
@@ -207,105 +219,121 @@ public class DispatchTables {
         slog.debugf("Emitted %d vtables with combined size of %d bytes", emittedVTableCount, emittedVTableBytes);
     }
 
-    public GlobalVariableElement getVTablesGlobal() { return this.vtablesGlobal; }
-
-    public void emitInterfaceTables(RTAInfo rtaInfo) {
-        LiteralFactory lf = ctxt.getLiteralFactory();
-        MethodElement icceStub = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
-        Function icceImpl = ctxt.getExactFunction(icceStub);
-        SymbolLiteral iceeLiteral = lf.literalOfSymbol(icceImpl.getLiteral().getName(), icceImpl.getLiteral().getType().getPointer());
-        MethodElement ameStub = ctxt.getVMHelperMethod("raiseAbstractMethodError");
-        Function ameImpl = ctxt.getExactFunction(ameStub);
-        SymbolLiteral ameLiteral = lf.literalOfSymbol(ameImpl.getLiteral().getName(), ameImpl.getLiteral().getType().getPointer());
-        MethodElement uleStub = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
-        Function uleImpl = ctxt.getExactFunction(ameStub);
-        SymbolLiteral uleLiteral = lf.literalOfSymbol(ameImpl.getLiteral().getName(), ameImpl.getLiteral().getType().getPointer());
-        final int pointerSize = ctxt.getTypeSystem().getPointerSize();
-        for (Map.Entry<LoadedTypeDefinition, ITableInfo> entry: itables.entrySet()) {
-            LoadedTypeDefinition currentInterface = entry.getKey();
-            Section iSection = ctxt.getImplicitSection(currentInterface);
-            ITableInfo itableInfo= entry.getValue();
-            MethodElement[] itable = itableInfo.getItable();
-            if (itable.length == 0) {
-                continue; // If there are no invokable methods then this whole family of itables will never be referenced.
-            }
-            tlog.debugf("Emitting itable[] for %s", currentInterface.getDescriptor().getClassName());
-
-            // First, construct an iTable of the right length of icceStubs
-            iSection.declareFunction(icceStub, icceImpl.getName(), icceImpl.getType());
-            HashMap<CompoundType.Member, Literal> stubMap = new HashMap<>();
-            for (int i = 0; i < itable.length; i++) {
-                FunctionType sigType = ctxt.getFunctionTypeForElement(itable[i]);
-                stubMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(iceeLiteral, sigType.getPointer()));
-            }
-            String stubsName = "qbicc_itable_icce_stubs_for_"+currentInterface.getInterfaceType().toFriendlyString();
-            Literal stubsLiteral = lf.literalOf(itableInfo.getType(), stubMap);
-            iSection.addData(null, stubsName, stubsLiteral).setLinkage(Linkage.INTERNAL);
-            SymbolLiteral stubPtrLiteral = lf.literalOfSymbol(stubsName, itableInfo.getType());
-
-            // Initialize all the slots of the rootTable to point to the icce itable.
-            // This enables us to elide an explicit check for IncompatibleClassChangeError at the dispatch site.
-            ArrayType rootType = (ArrayType)itableInfo.getGlobal().getType();
-            Literal[] rootTable = new Literal[(int)rootType.getElementCount()];
-            Arrays.fill(rootTable, stubPtrLiteral);
-            emittedInterfaceITableCount += 1;
-            emittedInterfaceITableBytes += rootTable.length * pointerSize;
-
-            // Now build all the implementing class itables and update the rootTable
-            rtaInfo.visitReachableImplementors(currentInterface, cls -> {
-                if (!cls.isAbstract() && !cls.isInterface()) {
-                    // Build the itable for an instantiable class
-                    tlog.debugf("\temitting itable for %s", cls.getDescriptor().getClassName());
-                    HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
-                    Section cSection = ctxt.getImplicitSection(cls);
-                    for (int i = 0; i < itable.length; i++) {
-                        MethodElement methImpl = cls.resolveMethodElementVirtual(itable[i].getName(), itable[i].getDescriptor());
-                        FunctionType funType = ctxt.getFunctionTypeForElement(itable[i]);
-                        FunctionType implType = ctxt.getFunctionTypeForElement(methImpl);
-                        if (methImpl == null) {
-                            cSection.declareFunction(icceStub, icceImpl.getName(), icceImpl.getType());
-                            valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(iceeLiteral, implType.getPointer()));
-                        } else if (methImpl.isAbstract()) {
-                            cSection.declareFunction(ameStub, ameImpl.getName(), ameImpl.getType());
-                            valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(ameLiteral, implType.getPointer()));
-                        } else {
-                            Function impl = ctxt.getExactFunctionIfExists(methImpl);
-                            if (impl == null) {
-                                if (RTAInfo.get(ctxt).isInvokableMethod(methImpl)) {
-                                    ctxt.error(methImpl, "Missing method implementation for vtable of %s", cls.getInternalName());
-                                } else {
-                                    cSection.declareFunction(uleStub, uleImpl.getName(), uleImpl.getType());
-                                    valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(uleLiteral, implType.getPointer()));
-                                }
-                            } else {
-                                if (!methImpl.getEnclosingType().load().equals(cls)) {
-                                    cSection.declareFunction(methImpl, impl.getName(), implType);
-                                }
-                                valueMap.put(itableInfo.getType().getMember(i), impl.getLiteral());
-                            }
-                        }
-                    }
-                    // Emit itable and refer to it in rootTable
-                    String tableName = "qbicc_itable_impl_"+cls.getInternalName().replace('/', '.')+"_for_"+itableInfo.getGlobal().getName();
-                    Literal itableLiteral = lf.literalOf(itableInfo.getType(), valueMap);
-                    cSection.addData(null, tableName, itableLiteral).setLinkage(Linkage.EXTERNAL);
-                    iSection.declareData(null, tableName, itableInfo.getType());
-                    rootTable[cls.getTypeId()] = lf.literalOfSymbol(tableName, itableInfo.getType());
-                    emittedClassITableCount += 1;
-                    emittedClassITableBytes += itable.length * pointerSize;
-                    emittedInterfaceITableUsefulBytes += pointerSize;
-                }
-            });
-
-            // Finally emit the root iTable[] for the interface
-            iSection.addData(null, itableInfo.getGlobal().getName(), lf.literalOf(rootType, List.of(rootTable)));
+    public void emitITables(LoadedTypeDefinition cls) {
+        if (cls.isAbstract()) {
+            return;
         }
-        slog.debugf("Emitted iTables for %d class+interface combinations consuming %d bytes", emittedClassITableCount, emittedClassITableBytes);
-        slog.debugf("Emitted iTables for %d interfaces consuming %d bytes; %d non-icce bytes (%s)",
-            emittedInterfaceITableCount, emittedInterfaceITableBytes, emittedInterfaceITableUsefulBytes,
-            String.format("%.2f%%", (float)emittedInterfaceITableUsefulBytes/(float)emittedInterfaceITableBytes*100f));
+        HashSet<ITableInfo> myITables = new HashSet<>();
+        cls.forEachInterfaceFullImplementedSet(i -> {
+            ITableInfo iti = itables.get(i);
+            if (iti != null && iti.getItable().length > 0) {
+                myITables.add(iti);
+            }
+        });
+        if (myITables.isEmpty()) {
+            return;
+        }
+
+        classesWithITables.add(cls);
+
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        TypeSystem ts = ctxt.getTypeSystem();
+        Section cSection = ctxt.getImplicitSection(cls);
+
+        ArrayList<Literal> itableLiterals = new ArrayList<>(myITables.size() + 1);
+        for (ITableInfo itableInfo : myITables) {
+            MethodElement[] itable = itableInfo.getItable();
+            LoadedTypeDefinition currentInterface = itableInfo.getInterface();
+
+            HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
+            for (int i = 0; i < itable.length; i++) {
+                MethodElement methImpl = cls.resolveMethodElementVirtual(itable[i].getName(), itable[i].getDescriptor());
+                FunctionType implType = ctxt.getFunctionTypeForElement(methImpl);
+                if (methImpl == null) {
+                    MethodElement icceStub = ctxt.getVMHelperMethod("raiseIncompatibleClassChangeError");
+                    Function icceImpl = ctxt.getExactFunction(icceStub);
+                    SymbolLiteral iceeLiteral = lf.literalOfSymbol(icceImpl.getLiteral().getName(), icceImpl.getLiteral().getType().getPointer());
+                    cSection.declareFunction(icceStub, icceImpl.getName(), icceImpl.getType());
+                    valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(iceeLiteral, implType.getPointer()));
+                } else if (methImpl.isAbstract()) {
+                    MethodElement ameStub = ctxt.getVMHelperMethod("raiseAbstractMethodError");
+                    Function ameImpl = ctxt.getExactFunction(ameStub);
+                    SymbolLiteral ameLiteral = lf.literalOfSymbol(ameImpl.getLiteral().getName(), ameImpl.getLiteral().getType().getPointer());
+                    cSection.declareFunction(ameStub, ameImpl.getName(), ameImpl.getType());
+                    valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(ameLiteral, implType.getPointer()));
+                } else {
+                    Function impl = ctxt.getExactFunctionIfExists(methImpl);
+                    if (impl == null) {
+                        if (RTAInfo.get(ctxt).isInvokableMethod(methImpl)) {
+                            ctxt.error(methImpl, "Missing method implementation for vtable of %s", cls.getInternalName());
+                        } else {
+                            MethodElement uleStub = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");
+                            Function uleImpl = ctxt.getExactFunction(uleStub);
+                            SymbolLiteral uleLiteral = lf.literalOfSymbol(uleImpl.getLiteral().getName(), uleImpl.getLiteral().getType().getPointer());
+                            cSection.declareFunction(uleStub, uleImpl.getName(), uleImpl.getType());
+                            valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(uleLiteral, implType.getPointer()));
+                        }
+                    } else {
+                        if (!methImpl.getEnclosingType().load().equals(cls)) {
+                            cSection.declareFunction(methImpl, impl.getName(), implType);
+                        }
+                        valueMap.put(itableInfo.getType().getMember(i), impl.getLiteral());
+                    }
+                }
+            }
+
+            String functionsName = "qbicc_itable_funcs_for_"+currentInterface.getInterfaceType().toFriendlyString();
+            cSection.addData(null, functionsName, lf.literalOf(itableInfo.getType(), valueMap)).setLinkage(Linkage.PRIVATE);
+            itableLiterals.add(lf.literalOf(itableDictType, Map.of(itableDictType.getMember("typeId"), lf.literalOf(currentInterface.getTypeId()),
+                itableDictType.getMember("itable"), lf.bitcastLiteral(lf.literalOfSymbol(functionsName, itableInfo.getType().getPointer()), ts.getVoidType().getPointer()))));
+            emittedClassITableCount += 1;
+            emittedClassITableBytes += itable.length * ctxt.getTypeSystem().getPointerSize();
+        }
+
+        // zero-initialized sentinel to detect IncompatibleClassChangeErrors in dispatching search loop
+        itableLiterals.add(lf.zeroInitializerLiteralOfType(itableDictType));
+
+        cSection.addData(null, "qbicc_itable_dictionary_for_" + cls.getInternalName().replace('/', '.'),
+            lf.literalOf(ts.getArrayType(itableDictType, myITables.size() + 1), itableLiterals));
+        emittedClassITableDictCount += 1;
+        emittedClassITableDictBytes += (myITables.size() + 1) * itableDictType.getSize();
     }
 
+    void emitITableTable(LoadedTypeDefinition jlo) {
+        ArrayType itablesGlobalType = ((ArrayType) itablesGlobal.getType());
+        Section section = ctxt.getImplicitSection(jlo);
+        Literal[] itableLiterals = new Literal[(int) itablesGlobalType.getElementCount()];
+        Literal zeroLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(itablesGlobalType.getElementType());
+        Arrays.fill(itableLiterals, zeroLiteral);
+
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        for (LoadedTypeDefinition cls : classesWithITables) {
+            int typeId = cls.getTypeId();
+            Assert.assertTrue(itableLiterals[typeId].equals(zeroLiteral));
+            String dictName = "qbicc_itable_dictionary_for_"+cls.getInternalName().replace('/', '.');
+            SymbolLiteral symLit = lf.literalOfSymbol(dictName, ctxt.getTypeSystem().getArrayType(itableDictType, 0));
+            itableLiterals[typeId] = symLit;
+            section.declareData(null, symLit.getName(), symLit.getType());
+        }
+
+        Literal itablesGlobalValue = ctxt.getLiteralFactory().literalOf(itablesGlobalType, List.of(itableLiterals));
+        section.addData(null, itablesGlobal.getName(), itablesGlobalValue);
+        slog.debugf("Root itable_dict[] has %d slots (%d bytes)", itableLiterals.length, itableLiterals.length * ctxt.getTypeSystem().getPointerSize());
+        slog.debugf("Emitted %d itables with combined size of %d bytes", emittedClassITableCount, emittedClassITableBytes);
+        slog.debugf("Emitted %d class itable dictionaries with combined size of %d bytes", emittedClassITableDictCount, emittedClassITableDictBytes);
+    }
+
+    public GlobalVariableElement getVTablesGlobal() {
+        return vtablesGlobal;
+    }
+
+    public GlobalVariableElement getITablesGlobal() {
+        return itablesGlobal;
+    }
+
+    public CompoundType getItableDictType() {
+        return itableDictType;
+    }
 
     public int getVTableIndex(MethodElement target) {
         LoadedTypeDefinition definingType = target.getEnclosingType().load();
@@ -357,18 +385,15 @@ public class DispatchTables {
         private final LoadedTypeDefinition myInterface;
         private final MethodElement[] itable;
         private final CompoundType type;
-        private final GlobalVariableElement global;
 
-        ITableInfo(MethodElement[] itable, CompoundType type, LoadedTypeDefinition myInterface, GlobalVariableElement global) {
+        ITableInfo(MethodElement[] itable, CompoundType type, LoadedTypeDefinition myInterface) {
             this.myInterface = myInterface;
             this.itable = itable;
             this.type = type;
-            this.global = global;
         }
 
         public LoadedTypeDefinition getInterface() { return myInterface; }
         public MethodElement[] getItable() { return itable; }
         public CompoundType getType() { return type; }
-        public GlobalVariableElement getGlobal() { return global; }
     }
 }
