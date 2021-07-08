@@ -18,6 +18,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.machine.probe.Qualifier;
+import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.linker.Linker;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
@@ -62,6 +63,7 @@ final class NativeInfo {
     final Map<FieldElement, FieldElement> nativeFieldBindings = new ConcurrentHashMap<>();
     final Map<TypeDescriptor, Map<String, NativeDataInfo>> nativeFields = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, AtomicReference<ValueType>> nativeTypes = new ConcurrentHashMap<>();
+    final Map<DefinedTypeDefinition, AtomicReference<ValueType>> internalNativeTypes = new ConcurrentHashMap<>();
     final Map<DefinedTypeDefinition, MethodElement> functionalInterfaceMethods = new ConcurrentHashMap<>();
     final Set<InitializerElement> initializers = ConcurrentHashMap.newKeySet();
 
@@ -83,6 +85,28 @@ final class NativeInfo {
             }
         }
         return nativeInfo;
+    }
+
+    ValueType resolveInternalNativeType(final DefinedTypeDefinition definedType) {
+        AtomicReference<ValueType> ref = internalNativeTypes.get(definedType);
+        if (ref == null) {
+            return null;
+        }
+        ClassContext classContext = definedType.getContext();
+        CompilationContext ctxt = classContext.getCompilationContext();
+        ValueType resolved = ref.get();
+        if (resolved == null) {
+            synchronized (ref) {
+                resolved = ref.get();
+                if (resolved == null) {
+                    LoadedTypeDefinition validated = definedType.load();
+                    Layout.LayoutInfo layout = Layout.get(ctxt).getInstanceLayoutInfoForNativeType(validated);
+                    resolved = layout.getCompoundType();
+                    ref.set(resolved);
+                }
+            }
+        }
+        return resolved;
     }
 
     ValueType resolveNativeType(final DefinedTypeDefinition definedType) {

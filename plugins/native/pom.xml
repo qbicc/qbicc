@@ -38,5 +38,9 @@
             <groupId>org.qbicc</groupId>
             <artifactId>qbicc-plugin-linker</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.qbicc</groupId>
+            <artifactId>qbicc-plugin-layout</artifactId>
+        </dependency>
     </dependencies>
 </project>

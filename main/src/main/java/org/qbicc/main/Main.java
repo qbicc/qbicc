@@ -69,6 +69,7 @@ import org.qbicc.plugin.native_.ConstTypeResolver;
 import org.qbicc.plugin.native_.ConstantDefiningBasicBlockBuilder;
 import org.qbicc.plugin.native_.ExternExportTypeBuilder;
 import org.qbicc.plugin.native_.FunctionTypeResolver;
+import org.qbicc.plugin.native_.InternalNativeTypeResolver;
 import org.qbicc.plugin.native_.NativeBasicBlockBuilder;
 import org.qbicc.plugin.native_.NativeBindingBasicBlockBuilder;
 import org.qbicc.plugin.native_.NativeBindingTypeBuilder;
@@ -76,6 +77,7 @@ import org.qbicc.plugin.native_.NativeTypeBuilder;
 import org.qbicc.plugin.native_.NativeTypeResolver;
 import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
+import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
 import org.qbicc.plugin.opt.GotoRemovingVisitor;
 import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
@@ -285,6 +287,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addResolverFactory(ConstTypeResolver::new);
                                 builder.addResolverFactory(FunctionTypeResolver::new);
                                 builder.addResolverFactory(PointerTypeResolver::new);
+                                builder.addResolverFactory(InternalNativeTypeResolver::new);
                                 builder.addResolverFactory(NativeTypeResolver::new);
 
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
@@ -306,6 +309,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBindingBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, StructMemberAccessBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PointerBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassInitializingBasicBlockBuilder::new);
