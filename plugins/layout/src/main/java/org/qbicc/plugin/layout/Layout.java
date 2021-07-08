@@ -141,6 +141,14 @@ public final class Layout {
     }
 
     public LayoutInfo getInstanceLayoutInfo(DefinedTypeDefinition type) {
+        return getInstanceLayoutInfoHelper(type, false);
+    }
+
+    public LayoutInfo getInstanceLayoutInfoForNativeType(DefinedTypeDefinition type) {
+        return getInstanceLayoutInfoHelper(type, true);
+    }
+
+    private LayoutInfo getInstanceLayoutInfoHelper(DefinedTypeDefinition type, boolean isNativeType) {
         if (type.isInterface()) {
             throw new IllegalArgumentException("Interfaces have no instance layout");
         }
@@ -149,7 +157,8 @@ public final class Layout {
         if (layoutInfo != null) {
             return layoutInfo;
         }
-        LoadedTypeDefinition superClass = validated.getSuperClass();
+        // ignore super class layout for native types
+        LoadedTypeDefinition superClass = isNativeType ? null : validated.getSuperClass();
         LayoutInfo superLayout;
         int minAlignment;
         if (superClass != null) {

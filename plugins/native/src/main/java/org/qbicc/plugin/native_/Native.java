@@ -21,6 +21,7 @@ final class Native {
     static final String ANN_INCLUDE = className(include.class);
     static final String ANN_INCLUDE_LIST = className(include.List.class);
     static final String ANN_INCOMPLETE = className(incomplete.class);
+    static final String ANN_INTERNAL = className(internal.class);
     static final String ANN_LIB = className(lib.class);
     static final String ANN_LIB_LIST = className(lib.List.class);
     static final String ANN_NAME = className(name.class);
