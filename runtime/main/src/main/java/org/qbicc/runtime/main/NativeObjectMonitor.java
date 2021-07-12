@@ -3,14 +3,17 @@ package org.qbicc.runtime.main;
 import org.qbicc.runtime.posix.PThread.pthread_mutex_t_ptr;
 
 /* object wrapper for native objectmonitor mutex. */
+// TODO move this to be an inner class
 public class NativeObjectMonitor {
-    private final pthread_mutex_t_ptr pthread_mutex;
+    /*private final */pthread_mutex_t_ptr nomPthreadMutex;
 
-    NativeObjectMonitor(pthread_mutex_t_ptr pthread_mutex) {
-        this.pthread_mutex = pthread_mutex;
+    public static void forceClinit() {}
+
+    NativeObjectMonitor(pthread_mutex_t_ptr nomPthreadMutex) {
+        this.nomPthreadMutex = nomPthreadMutex;
     }
 
     pthread_mutex_t_ptr getPthreadMutex() {
-        return pthread_mutex;
+        return nomPthreadMutex;
     }
 }

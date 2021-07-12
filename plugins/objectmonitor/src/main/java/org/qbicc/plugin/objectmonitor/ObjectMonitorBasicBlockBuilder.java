@@ -1,4 +1,5 @@
 package org.qbicc.plugin.objectmonitor;
+import java.lang.reflect.Method;
 import java.util.List;
 
 import org.qbicc.context.CompilationContext;
@@ -23,18 +24,25 @@ public class ObjectMonitorBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         this.ctxt = ctxt;
     }
 
+    // TODO enable only test synchronized block for now
     public Node monitorEnter(final Value object) {
+        if (object.getElement() instanceof MethodElement) {
+            MethodElement e = (MethodElement) object.getElement();
+            if (e.getName().equals("main")) {
+                return generateObjectMonitorFunctionCall(object, monitorEnterFunctionName);
+            }
+        }
         return super.monitorEnter(object);
-
-        // TODO disabled
-//        return generateObjectMonitorFunctionCall(object, monitorEnterFunctionName);
     }
 
     public Node monitorExit(final Value object) {
+        if (object.getElement() instanceof MethodElement) {
+            MethodElement e = (MethodElement) object.getElement();
+            if (e.getName().equals("main")) {
+                return generateObjectMonitorFunctionCall(object, monitorExitFunctionName);
+            }
+        }
         return super.monitorExit(object);
-
-        // TODO disabled
-//        return generateObjectMonitorFunctionCall(object, monitorExitFunctionName);
     }
     
     private Value generateObjectMonitorFunctionCall(final Value object, String functionName) {
