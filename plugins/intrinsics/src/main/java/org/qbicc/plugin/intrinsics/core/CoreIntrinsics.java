@@ -662,21 +662,30 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(cNativeDesc, "uword", MethodDescriptor.synthesize(classContext, wordDesc, List.of(BaseTypeDescriptor.J)), toUnsigned);
 
         StaticIntrinsic sizeof = (builder, target, arguments) -> {
-            ValueType argType = arguments.get(0).getType();
+            long size = arguments.get(0).getType().getSize();
+            IntegerType returnType = (IntegerType) target.getType().getReturnType();
+            return ctxt.getLiteralFactory().literalOf(returnType, size);
+        };
+
+        StaticIntrinsic sizeofClass = (builder, target, arguments) -> {
+            Value arg = arguments.get(0);
             long size;
-            if (argType instanceof TypeType) {
-                size = ((TypeType) argType).getUpperBound().getSize();
+            /* Class should be ClassOf(TypeLiteral) */
+            if (arg instanceof ClassOf && ((ClassOf) arg).getInput() instanceof TypeLiteral) {
+                TypeLiteral input = (TypeLiteral) (((ClassOf) arg).getInput());
+                size = input.getValue().getSize();
             } else {
-                size = argType.getSize();
+                ctxt.error(builder.getLocation(), "unexpected type for sizeof(Class)");
+                size = arg.getType().getSize();
             }
             IntegerType returnType = (IntegerType) target.getType().getReturnType();
             return ctxt.getLiteralFactory().literalOf(returnType, size);
         };
 
         intrinsics.registerIntrinsic(cNativeDesc, "sizeof", MethodDescriptor.synthesize(classContext, sizeTDesc, List.of(nObjDesc)), sizeof);
-        intrinsics.registerIntrinsic(cNativeDesc, "sizeof", MethodDescriptor.synthesize(classContext, sizeTDesc, List.of(classDesc)), sizeof);
         intrinsics.registerIntrinsic(cNativeDesc, "sizeof", MethodDescriptor.synthesize(classContext, sizeTDesc, List.of(ArrayTypeDescriptor.of(classContext, nObjDesc))), sizeof);
-        intrinsics.registerIntrinsic(cNativeDesc, "sizeofArray", MethodDescriptor.synthesize(classContext, sizeTDesc, List.of(ArrayTypeDescriptor.of(classContext, classDesc))), sizeof);
+        intrinsics.registerIntrinsic(cNativeDesc, "sizeof", MethodDescriptor.synthesize(classContext, sizeTDesc, List.of(classDesc)), sizeofClass);
+        intrinsics.registerIntrinsic(cNativeDesc, "sizeofArray", MethodDescriptor.synthesize(classContext, sizeTDesc, List.of(ArrayTypeDescriptor.of(classContext, classDesc))), sizeofClass);
 
         StaticIntrinsic alignof = (builder, target, arguments) -> {
             ValueType argType = arguments.get(0).getType();
