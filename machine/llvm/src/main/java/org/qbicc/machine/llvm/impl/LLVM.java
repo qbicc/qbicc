@@ -160,4 +160,8 @@ public final class LLVM {
     public static int getNextStatepointId() {
         return statepointId.getAndIncrement();
     }
+
+    public static LLValue gepConstant(LLValue type, LLValue ptrType, LLValue pointer, LLValue ... args) {
+        return new GetElementPtrConstant(type, ptrType, pointer, args);
+    }
 }

@@ -60,4 +60,8 @@ public abstract class Literal implements Unschedulable, Value {
     Literal convert(final LiteralFactory lf, final WordType toType) {
         return new ValueConvertLiteral(this, toType);
     }
+
+    Literal elementOf(LiteralFactory literalFactory, Literal index) {
+        return new ElementOfLiteral(this, index);
+    }
 }

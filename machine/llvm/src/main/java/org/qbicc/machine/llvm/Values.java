@@ -22,6 +22,10 @@ public final class Values {
         return LLVM.bitcastConstant(value, fromType, toType);
     }
 
+    public static LLValue gepConstant(LLValue type, LLValue ptrType, LLValue pointer, LLValue ... args) {
+        return LLVM.gepConstant(type, ptrType, pointer, args);
+    }
+
     public static LLValue addrspacecastConstant(LLValue value, LLValue fromType, LLValue toType) {
         return LLVM.addrspacecastConstant(value, fromType, toType);
     }
