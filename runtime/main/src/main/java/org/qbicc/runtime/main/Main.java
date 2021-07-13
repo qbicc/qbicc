@@ -39,6 +39,7 @@ public final class Main {
         //todo: string construction
         //String execName = utf8zToJavaString(argv[0].cast());
         try {
+            VMHelpers.forceClinit();
             userMain(args);
         } catch (Throwable t) {
             Thread.UncaughtExceptionHandler handler = Thread.currentThread().getUncaughtExceptionHandler();
