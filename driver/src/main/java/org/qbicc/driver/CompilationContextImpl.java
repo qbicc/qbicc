@@ -347,7 +347,7 @@ final class CompilationContextImpl implements CompilationContext {
         // look up the thread ID literal - todo: lazy cache?
         ClassObjectType threadType = bootstrapClassContext.findDefinedType("java/lang/Thread").load().getClassType();
         Section implicit = getImplicitSection(element);
-        return exactFunctions.computeIfAbsent(element, e -> {
+        return virtualFunctions.computeIfAbsent(element, e -> {
             FunctionType type = getFunctionTypeForElement(element, threadType);
             return implicit.addFunction(element, getVirtualNameForElement(element, type), type);
         });
