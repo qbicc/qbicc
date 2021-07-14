@@ -76,6 +76,8 @@ public interface CompilationContext extends DiagnosticContext {
 
     List<ProgramModule> getAllProgramModules();
 
+    DefinedTypeDefinition getDefaultTypeDefinition();
+
     Section getImplicitSection(ExecutableElement element);
 
     Section getImplicitSection(DefinedTypeDefinition typeDefinition);

@@ -113,6 +113,10 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public DefinedTypeDefinition getDefaultTypeDefinition() {
+            return null;
+        }
+
         public Section getImplicitSection(ExecutableElement element) {
             return null;  // TODO: Customise this generated block
         }
