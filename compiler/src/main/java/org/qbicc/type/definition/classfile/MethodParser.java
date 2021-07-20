@@ -636,7 +636,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_AALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
+                        ValueHandle handle = gf.referenceHandle(v1);
+                        v1 = gf.load(gf.elementOf(handle, v2), handle.getDetectedMode());
                         push1(v1);
                         break;
                     }
@@ -644,7 +645,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_LALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        v1 = gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED);
+                        ValueHandle handle = gf.referenceHandle(v1);
+                        v1 = gf.load(gf.elementOf(handle, v2), handle.getDetectedMode());
                         push2(v1);
                         break;
                     }
@@ -655,7 +657,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                     case OP_CALOAD: {
                         v2 = pop1();
                         v1 = pop1();
-                        v1 = promote(gf.load(gf.elementOf(gf.referenceHandle(v1), v2), MemoryAtomicityMode.UNORDERED));
+                        ValueHandle handle = gf.referenceHandle(v1);
+                        v1 = promote(gf.load(gf.elementOf(handle, v2), handle.getDetectedMode()));
                         push1(v1);
                         break;
                     }
@@ -700,37 +703,47 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                         break;
                     case OP_IASTORE:
                     case OP_FASTORE:
-                    case OP_AASTORE:
+                    case OP_AASTORE: {
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
-                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                        ValueHandle handle = gf.elementOf(gf.referenceHandle(v1), v2);
+                        gf.store(handle, v3, handle.getDetectedMode());
                         break;
-                    case OP_BASTORE:
+                    }
+                    case OP_BASTORE: {
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
-                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger8Type()), MemoryAtomicityMode.UNORDERED);
+                        ValueHandle handle = gf.elementOf(gf.referenceHandle(v1), v2);
+                        gf.store(handle, gf.truncate(v3, ts.getSignedInteger8Type()), handle.getDetectedMode());
                         break;
-                    case OP_SASTORE:
+                    }
+                    case OP_SASTORE: {
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
-                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getSignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
+                        ValueHandle handle = gf.elementOf(gf.referenceHandle(v1), v2);
+                        gf.store(handle, gf.truncate(v3, ts.getSignedInteger16Type()), handle.getDetectedMode());
                         break;
-                    case OP_CASTORE:
+                    }
+                    case OP_CASTORE: {
                         v3 = pop1();
                         v2 = pop1();
                         v1 = pop1();
-                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), gf.truncate(v3, ts.getUnsignedInteger16Type()), MemoryAtomicityMode.UNORDERED);
+                        ValueHandle handle = gf.elementOf(gf.referenceHandle(v1), v2);
+                        gf.store(handle, gf.truncate(v3, ts.getUnsignedInteger16Type()), handle.getDetectedMode());
                         break;
+                    }
                     case OP_LASTORE:
-                    case OP_DASTORE:
+                    case OP_DASTORE: {
                         v3 = pop2();
                         v2 = pop1();
                         v1 = pop1();
-                        gf.store(gf.elementOf(gf.referenceHandle(v1), v2), v3, MemoryAtomicityMode.UNORDERED);
+                        ValueHandle handle = gf.elementOf(gf.referenceHandle(v1), v2);
+                        gf.store(handle, v3, handle.getDetectedMode());
                         break;
+                    }
                     case OP_POP:
                         pop1();
                         break;
