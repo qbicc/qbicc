@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
@@ -18,7 +19,7 @@ public class Store extends AbstractNode implements Action, OrderedNode {
         this.dependency = dependency;
         this.handle = handle;
         this.value = value;
-        this.mode = mode;
+        this.mode = Assert.checkNotNullParam("mode", mode);
         if (! handle.isWritable()) {
             throw new IllegalArgumentException("Handle is not writable");
         }

@@ -2,6 +2,7 @@ package org.qbicc.graph;
 
 import java.util.Objects;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ExecutableElement;
 
@@ -17,7 +18,7 @@ public class Load extends AbstractValue implements OrderedNode {
         super(callSite, element, line, bci);
         this.dependency = dependency;
         this.handle = handle;
-        this.mode = mode;
+        this.mode = Assert.checkNotNullParam("mode", mode);
         if (! handle.isReadable()) {
             throw new IllegalArgumentException("Handle is not readable");
         }
