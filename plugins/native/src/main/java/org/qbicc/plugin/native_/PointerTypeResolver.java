@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ArrayType;
+import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
@@ -134,7 +135,9 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
             if (elemType instanceof ArrayType) {
                 // it's an array of arrays, make it into a native array instead of a reference array
                 return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(visibleAnnotations));
-            } else if (! (elemType instanceof ReferenceType) && elemType instanceof WordType && elemDesc instanceof ClassTypeDescriptor) {
+            } else if (! (elemType instanceof ReferenceType)
+                && (elemType instanceof WordType || elemType instanceof CompoundType)
+                && elemDesc instanceof ClassTypeDescriptor) {
                 // this means it's an array of native type (wrapped as ref type) and should be transformed to a "real" array type
                 return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(visibleAnnotations));
             }
