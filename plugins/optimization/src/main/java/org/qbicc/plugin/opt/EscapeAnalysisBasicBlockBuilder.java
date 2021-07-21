@@ -3,7 +3,9 @@ package org.qbicc.plugin.opt;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
+import org.qbicc.graph.Call;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
+import org.qbicc.graph.Executable;
 import org.qbicc.graph.InstanceFieldOf;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.New;
@@ -24,12 +26,14 @@ import java.util.List;
 public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private final CompilationContext ctxt;
     private final EscapeAnalysis.ConnectionGraph connectionGraph;
+    private final EscapeAnalysis.CallGraph callGraph;
 
     public EscapeAnalysisBasicBlockBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
         this.ctxt = ctxt;
         this.connectionGraph = new EscapeAnalysis.ConnectionGraph();
-        EscapeAnalysis.get(this.ctxt).addConnectionGraph(this.connectionGraph);
+        EscapeAnalysis.get(this.ctxt).addConnectionGraph(this.connectionGraph, delegate.getCurrentElement());
+        this.callGraph = EscapeAnalysis.get(this.ctxt).callGraph;
     }
 
     @Override
@@ -95,23 +99,29 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
 
     @Override
     public Value call(ValueHandle target, List<Value> arguments) {
-        return super.call(target, arguments);    // TODO: Customise this generated block
+        final Value result = super.call(target, arguments);
+
+        if (target instanceof Executable) {
+            callGraph.calls(this.getCurrentElement(), (Call) result);
+        }
+
+        return result;
     }
 
     @Override
     public void startMethod(List<ParameterValue> arguments) {
         super.startMethod(arguments);
-        arguments.forEach(connectionGraph::setArgEscape);
+        connectionGraph.addParameters(arguments);
     }
 
     @Override
     public BasicBlock return_(Value value) {
         final BasicBlock result = super.return_(value);
 
-        // Skip primtive values truncated, they are not objects
+        // Skip primitive values truncated, they are not objects
         if (!(value instanceof Truncate)) {
             // TODO navigate fully, if object
-            connectionGraph.setArgEscape(value);
+            connectionGraph.addReturn(value);
         }
 
         return result;
