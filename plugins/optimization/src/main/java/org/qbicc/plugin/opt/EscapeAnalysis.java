@@ -194,24 +194,16 @@ public class EscapeAnalysis {
 
         void addParameters(List<ParameterValue> args) {
             arguments.addAll(args);
-            arguments.forEach(this::setArgEscape);
+            arguments.forEach(arg -> this.setEscape(arg, EscapeState.ARG_ESCAPE));
         }
 
         void addReturn(Value value) {
             returnValue = value;
-            setArgEscape(value);
+            setEscape(value, EscapeState.ARG_ESCAPE);
         }
 
-        private void setArgEscape(Node node) {
-            escapeStates.put(node, EscapeState.ARG_ESCAPE);
-        }
-
-        void setGlobalEscape(Value value) {
-            escapeStates.put(value, EscapeState.GLOBAL_ESCAPE);
-        }
-
-        void setNoEscape(Value value) {
-            escapeStates.put(value, EscapeState.NO_ESCAPE);
+        void setEscape(Node node, EscapeState escapeState) {
+            escapeStates.put(node, escapeState);
         }
 
         boolean mergeEscapeState(Node node, EscapeState otherEscapeState) {
@@ -258,7 +250,7 @@ public class EscapeAnalysis {
                 : pointsToEdges.get(from);
 
             if (to != null) {
-                setArgEscape(to);
+                setEscape(to, EscapeState.ARG_ESCAPE);
                 computeArgEscapeOnly(to);
             }
         }

@@ -1,5 +1,6 @@
 package org.qbicc.plugin.opt;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
@@ -18,8 +19,16 @@ import org.qbicc.graph.Store;
 import org.qbicc.graph.Truncate;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.plugin.opt.EscapeAnalysis.EscapeState;
 import org.qbicc.type.ClassObjectType;
+import org.qbicc.type.ObjectType;
+import org.qbicc.type.ReferenceType;
+import org.qbicc.type.ValueType;
+import org.qbicc.type.annotation.type.TypeAnnotationList;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.generic.TypeParameterContext;
+import org.qbicc.type.generic.TypeSignature;
 
 import java.util.List;
 
@@ -40,11 +49,37 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public Value new_(ClassObjectType type) {
         final Value result = super.new_(type);
 
-        // new T(...);
-        // Default object to no escape
-        connectionGraph.setNoEscape(result);
+        connectionGraph.setEscape(result, defaultEscapeState(type));
 
         return result;
+    }
+
+    EscapeState defaultEscapeState(ClassObjectType type) {
+        if (isSubtypeOfClass("java/lang/Thread", type) || isSubtypeOfClass("java/lang/ThreadGroup", type)) {
+            return EscapeState.GLOBAL_ESCAPE;
+        }
+
+        return EscapeState.NO_ESCAPE;
+    }
+
+    boolean isSubtypeOfClass(String name, ClassObjectType type) {
+        final ClassContext classContext = getClassContext();
+
+        // TODO can you use resolveTypeFromClassName?
+        final ClassTypeDescriptor targetDesc = ClassTypeDescriptor.synthesize(classContext, name);
+        final ValueType targetType = classContext.resolveTypeFromDescriptor(targetDesc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(classContext, targetDesc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
+
+        if (targetType instanceof ReferenceType) {
+            ObjectType upperBound = ((ReferenceType) targetType).getUpperBound();
+            return type.isSubtypeOf(upperBound);
+        }
+
+        return false;
+    }
+
+    private ClassContext getClassContext() {
+        // TODO would using ctxt.getBootstrapClassContext() work?
+        return getCurrentElement().getEnclosingType().getContext();
     }
 
     @Override
@@ -89,7 +124,7 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
         // TODO when compiling with debugging info (-g param), value is a Load instead of New, how to deal with it?
         if (handle instanceof StaticField) {
             // static T a = new T();
-            connectionGraph.setGlobalEscape(value);
+            connectionGraph.setEscape(value, EscapeState.GLOBAL_ESCAPE);
         } else if (handle instanceof InstanceFieldOf && value instanceof New) {
             // p.f = new T(); // where p is a parameter
             connectionGraph.addPointsToEdgeIfAbsent(handle, (New) value);
