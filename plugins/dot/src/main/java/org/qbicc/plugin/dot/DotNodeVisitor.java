@@ -78,6 +78,7 @@ import org.qbicc.graph.MonitorExit;
 import org.qbicc.graph.MultiNewArray;
 import org.qbicc.graph.Multiply;
 import org.qbicc.graph.CheckCast;
+import org.qbicc.graph.NativeArrayHandle;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.New;
 import org.qbicc.graph.NewArray;
@@ -324,6 +325,15 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "label", "ref");
         nl(param);
         addEdge(param, node, node.getReferenceValue(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    public String visit(final Appendable param, final NativeArrayHandle node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "array");
+        nl(param);
+        addEdge(param, node, node.getArrayValue(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
 

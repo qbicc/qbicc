@@ -401,6 +401,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return new ReferenceHandle(callSite, element, line, bci, reference);
     }
 
+    public ValueHandle nativeArrayHandle(Value array) {
+        return new NativeArrayHandle(callSite, element, line, bci, array);
+    }
+
     public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
         return new InstanceFieldOf(element, line, bci, field, field.getType(), instance);
     }

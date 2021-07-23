@@ -131,6 +131,10 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().referenceHandle(reference);
     }
 
+    public ValueHandle nativeArrayHandle(Value reference) {
+        return getDelegate().nativeArrayHandle(reference);
+    }
+
     public ValueHandle instanceFieldOf(ValueHandle instance, FieldElement field) {
         return getDelegate().instanceFieldOf(instance, field);
     }

@@ -3,10 +3,12 @@ package org.qbicc.plugin.native_;
 import java.util.List;
 
 import org.qbicc.context.CompilationContext;
+import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -117,10 +119,16 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
 
             private void addExtern(final NativeInfo nativeInfo, final FieldElement resolved, final String name) {
                 ValueType fieldType = resolved.getType();
+                SymbolLiteral literal;
+                if (fieldType instanceof ArrayType) {
+                    literal = ctxt.getLiteralFactory().literalOfSymbol(name, fieldType);
+                } else {
+                    literal = ctxt.getLiteralFactory().literalOfSymbol(name, fieldType.getPointer());
+                }
                 nativeInfo.registerFieldInfo(
                     resolved.getEnclosingType().getDescriptor(),
                     resolved.getName(),
-                    new NativeDataInfo(resolved, false, fieldType, ctxt.getLiteralFactory().literalOfSymbol(name, fieldType.getPointer()))
+                    new NativeDataInfo(resolved, false, fieldType, literal)
                 );
             }
 

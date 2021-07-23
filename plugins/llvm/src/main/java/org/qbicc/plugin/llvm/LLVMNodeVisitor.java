@@ -57,6 +57,7 @@ import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.Mod;
 import org.qbicc.graph.Multiply;
 import org.qbicc.graph.CheckCast;
+import org.qbicc.graph.NativeArrayHandle;
 import org.qbicc.graph.Neg;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
@@ -1116,6 +1117,11 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     @Override
     public GetElementPtr visit(Void param, ReferenceHandle node) {
         return gep(map(node.getReferenceValue()), node).arg(false, i32, ZERO);
+    }
+
+    @Override
+    public GetElementPtr visit(Void param, NativeArrayHandle node) {
+        return gep(map(node.getArrayValue()), node).arg(false, i32, ZERO);
     }
 
     GetElementPtr gep(LLValue ptr, ValueHandle handle) {

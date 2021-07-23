@@ -80,6 +80,10 @@ public interface ValueHandleVisitor<T, R> {
         return visitUnknown(param, node);
     }
 
+    default R visit(T param, NativeArrayHandle node) {
+        return visitUnknown(param, node);
+    }
+
     interface Delegating<T, R> extends ValueHandleVisitor<T, R> {
         ValueHandleVisitor<T, R> getDelegateValueHandleVisitor();
 
@@ -175,6 +179,11 @@ public interface ValueHandleVisitor<T, R> {
 
         @Override
         default R visit(T param, ReferenceHandle node) {
+            return getDelegateValueHandleVisitor().visit(param, node);
+        }
+
+        @Override
+        default R visit(T param, NativeArrayHandle node) {
             return getDelegateValueHandleVisitor().visit(param, node);
         }
     }

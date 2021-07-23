@@ -795,6 +795,10 @@ public interface Node {
                 return param.getBlockBuilder().referenceHandle(param.copyValue(node.getReferenceValue()));
             }
 
+            public ValueHandle visit(Copier param, NativeArrayHandle node) {
+                return param.getBlockBuilder().nativeArrayHandle(param.copyValue(node.getArrayValue()));
+            }
+
             public Value visit(final Copier param, final Select node) {
                 return param.getBlockBuilder().select(param.copyValue(node.getCondition()), param.copyValue(node.getTrueValue()), param.copyValue(node.getFalseValue()));
             }

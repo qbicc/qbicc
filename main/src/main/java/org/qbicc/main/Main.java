@@ -70,6 +70,7 @@ import org.qbicc.plugin.native_.ConstantDefiningBasicBlockBuilder;
 import org.qbicc.plugin.native_.ExternExportTypeBuilder;
 import org.qbicc.plugin.native_.FunctionTypeResolver;
 import org.qbicc.plugin.native_.InternalNativeTypeResolver;
+import org.qbicc.plugin.native_.NativeArrayBasicBlockBuilder;
 import org.qbicc.plugin.native_.NativeBasicBlockBuilder;
 import org.qbicc.plugin.native_.NativeBindingBasicBlockBuilder;
 import org.qbicc.plugin.native_.NativeBindingTypeBuilder;
@@ -310,6 +311,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, MemberResolvingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeBindingBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, StructMemberAccessBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NativeArrayBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, PointerBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ThreadLocalBasicBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, ClassInitializingBasicBlockBuilder::new);

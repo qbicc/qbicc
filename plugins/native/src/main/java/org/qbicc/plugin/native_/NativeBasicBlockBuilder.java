@@ -20,6 +20,7 @@ import org.qbicc.object.DataDeclaration;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
 import org.qbicc.object.ThreadLocalMode;
+import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -155,7 +156,12 @@ public class NativeBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         NativeDataInfo fieldInfo = nativeInfo.getFieldInfo(owner, name);
         if (fieldInfo != null) {
             // todo: convert to GlobalVariable
-            return pointerHandle(getAndDeclareSymbolLiteral(fieldInfo));
+            SymbolLiteral sym = getAndDeclareSymbolLiteral(fieldInfo);
+            if (sym.getType() instanceof ArrayType) {
+                return nativeArrayHandle(sym);
+            } else {
+                return pointerHandle(getAndDeclareSymbolLiteral(fieldInfo));
+            }
         }
         return super.staticField(owner, name, type);
     }
