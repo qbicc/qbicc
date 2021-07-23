@@ -34,18 +34,9 @@ public class EscapeAnalysis {
         connectionGraphs.put(element, connectionGraph);
     }
 
-    boolean notEscapingMethod(Node node) {
-        return escapeState(node)
-            .filter(escapeState -> escapeState == EscapeState.NO_ESCAPE)
-            .isPresent();
-    }
-
-    private Optional<EscapeState> escapeState(Node node) {
-        return connectionGraphs.values().stream()
-            .flatMap(cg -> cg.escapeStates.entrySet().stream())
-            .filter(e -> e.getKey().equals(node))
-            .map(Map.Entry::getValue)
-            .findFirst();
+    boolean isNotEscapingMethod(New new_, ExecutableElement element) {
+        final ConnectionGraph connectionGraph = connectionGraphs.get(element);
+        return connectionGraph != null && EscapeState.isNoEscape(connectionGraph.escapeStates.get(new_));
     }
 
     public static void interProcedureAnalysis(CompilationContext ctxt) {
@@ -156,11 +147,19 @@ public class EscapeAnalysis {
             return this == GLOBAL_ESCAPE;
         }
 
+        boolean isNoEscape() {
+            return this == NO_ESCAPE;
+        }
+
         EscapeState merge(EscapeState other) {
             if (other.isGlobalEscape())
                 return GLOBAL_ESCAPE;
 
             return this;
+        }
+
+        static boolean isNoEscape(EscapeState escapeState) {
+            return escapeState != null && escapeState.isNoEscape();
         }
     }
 
@@ -236,6 +235,8 @@ public class EscapeAnalysis {
         }
 
         void methodExit() {
+            // TODO: Use ByPass function to eliminate all deferred edges in the CG
+
             // TODO: 1. compute set of nodes reachable from GlobalEscape node(s)
 
             // TODO: 2. compute set of nodes reachable from ArgEscape (nodes), but not any GlobalEscape node

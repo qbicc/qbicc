@@ -86,6 +86,7 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
         final Node result = super.store(handle, value, mode);
 
+        // TODO when compiling with debugging info (-g param), value is a Load instead of New, how to deal with it?
         if (handle instanceof StaticField) {
             // static T a = new T();
             connectionGraph.setGlobalEscape(value);

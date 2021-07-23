@@ -33,16 +33,15 @@ public class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Nod
 
     @Override
     public Value visit(Node.Copier param, New original) {
-        // TODO temporarily limit to example for easier testing
-        if (EscapeAnalysis.get(ctxt).notEscapingMethod(original) && original.getClassObjectType().toString().contains("example")) {
-            return stackAllocate(original.getClassObjectType(), param.getBlockBuilder());
+        final BasicBlockBuilder bbb = param.getBlockBuilder();
+        if (EscapeAnalysis.get(ctxt).isNotEscapingMethod(original, bbb.getCurrentElement()) && original.getClassObjectType().toString().contains("example")) {
+            return stackAllocate(original.getClassObjectType(), bbb);
         }
 
         return NodeVisitor.Delegating.super.visit(param, original);
     }
 
     private Value stackAllocate(ClassObjectType type, BasicBlockBuilder bbb) {
-        System.out.println("New on type " + type + " does not escape thread, stack allocate");
         // TODO instruct stack allocation if not escaping thread
         // TODO: Customise this generated block
 
