@@ -159,7 +159,7 @@ final class ModuleDefinitionImpl implements ModuleDefinition {
                         requiresModifiers[j] = buffer.getShort() & 0xffff;
                         int reqVerIdx = buffer.getShort() & 0xffff;
                         if (reqVerIdx != 0) {
-                            requiresVersions[j] = ClassFileUtil.getUtf8Entry(buffer, reqIdx, cpOffsets, strCache, b);
+                            requiresVersions[j] = ClassFileUtil.getUtf8Entry(buffer, reqVerIdx, cpOffsets, strCache, b);
                         }
                     }
                 }
