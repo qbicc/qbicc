@@ -1,5 +1,6 @@
 package org.qbicc.plugin.methodinfo;
 
+import org.jboss.logging.Logger;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
 import org.qbicc.graph.Node;
@@ -38,6 +39,15 @@ import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 public class MethodDataEmitter implements Consumer<CompilationContext> {
+    private static final Logger slog = Logger.getLogger("org.qbicc.plugin.methodinfo.stats");
+
+    // fields for accumulating stats
+    private int methodInfoTableCount;
+    private int methodInfoTableSize;
+    private int sourceCodeInfoTableCount;
+    private int sourceCodeInfoTableSize;
+    private int instructionMapTableCount;
+    private int instructionMapTableSize;
 
     private int createMethodInfo(CompilationContext ctxt, MethodData methodData, ExecutableElement element) {
         StringPool stringPool = StringPool.get(ctxt);
@@ -147,6 +157,9 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
                 return lf.literalOf(methodInfoType, valueMap);
         }).toArray(Literal[]::new);
 
+        methodInfoTableCount += minfoLiterals.length;
+        methodInfoTableSize += methodInfoTableCount * methodInfoType.getSize();
+
         return lf.literalOf(ts.getArrayType(methodInfoType, minfoLiterals.length), List.of(minfoLiterals));
     }
 
@@ -172,6 +185,9 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
             valueMap.put(sourceCodeInfoType.getMember(3), lf.literalOf(scInfo.getInlinedAtIndex()));
             return lf.literalOf(sourceCodeInfoType, valueMap);
         }).toArray(Literal[]::new);
+
+        sourceCodeInfoTableCount += scInfoLiterals.length;
+        sourceCodeInfoTableSize += sourceCodeInfoTableCount * sourceCodeInfoType.getSize();
 
         return lf.literalOf(ts.getArrayType(sourceCodeInfoType, scInfoLiterals.length), List.of(scInfoLiterals));
     }
@@ -204,6 +220,9 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
             return lf.literalOf(imapType, valueMap);
         }).toArray(Literal[]::new);
 
+        instructionMapTableCount += imapLiterals.length;
+        instructionMapTableSize += instructionMapTableCount * imapType.getSize();
+
         return lf.literalOf(ts.getArrayType(imapType, imapLiterals.length), List.of(imapLiterals));
     }
 
@@ -222,13 +241,26 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         emitGlobalVariable(ctxt, "qbicc_source_code_info_table", value);
 
         value = (ArrayLiteral) emitInstructionMap(ctxt, methodData.getInstructionMapList());
-        emitGlobalVariable(ctxt, "qbicc_instruction_map_table", value);
+        emitGlobalVariable(ctxt, "qbicc_instruction_table", value);
+    }
+
+
+    private void displayStats() {
+        slog.debug("Method Data stats");
+        slog.debug("-----------------");
+        slog.debugf("qbicc_method_info_table entry count: %d",  methodInfoTableCount);
+        slog.debugf("qbicc_method_info_table size: %d",  methodInfoTableSize);
+        slog.debugf("qbicc_source_code_info_table entry count: %d",  sourceCodeInfoTableCount);
+        slog.debugf("qbicc_source_code_info_table size: %d",  sourceCodeInfoTableSize);
+        slog.debugf("qbicc_instruction_map_table entry count: %d",  instructionMapTableCount);
+        slog.debugf("qbicc_instruction_map_table size: %d",  instructionMapTableSize);
     }
 
     @Override
     public void accept(CompilationContext context) {
         MethodData methodData = createMethodData(context);
         emitMethodData(context, methodData);
+        displayStats();
     }
 
     private static class StackMapRecord implements Comparable {

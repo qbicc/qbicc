@@ -507,10 +507,14 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugDevirt;
         @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
         private GCType gc;
+        @CommandLine.Option(names = "--method-data-stats")
+        private boolean methodDataStats;
         @CommandLine.Option(names = "--pie", negatable = true, defaultValue = "false", description = "[Disable|Enable] generation of position independent executable")
         private boolean isPie;
         @CommandLine.Option(names = "--platform", converter = PlatformConverter.class)
         private Platform platform;
+        @CommandLine.Option(names = "--string-pool-stats")
+        private boolean stringPoolStats;
 
         @CommandLine.Parameters(index="0", arity="1", description = "Application main class")
         private String mainClass;
@@ -579,6 +583,12 @@ public class Main implements Callable<DiagnosticContext> {
             }
             if (debugDevirt) {
                 Logger.getLogger("org.qbicc.plugin.dispatch.devirt").setLevel(Level.DEBUG);
+            }
+            if (methodDataStats) {
+                Logger.getLogger("org.qbicc.plugin.methodinfo.stats").setLevel(Level.DEBUG);
+            }
+            if (stringPoolStats) {
+                Logger.getLogger("org.qbicc.plugin.stringpool.stats").setLevel(Level.DEBUG);
             }
             if (outputPath == null) {
                 outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qbicc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));

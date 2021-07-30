@@ -9,5 +9,6 @@ public class StringPoolEmitter implements Consumer<CompilationContext> {
     public void accept(CompilationContext context) {
         StringPool stringPool = StringPool.get(context);
         stringPool.emit(context);
+        stringPool.displayStats();
     }
 }

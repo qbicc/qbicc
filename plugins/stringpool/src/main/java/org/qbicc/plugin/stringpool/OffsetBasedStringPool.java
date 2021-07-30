@@ -35,7 +35,8 @@ public class OffsetBasedStringPool implements StringPool {
         synchronized (this) {
             id = stringToIdMap.computeIfAbsent(str, k -> {
                 StringId newId = new OffsetBasedStringId(nextOffset);
-                nextOffset += str.getBytes().length + 1; // +1 for null character
+                int numBytes = str.getBytes().length + 1; // +1 for null character
+                nextOffset += numBytes;
                 return newId;
             });
         }
@@ -73,6 +74,24 @@ public class OffsetBasedStringPool implements StringPool {
         Literal literal = lf.literalOf(ts.getArrayType(ts.getUnsignedInteger8Type(), pool.length), pool);
         Section section = context.getImplicitSection(context.getDefaultTypeDefinition());
         return section.addData(null, "qbicc_string_pool", literal);
+    }
+
+    @Override
+    public int count() {
+        return stringToIdMap.size();
+    }
+
+    @Override
+    public int size() {
+        return nextOffset;
+    }
+
+    @Override
+    public void displayStats() {
+        slog.debug("String pool stats");
+        slog.debug("-----------------");
+        slog.debugf("Number of strings: %d", count());
+        slog.debugf("Pool size in bytes: %d", size());
     }
 
     private static final class OffsetBasedStringId implements StringId {

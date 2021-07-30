@@ -1,5 +1,6 @@
 package org.qbicc.plugin.stringpool;
 
+import org.jboss.logging.Logger;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.object.Data;
@@ -11,6 +12,7 @@ import org.qbicc.object.Data;
  */
 public interface StringPool {
     AttachmentKey<StringPool> KEY = new AttachmentKey<>();
+    Logger slog = Logger.getLogger("org.qbicc.plugin.stringpool.stats");
 
     static StringPool get(final CompilationContext context) {
         StringPool stringPool = context.getAttachment(KEY);
@@ -38,8 +40,25 @@ public interface StringPool {
     String findString(StringId id);
 
     /**
-     * Emit the string pool
+     * Emits the string pool
      * @return
      */
     Data emit(CompilationContext context);
+
+    /**
+     * Returns number of strings in the pool
+     * @return
+     */
+    int count();
+
+    /**
+     * Returns size of the pool in bytes
+     * @return
+     */
+    int size();
+
+    /**
+     * Print string pool stats
+     */
+    void displayStats();
 }
