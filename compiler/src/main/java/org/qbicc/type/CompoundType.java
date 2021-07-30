@@ -281,7 +281,7 @@ public final class CompoundType extends ValueType {
                 throw new IllegalStateException("CompoundType has no members");
             }
             if (completeType == null) {
-                int size = offset;  // Offset points to the end of the structure
+                int size = (offset + (overallAlign - 1)) & -overallAlign;  // Offset points to the end of the structure, align the size to overall alignment
                 completeType =  typeSystem.getCompoundType(tag, name, size, overallAlign, () -> members);
             }
             return completeType;
