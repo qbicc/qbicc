@@ -50,6 +50,7 @@ import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
 import org.qbicc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import org.qbicc.plugin.intrinsics.core.CoreIntrinsics;
+import org.qbicc.plugin.llvm.LLVMDefaultModuleCompileStage;
 import org.qbicc.plugin.lowering.LocalVariableFindingBasicBlockBuilder;
 import org.qbicc.plugin.lowering.LocalVariableLoweringBasicBlockBuilder;
 import org.qbicc.plugin.layout.ObjectAccessLoweringBuilder;
@@ -88,6 +89,7 @@ import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.serialization.ObjectLiteralSerializingVisitor;
+import org.qbicc.plugin.stringpool.StringPoolEmitter;
 import org.qbicc.plugin.threadlocal.ThreadLocalBasicBlockBuilder;
 import org.qbicc.plugin.threadlocal.ThreadLocalTypeBuilder;
 import org.qbicc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
@@ -394,7 +396,9 @@ public class Main implements Callable<DiagnosticContext> {
 
                                 builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
                                 builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie));
-                                builder.addPostHook(Phase.GENERATE, new MethodDataEmitter(isPie));
+                                builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
+                                builder.addPostHook(Phase.GENERATE, new StringPoolEmitter());
+                                builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie));
                                 builder.addPostHook(Phase.GENERATE, new LinkStage(isPie));
 
                                 CompilationContext ctxt;

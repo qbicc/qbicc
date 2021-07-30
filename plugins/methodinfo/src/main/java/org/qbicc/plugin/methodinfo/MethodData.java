@@ -8,10 +8,6 @@ import java.util.Map;
 import java.util.Set;
 
 final class MethodData {
-    private final IndexableSet<String> fileNameSet = new IndexableSet<>();
-    private final IndexableSet<String> classNameSet = new IndexableSet<>();
-    private final IndexableSet<String> methodNameSet = new IndexableSet<>();
-    private final IndexableSet<String> methodDescSet = new IndexableSet<>();
     private final IndexableSet<MethodInfo> methodInfoSet = new IndexableSet<>();
     private final IndexableSet<SourceCodeInfo> sourceCodeInfoSet = new IndexableSet<>();
     private InstructionMap[] instructionMapList;
@@ -45,30 +41,6 @@ final class MethodData {
         System.arraycopy(instructionMapList, 0, map, 0, map.length);
         return map;
     }
-
-    int addFileName(String fileName) {
-        return fileNameSet.addIfAbsent(fileName);
-    }
-
-    String[] getFileNameList() { return fileNameSet.toArray(new String[0]); }
-
-    int addClassName(String className) {
-        return classNameSet.addIfAbsent(className);
-    }
-
-    String[] getClassNameList() { return classNameSet.toArray(new String[0]); }
-
-    int addMethodName(String methodName) {
-        return methodNameSet.addIfAbsent(methodName);
-    }
-
-    String[] getMethodNameList() { return methodNameSet.toArray(new String[0]); }
-
-    int addMethodDesc(String methodDesc) {
-        return methodDescSet.addIfAbsent(methodDesc);
-    }
-
-    String[] getMethodDescList() { return methodDescSet.toArray(new String[0]); }
 
     /**
      * A set implementation that allows to retrieve index of the items in the order they are added to the set.

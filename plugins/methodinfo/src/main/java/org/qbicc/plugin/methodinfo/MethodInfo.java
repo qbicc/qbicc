@@ -1,50 +1,52 @@
 package org.qbicc.plugin.methodinfo;
 
-final class MethodInfo {
-    private int fileNameIndex;
-    private int classNameIndex;
-    private int methodNameIndex;
-    private int methodDescIndex;
+import org.qbicc.plugin.stringpool.StringId;
 
-    MethodInfo(int fileIndex, int classIndex, int methodIndex, int methodDescIndex) {
-        this.fileNameIndex = fileIndex;
-        this.classNameIndex = classIndex;
-        this.methodNameIndex = methodIndex;
-        this.methodDescIndex = methodDescIndex;
+final class MethodInfo {
+    private StringId fileNameStringId;
+    private StringId classNameStringId;
+    private StringId methodNameStringId;
+    private StringId methodDescStringId;
+
+    MethodInfo(StringId fileStringId, StringId classStringId, StringId methodStringId, StringId methodDescStringId) {
+        this.fileNameStringId = fileStringId;
+        this.classNameStringId = classStringId;
+        this.methodNameStringId = methodStringId;
+        this.methodDescStringId = methodDescStringId;
     }
 
     public boolean equals(Object other) {
         if (this == other) return true;
         if (other == null || getClass() != other.getClass()) return false;
         MethodInfo that = (MethodInfo) other;
-        return fileNameIndex == that.fileNameIndex
-            && classNameIndex == that.classNameIndex
-            && methodNameIndex == that.methodNameIndex
-            && methodDescIndex == that.methodDescIndex;
+        return fileNameStringId == that.fileNameStringId
+            && classNameStringId == that.classNameStringId
+            && methodNameStringId == that.methodNameStringId
+            && methodDescStringId == that.methodDescStringId;
     }
 
-    int getFileNameIndex() {
-        return fileNameIndex;
+    StringId getFileNameStringId() {
+        return fileNameStringId;
     }
 
-    int getClassNameIndex() {
-        return classNameIndex;
+    StringId getClassNameStringId() {
+        return classNameStringId;
     }
 
-    int getMethodNameIndex() {
-        return methodNameIndex;
+    StringId getMethodNameStringId() {
+        return methodNameStringId;
     }
 
-    int getMethodDescIndex() {
-        return methodDescIndex;
+    StringId getMethodDescStringId() {
+        return methodDescStringId;
     }
 
     @Override
     public int hashCode() {
-        int result = fileNameIndex;
-        result = 31 * result + classNameIndex;
-        result = 31 * result + methodNameIndex;
-        result = 31 * result + methodDescIndex;
+        int result = fileNameStringId != null ? fileNameStringId.hashCode() : 0;
+        result = 31 * result + (classNameStringId != null ? classNameStringId.hashCode() : 0);
+        result = 31 * result + (methodNameStringId != null ? methodNameStringId.hashCode() : 0);
+        result = 31 * result + (methodDescStringId != null ? methodDescStringId.hashCode() : 0);
         return result;
     }
 }

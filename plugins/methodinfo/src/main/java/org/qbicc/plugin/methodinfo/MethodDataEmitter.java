@@ -6,29 +6,24 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.literal.ArrayLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.machine.llvm.stackmap.StackMap;
 import org.qbicc.machine.llvm.stackmap.StackMapVisitor;
 import org.qbicc.machine.object.ObjectFile;
 import org.qbicc.machine.object.ObjectFileProvider;
 import org.qbicc.object.Function;
-import org.qbicc.object.ProgramModule;
 import org.qbicc.object.Section;
 import org.qbicc.plugin.linker.Linker;
 import org.qbicc.plugin.llvm.LLVMCallSiteInfo;
-import org.qbicc.plugin.llvm.LLVMCompiler;
-import org.qbicc.plugin.llvm.LLVMGenerator;
+import org.qbicc.plugin.stringpool.StringId;
+import org.qbicc.plugin.stringpool.StringPool;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FunctionElement;
-import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
-import org.qbicc.type.descriptor.BaseTypeDescriptor;
-import org.qbicc.type.generic.BaseTypeSignature;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -39,15 +34,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 public class MethodDataEmitter implements Consumer<CompilationContext> {
-    private final boolean isPie;
-    private final AtomicInteger stringIndex = new AtomicInteger();
 
-    private int createMethodInfo(MethodData methodData, ExecutableElement element) {
+    private int createMethodInfo(CompilationContext ctxt, MethodData methodData, ExecutableElement element) {
+        StringPool stringPool = StringPool.get(ctxt);
         String methodName = "";
         if (element instanceof ConstructorElement) {
             methodName = "<init>";
@@ -61,26 +54,26 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         String fileName = element.getSourceFileName();
         String className = element.getEnclosingType().getInternalName();
         String methodDesc = element.getDescriptor().toString();
-        int fileNameIndex = fileName != null ? methodData.addFileName(fileName) : -1;
-        int classNameIndex = className != null ? methodData.addClassName(className) : -1;
-        int methodNameIndex = methodName != null ? methodData.addMethodName(methodName) : -1;
-        int methodDescIndex = methodDesc != null ? methodData.addMethodDesc(methodDesc) : -1;
+        StringId fileNameIndex = stringPool.add(fileName);
+        StringId classNameIndex = stringPool.add(className);
+        StringId methodNameIndex = stringPool.add(methodName);
+        StringId methodDescIndex = stringPool.add(methodDesc);
         return methodData.add(new MethodInfo(fileNameIndex, classNameIndex, methodNameIndex, methodDescIndex));
     }
 
-    private int createSourceCodeInfo(MethodData methodData, ExecutableElement element, int lineNumber, int bcIndex, int inlinedAtIndex) {
-        int minfoIndex = createMethodInfo(methodData, element);
+    private int createSourceCodeInfo(CompilationContext ctxt, MethodData methodData, ExecutableElement element, int lineNumber, int bcIndex, int inlinedAtIndex) {
+        int minfoIndex = createMethodInfo(ctxt, methodData, element);
         return methodData.add(new SourceCodeInfo(minfoIndex, lineNumber, bcIndex, inlinedAtIndex));
     }
 
-    private int createSourceCodeInfo(MethodData methodData, Node node) {
+    private int createSourceCodeInfo(CompilationContext ctxt, MethodData methodData, Node node) {
         int sourceCodeIndex;
         ExecutableElement element = node.getElement();
         if (node.getCallSite() == null) {
-            sourceCodeIndex = createSourceCodeInfo(methodData, element, node.getSourceLine(), node.getBytecodeIndex(), -1);
+            sourceCodeIndex = createSourceCodeInfo(ctxt, methodData, element, node.getSourceLine(), node.getBytecodeIndex(), -1);
         } else {
-            int callerIndex = createSourceCodeInfo(methodData, node.getCallSite());
-            sourceCodeIndex = createSourceCodeInfo(methodData, element, node.getSourceLine(), node.getBytecodeIndex(), callerIndex);
+            int callerIndex = createSourceCodeInfo(ctxt, methodData, node.getCallSite());
+            sourceCodeIndex = createSourceCodeInfo(ctxt, methodData, element, node.getSourceLine(), node.getBytecodeIndex(), callerIndex);
         }
         return sourceCodeIndex;
     }
@@ -123,46 +116,12 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
                 long spId = record.getStatepoindId();
                 int instructionOffset = record.getOffset();
                 Node node = callSiteInfo.getNodeForStatepointId((int)spId);
-                int scIndex = createSourceCodeInfo(methodData, node);
+                int scIndex = createSourceCodeInfo(ctxt, methodData, node);
                 methodData.add(index, new InstructionMap(instructionOffset, scIndex, getRootMethodOfInlineSequence(node)));
             }
         });
 
         return methodData;
-    }
-
-    Literal emitStringTable(CompilationContext ctxt, String[] strings) {
-        TypeSystem ts = ctxt.getTypeSystem();
-        LiteralFactory lf = ctxt.getLiteralFactory();
-        Section section = ctxt.getImplicitSection(ctxt.getDefaultTypeDefinition());
-
-        // strings are represented using a compound type consisting of length and a pointer to character data
-        CompoundType stringType = CompoundType.builder(ts)
-            .setTag(CompoundType.Tag.STRUCT)
-            .setName("qbicc-md-string")
-            .setOverallAlignment(ts.getUnsignedInteger32Type().getAlign())
-            .addNextMember("len", ts.getUnsignedInteger32Type())
-            .addNextMember("data", ts.getUnsignedInteger8Type().getPointer())
-            .build();
-
-        Literal[] literals = Arrays.stream(strings)
-            .parallel()
-            .map(str -> {
-                // create a literal for the array of characters
-                byte[] chars = str.getBytes();
-                Literal literal = lf.literalOf(ts.getArrayType(ts.getUnsignedInteger8Type(), chars.length), chars);
-                SymbolLiteral symbol = lf.literalOfSymbol(".qbicc-md-string-data-" + stringIndex.getAndIncrement(), literal.getType().getPointer());
-                section.addData(null, symbol.getName(), literal);
-                Literal ptrLiteral = lf.bitcastLiteral(symbol, ts.getUnsignedInteger8Type().getPointer());
-
-                // now create a literal for the string consisting of length and the pointer to char array
-                HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
-                valueMap.put(stringType.getMember(0), lf.literalOf(chars.length));
-                valueMap.put(stringType.getMember(1), ptrLiteral);
-                return lf.literalOf(stringType, valueMap);
-            }).toArray(Literal[]::new);
-
-        return lf.literalOf(ts.getArrayType(literals[0].getType(), literals.length), List.of(literals));
     }
 
     Literal emitMethodInfoTable(CompilationContext ctxt, MethodInfo[] minfoList) {
@@ -181,10 +140,10 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
 
         Literal[] minfoLiterals = Arrays.stream(minfoList).parallel().map(minfo -> {
                 HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
-                valueMap.put(methodInfoType.getMember(0), lf.literalOf(minfo.getFileNameIndex()));
-                valueMap.put(methodInfoType.getMember(1), lf.literalOf(minfo.getClassNameIndex()));
-                valueMap.put(methodInfoType.getMember(2), lf.literalOf(minfo.getMethodNameIndex()));
-                valueMap.put(methodInfoType.getMember(3), lf.literalOf(minfo.getMethodDescIndex()));
+                valueMap.put(methodInfoType.getMember(0), minfo.getFileNameStringId().serialize(ctxt));
+                valueMap.put(methodInfoType.getMember(1), minfo.getClassNameStringId().serialize(ctxt));
+                valueMap.put(methodInfoType.getMember(2), minfo.getMethodNameStringId().serialize(ctxt));
+                valueMap.put(methodInfoType.getMember(3), minfo.getMethodDescStringId().serialize(ctxt));
                 return lf.literalOf(methodInfoType, valueMap);
         }).toArray(Literal[]::new);
 
@@ -253,20 +212,8 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         section.addData(null, variableName, value);
     }
 
-    public Path emitMethodData(CompilationContext ctxt, MethodData methodData) {
+    public void emitMethodData(CompilationContext ctxt, MethodData methodData) {
         ArrayLiteral value;
-
-        value = (ArrayLiteral) emitStringTable(ctxt, methodData.getFileNameList());
-        emitGlobalVariable(ctxt, "qbicc_filename_table", value);
-
-        value = (ArrayLiteral) emitStringTable(ctxt, methodData.getClassNameList());
-        emitGlobalVariable(ctxt, "qbicc_classname_table", value);
-
-        value = (ArrayLiteral) emitStringTable(ctxt, methodData.getMethodNameList());
-        emitGlobalVariable(ctxt, "qbicc_methodname_table", value);
-
-        value = (ArrayLiteral) emitStringTable(ctxt, methodData.getMethodDescList());
-        emitGlobalVariable(ctxt, "qbicc_methoddesc_table", value);
 
         value = (ArrayLiteral) emitMethodInfoTable(ctxt, methodData.getMethodInfoTable());
         emitGlobalVariable(ctxt, "qbicc_method_info_table", value);
@@ -276,27 +223,12 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
 
         value = (ArrayLiteral) emitInstructionMap(ctxt, methodData.getInstructionMapList());
         emitGlobalVariable(ctxt, "qbicc_instruction_map_table", value);
-
-        ProgramModule programModule = ctxt.getProgramModule(ctxt.getDefaultTypeDefinition());
-        return new LLVMGenerator(isPie ? 2 : 0, isPie ? 2 : 0).processProgramModule(ctxt, programModule);
-    }
-
-    public MethodDataEmitter(boolean isPie) {
-        this.isPie = isPie;
-    }
-
-    private void compileMethodDataModule(CompilationContext context, Path modulePath) {
-        LLVMCompiler compiler = new LLVMCompiler(context, isPie);
-        compiler.compileModule(context, modulePath);
     }
 
     @Override
     public void accept(CompilationContext context) {
         MethodData methodData = createMethodData(context);
-        Path modulePath = emitMethodData(context, methodData);
-        if (modulePath != null) {
-            compileMethodDataModule(context, modulePath);
-        }
+        emitMethodData(context, methodData);
     }
 
     private static class StackMapRecord implements Comparable {

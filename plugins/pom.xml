@@ -30,6 +30,7 @@
         <module>llvm</module>
         <module>lowering</module>
         <module>main</module>
+        <module>methodinfo</module>
         <module>metrics</module>
         <module>native</module>
         <module>objectmonitor</module>
@@ -40,6 +41,6 @@
         <module>verification</module>
         <module>unwind</module>
         <module>serialization</module>
-        <module>methodinfo</module>
+        <module>stringpool</module>
     </modules>
 </project>
