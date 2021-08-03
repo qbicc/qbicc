@@ -46,8 +46,10 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
     private int methodInfoTableSize;
     private int sourceCodeInfoTableCount;
     private int sourceCodeInfoTableSize;
-    private int instructionMapTableCount;
-    private int instructionMapTableSize;
+    private int sourceCodeIndexListCount;
+    private int sourceCodeIndexListSize;
+    private int instructionListCount;
+    private int instructionListSize;
 
     private int createMethodInfo(CompilationContext ctxt, MethodData methodData, ExecutableElement element) {
         StringPool stringPool = StringPool.get(ctxt);
@@ -192,38 +194,41 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         return lf.literalOf(ts.getArrayType(sourceCodeInfoType, scInfoLiterals.length), List.of(scInfoLiterals));
     }
 
-    Literal emitInstructionMap(CompilationContext ctxt, InstructionMap[] imapList) {
+    Literal emitSourceCodeIndexList(CompilationContext ctxt, InstructionMap[] imapList) {
+        TypeSystem ts = ctxt.getTypeSystem();
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        ValueType uint32Type = ts.getUnsignedInteger32Type();
+
+        Literal[] scIndexLiterals = IntStream.range(0, imapList.length)
+            .parallel()
+            .mapToObj(i -> lf.literalOf(imapList[i].getSourceCodeIndex())).toArray(Literal[]::new);
+
+        sourceCodeIndexListCount += scIndexLiterals.length;
+        sourceCodeIndexListSize += sourceCodeIndexListCount * uint32Type.getSize();
+
+        return lf.literalOf(ts.getArrayType(uint32Type, scIndexLiterals.length), List.of(scIndexLiterals));
+    }
+
+    Literal emitInstructionList(CompilationContext ctxt, InstructionMap[] imapList) {
         TypeSystem ts = ctxt.getTypeSystem();
         LiteralFactory lf = ctxt.getLiteralFactory();
         Section section = ctxt.getImplicitSection(ctxt.getDefaultTypeDefinition());
         ValueType uint64Type = ts.getUnsignedInteger64Type();
-        ValueType uint32Type = ts.getUnsignedInteger32Type();
 
-        CompoundType imapType = CompoundType.builder(ts)
-            .setTag(CompoundType.Tag.STRUCT)
-            .setName("qbicc_instruction_map")
-            .setOverallAlignment(uint64Type.getAlign())
-            .addNextMember("instructionAddress", uint64Type)
-            .addNextMember("sourceCodeIndex", uint32Type)
-            .build();
-
-        Literal[] imapLiterals = IntStream.range(0, imapList.length)
+        Literal[] instructionLiterals = IntStream.range(0, imapList.length)
             .parallel()
             .mapToObj(i -> {
-            HashMap<CompoundType.Member, Literal> valueMap = new HashMap<>();
-            Function function = ctxt.getExactFunction(imapList[i].getFunction());
-            Literal functionCastLiteral = lf.bitcastLiteral(lf.literalOfSymbol(function.getName(), function.getType().getPointer()), ts.getUnsignedInteger8Type().getPointer());
-            Literal instructionAddrLiteral = lf.valueConvertLiteral(lf.elementOfLiteral(functionCastLiteral, lf.literalOf(imapList[i].getOffset())), ts.getUnsignedInteger64Type());
-            valueMap.put(imapType.getMember(0), instructionAddrLiteral);
-            valueMap.put(imapType.getMember(1), lf.literalOf(imapList[i].getSourceCodeIndex()));
-            section.declareFunction(null, function.getName(), function.getType());
-            return lf.literalOf(imapType, valueMap);
-        }).toArray(Literal[]::new);
+                Function function = ctxt.getExactFunction(imapList[i].getFunction());
+                Literal functionCastLiteral = lf.bitcastLiteral(lf.literalOfSymbol(function.getName(), function.getType().getPointer()), ts.getUnsignedInteger8Type().getPointer());
+                Literal instructionAddrLiteral = lf.valueConvertLiteral(lf.elementOfLiteral(functionCastLiteral, lf.literalOf(imapList[i].getOffset())), ts.getUnsignedInteger64Type());
+                section.declareFunction(null, function.getName(), function.getType());
+                return instructionAddrLiteral;
+            }).toArray(Literal[]::new);
 
-        instructionMapTableCount += imapLiterals.length;
-        instructionMapTableSize += instructionMapTableCount * imapType.getSize();
+        instructionListCount += instructionLiterals.length;
+        instructionListSize += instructionListCount * uint64Type.getSize();
 
-        return lf.literalOf(ts.getArrayType(imapType, imapLiterals.length), List.of(imapLiterals));
+        return lf.literalOf(ts.getArrayType(uint64Type, instructionLiterals.length), List.of(instructionLiterals));
     }
 
     private void emitGlobalVariable(CompilationContext ctxt, String variableName, Literal value) {
@@ -240,20 +245,24 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         value = (ArrayLiteral) emitSourceCodeInfoTable(ctxt, methodData.getSourceCodeInfoTable());
         emitGlobalVariable(ctxt, "qbicc_source_code_info_table", value);
 
-        value = (ArrayLiteral) emitInstructionMap(ctxt, methodData.getInstructionMapList());
-        emitGlobalVariable(ctxt, "qbicc_instruction_table", value);
-    }
+        value = (ArrayLiteral) emitInstructionList(ctxt, methodData.getInstructionMapList());
+        emitGlobalVariable(ctxt, "qbicc_instruction_list", value);
 
+        value = (ArrayLiteral) emitSourceCodeIndexList(ctxt, methodData.getInstructionMapList());
+        emitGlobalVariable(ctxt, "qbicc_source_code_index_list", value);
+    }
 
     private void displayStats() {
         slog.debug("Method Data stats");
         slog.debug("-----------------");
-        slog.debugf("qbicc_method_info_table entry count: %d",  methodInfoTableCount);
-        slog.debugf("qbicc_method_info_table size: %d",  methodInfoTableSize);
-        slog.debugf("qbicc_source_code_info_table entry count: %d",  sourceCodeInfoTableCount);
-        slog.debugf("qbicc_source_code_info_table size: %d",  sourceCodeInfoTableSize);
-        slog.debugf("qbicc_instruction_map_table entry count: %d",  instructionMapTableCount);
-        slog.debugf("qbicc_instruction_map_table size: %d",  instructionMapTableSize);
+        slog.debugf("qbicc_method_info_table entry count: %d", methodInfoTableCount);
+        slog.debugf("qbicc_method_info_table size: %d bytes", methodInfoTableSize);
+        slog.debugf("qbicc_source_code_info_table entry count: %d", sourceCodeInfoTableCount);
+        slog.debugf("qbicc_source_code_info_table size: %d bytes", sourceCodeInfoTableSize);
+        slog.debugf("qbicc_source_code_index_list entry count: %d", sourceCodeIndexListCount);
+        slog.debugf("qbicc_source_code_index_list size: %d bytes", sourceCodeIndexListSize);
+        slog.debugf("qbicc_instruction_list entry count: %d", instructionListCount);
+        slog.debugf("qbicc_instruction_list size: %d bytes", instructionListSize);
     }
 
     @Override
