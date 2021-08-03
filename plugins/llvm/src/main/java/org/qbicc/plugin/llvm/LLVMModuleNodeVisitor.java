@@ -169,12 +169,12 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                 if (memberOffset > offs) {
                     // we have to pad it out
                     int pad = (int) (memberOffset - offs);
-                    struct.member(array(pad, i8));
+                    struct.member(array(pad, i8), "padding");
                     offs += pad;
                     index ++;
                 }
                 ValueType memberType = member.getType();
-                struct.member(map(memberType));
+                struct.member(map(memberType), member.getName());
                 // todo: cache these ints
                 offsets.put(member, Values.intConstant(index));
                 index ++;
@@ -184,7 +184,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             long size = compoundType.getSize();
             if (offs < size) {
                 // yet more padding
-                struct.member(array((int) (size - offs), i8));
+                struct.member(array((int) (size - offs), i8), "padding");
             }
 
             identifiedType.type(struct);
