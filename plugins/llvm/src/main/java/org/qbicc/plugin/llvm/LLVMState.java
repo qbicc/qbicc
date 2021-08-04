@@ -14,6 +14,7 @@ final class LLVMState {
     static final AttachmentKey<LLVMState> KEY = new AttachmentKey<>();
 
     private final List<Path> modulePaths = Collections.synchronizedList(new ArrayList<>());
+    private Path defaultModulePath;
 
     LLVMState() {}
 
@@ -21,10 +22,15 @@ final class LLVMState {
         modulePaths.add(path);
     }
 
+    void setDefaultModulePath(Path path) { defaultModulePath = path; }
+
     List<Path> getModulePaths() {
         synchronized (modulePaths) {
             return List.copyOf(modulePaths);
         }
     }
 
+    Path getDefaultModulePath() {
+        return defaultModulePath;
+    }
 }

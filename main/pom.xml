@@ -122,6 +122,10 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>qbicc-plugin-methodinfo</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>qbicc-plugin-native</artifactId>
         </dependency>
         <dependency>

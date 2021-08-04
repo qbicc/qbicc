@@ -16,5 +16,9 @@ public final class FunctionAttributes {
     public static LLValue framePointer(String val) {
         return LLVM.valueAttribute("\"frame-pointer\"", LLVM.quoteString(val));
     }
+
+    public static LLValue statepointId(int id) {
+        return LLVM.valueAttribute("\"statepoint-id\"", LLVM.quoteString(String.valueOf(id)));
+    }
 }
 

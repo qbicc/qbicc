@@ -72,9 +72,13 @@ public interface CompilationContext extends DiagnosticContext {
 
     Path getOutputDirectory(MemberElement element);
 
+    ProgramModule getProgramModule(final DefinedTypeDefinition type);
+
     ProgramModule getOrAddProgramModule(DefinedTypeDefinition type);
 
     List<ProgramModule> getAllProgramModules();
+
+    DefinedTypeDefinition getDefaultTypeDefinition();
 
     Section getImplicitSection(ExecutableElement element);
 

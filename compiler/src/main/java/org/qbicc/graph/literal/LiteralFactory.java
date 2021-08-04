@@ -14,6 +14,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NullableType;
+import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
@@ -72,6 +73,8 @@ public interface LiteralFactory {
     Literal bitcastLiteral(Literal value, WordType toType);
 
     Literal valueConvertLiteral(Literal value, WordType toType);
+
+    Literal elementOfLiteral(Literal value, Literal index);
 
     static LiteralFactory create(TypeSystem typeSystem) {
         return new LiteralFactory() {
@@ -239,6 +242,18 @@ public interface LiteralFactory {
                 Assert.checkNotNullParam("value", value);
                 Assert.checkNotNullParam("toType", toType);
                 return value.convert(this, toType);
+            }
+
+            @Override
+            public Literal elementOfLiteral(Literal value, Literal index) {
+                Assert.checkNotNullParam("value", value);
+                Assert.checkNotNullParam("index", index);
+                ValueType inputType = value.getType();
+                if (inputType instanceof PointerType || inputType instanceof ArrayType) {
+                    return value.elementOf(this, index);
+                } else {
+                    throw new IllegalArgumentException("Invalid input type: " + inputType);
+                }
             }
         };
     }

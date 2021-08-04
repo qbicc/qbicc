@@ -847,6 +847,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
+        addStatepointId(call, node);
         return call.asLocal();
     }
 
@@ -863,6 +864,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail();
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
+        addStatepointId(call, node);
         return call.asLocal();
     }
 
@@ -880,6 +882,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).noTail().attribute(FunctionAttributes.noreturn);
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
+        addStatepointId(call, node);
         builder.unreachable();
         return call;
     }
@@ -898,6 +901,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         Call call = builder.call(llType, llTarget).tail(); // hint only
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
+        addStatepointId(call, node);
         ValueType returnType = node.getFunctionType().getReturnType();
         if (returnType instanceof VoidType) {
             return builder.ret();
@@ -941,6 +945,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
+        addStatepointId(call, node);
         return call;
     }
 
@@ -968,6 +973,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
         setCallArguments(call, arguments);
         setCallReturnValue(call, functionType);
         addPersonalityIfNeeded();
+        addStatepointId(call, node);
         return call;
     }
 
@@ -1000,6 +1006,7 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             LLVM.newBuilder(tailTarget).ret(map(returnType), call.asLocal());
         }
         addPersonalityIfNeeded();
+        addStatepointId(call, node);
         return call;
     }
 
@@ -1065,6 +1072,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             func.personality(map(literal), map(literal.getType()));
             personalityAdded = true;
         }
+    }
+
+    private void addStatepointId(Call call, Node node) {
+        int statepointId = LLVM.getNextStatepointId();
+        call.attribute(FunctionAttributes.statepointId(statepointId));
+        LLVMCallSiteInfo.get(ctxt).mapStatepointIdToNode(statepointId, node);
     }
 
     // GEP

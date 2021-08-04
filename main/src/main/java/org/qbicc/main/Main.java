@@ -50,6 +50,7 @@ import org.qbicc.plugin.instanceofcheckcast.SupersDisplayBuilder;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayEmitter;
 import org.qbicc.plugin.intrinsics.IntrinsicBasicBlockBuilder;
 import org.qbicc.plugin.intrinsics.core.CoreIntrinsics;
+import org.qbicc.plugin.llvm.LLVMDefaultModuleCompileStage;
 import org.qbicc.plugin.lowering.LocalVariableFindingBasicBlockBuilder;
 import org.qbicc.plugin.lowering.LocalVariableLoweringBasicBlockBuilder;
 import org.qbicc.plugin.layout.ObjectAccessLoweringBuilder;
@@ -65,6 +66,7 @@ import org.qbicc.plugin.lowering.ThrowLoweringBasicBlockBuilder;
 import org.qbicc.plugin.lowering.VMHelpersSetupHook;
 import org.qbicc.plugin.main_method.AddMainClassHook;
 import org.qbicc.plugin.main_method.MainMethod;
+import org.qbicc.plugin.methodinfo.MethodDataEmitter;
 import org.qbicc.plugin.native_.ConstTypeResolver;
 import org.qbicc.plugin.native_.ConstantDefiningBasicBlockBuilder;
 import org.qbicc.plugin.native_.ExternExportTypeBuilder;
@@ -87,6 +89,7 @@ import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.serialization.ObjectLiteralSerializingVisitor;
+import org.qbicc.plugin.stringpool.StringPoolEmitter;
 import org.qbicc.plugin.threadlocal.ThreadLocalBasicBlockBuilder;
 import org.qbicc.plugin.threadlocal.ThreadLocalTypeBuilder;
 import org.qbicc.plugin.trycatch.LocalThrowHandlingBasicBlockBuilder;
@@ -393,6 +396,9 @@ public class Main implements Callable<DiagnosticContext> {
 
                                 builder.addPostHook(Phase.GENERATE, new DotGenerator(Phase.GENERATE, graphGenConfig));
                                 builder.addPostHook(Phase.GENERATE, new LLVMCompileStage(isPie));
+                                builder.addPostHook(Phase.GENERATE, new MethodDataEmitter());
+                                builder.addPostHook(Phase.GENERATE, new StringPoolEmitter());
+                                builder.addPostHook(Phase.GENERATE, new LLVMDefaultModuleCompileStage(isPie));
                                 builder.addPostHook(Phase.GENERATE, new LinkStage(isPie));
 
                                 CompilationContext ctxt;
@@ -501,10 +507,14 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean debugDevirt;
         @CommandLine.Option(names = "--gc", defaultValue = "none", description = "Type of GC to use. Valid values: ${COMPLETION-CANDIDATES}")
         private GCType gc;
+        @CommandLine.Option(names = "--method-data-stats")
+        private boolean methodDataStats;
         @CommandLine.Option(names = "--pie", negatable = true, defaultValue = "false", description = "[Disable|Enable] generation of position independent executable")
         private boolean isPie;
         @CommandLine.Option(names = "--platform", converter = PlatformConverter.class)
         private Platform platform;
+        @CommandLine.Option(names = "--string-pool-stats")
+        private boolean stringPoolStats;
 
         @CommandLine.Parameters(index="0", arity="1", description = "Application main class")
         private String mainClass;
@@ -573,6 +583,12 @@ public class Main implements Callable<DiagnosticContext> {
             }
             if (debugDevirt) {
                 Logger.getLogger("org.qbicc.plugin.dispatch.devirt").setLevel(Level.DEBUG);
+            }
+            if (methodDataStats) {
+                Logger.getLogger("org.qbicc.plugin.methodinfo.stats").setLevel(Level.DEBUG);
+            }
+            if (stringPoolStats) {
+                Logger.getLogger("org.qbicc.plugin.stringpool.stats").setLevel(Level.DEBUG);
             }
             if (outputPath == null) {
                 outputPath = Path.of(System.getProperty("java.io.tmpdir"), "qbicc-output-" + Integer.toHexString(ThreadLocalRandom.current().nextInt()));

@@ -52,6 +52,7 @@ import org.qbicc.type.definition.element.InvokableElement;
 import org.qbicc.type.definition.element.MemberElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.descriptor.ClassTypeDescriptor;
+import org.qbicc.type.generic.ClassSignature;
 import org.qbicc.type.generic.TypeSignature;
 
 final class CompilationContextImpl implements CompilationContext {
@@ -75,6 +76,7 @@ final class CompilationContextImpl implements CompilationContext {
     final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories;
     private final AtomicReference<FieldElement> exceptionFieldHolder = new AtomicReference<>();
     private final SymbolLiteral qbiccBoundThread;
+    private volatile DefinedTypeDefinition defaultTypeDefinition;
 
     // mutable state
     private volatile BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> blockFactory;
@@ -284,6 +286,10 @@ final class CompilationContextImpl implements CompilationContext {
         }
     }
 
+    public ProgramModule getProgramModule(final DefinedTypeDefinition type) {
+        return programModules.get(type);
+    }
+
     public ProgramModule getOrAddProgramModule(final DefinedTypeDefinition type) {
         return programModules.computeIfAbsent(type, t -> new ProgramModule(t, typeSystem, literalFactory));
     }
@@ -318,6 +324,34 @@ final class CompilationContextImpl implements CompilationContext {
             throw new IllegalArgumentException("Cannot get function of native method");
         }
         return exactFunctions.get(element);
+    }
+
+    public DefinedTypeDefinition getDefaultTypeDefinition() {
+        if (defaultTypeDefinition != null) {
+            return defaultTypeDefinition;
+        } else {
+            synchronized (this) {
+                if (defaultTypeDefinition != null) {
+                    return defaultTypeDefinition;
+                } else {
+                    DefinedTypeDefinition.Builder typeBuilder = DefinedTypeDefinition.Builder.basic();
+                    ClassTypeDescriptor desc = ClassTypeDescriptor.synthesize(bootstrapClassContext, "__qbicc-default-type__");
+                    typeBuilder.setDescriptor(desc);
+                    typeBuilder.setSignature(ClassSignature.synthesize(bootstrapClassContext, null, List.of()));
+                    typeBuilder.setName("__qbicc-default-type__");
+                    typeBuilder.setContext(bootstrapClassContext);
+                    typeBuilder.setModifiers(ClassFile.ACC_FINAL | ClassFile.ACC_PUBLIC | ClassFile.I_ACC_NO_REFLECT);
+                    typeBuilder.setInitializer((index, enclosing) -> {
+                        InitializerElement.Builder builder = InitializerElement.builder();
+                        builder.setEnclosingType(enclosing);
+                        return builder.build();
+                    }, 0);
+                    DefinedTypeDefinition defaultType = typeBuilder.build();
+                    defaultTypeDefinition = defaultType;
+                    return defaultType;
+                }
+            }
+        }
     }
 
     public Section getImplicitSection(ExecutableElement element) {
