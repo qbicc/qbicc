@@ -237,18 +237,18 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
     }
 
     public void emitMethodData(CompilationContext ctxt, MethodData methodData) {
-        ArrayLiteral value;
+        Literal value;
 
-        value = (ArrayLiteral) emitMethodInfoTable(ctxt, methodData.getMethodInfoTable());
+        value = emitMethodInfoTable(ctxt, methodData.getMethodInfoTable());
         emitGlobalVariable(ctxt, "qbicc_method_info_table", value);
 
-        value = (ArrayLiteral) emitSourceCodeInfoTable(ctxt, methodData.getSourceCodeInfoTable());
+        value = emitSourceCodeInfoTable(ctxt, methodData.getSourceCodeInfoTable());
         emitGlobalVariable(ctxt, "qbicc_source_code_info_table", value);
 
-        value = (ArrayLiteral) emitInstructionList(ctxt, methodData.getInstructionMapList());
+        value = emitInstructionList(ctxt, methodData.getInstructionMapList());
         emitGlobalVariable(ctxt, "qbicc_instruction_list", value);
 
-        value = (ArrayLiteral) emitSourceCodeIndexList(ctxt, methodData.getInstructionMapList());
+        value = emitSourceCodeIndexList(ctxt, methodData.getInstructionMapList());
         emitGlobalVariable(ctxt, "qbicc_source_code_index_list", value);
     }
 
