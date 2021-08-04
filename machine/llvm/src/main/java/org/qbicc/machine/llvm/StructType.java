@@ -10,5 +10,5 @@ public interface StructType extends LLValue {
      * @param type the type to add
      * @return this struct type
      */
-    StructType member(LLValue type);
+    StructType member(LLValue type, String name);
 }
