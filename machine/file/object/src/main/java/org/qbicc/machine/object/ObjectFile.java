@@ -31,4 +31,6 @@ public interface ObjectFile extends Closeable {
     Section getSection(String name);
 
     String getRelocationSymbolForSymbolValue(String symbol);
+
+    String getStackMapSectionName();
 }

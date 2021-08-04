@@ -146,6 +146,11 @@ public class ElfObjectFileProvider implements ObjectFileProvider {
                 return reloSymbol.getName();
             }
 
+            @Override
+            public String getStackMapSectionName() {
+                return ".llvm_stackmaps";
+            }
+
             private ElfSymbolTableEntry findSymbol(final String name) {
                 final ElfSymbolTableEntry symbol = elfHeader.findSymbol(name);
                 if (symbol == null) {
