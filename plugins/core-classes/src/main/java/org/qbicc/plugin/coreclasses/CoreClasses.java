@@ -47,6 +47,7 @@ public final class CoreClasses {
     private final CompilationContext ctxt;
 
     private final FieldElement objectTypeIdField;
+    private final FieldElement objectNativeObjectMonitorField;
     private final FieldElement classTypeIdField;
     private final FieldElement classDimensionField;
 
@@ -88,6 +89,18 @@ public final class CoreClasses {
         FieldElement field = builder.build();
         jlo.injectField(field);
         objectTypeIdField = field;
+
+        // inject a field to hold the object pthread_mutex_t
+        builder = FieldElement.builder();
+        builder.setModifiers(ClassFile.ACC_PUBLIC | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+        builder.setName("nativeObjectMonitor");
+        builder.setEnclosingType(jloDef);
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        builder.setType(ts.getSignedInteger64Type());
+        field = builder.build();
+        jlo.injectField(field);
+        objectNativeObjectMonitorField = field;
 
         // now inject a field of ClassObjectType into Class to hold the corresponding run time type
         builder = FieldElement.builder();
@@ -340,6 +353,13 @@ public final class CoreClasses {
     public LoadedTypeDefinition getObjectTypeDefinition() {
         return objectTypeIdField.getEnclosingType().load();
     }
+
+    /**
+     * Get the object field which holds the synchronization information (mutex)
+     *
+     * @return the native object monitor field
+     */
+    public FieldElement getObjectNativeObjectMonitorField() { return objectNativeObjectMonitorField; }
 
     /**
      * Get the field on {@code Class} which holds the type identifier of its corresponding instance type.

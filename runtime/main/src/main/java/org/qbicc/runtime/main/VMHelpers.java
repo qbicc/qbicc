@@ -4,8 +4,6 @@ import org.qbicc.runtime.CNative;
 import org.qbicc.runtime.NoSideEffects;
 import org.qbicc.runtime.stdc.Stddef;
 
-import java.util.HashMap;
-
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.PThread.*;
 import static org.qbicc.runtime.stdc.Stdint.*;
@@ -16,13 +14,6 @@ import static org.qbicc.runtime.stdc.Stdlib.*;
  */
 @SuppressWarnings("unused")
 public final class VMHelpers {
-    // TODO add concurrency
-    /* map Java object to native mutex for object monitor bytecodes. */
-    static HashMap<Object, NativeObjectMonitor> objectMonitorNatives = new HashMap();
-
-    /* Force clinit to run early. most VMHelper methods will be replaced after clinit checks. */
-    public static void forceClinit() {}
-
     @NoSideEffects
     public static boolean instanceof_class(Object instance, Class<?> cls) {
         if (instance == null) {
@@ -126,42 +117,56 @@ public final class VMHelpers {
 
     // TODO: mark this with a "NoInline" annotation
     static void monitor_enter(Object object) throws IllegalMonitorStateException {
-        NativeObjectMonitor nom;
-        if ((nom = objectMonitorNatives.get(object)) != null) {
-            omError(pthread_mutex_lock(nom.getPthreadMutex()));
-        } else {
-            ptr<?> attrVoid = malloc(sizeof(pthread_mutexattr_t.class));
-            if (attrVoid.isNull()) {
-                throw new OutOfMemoryError(/*"Allocation failed"*/);
+        if (object == null) {
+            // TODO skip for now
+            return;
+        }
+        while (true) { /* facilitate restart if atomic set operation fails */
+            pthread_mutex_t_ptr nom = ObjectModel.nativeObjectMonitor_of(object);
+            if (nom == null) {
+                ptr<?> attrVoid = malloc(sizeof(pthread_mutexattr_t.class));
+                if (attrVoid.isNull()) {
+                    throw new OutOfMemoryError(/*"Allocation failed"*/);
+                }
+                ptr<pthread_mutexattr_t> attr = (ptr<pthread_mutexattr_t>) castPtr(attrVoid, pthread_mutexattr_t.class);
+
+                Stddef.size_t mutexSize = sizeof(pthread_mutex_t.class);
+                nom = malloc(word(mutexSize.longValue()));
+                ptr<?> mVoid = malloc(word(mutexSize.longValue()));
+                if (mVoid.isNull()) {
+                    throw new OutOfMemoryError(/*"Allocation failed"*/);
+                }
+                ptr<pthread_mutex_t> m = (ptr<pthread_mutex_t>) castPtr(mVoid, pthread_mutex_t.class);
+
+                omError(pthread_mutexattr_init((pthread_mutexattr_t_ptr) attr));
+                omError(pthread_mutexattr_settype((pthread_mutexattr_t_ptr) attr, PTHREAD_MUTEX_RECURSIVE));
+                omError(pthread_mutex_init((pthread_mutex_t_ptr) m, (const_pthread_mutexattr_t_ptr) attr));
+                omError(pthread_mutexattr_destroy((pthread_mutexattr_t_ptr) attr));
+                free(attrVoid);
+
+                nom = (pthread_mutex_t_ptr) m;
+                if (!ObjectModel.set_nativeObjectMonitor(object, nom)) {
+                    /* atomic assignment failed, mutex has already been initialized for object. */
+                    free(m);
+                    continue;
+                }
             }
-            ptr<pthread_mutexattr_t> attr = (ptr<pthread_mutexattr_t>) castPtr(attrVoid, pthread_mutexattr_t.class);
-
-            Stddef.size_t mutexSize = sizeof(pthread_mutex_t.class);
-            ptr<?> mVoid = malloc(word(mutexSize.longValue()));
-            if (mVoid.isNull()) {
-                throw new OutOfMemoryError(/*"Allocation failed"*/);
-            }
-            ptr<pthread_mutex_t> m = (ptr<pthread_mutex_t>) castPtr(mVoid, pthread_mutex_t.class);
-
-            omError(pthread_mutexattr_init((pthread_mutexattr_t_ptr) attr));
-            omError(pthread_mutexattr_settype((pthread_mutexattr_t_ptr) attr, PTHREAD_MUTEX_RECURSIVE));
-            omError(pthread_mutex_init((pthread_mutex_t_ptr) m, (const_pthread_mutexattr_t_ptr) attr));
-            omError(pthread_mutexattr_destroy((pthread_mutexattr_t_ptr) attr));
-            free(attrVoid);
-
-            nom = new NativeObjectMonitor((pthread_mutex_t_ptr) m);
-            omError(pthread_mutex_lock(nom.getPthreadMutex()));
-            objectMonitorNatives.put(object, nom);
+            omError(pthread_mutex_lock(nom));
+            break;
         }
     }
 
     // TODO: mark this with a "NoInline" annotation
     static void monitor_exit(Object object) throws IllegalMonitorStateException {
-        NativeObjectMonitor nom = objectMonitorNatives.get(object);
-        if (null == nom) {
+        if (object == null) {
+            // TODO skip for now
+            return;
+        }
+        pthread_mutex_t_ptr nom = ObjectModel.nativeObjectMonitor_of(object);
+        if (nom == null) {
             throw new IllegalMonitorStateException("native monitor could not be found for monitor_exit");
         }
-        omError(pthread_mutex_unlock(nom.getPthreadMutex()));
+        omError(pthread_mutex_unlock(nom));
     }
 
     // TODO: mark this with a "NoInline" annotation

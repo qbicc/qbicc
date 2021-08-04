@@ -1,6 +1,7 @@
 package org.qbicc.runtime.main;
 
 import org.qbicc.runtime.CNative;
+import org.qbicc.runtime.posix.PThread;
 import org.qbicc.runtime.stdc.Stdint;
 
 /**
@@ -174,4 +175,21 @@ public class ObjectModel {
      * @param typdId the class to mark initialized
      */
     public static native void set_initialized(CNative.type_id typdId);
+
+    /**
+     * Get the native object monitor (mutex) slot from the referenced object. These are intended for object monitor synchronization.
+     *
+     * @param reference the object reference (must not be {@code null})
+     * @return the pthread mutex of the object
+     */
+    public static native PThread.pthread_mutex_t_ptr nativeObjectMonitor_of(Object reference);
+
+    /**
+     * Set the native object monitor (mutex) for the referenced object. This method is atomic and will return true on success.
+     *
+     * @param reference the object reference (must not be {@code null})
+     * @param nom mutex for the referenced object (must not be {@code null})
+     * @return true if successful
+     */
+    public static native boolean set_nativeObjectMonitor(Object reference, PThread.pthread_mutex_t_ptr nom);
 }

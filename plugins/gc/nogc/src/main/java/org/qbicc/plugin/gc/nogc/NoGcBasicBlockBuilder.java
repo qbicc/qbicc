@@ -11,6 +11,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
@@ -136,5 +137,7 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
     private void initializeObjectHeader(ValueHandle oopHandle, Layout layout, ObjectType objType) {
         FieldElement typeId = layout.getObjectTypeIdField();
         store(instanceFieldOf(oopHandle, typeId),  ctxt.getLiteralFactory().literalOfType(objType), MemoryAtomicityMode.NONE);
+        FieldElement nativeObjectMonitor = CoreClasses.get(ctxt).getObjectNativeObjectMonitorField();
+        store(instanceFieldOf(oopHandle, nativeObjectMonitor), ctxt.getLiteralFactory().literalOf(0L), MemoryAtomicityMode.NONE);
     }
 }
