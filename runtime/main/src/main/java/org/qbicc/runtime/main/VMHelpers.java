@@ -118,7 +118,8 @@ public final class VMHelpers {
     // TODO: mark this with a "NoInline" annotation
     static void monitor_enter(Object object) throws IllegalMonitorStateException {
         if (object == null) {
-            // TODO skip for now
+            /* TODO skip for now. Object should never be null except that
+                classof_from_typeid is not currently implemented. */
             return;
         }
         while (true) { /* facilitate restart if atomic set operation fails */
@@ -159,7 +160,8 @@ public final class VMHelpers {
     // TODO: mark this with a "NoInline" annotation
     static void monitor_exit(Object object) throws IllegalMonitorStateException {
         if (object == null) {
-            // TODO skip for now
+            /* TODO skip for now. Object should never be null except that
+                classof_from_typeid is not currently implemented. */
             return;
         }
         pthread_mutex_t_ptr nom = ObjectModel.nativeObjectMonitor_of(object);
