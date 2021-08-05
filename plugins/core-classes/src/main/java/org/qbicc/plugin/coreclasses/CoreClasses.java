@@ -359,7 +359,9 @@ public final class CoreClasses {
      *
      * @return the native object monitor field
      */
-    public FieldElement getObjectNativeObjectMonitorField() { return objectNativeObjectMonitorField; }
+    public FieldElement getObjectNativeObjectMonitorField() { 
+        return objectNativeObjectMonitorField;
+    }
 
     /**
      * Get the field on {@code Class} which holds the type identifier of its corresponding instance type.
