@@ -219,7 +219,7 @@ public final class MachOObjectFile implements ObjectFile {
 
     @Override
     public org.qbicc.machine.object.Section getSection(String name) {
-        final Section section = segmentsAndSections.getOrDefault(name, Map.of()).get(name);
+        final Section section = sections.stream().filter(s -> s.name.equals(name)).findFirst().orElse(null);
         if (section == null) {
             return null;
         }
