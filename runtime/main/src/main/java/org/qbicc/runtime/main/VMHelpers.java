@@ -122,39 +122,35 @@ public final class VMHelpers {
                 classof_from_typeid is not currently implemented. */
             return;
         }
-        while (true) { /* facilitate restart if atomic set operation fails */
-            pthread_mutex_t_ptr nom = ObjectModel.nativeObjectMonitor_of(object);
-            if (nom == null) {
-                ptr<?> attrVoid = malloc(sizeof(pthread_mutexattr_t.class));
-                if (attrVoid.isNull()) {
-                    throw new OutOfMemoryError(/*"Allocation failed"*/);
-                }
-                ptr<pthread_mutexattr_t> attr = (ptr<pthread_mutexattr_t>) castPtr(attrVoid, pthread_mutexattr_t.class);
-
-                Stddef.size_t mutexSize = sizeof(pthread_mutex_t.class);
-                nom = malloc(word(mutexSize.longValue()));
-                ptr<?> mVoid = malloc(word(mutexSize.longValue()));
-                if (mVoid.isNull()) {
-                    throw new OutOfMemoryError(/*"Allocation failed"*/);
-                }
-                ptr<pthread_mutex_t> m = (ptr<pthread_mutex_t>) castPtr(mVoid, pthread_mutex_t.class);
-
-                omError(pthread_mutexattr_init((pthread_mutexattr_t_ptr) attr));
-                omError(pthread_mutexattr_settype((pthread_mutexattr_t_ptr) attr, PTHREAD_MUTEX_RECURSIVE));
-                omError(pthread_mutex_init((pthread_mutex_t_ptr) m, (const_pthread_mutexattr_t_ptr) attr));
-                omError(pthread_mutexattr_destroy((pthread_mutexattr_t_ptr) attr));
-                free(attrVoid);
-
-                nom = (pthread_mutex_t_ptr) m;
-                if (!ObjectModel.set_nativeObjectMonitor(object, nom)) {
-                    /* atomic assignment failed, mutex has already been initialized for object. */
-                    free(m);
-                    continue;
-                }
+        pthread_mutex_t_ptr nom = ObjectModel.get_nativeObjectMonitor(object);
+        if (nom == null) {
+            ptr<?> attrVoid = malloc(sizeof(pthread_mutexattr_t.class));
+            if (attrVoid.isNull()) {
+                throw new OutOfMemoryError(/*"Allocation failed"*/);
             }
-            omError(pthread_mutex_lock(nom));
-            break;
+            ptr<pthread_mutexattr_t> attr = (ptr<pthread_mutexattr_t>) castPtr(attrVoid, pthread_mutexattr_t.class);
+
+            Stddef.size_t mutexSize = sizeof(pthread_mutex_t.class);
+            ptr<?> mVoid = malloc(word(mutexSize.longValue()));
+            if (mVoid.isNull()) {
+                throw new OutOfMemoryError(/*"Allocation failed"*/);
+            }
+            ptr<pthread_mutex_t> m = (ptr<pthread_mutex_t>) castPtr(mVoid, pthread_mutex_t.class);
+
+            omError(pthread_mutexattr_init((pthread_mutexattr_t_ptr) attr));
+            omError(pthread_mutexattr_settype((pthread_mutexattr_t_ptr) attr, PTHREAD_MUTEX_RECURSIVE));
+            omError(pthread_mutex_init((pthread_mutex_t_ptr) m, (const_pthread_mutexattr_t_ptr) attr));
+            omError(pthread_mutexattr_destroy((pthread_mutexattr_t_ptr) attr));
+            free(attrVoid);
+
+            nom = (pthread_mutex_t_ptr) m;
+            if (!ObjectModel.set_nativeObjectMonitor(object, nom)) {
+                /* atomic assignment failed, mutex has already been initialized for object. */
+                free(m);
+                nom = ObjectModel.get_nativeObjectMonitor(object);
+            }
         }
+        omError(pthread_mutex_lock(nom));
     }
 
     // TODO: mark this with a "NoInline" annotation
@@ -164,7 +160,7 @@ public final class VMHelpers {
                 classof_from_typeid is not currently implemented. */
             return;
         }
-        pthread_mutex_t_ptr nom = ObjectModel.nativeObjectMonitor_of(object);
+        pthread_mutex_t_ptr nom = ObjectModel.get_nativeObjectMonitor(object);
         if (nom == null) {
             throw new IllegalMonitorStateException("native monitor could not be found for monitor_exit");
         }

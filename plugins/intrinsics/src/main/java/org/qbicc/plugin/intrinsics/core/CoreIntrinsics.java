@@ -967,16 +967,16 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "set_initialized", typeIdVoidDesc, set_initialized);
 
         FieldElement nativeObjectMonitorField = CoreClasses.get(ctxt).getObjectNativeObjectMonitorField();
-        // public static native PThread.pthread_mutex_t_ptr nativeObjectMonitor_of(Object reference);
+        // PThread.pthread_mutex_t_ptr get_nativeObjectMonitor(Object reference);
         MethodDescriptor nomOfDesc = MethodDescriptor.synthesize(classContext, pthreadMutexDesc, List.of(objDesc));
         StaticIntrinsic nomOf = (builder, target, arguments) -> {
             Value mutexSlot = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), MemoryAtomicityMode.NONE);
             PointerType returnType = (PointerType)target.getType().getReturnType();
             return builder.valueConvert(mutexSlot, returnType);
         };
-        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "nativeObjectMonitor_of", nomOfDesc, nomOf);
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_nativeObjectMonitor", nomOfDesc, nomOf);
 
-        // public static native Stdint.uint8_t set_nativeObjectMonitor(Object object, PThread.pthread_mutex_t_ptr nom);
+        // boolean set_nativeObjectMonitor(Object object, PThread.pthread_mutex_t_ptr nom);
         MethodDescriptor setNomDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, pthreadMutexDesc));
         MethodDescriptor casDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(BaseTypeDescriptor.J, BaseTypeDescriptor.J, BaseTypeDescriptor.J));
         StaticIntrinsic setNom = (builder, target, arguments) -> {

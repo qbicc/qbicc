@@ -92,7 +92,7 @@ public final class CoreClasses {
 
         // inject a field to hold the object pthread_mutex_t
         builder = FieldElement.builder();
-        builder.setModifiers(ClassFile.ACC_PUBLIC | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
         builder.setName("nativeObjectMonitor");
         builder.setEnclosingType(jloDef);
         builder.setDescriptor(BaseTypeDescriptor.V);
