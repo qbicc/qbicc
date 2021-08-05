@@ -241,6 +241,11 @@ public final class MachOObjectFile implements ObjectFile {
         return null;
     }
 
+    @Override
+    public String getStackMapSectionName() {
+        return "__llvm_stackmaps";
+    }
+
     public void close() {
         buffer.close();
     }

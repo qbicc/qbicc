@@ -348,7 +348,7 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
                         index[0] += 1;
                     }
                     try (ObjectFile objectFile = objFileProvider.openObjectFile(objFile)) {
-                        org.qbicc.machine.object.Section stackMapSection = objectFile.getSection(".llvm_stackmaps");
+                        org.qbicc.machine.object.Section stackMapSection = objectFile.getSection(objectFile.getStackMapSectionName());
                         if (stackMapSection != null) {
                             ByteBuffer stackMapData = stackMapSection.getSectionContent();
                             StackMap.parse(stackMapData, new StackMapVisitor() {
