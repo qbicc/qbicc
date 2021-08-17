@@ -41,11 +41,8 @@ final class ExtractValueImpl extends AbstractYieldingInstruction implements Extr
         aggregateType.appendTo(target);
         target.append(' ');
         aggregate.appendTo(target);
-        ArgImpl lastArg = this.lastArg;
-        if (lastArg != null) {
-            lastArg.appendTo(target);
-        }
-        return target;
+        lastArg.appendTo(target);
+        return appendTrailer(target);
     }
 
     static final class ArgImpl extends AbstractEmittable {

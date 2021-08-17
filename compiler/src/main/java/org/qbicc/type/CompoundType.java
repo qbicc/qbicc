@@ -200,6 +200,7 @@ public final class CompoundType extends ValueType {
         NONE("untagged"),
         STRUCT("struct"),
         UNION("union"),
+        INLINE("inline"), /* LLVM literal structure type */
         ;
         private final String string;
 
@@ -254,6 +255,10 @@ public final class CompoundType extends ValueType {
             }
             overallAlign = align;
             return this;
+        }
+
+        public Builder addNextMember(final ValueType type) {
+            return addNextMember("", type, type.getAlign());
         }
 
         public Builder addNextMember(final String name, final ValueType type) {
