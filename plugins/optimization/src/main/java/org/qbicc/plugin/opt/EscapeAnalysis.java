@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -18,6 +17,7 @@ import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.Call;
 import org.qbicc.graph.Executable;
 import org.qbicc.graph.InstanceFieldOf;
+import org.qbicc.graph.Load;
 import org.qbicc.graph.New;
 import org.qbicc.graph.Node;
 import org.qbicc.graph.ParameterValue;
@@ -173,6 +173,8 @@ public class EscapeAnalysis {
         private final List<ParameterValue> arguments = new ArrayList<>();
         private Value returnValue;
 
+        private final Map<ValueHandle, Value> localNews = new HashMap<>();
+
         /**
          * PointsTo(p) returns the set of of nodes that are immediately pointed by p.
          */
@@ -199,6 +201,15 @@ public class EscapeAnalysis {
 
         void addReturn(Value value) {
             returnValue = value;
+
+            if (value instanceof Load) {
+                final Value localNew = localNews.get(value.getValueHandle());
+                if (localNew != null) {
+                    setEscape(localNew, EscapeState.ARG_ESCAPE);
+                    return;
+                }
+            }
+
             setEscape(value, EscapeState.ARG_ESCAPE);
         }
 
@@ -253,6 +264,10 @@ public class EscapeAnalysis {
                 setEscape(to, EscapeState.ARG_ESCAPE);
                 computeArgEscapeOnly(to);
             }
+        }
+
+        public void trackLocalNew(ValueHandle handle, Value value) {
+            localNews.put(handle, value);
         }
     }
 

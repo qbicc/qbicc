@@ -8,6 +8,7 @@ import org.qbicc.graph.Call;
 import org.qbicc.graph.DelegatingBasicBlockBuilder;
 import org.qbicc.graph.Executable;
 import org.qbicc.graph.InstanceFieldOf;
+import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.graph.New;
 import org.qbicc.graph.Node;
@@ -121,13 +122,14 @@ public class EscapeAnalysisBasicBlockBuilder extends DelegatingBasicBlockBuilder
     public Node store(ValueHandle handle, Value value, MemoryAtomicityMode mode) {
         final Node result = super.store(handle, value, mode);
 
-        // TODO when compiling with debugging info (-g param), value is a Load instead of New, how to deal with it?
         if (handle instanceof StaticField) {
             // static T a = new T();
             connectionGraph.setEscape(value, EscapeState.GLOBAL_ESCAPE);
         } else if (handle instanceof InstanceFieldOf && value instanceof New) {
             // p.f = new T(); // where p is a parameter
             connectionGraph.addPointsToEdgeIfAbsent(handle, (New) value);
+        } else if (handle instanceof LocalVariable && value instanceof New) {
+            connectionGraph.trackLocalNew(handle, value);
         }
 
         return result;
