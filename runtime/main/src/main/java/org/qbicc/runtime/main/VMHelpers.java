@@ -133,6 +133,7 @@ public final class VMHelpers {
             Stddef.size_t mutexSize = sizeof(pthread_mutex_t.class);
             ptr<?> mVoid = malloc(word(mutexSize.longValue()));
             if (mVoid.isNull()) {
+                free(attrVoid);
                 throw new OutOfMemoryError(/*"Allocation failed"*/);
             }
             ptr<pthread_mutex_t> m = (ptr<pthread_mutex_t>) castPtr(mVoid, pthread_mutex_t.class);
