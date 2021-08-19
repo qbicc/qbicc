@@ -24,6 +24,7 @@ public final class TypeSystem {
     private final int referenceAlign;
     private final int typeIdSize;
     private final int typeIdAlign;
+    private final int maxAlign;
     private final ByteOrder endianness;
     private final VariadicType variadicType = new VariadicType(this);
     private final PoisonType poisonType = new PoisonType(this);
@@ -50,6 +51,7 @@ public final class TypeSystem {
     TypeSystem(final Builder builder) {
         int byteBits = builder.getByteBits();
         this.byteBits = byteBits;
+        maxAlign = builder.getMaxAlignment();
         pointerSize = builder.getPointerSize();
         pointerAlign = builder.getPointerAlignment();
         funcAlign = builder.getPointerAlignment();
@@ -144,6 +146,15 @@ public final class TypeSystem {
      */
     public int getPointerAlignment() {
         return pointerAlign;
+    }
+
+    /**
+     * Get the maximal alignment for any type defined by this type system
+     *
+     * @return the maximal alignment for any type of this type system
+     */
+    public int getMaxAlignment() {
+        return maxAlign;
     }
 
     /**
@@ -425,6 +436,7 @@ public final class TypeSystem {
             int typeIdAlignment = 4;
             int referenceSize = 4;
             int referenceAlignment = 4;
+            int maxAlignment = 16;
             ByteOrder endianness = ByteOrder.nativeOrder();
 
             public int getByteBits() {
@@ -452,6 +464,15 @@ public final class TypeSystem {
             public void setPointerAlignment(final int pointerAlignment) {
                 TypeUtil.checkAlignmentParameter("pointerAlignment", pointerAlignment);
                 this.pointerAlignment = pointerAlignment;
+            }
+
+            public void setMaxAlignment(final int maxAlignment) {
+                TypeUtil.checkAlignmentParameter("maxAlignment", maxAlignment);
+                this.maxAlignment = maxAlignment;
+            }
+
+            public int getMaxAlignment() {
+                return maxAlignment;
             }
 
             public int getFunctionAlignment() {
@@ -654,6 +675,10 @@ public final class TypeSystem {
         int getPointerAlignment();
 
         void setPointerAlignment(int pointerAlignment);
+
+        int getMaxAlignment();
+
+        void setMaxAlignment(int maxAlignment);
 
         int getFunctionAlignment();
 

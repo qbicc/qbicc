@@ -24,6 +24,7 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
+import org.qbicc.type.annotation.IntAnnotationValue;
 import org.qbicc.type.annotation.StringAnnotationValue;
 import org.qbicc.type.annotation.type.TypeAnnotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
@@ -128,6 +129,7 @@ final class NativeInfo {
                         String simpleName = null;
                         Qualifier q = Qualifier.NONE;
                         boolean incomplete = false;
+                        int annotatedAlign = 0;
                         for (Annotation annotation : definedType.getVisibleAnnotations()) {
                             ClassTypeDescriptor annDesc = annotation.getDescriptor();
                             if (ProbeUtils.processCommonAnnotation(pb, annotation)) {
@@ -138,6 +140,11 @@ final class NativeInfo {
                                     simpleName = ((StringAnnotationValue) annotation.getValue("value")).getString();
                                 } else if (annDesc.getClassName().equals(Native.ANN_INCOMPLETE)) {
                                     incomplete = true;
+                                } else if (annDesc.getClassName().equals(Native.ANN_ALIGN)) {
+                                    annotatedAlign = ((IntAnnotationValue)annotation.getValue("value")).intValue();
+                                    if (annotatedAlign == Integer.MAX_VALUE) {
+                                        annotatedAlign = ctxt.getTypeSystem().getMaxAlignment();
+                                    }
                                 }
                             }
                         }
@@ -189,13 +196,14 @@ final class NativeInfo {
                                 if (result != null) {
                                     CProbe.Type.Info typeInfo = result.getTypeInfo(probeType);
                                     long size = typeInfo.getSize();
+                                    int align = annotatedAlign != 0 ? annotatedAlign : (int) typeInfo.getAlign();
                                     if (typeInfo.isFloating()) {
                                         if (size == 4) {
                                             resolved = ts.getFloat32Type();
                                         } else if (size == 8) {
                                             resolved = ts.getFloat64Type();
                                         } else {
-                                            resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign(), List::of);
+                                            resolved = ts.getCompoundType(tag, simpleName, size, align, List::of);
                                         }
                                     } else if (typeInfo.isSigned()) {
                                         if (size == 1) {
@@ -207,7 +215,7 @@ final class NativeInfo {
                                         } else if (size == 8) {
                                             resolved = ts.getSignedInteger64Type();
                                         } else {
-                                            resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign(), List::of);
+                                            resolved = ts.getCompoundType(tag, simpleName, size, align, List::of);
                                         }
                                     } else if (typeInfo.isUnsigned()) {
                                         if (size == 1) {
@@ -219,10 +227,10 @@ final class NativeInfo {
                                         } else if (size == 8) {
                                             resolved = ts.getUnsignedInteger64Type();
                                         } else {
-                                            resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign(), List::of);
+                                            resolved = ts.getCompoundType(tag, simpleName, size, align, List::of);
                                         }
                                     } else {
-                                        resolved = ts.getCompoundType(tag, simpleName, size, (int) typeInfo.getAlign(), () -> {
+                                        resolved = ts.getCompoundType(tag, simpleName, size, align, () -> {
                                             ArrayList<CompoundType.Member> list = new ArrayList<>();
                                             for (int i = 0; i < fc; i ++) {
                                                 FieldElement field = vt.getField(i);
