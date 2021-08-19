@@ -147,17 +147,20 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             CompoundType compoundType = (CompoundType) type;
             HashMap<CompoundType.Member, LLValue> offsets = new HashMap<>();
             structureOffsets.putIfAbsent(compoundType, offsets);
-            String name;
-            if (compoundType.getName().equals("<anon>")) {
-                name = "T.anon" + anonCnt.getAndIncrement();
-            } else if (compoundType.getTag() == CompoundType.Tag.NONE) {
-                name = "T." + compoundType.getName();
-            } else {
-                name = "T." + compoundType.getTag() + "." + compoundType.getName();
+
+            IdentifiedType identifiedType = null;
+            if (!compoundType.getTag().equals(CompoundType.Tag.INLINE)) {
+                String name;
+                if (compoundType.getName().equals("<anon>")) {
+                    name = "T.anon" + anonCnt.getAndIncrement();
+                } else if (compoundType.getTag() == CompoundType.Tag.NONE) {
+                    name = "T." + compoundType.getName();
+                } else {
+                    name = "T." + compoundType.getTag() + "." + compoundType.getName();
+                }
+                identifiedType = module.identifiedType(name);
+                types.put(type, identifiedType.asTypeRef());
             }
-            IdentifiedType identifiedType = module.identifiedType(name);
-            res = identifiedType.asTypeRef();
-            types.put(type, res);
 
             // this is a little tricky.
             int memberCnt = compoundType.getMemberCount();
@@ -188,7 +191,12 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                 struct.member(array((int) (size - offs), i8), "padding");
             }
 
-            identifiedType.type(struct);
+            if (compoundType.getTag().equals(CompoundType.Tag.INLINE)) {
+                res = struct;
+            } else {
+                identifiedType.type(struct);
+                res = identifiedType.asTypeRef();
+            }
         } else if (type instanceof TypeType) {
             int size = ctxt.getTypeSystem().getTypeIdSize();
             if (size == 1) {
