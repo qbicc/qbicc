@@ -1,5 +1,7 @@
 package org.qbicc.type;
 
+import io.smallrye.common.constraint.Assert;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -73,6 +75,7 @@ public final class CompoundType extends ValueType {
     }
 
     public Member getMember(String name) {
+        Assert.assertFalse(this.tag.equals(Tag.INLINE)); /* inline members do not have names */
         List<Member> members = getMembers();
         for (Member m : members) {
             if (m.getName().equals(name)) {
@@ -258,6 +261,7 @@ public final class CompoundType extends ValueType {
         }
 
         public Builder addNextMember(final ValueType type) {
+            Assert.assertTrue(this.tag.equals(Tag.INLINE));
             return addNextMember("", type, type.getAlign());
         }
 
