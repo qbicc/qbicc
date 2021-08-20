@@ -24,6 +24,7 @@ import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.CallNoReturn;
 import org.qbicc.graph.CallNoSideEffects;
 import org.qbicc.graph.Cmp;
+import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.Convert;
@@ -1138,6 +1139,44 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
             map(pointerType),
             ptr
         );
+    }
+
+    private OrderingConstraint getOC(MemoryAtomicityMode mode) {
+        switch (mode) {
+            case MONOTONIC:
+                return OrderingConstraint.monotonic;
+            case ACQUIRE:
+                return OrderingConstraint.acquire;
+            case RELEASE:
+                return OrderingConstraint.release;
+            case ACQUIRE_RELEASE:
+                return OrderingConstraint.acq_rel;
+            case SEQUENTIALLY_CONSISTENT:
+                return OrderingConstraint.seq_cst;
+        }
+        throw Assert.unreachableCode();
+    }
+
+    @Override
+    public LLValue visit(final Void param, final CmpAndSwap node) {
+        map(node.getDependency());
+        ValueHandle valueHandle = node.getValueHandle();
+        LLValue ptrType = map(valueHandle.getPointerType());
+        LLValue type = map(valueHandle.getValueType());
+        LLValue ptr;
+        if (valueHandle instanceof PointerHandle) {
+            // plain pointer; no GEP needed
+            ptr = map(((PointerHandle) valueHandle).getPointerValue());
+        } else {
+            ptr = valueHandle.accept(this, null).asLocal();
+        }
+        LLValue expect = map(node.getExpectedValue());
+        LLValue update = map(node.getUpdateValue());
+        OrderingConstraint successOrdering = getOC(node.getSuccessAtomicityMode());
+        OrderingConstraint failureOrdering = getOC(node.getFailureAtomicityMode());
+        org.qbicc.machine.llvm.op.CmpAndSwap cmpAndSwapBuilder = builder.cmpAndSwap(
+            ptrType, type, ptr, expect, update, successOrdering, failureOrdering);
+        return cmpAndSwapBuilder.asLocal();
     }
 
     // unknown node catch-all methods

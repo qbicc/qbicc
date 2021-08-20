@@ -7,6 +7,7 @@ import org.qbicc.machine.llvm.op.AtomicRmwInstruction;
 import org.qbicc.machine.llvm.op.Binary;
 import org.qbicc.machine.llvm.op.Branch;
 import org.qbicc.machine.llvm.op.Call;
+import org.qbicc.machine.llvm.op.CmpAndSwap;
 import org.qbicc.machine.llvm.op.ExactBinary;
 import org.qbicc.machine.llvm.op.ExtractValue;
 import org.qbicc.machine.llvm.op.FastMathBinary;
@@ -145,6 +146,9 @@ public interface LLBuilder {
     ExtractValue insertvalue(LLValue aggregateType, LLValue aggregate, LLValue insertType, LLValue insert);
 
     Alloca alloca(LLValue type);
+
+    CmpAndSwap cmpAndSwap(final LLValue pointerType, final LLValue type, final LLValue pointer, final LLValue expect, final LLValue update,
+                          final OrderingConstraint successOrdering, final OrderingConstraint failureOrdering);
 
     static LLBuilder newBuilder(LLBasicBlock block) {
         return LLVM.newBuilder(block);

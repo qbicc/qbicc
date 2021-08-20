@@ -41,10 +41,33 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
         if (! target.isReadable()) {
             throw new IllegalArgumentException("Handle is not readable");
         }
+
+        /* expected and update value must have the same type, target must be a pointer to that type. */
+        if (!expectedValue.getType().equals(updateValue.getType())
+             || !expectedValue.getType().equals(target.getPointerType().getPointeeType())
+        ) {
+            throw new IllegalArgumentException("The target, expected and new value types must agree.");
+        };
+
+        /* ordering params must be at least MONOTONIC */
+        if ((0 > successAtomicityMode.compareTo(MemoryAtomicityMode.MONOTONIC))
+            || (0 > failureAtomicityMode.compareTo(MemoryAtomicityMode.MONOTONIC))
+        ) {
+            throw new IllegalArgumentException("Mode must be at least monotonic");
+        }
+        /* volatile does not map to an ordering constraint */
+        if (successAtomicityMode.equals(MemoryAtomicityMode.VOLATILE) || failureAtomicityMode.equals(MemoryAtomicityMode.VOLATILE)) {
+            throw new IllegalArgumentException("volatile does not map to a LLVM ordering constraint");
+        }
+        /* failure ordering must not be RELEASE or ACQUIRE_RELEASE */
+        if (failureAtomicityMode.equals(MemoryAtomicityMode.RELEASE) || failureAtomicityMode.equals(MemoryAtomicityMode.ACQUIRE_RELEASE)) {
+            throw new IllegalArgumentException("Failure mode cannot be release or acquire_release");
+        }
+
     }
 
     int calcHashCode() {
-        return Objects.hash(CmpAndSwap.class, dependency, target, expectedValue, updateValue, successAtomicityMode, failureAtomicityMode);
+        return Objects.hash(CmpAndSwap.class, dependency, target, expectedValue, updateValue, resultType, successAtomicityMode, failureAtomicityMode);
     }
 
     public CompoundType getType() {
@@ -86,7 +109,8 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
     public boolean equals(final CmpAndSwap other) {
         return this == other || other != null && dependency.equals(other.dependency) && target.equals(other.target)
             && expectedValue.equals(other.expectedValue) && updateValue.equals(other.updateValue)
-            && successAtomicityMode == other.successAtomicityMode && failureAtomicityMode == other.failureAtomicityMode;
+            && resultType.equals(other.resultType) && successAtomicityMode == other.successAtomicityMode
+            && failureAtomicityMode == other.failureAtomicityMode;
     }
 
     public int getValueDependencyCount() {
@@ -126,5 +150,21 @@ public final class CmpAndSwap extends AbstractValue implements OrderedNode {
             }
         }
         return compoundType;
+    }
+
+    /**
+     * Original value found in the CAS target
+     * @return value found in CAS target
+     */
+    public CompoundType.Member getResultValueType() {
+        return this.resultType.getMember(0);
+    }
+
+    /**
+     * Result flag where true indicates success, if the operation is marked as strong (default).
+     * @return result flag
+     */
+    public CompoundType.Member getResultFlagType() {
+        return this.resultType.getMember(1);
     }
 }
