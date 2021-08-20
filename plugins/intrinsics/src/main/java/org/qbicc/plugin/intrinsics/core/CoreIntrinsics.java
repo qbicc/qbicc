@@ -27,6 +27,7 @@ import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.machine.probe.CProbe;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
 import org.qbicc.plugin.intrinsics.InstanceIntrinsic;
 import org.qbicc.plugin.intrinsics.Intrinsics;
@@ -757,6 +758,8 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor clsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor uint8Desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$uint8_t");
+        ClassTypeDescriptor pthreadMutexDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_mutex_t_ptr");
+        ClassTypeDescriptor valsDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/Values");
 
         MethodDescriptor objTypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(objDesc));
         MethodDescriptor objUint8Desc = MethodDescriptor.synthesize(classContext, uint8Desc, List.of(objDesc));
@@ -963,6 +966,28 @@ public final class CoreIntrinsics {
 
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "set_initialized", typeIdVoidDesc, set_initialized);
+
+        FieldElement nativeObjectMonitorField = CoreClasses.get(ctxt).getObjectNativeObjectMonitorField();
+        // PThread.pthread_mutex_t_ptr get_nativeObjectMonitor(Object reference);
+        MethodDescriptor nomOfDesc = MethodDescriptor.synthesize(classContext, pthreadMutexDesc, List.of(objDesc));
+        StaticIntrinsic nomOf = (builder, target, arguments) -> {
+            Value mutexSlot = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), MemoryAtomicityMode.NONE);
+            PointerType returnType = (PointerType)target.getType().getReturnType();
+            return builder.valueConvert(mutexSlot, returnType);
+        };
+        intrinsics.registerIntrinsic(objModDesc, "get_nativeObjectMonitor", nomOfDesc, nomOf);
+
+        // boolean set_nativeObjectMonitor(Object object, PThread.pthread_mutex_t_ptr nom);
+        MethodDescriptor setNomDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, pthreadMutexDesc));
+        MethodDescriptor casDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, BaseTypeDescriptor.J));
+        StaticIntrinsic setNom = (builder, target, arguments) -> {
+            Value expr = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), MemoryAtomicityMode.NONE);
+            Value expect = ctxt.getLiteralFactory().literalOf(0L);
+            Value update = builder.valueConvert(arguments.get(1), (SignedIntegerType)nativeObjectMonitorField.getType());
+            ValueHandle valuesCompareAndSwap = builder.staticMethod(valsDesc, "compareAndSwap", casDesc);
+            return builder.call(valuesCompareAndSwap, List.of(expr, expect, update));
+        };
+        intrinsics.registerIntrinsic(objModDesc, "set_nativeObjectMonitor", setNomDesc, setNom);
     }
 
     static void registerOrgQbiccRuntimeValuesIntrinsics(final CompilationContext ctxt) {

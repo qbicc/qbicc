@@ -3,10 +3,6 @@ package org.qbicc.runtime.main;
 import org.qbicc.runtime.CNative;
 import org.qbicc.runtime.NoSideEffects;
 import org.qbicc.runtime.stdc.Stddef;
-import org.qbicc.runtime.stdc.Stdint;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.PThread.*;
@@ -18,9 +14,6 @@ import static org.qbicc.runtime.stdc.Stdlib.*;
  */
 @SuppressWarnings("unused")
 public final class VMHelpers {
-    /* map Java object to native mutex for object monitor bytecodes. */
-    static ConcurrentMap<Object, NativeObjectMonitor> objectMonitorNatives = null;
-
     @NoSideEffects
     public static boolean instanceof_class(Object instance, Class<?> cls) {
         if (instance == null) {
@@ -111,48 +104,69 @@ public final class VMHelpers {
     private static void omError(c_int nativeErrorCode) throws IllegalMonitorStateException {
         int errorCode = nativeErrorCode.intValue();
         if (0 != errorCode) {
-            throw new IllegalMonitorStateException("error code is: " + errorCode);
+//            putchar('O');
+//            putchar('M');
+//            putchar('E');
+//            putchar('R');
+//            putchar('R');
+//            putchar(':');
+//            printInt(errorCode);
+            throw new IllegalMonitorStateException("error code: " + errorCode);
         }
     }
 
     // TODO: mark this with a "NoInline" annotation
     static void monitor_enter(Object object) throws IllegalMonitorStateException {
-        /* TODO: deal with racy nature of this creation */
-        if (objectMonitorNatives == null) {
-            objectMonitorNatives = new ConcurrentHashMap<>();
+        if (object == null) {
+            /* TODO skip for now. Object should never be null except that
+                classof_from_typeid is not currently implemented. */
+            return;
         }
+        pthread_mutex_t_ptr nom = ObjectModel.get_nativeObjectMonitor(object);
+        if (nom == null) {
+            ptr<?> attrVoid = malloc(sizeof(pthread_mutexattr_t.class));
+            if (attrVoid.isNull()) {
+                throw new OutOfMemoryError(/*"Allocation failed"*/);
+            }
+            ptr<pthread_mutexattr_t> attr = (ptr<pthread_mutexattr_t>) castPtr(attrVoid, pthread_mutexattr_t.class);
 
-        // TODO malloc(sizeof(class)) resulted in "invalid coercion of s64 to u64" this is a workaround
-        Stddef.size_t mutexAttrSize = sizeof(pthread_mutexattr_t.class);
-        ptr<?> attrVoid = malloc(word(mutexAttrSize.longValue()));
-        if (attrVoid.isNull()) {
-            throw new OutOfMemoryError(/*"Allocation failed"*/);
+            Stddef.size_t mutexSize = sizeof(pthread_mutex_t.class);
+            ptr<?> mVoid = malloc(word(mutexSize.longValue()));
+            if (mVoid.isNull()) {
+                free(attrVoid);
+                throw new OutOfMemoryError(/*"Allocation failed"*/);
+            }
+            ptr<pthread_mutex_t> m = (ptr<pthread_mutex_t>) castPtr(mVoid, pthread_mutex_t.class);
+
+            omError(pthread_mutexattr_init((pthread_mutexattr_t_ptr) attr));
+            omError(pthread_mutexattr_settype((pthread_mutexattr_t_ptr) attr, PTHREAD_MUTEX_RECURSIVE));
+            omError(pthread_mutex_init((pthread_mutex_t_ptr) m, (const_pthread_mutexattr_t_ptr) attr));
+            omError(pthread_mutexattr_destroy((pthread_mutexattr_t_ptr) attr));
+            free(attrVoid);
+
+            nom = (pthread_mutex_t_ptr) m;
+            if (!ObjectModel.set_nativeObjectMonitor(object, nom)) {
+                /* atomic assignment failed, mutex has already been initialized for object. */
+                omError(pthread_mutex_destroy(nom));
+                free(mVoid); /* free is looking for a pointer with no type */
+                nom = ObjectModel.get_nativeObjectMonitor(object);
+            }
         }
-        ptr<pthread_mutexattr_t> attr = (ptr<pthread_mutexattr_t>)castPtr(attrVoid, pthread_mutexattr_t.class);
-
-        Stddef.size_t mutexSize = sizeof(pthread_mutex_t.class);
-        ptr<?> mVoid = malloc(word(mutexSize.longValue()));
-        if (attrVoid.isNull()) {
-            throw new OutOfMemoryError(/*"Allocation failed"*/);
-        }
-        ptr<pthread_mutex_t> m = (ptr<pthread_mutex_t>)castPtr(mVoid, pthread_mutex_t.class);
-
-        omError(pthread_mutexattr_init((pthread_mutexattr_t_ptr)attr));
-        omError(pthread_mutexattr_settype((pthread_mutexattr_t_ptr)attr, PTHREAD_MUTEX_RECURSIVE));
-        omError(pthread_mutex_init((pthread_mutex_t_ptr)m, (const_pthread_mutexattr_t_ptr)attr));
-        omError(pthread_mutexattr_destroy((pthread_mutexattr_t_ptr)attr));
-        free(attrVoid);
-
-        // TODO acquire monitor and add to hash map
+        omError(pthread_mutex_lock(nom));
     }
 
     // TODO: mark this with a "NoInline" annotation
     static void monitor_exit(Object object) throws IllegalMonitorStateException {
-//        NativeObjectMonitor monitor = objectMonitorNatives.get(object);
-//        if (null == monitor) {
-//            throw new IllegalMonitorStateException("monitor could not be found for monitorexit");
-//        }
-//        omError(pthread_mutex_unlock(monitor.getPthreadMutex()));
+        if (object == null) {
+            /* TODO skip for now. Object should never be null except that
+                classof_from_typeid is not currently implemented. */
+            return;
+        }
+        pthread_mutex_t_ptr nom = ObjectModel.get_nativeObjectMonitor(object);
+        if (nom == null) {
+            throw new IllegalMonitorStateException("native monitor could not be found for monitor_exit");
+        }
+        omError(pthread_mutex_unlock(nom));
     }
 
     // TODO: mark this with a "NoInline" annotation
