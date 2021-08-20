@@ -1,4 +1,4 @@
-package org.qbicc.plugin.opt;
+package org.qbicc.plugin.opt.ea;
 
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
@@ -34,7 +34,7 @@ public class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Nod
     @Override
     public Value visit(Node.Copier param, New original) {
         final BasicBlockBuilder bbb = param.getBlockBuilder();
-        if (EscapeAnalysis.get(ctxt).isNotEscapingMethod(original, bbb.getCurrentElement())) {
+        if (EscapeAnalysisGlobalState.get(ctxt).isNotEscapingMethod(original, bbb.getCurrentElement())) {
             return stackAllocate(original.getClassObjectType(), bbb);
         }
 

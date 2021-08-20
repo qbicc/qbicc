@@ -81,14 +81,14 @@ import org.qbicc.plugin.native_.PointerBasicBlockBuilder;
 import org.qbicc.plugin.native_.PointerTypeResolver;
 import org.qbicc.plugin.native_.StructMemberAccessBasicBlockBuilder;
 import org.qbicc.plugin.objectmonitor.ObjectMonitorBasicBlockBuilder;
-import org.qbicc.plugin.opt.EscapeAnalysis;
-import org.qbicc.plugin.opt.EscapeAnalysisBasicBlockBuilder;
-import org.qbicc.plugin.opt.EscapeAnalysisOptimizeVisitor;
 import org.qbicc.plugin.opt.GotoRemovingVisitor;
 import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisInterMethodHook;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisIntraMethodBuilder;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisOptimizeVisitor;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
@@ -358,7 +358,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 if (optInlining) {
                                     builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, InliningBasicBlockBuilder::new);
                                 }
-                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, EscapeAnalysisBasicBlockBuilder::new);
+                                builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.OPTIMIZE, EscapeAnalysisIntraMethodBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, ReachabilityBlockBuilder::new);
                                 builder.addBuilderFactory(Phase.ANALYZE, BuilderStage.INTEGRITY, LocalVariableFindingBasicBlockBuilder::new);
                                 builder.addPostHook(Phase.ANALYZE, RTAInfo::reportStats);
@@ -366,7 +366,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new ClassObjectSerializer());
-                                builder.addPostHook(Phase.ANALYZE, EscapeAnalysis::interProcedureAnalysis);
+                                builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisInterMethodHook());
 
                                 builder.addCopyFactory(Phase.LOWER, EscapeAnalysisOptimizeVisitor::new);
                                 builder.addElementHandler(Phase.LOWER, new FunctionLoweringElementHandler());
