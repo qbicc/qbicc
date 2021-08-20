@@ -12,6 +12,7 @@ import org.qbicc.machine.llvm.op.AtomicRmwInstruction;
 import org.qbicc.machine.llvm.op.Binary;
 import org.qbicc.machine.llvm.op.Branch;
 import org.qbicc.machine.llvm.op.Call;
+import org.qbicc.machine.llvm.op.CmpAndSwap;
 import org.qbicc.machine.llvm.op.ExactBinary;
 import org.qbicc.machine.llvm.op.ExtractValue;
 import org.qbicc.machine.llvm.op.FastMathBinary;
@@ -444,5 +445,18 @@ final class BuilderImpl implements LLBuilder {
     public Alloca alloca(final LLValue type) {
         Assert.checkNotNullParam("type", type);
         return append(new AllocaImpl(block, (AbstractValue) type));
+    }
+
+    public CmpAndSwap cmpAndSwap(final LLValue pointerType, final LLValue  type, final LLValue pointer, final LLValue expect,
+                                 final LLValue update, final OrderingConstraint successOrdering, final OrderingConstraint failureOrdering) {
+        Assert.checkNotNullParam("pointerType", pointerType);
+        Assert.checkNotNullParam("type", type);
+        Assert.checkNotNullParam("pointer", pointer);
+        Assert.checkNotNullParam("expect", expect);
+        Assert.checkNotNullParam("update", update);
+        Assert.checkNotNullParam("successOrdering", successOrdering);
+        Assert.checkNotNullParam("failureOrdering", failureOrdering);
+        return append(new CmpAndSwapImpl(block, (AbstractValue) pointerType, (AbstractValue)type, (AbstractValue)pointer,
+            (AbstractValue)expect, (AbstractValue)update, successOrdering, failureOrdering));
     }
 }

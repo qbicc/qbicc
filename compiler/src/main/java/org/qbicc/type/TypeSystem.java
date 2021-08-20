@@ -218,7 +218,6 @@ public final class TypeSystem {
 
     public CompoundType getCompoundType(final CompoundType.Tag tag, String name, long size, int align, Supplier<List<CompoundType.Member>> memberResolver) {
         Assert.checkNotNullParam("tag", tag);
-        Assert.checkNotNullParam("name", name);
         Assert.checkMinimumParameter("size", 0, size);
         TypeUtil.checkAlignmentParameter("align", align);
         return new CompoundType(this, tag, name, memberResolver, size, align);

@@ -13,6 +13,7 @@ import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEarlyTermination;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.ClassOf;
+import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MemoryAtomicityMode;
@@ -995,6 +996,10 @@ public final class CoreIntrinsics {
         MethodDescriptor longLongDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J));
         MethodDescriptor intIntDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(BaseTypeDescriptor.J));
 
+        MethodDescriptor boolObjObjObjDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, objDesc));
+        MethodDescriptor boolLongLongLongDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, BaseTypeDescriptor.J));
+        MethodDescriptor boolIntIntIntDescriptor = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, BaseTypeDescriptor.I));
+
         // isConstant
 
         StaticIntrinsic isConstant = (builder, target, arguments) -> literalOf(ctxt, arguments.get(0) instanceof Literal);
@@ -1017,9 +1022,47 @@ public final class CoreIntrinsics {
         StaticIntrinsic isAlwaysFalse = (builder, target, arguments) -> literalOf(ctxt, arguments.get(0) instanceof BooleanLiteral && ((BooleanLiteral) arguments.get(0)).booleanValue());
         intrinsics.registerIntrinsic(valsDesc, "isAlwaysFalse", boolBoolDesc, isAlwaysFalse);
 
-        // todo: compareAndSwap*
 
-        // getAndSet*
+        // compareAndSwap*
+        class CompareAndSwapIntrinsic implements StaticIntrinsic {
+            private final MemoryAtomicityMode successMode;
+            private final MemoryAtomicityMode failureMode;
+            CompareAndSwapIntrinsic(final MemoryAtomicityMode successMode, final MemoryAtomicityMode failureMode) {
+                this.successMode = successMode;
+                this.failureMode = failureMode;
+            }
+
+            @Override
+            public Value emitIntrinsic(BasicBlockBuilder builder, MethodElement element, List<Value> arguments) {
+                ValueHandle target = getTarget(ctxt, builder, arguments.get(0));
+                if (target == null) {
+                    return ctxt.getLiteralFactory().literalOf(false);
+                }
+                Value expect = arguments.get(1);
+                Value update = arguments.get(2);
+                Value result = builder.cmpAndSwap(target, expect, update, successMode, failureMode);
+                Value resultValue = builder.extractMember(result, ((CmpAndSwap)result).getResultValueType());
+                /* set was successful when expected value is returned */
+                return builder.isEq(resultValue, expect);
+            }
+        }
+
+        StaticIntrinsic compareAndSwapVolatile = new CompareAndSwapIntrinsic(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT, MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+        StaticIntrinsic compareAndSwapAcquire = new CompareAndSwapIntrinsic(MemoryAtomicityMode.ACQUIRE, MemoryAtomicityMode.MONOTONIC);
+        StaticIntrinsic compareAndSwapRelease = new CompareAndSwapIntrinsic(MemoryAtomicityMode.RELEASE, MemoryAtomicityMode.MONOTONIC);
+        StaticIntrinsic compareAndSwap = new CompareAndSwapIntrinsic(MemoryAtomicityMode.MONOTONIC, MemoryAtomicityMode.MONOTONIC);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapVolatile", boolObjObjObjDescriptor, compareAndSwapVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapVolatile",  boolIntIntIntDescriptor, compareAndSwapVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapVolatile", boolLongLongLongDescriptor, compareAndSwapVolatile);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapAcquire", boolObjObjObjDescriptor, compareAndSwapAcquire);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapAcquire", boolIntIntIntDescriptor, compareAndSwapAcquire);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapAcquire", boolLongLongLongDescriptor, compareAndSwapAcquire);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapRelease", boolObjObjObjDescriptor, compareAndSwapRelease);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapRelease", boolIntIntIntDescriptor, compareAndSwapRelease);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwapRelease", boolLongLongLongDescriptor, compareAndSwapRelease);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwap", boolObjObjObjDescriptor, compareAndSwap);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwap", boolIntIntIntDescriptor, compareAndSwap);
+        intrinsics.registerIntrinsic(valsDesc, "compareAndSwap", boolLongLongLongDescriptor, compareAndSwap);
 
         class GetAndSetIntrinsic implements StaticIntrinsic {
             private final MemoryAtomicityMode mode;
