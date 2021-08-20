@@ -120,8 +120,8 @@ public final class LLVM {
         return new FunctionType(returnType, argTypes, variadic);
     }
 
-    public static StructType structType() {
-        return new StructTypeImpl();
+    public static StructType structType(final boolean isIdentified) {
+        return new StructTypeImpl(isIdentified);
     }
 
     public static Struct struct() {
