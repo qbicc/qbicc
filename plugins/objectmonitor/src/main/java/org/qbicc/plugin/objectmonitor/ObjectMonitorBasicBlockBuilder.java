@@ -24,15 +24,11 @@ public class ObjectMonitorBasicBlockBuilder extends DelegatingBasicBlockBuilder 
     }
 
     public Node monitorEnter(final Value object) {
-        return super.monitorEnter(object);
-        // TODO enable
-        //return generateObjectMonitorFunctionCall(object, monitorEnterFunctionName);
+        return generateObjectMonitorFunctionCall(object, monitorEnterFunctionName);
     }
 
     public Node monitorExit(final Value object) {
-        return super.monitorExit(object);
-        // TODO enable
-        //return generateObjectMonitorFunctionCall(object, monitorExitFunctionName);
+        return generateObjectMonitorFunctionCall(object, monitorExitFunctionName);
     }
     
     private Value generateObjectMonitorFunctionCall(final Value object, String functionName) {
