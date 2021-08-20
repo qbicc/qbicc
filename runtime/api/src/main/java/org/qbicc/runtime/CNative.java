@@ -1144,7 +1144,7 @@ public final class CNative {
 
     /**
      * Explicitly specify the exact alignment of an object.  The alignment will not be probed.  Different alignments can be specified
-     * for different platforms.
+     * for different platforms.  By convention, a value of Integer.MAX_VALUE encodes that the alignment should be max_align_t.
      */
     @Target({ ElementType.TYPE, ElementType.FIELD })
     @Retention(RetentionPolicy.RUNTIME)

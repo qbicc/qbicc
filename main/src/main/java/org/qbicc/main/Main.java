@@ -205,6 +205,9 @@ public class Main implements Callable<DiagnosticContext> {
                     probeBuilder.probeType(void_p);
                     // number of bits in char
                     probeBuilder.probeConstant("CHAR_BIT");
+                    // max alignment
+                    CProbe.Type max_align_t = CProbe.Type.builder().setName("max_align_t").build();
+                    probeBuilder.probeType(max_align_t);
                     // execute
                     CProbe probe = probeBuilder.build();
                     try {
@@ -234,6 +237,7 @@ public class Main implements Callable<DiagnosticContext> {
                             tsBuilder.setFloat64Alignment((int) probeResult.getTypeInfo(double_t).getAlign());
                             tsBuilder.setPointerSize((int) probeResult.getTypeInfo(void_p).getSize());
                             tsBuilder.setPointerAlignment((int) probeResult.getTypeInfo(void_p).getAlign());
+                            tsBuilder.setMaxAlignment((int) probeResult.getTypeInfo(max_align_t).getAlign());
                             // todo: function alignment probe
                             // for now, references == pointers
                             tsBuilder.setReferenceSize((int) probeResult.getTypeInfo(void_p).getSize());
