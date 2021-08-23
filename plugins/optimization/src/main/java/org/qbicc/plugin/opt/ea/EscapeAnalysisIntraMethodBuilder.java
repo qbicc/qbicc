@@ -25,21 +25,21 @@ import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.definition.element.FieldElement;
 
 public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlockBuilder  {
-    private final EscapeAnalysisGlobalState globalEscapeAnalysis;
-    private final EscapeAnalysisMethodState methodEscapeAnalysis;
+    private final EscapeAnalysisState escapeAnalysisState;
+    private final ConnectionGraph connectionGraph;
 
     public EscapeAnalysisIntraMethodBuilder(final CompilationContext ctxt, final BasicBlockBuilder delegate) {
         super(delegate);
-        this.methodEscapeAnalysis = new EscapeAnalysisMethodState(getCurrentElement().toString());
-        this.globalEscapeAnalysis = EscapeAnalysisGlobalState.get(ctxt);
-        this.globalEscapeAnalysis.trackMethod(getCurrentElement(), this.methodEscapeAnalysis);
+        this.connectionGraph = new ConnectionGraph(getCurrentElement().toString());
+        this.escapeAnalysisState = EscapeAnalysisState.get(ctxt);
+        this.escapeAnalysisState.trackMethod(getCurrentElement(), this.connectionGraph);
     }
 
     @Override
     public Value new_(ClassObjectType type) {
         final New result = (New) super.new_(type);
 
-        methodEscapeAnalysis.trackNew(result, type, getCurrentElement());
+        connectionGraph.trackNew(result, type, getCurrentElement());
 
         return result;
     }
@@ -63,12 +63,12 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
 
         if (handle instanceof StaticField) {
             // static T a = new T();
-            methodEscapeAnalysis.trackStoreStaticField(value);
+            connectionGraph.trackStoreStaticField(value);
         } else if (handle instanceof InstanceFieldOf && value instanceof New) {
             // p.f = new T(); // where p is a parameter
-            methodEscapeAnalysis.fixEdgesNew(handle, (New) value);
+            connectionGraph.fixEdgesNew(handle, (New) value);
         } else if (handle instanceof LocalVariable && value instanceof New) {
-            methodEscapeAnalysis.trackLocalNew((LocalVariable) handle, (New) value);
+            connectionGraph.trackLocalNew((LocalVariable) handle, (New) value);
         }
 
         return result;
@@ -79,7 +79,7 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
         final Value result = super.call(target, arguments);
 
         if (target instanceof Executable) {
-            globalEscapeAnalysis.trackCall(getCurrentElement(), (Call) result);
+            escapeAnalysisState.trackCall(getCurrentElement(), (Call) result);
         }
 
         return result;
@@ -88,7 +88,7 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
     @Override
     public void startMethod(List<ParameterValue> arguments) {
         super.startMethod(arguments);
-        methodEscapeAnalysis.trackParameters(arguments);
+        connectionGraph.trackParameters(arguments);
     }
 
     @Override
@@ -97,7 +97,7 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
 
         // Skip primitive values truncated, they are not objects
         if (!(value instanceof Truncate)) {
-            methodEscapeAnalysis.trackReturn(value);
+            connectionGraph.trackReturn(value);
         }
 
         return result;
@@ -115,16 +115,16 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
         // TODO: 1. compute set of nodes reachable from GlobalEscape node(s)
 
         // 2. Compute set of nodes reachable from ArgEscape (nodes), but not any GlobalEscape node
-        methodEscapeAnalysis.propagateArgEscape();
+        connectionGraph.propagateArgEscape(); // TODO double check if propagating arg escape should happen here or in inter analysis
 
         // TODO: 3. compute set of nodes not reachable from GlobalEscape or ArgEscape
     }
 
     private void handleInstanceFieldOf(InstanceFieldOf result, ValueHandle handle, Node target) {
         if (target instanceof New) {
-            methodEscapeAnalysis.fixEdgesField((New) target, handle, result);
+            connectionGraph.fixEdgesField((New) target, handle, result);
         } else if (target instanceof ParameterValue) {
-            methodEscapeAnalysis.fixEdgesParameterValue((ParameterValue) target, result);
+            connectionGraph.fixEdgesParameterValue((ParameterValue) target, result);
         } else if (target instanceof Store) {
             final Value value = ((Store) target).getValue();
             if (value instanceof New) {

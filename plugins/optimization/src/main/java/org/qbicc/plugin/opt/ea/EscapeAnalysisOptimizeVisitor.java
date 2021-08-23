@@ -34,7 +34,7 @@ public class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Nod
     @Override
     public Value visit(Node.Copier param, New original) {
         final BasicBlockBuilder bbb = param.getBlockBuilder();
-        if (EscapeAnalysisGlobalState.get(ctxt).isNotEscapingMethod(original, bbb.getCurrentElement())) {
+        if (EscapeAnalysisState.get(ctxt).isNotEscapingMethod(original, bbb.getCurrentElement())) {
             return stackAllocate(original.getClassObjectType(), bbb);
         }
 
