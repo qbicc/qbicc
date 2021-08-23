@@ -86,9 +86,9 @@ import org.qbicc.plugin.opt.LocalMemoryTrackingBasicBlockBuilder;
 import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
-import org.qbicc.plugin.opt.ea.EscapeAnalysisInterMethodHook;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisIntraMethodBuilder;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisOptimizeVisitor;
+import org.qbicc.plugin.opt.ea.EscapeAnalysisState;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.plugin.reachability.ReachabilityBlockBuilder;
 import org.qbicc.plugin.serialization.ClassObjectSerializer;
@@ -366,7 +366,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPostHook(Phase.ANALYZE, new DispatchTableBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new SupersDisplayBuilder());
                                 builder.addPostHook(Phase.ANALYZE, new ClassObjectSerializer());
-                                builder.addPostHook(Phase.ANALYZE, new EscapeAnalysisInterMethodHook());
+                                builder.addPostHook(Phase.ANALYZE, EscapeAnalysisState::interMethodAnalysis);
 
                                 builder.addCopyFactory(Phase.LOWER, EscapeAnalysisOptimizeVisitor::new);
                                 builder.addElementHandler(Phase.LOWER, new FunctionLoweringElementHandler());
