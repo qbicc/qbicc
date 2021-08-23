@@ -53,7 +53,7 @@ public final class Types {
         return LLVM.function(returnType, argTypes, variadic);
     }
 
-    public static StructType structType() {
-        return LLVM.structType();
+    public static StructType structType(final boolean isIdentified) {
+        return LLVM.structType(isIdentified);
     }
 }

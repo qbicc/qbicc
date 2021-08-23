@@ -146,10 +146,12 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             //   - Add the mapping to types early to avoid infinite recursion when mapping self-referential member types
             CompoundType compoundType = (CompoundType) type;
             HashMap<CompoundType.Member, LLValue> offsets = new HashMap<>();
+            boolean isIdentified = !compoundType.getTag().equals(CompoundType.Tag.INLINE);
+
             structureOffsets.putIfAbsent(compoundType, offsets);
 
             IdentifiedType identifiedType = null;
-            if (!compoundType.getTag().equals(CompoundType.Tag.INLINE)) {
+            if (isIdentified) {
                 String name;
                 if (compoundType.getName().equals("<anon>")) {
                     name = "T.anon" + anonCnt.getAndIncrement();
@@ -165,7 +167,7 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
             // this is a little tricky.
             int memberCnt = compoundType.getMemberCount();
             long offs = 0;
-            StructType struct = structType();
+            StructType struct = structType(isIdentified);
             int index = 0;
             for (int i = 0; i < memberCnt; i ++) {
                 CompoundType.Member member = compoundType.getMember(i);
@@ -191,11 +193,11 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
                 struct.member(array((int) (size - offs), i8), "padding");
             }
 
-            if (compoundType.getTag().equals(CompoundType.Tag.INLINE)) {
-                res = struct;
-            } else {
+            if (isIdentified) {
                 identifiedType.type(struct);
                 res = identifiedType.asTypeRef();
+            } else {
+                res = struct;
             }
         } else if (type instanceof TypeType) {
             int size = ctxt.getTypeSystem().getTypeIdSize();
