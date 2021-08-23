@@ -42,9 +42,6 @@ public class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Nod
     }
 
     private Value stackAllocate(ClassObjectType type, BasicBlockBuilder bbb) {
-        // TODO instruct stack allocation if not escaping thread
-        // TODO: Customise this generated block
-
         // Copied from NoGcBasicBlockBuilder
         Layout layout = Layout.get(ctxt);
         Layout.LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
@@ -54,7 +51,6 @@ public class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Nod
 
         // TODO David Lloyd: the alignment should be the minimum alignment of the lowered target type
         // TODO David Lloyd: which we don't know until lower, but perhaps ObjectAccessLoweringBuilder could intercept that and set the minimum alignment to the minimum of the layout
-        // TODO Galder: Right now I'm working on ADD/ANALYSIS, I could move to ANALYSIS/LOWER as you suggested in a call
         Value ptrVal = bbb.stackAllocate(compoundType, lf.literalOf(1), align);
 
         Value oop = bbb.valueConvert(ptrVal, type.getReference());

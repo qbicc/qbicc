@@ -29,7 +29,6 @@ import org.qbicc.type.descriptor.ClassTypeDescriptor;
 import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
 
-// TODO override toString() and show the name of the method for which this connection graph is set
 final class ConnectionGraph {
     private final Map<Node, Value> pointsToEdges = new HashMap<>(); // solid (P) edges
     private final Map<Node, ValueHandle> deferredEdges = new HashMap<>(); // dashed (D) edges
@@ -107,7 +106,7 @@ final class ConnectionGraph {
         argEscapeOnly.forEach(this::computeArgEscapeOnly);
     }
 
-    public void update(Call callee, ConnectionGraph calleeCG) {
+    void update(Call callee, ConnectionGraph calleeCG) {
         final List<Value> arguments = callee.getArguments();
         for (int i = 0; i < arguments.size(); i++) {
             final Value outsideArg = arguments.get(i);
@@ -232,6 +231,4 @@ final class ConnectionGraph {
 
         return false;
     }
-
-
 }

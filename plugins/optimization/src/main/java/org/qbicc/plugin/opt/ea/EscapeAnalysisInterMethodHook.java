@@ -18,7 +18,8 @@ public final class EscapeAnalysisInterMethodHook implements Consumer<Compilation
     public void accept(CompilationContext ctxt) {
         // TODO run it in parallel?
         escapeAnalysisState = EscapeAnalysisState.get(ctxt);
-        escapeAnalysisState.methods().forEach(element -> updateConnectionGraphIfNotVisited(element, new HashSet<>()));
+        final Set<ExecutableElement> visited = new HashSet<>();
+        escapeAnalysisState.methods().forEach(element -> updateConnectionGraphIfNotVisited(element, visited));
     }
 
     /**
@@ -36,6 +37,10 @@ public final class EscapeAnalysisInterMethodHook implements Consumer<Compilation
 
     private ConnectionGraph updateConnectionGraph(ExecutableElement caller, Set<ExecutableElement> visited) {
         final ConnectionGraph callerCG = escapeAnalysisState.connectionGraph(caller);
+        if (callerCG == null) {
+            return null;
+        }
+
         final List<Call> callees = escapeAnalysisState.callees(caller);
         if (callees == null) {
             return callerCG;
