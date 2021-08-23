@@ -114,10 +114,12 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
 
         // TODO: 1. compute set of nodes reachable from GlobalEscape node(s)
 
-        // 2. Compute set of nodes reachable from ArgEscape (nodes), but not any GlobalEscape node
-        connectionGraph.propagateArgEscape(); // TODO double check if propagating arg escape should happen here or in inter analysis
+        // TODO 2. Compute set of nodes reachable from ArgEscape (nodes), but not any GlobalEscape node
 
         // TODO: 3. compute set of nodes not reachable from GlobalEscape or ArgEscape
+
+        // TODO double check if propagating arg escape should happen here or in inter analysis
+        connectionGraph.propagateArgEscape();
     }
 
     private void handleInstanceFieldOf(InstanceFieldOf result, ValueHandle handle, Node target) {
