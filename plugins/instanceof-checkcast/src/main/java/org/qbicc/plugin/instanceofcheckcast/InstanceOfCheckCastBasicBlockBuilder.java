@@ -197,7 +197,6 @@ public class InstanceOfCheckCastBasicBlockBuilder extends DelegatingBasicBlockBu
             }
         }
 
-        ctxt.warning(getLocation(), "Lowering classOf to incomplete VMHelper stub");
         List<Value> args = List.of(typeId);
         return notNull(getFirstBuilder().call(getFirstBuilder().staticMethod(methodElement), args));
     }

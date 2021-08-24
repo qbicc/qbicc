@@ -26,6 +26,11 @@ public class ObjectModel {
     public static native CNative.type_id get_type_id_from_class(Class<?> cls);
 
     /**
+     * Get the java.lang.Class instance for the type ID.
+     */
+    public static native Class<?> get_class_from_type_id(CNative.type_id typeId);
+
+    /**
      * Get the concrete type ID value from the referenced object.  Note that all reference arrays will have the same
      * type ID, which does not reflect the element type.
      *
@@ -127,7 +132,7 @@ public class ObjectModel {
      * 4 - has default methods
      * See SupersDisplayTables.calculateTypeIdFlags() for definitive list.
      * 
-     * @param typeID the class to read the flags for
+     * @param typeId the class to read the flags for
      * @return the flags value
      */
     public static native int get_typeid_flags(CNative.type_id typeId);
@@ -146,7 +151,7 @@ public class ObjectModel {
 
     /** 
      * Fetch the superclass `type_id` from the current `type_id`
-     * @param an existing type_id, don't call this on Object's typeid
+     * @param typeId an existing type_id, don't call this on Object's typeid
      * @return superclass's type_id
      */
     public static native CNative.type_id get_superclass_typeid(CNative.type_id typeId);

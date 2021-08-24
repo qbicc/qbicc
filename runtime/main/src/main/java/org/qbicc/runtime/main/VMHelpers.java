@@ -96,8 +96,10 @@ public final class VMHelpers {
     // TODO: mark this with a "NoInline" annotation
     @NoSideEffects
     static Class<?> classof_from_typeid(type_id typeId) {
-        // Load the java.lang.Class object from an array of them indexed by typeId.
-        return null; // TODO: Implement this! (or perhaps implement it inline; it should take less code than a call).
+        if (ObjectModel.is_reference_array(typeId)) {
+            throw new UnsupportedOperationException("Attempted to get java.lang.Class instance for the [ref typeId");
+        }
+        return ObjectModel.get_class_from_type_id(typeId);
     }
 
     @NoSideEffects

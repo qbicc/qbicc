@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.AttachmentKey;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
 import org.qbicc.object.Section;
@@ -23,7 +23,9 @@ import org.qbicc.type.CompoundType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.FieldElement;
+import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.descriptor.BaseTypeDescriptor;
 
 public class BuildtimeHeap {
@@ -36,10 +38,14 @@ public class BuildtimeHeap {
     private final HashMap<String, CompoundType> arrayTypes = new HashMap<>();
     /** For interning string literals */
     private final HashMap<String, Data>  stringLiterals = new HashMap<>();
+    /** For interning java.lang.Class instances */
+    private final HashMap<LoadedTypeDefinition, Data> classObjects = new HashMap<>();
     /** For interning objects */
     private final IdentityHashMap<Object, Data> objects = new IdentityHashMap<>();
     /** The initial heap */
     private final Section heapSection;
+    /** The global array of java.lang.Class instances that is part of the serialized heap */
+    private GlobalVariableElement classArrayGlobal;
 
     private int literalCounter = 0;
 
@@ -63,15 +69,20 @@ public class BuildtimeHeap {
         return heap;
     }
 
-    public synchronized Data serializeStringLiteral(String value) {
-        if (literalCounter == 0) {
-            // TODO: Temp testing for Object[] and prim arrays; remove once the interpreter is ready and we have real calls to serializeObject
-            int[] dummy = new int[] { 1, 2, 3};
-            Object[] dummy2 = new Object[] { dummy, "This is a test", dummy };
-            Object[][] dummy3 = new Object[][] { new Object[] { dummy2, dummy }, new String[] { "Another test string" }};
-            serializeObject(dummy3);
-        }
+    void setClassArrayGlobal(GlobalVariableElement g) {
+        this.classArrayGlobal = g;
+    }
 
+    public GlobalVariableElement getAndRegisterGlobalClassArray(ExecutableElement originalElement) {
+        Assert.assertNotNull(classArrayGlobal);
+        if (!classArrayGlobal.getEnclosingType().equals(originalElement.getEnclosingType())) {
+            Section section = ctxt.getImplicitSection(originalElement.getEnclosingType());
+            section.declareData(null, classArrayGlobal.getName(), classArrayGlobal.getType());
+        }
+        return classArrayGlobal;
+    }
+
+    public synchronized Data serializeStringLiteral(String value) {
         // String literals are interned via equals, not ==
         if (stringLiterals.containsKey(value)) {
             return stringLiterals.get(value);
@@ -82,12 +93,29 @@ public class BuildtimeHeap {
         return sl;
     }
 
+    public synchronized Data serializeClassObject(LoadedTypeDefinition type) {
+        if (classObjects.containsKey(type)) {
+            return classObjects.get(type);
+        }
+
+        LoadedTypeDefinition jlc = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
+        Data cl = serializeClassObjectImpl(jlc, type);
+        classObjects.put(type, cl);
+        return cl;
+    }
+
     public synchronized Data serializeObject(Object obj) {
         if (objects.containsKey(obj)) {
             return objects.get(obj);
         }
 
         Class<?> cls = obj.getClass();
+        // java.lang.Class instances are their own special thing; can't just reflectively write them.
+        if (obj instanceof Class<?>) {
+            LoadedTypeDefinition ltd = ctxt.getBootstrapClassContext().findDefinedType(cls.getName().replace('.', '/')).load();
+            return serializeClassObject(ltd);
+        }
+
         Data data;
         if (cls.isArray()) {
             if (obj instanceof byte[]) {
@@ -116,6 +144,38 @@ public class BuildtimeHeap {
 
         objects.put(obj, data);
         return data;
+    }
+
+    private Data serializeClassObjectImpl(LoadedTypeDefinition jlc, LoadedTypeDefinition type) {
+        LiteralFactory lf = ctxt.getLiteralFactory();
+        Layout.LayoutInfo jlcLayout = layout.getInstanceLayoutInfo(jlc);
+        CompoundType jlcType = jlcLayout.getCompoundType();
+        HashMap<CompoundType.Member, Literal> memberMap = new HashMap<>();
+
+        // First default to a zero initializer for all the instance fields
+        for (CompoundType.Member m: jlcType.getMembers()) {
+            memberMap.put(m, lf.zeroInitializerLiteralOfType(m.getType()));
+        }
+
+        // Object header
+        memberMap.put(jlcLayout.getMember(layout.getObjectTypeIdField()), lf.literalOf(jlc.getTypeId()));
+
+        // Next, initialize instance fields of the qbicc jlc type that we can/want to set at build time.
+        CompoundType.Member name = jlcType.getMember("name");
+        String externalName = type.getInternalName().replace('/', '.');
+        if (externalName.startsWith("internal_array_")) {
+            externalName = externalName.replaceFirst("internal_array_", "[");
+        }
+        memberMap.put(name, dataToLiteral(lf, serializeStringLiteral(externalName), (WordType)name.getType()));
+
+        CompoundType.Member id = jlcType.getMember("id");
+        memberMap.put(id, lf.literalOfType(type.getType()));
+
+        //
+        // TODO: Figure out what information we need to support reflection and serialize it too (VMClass instance???)
+        //
+
+        return defineData(nextLiteralName(), ctxt.getLiteralFactory().literalOf(jlcType, memberMap));
     }
 
     private String nextLiteralName() {
@@ -169,9 +229,7 @@ public class BuildtimeHeap {
                             if (fieldContents == null) {
                                 memberMap.put(member, lf.zeroInitializerLiteralOfType(member.getType()));
                             } else {
-                                Data contents = serializeObject(fieldContents);
-                                SymbolLiteral refToContents = lf.literalOfSymbol(contents.getName(), contents.getType().getPointer().asCollected());
-                                memberMap.put(member, lf.bitcastLiteral(refToContents, (WordType)member.getType()));
+                                memberMap.put(member, dataToLiteral(lf, serializeObject(fieldContents), (WordType)member.getType()));
                             }
                         }
                     } catch (IllegalAccessException e) {
@@ -184,6 +242,10 @@ public class BuildtimeHeap {
         }
 
         return defineData(nextLiteralName(), ctxt.getLiteralFactory().literalOf(objType, memberMap));
+    }
+
+    private Literal dataToLiteral(LiteralFactory lf, Data data, WordType toType) {
+        return lf.bitcastLiteral(lf.literalOfSymbol(data.getName(), data.getType().getPointer().asCollected()), toType);
     }
 
     private CompoundType arrayLiteralType(FieldElement contents, int length) {
