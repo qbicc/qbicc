@@ -79,6 +79,12 @@ final class ConnectionGraph {
         setEscapeValue(value, EscapeValue.GLOBAL_ESCAPE);
     }
 
+    void trackThrowNew(New value) {
+        // New allocations thrown assumed to escape as arguments
+        // TODO Could it be possible to only mark as argument escaping those that escape the method?
+        setEscapeValue(value, EscapeValue.ARG_ESCAPE);
+    }
+
     void fixEdgesField(New new_, ValueHandle newHandle, InstanceFieldOf instanceField) {
         addFieldEdgeIfAbsent(new_, instanceField);
         addPointsToEdgeIfAbsent(newHandle, new_);

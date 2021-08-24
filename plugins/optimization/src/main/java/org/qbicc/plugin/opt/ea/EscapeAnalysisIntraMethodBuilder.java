@@ -104,6 +104,17 @@ public final class EscapeAnalysisIntraMethodBuilder extends DelegatingBasicBlock
     }
 
     @Override
+    public BasicBlock throw_(Value value) {
+        final BasicBlock result = super.throw_(value);
+
+        if (value instanceof New) {
+            connectionGraph.trackThrowNew((New) value);
+        }
+
+        return result;
+    }
+
+    @Override
     public void finish() {
         doReachabilityAnalysis();
         super.finish();
