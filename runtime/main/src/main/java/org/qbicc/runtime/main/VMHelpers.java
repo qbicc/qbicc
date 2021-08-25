@@ -102,23 +102,9 @@ public final class VMHelpers {
         return ObjectModel.get_class_from_type_id(typeId);
     }
 
-    @NoSideEffects
-    private static void omError(c_int nativeErrorCode) throws IllegalMonitorStateException {
-        int errorCode = nativeErrorCode.intValue();
-        if (0 != errorCode) {
-//            putchar('O');
-//            putchar('M');
-//            putchar('E');
-//            putchar('R');
-//            putchar('R');
-//            putchar(':');
-//            printInt(errorCode);
-            throw new IllegalMonitorStateException("error code: " + errorCode);
-        }
-    }
-
     // TODO: mark this with a "NoInline" annotation
     static void monitor_enter(Object object) throws IllegalMonitorStateException {
+        int result;
         if (object == null) {
             /* TODO skip for now. Object should never be null except that
                 classof_from_typeid is not currently implemented. */
@@ -130,31 +116,53 @@ public final class VMHelpers {
             if (attrVoid.isNull()) {
                 throw new OutOfMemoryError(/*"Allocation failed"*/);
             }
-            ptr<pthread_mutexattr_t> attr = (ptr<pthread_mutexattr_t>) castPtr(attrVoid, pthread_mutexattr_t.class);
 
-            Stddef.size_t mutexSize = sizeof(pthread_mutex_t.class);
-            ptr<?> mVoid = malloc(word(mutexSize.longValue()));
-            if (mVoid.isNull()) {
+            /* free attribute on success or failure, it won't be needed past mutex creation */
+            try {
+                ptr<pthread_mutexattr_t> attr = (ptr<pthread_mutexattr_t>) castPtr(attrVoid, pthread_mutexattr_t.class);
+
+                result = pthread_mutexattr_init((pthread_mutexattr_t_ptr) attr).intValue();
+                if (0 != result) {
+                    throw new IllegalMonitorStateException("error code: " + result);
+                }
+                /* destroy attribute on success or failure, it won't be needed past mutex creation */
+                try {
+                    result = pthread_mutexattr_settype((pthread_mutexattr_t_ptr) attr, PTHREAD_MUTEX_RECURSIVE).intValue();
+                    if (0 != result) {
+                        throw new IllegalMonitorStateException("error code: " + result);
+                    }
+
+                    Stddef.size_t mutexSize = sizeof(pthread_mutex_t.class);
+                    ptr<?> mVoid = malloc(word(mutexSize.longValue()));
+                    if (mVoid.isNull()) {
+                        throw new OutOfMemoryError(/*"Allocation failed"*/);
+                    }
+
+                    ptr<pthread_mutex_t> m = (ptr<pthread_mutex_t>) castPtr(mVoid, pthread_mutex_t.class);
+                    result = pthread_mutex_init((pthread_mutex_t_ptr) m, (const_pthread_mutexattr_t_ptr) attr).intValue();
+                    if (0 != result) {
+                        free(mVoid);
+                        throw new IllegalMonitorStateException("error code: " + result);
+                    }
+
+                    nom = (pthread_mutex_t_ptr) m;
+                    if (!ObjectModel.set_nativeObjectMonitor(object, nom)) {
+                        /* atomic assignment failed, mutex has already been initialized for object. */
+                        pthread_mutex_destroy(nom);
+                        free(mVoid);
+                        nom = ObjectModel.get_nativeObjectMonitor(object);
+                    }
+                } finally {
+                    pthread_mutexattr_destroy((pthread_mutexattr_t_ptr) attr);
+                }
+            } finally {
                 free(attrVoid);
-                throw new OutOfMemoryError(/*"Allocation failed"*/);
-            }
-            ptr<pthread_mutex_t> m = (ptr<pthread_mutex_t>) castPtr(mVoid, pthread_mutex_t.class);
-
-            omError(pthread_mutexattr_init((pthread_mutexattr_t_ptr) attr));
-            omError(pthread_mutexattr_settype((pthread_mutexattr_t_ptr) attr, PTHREAD_MUTEX_RECURSIVE));
-            omError(pthread_mutex_init((pthread_mutex_t_ptr) m, (const_pthread_mutexattr_t_ptr) attr));
-            omError(pthread_mutexattr_destroy((pthread_mutexattr_t_ptr) attr));
-            free(attrVoid);
-
-            nom = (pthread_mutex_t_ptr) m;
-            if (!ObjectModel.set_nativeObjectMonitor(object, nom)) {
-                /* atomic assignment failed, mutex has already been initialized for object. */
-                omError(pthread_mutex_destroy(nom));
-                free(mVoid); /* free is looking for a pointer with no type */
-                nom = ObjectModel.get_nativeObjectMonitor(object);
             }
         }
-        omError(pthread_mutex_lock(nom));
+        result = pthread_mutex_lock(nom).intValue();
+        if (0 != result) {
+            throw new IllegalMonitorStateException("error code: " + result);
+        }
     }
 
     // TODO: mark this with a "NoInline" annotation
@@ -168,7 +176,10 @@ public final class VMHelpers {
         if (nom == null) {
             throw new IllegalMonitorStateException("native monitor could not be found for monitor_exit");
         }
-        omError(pthread_mutex_unlock(nom));
+        int result = pthread_mutex_unlock(nom).intValue();
+        if (0 != result) {
+            throw new IllegalMonitorStateException("error code: " + result);
+        }
     }
 
     // TODO: mark this with a "NoInline" annotation
