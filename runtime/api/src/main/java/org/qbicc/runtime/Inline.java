@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
  * Inline the annotated method.
  */
 @Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Documented
 public @interface Inline {
     /* TODO: conditions
