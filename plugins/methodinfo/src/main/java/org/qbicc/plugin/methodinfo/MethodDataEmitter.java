@@ -231,6 +231,10 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
         return lf.literalOf(ts.getArrayType(uint64Type, instructionLiterals.length), List.of(instructionLiterals));
     }
 
+    Literal emitInstructionListCount(CompilationContext ctxt, InstructionMap[] imapList) {
+        return ctxt.getLiteralFactory().literalOf(imapList.length);
+    }
+
     private void emitGlobalVariable(CompilationContext ctxt, String variableName, Literal value) {
         Section section = ctxt.getImplicitSection(ctxt.getDefaultTypeDefinition());
         section.addData(null, variableName, value);
@@ -247,6 +251,9 @@ public class MethodDataEmitter implements Consumer<CompilationContext> {
 
         value = emitInstructionList(ctxt, methodData.getInstructionMapList());
         emitGlobalVariable(ctxt, "qbicc_instruction_list", value);
+
+        value = emitInstructionListCount(ctxt, methodData.getInstructionMapList());
+        emitGlobalVariable(ctxt, "qbicc_instruction_list_size", value);
 
         value = emitSourceCodeIndexList(ctxt, methodData.getInstructionMapList());
         emitGlobalVariable(ctxt, "qbicc_source_code_index_list", value);
