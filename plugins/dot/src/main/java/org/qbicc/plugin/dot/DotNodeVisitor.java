@@ -30,6 +30,7 @@ import org.qbicc.graph.ClassNotFoundErrorNode;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Clone;
 import org.qbicc.graph.Cmp;
+import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.ConstructorElementHandle;
@@ -236,6 +237,20 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final Cmp node) {
         return node(param, "cmp", node);
+    }
+
+    public String visit(final Appendable param, final CmpAndSwap node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "rectangle");
+        attr(param, "label", "cmpAndSwap");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
+        addEdge(param, node, node.getExpectedValue(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getUpdateValue(), EdgeType.VALUE_DEPENDENCY);
+        return name;
     }
 
     public String visit(final Appendable param, final CmpL node) {
