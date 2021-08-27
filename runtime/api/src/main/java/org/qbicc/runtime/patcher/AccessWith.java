@@ -12,7 +12,7 @@ import java.util.function.BooleanSupplier;
  * a matching rule is used.
  */
 @Target(ElementType.FIELD)
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Repeatable(AccessWith.List.class)
 public @interface AccessWith {
     /**

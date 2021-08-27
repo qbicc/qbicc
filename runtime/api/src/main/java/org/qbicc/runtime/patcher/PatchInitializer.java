@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
  * class.  When applied to a {@code static} method annotated with {@link Remove} or {@link Replace}, all of the original
  * static initialization of the patched class is removed; otherwise, additional initialization is added.
  */
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target({ ElementType.METHOD, ElementType.CONSTRUCTOR })
 public @interface PatchInitializer {
 }

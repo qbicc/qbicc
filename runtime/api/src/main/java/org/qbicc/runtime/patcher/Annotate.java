@@ -10,7 +10,7 @@ import java.util.function.BooleanSupplier;
 /**
  * Copy the annotations from this member to the patched member.
  */
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target({ ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD })
 @Repeatable(Annotate.List.class)
 public @interface Annotate {

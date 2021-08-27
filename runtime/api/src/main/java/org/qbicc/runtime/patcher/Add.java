@@ -10,7 +10,7 @@ import java.util.function.BooleanSupplier;
 /**
  * Specify that the annotated element should be added to the patched class.
  */
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target({ ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD })
 @Repeatable(Add.List.class)
 public @interface Add {
