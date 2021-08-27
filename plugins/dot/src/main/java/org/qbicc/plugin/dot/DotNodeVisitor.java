@@ -30,6 +30,7 @@ import org.qbicc.graph.ClassNotFoundErrorNode;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.Clone;
 import org.qbicc.graph.Cmp;
+import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.CmpG;
 import org.qbicc.graph.CmpL;
 import org.qbicc.graph.ConstructorElementHandle;
@@ -87,6 +88,7 @@ import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.NonCommutativeBinaryValue;
 import org.qbicc.graph.NotNull;
 import org.qbicc.graph.Or;
+import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.ParameterValue;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.PointerHandle;
@@ -238,6 +240,13 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         return node(param, "cmp", node);
     }
 
+    public String visit(final Appendable param, final CmpAndSwap node) {
+        String name = node(param, "cmpAndSwap", node);
+        addEdge(param, node, node.getExpectedValue(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getUpdateValue(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
     public String visit(final Appendable param, final CmpL node) {
         return node(param, "cmpl", node);
     }
@@ -284,27 +293,13 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final MonitorEnter node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "monitorenter");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        String name = node(param, "monitorenter", node);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
 
     public String visit(final Appendable param, final MonitorExit node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "monitorexit");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        String name = node(param, "monitorexit", node);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
@@ -804,14 +799,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final ArrayLength node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "array length");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        String name = node(param, "array length", node);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY);
         return name;
     }
@@ -888,15 +876,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final CurrentThreadRead node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "read thread");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
-        return name;
+        return node(param, "read thread", node);
     }
 
     public String visit(final Appendable param, final Div node) {
@@ -942,15 +922,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(Appendable param, Fence node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "fence");
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
-        return name;
+        return node(param, "fence", node);
     }
 
     public String visit(final Appendable param, final FloatLiteral node) {
@@ -983,14 +955,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final InstanceOf node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "circle");
-        attr(param, "label", "instanceof " + node.getCheckType().toString());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        String name = node(param, "instanceof " + node.getCheckType().toString(), node);
         addEdge(param, node, node.getInstance(), EdgeType.VALUE_DEPENDENCY, "value");
         return name;
     }
@@ -1055,14 +1020,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final MultiNewArray node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "new multi array\\n" + node.getArrayType().toString());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        String name = node(param, "new multi array\\n" + node.getArrayType().toString(), node);
         for (Value dimension : node.getDimensions()) {
             addEdge(param, node, dimension, EdgeType.VALUE_DEPENDENCY, "dim");
         }
@@ -1097,26 +1055,11 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final New node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "new\\n" + node.getType().getUpperBound().toString());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
-        return name;
+        return node(param, "new\\n" + node.getType().getUpperBound().toString(), node);
     }
 
     public String visit(final Appendable param, final NewArray node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "new array\\n" + node.getArrayType().toString());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        String name = node(param, "new array\\n" + node.getArrayType().toString(), node);
         addEdge(param, node, node.getSize(), EdgeType.VALUE_DEPENDENCY, "size");
         return name;
     }
@@ -1193,14 +1136,7 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final StackAllocation node) {
-        String name = register(node);
-        appendTo(param, name);
-        attr(param, "shape", "rectangle");
-        attr(param, "label", "alloca " + node.getType());
-        attr(param, "fixedsize", "shape");
-        nl(param);
-        dependencyList.add(name);
-        processDependency(param, node.getDependency());
+        String name = node(param, "alloca " + node.getType(), node);
         addEdge(param, node, node.getCount(), EdgeType.VALUE_DEPENDENCY, "count");
         nl(param);
         return name;
@@ -1310,6 +1246,18 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
         attr(param, "fixedsize", "shape");
         nl(param);
         addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
+        return name;
+    }
+
+    private String node(Appendable param, String kind, OrderedNode node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "rectangle");
+        attr(param, "label", kind);
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
         return name;
     }
 
