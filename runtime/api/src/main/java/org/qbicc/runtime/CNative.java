@@ -967,7 +967,7 @@ public final class CNative {
 
     @Repeatable(lib.List.class)
     @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     public @interface lib {
         /**
          * The C library name to include. The underlying linker will include the library using the platform-specific
@@ -992,7 +992,7 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] unless() default {};
 
         @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-        @Retention(RetentionPolicy.RUNTIME)
+        @Retention(RetentionPolicy.CLASS)
         @interface List {
             lib[] value();
         }
@@ -1000,7 +1000,7 @@ public final class CNative {
 
     @Repeatable(include.List.class)
     @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     public @interface include {
         /**
          * The C include name, including the quotes, which may either be {@code ""} or {@code <>} as appropriate.
@@ -1024,7 +1024,7 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] unless() default {};
 
         @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-        @Retention(RetentionPolicy.RUNTIME)
+        @Retention(RetentionPolicy.CLASS)
         @interface List {
             include[] value();
         }
@@ -1032,7 +1032,7 @@ public final class CNative {
 
     @Repeatable(define.List.class)
     @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     public @interface define {
         /**
          * The name of the symbol being defined. Must not be empty.
@@ -1063,14 +1063,14 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] unless() default {};
 
         @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-        @Retention(RetentionPolicy.RUNTIME)
+        @Retention(RetentionPolicy.CLASS)
         @interface List {
             define[] value();
         }
     }
 
     @Target({ ElementType.TYPE, ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     @Documented
     public @interface name {
         String value();
@@ -1083,7 +1083,7 @@ public final class CNative {
      * When used on a compound type member, that member is presumed to be inaccessible (e.g. a bit field).
      */
     @Target({ ElementType.TYPE, ElementType.FIELD })
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     @Repeatable(incomplete.List.class)
     @Documented
     public @interface incomplete {
@@ -1102,7 +1102,7 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] unless() default {};
 
         @Target({ ElementType.TYPE, ElementType.FIELD })
-        @Retention(RetentionPolicy.RUNTIME)
+        @Retention(RetentionPolicy.CLASS)
         @Documented
         @interface List {
             incomplete[] value();
@@ -1114,7 +1114,7 @@ public final class CNative {
      * for different platforms.
      */
     @Target(ElementType.TYPE)
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     @Repeatable(size.List.class)
     @Documented
     public @interface size {
@@ -1135,7 +1135,7 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] unless() default {};
 
         @Target(ElementType.TYPE)
-        @Retention(RetentionPolicy.RUNTIME)
+        @Retention(RetentionPolicy.CLASS)
         @Documented
         @interface List {
             size[] value();
@@ -1147,7 +1147,7 @@ public final class CNative {
      * for different platforms.  By convention, a value of Integer.MAX_VALUE encodes that the alignment should be max_align_t.
      */
     @Target({ ElementType.TYPE, ElementType.FIELD })
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     @Repeatable(align.List.class)
     @Documented
     public @interface align {
@@ -1168,7 +1168,7 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] unless() default {};
 
         @Target({ ElementType.TYPE, ElementType.FIELD })
-        @Retention(RetentionPolicy.RUNTIME)
+        @Retention(RetentionPolicy.CLASS)
         @Documented
         @interface List {
             align[] value();
@@ -1180,7 +1180,7 @@ public final class CNative {
      * be specified for different platforms.
      */
     @Target(ElementType.FIELD)
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     @Repeatable(offset.List.class)
     @Documented
     public @interface offset {
@@ -1201,7 +1201,7 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] unless() default {};
 
         @Target(ElementType.FIELD)
-        @Retention(RetentionPolicy.RUNTIME)
+        @Retention(RetentionPolicy.CLASS)
         @Documented
         @interface List {
             offset[] value();
@@ -1213,7 +1213,7 @@ public final class CNative {
      * signedness can be specified for different platforms.
      */
     @Target(ElementType.TYPE)
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     @Repeatable(signed.List.class)
     @Documented
     public @interface signed {
@@ -1234,7 +1234,7 @@ public final class CNative {
         Class<? extends BooleanSupplier>[] unless() default {};
 
         @Target(ElementType.TYPE)
-        @Retention(RetentionPolicy.RUNTIME)
+        @Retention(RetentionPolicy.CLASS)
         @Documented
         @interface List {
             signed[] value();
@@ -1246,7 +1246,7 @@ public final class CNative {
      * with {@link include @include} are implicitly considered {@code extern}.
      */
     @Target({ ElementType.METHOD, ElementType.FIELD })
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     @Documented
     public @interface extern {
         String withName() default "";
@@ -1261,7 +1261,7 @@ public final class CNative {
      * default algorithm based on the members of the type.
      */
     @Target(ElementType.TYPE)
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     @Documented
     public @interface internal {
     }
@@ -1274,7 +1274,7 @@ public final class CNative {
      * case they must not be {@code final}.
      */
     @Target({ ElementType.METHOD, ElementType.FIELD })
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     @Documented
     public @interface export {
         String withName() default "";
@@ -1288,7 +1288,7 @@ public final class CNative {
      * Indicate that a C type is not modifiable.
      */
     @Target(ElementType.TYPE_USE)
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     public @interface c_const {
     }
 
@@ -1304,7 +1304,7 @@ public final class CNative {
      * </ul>
      */
     @Target(ElementType.TYPE_USE)
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     public @interface restrict {
     }
 
@@ -1314,7 +1314,7 @@ public final class CNative {
      * of C's {@code volatile} keyword.
      */
     @Target(ElementType.TYPE_USE)
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     public @interface c_volatile {
     }
 
@@ -1325,7 +1325,7 @@ public final class CNative {
      * For example: {@code c_char @array_size(12) [] foo = auto(); assert sizeof(foo).intValue() == 12; }
      */
     @Target(ElementType.TYPE_USE)
-    @Retention(RetentionPolicy.RUNTIME)
+    @Retention(RetentionPolicy.CLASS)
     public @interface array_size {
         int value();
     }

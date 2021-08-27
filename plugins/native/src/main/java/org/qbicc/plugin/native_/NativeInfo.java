@@ -130,7 +130,7 @@ final class NativeInfo {
                         Qualifier q = Qualifier.NONE;
                         boolean incomplete = false;
                         int annotatedAlign = 0;
-                        for (Annotation annotation : definedType.getVisibleAnnotations()) {
+                        for (Annotation annotation : definedType.getInvisibleAnnotations()) {
                             ClassTypeDescriptor annDesc = annotation.getDescriptor();
                             if (ProbeUtils.processCommonAnnotation(pb, annotation)) {
                                 continue;
@@ -151,7 +151,7 @@ final class NativeInfo {
                         String enclosingName = definedType.getEnclosingClassInternalName();
                         while (enclosingName != null) {
                             DefinedTypeDefinition enclosingType = classContext.findDefinedType(enclosingName);
-                            for (Annotation annotation : enclosingType.getVisibleAnnotations()) {
+                            for (Annotation annotation : enclosingType.getInvisibleAnnotations()) {
                                 ProbeUtils.processCommonAnnotation(pb, annotation);
                             }
                             enclosingName = enclosingType.getEnclosingClassInternalName();

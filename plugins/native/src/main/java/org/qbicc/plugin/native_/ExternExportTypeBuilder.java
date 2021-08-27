@@ -49,7 +49,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
         return delegate;
     }
 
-    public void setVisibleAnnotations(final List<Annotation> annotations) {
+    public void setInvisibleAnnotations(final List<Annotation> annotations) {
         NativeInfo nativeInfo = NativeInfo.get(ctxt);
         for (Annotation annotation : annotations) {
             ClassTypeDescriptor desc = annotation.getDescriptor();
@@ -70,7 +70,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 }
             }
         }
-        getDelegate().setVisibleAnnotations(annotations);
+        getDelegate().setInvisibleAnnotations(annotations);
     }
 
     public void addField(final FieldResolver resolver, final int index) {
@@ -80,7 +80,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 NativeInfo nativeInfo = NativeInfo.get(ctxt);
                 FieldElement resolved = resolver.resolveField(index, enclosing);
                 // look for annotations
-                for (Annotation annotation : resolved.getVisibleAnnotations()) {
+                for (Annotation annotation : resolved.getInvisibleAnnotations()) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();
                     if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
                         if (desc.getClassName().equals(Native.ANN_EXTERN)) {
@@ -141,7 +141,7 @@ public class ExternExportTypeBuilder implements DefinedTypeDefinition.Builder.De
                 NativeInfo nativeInfo = NativeInfo.get(ctxt);
                 MethodElement origMethod = resolver.resolveMethod(index, enclosing);
                 // look for annotations that indicate that this method requires special handling
-                for (Annotation annotation : origMethod.getVisibleAnnotations()) {
+                for (Annotation annotation : origMethod.getInvisibleAnnotations()) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();
                     if (desc.getPackageName().equals(Native.NATIVE_PKG)) {
                         if (desc.getClassName().equals(Native.ANN_EXTERN)) {
