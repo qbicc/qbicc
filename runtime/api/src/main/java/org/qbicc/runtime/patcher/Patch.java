@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
  * A patch class must either extend {@link Object}, the supertype of the patched class, or a patch class of the
  * supertype of the patched class.
  */
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target({ ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD })
 public @interface Patch {
     /**

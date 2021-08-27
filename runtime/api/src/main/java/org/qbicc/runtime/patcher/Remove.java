@@ -11,7 +11,7 @@ import java.util.function.BooleanSupplier;
  * Specify that the annotated element should be removed from the patched class.  At the class
  * level, indicate that the entire class should be removed.
  */
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target({ ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD })
 @Repeatable(Remove.List.class)
 public @interface Remove {

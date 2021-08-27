@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
  * Specify the class being patched by the annotated class.  If the class cannot be represented as a literal, then
  * {@link Patch} must be used instead.
  */
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 public @interface PatchClass {
     /**

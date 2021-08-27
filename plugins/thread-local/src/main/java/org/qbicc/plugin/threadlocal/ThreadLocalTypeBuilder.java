@@ -36,7 +36,7 @@ public class ThreadLocalTypeBuilder implements DefinedTypeDefinition.Builder.Del
             @Override
             public FieldElement resolveField(int index, DefinedTypeDefinition enclosing) {
                 FieldElement resolved = resolver.resolveField(index, enclosing);
-                List<Annotation> annotations = resolved.getVisibleAnnotations();
+                List<Annotation> annotations = resolved.getInvisibleAnnotations();
                 for (Annotation annotation : annotations) {
                     ClassTypeDescriptor desc = annotation.getDescriptor();
                     if (desc.getPackageName().equals("org/qbicc/runtime") && desc.getClassName().equals("ThreadScoped")) {

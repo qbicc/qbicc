@@ -12,7 +12,7 @@ import java.util.function.BooleanSupplier;
  * initialized field or class that would normally require the field or class to be initialized will result in a
  * compilation error.
  */
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target({ ElementType.TYPE, ElementType.FIELD })
 @Repeatable(RunTimeInitialized.List.class)
 public @interface RunTimeInitialized {

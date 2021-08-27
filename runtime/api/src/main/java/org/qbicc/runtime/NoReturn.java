@@ -9,6 +9,6 @@ import java.lang.annotation.Target;
  * Indicate that a method does not return.
  */
 @Target(ElementType.METHOD)
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 public @interface NoReturn {
 }

@@ -79,7 +79,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
             CProbe.Builder builder = CProbe.builder();
             // get the element's info
             String name = fieldElement.getName();
-            for (Annotation annotation : fieldElement.getVisibleAnnotations()) {
+            for (Annotation annotation : fieldElement.getInvisibleAnnotations()) {
                 ClassTypeDescriptor desc = annotation.getDescriptor();
                 if (ProbeUtils.processCommonAnnotation(builder, annotation)) {
                     continue;
@@ -88,7 +88,7 @@ public class ConstantDefiningBasicBlockBuilder extends DelegatingBasicBlockBuild
                     name = ((StringAnnotationValue) annotation.getValue("value")).getString();
                 }
             }
-            for (Annotation annotation : fieldElement.getEnclosingType().getVisibleAnnotations()) {
+            for (Annotation annotation : fieldElement.getEnclosingType().getInvisibleAnnotations()) {
                 ProbeUtils.processCommonAnnotation(builder, annotation);
             }
             // todo: recursively process enclosing types (requires InnerClasses support)

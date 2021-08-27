@@ -18,7 +18,7 @@ import java.util.function.BooleanSupplier;
  * could affect other aspects of the original initialization, and so to remove them would cause hard-to-understand
  * behavior changes.
  */
-@Retention(RetentionPolicy.RUNTIME)
+@Retention(RetentionPolicy.CLASS)
 @Target({ ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD })
 @Repeatable(Replace.List.class)
 public @interface Replace {
