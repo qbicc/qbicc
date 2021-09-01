@@ -8,6 +8,7 @@ import java.util.List;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.driver.Driver;
 import org.qbicc.driver.Phase;
+import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEarlyTermination;
@@ -17,6 +18,7 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Variable;
@@ -34,6 +36,7 @@ import org.qbicc.plugin.intrinsics.Intrinsics;
 import org.qbicc.plugin.intrinsics.StaticIntrinsic;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.serialization.BuildtimeHeap;
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.BooleanType;
@@ -762,6 +765,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor typeIdDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$type_id");
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor clsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor jlsDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor uint8Desc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/stdc/Stdint$uint8_t");
         ClassTypeDescriptor pthreadMutexDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_mutex_t_ptr");
         ClassTypeDescriptor valsDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/Values");
@@ -773,12 +777,16 @@ public final class CoreIntrinsics {
         MethodDescriptor typeIdTypeIdBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(typeIdDesc, typeIdDesc));
         MethodDescriptor typeIdVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(typeIdDesc));
         MethodDescriptor typeIdIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(typeIdDesc));
-        MethodDescriptor typeIdClsDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(typeIdDesc));
+        MethodDescriptor typeIdClsDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(typeIdDesc, uint8Desc));
         MethodDescriptor clsTypeId = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of(clsDesc));
         MethodDescriptor clsUint8 = MethodDescriptor.synthesize(classContext, uint8Desc, List.of(clsDesc));
         MethodDescriptor IntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
         MethodDescriptor emptyTotypeIdDesc = MethodDescriptor.synthesize(classContext, typeIdDesc, List.of());
         MethodDescriptor typeIdIntToByteDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.B, List.of(typeIdDesc, BaseTypeDescriptor.I));
+        MethodDescriptor createClassDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(jlsDesc, typeIdDesc, uint8Desc));
+        MethodDescriptor clsClsDesc = MethodDescriptor.synthesize(classContext, clsDesc, List.of(clsDesc));
+        MethodDescriptor clsClsBooleanDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(clsDesc, clsDesc));
+        MethodDescriptor casDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, BaseTypeDescriptor.J));
 
         StaticIntrinsic typeOf = (builder, target, arguments) ->
             builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
@@ -850,7 +858,12 @@ public final class CoreIntrinsics {
             ValueType refArray = layout.getArrayLoadedTypeDefinition("[ref").getType();
             return builder.isEq(arguments.get(0), lf.literalOfType(refArray));
         };
+
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_reference_array", typeIdBooleanDesc, isRefArray);
+
+        StaticIntrinsic getRefArrayTypeId = (builder, target, arguments) ->
+            ctxt.getLiteralFactory().literalOf(layout.getRefArrayContentField().getEnclosingType().load().getTypeId());
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_reference_array_typeid", emptyTotypeIdDesc, getRefArrayTypeId);
 
         StaticIntrinsic doesImplement = (builder, target, arguments) -> {
             Value objTypeId = arguments.get(0);
@@ -875,12 +888,68 @@ public final class CoreIntrinsics {
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), layout.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_type_id_from_class", clsTypeId, getTypeIdFromClass);
 
+        MethodElement getOrCreateArrayClass = ctxt.getOMHelperMethod("get_or_create_class_for_refarray");
         StaticIntrinsic getClassFromTypeId = (builder, target, arguments) -> {
+            /** Pseudo code for this intrinsic:
+             *    Class<?> componentClass = qbicc_jlc_lookup_table[typeId];
+             *    Class<?> result = componentClass;
+             *    if (dims > 0) {
+             *        result = get_or_create_class_for_refarray(componentClass, dims);
+             *    }
+             *    return result;
+             */
             Value typeId = arguments.get(0);
+            Value dims = arguments.get(1);
+            BlockLabel trueBranch = new BlockLabel();
+            BlockLabel fallThrough = new BlockLabel();
+
             GlobalVariableElement classArrayGlobal = buildtimeHeap.getAndRegisterGlobalClassArray(builder.getCurrentElement());
-            return builder.load(builder.elementOf(builder.globalVariable(classArrayGlobal), typeId), MemoryAtomicityMode.UNORDERED);
+            Value componentClass = builder.load(builder.elementOf(builder.globalVariable(classArrayGlobal), typeId), MemoryAtomicityMode.UNORDERED);
+            Value result = componentClass;
+            PhiValue phi = builder.phi(result.getType(), fallThrough);
+
+            BasicBlock from = builder.if_(builder.isGt(dims, ctxt.getLiteralFactory().literalOf(0)), trueBranch, fallThrough); // if (dimensions > 0)
+            phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
+
+            builder.begin(trueBranch); // true; create Class for array reference
+            result = builder.getFirstBuilder().call(builder.staticMethod(getOrCreateArrayClass), List.of(componentClass, dims));
+            from = builder.goto_(fallThrough);
+            phi.setValueForBlock(ctxt, builder.getCurrentElement(), from, result);
+            builder.begin(fallThrough);
+            return phi;
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_class_from_type_id", typeIdClsDesc, getClassFromTypeId);
+
+        StaticIntrinsic getArrayClassOf = (builder, target, arguments) ->
+            builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), CoreClasses.get(ctxt).getArrayClassField()), MemoryAtomicityMode.UNORDERED);
+        intrinsics.registerIntrinsic(objModDesc, "get_array_class_of", clsClsDesc, getArrayClassOf);
+
+        StaticIntrinsic setArrayClass = (builder, target, arguments) -> {
+            LoadedTypeDefinition jlc = classContext.findDefinedType("java/lang/Class").load();
+            Value expr = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), CoreClasses.get(ctxt).getArrayClassField()), MemoryAtomicityMode.UNORDERED);
+            Value expect = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlc.getType().getReference());
+            Value update = arguments.get(1);
+            ValueHandle valuesCompareAndSwap = builder.staticMethod(valsDesc, "compareAndSwap", casDesc);
+            return builder.call(valuesCompareAndSwap, List.of(expr, expect, update));
+        };
+        intrinsics.registerIntrinsic(objModDesc, "set_array_class", clsClsBooleanDesc, setArrayClass);
+
+
+        FieldElement jlcName = classContext.findDefinedType("java/lang/Class").load().findField("name");
+
+        StaticIntrinsic createClass = (builder, target, arguments) -> {
+            ClassObjectType jlcType = (ClassObjectType) ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load().getType();
+            Value instance = builder.new_(jlcType);
+            ValueHandle instanceHandle = builder.referenceHandle(instance);
+            ValueHandle handle = builder.instanceFieldOf(instanceHandle, jlcName);
+            builder.store(handle, arguments.get(0), handle.getDetectedMode());
+            handle = builder.instanceFieldOf(instanceHandle, CoreClasses.get(ctxt).getClassTypeIdField());
+            builder.store(handle, arguments.get(1), handle.getDetectedMode());
+            handle = builder.instanceFieldOf(builder.referenceHandle(instance), CoreClasses.get(ctxt).getClassDimensionField());
+            builder.store(handle, arguments.get(2), handle.getDetectedMode());
+            return instance;
+        };
+        intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "create_class", createClassDesc, createClass);
 
         StaticIntrinsic getNumberOfTypeIds = (builder, target, arguments) -> lf.literalOf(tables.get_number_of_typeids());
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_number_of_typeids", IntDesc, getNumberOfTypeIds);
@@ -992,7 +1061,6 @@ public final class CoreIntrinsics {
 
         // boolean set_nativeObjectMonitor(Object object, PThread.pthread_mutex_t_ptr nom);
         MethodDescriptor setNomDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of(objDesc, pthreadMutexDesc));
-        MethodDescriptor casDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, Collections.nCopies(3, BaseTypeDescriptor.J));
         StaticIntrinsic setNom = (builder, target, arguments) -> {
             Value expr = builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), nativeObjectMonitorField), MemoryAtomicityMode.NONE);
             Value expect = ctxt.getLiteralFactory().literalOf(0L);

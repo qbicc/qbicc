@@ -35,7 +35,7 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
     }
 
     int calcHashCode() {
-        return Objects.hash(ClassOf.class, input);
+        return Objects.hash(ClassOf.class, input, dimensions);
     }
 
     @Override
@@ -49,6 +49,7 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
 
     public boolean equals(final ClassOf other) {
         return this == other || other != null
-            && input.equals(other.input);
+            && input.equals(other.input)
+            && dimensions.equals(other.dimensions);
     }
 }

@@ -3,6 +3,7 @@ package org.qbicc.runtime.main;
 import org.qbicc.runtime.CNative;
 import org.qbicc.runtime.NoSideEffects;
 import org.qbicc.runtime.stdc.Stddef;
+import org.qbicc.runtime.stdc.Stdint;
 
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.PThread.*;
@@ -106,11 +107,8 @@ public final class VMHelpers {
 
     // TODO: mark this with a "NoInline" annotation
     @NoSideEffects
-    static Class<?> classof_from_typeid(type_id typeId, uint8_t dims) {
-        if (ObjectModel.is_reference_array(typeId)) {
-            throw new UnsupportedOperationException("Attempted to get java.lang.Class instance for the [ref typeId");
-        }
-        return ObjectModel.get_class_from_type_id(typeId);
+    static Class<?> classof_from_typeid(type_id typeId, uint8_t dimensions) {
+        return ObjectModel.get_class_from_type_id(typeId, dimensions);
     }
 
     // TODO: mark this with a "NoInline" annotation

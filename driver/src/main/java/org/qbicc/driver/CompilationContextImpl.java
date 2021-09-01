@@ -203,6 +203,19 @@ final class CompilationContextImpl implements CompilationContext {
         return helpers.getMethod(idx);
     }
 
+    public MethodElement getOMHelperMethod(String name) {
+        DefinedTypeDefinition dtd = bootstrapClassContext.findDefinedType("org/qbicc/runtime/main/ObjectModel");
+        if (dtd == null) {
+            error("Can't find runtime library class: " + "org/qbicc/runtime/main/ObjectModel");
+        }
+        LoadedTypeDefinition helpers = dtd.load();
+        int idx = helpers.findMethodIndex(e -> name.equals(e.getName()));
+        if (idx == -1) {
+            error("Can't find the runtime helper method %s", name);
+        }
+        return helpers.getMethod(idx);
+    }
+
     public void enqueue(final ExecutableElement element) {
         Set<ExecutableElement> allowedSet = this.allowedSet;
         if (allowedSet != null && ! allowedSet.contains(element)) {
