@@ -35,13 +35,15 @@ public class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Nod
     public Value visit(Node.Copier param, New original) {
         final BasicBlockBuilder bbb = param.getBlockBuilder();
         if (EscapeAnalysisState.get(ctxt).isNotEscapingMethod(original, bbb.getCurrentElement())) {
-            return stackAllocate(original.getClassObjectType(), bbb);
+            return stackAllocate(original, bbb);
         }
 
         return NodeVisitor.Delegating.super.visit(param, original);
     }
 
-    private Value stackAllocate(ClassObjectType type, BasicBlockBuilder bbb) {
+    private Value stackAllocate(New new_, BasicBlockBuilder bbb) {
+        ClassObjectType type = new_.getClassObjectType();
+
         // Copied from NoGcBasicBlockBuilder
         Layout layout = Layout.get(ctxt);
         Layout.LayoutInfo info = layout.getInstanceLayoutInfo(type.getDefinition());
