@@ -18,7 +18,7 @@ import org.qbicc.type.definition.element.ExecutableElement;
 public final class EscapeAnalysisState {
     private static final AttachmentKey<EscapeAnalysisState> KEY = new AttachmentKey<>();
     private final Map<ExecutableElement, List<Call>> callGraph = new ConcurrentHashMap<>();
-    private final Map<ExecutableElement, ConnectionGraph> connectionGraphs = new HashMap<>();
+    private final Map<ExecutableElement, ConnectionGraph> connectionGraphs = new ConcurrentHashMap<>();
 
     void trackMethod(ExecutableElement element, ConnectionGraph connectionGraph) {
         connectionGraphs.put(element, connectionGraph);
