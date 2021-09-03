@@ -11,6 +11,7 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.CompoundType;
@@ -18,7 +19,7 @@ import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.FieldElement;
 
-public class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
+public final class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Node.Copier, Value, Node, BasicBlock, ValueHandle> {
     private final CompilationContext ctxt;
     private final NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle> delegate;
 
@@ -77,7 +78,9 @@ public class EscapeAnalysisOptimizeVisitor implements NodeVisitor.Delegating<Nod
 
     private void initializeObjectHeader(ValueHandle oopHandle, Layout layout, ObjectType objType, BasicBlockBuilder bbb) {
         FieldElement typeId = layout.getObjectTypeIdField();
-        bbb.store(bbb.instanceFieldOf(oopHandle, typeId),  ctxt.getLiteralFactory().literalOfType(objType), MemoryAtomicityMode.UNORDERED);
+        bbb.store(bbb.instanceFieldOf(oopHandle, typeId),  ctxt.getLiteralFactory().literalOfType(objType), MemoryAtomicityMode.NONE);
+        FieldElement nativeObjectMonitor = CoreClasses.get(ctxt).getObjectNativeObjectMonitorField();
+        bbb.store(bbb.instanceFieldOf(oopHandle, nativeObjectMonitor), ctxt.getLiteralFactory().literalOf(0L), MemoryAtomicityMode.NONE);
     }
 
 }
