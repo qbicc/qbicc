@@ -1,6 +1,6 @@
 package org.qbicc.plugin.opt.ea;
 
-public enum EscapeValue {
+enum EscapeValue {
 
     GLOBAL_ESCAPE, ARG_ESCAPE, NO_ESCAPE;
 
@@ -19,6 +19,9 @@ public enum EscapeValue {
     EscapeValue merge(EscapeValue other) {
         if (other.isGlobalEscape())
             return GLOBAL_ESCAPE;
+
+        if (this.isNoEscape())
+            return other;
 
         return this;
     }
