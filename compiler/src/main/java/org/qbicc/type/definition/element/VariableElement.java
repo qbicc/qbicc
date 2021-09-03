@@ -1,5 +1,6 @@
 package org.qbicc.type.definition.element;
 
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
@@ -67,6 +68,9 @@ public abstract class VariableElement extends AnnotatedElement implements NamedE
         ValueType type = this.type;
         if (type == null) {
             type = resolveTypeDescriptor(classContext, typeParameterContext);
+            if (type instanceof ObjectType) {
+                type = ((ObjectType)type).getReference();
+            }
             this.type = type;
         }
         return type;

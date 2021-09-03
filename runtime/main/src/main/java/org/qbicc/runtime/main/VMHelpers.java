@@ -14,6 +14,17 @@ import static org.qbicc.runtime.stdc.Stdlib.*;
  */
 @SuppressWarnings("unused")
 public final class VMHelpers {
+
+    public static Class<?> get_class(Object instance) {
+        type_id typeId = ObjectModel.type_id_of(instance);
+        uint8_t dims = word(0);
+        if (ObjectModel.is_reference_array(typeId)) {
+            typeId = ObjectModel.element_type_id_of(instance);
+            dims = ObjectModel.dimensions_of(instance);
+        }
+        return classof_from_typeid(typeId, dims);
+    }
+
     @NoSideEffects
     public static boolean instanceof_class(Object instance, Class<?> cls) {
         if (instance == null) {
@@ -95,7 +106,7 @@ public final class VMHelpers {
 
     // TODO: mark this with a "NoInline" annotation
     @NoSideEffects
-    static Class<?> classof_from_typeid(type_id typeId) {
+    static Class<?> classof_from_typeid(type_id typeId, uint8_t dims) {
         if (ObjectModel.is_reference_array(typeId)) {
             throw new UnsupportedOperationException("Attempted to get java.lang.Class instance for the [ref typeId");
         }

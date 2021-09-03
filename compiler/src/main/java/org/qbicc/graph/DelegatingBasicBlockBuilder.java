@@ -599,8 +599,8 @@ public class DelegatingBasicBlockBuilder implements BasicBlockBuilder {
         return getDelegate().typeIdOf(valueHandle);
     }
 
-    public Value classOf(final Value typeId) {
-        return getDelegate().classOf(typeId);
+    public Value classOf(final Value typeId, final Value dimensions) {
+        return getDelegate().classOf(typeId, dimensions);
     }
 
 }

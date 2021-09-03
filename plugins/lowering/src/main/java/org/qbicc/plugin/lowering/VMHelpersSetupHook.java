@@ -16,6 +16,7 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("checkcast_typeId"));
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("instanceof_class"));
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("instanceof_typeId"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("get_class"));
 
         // Helpers to create and throw common runtime exceptions
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseAbstractMethodError"));

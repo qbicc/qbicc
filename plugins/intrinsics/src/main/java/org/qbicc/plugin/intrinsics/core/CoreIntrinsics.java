@@ -163,7 +163,7 @@ public final class CoreIntrinsics {
                     throw new BlockEarlyTermination(builder.unreachable());
                 }
             }
-            return builder.classOf(lf.literalOfType(type));
+            return builder.classOf(lf.literalOfType(type), lf.zeroInitializerLiteralOfType(ts.getUnsignedInteger8Type()));
         };
 
         //    static native Class<?> getPrimitiveClass(String name);
@@ -419,13 +419,16 @@ public final class CoreIntrinsics {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
         ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        ClassTypeDescriptor jlcDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
 
         // Object#getClass()Ljava/lang/Class; --> field read of the "typeId" field
-        MethodDescriptor getClassDesc =
-            MethodDescriptor.synthesize(classContext,
-                ClassTypeDescriptor.synthesize(classContext, "java/lang/Class"), List.of());
-        InstanceIntrinsic getClassIntrinsic = (builder, instance, target, arguments) ->
-            builder.classOf(builder.typeIdOf(builder.referenceHandle(instance)));
+        MethodDescriptor getClassDesc = MethodDescriptor.synthesize(classContext, jlcDesc, List.of());
+
+        InstanceIntrinsic getClassIntrinsic = (builder, instance, target, arguments) -> {
+            MethodElement helper = ctxt.getVMHelperMethod("get_class");
+            return builder.getFirstBuilder().call(builder.staticMethod(helper), List.of(instance));
+        };
+
         intrinsics.registerIntrinsic(objDesc, "getClass", getClassDesc, getClassIntrinsic);
 
         // Object#hashCode TODO redo when object headers are set

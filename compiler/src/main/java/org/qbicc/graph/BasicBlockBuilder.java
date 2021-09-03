@@ -261,9 +261,10 @@ public interface BasicBlockBuilder extends Locatable {
      * an upper bound which is a {@link ObjectType}.
      *
      * @param typeId the type ID value
+     * @param dims the dimensions if type ID is for reference array, 0 otherwise
      * @return a non-nullable narrowed reference to the class object for the given type ID value
      */
-    Value classOf(Value typeId);
+    Value classOf(Value typeId, Value dims);
 
     Value truncate(Value value, WordType toType);
 

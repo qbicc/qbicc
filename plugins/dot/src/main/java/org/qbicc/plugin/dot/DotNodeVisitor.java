@@ -856,7 +856,15 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
     }
 
     public String visit(final Appendable param, final ClassOf node) {
-        return node(param, "classOf", node);
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "shape", "circle");
+        attr(param, "label", "classOf");
+        attr(param, "fixedsize", "shape");
+        nl(param);
+        addEdge(param, node, node.getInput(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getDimensions(), EdgeType.VALUE_DEPENDENCY);
+        return name;
     }
 
     public String visit(final Appendable param, final Clone node) {

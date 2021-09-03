@@ -150,9 +150,9 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     }
 
     @Override
-    public Value classOf(Value typeId) {
+    public Value classOf(Value typeId, Value dimensions) {
         MethodElement methodElement = ctxt.getVMHelperMethod("classof_from_typeid");
         ctxt.enqueue(methodElement);
-        return super.classOf(typeId);
+        return super.classOf(typeId, dimensions);
     }
 }

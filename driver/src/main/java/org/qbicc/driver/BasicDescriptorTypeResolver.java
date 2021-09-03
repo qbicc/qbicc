@@ -5,6 +5,7 @@ import java.util.List;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.PhysicalObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.TypeSystem;
@@ -36,7 +37,7 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
         if (definedType == null) {
             return null;
         } else {
-            return definedType.load().getType().getReference();
+            return definedType.load().getType();
         }
     }
 
@@ -61,7 +62,7 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
         } else {
             assert descriptor instanceof ArrayTypeDescriptor;
             ArrayObjectType arrayObjectType = resolveArrayObjectTypeFromDescriptor(descriptor, paramCtxt, signature, visible, invisible);
-            return arrayObjectType.getReference();
+            return arrayObjectType;
         }
      }
 
@@ -88,16 +89,8 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
                 }
             } else if (elemDescriptor instanceof ClassTypeDescriptor) {
                 ValueType elemType = classContext.resolveTypeFromClassName(((ClassTypeDescriptor)elemDescriptor).getPackageName(), ((ClassTypeDescriptor)elemDescriptor).getClassName());
-                if (elemType instanceof ReferenceType) {
-                    ReferenceType refElemType = (ReferenceType) elemType;
-                    if (refElemType.getInterfaceBounds().size() > 0) {
-                        assert refElemType.getInterfaceBounds().size() == 1;
-                        InterfaceObjectType typeDef = refElemType.getInterfaceBounds().iterator().next();
-                        return typeDef.getReferenceArrayObject();
-                    } else {
-                        PhysicalObjectType typeDef = refElemType.getUpperBound();
-                        return typeDef.getReferenceArrayObject();
-                    }
+                if (elemType instanceof ObjectType) {
+                    return ((ObjectType) elemType).getReferenceArrayObject();
                 } else {
                     throw new ResolutionFailedException("Cannot resolve type as array " + descriptor);
                 }
@@ -121,10 +114,16 @@ final class BasicDescriptorTypeResolver implements DescriptorTypeResolver {
         List<TypeSignature> paramSignatures = signature.getParameterTypes();
         TypeParameterContext nestedCtxt = TypeParameterContext.create(paramCtxt, signature);
         ValueType resolvedReturnType = classContext.resolveTypeFromMethodDescriptor(returnType, nestedCtxt, returnTypeSignature, returnTypeVisible, returnTypeInvisible);
+        if (resolvedReturnType instanceof ObjectType) {
+            resolvedReturnType = ((ObjectType) resolvedReturnType).getReference();
+        }
         int cnt = parameterTypes.size();
         ValueType[] resolvedParamTypes = new ValueType[cnt];
         for (int i = 0; i < cnt; i ++) {
             resolvedParamTypes[i] = classContext.resolveTypeFromMethodDescriptor(parameterTypes.get(i), nestedCtxt, paramSignatures.get(i), visible.get(i), invisible.get(i));
+            if (resolvedParamTypes[i] instanceof ObjectType) {
+                resolvedParamTypes[i] = ((ObjectType) resolvedParamTypes[i]).getReference();
+            }
         }
         return classContext.getTypeSystem().getFunctionType(resolvedReturnType, resolvedParamTypes);
     }

@@ -34,7 +34,7 @@ public class SynchronizedMethodBasicBlockBuilder extends DelegatingBasicBlockBui
         ExecutableElement element = getCurrentElement();
         DefinedTypeDefinition enclosing = element.getEnclosingType();
         if (element.isStatic()) {
-            monitor = classOf(ctxt.getLiteralFactory().literalOfType(enclosing.load().getType()));
+            monitor = classOf(ctxt.getLiteralFactory().literalOfType(enclosing.load().getType()), ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getUnsignedInteger8Type()));
         } else {
             monitor = notNull(parameter(enclosing.load().getType().getReference(), "this", 0));
         }
