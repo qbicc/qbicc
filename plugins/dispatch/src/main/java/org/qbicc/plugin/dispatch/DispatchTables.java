@@ -262,9 +262,9 @@ public class DispatchTables {
                     cSection.declareFunction(ameStub, ameImpl.getName(), ameImpl.getType());
                     valueMap.put(itableInfo.getType().getMember(i), lf.bitcastLiteral(ameLiteral, implType.getPointer()));
                 } else {
-                    Function impl = ctxt.getExactFunctionIfExists(methImpl);
+                    Function impl = methImpl.isNative() ? null : ctxt.getExactFunctionIfExists(methImpl);
                     if (impl == null) {
-                        if (RTAInfo.get(ctxt).isInvokableMethod(methImpl)) {
+                        if (!methImpl.isNative() && RTAInfo.get(ctxt).isInvokableMethod(methImpl)) {
                             ctxt.error(methImpl, "Missing method implementation for vtable of %s", cls.getInternalName());
                         } else {
                             MethodElement uleStub = ctxt.getVMHelperMethod("raiseUnsatisfiedLinkError");

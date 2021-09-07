@@ -284,6 +284,18 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
                 return visit(node);
             }
 
+            private Value visit(VirtualMethodElementHandle node) {
+                MethodElement target = node.getExecutable();
+                // Elides check for native method because we don't know the exact target (could be overridden).
+                if (target.isStatic()) {
+                    throwIncompatibleClassChangeError();
+                    throw Assert.unreachableCode();
+                }
+                nullCheck(node.getInstance());
+                // return value unused in this case
+                return null;
+            }
+
             private Value visit(InstanceMethodElementHandle node) {
                 MethodElement target = node.getExecutable();
                 if (target.hasAllModifiersOf(ClassFile.ACC_NATIVE) &&
