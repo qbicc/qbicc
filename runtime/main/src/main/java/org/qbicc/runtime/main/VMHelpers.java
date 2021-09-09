@@ -4,6 +4,8 @@ import org.qbicc.runtime.CNative;
 import org.qbicc.runtime.NoSideEffects;
 import org.qbicc.runtime.stdc.Stddef;
 
+import java.util.function.UnaryOperator;
+
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.PThread.*;
 import static org.qbicc.runtime.stdc.Stdint.*;
@@ -513,4 +515,35 @@ public final class VMHelpers {
         ObjectModel.set_initialized(ObjectModel.type_id_of(o));
     }
 
+    // TODO get this to be exported?
+    public static native void_ptr threadWrapper(void_ptr threadParam);
+
+    @export
+    public static void_ptr startTest(void_ptr testParam) {
+        putchar('$');
+        return testParam;
+    }
+
+    // TODO: mark this with a "NoInline" annotation
+    public static pthread_t_ptr JLT_start0(int mer, function_ptr<UnaryOperator<void_ptr>> runFuncPtr , void_ptr thread) throws Throwable {
+        // TODO once invokedynamic is working for lambda expressions use addr_of_function to fetch the correct function pointer
+        //function_ptr<UnaryOperator<void_ptr>> runFuncPtr = addr_of_function(VMHelpers::threadWrapper);
+
+        printInt(mer);
+
+        /* create pthread */
+        ptr<?> pthreadVoid = malloc(sizeof(pthread_t_ptr.class));
+        if (pthreadVoid.isNull()) {
+            throw new OutOfMemoryError(/*"Allocation failed"*/);
+        }
+        ptr<pthread_t> pthreadPtr = (ptr<pthread_t>) castPtr(pthreadVoid, pthread_t.class);
+
+        int result = pthread_create((pthread_t_ptr) pthreadPtr, (const_pthread_attr_t_ptr)null, runFuncPtr, (void_ptr)null/*thread*/).intValue();
+        if (0 != result) {
+            free(pthreadVoid);
+            throw new InternalError("pthread error code: " + result);
+        }
+
+        return (pthread_t_ptr)pthreadPtr;
+    }
 }

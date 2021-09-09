@@ -48,8 +48,11 @@ public final class CoreClasses {
 
     private final FieldElement objectTypeIdField;
     private final FieldElement objectNativeObjectMonitorField;
+
     private final FieldElement classTypeIdField;
     private final FieldElement classDimensionField;
+
+    private final FieldElement threadNativeThread;
 
     private final FieldElement arrayLengthField;
 
@@ -74,8 +77,10 @@ public final class CoreClasses {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         DefinedTypeDefinition jlcDef = classContext.findDefinedType("java/lang/Class");
+        DefinedTypeDefinition jltDef = classContext.findDefinedType("java/lang/Thread");
         LoadedTypeDefinition jlo = jloDef.load();
         LoadedTypeDefinition jlc = jlcDef.load();
+        LoadedTypeDefinition jlt = jltDef.load();
         final TypeSystem ts = ctxt.getTypeSystem();
 
         // inject a field to hold the object typeId
@@ -125,6 +130,18 @@ public final class CoreClasses {
         field = builder.build();
         jlc.injectField(field);
         classDimensionField = field;
+
+        // inject a field into Thread to reference its native thread
+        builder = FieldElement.builder();
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+        builder.setName("native_thread");
+        builder.setEnclosingType(jltDef);
+        builder.setDescriptor(BaseTypeDescriptor.V);
+        builder.setSignature(BaseTypeSignature.V);
+        builder.setType(ts.getSignedInteger64Type());
+        field = builder.build();
+        jlt.injectField(field);
+        threadNativeThread = field;
 
         // now define classes for arrays
         // todo: assign special type ID values to array types
@@ -374,6 +391,10 @@ public final class CoreClasses {
 
     public FieldElement getClassDimensionField() {
         return classDimensionField;
+    }
+
+    public FieldElement getThreadNativeThread() {
+        return threadNativeThread;
     }
 
     public LoadedTypeDefinition getClassTypeDefinition() {

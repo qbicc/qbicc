@@ -104,6 +104,10 @@ public final class LLVM {
         return new PtrToIntConstant(val, fromType, toType);
     }
 
+    public static LLValue functionParameterConstant(String name) {
+        return new FunctionParameterConstant(name);
+    }
+
     public static DIExpression diExpression() {
         return new DIExpressionImpl();
     }

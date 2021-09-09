@@ -139,5 +139,17 @@ public class NoGcBasicBlockBuilder extends DelegatingBasicBlockBuilder {
         store(instanceFieldOf(oopHandle, typeId),  ctxt.getLiteralFactory().literalOfType(objType), MemoryAtomicityMode.NONE);
         FieldElement nativeObjectMonitor = CoreClasses.get(ctxt).getObjectNativeObjectMonitorField();
         store(instanceFieldOf(oopHandle, nativeObjectMonitor), ctxt.getLiteralFactory().literalOf(0L), MemoryAtomicityMode.NONE);
+
+        // TODO this actually needed?
+        /* initialize fields for java.lang.Thread objects */
+        if (objType instanceof ClassObjectType) {
+            ClassObjectType type = (ClassObjectType) objType;
+            String name = type.getDefinition().getInternalName();
+            if (name.equals("java/lang/Thread")) {
+                FieldElement nativeThread = CoreClasses.get(ctxt).getThreadNativeThread();
+                store(instanceFieldOf(oopHandle, nativeThread), ctxt.getLiteralFactory().literalOf(0L), MemoryAtomicityMode.NONE);
+
+            }
+        }
     }
 }

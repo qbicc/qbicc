@@ -34,5 +34,9 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
 
         // class initialization
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("initialize_class"));
+
+        // threads
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("JLT_start0"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("threadWrapper"));
     }
 }

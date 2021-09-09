@@ -197,4 +197,12 @@ public class ObjectModel {
      * @return true if successful
      */
     public static native boolean set_nativeObjectMonitor(Object reference, PThread.pthread_mutex_t_ptr nom);
+
+    /**
+     * Get the native thread (phread) for the referenced java.lang.Thread object.
+     *
+     * @param reference the object reference (must not be {@code null})
+     * @return pthread of the Thread
+     */
+    public static native PThread.pthread_t_ptr get_threadNativeThread(Thread reference);
 }
