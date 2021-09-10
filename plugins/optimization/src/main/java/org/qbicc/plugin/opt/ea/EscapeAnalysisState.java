@@ -20,6 +20,10 @@ public final class EscapeAnalysisState {
     private final Map<ExecutableElement, List<Call>> callGraph = new ConcurrentHashMap<>();
     private final Map<ExecutableElement, ConnectionGraph> connectionGraphs = new ConcurrentHashMap<>();
 
+    ConnectionGraph getConnectionGraph(ExecutableElement element) {
+        return connectionGraphs.get(element);
+    }
+
     void trackMethod(ExecutableElement element, ConnectionGraph connectionGraph) {
         connectionGraphs.put(element, connectionGraph);
     }
@@ -30,7 +34,7 @@ public final class EscapeAnalysisState {
 
     boolean isNotEscapingMethod(New new_, ExecutableElement element) {
         final ConnectionGraph connectionGraph = connectionGraphs.get(element);
-        return connectionGraph != null && connectionGraph.isNoEscape(new_);
+        return connectionGraph != null && EscapeValue.isNoEscape(connectionGraph.getEscapeValue(new_));
     }
 
     static EscapeAnalysisState get(CompilationContext ctxt) {

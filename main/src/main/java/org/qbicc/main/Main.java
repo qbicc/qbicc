@@ -87,6 +87,7 @@ import org.qbicc.plugin.opt.InliningBasicBlockBuilder;
 import org.qbicc.plugin.opt.PhiOptimizerVisitor;
 import org.qbicc.plugin.opt.SimpleOptBasicBlockBuilder;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisIntraMethodBuilder;
+import org.qbicc.plugin.opt.ea.ConnectionGraphDotGenerator;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisOptimizeVisitor;
 import org.qbicc.plugin.opt.ea.EscapeAnalysisState;
 import org.qbicc.plugin.reachability.RTAInfo;
@@ -343,6 +344,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ANALYZE, RTAInfo::forceCoreClassesReachable);
                                 builder.addElementHandler(Phase.ANALYZE, new ElementBodyCopier());
                                 builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new DotGenerator(Phase.ANALYZE, graphGenConfig)));
+                                builder.addElementHandler(Phase.ANALYZE, new ElementVisitorAdapter(new ConnectionGraphDotGenerator()));
                                 if (optGotos) {
                                     builder.addCopyFactory(Phase.ANALYZE, GotoRemovingVisitor::new);
                                 }

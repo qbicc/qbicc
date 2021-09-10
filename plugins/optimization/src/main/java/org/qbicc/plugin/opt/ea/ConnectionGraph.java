@@ -30,7 +30,7 @@ import org.qbicc.type.generic.TypeParameterContext;
 import org.qbicc.type.generic.TypeSignature;
 
 final class ConnectionGraph {
-    private final Map<Node, Value> pointsToEdges = new HashMap<>(); // solid (P) edges
+    private final Map<Node, New> pointsToEdges = new HashMap<>(); // solid (P) edges
     private final Map<Node, ValueHandle> deferredEdges = new HashMap<>(); // dashed (D) edges
     private final Map<Value, Collection<InstanceFieldOf>> fieldEdges = new HashMap<>(); // solid (F) edges
 
@@ -98,8 +98,17 @@ final class ConnectionGraph {
         addDeferredEdgeIfAbsent(from, to);
     }
 
-    boolean isNoEscape(New new_) {
-        return EscapeValue.isNoEscape(escapeValues.get(new_));
+    EscapeValue getEscapeValue(Node node) {
+        return escapeValues.get(node);
+    }
+
+     Collection<InstanceFieldOf> getFields(New new_) {
+         final Collection<InstanceFieldOf> fields = fieldEdges.get(new_);
+         return Objects.isNull(fields) ? Collections.emptyList() : fields;
+    }
+
+    ValueHandle getDeferred(Node node) {
+        return deferredEdges.get(node);
     }
 
     void propagateArgEscape() {
@@ -128,7 +137,7 @@ final class ConnectionGraph {
     private void updateNodes(Node calleeNode, Collection<Node> mapsToNode, ConnectionGraph calleeCG) {
         for (Value calleePointed : calleeCG.getPointsTo(calleeNode)) {
             for (Node callerNode : mapsToNode) {
-                final Collection<Value> allCallerPointed = getPointsTo(callerNode);
+                final Collection<New> allCallerPointed = getPointsTo(callerNode);
                 if (allCallerPointed.isEmpty()) {
                     // TODO do I need to insert a new node as the target for callerNode?
                 }
@@ -156,17 +165,17 @@ final class ConnectionGraph {
     /**
      * PointsTo(p) returns the set of of nodes that are immediately pointed by p.
      */
-    private Collection<Value> getPointsTo(Node node) {
+    Collection<New> getPointsTo(Node node) {
         // TODO do deferred need to be taken into account? Shouldn't ByPass have removed them?
 
         final ValueHandle deferredEdge = deferredEdges.get(node);
         if (deferredEdge != null) {
-            final Value pointedByDeferred = pointsToEdges.get(deferredEdge);
+            final New pointedByDeferred = pointsToEdges.get(deferredEdge);
             if (pointedByDeferred != null)
                 return List.of(pointedByDeferred);
         }
 
-        final Value pointedDirectly = pointsToEdges.get(node);
+        final New pointedDirectly = pointsToEdges.get(node);
         if (pointedDirectly != null) {
             return List.of(pointedDirectly);
         }
