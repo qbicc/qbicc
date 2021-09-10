@@ -298,7 +298,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor vmHelpersDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VMHelpers");
         ClassTypeDescriptor pthreadPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/posix/PThread$pthread_t_ptr");
         ClassTypeDescriptor voidPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$void_ptr");
-        ClassTypeDescriptor functionPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$function_ptr");
+        ClassTypeDescriptor voidUnaryfunctionPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$void_ptr_unaryoperator_function_ptr");
 
         MethodDescriptor returnJlt = MethodDescriptor.synthesize(classContext, jltDesc, List.of());
         MethodDescriptor voidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
@@ -352,8 +352,8 @@ public final class CoreIntrinsics {
             Literal functionParamLiteral = ctxt.getLiteralFactory().functionLiteralOf(me.getName(), me.getType());
 
             /* start pthread in VMHelpers */
-            MethodDescriptor JLT_start0Desc = MethodDescriptor.synthesize(classContext, pthreadPtrDesc, List.of(BaseTypeDescriptor.I, functionPtrDesc, voidPtrDesc));
-            Value pthreadNative = builder.call(builder.staticMethod(vmHelpersDesc, "JLT_start0", JLT_start0Desc), List.of(ctxt.getLiteralFactory().literalOf(0), functionParamLiteral, threadVoidPtr));
+            MethodDescriptor JLT_start0Desc = MethodDescriptor.synthesize(classContext, pthreadPtrDesc, List.of(voidUnaryfunctionPtrDesc, voidPtrDesc));
+            Value pthreadNative = builder.call(builder.staticMethod(vmHelpersDesc, "JLT_start0", JLT_start0Desc), List.of(functionParamLiteral, threadVoidPtr));
 
             /* store native pthread in java.lang.Thread object. start0 is synchronized on the instance. */
 //            FieldElement nativeThreadField = CoreClasses.get(ctxt).getThreadNativeThread();

@@ -525,11 +525,9 @@ public final class VMHelpers {
     }
 
     // TODO: mark this with a "NoInline" annotation
-    public static pthread_t_ptr JLT_start0(int mer, function_ptr<UnaryOperator<void_ptr>> runFuncPtr , void_ptr thread) throws Throwable {
+    public static pthread_t_ptr JLT_start0(void_ptr_unaryoperator_function_ptr runFuncPtr , void_ptr thread) throws Throwable {
         // TODO once invokedynamic is working for lambda expressions use addr_of_function to fetch the correct function pointer
         //function_ptr<UnaryOperator<void_ptr>> runFuncPtr = addr_of_function(VMHelpers::threadWrapper);
-
-        printInt(mer);
 
         /* create pthread */
         ptr<?> pthreadVoid = malloc(sizeof(pthread_t_ptr.class));
