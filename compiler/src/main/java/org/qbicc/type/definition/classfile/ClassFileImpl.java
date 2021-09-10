@@ -7,6 +7,7 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.Location;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
@@ -16,11 +17,11 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.schedule.Schedule;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.ClassFileUtil;
 import org.qbicc.type.definition.DefineFailedException;
 import org.qbicc.type.definition.DefinedTypeDefinition;
@@ -1429,11 +1430,19 @@ final class ClassFileImpl extends AbstractBufferBacked implements ClassFile, Enc
             return element.getEnclosingType().load().getType().getReference();
         } else if (viTag == 7) { // object
             int cpIdx = sm.getShort() & 0xffff;
-            return getTypeConstant(cpIdx, TypeParameterContext.of(element));
+            ValueType type = getTypeConstant(cpIdx, TypeParameterContext.of(element));
+            if (type instanceof ObjectType) {
+                return ((ObjectType)type).getReference();
+            }
+            return type;
         } else if (viTag == 8) { // uninitialized object
             int newIdx = sm.getShort() & 0xffff;
             int cpIdx = byteCode.getShort(newIdx + 1) & 0xffff;
-            return getTypeConstant(cpIdx, TypeParameterContext.of(element));
+            ValueType type = getTypeConstant(cpIdx, TypeParameterContext.of(element));
+            if (type instanceof ObjectType) {
+                return ((ObjectType)type).getReference();
+            }
+            return type;
         } else {
             throw new IllegalStateException("Invalid variable info tag " + viTag);
         }

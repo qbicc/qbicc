@@ -30,9 +30,12 @@ import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.BooleanType;
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.PoisonType;
+import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
@@ -230,7 +233,8 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
                 if (exTypeIdx == 0) {
                     exType = throwable.load().getType().getReference();
                 } else {
-                    exType = (ReferenceType) getClassFile().getTypeConstant(exTypeIdx, TypeParameterContext.of(gf.getCurrentElement()));
+                    ObjectType objType = (ObjectType) getClassFile().getTypeConstant(exTypeIdx, TypeParameterContext.of(gf.getCurrentElement()));
+                    exType = objType.getReference();
                 }
                 BlockLabel block = getBlockForIndexIfExists(pc);
                 boolean single = block == null;
@@ -395,10 +399,21 @@ final class MethodParser implements BasicBlockBuilder.ExceptionHandlerPolicy {
         return value;
     }
 
+    Literal convertToBaseTypeLiteral(ReferenceArrayObjectType type) {
+        ObjectType baseType = type.getLeafElementType();
+        return ctxt.getLiteralFactory().literalOfType(baseType);
+    }
+
     Value getConstantValue(int cpIndex, TypeParameterContext paramCtxt) {
         Literal literal = getClassFile().getConstantValue(cpIndex, paramCtxt);
         if (literal instanceof TypeLiteral) {
-            return gf.classOf(literal);
+            int dims = 0;
+            ValueType type = ((TypeLiteral)literal).getValue();
+            if (type instanceof ReferenceArrayObjectType) {
+                literal = convertToBaseTypeLiteral((ReferenceArrayObjectType)type);
+                dims = ((ReferenceArrayObjectType)type).getDimensionCount();
+            }
+            return gf.classOf(literal, ctxt.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), dims));
         } else {
             return literal;
         }

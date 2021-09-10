@@ -47,6 +47,8 @@ public interface CompilationContext extends DiagnosticContext {
 
     MethodElement getVMHelperMethod(String helperName);
 
+    MethodElement getOMHelperMethod(String helperName);
+
     void enqueue(ExecutableElement element);
 
     boolean wasEnqueued(ExecutableElement element);

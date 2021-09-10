@@ -6,7 +6,7 @@ import org.qbicc.type.definition.LoadedTypeDefinition;
 import java.util.function.Consumer;
 
 /**
- * Unconditionally register VMHelper methods that we may not actually refer to until lowering.
+ * Unconditionally register VMHelper or ObjectModel methods that we may not actually refer to until lowering.
  */
 public class VMHelpersSetupHook implements Consumer<CompilationContext> {
     public void accept(final CompilationContext ctxt) {
@@ -16,6 +16,8 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("checkcast_typeId"));
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("instanceof_class"));
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("instanceof_typeId"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("get_class"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("classof_from_typeid"));
 
         // Helpers to create and throw common runtime exceptions
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("raiseAbstractMethodError"));
@@ -34,5 +36,8 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
 
         // class initialization
         ctxt.registerEntryPoint(ctxt.getVMHelperMethod("initialize_class"));
+
+        // helper to create j.l.Class instance of an array class at runtime
+        ctxt.registerEntryPoint(ctxt.getOMHelperMethod("get_or_create_class_for_refarray"));
     }
 }

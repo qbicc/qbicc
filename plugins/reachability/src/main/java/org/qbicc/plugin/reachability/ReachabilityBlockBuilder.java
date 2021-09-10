@@ -2,6 +2,7 @@ package org.qbicc.plugin.reachability;
 
 import java.util.List;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
@@ -16,9 +17,12 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
 import org.qbicc.graph.VirtualMethodElementHandle;
+import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -150,9 +154,14 @@ public class ReachabilityBlockBuilder extends DelegatingBasicBlockBuilder implem
     }
 
     @Override
-    public Value classOf(Value typeId) {
+    public Value classOf(Value typeId, Value dimensions) {
         MethodElement methodElement = ctxt.getVMHelperMethod("classof_from_typeid");
         ctxt.enqueue(methodElement);
-        return super.classOf(typeId);
+        Assert.assertTrue(typeId instanceof TypeLiteral);
+        TypeLiteral typeLiteral = (TypeLiteral)typeId;
+        if (typeLiteral.getValue() instanceof ClassObjectType) {
+            info.processClassInitialization(((ClassObjectType)typeLiteral.getValue()).getDefinition().load());
+        }
+        return super.classOf(typeId, dimensions);
     }
 }

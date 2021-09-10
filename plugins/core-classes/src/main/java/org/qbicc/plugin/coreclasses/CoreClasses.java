@@ -50,6 +50,7 @@ public final class CoreClasses {
     private final FieldElement objectNativeObjectMonitorField;
     private final FieldElement classTypeIdField;
     private final FieldElement classDimensionField;
+    private final FieldElement arrayClassField;
 
     private final FieldElement arrayLengthField;
 
@@ -74,6 +75,7 @@ public final class CoreClasses {
         ClassContext classContext = ctxt.getBootstrapClassContext();
         DefinedTypeDefinition jloDef = classContext.findDefinedType("java/lang/Object");
         DefinedTypeDefinition jlcDef = classContext.findDefinedType("java/lang/Class");
+        ClassTypeDescriptor jclDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         LoadedTypeDefinition jlo = jloDef.load();
         LoadedTypeDefinition jlc = jlcDef.load();
         final TypeSystem ts = ctxt.getTypeSystem();
@@ -125,6 +127,18 @@ public final class CoreClasses {
         field = builder.build();
         jlc.injectField(field);
         classDimensionField = field;
+
+        // now inject a field of type java/lang/Class into Class to hold reference to array class of this class
+        builder = FieldElement.builder();
+        builder.setModifiers(ClassFile.ACC_PRIVATE | ClassFile.ACC_FINAL | ClassFile.I_ACC_NO_REFLECT | ClassFile.I_ACC_NO_RESOLVE);
+        builder.setName("arrayClass");
+        builder.setEnclosingType(jlcDef);
+        builder.setDescriptor(jclDesc);
+        builder.setSignature(TypeSignature.synthesize(classContext, jclDesc));
+        builder.setType(jlc.getClassType().getReference());
+        field = builder.build();
+        jlc.injectField(field);
+        arrayClassField = field;
 
         // now define classes for arrays
         // todo: assign special type ID values to array types
@@ -375,6 +389,8 @@ public final class CoreClasses {
     public FieldElement getClassDimensionField() {
         return classDimensionField;
     }
+
+    public FieldElement getArrayClassField() { return arrayClassField; }
 
     public LoadedTypeDefinition getClassTypeDefinition() {
         return classTypeIdField.getEnclosingType().load();

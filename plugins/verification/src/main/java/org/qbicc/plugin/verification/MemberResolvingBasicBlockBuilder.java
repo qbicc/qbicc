@@ -153,15 +153,15 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
         } else if (value instanceof UndefinedLiteral) {
             // it may be something we can't really cast.
             return ctxt.getLiteralFactory().undefinedLiteralOfType(castType);
-        } else if (castType instanceof ReferenceType) {
-            ReferenceType referenceType = (ReferenceType) castType;
-            ObjectType toType = referenceType.getUpperBound();
+        } else if (castType instanceof ObjectType) {
+            ReferenceType refType = ((ObjectType)castType).getReference();
+            ObjectType toType = refType.getUpperBound();
             int toDimensions = 0;
             if (toType instanceof ReferenceArrayObjectType) {
                 toDimensions = ((ReferenceArrayObjectType) toType).getDimensionCount();
                 toType = ((ReferenceArrayObjectType) toType).getLeafElementType();
             }
-            return checkcast(value, cc.getLiteralFactory().literalOfType(toType), cc.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), toDimensions), CheckCast.CastType.Cast, referenceType);
+            return checkcast(value, cc.getLiteralFactory().literalOfType(toType), cc.getLiteralFactory().literalOf(ctxt.getTypeSystem().getUnsignedInteger8Type(), toDimensions), CheckCast.CastType.Cast, refType);
         } else if (castType instanceof WordType) {
             // A checkcast in the bytecodes, but it is actually a WordType coming from some native magic...just bitcast it.
             WordType toType = (WordType) castType;
@@ -204,11 +204,8 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value new_(final ClassTypeDescriptor desc) {
         ClassContext cc = getClassContext();
         ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
-        if (type instanceof ReferenceType) {
-            ObjectType upperBound = ((ReferenceType) type).getUpperBound();
-            if (upperBound instanceof ClassObjectType) {
-                return super.new_((ClassObjectType) upperBound);
-            }
+        if (type instanceof ClassObjectType) {
+            return super.new_((ClassObjectType) type);
         }
         return super.new_(desc);
     }
@@ -216,11 +213,8 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value newArray(final ArrayTypeDescriptor desc, final Value size) {
         ClassContext cc = getClassContext();
         ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
-        if (type instanceof ReferenceType) {
-            ObjectType upperBound = ((ReferenceType) type).getUpperBound();
-            if (upperBound instanceof ArrayObjectType) {
-                return super.newArray((ArrayObjectType) upperBound, size);
-            }
+        if (type instanceof ArrayObjectType) {
+            return super.newArray((ArrayObjectType) type, size);
         } else if (type instanceof ArrayType) {
             // it's a native array
             return stackAllocate(((ArrayType) type).getElementType(), size, ctxt.getLiteralFactory().literalOf(1));
@@ -231,11 +225,8 @@ public class MemberResolvingBasicBlockBuilder extends DelegatingBasicBlockBuilde
     public Value multiNewArray(final ArrayTypeDescriptor desc, final List<Value> dimensions) {
         ClassContext cc = getClassContext();
         ValueType type = cc.resolveTypeFromDescriptor(desc, TypeParameterContext.of(getCurrentElement()), TypeSignature.synthesize(cc, desc), TypeAnnotationList.empty(), TypeAnnotationList.empty());
-        if (type instanceof ReferenceType) {
-            ObjectType upperBound = ((ReferenceType) type).getUpperBound();
-            if (upperBound instanceof ArrayObjectType) {
-                return super.multiNewArray((ArrayObjectType) upperBound, dimensions);
-            }
+        if (type instanceof ArrayObjectType) {
+            return super.multiNewArray((ArrayObjectType) type, dimensions);
         }
         return super.multiNewArray(desc, dimensions);
     }

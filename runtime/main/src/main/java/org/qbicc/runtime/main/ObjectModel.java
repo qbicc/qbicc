@@ -28,7 +28,97 @@ public class ObjectModel {
     /**
      * Get the java.lang.Class instance for the type ID.
      */
-    public static native Class<?> get_class_from_type_id(CNative.type_id typeId);
+    public static native Class<?> get_class_from_type_id(CNative.type_id typeId, Stdint.uint8_t dimensions);
+
+    /**
+     * Returns java.lang.Class instance representing array class of a given class
+     *
+     * @param componentClass
+     * @return instance of java.lang.Class
+     */
+    public static native Class<?> get_array_class_of(Class<?> componentClass);
+
+    /**
+     * Tries to atomically set the java.lang.Class#arrayClass field of a component class
+     * to a given array class
+     *
+     * @param componentClass
+     * @param arrayClass
+     * @return boolean true if atomic operation succeeds, false otherwise
+     */
+    public static native boolean set_array_class(Class<?> componentClass, Class<?> arrayClass);
+
+    /**
+     * Checks if the java.lang.Class instance represents reference array class.
+     * Reference array class have dimension greater than 0.
+     *
+     * @param cls
+     * @return boolean
+     */
+    public static boolean is_reference_array_class(Class<?> cls) {
+        CNative.type_id typeId = get_type_id_from_class(cls);
+        return is_reference_array(typeId);
+    }
+
+    /**
+     * Returns java.lang.Class instance representing the array class of a given component class
+     *
+     * @param componentClass
+     * @return instance of java.lang.Class
+     */
+    public static Class<?> get_or_create_array_class(Class<?> componentClass) {
+        Class<?> arrayClass = get_array_class_of(componentClass);
+        if (arrayClass == null) {
+            String className;
+            if (is_reference_array_class(componentClass)) {
+                className = "[" + componentClass.getName();
+                arrayClass = create_class(className, get_reference_array_typeid(), get_dimensions_from_class(componentClass));
+            } else {
+                className = "[L" + componentClass.getName() + ";";
+                arrayClass = create_class(className, get_reference_array_typeid(), get_dimensions_from_class(componentClass));
+            }
+            if (!set_array_class(componentClass, arrayClass)) {
+                arrayClass = get_array_class_of(componentClass);
+            }
+        }
+        return arrayClass;
+    }
+
+    /**
+     * Helper method to create java.lang.Class instance for array class
+     *
+     * @param leafClass leaf element of the array
+     * @param dimensions dimensions of the array
+     * @return instance of java.lang.Class
+     */
+    public static Class<?> get_array_class_of_dimension(Class<?> leafClass, Stdint.uint8_t dimensions) {
+        if (dimensions.intValue() == 1) {
+            return get_or_create_array_class(leafClass);
+        }
+        Class<?> cls = get_array_class_of_dimension(leafClass, CNative.word(dimensions.intValue()-1));
+        return get_or_create_array_class(cls);
+    }
+
+    /**
+     * Creates java.lang.Class instance for array class
+     *
+     * @param leafClass leaf element of the array
+     * @param dimensions dimensions of the array
+     * @return instance of java.lang.Class
+     */
+    public static Class<?> get_or_create_class_for_refarray(Class<?> leafClass, Stdint.uint8_t dimensions) {
+        return get_array_class_of_dimension(leafClass, dimensions);
+    }
+
+    /**
+     * Allocates an instance of java.lang.Class in the runtime heap
+     *
+     * @param name class name
+     * @param id class's type id
+     * @param dimension array dimension if the class is an array class, 0 otherwise
+     * @return instance of java.lang.Class
+     */
+    public static native Class<?> create_class(String name, CNative.type_id id, Stdint.uint8_t dimension);
 
     /**
      * Get the concrete type ID value from the referenced object.  Note that all reference arrays will have the same
@@ -94,6 +184,11 @@ public class ObjectModel {
      * Is the argument typeId the typeId use for reference arrays?
      */
     public static native boolean is_reference_array(CNative.type_id typeId);
+
+    /**
+     * Returns the typeId used for reference arrays
+     */
+    public static native CNative.type_id get_reference_array_typeid();
 
     /**
      * Does a typeId implement the argument interface?

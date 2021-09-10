@@ -21,4 +21,8 @@ public abstract class SectionObject extends ProgramObject {
     public Element getOriginalElement() {
         return originalElement;
     }
+
+    public String toString() {
+        return getName();
+    }
 }

@@ -73,6 +73,8 @@ public class TestClassContext implements ClassContext {
 
         public MethodElement getVMHelperMethod(String helperName) { return null; }
 
+        public MethodElement getOMHelperMethod(String helperName) { return null; }
+
         public void enqueue(final ExecutableElement element) {
 
         }

@@ -7,6 +7,7 @@ import java.util.List;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.ValueType;
@@ -104,7 +105,7 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
                                     // todo: use context to resolve type variable bounds
                                     TypeDescriptor pointeeDesc = pointeeSig.asDescriptor(classCtxt);
                                     pointeeType = classCtxt.resolveTypeFromDescriptor(pointeeDesc, paramCtxt, pointeeSig, visibleAnnotations, invisibleAnnotations);
-                                    if (pointeeType instanceof ReferenceType) {
+                                    if (pointeeType instanceof ObjectType) {
                                         pointeeType = classCtxt.resolveTypeFromDescriptor(BaseTypeDescriptor.V, paramCtxt, BaseTypeSignature.V, visibleAnnotations, invisibleAnnotations);
                                     }
                                 } else {
@@ -134,7 +135,7 @@ public class PointerTypeResolver implements DescriptorTypeResolver.Delegating {
             if (elemType instanceof ArrayType) {
                 // it's an array of arrays, make it into a native array instead of a reference array
                 return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(visibleAnnotations));
-            } else if (! (elemType instanceof ReferenceType) && elemType instanceof WordType && elemDesc instanceof ClassTypeDescriptor) {
+            } else if (! (elemType instanceof ObjectType) && elemType instanceof WordType && elemDesc instanceof ClassTypeDescriptor) {
                 // this means it's an array of native type (wrapped as ref type) and should be transformed to a "real" array type
                 return ctxt.getTypeSystem().getArrayType(elemType, detectArraySize(visibleAnnotations));
             }

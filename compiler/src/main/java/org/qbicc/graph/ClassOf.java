@@ -10,17 +10,21 @@ import org.qbicc.type.definition.element.ExecutableElement;
  */
 public final class ClassOf extends AbstractValue implements UnaryValue {
     private final Value input;
+    private final Value dimensions;
     private final ReferenceType type;
 
-    ClassOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, final ReferenceType type) {
+    ClassOf(final Node callSite, final ExecutableElement element, final int line, final int bci, final Value input, Value dimensions, final ReferenceType type) {
         super(callSite, element, line, bci);
         this.input = input;
+        this.dimensions = dimensions;
         this.type = type;
     }
 
     public Value getInput() {
         return input;
     }
+
+    public Value getDimensions() { return dimensions; }
 
     public ReferenceType getType() {
         return type;
@@ -31,7 +35,7 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
     }
 
     int calcHashCode() {
-        return Objects.hash(ClassOf.class, input);
+        return Objects.hash(ClassOf.class, input, dimensions);
     }
 
     @Override
@@ -45,6 +49,7 @@ public final class ClassOf extends AbstractValue implements UnaryValue {
 
     public boolean equals(final ClassOf other) {
         return this == other || other != null
-            && input.equals(other.input);
+            && input.equals(other.input)
+            && dimensions.equals(other.dimensions);
     }
 }
