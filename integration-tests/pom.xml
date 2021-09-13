@@ -14,7 +14,7 @@
     <artifactId>qbicc-integration-tests</artifactId>
 
     <properties>
-        <junit.jupiter.version>5.7.2</junit.jupiter.version>
+        <junit.jupiter.version>5.8.0</junit.jupiter.version>
         <jboss-logging.version>3.4.2.Final</jboss-logging.version>
         <log4j.version>2.14.1</log4j.version>
         <includeTags>simple-apps,snippets</includeTags>
