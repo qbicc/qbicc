@@ -11,4 +11,9 @@ public final class Thrown extends RuntimeException {
     public VmThrowable getThrowable() {
         return throwable;
     }
+
+    @Override
+    public String getMessage() {
+        return throwable.getMessage();
+    }
 }

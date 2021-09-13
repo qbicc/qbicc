@@ -20,6 +20,7 @@ import org.qbicc.driver.BuilderStage;
 import org.qbicc.driver.Driver;
 import org.qbicc.driver.ElementBodyCopier;
 import org.qbicc.driver.ElementBodyCreator;
+import org.qbicc.driver.ElementInitializer;
 import org.qbicc.driver.ElementVisitorAdapter;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.Phase;
@@ -311,6 +312,7 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, RTAInfo::forceCoreClassesReachable);
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
+                                builder.addElementHandler(Phase.ADD, new ElementInitializer());
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NoGcMultiNewArrayBasicBlockBuilder::new);

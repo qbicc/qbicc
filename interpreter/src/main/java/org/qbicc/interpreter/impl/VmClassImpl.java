@@ -168,7 +168,7 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
 
     @Override
     public String getName() {
-        return typeDefinition.getInternalName();
+        return typeDefinition.getInternalName().replace("/", ".");
     }
 
     @Override
