@@ -11,9 +11,11 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.jar.JarFile;
 import java.util.zip.ZipFile;
 
@@ -60,24 +62,28 @@ public class Driver implements Closeable {
     final BaseDiagnosticContext initialContext;
     final CompilationContextImpl compilationContext;
     // at this point, the phase is initialized to ADD
+    final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> addTaskWrapperFactories;
     final List<Consumer<? super CompilationContext>> preAddHooks;
     final List<BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder>> typeBuilderFactories;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> addBuilderFactory;
     final List<Consumer<ExecutableElement>> addElementHandlers;
     final List<Consumer<? super CompilationContext>> postAddHooks;
     // at this point, the phase is switched to ANALYZE
+    final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> analyzeTaskWrapperFactories;
     final List<Consumer<? super CompilationContext>> preAnalyzeHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> addToAnalyzeCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> analyzeBuilderFactory;
     final List<Consumer<ExecutableElement>> analyzeElementHandlers;
     final List<Consumer<? super CompilationContext>> postAnalyzeHooks;
     // at this point, the phase is switched to LOWER
+    final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> lowerTaskWrapperFactories;
     final List<Consumer<? super CompilationContext>> preLowerHooks;
     final BiFunction<CompilationContext, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>, NodeVisitor<Node.Copier, Value, Node, BasicBlock, ValueHandle>> analyzeToLowerCopiers;
     final BiFunction<CompilationContext, ExecutableElement, BasicBlockBuilder> lowerBuilderFactory;
     final List<Consumer<ExecutableElement>> lowerElementHandlers;
     final List<Consumer<? super CompilationContext>> postLowerHooks;
     // at this point, the phase is switched to GENERATE
+    final List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>> generateTaskWrapperFactories;
     final List<Consumer<? super CompilationContext>> preGenerateHooks;
     final List<Consumer<? super CompilationContext>> postGenerateHooks;
     final Map<String, BootModule> bootModules;
@@ -151,6 +157,7 @@ public class Driver implements Closeable {
         this.bootClassPath = bootClassPath;
 
         // ADD phase
+        addTaskWrapperFactories = List.copyOf(builder.taskWrapperFactories.getOrDefault(Phase.ADD, List.of()));
         preAddHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ADD, List.of()));
         // (no copiers)
         addBuilderFactory = constructFactory(builder, Phase.ADD);
@@ -158,6 +165,7 @@ public class Driver implements Closeable {
         postAddHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ADD, List.of()));
 
         // ANALYZE phase
+        analyzeTaskWrapperFactories = List.copyOf(builder.taskWrapperFactories.getOrDefault(Phase.ANALYZE, List.of()));
         preAnalyzeHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.ANALYZE, List.of()));
         addToAnalyzeCopiers = constructCopiers(builder, Phase.ANALYZE);
         analyzeBuilderFactory = constructFactory(builder, Phase.ANALYZE);
@@ -165,6 +173,7 @@ public class Driver implements Closeable {
         postAnalyzeHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.ANALYZE, List.of()));
 
         // LOWER phase
+        lowerTaskWrapperFactories = List.copyOf(builder.taskWrapperFactories.getOrDefault(Phase.LOWER, List.of()));
         preLowerHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.LOWER, List.of()));
         analyzeToLowerCopiers = constructCopiers(builder, Phase.LOWER);
         lowerBuilderFactory = constructFactory(builder, Phase.LOWER);
@@ -172,6 +181,7 @@ public class Driver implements Closeable {
         postLowerHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.LOWER, List.of()));
 
         // GENERATE phase
+        generateTaskWrapperFactories = List.copyOf(builder.taskWrapperFactories.getOrDefault(Phase.GENERATE, List.of()));
         preGenerateHooks = List.copyOf(builder.preHooks.getOrDefault(Phase.GENERATE, List.of()));
         // (no builder factory)
         postGenerateHooks = List.copyOf(builder.postHooks.getOrDefault(Phase.GENERATE, List.of()));
@@ -322,6 +332,13 @@ public class Driver implements Closeable {
 
         // ADD phase
 
+        BiConsumer<Consumer<CompilationContext>, CompilationContext> wrapper = Consumer::accept;
+
+        for (UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>> factory : addTaskWrapperFactories) {
+            wrapper = factory.apply(wrapper);
+        }
+        compilationContext.setTaskRunner(wrapper);
+
         for (Consumer<? super CompilationContext> hook : preAddHooks) {
             try {
                 hook.accept(compilationContext);
@@ -397,6 +414,13 @@ public class Driver implements Closeable {
         compilationContext.setBlockFactory(analyzeBuilderFactory);
         compilationContext.setCopier(addToAnalyzeCopiers);
 
+        wrapper = Consumer::accept;
+
+        for (UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>> factory : analyzeTaskWrapperFactories) {
+            wrapper = factory.apply(wrapper);
+        }
+        compilationContext.setTaskRunner(wrapper);
+
         MDC.put("phase", "ANALYZE");
         for (Consumer<? super CompilationContext> hook : preAnalyzeHooks) {
             try {
@@ -451,6 +475,13 @@ public class Driver implements Closeable {
 
         // LOWER phase
 
+        wrapper = Consumer::accept;
+
+        for (UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>> factory : lowerTaskWrapperFactories) {
+            wrapper = factory.apply(wrapper);
+        }
+
+        compilationContext.setTaskRunner(wrapper);
         compilationContext.setBlockFactory(lowerBuilderFactory);
         compilationContext.setCopier(analyzeToLowerCopiers);
 
@@ -505,6 +536,13 @@ public class Driver implements Closeable {
         }
 
         // GENERATE phase
+
+        wrapper = Consumer::accept;
+
+        for (UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>> factory : generateTaskWrapperFactories) {
+            wrapper = factory.apply(wrapper);
+        }
+        compilationContext.setTaskRunner(wrapper);
 
         compilationContext.setCopier(null);
 
@@ -571,6 +609,7 @@ public class Driver implements Closeable {
         final List<BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver>> resolverFactories = new ArrayList<>();
         final Map<Phase, List<Consumer<? super CompilationContext>>> preHooks = new EnumMap<>(Phase.class);
         final Map<Phase, List<Consumer<? super CompilationContext>>> postHooks = new EnumMap<>(Phase.class);
+        final Map<Phase, List<UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>>>> taskWrapperFactories = new EnumMap<>(Phase.class);
         final Map<Phase, List<Consumer<ExecutableElement>>> elementHandlers = new EnumMap<>(Phase.class);
 
         Path outputDirectory = Path.of(".");
@@ -663,6 +702,14 @@ public class Driver implements Closeable {
             if (hook != null) {
                 Assert.checkNotNullParam("phase", phase);
                 postHooks.computeIfAbsent(phase, Builder::newArrayList).add(hook);
+            }
+            return this;
+        }
+
+        public Builder addTaskWrapperFactory(Phase phase, UnaryOperator<BiConsumer<Consumer<CompilationContext>, CompilationContext>> factory) {
+            if (factory != null) {
+                Assert.checkNotNullParam("phase", phase);
+                taskWrapperFactories.computeIfAbsent(phase, Builder::newArrayList).add(factory);
             }
             return this;
         }
