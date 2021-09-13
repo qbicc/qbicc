@@ -78,7 +78,8 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
 
     public VmClassImpl defineClass(VmString name, VmArray content, VmObject protectionDomain) throws Thrown {
         VmImpl vm = VmImpl.require();
-        if (defined.containsKey(name.getContent())) {
+        String internalName = name.getContent();
+        if (defined.containsKey(internalName)) {
             throw duplicateClass(vm);
         }
         Memory64Impl memory = (Memory64Impl) content.getMemory();
@@ -87,8 +88,30 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         DefinedTypeDefinition.Builder builder = classContext.newTypeBuilder();
         classFile.accept(builder);
         DefinedTypeDefinition defined = builder.build();
-        classContext.defineClass(name.getContent(), defined);
+        classContext.defineClass(internalName, defined);
         LoadedTypeDefinition loaded = defined.load();
+        VmClassImpl vmClass = createVmClass(protectionDomain, vm, loaded);
+        if (this.defined.putIfAbsent(internalName, vmClass) != null) {
+            throw new Thrown(vm.noClassDefFoundErrorClass.newInstance("Class already defined"));
+        }
+        return vmClass;
+    }
+
+    public VmClassImpl getOrDefineClass(LoadedTypeDefinition loaded) {
+        String internalName = loaded.getInternalName();
+        VmClassImpl vmClass = defined.get(internalName);
+        if (vmClass == null) {
+            VmImpl vm = VmImpl.require();
+            vmClass = createVmClass(null, vm, loaded);
+            VmClassImpl appearing = defined.putIfAbsent(internalName, vmClass);
+            if (appearing != null) {
+                vmClass = appearing;
+            }
+        }
+        return vmClass;
+    }
+
+    private VmClassImpl createVmClass(final VmObject protectionDomain, final VmImpl vm, final LoadedTypeDefinition loaded) {
         ObjectType type = loaded.getType();
         ClassObjectType classLoaderType = vm.classLoaderClass.getTypeDefinition().getClassType();
         ClassObjectType throwableType = vm.throwableClass.getTypeDefinition().getClassType();

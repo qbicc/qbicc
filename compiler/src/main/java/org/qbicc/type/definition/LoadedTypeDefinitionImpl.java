@@ -1,8 +1,5 @@
 package org.qbicc.type.definition;
 
-import java.lang.invoke.ConstantBootstraps;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,6 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
 
+import io.smallrye.common.constraint.Assert;
+import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
@@ -19,13 +18,11 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
-import io.smallrye.common.constraint.Assert;
 
 /**
  *
  */
 final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition implements LoadedTypeDefinition {
-    private static final VarHandle vmClassHandle = ConstantBootstraps.fieldVarHandle(MethodHandles.lookup(), "vmClass", VarHandle.class, LoadedTypeDefinitionImpl.class, VmClass.class);
 
     private final ObjectType type;
     private final DefinedTypeDefinitionImpl delegate;
@@ -42,7 +39,6 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     private int maximumSubtypeId = -1;
     private final boolean hasDefaultMethods;
     private final boolean declaresDefaultMethods;
-    @SuppressWarnings("unused") // vmClassHandle
     private volatile VmClass vmClass;
 
     LoadedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final LoadedTypeDefinition superType, final LoadedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
@@ -232,5 +228,14 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     public boolean hasDefaultMethods() {
         return hasDefaultMethods;
+    }
+
+    public VmClass getVmClass() {
+        VmClass vmClass = this.vmClass;
+        if (vmClass == null) {
+            Vm vm = Vm.requireCurrent();
+            vmClass = this.vmClass = vm.getClassLoaderForContext(getContext()).getOrDefineClass(this);
+        }
+        return vmClass;
     }
 }

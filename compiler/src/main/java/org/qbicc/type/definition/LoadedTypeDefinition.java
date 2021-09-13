@@ -478,4 +478,10 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
      */
     boolean hasDefaultMethods();
 
+    /**
+     * Get the VM class corresponding to this loaded type definition.
+     *
+     * @return the VM class (not {@code null})
+     */
+    VmClass getVmClass();
 }
