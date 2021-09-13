@@ -50,7 +50,7 @@ jobs:
         run: |
           mvn test -pl integration-tests
         working-directory: ./myqbicc
-        timeout-minutes: 25
+        timeout-minutes: 40
 
       - name: Prepare failure archive (if maven failed)
         if: failure()
