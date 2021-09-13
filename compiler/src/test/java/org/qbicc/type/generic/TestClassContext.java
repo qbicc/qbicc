@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -158,6 +159,9 @@ public class TestClassContext implements ClassContext {
 
         public Vm getVm() {
             return null;
+        }
+
+        public void setTaskRunner(final BiConsumer<Consumer<CompilationContext>, CompilationContext> taskRunner) throws IllegalStateException {
         }
 
         public void runParallelTask(Consumer<CompilationContext> task) throws IllegalStateException {

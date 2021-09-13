@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -537,6 +538,7 @@ final class CompilationContextImpl implements CompilationContext {
     private int activeThreads;
     private int threadAcks;
     private Consumer<CompilationContext> task;
+    private volatile BiConsumer<Consumer<CompilationContext>, CompilationContext> taskRunner = Consumer::accept;
 
     private static final int ST_WAITING = 0; // waiting -> task | exit
     private static final int ST_TASK = 1; // task -> join
@@ -609,7 +611,7 @@ final class CompilationContextImpl implements CompilationContext {
                 }
                 assert state == ST_TASK;
                 try {
-                    task.accept(lock);
+                    taskRunner.accept(task, lock);
                 } catch (Throwable t) {
                     log.error("An exception was thrown from a parallel task", t);
                     error(t, "A task threw an uncaught exception");
@@ -617,6 +619,17 @@ final class CompilationContextImpl implements CompilationContext {
             }
         }
     };
+
+    @Override
+    public void setTaskRunner(BiConsumer<Consumer<CompilationContext>, CompilationContext> taskRunner) throws IllegalStateException {
+        Assert.checkNotNullParam("taskRunner", taskRunner);
+        synchronized (this) {
+            if (state != ST_WAITING) {
+                throw new IllegalStateException("Invalid thread state");
+            }
+            this.taskRunner = taskRunner;
+        }
+    }
 
     @Override
     public void runParallelTask(Consumer<CompilationContext> task) throws IllegalStateException {

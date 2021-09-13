@@ -2,6 +2,7 @@ package org.qbicc.context;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -104,6 +105,15 @@ public interface CompilationContext extends DiagnosticContext {
     FieldElement getExceptionField();
 
     Vm getVm();
+
+    /**
+     * Set the task runner used to run parallel tasks on task threads. The runner can wrap the task in various ways.
+     *
+     * @param taskRunner the task runner (must not be {@code null})
+     * @throws IllegalStateException if this method is called from a compiler thread, or if the compiler threads are not
+     *  running
+     */
+    void setTaskRunner(BiConsumer<Consumer<CompilationContext>, CompilationContext> taskRunner) throws IllegalStateException;
 
     /**
      * Run a task on every compiler thread.  When the task has returned on all threads, this method will return.  This
