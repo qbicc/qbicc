@@ -25,6 +25,7 @@ import org.qbicc.driver.ElementVisitorAdapter;
 import org.qbicc.driver.GraphGenConfig;
 import org.qbicc.driver.Phase;
 import org.qbicc.driver.plugin.DriverPlugin;
+import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.impl.VmImpl;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.machine.object.ObjectFileProvider;
@@ -301,6 +302,10 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addResolverFactory(InternalNativeTypeResolver::new);
                                 builder.addResolverFactory(NativeTypeResolver::new);
 
+                                builder.addTaskWrapperFactory(Phase.ADD, next -> (wrapper, ctxt) -> {
+                                    Vm vm = ctxt.getVm();
+                                    vm.doAttached(vm.newThread(Thread.currentThread().getName(), null, false), () -> wrapper.accept(ctxt));
+                                });
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, CoreClasses::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
