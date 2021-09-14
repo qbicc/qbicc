@@ -54,4 +54,8 @@ public final class FloatType extends NumericType {
     public SignedIntegerType getSameSizeSignedIntegerType() {
         return bits == 32 ? getTypeSystem().getSignedInteger32Type() : getTypeSystem().getSignedInteger64Type();
     }
+
+    public Primitive asPrimitive() {
+        return bits == 32 ? Primitive.FLOAT : Primitive.DOUBLE;
+    }
 }

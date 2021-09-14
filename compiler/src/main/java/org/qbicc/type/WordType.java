@@ -33,6 +33,10 @@ public abstract class WordType extends ScalarType {
         return newPrimitiveArrayObjectType;
     }
 
+    public Primitive asPrimitive() {
+        throw new UnsupportedOperationException();
+    }
+
     /**
      * Get the declared number of bits for this type.  The actual size may comprise more bits than are declared.
      *

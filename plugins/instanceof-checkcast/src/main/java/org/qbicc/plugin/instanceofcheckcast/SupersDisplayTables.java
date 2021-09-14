@@ -1,6 +1,5 @@
 package org.qbicc.plugin.instanceofcheckcast;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -20,6 +19,7 @@ import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
 import org.qbicc.type.FunctionType;
+import org.qbicc.type.Primitive;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
@@ -261,6 +261,10 @@ public class SupersDisplayTables {
         supersLog.debug("Implemented interface bits require " + bytesPerClass + " bytes per class");
         supersLog.debug("classes + interfaces = " + typeids.size());
         supersLog.debug("Interface bits[] space (in bytes): " + (typeids.size() * bytesPerClass));
+    }
+
+    void assignTypeIdToPrimitives() {
+        Primitive.forEach(type -> type.setTypeId(idAndRange.nextID().typeid));
     }
 
     void assignTypeID(LoadedTypeDefinition cls) {

@@ -90,4 +90,16 @@ public final class SignedIntegerType extends IntegerType {
     public String toString(final IntegerLiteral literal) {
         return toString(new StringBuilder()).append(' ').append(literal.longValue()).toString();
     }
+
+    public Primitive asPrimitive() {
+        switch (minBits) {
+            case 8: return Primitive.BYTE;
+            case 16: return Primitive.SHORT;
+            case 32: return Primitive.INT;
+            case 64: return Primitive.LONG;
+            default: {
+                throw Assert.impossibleSwitchCase(minBits);
+            }
+        }
+    }
 }

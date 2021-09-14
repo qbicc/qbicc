@@ -44,6 +44,7 @@ import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.PointerType;
+import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
@@ -145,27 +146,7 @@ public final class CoreIntrinsics {
             StringLiteral lit = (StringLiteral) arguments.get(0);
             LiteralFactory lf = ctxt.getLiteralFactory();
             TypeSystem ts = ctxt.getTypeSystem();
-            ValueType type;
-            switch (lit.getValue()) {
-                case "byte": type = ts.getSignedInteger8Type(); break;
-                case "short": type = ts.getSignedInteger16Type(); break;
-                case "int": type = ts.getSignedInteger32Type(); break;
-                case "long": type = ts.getSignedInteger64Type(); break;
-
-                case "char": type = ts.getUnsignedInteger16Type(); break;
-
-                case "float": type = ts.getFloat32Type(); break;
-                case "double": type = ts.getFloat64Type(); break;
-
-                case "boolean": type = ts.getBooleanType(); break;
-
-                case "void": type = ts.getVoidType(); break;
-
-                default: {
-                    ctxt.error(builder.getLocation(), "Invalid argument to `getPrimitiveClass`: %s", lit.getValue());
-                    throw new BlockEarlyTermination(builder.unreachable());
-                }
-            }
+            ValueType type = Primitive.getPrimitiveFor(lit.getValue()).getType();
             return builder.classOf(lf.literalOfType(type), lf.zeroInitializerLiteralOfType(ts.getUnsignedInteger8Type()));
         };
 

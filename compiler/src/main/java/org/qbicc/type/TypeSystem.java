@@ -92,6 +92,15 @@ public final class TypeSystem {
         }
         signedInteger64Type = new SignedIntegerType(this, builder.getInt64Size(), builder.getInt64Alignment(), 64);
         unsignedInteger64Type = new UnsignedIntegerType(this, builder.getInt64Size(), builder.getInt64Alignment(), 64);
+        Primitive.BOOLEAN.setType(booleanType);
+        Primitive.BYTE.setType(signedInteger8Type);
+        Primitive.SHORT.setType(signedInteger16Type);
+        Primitive.CHAR.setType(unsignedInteger16Type);
+        Primitive.INT.setType(signedInteger32Type);
+        Primitive.FLOAT.setType(float32Type);
+        Primitive.LONG.setType(signedInteger64Type);
+        Primitive.DOUBLE.setType(float64Type);
+        Primitive.VOID.setType(voidType);
     }
 
     private static IllegalArgumentException typeTooSmall(String name) {
