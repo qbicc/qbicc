@@ -66,16 +66,17 @@ public class ObjectModel {
      * @param componentClass
      * @return instance of java.lang.Class
      */
-    public static Class<?> get_or_create_array_class(Class<?> componentClass) {
+    public static Class<?> get_or_create_array_class(Class<?> componentClass, Stdint.uint8_t dimensions) {
         Class<?> arrayClass = get_array_class_of(componentClass);
         if (arrayClass == null) {
             String className;
-            if (is_reference_array_class(componentClass)) {
+            CNative.type_id componentTypeId = get_type_id_from_class(componentClass);
+            if (is_reference_array(componentTypeId) || is_prim_array(componentTypeId)) {
                 className = "[" + componentClass.getName();
-                arrayClass = create_class(className, get_reference_array_typeid(), get_dimensions_from_class(componentClass));
+                arrayClass = create_class(className, get_reference_array_typeid(), dimensions);
             } else {
                 className = "[L" + componentClass.getName() + ";";
-                arrayClass = create_class(className, get_reference_array_typeid(), get_dimensions_from_class(componentClass));
+                arrayClass = create_class(className, get_reference_array_typeid(), dimensions);
             }
             if (!set_array_class(componentClass, arrayClass)) {
                 arrayClass = get_array_class_of(componentClass);
@@ -93,10 +94,10 @@ public class ObjectModel {
      */
     public static Class<?> get_array_class_of_dimension(Class<?> leafClass, Stdint.uint8_t dimensions) {
         if (dimensions.intValue() == 1) {
-            return get_or_create_array_class(leafClass);
+            return get_or_create_array_class(leafClass, dimensions);
         }
         Class<?> cls = get_array_class_of_dimension(leafClass, CNative.word(dimensions.intValue()-1));
-        return get_or_create_array_class(cls);
+        return get_or_create_array_class(cls, dimensions);
     }
 
     /**

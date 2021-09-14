@@ -830,8 +830,8 @@ public final class CoreIntrinsics {
         StaticIntrinsic isPrimArray = (builder, target, arguments) -> {
             ValueType firstPrimArray = layout.getArrayLoadedTypeDefinition("[Z").getType();
             ValueType lastPrimArray = layout.getArrayLoadedTypeDefinition("[D").getType();
-            return builder.and(builder.isLe(lf.literalOfType(firstPrimArray), arguments.get(0)),
-                builder.isGe(arguments.get(0), lf.literalOfType(lastPrimArray)));
+            return builder.and(builder.isGe(arguments.get(0), lf.literalOfType(firstPrimArray)),
+                builder.isLe(arguments.get(0), lf.literalOfType(lastPrimArray)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_prim_array", typeIdBooleanDesc, isPrimArray);
 

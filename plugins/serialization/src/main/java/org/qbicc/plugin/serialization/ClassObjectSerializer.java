@@ -12,6 +12,7 @@ import org.qbicc.object.Section;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
 import org.qbicc.plugin.reachability.RTAInfo;
 import org.qbicc.type.ArrayType;
+import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.GlobalVariableElement;
@@ -43,7 +44,7 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
         GlobalVariableElement classArrayGlobal = builder.build();
         bth.setClassArrayGlobal(classArrayGlobal);
 
-        // initialize the Class array by serializing java.lang.Class instances for all initialized types
+        // initialize the Class array by serializing java.lang.Class instances for all initialized types and primitive types
         Literal[] rootTable = new Literal[tables.get_number_of_typeids()];
         Arrays.fill(rootTable, ctxt.getLiteralFactory().zeroInitializerLiteralOfType(jlcRef));
         rtaInfo.visitInitializedTypes( ltd -> {
@@ -51,6 +52,13 @@ public class ClassObjectSerializer implements Consumer<CompilationContext> {
             section.declareData(null, cls.getName(), cls.getType()).setAddrspace(1);
             SymbolLiteral refToClass = ctxt.getLiteralFactory().literalOfSymbol(cls.getName(), cls.getType().getPointer().asCollected());
             rootTable[ltd.getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(refToClass, jlcRef);
+        });
+
+        Primitive.forEach(type -> {
+            Data cls = bth.serializeClassObject(type);
+            section.declareData(null, cls.getName(), cls.getType()).setAddrspace(1);
+            SymbolLiteral refToClass = ctxt.getLiteralFactory().literalOfSymbol(cls.getName(), cls.getType().getPointer().asCollected());
+            rootTable[type.getTypeId()] = ctxt.getLiteralFactory().bitcastLiteral(refToClass, jlcRef);
         });
 
         // Add the final data value for the constructed Class array
