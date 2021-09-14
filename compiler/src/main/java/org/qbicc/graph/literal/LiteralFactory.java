@@ -20,6 +20,7 @@ import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import io.smallrye.common.constraint.Assert;
+import org.qbicc.type.definition.element.ExecutableElement;
 
 /**
  *
@@ -48,7 +49,7 @@ public interface LiteralFactory {
 
     ObjectLiteral literalOf(VmObject value);
 
-    FunctionParameterLiteral functionLiteralOf(String name, ValueType type);
+    FunctionParameterLiteral functionLiteralOf(String name, ValueType type, ExecutableElement ee, ExecutableElement oe);
 
     MethodHandleLiteral literalOfMethodHandle(int referenceKind, int referenceIndex);
 
@@ -223,10 +224,12 @@ public interface LiteralFactory {
                 return zeroInitializerLiteralOfType(type);
             }
 
-            public FunctionParameterLiteral functionLiteralOf(String name, ValueType type) {
+            public FunctionParameterLiteral functionLiteralOf(String name, ValueType type, ExecutableElement ee, ExecutableElement oe) {
                 Assert.checkNotNullParam("name", name);
                 Assert.checkNotNullParam("type", type);
-                return new FunctionParameterLiteral(name, type);
+                Assert.checkNotNullParam("ee", ee);
+                Assert.checkNotNullParam("oe", oe);
+                return new FunctionParameterLiteral(name, type, ee, oe);
             }
 
             public Literal literalOf(final CompoundType type, final Map<CompoundType.Member, Literal> values) {

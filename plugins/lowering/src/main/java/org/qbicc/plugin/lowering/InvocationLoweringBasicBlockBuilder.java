@@ -21,6 +21,7 @@ import org.qbicc.graph.StaticMethodElementHandle;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.ValueHandleVisitor;
+import org.qbicc.graph.literal.FunctionParameterLiteral;
 import org.qbicc.graph.literal.SymbolLiteral;
 import org.qbicc.object.Function;
 import org.qbicc.object.Section;
@@ -109,7 +110,7 @@ public class InvocationLoweringBasicBlockBuilder extends DelegatingBasicBlockBui
 
     @Override
     public ValueHandle visit(ArrayList<Value> args, FunctionElementHandle node) {
-        ctxt.enqueue(node.getExecutable());
+        ctxt.enqueue(node.getExecutable()); // TODO like this
         Function function = ctxt.getExactFunction(node.getExecutable());
         ctxt.declareForeignFunction(node.getExecutable(), function, originalElement);
         return functionOf(function);

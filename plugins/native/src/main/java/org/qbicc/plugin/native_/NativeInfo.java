@@ -21,6 +21,7 @@ import org.qbicc.machine.probe.Qualifier;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.plugin.linker.Linker;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.Annotation;
@@ -303,12 +304,19 @@ final class NativeInfo {
         return false;
     }
 
-    public ValueType getTypeOfFunctionalInterface(final DefinedTypeDefinition definedType) {
+    public ValueType getTypeOfFunctionalInterface(final DefinedTypeDefinition definedType, final ValueType type) {
         MethodElement method = getFunctionalInterfaceMethod(definedType);
         if (method == null) {
             return ctxt.getTypeSystem().getFunctionType(ctxt.getTypeSystem().getVoidType());
         }
-        return method.getType();
+        // TODO modify types here
+        ValueType functionType;
+        if (type == null) {
+            functionType = method.getType();
+        } else {
+            functionType = ctxt.getTypeSystem().getFunctionType(type, type);
+        }
+        return functionType;
     }
 
     public MethodElement getFunctionalInterfaceMethod(final DefinedTypeDefinition definedType) {

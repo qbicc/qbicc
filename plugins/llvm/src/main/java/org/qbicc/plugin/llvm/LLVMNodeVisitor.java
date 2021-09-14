@@ -33,6 +33,7 @@ import org.qbicc.graph.DataHandle;
 import org.qbicc.graph.DebugAddressDeclaration;
 import org.qbicc.graph.Div;
 import org.qbicc.graph.ElementOf;
+import org.qbicc.graph.Executable;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.ExtractElement;
 import org.qbicc.graph.ExtractMember;
@@ -122,6 +123,7 @@ import org.qbicc.type.ValueType;
 import org.qbicc.type.VoidType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.MethodBody;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.GlobalVariableElement;
 import org.qbicc.type.definition.element.LocalVariableElement;
 import org.qbicc.type.definition.element.MethodElement;
@@ -837,6 +839,12 @@ final class LLVMNodeVisitor implements NodeVisitor<Void, LLValue, Instruction, I
     // calls
 
     public LLValue visit(Void param, org.qbicc.graph.Call node) {
+        ExecutableElement e = node.getElement();
+        if (e instanceof MethodElement) {
+            if (((MethodElement) e).getName().equals("JLT_start0")) {
+                node.getValueHandle();
+            }
+        }
         map(node.getDependency());
         FunctionType functionType = node.getFunctionType();
         List<Value> arguments = node.getArguments();

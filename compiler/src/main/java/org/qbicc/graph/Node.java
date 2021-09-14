@@ -28,6 +28,7 @@ import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
 import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.graph.schedule.Schedule;
+import org.qbicc.object.Function;
 import org.qbicc.type.definition.element.ExecutableElement;
 import io.smallrye.common.constraint.Assert;
 
@@ -472,6 +473,9 @@ public interface Node {
             }
 
             public Value visit(final Copier param, final FunctionParameterLiteral node) {
+                // tODO probably not the right place but try anyway
+//                Function function = param.ctxt.getExactFunction(node.getExecutable());
+//                param.ctxt.declareForeignFunction(node.getExecutable(), function, node.getOriginalElement());
                 return node;
             }
 

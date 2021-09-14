@@ -314,6 +314,11 @@ final class CompilationContextImpl implements CompilationContext {
                 return implicit.addFunction(element, ((FunctionElement) element).getName(), elementType);
             }
             FunctionType functionType = getFunctionTypeForElement(element);
+            if (element instanceof MethodElement) {
+                if (((MethodElement) element).getName().contains("JLT_start0")) {
+                    element.getSourceFileName();
+                }
+            }
             return implicit.addFunction(element, getExactNameForElement(element, elementType), functionType);
         });
     }

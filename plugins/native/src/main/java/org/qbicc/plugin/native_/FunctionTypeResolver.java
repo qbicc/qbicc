@@ -92,7 +92,14 @@ public class FunctionTypeResolver implements DescriptorTypeResolver.Delegating {
                                     functionType = ts.getFunctionType(ts.getVoidType());
                                 } else {
                                     if (definedType.isInterface()) {
-                                        return NativeInfo.get(ctxt).getTypeOfFunctionalInterface(definedType);
+                                        if (name.contains("UnaryOperator")) {
+//                                            ClassTypeDescriptor voidPtrDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/CNative$void_ptr");
+//                                            TypeArgument arg = ((ClassTypeSignature) pointeeSig).getTypeArguments().get(0);
+//                                            ValueType type = resolveTypeFromDescriptor()
+                                            return NativeInfo.get(ctxt).getTypeOfFunctionalInterface(definedType, ts.getVoidType().getPointer());
+                                        } else {
+                                            return NativeInfo.get(ctxt).getTypeOfFunctionalInterface(definedType, null);
+                                        }
                                     } else {
                                         ctxt.error("Function interface type \"%s\" is not an interface", name);
                                         functionType = ts.getFunctionType(ts.getVoidType());
