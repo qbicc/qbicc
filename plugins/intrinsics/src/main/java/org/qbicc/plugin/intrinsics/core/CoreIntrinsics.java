@@ -340,13 +340,12 @@ public final class CoreIntrinsics {
 
         /* private native void start0(); */
         InstanceIntrinsic start0 = (builder, instance, target, arguments) -> {
-//            ValueHandle threadReference = builder.referenceHandle(instance);
-
             /* set java.lang.Thread.threadStatus to runnable and alive */
-//            ValueHandle threadStatusHandle = builder.instanceFieldOf(threadReference, jltDesc, "threadStatus", BaseTypeDescriptor.I);
-//            builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadRunnable | threadAlive), MemoryAtomicityMode.NONE);
-//            /* pass java.lang.Thread object as ptr<void> */
-//            Value threadVoidPtr = builder.addressOf(instance.getValueHandle());
+            ValueHandle threadStatusHandle = builder.instanceFieldOf(builder.referenceHandle(instance), jltDesc, "threadStatus", BaseTypeDescriptor.I);
+            builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadRunnable | threadAlive), MemoryAtomicityMode.NONE);
+
+            /* pass java.lang.Thread object as ptr<void> */
+            //Value threadVoidPtr = builder.addressOf(instance.getValueHandle());
 
             /* pass threadWrapper as function_ptr */
             // TODO use this for addr_of_function also
