@@ -42,6 +42,9 @@ class TestThread extends Thread {
     TestVariation variation;
     int n = 2; // count per thread
 
+    @extern
+    public static native int putchar(int arg);
+
     enum TestVariation {
         METHOD_INST,
         METHOD_STATIC,
@@ -56,25 +59,26 @@ class TestThread extends Thread {
     }
 
     public void run() {
-        for (int i = 0; i < n; i++) {
-            switch(variation) {
-                case METHOD_INST:
-                    countTest.synchInstance();
-                    break;
-                case METHOD_STATIC:
-                    countTest.synchStatic();
-                    break;
-                case SEGMENT:
-                    countTest.segment();
-                    break;
-                case REENTRANT:
-                    countTest.reentrant();
-                    break;
-                case EMBEDDED:
-                    countTest.embedded();
-                    break;
-            }
-        }
+        putchar('!'); // test
+//        for (int i = 0; i < n; i++) {
+//            switch(variation) {
+//                case METHOD_INST:
+//                    countTest.synchInstance();
+//                    break;
+//                case METHOD_STATIC:
+//                    countTest.synchStatic();
+//                    break;
+//                case SEGMENT:
+//                    countTest.segment();
+//                    break;
+//                case REENTRANT:
+//                    countTest.reentrant();
+//                    break;
+//                case EMBEDDED:
+//                    countTest.embedded();
+//                    break;
+//            }
+//        }
     }
 }
 

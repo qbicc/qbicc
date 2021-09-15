@@ -318,25 +318,31 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jltDesc, "currentThread", returnJlt, currentThread);
 
         /* special function that will be passed to pthread_create */
-//        MethodDescriptor threadWrapperDesc = MethodDescriptor.synthesize(classContext, voidPtrDesc, List.of(voidPtrDesc));
-//        StaticIntrinsic threadWrapper = (builder, target, arguments) -> {
-//            Value thread = arguments.get(0);
-//
-//            /* set current thread */
-//            ValueHandle qbiccCurrentThreadPointer = builder.pointerHandle(ctxt.getCurrentThreadLocalSymbolLiteral());
-//            builder.store(qbiccCurrentThreadPointer, thread, MemoryAtomicityMode.NONE);
-//
-//            /* call "run" method of thread object */
-//            VirtualMethodElementHandle runHandle = (VirtualMethodElementHandle)builder.virtualMethodOf(thread, jltDesc, "run", voidDesc);
-//            builder.call(runHandle, List.of());
-//
-//            /* set java.lang.Thread.threadStatus to terminated */
-//            ValueHandle threadStatusHandle = builder.instanceFieldOf(thread.getValueHandle(), jltDesc, "threadStatus", BaseTypeDescriptor.I);
-//            builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadTerminated), MemoryAtomicityMode.NONE);
-//
-//            return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
-//        };
-//        intrinsics.registerIntrinsic(vmHelpersDesc, "threadWrapper", threadWrapperDesc, threadWrapper);
+        MethodDescriptor threadWrapperDesc = MethodDescriptor.synthesize(classContext, voidPtrDesc, List.of(voidPtrDesc));
+        StaticIntrinsic threadWrapper = (builder, target, arguments) -> {
+            Value threadVoidPtr = arguments.get(0);
+
+            DefinedTypeDefinition jlt = classContext.findDefinedType("java/lang/Thread");
+            LoadedTypeDefinition jltVal = jlt.load();
+            ValueType jltType = jltVal.getType().getReference();
+            Value threadObject = builder.bitCast(threadVoidPtr, (WordType)jltType); // reference(class(java/lang/Thread))
+            ValueHandle threadObjectHandle = builder.referenceHandle(threadObject);
+
+            /* set current thread */
+            ValueHandle qbiccCurrentThreadPointer = builder.pointerHandle(ctxt.getCurrentThreadLocalSymbolLiteral());
+            builder.store(qbiccCurrentThreadPointer, threadObject, MemoryAtomicityMode.NONE);
+
+            /* call "run" method of thread object */
+            VirtualMethodElementHandle runHandle = (VirtualMethodElementHandle)builder.virtualMethodOf(threadObject, jltDesc, "run", voidDesc);
+            builder.call(runHandle, List.of());
+
+            /* set java.lang.Thread.threadStatus to terminated */
+            ValueHandle threadStatusHandle = builder.instanceFieldOf(threadObjectHandle, jltDesc, "threadStatus", BaseTypeDescriptor.I);
+            builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadTerminated), MemoryAtomicityMode.NONE);
+
+            return threadVoidPtr;
+        };
+        intrinsics.registerIntrinsic(vmHelpersDesc, "threadWrapper", threadWrapperDesc, threadWrapper);
 
         /* private native void start0(); */
         InstanceIntrinsic start0 = (builder, instance, target, arguments) -> {

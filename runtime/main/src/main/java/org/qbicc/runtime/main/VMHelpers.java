@@ -520,8 +520,11 @@ public final class VMHelpers {
 
     @export
     public static void_ptr startTest(void_ptr testParam) {
-        putchar('$');
-        return testParam;
+        void_ptr mer = (void_ptr)null;
+        if (testParam != null) { // skip case where we are calling this just for a define
+            mer = threadWrapper(testParam);
+        }
+        return mer;
     }
 
     // TODO: mark this with a "NoInline" annotation
