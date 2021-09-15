@@ -15,8 +15,8 @@ public enum Primitive {
     VOID("void");
 
     private final String name;
-    private int typeId;
-    private ValueType type;
+    volatile private int typeId;
+    volatile private ValueType type;
 
     Primitive(String name) {
         this.name = name;
