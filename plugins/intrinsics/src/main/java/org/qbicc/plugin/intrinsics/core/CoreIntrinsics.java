@@ -344,9 +344,6 @@ public final class CoreIntrinsics {
             ValueHandle threadStatusHandle = builder.instanceFieldOf(builder.referenceHandle(instance), jltDesc, "threadStatus", BaseTypeDescriptor.I);
             builder.store(threadStatusHandle, ctxt.getLiteralFactory().literalOf(threadRunnable | threadAlive), MemoryAtomicityMode.NONE);
 
-            /* pass java.lang.Thread object as ptr<void> */
-            //Value threadVoidPtr = builder.addressOf(instance.getValueHandle());
-
             /* pass threadWrapper as function_ptr */
             // TODO use this for addr_of_function also
             // TODO does startTest need to be defined in Thread?
@@ -363,9 +360,12 @@ public final class CoreIntrinsics {
 
             Literal functionParamLiteral = ctxt.getLiteralFactory().functionLiteralOf(me.getName(), me.getType(), me, target);
 
+            /* pass java.lang.Thread object as ptr<void> */
+            Value threadVoidPtr = builder.bitCast(instance, (WordType)paramType);
+
             /* start pthread in VMHelpers */
-            MethodDescriptor JLT_start0Desc = MethodDescriptor.synthesize(classContext, pthreadPtrDesc, List.of(voidUnaryfunctionPtrDesc/*, voidPtrDesc*/));
-            Value pthreadNative = builder.call(builder.staticMethod(vmHelpersDesc, "JLT_start0", JLT_start0Desc), List.of(functionParamLiteral/*, threadVoidPtr*/));
+            MethodDescriptor JLT_start0Desc = MethodDescriptor.synthesize(classContext, pthreadPtrDesc, List.of(voidUnaryfunctionPtrDesc, voidPtrDesc));
+            Value pthreadNative = builder.call(builder.staticMethod(vmHelpersDesc, "JLT_start0", JLT_start0Desc), List.of(functionParamLiteral, threadVoidPtr));
 
             /* store native pthread in java.lang.Thread object. start0 is synchronized on the instance. */
 //            FieldElement nativeThreadField = CoreClasses.get(ctxt).getThreadNativeThread();
