@@ -284,6 +284,13 @@ public final class CoreIntrinsics {
             ctxt.getLiteralFactory().literalOf(0);
 
         intrinsics.registerIntrinsic(systemDesc, "identityHashCode", objectToIntDesc, identityHashCode);
+
+        // currentTimeMillis - TODO get real time
+        MethodDescriptor currentTimeMillisDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of());
+        StaticIntrinsic currentTimeMillis = (builder, target, arguments) ->
+            ctxt.getLiteralFactory().literalOf(0L);
+        intrinsics.registerIntrinsic(systemDesc, "currentTimeMillis", currentTimeMillisDesc, currentTimeMillis);
+
     }
 
     public static void registerJavaLangThreadIntrinsics(CompilationContext ctxt) {
@@ -385,15 +392,15 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(jltDesc, "start0", voidDesc, start0);
 
         /* public final native boolean isAlive(); */
-//        InstanceIntrinsic isAlive = (builder, instance, target, arguments) -> {
-//            /* check for isAlive flag */
-//            ValueHandle threadStatusHandle = builder.instanceFieldOf(builder.referenceHandle(instance), jltDesc, "threadStatus", BaseTypeDescriptor.I);
-//            Value threadStatus = builder.load(threadStatusHandle, MemoryAtomicityMode.NONE);
-//            Value aliveState = ctxt.getLiteralFactory().literalOf(threadAlive);
-//            Value isThreadAlive = builder.and(threadStatus, aliveState);
-//            return builder.cmp(isThreadAlive, aliveState);
-//        };
-//        intrinsics.registerIntrinsic(jltDesc, "isAlive", booleanDesc, isAlive);
+        InstanceIntrinsic isAlive = (builder, instance, target, arguments) -> {
+            /* check for isAlive flag */
+            ValueHandle threadStatusHandle = builder.instanceFieldOf(builder.referenceHandle(instance), jltDesc, "threadStatus", BaseTypeDescriptor.I);
+            Value threadStatus = builder.load(threadStatusHandle, MemoryAtomicityMode.NONE);
+            Value aliveState = ctxt.getLiteralFactory().literalOf(threadAlive);
+            Value isThreadAlive = builder.and(threadStatus, aliveState);
+            return builder.cmp(isThreadAlive, aliveState);
+        };
+        intrinsics.registerIntrinsic(jltDesc, "isAlive", booleanDesc, isAlive);
 
         /* private native void setPriority0(int newPriority); */
         intrinsics.registerIntrinsic(jltDesc, "setPriority0", voidIntDesc, nopInstance);
@@ -569,6 +576,11 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(objDesc, "clone", MethodDescriptor.synthesize(classContext, objDesc, List.of()), clone);
+
+        // stub - public final native void wait(long timeoutMillis)
+        MethodDescriptor waitDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(BaseTypeDescriptor.J));
+        InstanceIntrinsic wait = (builder, instance, target, arguments) -> ctxt.getLiteralFactory().zeroInitializerLiteralOfType(target.getType().getReturnType());
+        intrinsics.registerIntrinsic(objDesc, "wait", waitDesc, wait);
     }
 
     static Literal literalOf(CompilationContext ctxt, boolean v) {

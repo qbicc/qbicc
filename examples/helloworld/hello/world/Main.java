@@ -25,12 +25,13 @@ public class Main {
         /* Pattern for commented tests is: ^01234567#01234567#01234567#01234567#01234567# */
 //        for (TestThread.TestVariation var: TestThread.TestVariation.values()) {
             CountTest countTest = new CountTest();
+            // TODO are the threads running interchangeably?
             TestThread  t1 = new TestThread(countTest, /*var*/hello.world.TestThread.TestVariation.METHOD_INST);
             TestThread  t2 = new TestThread(countTest, /*var*/hello.world.TestThread.TestVariation.METHOD_INST);
             t1.start();
-//            t2.start();
-//            t1.join();
-//            t2.join();
+            t2.start();
+            t1.join();
+            t2.join();
             putchar('#');
             putchar('\n');
 //        }
@@ -40,7 +41,7 @@ public class Main {
 class TestThread extends Thread {
     CountTest countTest;
     TestVariation variation;
-    int n = 2; // count per thread
+    int n = 5; // count per thread
 
     @extern
     public static native int putchar(int arg);
@@ -59,7 +60,9 @@ class TestThread extends Thread {
     }
 
     public void run() {
-        putchar('!'); // test
+        for (int i = 0; i < n; i++) {
+            countTest.testCount();
+        }
 //        for (int i = 0; i < n; i++) {
 //            switch(variation) {
 //                case METHOD_INST:
@@ -109,9 +112,8 @@ class CountTest {
         }
     }
 
-    // TODO test
-    static public void mer() {
-        putchar('#');
+    public void testCount() {
+        printInt(count++);
     }
 
     /* synchronized instance method */
