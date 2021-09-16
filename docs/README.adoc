@@ -61,6 +61,8 @@ Please ensure the follow are installed and available on your path:
 
 === MacOS
 
+To prevent Java versioning errors it is best to install Maven manually rather than with homebrew (see https://maven.apache.org/install.html). The homebrew Maven install has a dependency on Java 16 which may cause Maven to use the wrong version of Java when building qbicc.
+
 The `libgcc_s.dylib` is also required to be available and must be present (or symlinked) to
 `/usr/local/lib/libgcc_s.dylib`.
 
