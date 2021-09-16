@@ -182,7 +182,7 @@ public class RuntimeChecksBasicBlockBuilder extends DelegatingBasicBlockBuilder 
         ValueType v2Type = v2.getType();
         if (v1Type instanceof IntegerType && v2Type instanceof IntegerType) {
             LiteralFactory lf = ctxt.getLiteralFactory();
-            final IntegerLiteral zero = lf.literalOf(0);
+            final IntegerLiteral zero = lf.literalOf((IntegerType) v2.getType(), 0);
             final BlockLabel throwIt = new BlockLabel();
             final BlockLabel goAhead = new BlockLabel();
 
