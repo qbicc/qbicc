@@ -313,6 +313,11 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
         return new VmObjectImpl(this);
     }
 
+    @Override
+    public String toString() {
+        return "class " + getName();
+    }
+
     enum State {
         UNINITIALIZED,
         INITIALIZING,
