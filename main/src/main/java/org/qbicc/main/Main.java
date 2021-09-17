@@ -128,6 +128,7 @@ public class Main implements Callable<DiagnosticContext> {
     private final boolean optPhis;
     private final boolean optGotos;
     private final boolean optInlining;
+    private final boolean initBuildTime;
     private final Platform platform;
 
     Main(Builder builder) {
@@ -144,6 +145,7 @@ public class Main implements Callable<DiagnosticContext> {
         optPhis = builder.optPhis;
         optGotos = builder.optGotos;
         platform = builder.platform;
+        initBuildTime = builder.initBuildTime;
     }
 
     public DiagnosticContext call() {
@@ -302,10 +304,12 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addResolverFactory(InternalNativeTypeResolver::new);
                                 builder.addResolverFactory(NativeTypeResolver::new);
 
-                                builder.addTaskWrapperFactory(Phase.ADD, next -> (wrapper, ctxt) -> {
-                                    Vm vm = ctxt.getVm();
-                                    vm.doAttached(vm.newThread(Thread.currentThread().getName(), null, false), () -> wrapper.accept(ctxt));
-                                });
+                                if (initBuildTime) {
+                                    builder.addTaskWrapperFactory(Phase.ADD, next -> (wrapper, ctxt) -> {
+                                        Vm vm = ctxt.getVm();
+                                        vm.doAttached(vm.newThread(Thread.currentThread().getName(), null, false), () -> wrapper.accept(ctxt));
+                                    });
+                                }
                                 builder.addPreHook(Phase.ADD, CoreIntrinsics::register);
                                 builder.addPreHook(Phase.ADD, CoreClasses::get);
                                 builder.addPreHook(Phase.ADD, ThrowExceptionHelper::get);
@@ -317,7 +321,9 @@ public class Main implements Callable<DiagnosticContext> {
                                 builder.addPreHook(Phase.ADD, RTAInfo::forceCoreClassesReachable);
                                 builder.addElementHandler(Phase.ADD, new ElementBodyCreator());
                                 builder.addElementHandler(Phase.ADD, new ElementVisitorAdapter(new DotGenerator(Phase.ADD, graphGenConfig)));
-                                builder.addElementHandler(Phase.ADD, new ElementInitializer());
+                                if (initBuildTime) {
+                                    builder.addElementHandler(Phase.ADD, new ElementInitializer());
+                                }
                                 builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, IntrinsicBasicBlockBuilder::createForAddPhase);
                                 if (nogc) {
                                     builder.addBuilderFactory(Phase.ADD, BuilderStage.TRANSFORM, NoGcMultiNewArrayBasicBlockBuilder::new);
@@ -460,6 +466,7 @@ public class Main implements Callable<DiagnosticContext> {
             .setOptInlining(optionsProcessor.optArgs.optInlining)
             .setOptGotos(optionsProcessor.optArgs.optGotos)
             .setOptPhis(optionsProcessor.optArgs.optPhis)
+            .setInitBuildTime(optionsProcessor.initBuildTime)
             .setGraphGenConfig(optionsProcessor.graphGenConfig);
         Platform platform = optionsProcessor.platform;
         if (platform != null) {
@@ -530,6 +537,8 @@ public class Main implements Callable<DiagnosticContext> {
         private Platform platform;
         @CommandLine.Option(names = "--string-pool-stats")
         private boolean stringPoolStats;
+        @CommandLine.Option(names = "--init-build-time", negatable = true, defaultValue = "false", description = "Initialize all classes at build time")
+        private boolean initBuildTime;
 
         @CommandLine.Parameters(index="0", arity="1", description = "Application main class")
         private String mainClass;
@@ -644,6 +653,7 @@ public class Main implements Callable<DiagnosticContext> {
         private boolean optPhis = true;
         private boolean optGotos = true;
         private GraphGenConfig graphGenConfig;
+        private boolean initBuildTime = false;
 
         Builder() {}
 
@@ -726,6 +736,11 @@ public class Main implements Callable<DiagnosticContext> {
 
         public Builder setOptGotos(boolean optGotos) {
             this.optGotos = optGotos;
+            return this;
+        }
+
+        public Builder setInitBuildTime(boolean initBuildTime) {
+            this.initBuildTime = initBuildTime;
             return this;
         }
 
