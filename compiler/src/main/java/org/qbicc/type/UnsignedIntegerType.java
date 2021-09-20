@@ -91,4 +91,11 @@ public final class UnsignedIntegerType extends IntegerType {
             }
         }
     }
+    public Primitive asPrimitive() {
+        if (minBits == 16) {
+            return Primitive.CHAR;
+        } else {
+            throw new UnsupportedOperationException();
+        }
+    }
 }

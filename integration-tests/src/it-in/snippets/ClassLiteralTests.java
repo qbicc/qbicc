@@ -22,6 +22,7 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
+        putchar('#');
     }
 
     static void testArrayOfPrimitiveType() {
@@ -36,6 +37,7 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
+        putchar('#');
     }
 
     static void testMultiDimensionalArrayOfPrimitiveType() {
@@ -50,6 +52,7 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
+        putchar('#');
     }
 
     static void testConcreteType() {
@@ -64,6 +67,7 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
+        putchar('#');
     }
 
     static void testArrayOfConcreteType() {
@@ -78,6 +82,7 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
+        putchar('#');
     }
 
     static void testMultiDimensionalArrayOfConcreteType() {
@@ -92,16 +97,12 @@ public class ClassLiteralTests {
         } else {
             putchar('F');
         }
+        putchar('#');
     }
     public static void main(String args[]) {
-        /**
-         * Tests for class literals of primitive type are disabled as
-         * they need static reference fields to be initialized properly.
-         * Currently the static reference fields are set to null.
-         */
-        //testPrimitiveType();
-        //testArrayOfPrimitiveType();
-        //testMultiDimensionalArrayOfPrimitiveType();
+        testPrimitiveType();
+        testArrayOfPrimitiveType();
+        testMultiDimensionalArrayOfPrimitiveType();
         testConcreteType();
         testArrayOfConcreteType();
         testMultiDimensionalArrayOfConcreteType();

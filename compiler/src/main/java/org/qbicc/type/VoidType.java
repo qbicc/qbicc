@@ -32,4 +32,8 @@ public final class VoidType extends ValueType {
     public StringBuilder toFriendlyString(final StringBuilder b) {
         return b.append('v');
     }
+
+    public Primitive asPrimitive() {
+        return Primitive.VOID;
+    }
 }

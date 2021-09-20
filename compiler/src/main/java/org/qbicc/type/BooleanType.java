@@ -50,4 +50,8 @@ public final class BooleanType extends WordType {
     public StringBuilder toFriendlyString(final StringBuilder b) {
         return b.append("bool");
     }
+
+    public Primitive asPrimitive() {
+        return Primitive.BOOLEAN;
+    }
 }

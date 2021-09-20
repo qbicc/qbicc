@@ -20,7 +20,9 @@ import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayType;
 import org.qbicc.type.CompoundType;
+import org.qbicc.type.Primitive;
 import org.qbicc.type.TypeSystem;
+import org.qbicc.type.ValueType;
 import org.qbicc.type.WordType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 import org.qbicc.type.definition.element.ExecutableElement;
@@ -93,6 +95,12 @@ public class BuildtimeHeap {
         return sl;
     }
 
+    public Data serializeClassObject(Primitive primitive) {
+        LoadedTypeDefinition jlc = ctxt.getBootstrapClassContext().findDefinedType("java/lang/Class").load();
+        Literal classLiteral = createClassObjectLiteral(jlc, primitive.getName(), primitive.getType());
+        return defineData(nextLiteralName(), classLiteral);
+    }
+
     public synchronized Data serializeClassObject(LoadedTypeDefinition type) {
         if (classObjects.containsKey(type)) {
             return classObjects.get(type);
@@ -146,7 +154,7 @@ public class BuildtimeHeap {
         return data;
     }
 
-    private Data serializeClassObjectImpl(LoadedTypeDefinition jlc, LoadedTypeDefinition type) {
+    private Literal createClassObjectLiteral(LoadedTypeDefinition jlc, String className, ValueType type) {
         LiteralFactory lf = ctxt.getLiteralFactory();
         Layout.LayoutInfo jlcLayout = layout.getInstanceLayoutInfo(jlc);
         CompoundType jlcType = jlcLayout.getCompoundType();
@@ -162,20 +170,25 @@ public class BuildtimeHeap {
 
         // Next, initialize instance fields of the qbicc jlc type that we can/want to set at build time.
         CompoundType.Member name = jlcType.getMember("name");
-        String externalName = type.getInternalName().replace('/', '.');
-        if (externalName.startsWith("internal_array_")) {
-            externalName = externalName.replaceFirst("internal_array_", "[");
-        }
-        memberMap.put(name, dataToLiteral(lf, serializeStringLiteral(externalName), (WordType)name.getType()));
+        memberMap.put(name, dataToLiteral(lf, serializeStringLiteral(className), (WordType)name.getType()));
 
         CompoundType.Member id = jlcType.getMember("id");
-        memberMap.put(id, lf.literalOfType(type.getType()));
+        memberMap.put(id, lf.literalOfType(type));
 
         //
         // TODO: Figure out what information we need to support reflection and serialize it too (VMClass instance???)
         //
 
-        return defineData(nextLiteralName(), ctxt.getLiteralFactory().literalOf(jlcType, memberMap));
+        return ctxt.getLiteralFactory().literalOf(jlcType, memberMap);
+    }
+
+    private Data serializeClassObjectImpl(LoadedTypeDefinition jlc, LoadedTypeDefinition type) {
+        String externalName = type.getInternalName().replace('/', '.');
+        if (externalName.startsWith("internal_array_")) {
+            externalName = externalName.replaceFirst("internal_array_", "[");
+        }
+        Literal classLiteral = createClassObjectLiteral(jlc, externalName, type.getType());
+        return defineData(nextLiteralName(), classLiteral);
     }
 
     private String nextLiteralName() {

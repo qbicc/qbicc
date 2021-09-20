@@ -50,6 +50,7 @@ import org.qbicc.type.IntegerType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.ReferenceType;
+import org.qbicc.type.ScalarType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.Type;
 import org.qbicc.type.TypeType;
@@ -369,40 +370,11 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         } else if (type instanceof ObjectType) {
             return Values.intConstant(((ObjectType) type).getDefinition().load().getTypeId());
         }
-        // uncommon cases: primitives
-        // TODO: come up with an appropriate shared location for these constants
-        // [1] boolean.class
-        // [2] byte.class
-        // [3] short.class
-        // [4] char.class
-        // [5] int.class
-        // [6] float.class
-        // [7] long.class
-        // [8] double.class
-        // [9] void.class
-        if (type instanceof FloatType) {
-            switch (((FloatType) type).getMinBits()) {
-                case 32: return Values.intConstant(6);
-                case 64: return Values.intConstant(8);
-                // else fall out
-            }
-        } else if (type instanceof SignedIntegerType) {
-            switch (((SignedIntegerType) type).getMinBits()) {
-                case 8: return Values.intConstant(2);
-                case 16: return Values.intConstant(3);
-                case 32: return Values.intConstant(5);
-                case 64: return Values.intConstant(7);
-                // else fall out
-            }
-        } else if (type instanceof UnsignedIntegerType) {
-            if (((UnsignedIntegerType) type).getMinBits() == 16) {
-                return intConstant(4);
-            }
-            // fall out
-        } else if (type instanceof BooleanType) {
-            return Values.intConstant(1);
-        } else if (type instanceof VoidType) {
-            return Values.intConstant(9);
+        if (type instanceof WordType) {
+            return Values.intConstant(((WordType)type).asPrimitive().getTypeId());
+        }
+        else if (type instanceof VoidType) {
+            return Values.intConstant(((VoidType)type).asPrimitive().getTypeId());
         }
         // not a valid type literal
         ctxt.error("llvm: cannot lower type literal %s", node);
