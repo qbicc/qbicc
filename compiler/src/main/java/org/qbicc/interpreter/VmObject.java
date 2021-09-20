@@ -10,27 +10,19 @@ public interface VmObject {
 
     PhysicalObjectType getObjectType();
 
-    VmObject readField(int fieldIndex);
+    Memory getMemory();
 
-    boolean readFieldBoolean(int fieldIndex);
+    void monitorEnter();
 
-    int readFieldInt(int fieldIndex);
+    void monitorExit();
 
-    long readFieldLong(int fieldIndex);
+    void vmWait() throws InterruptedException;
 
-    float readFieldFloat(int fieldIndex);
+    void vmWait(long millis) throws InterruptedException;
 
-    double readFieldDouble(int fieldIndex);
+    void vmWait(long millis, int nanos) throws InterruptedException;
 
-    void writeField(int fieldIndex, VmObject value);
+    void vmNotify();
 
-    void writeField(int fieldIndex, boolean value);
-
-    void writeField(int fieldIndex, int value);
-
-    void writeField(int fieldIndex, long value);
-
-    void writeField(int fieldIndex, float value);
-
-    void writeField(int fieldIndex, double value);
+    void vmNotifyAll();
 }

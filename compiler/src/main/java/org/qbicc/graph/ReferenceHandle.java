@@ -73,4 +73,8 @@ public final class ReferenceHandle extends AbstractValueHandle {
     public <T, R> R accept(ValueHandleVisitor<T, R> visitor, T param) {
         return visitor.visit(param, this);
     }
+
+    public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
 }

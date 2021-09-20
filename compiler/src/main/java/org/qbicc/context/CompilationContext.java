@@ -2,6 +2,7 @@ package org.qbicc.context;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -12,7 +13,8 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
-import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
@@ -43,7 +45,11 @@ public interface CompilationContext extends DiagnosticContext {
 
     ClassContext getBootstrapClassContext();
 
-    ClassContext constructClassContext(VmObject classLoaderObject);
+    default ClassContext getClassContextForLoader(VmClassLoader classLoaderObject) {
+        return classLoaderObject == null ? getBootstrapClassContext() : classLoaderObject.getClassContext();
+    }
+
+    ClassContext constructClassContext(VmClassLoader classLoaderObject);
 
     MethodElement getVMHelperMethod(String helperName);
 
@@ -97,6 +103,17 @@ public interface CompilationContext extends DiagnosticContext {
     SymbolLiteral getCurrentThreadLocalSymbolLiteral();
 
     FieldElement getExceptionField();
+
+    Vm getVm();
+
+    /**
+     * Set the task runner used to run parallel tasks on task threads. The runner can wrap the task in various ways.
+     *
+     * @param taskRunner the task runner (must not be {@code null})
+     * @throws IllegalStateException if this method is called from a compiler thread, or if the compiler threads are not
+     *  running
+     */
+    void setTaskRunner(BiConsumer<Consumer<CompilationContext>, CompilationContext> taskRunner) throws IllegalStateException;
 
     /**
      * Run a task on every compiler thread.  When the task has returned on all threads, this method will return.  This

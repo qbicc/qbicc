@@ -104,6 +104,14 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <!-- interpreter -->
+
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>qbicc-interpreter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- machine general -->
 
             <dependency>

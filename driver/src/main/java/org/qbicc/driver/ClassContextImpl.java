@@ -7,16 +7,16 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
+import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.literal.LiteralFactory;
-import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.ValueType;
 import org.qbicc.type.annotation.type.TypeAnnotationList;
-import org.qbicc.context.ClassContext;
 import org.qbicc.type.definition.DefineFailedException;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.DescriptorTypeResolver;
@@ -32,16 +32,18 @@ import org.qbicc.type.generic.TypeSignature;
  */
 final class ClassContextImpl implements ClassContext {
     private final CompilationContextImpl compilationContext;
-    private final VmObject classLoader;
+    private final VmClassLoader classLoader;
     private final DescriptorTypeResolver descriptorTypeResolver;
     private final ConcurrentMap<String, AtomicReference<Object>> definedClasses = new ConcurrentHashMap<>();
+    private final BiFunction<ClassContext, String, DefinedTypeDefinition> finder;
 
     private static final Object LOADING = new Object();
     private static final Object NOT_FOUND = new Object();
 
-    ClassContextImpl(final CompilationContextImpl compilationContext, final VmObject classLoader) {
+    ClassContextImpl(final CompilationContextImpl compilationContext, final VmClassLoader classLoader, BiFunction<ClassContext, String, DefinedTypeDefinition> finder) {
         this.compilationContext = compilationContext;
         this.classLoader = classLoader;
+        this.finder = finder;
         DescriptorTypeResolver descriptorTypeResolver = new BasicDescriptorTypeResolver(this);
         for (BiFunction<? super ClassContext, DescriptorTypeResolver, DescriptorTypeResolver> factory : compilationContext.resolverFactories) {
             descriptorTypeResolver = factory.apply(this, descriptorTypeResolver);
@@ -53,12 +55,11 @@ final class ClassContextImpl implements ClassContext {
         return compilationContext;
     }
 
-    public VmObject getClassLoader() {
+    public VmClassLoader getClassLoader() {
         return classLoader;
     }
 
     public DefinedTypeDefinition findDefinedType(final String typeName) {
-        BiFunction<VmObject, String, DefinedTypeDefinition> finder = compilationContext.getFinder();
         AtomicReference<Object> ref = definedClasses.get(typeName);
         Object val;
         DefinedTypeDefinition definition;
@@ -80,7 +81,7 @@ final class ClassContextImpl implements ClassContext {
                     ref = appearing;
                     continue;
                 }
-                definition = finder.apply(classLoader, typeName);
+                definition = finder.apply(this, typeName);
                 ref.set(definition == null ? NOT_FOUND : definition);
             }
             return definition;
@@ -139,6 +140,15 @@ final class ClassContextImpl implements ClassContext {
 
     public FunctionType resolveMethodFunctionType(MethodDescriptor descriptor, TypeParameterContext paramCtxt, MethodSignature signature, final TypeAnnotationList returnTypeVisible, List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisibleAnnotations) {
         return descriptorTypeResolver.resolveMethodFunctionType(descriptor, paramCtxt, signature, returnTypeVisible, visibleAnnotations, returnTypeInvisible, invisibleAnnotations);
+    }
+
+    @Override
+    public DefinedTypeDefinition.Builder newTypeBuilder() {
+        DefinedTypeDefinition.Builder builder = DefinedTypeDefinition.Builder.basic();
+        for (BiFunction<? super ClassContext, DefinedTypeDefinition.Builder, DefinedTypeDefinition.Builder> factory : compilationContext.getTypeBuilderFactories()) {
+            builder = factory.apply(this, builder);
+        }
+        return builder;
     }
 
     public ValueType resolveTypeFromMethodDescriptor(final TypeDescriptor descriptor, TypeParameterContext paramCtxt, final TypeSignature signature, final TypeAnnotationList visibleAnnotations, final TypeAnnotationList invisibleAnnotations) {

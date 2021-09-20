@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -22,7 +23,8 @@ import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.graph.literal.SymbolLiteral;
-import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmClassLoader;
 import org.qbicc.machine.arch.Platform;
 import org.qbicc.object.Function;
 import org.qbicc.object.FunctionDeclaration;
@@ -67,7 +69,7 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
-        public ClassContext constructClassContext(final VmObject classLoaderObject) {
+        public ClassContext constructClassContext(final VmClassLoader classLoaderObject) {
             return null;
         }
 
@@ -155,6 +157,13 @@ public class TestClassContext implements ClassContext {
             return null;
         }
 
+        public Vm getVm() {
+            return null;
+        }
+
+        public void setTaskRunner(final BiConsumer<Consumer<CompilationContext>, CompilationContext> taskRunner) throws IllegalStateException {
+        }
+
         public void runParallelTask(Consumer<CompilationContext> task) throws IllegalStateException {
         }
 
@@ -231,7 +240,7 @@ public class TestClassContext implements ClassContext {
         return ctxt;
     }
 
-    public VmObject getClassLoader() {
+    public VmClassLoader getClassLoader() {
         return null;
     }
 
@@ -285,6 +294,10 @@ public class TestClassContext implements ClassContext {
     }
 
     public FunctionType resolveMethodFunctionType(final MethodDescriptor descriptor, TypeParameterContext paramCtxt, final MethodSignature signature, final TypeAnnotationList returnTypeVisible, final List<TypeAnnotationList> visibleAnnotations, final TypeAnnotationList returnTypeInvisible, final List<TypeAnnotationList> invisibleAnnotations) {
+        return null;
+    }
+
+    public DefinedTypeDefinition.Builder newTypeBuilder() {
         return null;
     }
 

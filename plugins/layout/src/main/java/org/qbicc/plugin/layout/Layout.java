@@ -25,6 +25,7 @@ import org.qbicc.type.definition.element.FieldElement;
  */
 public final class Layout {
     private static final AttachmentKey<Layout> KEY = new AttachmentKey<>();
+    private static final AttachmentKey<Layout> I_KEY = new AttachmentKey<>();
 
     private final Map<LoadedTypeDefinition, LayoutInfo> instanceLayouts = new ConcurrentHashMap<>();
     private final CompilationContext ctxt;
@@ -38,6 +39,18 @@ public final class Layout {
         if (layout == null) {
             layout = new Layout(ctxt);
             Layout appearing = ctxt.putAttachmentIfAbsent(KEY, layout);
+            if (appearing != null) {
+                layout = appearing;
+            }
+        }
+        return layout;
+    }
+
+    public static Layout getForInterpreter(CompilationContext ctxt) {
+        Layout layout = ctxt.getAttachment(I_KEY);
+        if (layout == null) {
+            layout = new Layout(ctxt);
+            Layout appearing = ctxt.putAttachmentIfAbsent(I_KEY, layout);
             if (appearing != null) {
                 layout = appearing;
             }
@@ -194,6 +207,36 @@ public final class Layout {
         layoutInfo = new LayoutInfo(allocated, compoundType, fieldToMember);
         LayoutInfo appearing = instanceLayouts.putIfAbsent(validated, layoutInfo);
         return appearing != null ? appearing : layoutInfo;
+    }
+
+    /**
+     * Compute the static layout information of the given type for the interpreter.  The run time does not store
+     * static fields in a structure.
+     *
+     * @param type the type (must not be {@code null})
+     * @return the layout info, or {@code null} if there are no static fields
+     */
+    public LayoutInfo getInterpreterStaticLayoutInfo(DefinedTypeDefinition type) {
+        LoadedTypeDefinition loaded = type.load();
+        int cnt = loaded.getFieldCount();
+        if (cnt == 0) {
+            return null;
+        }
+        BitSet allocated = new BitSet();
+        Map<FieldElement, CompoundType.Member> fieldToMember = new HashMap<>(cnt);
+        for (int i = 0; i < cnt; i ++) {
+            FieldElement field = loaded.getField(i);
+            if (! field.isStatic() || field.isThreadLocal()) {
+                continue;
+            }
+            fieldToMember.put(field, computeMember(allocated, field));
+        }
+        int size = allocated.length();
+        CompoundType.Member[] membersArray = fieldToMember.values().toArray(CompoundType.Member[]::new);
+        Arrays.sort(membersArray);
+        List<CompoundType.Member> membersList = List.of(membersArray);
+        CompoundType compoundType = ctxt.getTypeSystem().getCompoundType(CompoundType.Tag.NONE, type.getInternalName().replace('/', '.'), size, 1, () -> membersList);
+        return new LayoutInfo(allocated, compoundType, fieldToMember);
     }
 
     private ValueType widenBoolean(ValueType type) {

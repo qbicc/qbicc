@@ -86,4 +86,8 @@ public final class ElementOf extends AbstractValueHandle {
     public <T, R> R accept(final ValueHandleVisitor<T, R> visitor, final T param) {
         return visitor.visit(param, this);
     }
+
+    public <T> long accept(final ValueHandleVisitorLong<T> visitor, final T param) {
+        return visitor.visit(param, this);
+    }
 }

@@ -3,6 +3,7 @@ package org.qbicc.type.definition;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
+import org.qbicc.interpreter.VmClass;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
@@ -57,10 +58,6 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
     default boolean isSubtypeOf(LoadedTypeDefinition other) {
         return getType().isSubtypeOf(other.getType());
     }
-
-    FieldSet getInstanceFieldSet();
-
-    FieldSet getStaticFieldSet();
 
     MethodElement[] getInstanceMethods();
 
@@ -481,4 +478,10 @@ public interface LoadedTypeDefinition extends DefinedTypeDefinition {
      */
     boolean hasDefaultMethods();
 
+    /**
+     * Get the VM class corresponding to this loaded type definition.
+     *
+     * @return the VM class (not {@code null})
+     */
+    VmClass getVmClass();
 }

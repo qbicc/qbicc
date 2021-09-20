@@ -53,7 +53,11 @@ public final class Intrinsics {
 
     // Instance intrinsics
     public boolean registerIntrinsic(TypeDescriptor owner, String name, MethodDescriptor desc, InstanceIntrinsic intrinsic) {
-        return instanceIntrinsics.computeIfAbsent(Phase.ADD, Intrinsics::map).computeIfAbsent(owner, Intrinsics::map).computeIfAbsent(name, Intrinsics::map).putIfAbsent(desc, intrinsic) != null;
+        return registerIntrinsic(Phase.ADD, owner, name, desc, intrinsic);
+    }
+
+    public boolean registerIntrinsic(Phase phase, TypeDescriptor owner, String name, MethodDescriptor desc, InstanceIntrinsic intrinsic) {
+        return instanceIntrinsics.computeIfAbsent(phase, Intrinsics::map).computeIfAbsent(owner, Intrinsics::map).computeIfAbsent(name, Intrinsics::map).putIfAbsent(desc, intrinsic) != null;
     }
 
     public InstanceIntrinsic getInstanceIntrinsic(Phase phase, MethodElement element) {

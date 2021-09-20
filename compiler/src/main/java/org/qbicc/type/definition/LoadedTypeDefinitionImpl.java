@@ -7,6 +7,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.function.Consumer;
 
+import io.smallrye.common.constraint.Assert;
+import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmClass;
 import org.qbicc.type.InterfaceObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.classfile.ClassFile;
@@ -15,12 +18,12 @@ import org.qbicc.type.definition.element.FieldElement;
 import org.qbicc.type.definition.element.InitializerElement;
 import org.qbicc.type.definition.element.MethodElement;
 import org.qbicc.type.definition.element.NestedClassElement;
-import io.smallrye.common.constraint.Assert;
 
 /**
  *
  */
 final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition implements LoadedTypeDefinition {
+
     private final ObjectType type;
     private final DefinedTypeDefinitionImpl delegate;
     private final LoadedTypeDefinition superType;
@@ -30,14 +33,13 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
     private final MethodElement[] instanceMethods;
     private final ConstructorElement[] ctors;
     private final InitializerElement init;
-    private final FieldSet staticFieldSet;
-    private final FieldSet instanceFieldSet;
     private final NestedClassElement enclosingClass;
     private final NestedClassElement[] enclosedClasses;
     private int typeId = -1;
     private int maximumSubtypeId = -1;
     private final boolean hasDefaultMethods;
     private final boolean declaresDefaultMethods;
+    private volatile VmClass vmClass;
 
     LoadedTypeDefinitionImpl(final DefinedTypeDefinitionImpl delegate, final LoadedTypeDefinition superType, final LoadedTypeDefinition[] interfaces, final ArrayList<FieldElement> fields, final MethodElement[] methods, final MethodElement[] instanceMethods, final ConstructorElement[] ctors, final InitializerElement init, final NestedClassElement enclosingClass, final NestedClassElement[] enclosedClasses) {
         this.delegate = delegate;
@@ -60,8 +62,6 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
         } else {
             type = getContext().getTypeSystem().generateClassObjectType(delegate, superType == null ? null : superType.getClassType(), List.of(interfaceTypes));
         }
-        instanceFieldSet = new FieldSet(this, false);
-        staticFieldSet = new FieldSet(this, true);
 
         /* Walk methods of interfaces looking for default methods */
         boolean buildDeclaresDefaultMethods = false;
@@ -146,10 +146,6 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     public MethodElement[] getInstanceMethods() { return instanceMethods; }
 
-    public FieldSet getStaticFieldSet() {
-        return staticFieldSet;
-    }
-
     public NestedClassElement getEnclosingNestedClass() {
         return enclosingClass;
     }
@@ -160,10 +156,6 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     public NestedClassElement getEnclosedNestedClass(final int index) throws IndexOutOfBoundsException {
         return enclosedClasses[index];
-    }
-
-    public FieldSet getInstanceFieldSet() {
-        return instanceFieldSet;
     }
 
     public int getFieldCount() {
@@ -236,5 +228,14 @@ final class LoadedTypeDefinitionImpl extends DelegatingDefinedTypeDefinition imp
 
     public boolean hasDefaultMethods() {
         return hasDefaultMethods;
+    }
+
+    public VmClass getVmClass() {
+        VmClass vmClass = this.vmClass;
+        if (vmClass == null) {
+            Vm vm = Vm.requireCurrent();
+            vmClass = this.vmClass = vm.getClassLoaderForContext(getContext()).getOrDefineClass(this);
+        }
+        return vmClass;
     }
 }
