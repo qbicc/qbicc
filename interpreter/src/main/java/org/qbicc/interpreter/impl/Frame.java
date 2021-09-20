@@ -205,9 +205,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ValueType leftType = val.getLeftInput().getType();
         ValueType rightType = val.getRightInput().getType();
         if (leftType.getClass() == rightType.getClass()) {
-            if (leftType instanceof ReferenceType) {
-                assert rightType instanceof ReferenceType;
+            if (leftType instanceof ReferenceType && rightType instanceof ReferenceType) {
                 // references of any type can be compared
+                return;
+            }
+            if (leftType instanceof TypeType && rightType instanceof TypeType) {
+                // type IDs can be compared
                 return;
             }
             if (leftType.equals(rightType)) {
@@ -710,6 +713,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(unboxBool(left) == unboxBool(right));
         } else if (isRef(inputType)) {
             return Boolean.valueOf(require(left) == require(right));
+        } else if (isTypeId(inputType)) {
+            return Boolean.valueOf(unboxType(left).equals(unboxType(right)));
         }
         throw new IllegalStateException("Invalid is*");
     }
@@ -732,6 +737,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(unboxBool(left) != unboxBool(right));
         } else if (isRef(inputType)) {
             return Boolean.valueOf(require(left) != require(right));
+        } else if (isTypeId(inputType)) {
+            return Boolean.valueOf(! unboxType(left).equals(unboxType(right)));
         }
         throw new IllegalStateException("Invalid is*");
     }
@@ -1968,6 +1975,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         return type instanceof ReferenceType;
     }
 
+    private static boolean isTypeId(ValueType type) {
+        return type instanceof TypeType;
+    }
+
     private static boolean isInt8(ValueType type) {
         return type instanceof IntegerType && ((IntegerType) type).getMinBits() == 8;
     }
@@ -2086,6 +2097,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             throw new IllegalStateException("Missing required value");
         }
         return v;
+    }
+
+    ValueType unboxType(Value value) {
+        return (ValueType) require(value);
     }
 
     VmClassImpl requireClass(ObjectType objType) {
