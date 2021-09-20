@@ -212,6 +212,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VM");
 
         MethodDescriptor objectToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jloDesc));
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
 
         // Null and no-operation intrinsics
 
@@ -263,6 +264,14 @@ public final class CoreIntrinsics {
             ctxt.getLiteralFactory().literalOf(0);
 
         intrinsics.registerIntrinsic(systemDesc, "identityHashCode", objectToIntDesc, identityHashCode);
+
+        // registerNatives
+
+        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        StaticIntrinsic registerNatives = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(systemDesc, "registerNatives", emptyToVoid, registerNatives);
     }
 
     public static void registerJavaLangThreadIntrinsics(CompilationContext ctxt) {
