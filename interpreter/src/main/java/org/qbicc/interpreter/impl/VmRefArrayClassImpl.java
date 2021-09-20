@@ -27,6 +27,6 @@ final class VmRefArrayClassImpl extends VmArrayClassImpl {
 
     @Override
     public VmRefArrayImpl  newInstance(int length) {
-        return new VmRefArrayImpl(this, getInstanceObjectType(), length);
+        return new VmRefArrayImpl(this, length);
     }
 }
