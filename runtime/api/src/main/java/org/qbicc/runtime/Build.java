@@ -163,25 +163,25 @@ public final class Build {
         // CPU
 
         public static boolean isAmd64() {
-            return defined(GCC) && defined(x86_64) || defined(MSVC) && defined(_M_AMD64);
+            return defined(__GNUC__) && defined(__x86_64__) || defined(MSVC) && defined(_M_AMD64);
         }
 
         public static boolean isI386() {
-            return defined(GCC) && defined(__i386__) || defined(MSVC) && defined(_M_X86);
+            return defined(__GNUC__) && defined(__i386__) || defined(MSVC) && defined(_M_X86);
         }
 
         public static boolean isArm() {
-            return defined(GCC) && defined(__arm__) || defined(MSVC) && defined(_M_ARM);
+            return defined(__GNUC__) && defined(__arm__) || defined(MSVC) && defined(_M_ARM);
         }
 
         public static boolean isAarch64() {
-            return defined(GCC) && defined(__aarch64__);
+            return defined(__GNUC__) && defined(__aarch64__);
         }
 
         // Toolchain
 
         public static boolean isGcc() {
-            return defined(GCC);
+            return defined(__GNUC__);
         }
 
         // C environment
@@ -224,10 +224,10 @@ public final class Build {
         private static final c_int __APPLE__ = constant();
         private static final object _WIN32 = constant();
         private static final object WIN32 = constant();
-        private static final object GCC = constant();
+        private static final object __GNUC__ = constant();
         private static final object __i386__ = constant();
         private static final object MSVC = constant();
-        private static final object x86_64 = constant();
+        private static final object __x86_64__ = constant();
         private static final object _M_AMD64 = constant();
         private static final object _M_X86 = constant();
         private static final object linux = constant();
