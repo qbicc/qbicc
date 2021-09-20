@@ -86,6 +86,7 @@ public final class CoreIntrinsics {
         registerOrgQbiccRuntimeValuesIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
         registerOrgQbiccRuntimePosixPthreadCastPtr(ctxt);
+        registerJdkInternalMiscUnsafeIntrinsics(ctxt);
     }
 
     private static StaticIntrinsic setVolatile(CompilationContext ctxt, FieldElement field) {
@@ -1431,5 +1432,20 @@ public final class CoreIntrinsics {
         MethodDescriptor availableProcessorsMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
 
         intrinsics.registerIntrinsic(runtimeClassDescriptor, "availableProcessors", availableProcessorsMethodDesc, availableProcessorsIntrinsic);
+    }
+
+    private static void registerJdkInternalMiscUnsafeIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
+
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+
+        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        StaticIntrinsic registerNatives = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(unsafeDesc, "registerNatives", emptyToVoid, registerNatives);
     }
 }
