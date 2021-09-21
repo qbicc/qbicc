@@ -92,7 +92,8 @@ public class FunctionTypeResolver implements DescriptorTypeResolver.Delegating {
                                     functionType = ts.getFunctionType(ts.getVoidType());
                                 } else {
                                     if (definedType.isInterface()) {
-                                        return NativeInfo.get(ctxt).getTypeOfFunctionalInterface(definedType);
+                                        List<TypeArgument> functionalInterfaceArguments = ((ClassTypeSignature)bound.getBound()).getTypeArguments();
+                                        return NativeInfo.get(ctxt).getTypeOfFunctionalInterface(definedType, functionalInterfaceArguments);
                                     } else {
                                         ctxt.error("Function interface type \"%s\" is not an interface", name);
                                         functionType = ts.getFunctionType(ts.getVoidType());
