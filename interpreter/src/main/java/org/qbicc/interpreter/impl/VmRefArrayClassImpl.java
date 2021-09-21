@@ -24,7 +24,7 @@ final class VmRefArrayClassImpl extends VmArrayClassImpl {
 
     @Override
     public ReferenceArrayObjectType getInstanceObjectType() {
-        return getElementType().getObjectType().getReferenceArrayObject();
+        return getElementType().getInstanceObjectType().getReferenceArrayObject();
     }
 
     @Override
