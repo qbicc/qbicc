@@ -86,6 +86,7 @@ public final class CoreIntrinsics {
         registerOrgQbiccRuntimeValuesIntrinsics(ctxt);
         registerJavaLangMathIntrinsics(ctxt);
         registerOrgQbiccRuntimePosixPthreadCastPtr(ctxt);
+        registerJdkInternalMiscUnsafeIntrinsics(ctxt);
     }
 
     private static StaticIntrinsic setVolatile(CompilationContext ctxt, FieldElement field) {
@@ -211,6 +212,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VM");
 
         MethodDescriptor objectToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jloDesc));
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
 
         // Null and no-operation intrinsics
 
@@ -262,6 +264,14 @@ public final class CoreIntrinsics {
             ctxt.getLiteralFactory().literalOf(0);
 
         intrinsics.registerIntrinsic(systemDesc, "identityHashCode", objectToIntDesc, identityHashCode);
+
+        // registerNatives
+
+        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        StaticIntrinsic registerNatives = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(systemDesc, "registerNatives", emptyToVoid, registerNatives);
     }
 
     public static void registerJavaLangThreadIntrinsics(CompilationContext ctxt) {
@@ -413,7 +423,7 @@ public final class CoreIntrinsics {
             return builder.getFirstBuilder().call(builder.staticMethod(helper), List.of(instance));
         };
 
-        intrinsics.registerIntrinsic(Phase.ANALYZE, objDesc, "getClass", getClassDesc, getClassIntrinsic);
+        intrinsics.registerIntrinsic(Phase.ADD, objDesc, "getClass", getClassDesc, getClassIntrinsic);
 
         // Object#hashCode TODO redo when object headers are set
         MethodDescriptor hashCodeDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
@@ -1431,5 +1441,160 @@ public final class CoreIntrinsics {
         MethodDescriptor availableProcessorsMethodDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
 
         intrinsics.registerIntrinsic(runtimeClassDescriptor, "availableProcessors", availableProcessorsMethodDesc, availableProcessorsIntrinsic);
+    }
+
+    private static void registerJdkInternalMiscUnsafeIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
+        ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+        MethodDescriptor classToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(classDesc));
+        MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
+        MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
+
+        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        StaticIntrinsic registerNatives = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(unsafeDesc, "registerNatives", emptyToVoid, registerNatives);
+
+        InstanceIntrinsic arrayBaseOffset0 = (builder, instance, target, arguments) -> {
+            // this method is only called from one place, so we're inlining into that place
+            Value clazz = arguments.get(0);
+            CoreClasses coreClasses = CoreClasses.get(ctxt);
+            // first, read the type ID to see whether it's a reference array
+            FieldElement classTypeIdField = coreClasses.getClassTypeIdField();
+            Value clazzTypeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(clazz), classTypeIdField), MemoryAtomicityMode.UNORDERED);
+            // if the class type ID equals the ref array type ID, then the array base offset is the ref array content field
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            Layout layout = Layout.get(ctxt);
+
+            BlockLabel checkPassed;
+            BlockLabel checkFailed;
+
+            for (FieldElement contentField : List.of(
+                coreClasses.getRefArrayContentField(),
+                coreClasses.getCharArrayContentField(),
+                coreClasses.getByteArrayContentField(),
+                coreClasses.getShortArrayContentField(),
+                coreClasses.getIntArrayContentField(),
+                coreClasses.getLongArrayContentField(),
+                coreClasses.getFloatArrayContentField(),
+                coreClasses.getDoubleArrayContentField(),
+                coreClasses.getBooleanArrayContentField()
+            )) {
+                DefinedTypeDefinition arrayTypeDef = contentField.getEnclosingType();
+                TypeLiteral arrayTypeLit = lf.literalOfType(arrayTypeDef.load().getType());
+                Layout.LayoutInfo arrayLayout = layout.getInstanceLayoutInfo(arrayTypeDef);
+
+                builder.if_(
+                    builder.isEq(clazzTypeId, arrayTypeLit),
+                    checkPassed = new BlockLabel(),
+                    checkFailed = new BlockLabel()
+                );
+                builder.begin(checkPassed);
+                builder.return_(lf.literalOf(arrayLayout.getMember(contentField).getOffset()));
+
+                builder.begin(checkFailed);
+            }
+
+            // no class matched!
+            LoadedTypeDefinition iaeTypeDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/IllegalArgumentException").load();
+            ClassObjectType iaeType = iaeTypeDef.getClassType();
+            Value iae = builder.new_(iaeType);
+            int idx = iaeTypeDef.findConstructorIndex(MethodDescriptor.VOID_METHOD_DESCRIPTOR);
+            if (idx < 0) {
+                throw new IllegalStateException("Unexpected missing constructor");
+            }
+            builder.call(builder.constructorOf(iae, iaeTypeDef.getConstructor(idx)), List.of());
+            builder.throw_(iae);
+            builder.begin(new BlockLabel());
+            return voidLiteral;
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "arrayBaseOffset0", classToInt, arrayBaseOffset0);
+
+        InstanceIntrinsic arrayIndexScale0 = (builder, instance, target, arguments) -> {
+            // this method is only called from one place, so we're inlining into that place
+            Value clazz = arguments.get(0);
+            CoreClasses coreClasses = CoreClasses.get(ctxt);
+            // first, read the type ID to see whether it's a reference array
+            FieldElement classTypeIdField = coreClasses.getClassTypeIdField();
+            Value clazzTypeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(clazz), classTypeIdField), MemoryAtomicityMode.UNORDERED);
+            // if the class type ID equals the ref array type ID, then the array base offset is the ref array content field
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            Layout layout = Layout.get(ctxt);
+
+            BlockLabel checkPassed;
+            BlockLabel checkFailed;
+
+            for (FieldElement contentField : List.of(
+                coreClasses.getRefArrayContentField(),
+                coreClasses.getCharArrayContentField(),
+                coreClasses.getByteArrayContentField(),
+                coreClasses.getShortArrayContentField(),
+                coreClasses.getIntArrayContentField(),
+                coreClasses.getLongArrayContentField(),
+                coreClasses.getFloatArrayContentField(),
+                coreClasses.getDoubleArrayContentField(),
+                coreClasses.getBooleanArrayContentField()
+            )) {
+                DefinedTypeDefinition arrayTypeDef = contentField.getEnclosingType();
+                TypeLiteral arrayTypeLit = lf.literalOfType(arrayTypeDef.load().getType());
+                Layout.LayoutInfo arrayLayout = layout.getInstanceLayoutInfo(arrayTypeDef);
+
+                builder.if_(
+                    builder.isEq(clazzTypeId, arrayTypeLit),
+                    checkPassed = new BlockLabel(),
+                    checkFailed = new BlockLabel()
+                );
+                builder.begin(checkPassed);
+                builder.return_(lf.literalOf(((ArrayType)arrayLayout.getMember(contentField).getType()).getElementSize()));
+
+                builder.begin(checkFailed);
+            }
+
+            // no class matched!
+            LoadedTypeDefinition iaeTypeDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/IllegalArgumentException").load();
+            ClassObjectType iaeType = iaeTypeDef.getClassType();
+            Value iae = builder.new_(iaeType);
+            int idx = iaeTypeDef.findConstructorIndex(MethodDescriptor.VOID_METHOD_DESCRIPTOR);
+            if (idx < 0) {
+                throw new IllegalStateException("Unexpected missing constructor");
+            }
+            builder.call(builder.constructorOf(iae, iaeTypeDef.getConstructor(idx)), List.of());
+            builder.throw_(iae);
+            builder.begin(new BlockLabel());
+            return voidLiteral;
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayBaseOffset0);
+
+        InstanceIntrinsic addressSize0 = (builder, instance, target, arguments) -> {
+            ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
+            LiteralFactory lf = c.getLiteralFactory();
+            return lf.literalOf(c.getTypeSystem().getPointerSize());
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "addressSize0", emptyToInt, addressSize0);
+
+        InstanceIntrinsic isBigEndian0 = (builder, instance, target, arguments) -> {
+            ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
+            LiteralFactory lf = c.getLiteralFactory();
+            return lf.literalOf(c.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN);
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "isBigEndian0", emptyToBool, isBigEndian0);
+
+        InstanceIntrinsic unalignedAccess0 = (builder, instance, target, arguments) -> {
+            ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
+            LiteralFactory lf = c.getLiteralFactory();
+            return lf.literalOf(false);
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "unalignedAccess0", emptyToBool, unalignedAccess0);
     }
 }

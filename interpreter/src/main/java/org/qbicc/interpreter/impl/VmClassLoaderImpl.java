@@ -127,9 +127,6 @@ final class VmClassLoaderImpl extends VmObjectImpl implements VmClassLoader {
         } else {
             vmClass = new VmClassImpl(vm, loaded, protectionDomain);
         }
-        if (this.defined.putIfAbsent(loaded.getInternalName(), vmClass) != null) {
-            throw new Thrown(vm.noClassDefFoundErrorClass.newInstance("Class already defined"));
-        }
         vmClass.setName(vm);
         return vmClass;
     }

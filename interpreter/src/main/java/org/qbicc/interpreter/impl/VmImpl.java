@@ -14,6 +14,7 @@ import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
+import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -163,6 +164,9 @@ public final class VmImpl implements Vm {
         booleanArrayClass = new VmBooleanArrayClassImpl(this, classClass, booleanArrayClassDef, booleanClass);
         booleanArrayContentOffset = layout.getInstanceLayoutInfo(byteArrayClassDef).getMember(byteArrayContentField).getOffset();
 
+        LoadedTypeDefinition vmHelpersType = bcc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
+        VmClassImpl vmHelpersClass = new VmClassImpl(this, classClass, vmHelpersType, null);
+
         classClass.setName(this);
         objectClass.setName(this);
         classLoaderClass.setName(this);
@@ -187,6 +191,8 @@ public final class VmImpl implements Vm {
         doubleArrayClass.setName(this);
         charArrayClass.setName(this);
         booleanArrayClass.setName(this);
+
+        vmHelpersClass.setName(this);
 
         // throwables
         errorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Error").load(), null);
@@ -222,6 +228,11 @@ public final class VmImpl implements Vm {
         bootstrapClassLoader.registerClass("java/lang/IncompatibleClassChangeError", incompatibleClassChangeErrorClass);
         bootstrapClassLoader.registerClass("java/lang/NoClassDefFoundError", noClassDefFoundErrorClass);
         bootstrapClassLoader.registerClass("java/lang/NoSuchMethodError", noSuchMethodErrorClass);
+
+        // hooks
+        int get_classIdx = vmHelpersType.findMethodIndex(me -> me.nameEquals("get_class"));
+        MethodElement get_classElement = vmHelpersType.getMethod(get_classIdx);
+        vmHelpersClass.registerInvokable(get_classElement, (thread, target, args) -> ((VmObjectImpl) args.get(0)).getVmClass());
     }
 
     VmClassLoaderImpl getBootstrapClassLoader() {
@@ -304,6 +315,15 @@ public final class VmImpl implements Vm {
     public VmClassLoaderImpl getClassLoaderForContext(ClassContext classContext) {
         VmClassLoaderImpl classLoader = (VmClassLoaderImpl) classContext.getClassLoader();
         return classLoader == null ? bootstrapClassLoader : classLoader;
+    }
+
+    @Override
+    public void registerInvokable(ExecutableElement element, VmInvokable invokable) {
+        DefinedTypeDefinition enclosingType = element.getEnclosingType();
+        ClassContext classContext = enclosingType.getContext();
+        VmClassLoaderImpl loader = getClassLoaderForContext(classContext);
+        VmClassImpl vmClass = loader.getOrDefineClass(enclosingType.load());
+        vmClass.registerInvokable(element, invokable);
     }
 
     VmStringImpl intern(VmStringImpl vmString) {

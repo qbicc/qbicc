@@ -5,10 +5,10 @@ import java.util.List;
 
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
-import org.qbicc.type.ArrayObjectType;
 import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.definition.DefinedTypeDefinition;
 import org.qbicc.type.definition.element.ConstructorElement;
+import org.qbicc.type.definition.element.ExecutableElement;
 import org.qbicc.type.definition.element.MethodElement;
 import io.smallrye.common.constraint.Assert;
 
@@ -181,4 +181,12 @@ public interface Vm {
      * @return the class loader (not {@code null}, may be the bootstrap class loader)
      */
     VmClassLoader getClassLoaderForContext(ClassContext classContext);
+
+    /**
+     * Register an executable element that will be directly handled by the given invokable.
+     *
+     * @param element the element (must not be {@code null})
+     * @param invokable the invokable (must not be {@code null})
+     */
+    void registerInvokable(ExecutableElement element, VmInvokable invokable);
 }

@@ -124,6 +124,7 @@ import org.qbicc.graph.literal.ZeroInitializerLiteral;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -205,9 +206,12 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         ValueType leftType = val.getLeftInput().getType();
         ValueType rightType = val.getRightInput().getType();
         if (leftType.getClass() == rightType.getClass()) {
-            if (leftType instanceof ReferenceType) {
-                assert rightType instanceof ReferenceType;
+            if (leftType instanceof ReferenceType && rightType instanceof ReferenceType) {
                 // references of any type can be compared
+                return;
+            }
+            if (leftType instanceof TypeType && rightType instanceof TypeType) {
+                // type IDs can be compared
                 return;
             }
             if (leftType.equals(rightType)) {
@@ -343,6 +347,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, ClassOf node) {
         Object type = require(node.getInput());
+        VmClassImpl simpleType = getSimpleType(thread, type);
+        for (int dimensions = unboxInt(node.getDimensions()); dimensions > 0; dimensions --) {
+            simpleType = simpleType.getArrayClass();
+        }
+        return simpleType;
+    }
+
+    private VmClassImpl getSimpleType(final VmThreadImpl thread, final Object type) {
         // TODO: replace these if-trees with new `Primitive` class
         if (type instanceof PrimitiveArrayObjectType) {
             WordType elementType = ((PrimitiveArrayObjectType) type).getElementType();
@@ -373,7 +385,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 }
             }
         } else if (type instanceof ObjectType) {
-            return ((ObjectType) type).getDefinition().load().getVmClass();
+            return (VmClassImpl) ((ObjectType) type).getDefinition().load().getVmClass();
         } else if (type instanceof BooleanType) {
             return thread.getVM().booleanClass;
         } else if (type instanceof SignedIntegerType) {
@@ -710,6 +722,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(unboxBool(left) == unboxBool(right));
         } else if (isRef(inputType)) {
             return Boolean.valueOf(require(left) == require(right));
+        } else if (isTypeId(inputType)) {
+            return Boolean.valueOf(unboxType(left).equals(unboxType(right)));
         }
         throw new IllegalStateException("Invalid is*");
     }
@@ -732,6 +746,8 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             return Boolean.valueOf(unboxBool(left) != unboxBool(right));
         } else if (isRef(inputType)) {
             return Boolean.valueOf(require(left) != require(right));
+        } else if (isTypeId(inputType)) {
+            return Boolean.valueOf(! unboxType(left).equals(unboxType(right)));
         }
         throw new IllegalStateException("Invalid is*");
     }
@@ -1439,7 +1455,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 CoreClasses coreClasses = CoreClasses.get(ctxt);
                 if (elem == coreClasses.getObjectTypeIdField()) {
                     // the type ID of the object (most likely case)
-                    return getObject(valueHandle).getObjectType();
+                    return getObject(valueHandle).getObjectTypeId();
+                } else if (elem == coreClasses.getClassTypeIdField()) {
+                    // the type ID of a class (next most likely)
+                    return ((VmClassImpl)getObject(valueHandle)).getInstanceObjectTypeId();
                 } else if (elem == coreClasses.getRefArrayElementTypeIdField()) {
                     // the type ID of leaf elements of this array
                     return ((ReferenceArrayObjectType)getObject(valueHandle).getObjectType()).getElementObjectType();
@@ -1968,6 +1987,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         return type instanceof ReferenceType;
     }
 
+    private static boolean isTypeId(ValueType type) {
+        return type instanceof TypeType;
+    }
+
     private static boolean isInt8(ValueType type) {
         return type instanceof IntegerType && ((IntegerType) type).getMinBits() == 8;
     }
@@ -2086,6 +2109,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
             throw new IllegalStateException("Missing required value");
         }
         return v;
+    }
+
+    ValueType unboxType(Value value) {
+        return (ValueType) require(value);
     }
 
     VmClassImpl requireClass(ObjectType objType) {

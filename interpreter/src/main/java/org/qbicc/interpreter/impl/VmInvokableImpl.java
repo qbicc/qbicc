@@ -17,6 +17,7 @@ import org.qbicc.graph.Terminator;
 import org.qbicc.graph.Unschedulable;
 import org.qbicc.graph.Value;
 import org.qbicc.interpreter.Memory;
+import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.type.ValueType;
@@ -100,51 +101,6 @@ final class VmInvokableImpl implements VmInvokable {
 
     private static List<Node> newList(final BasicBlock ignored) {
         return new ArrayList<>();
-    }
-
-    @Override
-    public void invokeVoid(VmThread thread, VmObject target, List<Object> args) {
-        run((VmThreadImpl) thread, target, args);
-    }
-
-    @Override
-    public byte invokeByte(VmThread thread, VmObject target, List<Object> args) {
-        return ((Byte) run((VmThreadImpl) thread, target, args)).byteValue();
-    }
-
-    @Override
-    public short invokeShort(VmThread thread, VmObject target, List<Object> args) {
-        return ((Short) run((VmThreadImpl) thread, target, args)).shortValue();
-    }
-
-    @Override
-    public char invokeChar(VmThread thread, VmObject target, List<Object> args) {
-        return ((Character) run((VmThreadImpl) thread, target, args)).charValue();
-    }
-
-    @Override
-    public int invokeInt(VmThread thread, VmObject target, List<Object> args) {
-        return ((Integer) run((VmThreadImpl) thread, target, args)).intValue();
-    }
-
-    @Override
-    public long invokeLong(VmThread thread, VmObject target, List<Object> args) {
-        return ((Long) run((VmThreadImpl) thread, target, args)).longValue();
-    }
-
-    @Override
-    public float invokeFloat(VmThread thread, VmObject target, List<Object> args) {
-        return ((Float) run((VmThreadImpl) thread, target, args)).floatValue();
-    }
-
-    @Override
-    public double invokeDouble(VmThread thread, VmObject target, List<Object> args) {
-        return ((Double) run((VmThreadImpl) thread, target, args)).doubleValue();
-    }
-
-    @Override
-    public VmObject invoke(VmThread thread, VmObject target, List<Object> args) {
-        return (VmObject) run((VmThreadImpl) thread, target, args);
     }
 
     @Override
