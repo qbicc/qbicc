@@ -1453,6 +1453,7 @@ public final class CoreIntrinsics {
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor classToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(classDesc));
         MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
+        MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
 
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
@@ -1579,5 +1580,13 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "addressSize0", emptyToInt, addressSize0);
+
+        InstanceIntrinsic isBigEndian0 = (builder, instance, target, arguments) -> {
+            ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
+            LiteralFactory lf = c.getLiteralFactory();
+            return lf.literalOf(c.getTypeSystem().getEndianness() == ByteOrder.BIG_ENDIAN);
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "isBigEndian0", emptyToBool, isBigEndian0);
     }
 }
