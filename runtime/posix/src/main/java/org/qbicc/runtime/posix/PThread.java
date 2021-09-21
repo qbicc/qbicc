@@ -61,7 +61,7 @@ public final class PThread {
     public static native c_int pthread_attr_setstack(pthread_attr_t_ptr attr, void_ptr stackAddr, size_t stackSize);
 
     public static native c_int pthread_create(pthread_t_ptr thread, const_pthread_attr_t_ptr attr,
-            function_ptr<UnaryOperator<void_ptr>> start_routine, void_ptr arg);
+                                              void_ptr_unaryoperator_function_ptr start_routine, void_ptr arg);
 
     public static native pthread_t pthread_self();
 

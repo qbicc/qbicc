@@ -39,5 +39,9 @@ public class VMHelpersSetupHook implements Consumer<CompilationContext> {
 
         // helper to create j.l.Class instance of an array class at runtime
         ctxt.registerEntryPoint(ctxt.getOMHelperMethod("get_or_create_class_for_refarray"));
+
+        // java.lang.Thread
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("JLT_start0"));
+        ctxt.registerEntryPoint(ctxt.getVMHelperMethod("threadWrapper"));
     }
 }

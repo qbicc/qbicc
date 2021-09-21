@@ -5,6 +5,8 @@ import org.qbicc.runtime.NoSideEffects;
 import org.qbicc.runtime.stdc.Stddef;
 import org.qbicc.runtime.stdc.Stdint;
 
+import java.util.function.UnaryOperator;
+
 import static org.qbicc.runtime.CNative.*;
 import static org.qbicc.runtime.posix.PThread.*;
 import static org.qbicc.runtime.stdc.Stdint.*;
@@ -538,5 +540,65 @@ public final class VMHelpers {
     public static Class<?> classForName(String name, boolean initialize, ClassLoader loader) throws ClassNotFoundException {
         // TODO: keep a map of run time loadable classes per class loader
         throw new ClassNotFoundException("Run time class loading not yet supported");
+
+    /**
+     * This intrinsic sets up and executes the `public void run()` of threadParam.
+     * @param threadParam - java.lang.Thread object that has been cast to a void pointer to be compatible with pthread_create
+     * @return null - this return value will not be used
+     */
+    public static native void_ptr threadWrapperNative(void_ptr threadParam);
+
+    /**
+     * Wrapper for threadWrapperNative intrinsic.
+     * The export annotation allows this function to be passed as the void*(void*) type required by pthread_create
+     * and doesn't generate an additional thread parameter.
+     * @param threadParam - java.lang.Thread object that has been cast to a void pointer to be compatible with pthread_create
+     * @return null - this return value will not be used
+     */
+    @export
+    public static void_ptr threadWrapper(void_ptr threadParam) {
+        if (threadParam == null) {
+            // TODO this is a workaround until addr_of_function is working
+            return threadParam;
+        }
+        return threadWrapperNative(threadParam);
+    }
+
+    /**
+     * TODO
+     * @param thread
+     * @param pthreadPtr
+     * @return
+     */
+    public static native boolean saveNativeThread(void_ptr thread, pthread_t_ptr pthreadPtr);
+
+    /**
+     * Helper for java.lang.Thread.start0 allocates a pthread and creates/runs the thread.
+     * @param runFuncPtr - pointer to threadWrapper
+     * @param thread - Java thread object that has been cast to a void pointer to be compatible with pthread_create
+     */
+    // TODO: mark this with a "NoInline" annotation
+    public static void JLT_start0(void_ptr_unaryoperator_function_ptr runFuncPtr, void_ptr thread) {
+        // TODO once invokedynamic is working for lambda expressions use addr_of_function to fetch the correct function pointer
+        //function_ptr<UnaryOperator<void_ptr>> runFuncPtr = addr_of_function(VMHelpers::threadWrapperNative);
+
+        /* create pthread */
+        ptr<?> pthreadVoid = malloc(sizeof(pthread_t_ptr.class));
+        if (pthreadVoid.isNull()) {
+            throw new OutOfMemoryError(/*"Allocation failed"*/);
+        }
+        ptr<pthread_t> pthreadPtr = (ptr<pthread_t>) castPtr(pthreadVoid, pthread_t.class);
+
+        /* make GC aware of thread before starting */
+        if (!saveNativeThread(thread, (pthread_t_ptr) pthreadPtr)) {
+            free(pthreadVoid);
+            throw new OutOfMemoryError();
+        }
+
+        int result = pthread_create((pthread_t_ptr) pthreadPtr, (const_pthread_attr_t_ptr)null, runFuncPtr, thread).intValue();
+        if (0 != result) {
+            free(pthreadVoid);
+            throw new InternalError("pthread error code: " + result);
+        }
     }
 }

@@ -22,6 +22,7 @@ import org.qbicc.graph.literal.ByteArrayLiteral;
 import org.qbicc.graph.literal.CompoundLiteral;
 import org.qbicc.graph.literal.ElementOfLiteral;
 import org.qbicc.graph.literal.FloatLiteral;
+import org.qbicc.graph.literal.FunctionParameterLiteral;
 import org.qbicc.graph.literal.IntegerLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.NullLiteral;
@@ -252,6 +253,10 @@ final class LLVMModuleNodeVisitor implements ValueVisitor<Void, LLValue> {
         }
 
         return Values.bitcastConstant(input, fromType, toType);
+    }
+
+    public LLValue visit(final Void param, final FunctionParameterLiteral node) {
+        return Values.functionParameterConstant(node.getName());
     }
 
     public LLValue visit(final Void param, final ValueConvertLiteral node) {
