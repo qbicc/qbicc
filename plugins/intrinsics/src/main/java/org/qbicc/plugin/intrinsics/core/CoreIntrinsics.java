@@ -1514,5 +1514,61 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "arrayBaseOffset0", classToInt, arrayBaseOffset0);
+
+        InstanceIntrinsic arrayIndexScale0 = (builder, instance, target, arguments) -> {
+            // this method is only called from one place, so we're inlining into that place
+            Value clazz = arguments.get(0);
+            CoreClasses coreClasses = CoreClasses.get(ctxt);
+            // first, read the type ID to see whether it's a reference array
+            FieldElement classTypeIdField = coreClasses.getClassTypeIdField();
+            Value clazzTypeId = builder.load(builder.instanceFieldOf(builder.referenceHandle(clazz), classTypeIdField), MemoryAtomicityMode.UNORDERED);
+            // if the class type ID equals the ref array type ID, then the array base offset is the ref array content field
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            Layout layout = Layout.get(ctxt);
+
+            BlockLabel checkPassed;
+            BlockLabel checkFailed;
+
+            for (FieldElement contentField : List.of(
+                coreClasses.getRefArrayContentField(),
+                coreClasses.getCharArrayContentField(),
+                coreClasses.getByteArrayContentField(),
+                coreClasses.getShortArrayContentField(),
+                coreClasses.getIntArrayContentField(),
+                coreClasses.getLongArrayContentField(),
+                coreClasses.getFloatArrayContentField(),
+                coreClasses.getDoubleArrayContentField(),
+                coreClasses.getBooleanArrayContentField()
+            )) {
+                DefinedTypeDefinition arrayTypeDef = contentField.getEnclosingType();
+                TypeLiteral arrayTypeLit = lf.literalOfType(arrayTypeDef.load().getType());
+                Layout.LayoutInfo arrayLayout = layout.getInstanceLayoutInfo(arrayTypeDef);
+
+                builder.if_(
+                    builder.isEq(clazzTypeId, arrayTypeLit),
+                    checkPassed = new BlockLabel(),
+                    checkFailed = new BlockLabel()
+                );
+                builder.begin(checkPassed);
+                builder.return_(lf.literalOf(((ArrayType)arrayLayout.getMember(contentField).getType()).getElementSize()));
+
+                builder.begin(checkFailed);
+            }
+
+            // no class matched!
+            LoadedTypeDefinition iaeTypeDef = ctxt.getBootstrapClassContext().findDefinedType("java/lang/IllegalArgumentException").load();
+            ClassObjectType iaeType = iaeTypeDef.getClassType();
+            Value iae = builder.new_(iaeType);
+            int idx = iaeTypeDef.findConstructorIndex(MethodDescriptor.VOID_METHOD_DESCRIPTOR);
+            if (idx < 0) {
+                throw new IllegalStateException("Unexpected missing constructor");
+            }
+            builder.call(builder.constructorOf(iae, iaeTypeDef.getConstructor(idx)), List.of());
+            builder.throw_(iae);
+            builder.begin(new BlockLabel());
+            return voidLiteral;
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayBaseOffset0);
     }
 }
