@@ -1452,6 +1452,7 @@ public final class CoreIntrinsics {
 
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor classToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(classDesc));
+        MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
 
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
@@ -1570,5 +1571,13 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayBaseOffset0);
+
+        InstanceIntrinsic addressSize0 = (builder, instance, target, arguments) -> {
+            ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
+            LiteralFactory lf = c.getLiteralFactory();
+            return lf.literalOf(c.getTypeSystem().getPointerSize());
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "addressSize0", emptyToInt, addressSize0);
     }
 }
