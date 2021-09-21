@@ -346,6 +346,14 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
     @Override
     public Object visit(VmThreadImpl thread, ClassOf node) {
         Object type = require(node.getInput());
+        VmClassImpl simpleType = getSimpleType(thread, type);
+        for (int dimensions = unboxInt(node.getDimensions()); dimensions > 0; dimensions --) {
+            simpleType = simpleType.getArrayClass();
+        }
+        return simpleType;
+    }
+
+    private VmClassImpl getSimpleType(final VmThreadImpl thread, final Object type) {
         // TODO: replace these if-trees with new `Primitive` class
         if (type instanceof PrimitiveArrayObjectType) {
             WordType elementType = ((PrimitiveArrayObjectType) type).getElementType();
@@ -376,7 +384,7 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 }
             }
         } else if (type instanceof ObjectType) {
-            return ((ObjectType) type).getDefinition().load().getVmClass();
+            return (VmClassImpl) ((ObjectType) type).getDefinition().load().getVmClass();
         } else if (type instanceof BooleanType) {
             return thread.getVM().booleanClass;
         } else if (type instanceof SignedIntegerType) {
