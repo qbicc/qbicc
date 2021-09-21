@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.plugin.layout.Layout;
 import org.qbicc.type.ArrayObjectType;
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.PhysicalObjectType;
 
 class VmObjectImpl implements VmObject, Referenceable {
@@ -119,6 +120,11 @@ class VmObjectImpl implements VmObject, Referenceable {
 
     public PhysicalObjectType getObjectType() {
         return clazz.getTypeDefinition().getClassType();
+    }
+
+    @Override
+    public ClassObjectType getObjectTypeId() {
+        return clazz.getInstanceObjectTypeId();
     }
 
     Lock getLock() {

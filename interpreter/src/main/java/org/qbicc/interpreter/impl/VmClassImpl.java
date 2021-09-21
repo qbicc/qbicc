@@ -182,6 +182,11 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
     }
 
     @Override
+    public ClassObjectType getInstanceObjectTypeId() {
+        return (ClassObjectType) getInstanceObjectType();
+    }
+
+    @Override
     public LoadedTypeDefinition getTypeDefinition() {
         LoadedTypeDefinition typeDefinition = this.typeDefinition;
         if (typeDefinition == null) {

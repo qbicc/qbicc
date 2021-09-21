@@ -1446,10 +1446,10 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
                 CoreClasses coreClasses = CoreClasses.get(ctxt);
                 if (elem == coreClasses.getObjectTypeIdField()) {
                     // the type ID of the object (most likely case)
-                    return getObject(valueHandle).getObjectType();
+                    return getObject(valueHandle).getObjectTypeId();
                 } else if (elem == coreClasses.getClassTypeIdField()) {
                     // the type ID of a class (next most likely)
-                    return ((VmClassImpl)getObject(valueHandle)).getInstanceObjectType();
+                    return ((VmClassImpl)getObject(valueHandle)).getInstanceObjectTypeId();
                 } else if (elem == coreClasses.getRefArrayElementTypeIdField()) {
                     // the type ID of leaf elements of this array
                     return ((ReferenceArrayObjectType)getObject(valueHandle).getObjectType()).getElementObjectType();

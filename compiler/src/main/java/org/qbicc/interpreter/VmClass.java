@@ -2,6 +2,7 @@ package org.qbicc.interpreter;
 
 import java.util.List;
 
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 
@@ -25,4 +26,6 @@ public interface VmClass extends VmObject {
     String getSimpleName();
 
     ObjectType getInstanceObjectType();
+
+    ClassObjectType getInstanceObjectTypeId();
 }

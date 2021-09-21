@@ -1,5 +1,7 @@
 package org.qbicc.interpreter.impl;
 
+import org.qbicc.plugin.coreclasses.CoreClasses;
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.ReferenceArrayObjectType;
 import org.qbicc.type.definition.LoadedTypeDefinition;
 
@@ -23,6 +25,11 @@ final class VmRefArrayClassImpl extends VmArrayClassImpl {
     @Override
     public ReferenceArrayObjectType getInstanceObjectType() {
         return getElementType().getObjectType().getReferenceArrayObject();
+    }
+
+    @Override
+    public ClassObjectType getInstanceObjectTypeId() {
+        return CoreClasses.get(getVmClass().getVm().getCompilationContext()).getReferenceArrayTypeDefinition().getClassType();
     }
 
     @Override

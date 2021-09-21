@@ -1,5 +1,6 @@
 package org.qbicc.interpreter;
 
+import org.qbicc.type.ClassObjectType;
 import org.qbicc.type.PhysicalObjectType;
 
 /**
@@ -8,7 +9,19 @@ import org.qbicc.type.PhysicalObjectType;
 public interface VmObject {
     VmClass getVmClass();
 
+    /**
+     * Get the actual object type.
+     *
+     * @return the actual object type (must not be {@code null})
+     */
     PhysicalObjectType getObjectType();
+
+    /**
+     * Get the object's type ID type value.  This will be different from the actual type for arrays.
+     *
+     * @return the object's type ID type value (must not be {@code null})
+     */
+    ClassObjectType getObjectTypeId();
 
     Memory getMemory();
 

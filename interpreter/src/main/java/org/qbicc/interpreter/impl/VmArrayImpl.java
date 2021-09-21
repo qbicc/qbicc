@@ -3,7 +3,7 @@ package org.qbicc.interpreter.impl;
 
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.VmArray;
-import org.qbicc.type.PhysicalObjectType;
+import org.qbicc.type.ArrayObjectType;
 
 /**
  *
@@ -24,7 +24,7 @@ abstract class VmArrayImpl extends VmObjectImpl implements VmArray {
     }
 
     @Override
-    public PhysicalObjectType getObjectType() {
-        return (PhysicalObjectType) getVmClass().getInstanceObjectType();
+    public ArrayObjectType getObjectType() {
+        return (ArrayObjectType) getVmClass().getInstanceObjectType();
     }
 }
