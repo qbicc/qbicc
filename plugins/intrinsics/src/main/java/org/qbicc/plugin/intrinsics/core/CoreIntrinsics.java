@@ -423,7 +423,7 @@ public final class CoreIntrinsics {
             return builder.getFirstBuilder().call(builder.staticMethod(helper), List.of(instance));
         };
 
-        intrinsics.registerIntrinsic(Phase.ANALYZE, objDesc, "getClass", getClassDesc, getClassIntrinsic);
+        intrinsics.registerIntrinsic(Phase.ADD, objDesc, "getClass", getClassDesc, getClassIntrinsic);
 
         // Object#hashCode TODO redo when object headers are set
         MethodDescriptor hashCodeDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
