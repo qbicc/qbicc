@@ -1588,5 +1588,13 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "isBigEndian0", emptyToBool, isBigEndian0);
+
+        InstanceIntrinsic unalignedAccess0 = (builder, instance, target, arguments) -> {
+            ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
+            LiteralFactory lf = c.getLiteralFactory();
+            return lf.literalOf(false);
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "unalignedAccess0", emptyToBool, unalignedAccess0);
     }
 }
