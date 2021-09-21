@@ -15,7 +15,9 @@ class VmThrowableClassImpl extends VmClassImpl implements VmThrowableClass {
 
     @Override
     VmThrowableImpl newInstance() {
-        return new VmThrowableImpl(this);
+        VmThrowableImpl throwable = new VmThrowableImpl(this);
+        throwable.fillInStackTrace();
+        return throwable;
     }
 
     @Override
