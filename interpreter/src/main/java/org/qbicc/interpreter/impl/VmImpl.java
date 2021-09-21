@@ -172,6 +172,8 @@ public final class VmImpl implements Vm {
 
         LoadedTypeDefinition vmHelpersType = bcc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
         VmClassImpl vmHelpersClass = new VmClassImpl(this, classClass, vmHelpersType, null);
+        LoadedTypeDefinition objectModelType = bcc.findDefinedType("org/qbicc/runtime/main/ObjectModel").load();
+        VmClassImpl objectModelClass = new VmClassImpl(this, classClass, objectModelType, null);
 
         classClass.setName(this);
         objectClass.setName(this);
@@ -199,6 +201,7 @@ public final class VmImpl implements Vm {
         booleanArrayClass.setName(this);
 
         vmHelpersClass.setName(this);
+        objectModelClass.setName(this);
 
         // throwables
         errorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/Error").load(), null);
@@ -238,10 +241,17 @@ public final class VmImpl implements Vm {
         bootstrapClassLoader.registerClass("java/lang/NoClassDefFoundError", noClassDefFoundErrorClass);
         bootstrapClassLoader.registerClass("java/lang/NoSuchMethodError", noSuchMethodErrorClass);
 
+        bootstrapClassLoader.registerClass("org/qbicc/runtime/main/VMHelpers", vmHelpersClass);
+        bootstrapClassLoader.registerClass("org/qbicc/runtime/main/ObjectModel", objectModelClass);
+
         // hooks
         int get_classIdx = vmHelpersType.findMethodIndex(me -> me.nameEquals("get_class"));
         MethodElement get_classElement = vmHelpersType.getMethod(get_classIdx);
         vmHelpersClass.registerInvokable(get_classElement, (thread, target, args) -> ((VmObjectImpl) args.get(0)).getVmClass());
+
+        int type_id_ofIdx = objectModelType.findMethodIndex(me -> me.nameEquals("type_id_of"));
+        MethodElement type_id_ofElement = objectModelType.getMethod(type_id_ofIdx);
+        objectModelClass.registerInvokable(type_id_ofElement, (thread, target, args) -> ((VmObjectImpl) args.get(0)).getObjectTypeId());
     }
 
     VmClassLoaderImpl getBootstrapClassLoader() {
