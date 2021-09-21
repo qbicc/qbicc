@@ -20,4 +20,6 @@ public class Fcntl {
     public static final c_int SPLICE_F_NONBLOCK = constant();
     public static final c_int SPLICE_F_MORE = constant();
     public static final c_int SPLICE_F_GIFT = constant();
+
+    public static final c_int O_DIRECT = constant();
 }

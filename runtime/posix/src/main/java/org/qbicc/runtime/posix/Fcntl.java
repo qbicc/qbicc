@@ -40,7 +40,9 @@ public class Fcntl {
     public static final c_int O_DIRECTORY = constant();
     public static final c_int O_NOFOLLOW = constant();
     public static final c_int O_CLOEXEC = constant();
-    public static final c_int O_DIRECT = constant();
+    @SuppressWarnings("OctalInteger")
+    @Deprecated // Moved to linux Fcntl
+    public static final c_int O_DIRECT = word(040000);
 
     public static final c_int FD_CLOEXEC = constant();
 
