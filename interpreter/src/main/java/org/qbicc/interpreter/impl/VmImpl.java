@@ -78,6 +78,8 @@ public final class VmImpl implements Vm {
     final int booleanArrayContentOffset;
     final VmBooleanArrayClassImpl booleanArrayClass;
 
+    final int refArrayContentOffset; // special
+
     // error classes
     final VmThrowableClassImpl errorClass;
 
@@ -87,6 +89,8 @@ public final class VmImpl implements Vm {
     final VmThrowableClassImpl noClassDefFoundErrorClass;
 
     final VmThrowableClassImpl noSuchMethodErrorClass;
+
+    final VmClassImpl stackTraceElementClass;
 
     VmImpl(final CompilationContext ctxt) {
         this.ctxt = ctxt;
@@ -132,37 +136,39 @@ public final class VmImpl implements Vm {
         FieldElement shortArrayContentField = coreClasses.getShortArrayContentField();
         LoadedTypeDefinition shortArrayClassDef = shortArrayContentField.getEnclosingType().load();
         shortArrayClass = new VmShortArrayClassImpl(this, classClass, shortArrayClassDef, shortClass);
-        shortArrayContentOffset = layout.getInstanceLayoutInfo(byteArrayClassDef).getMember(byteArrayContentField).getOffset();
+        shortArrayContentOffset = layout.getInstanceLayoutInfo(shortArrayClassDef).getMember(shortArrayContentField).getOffset();
 
         FieldElement intArrayContentField = coreClasses.getIntArrayContentField();
         LoadedTypeDefinition intArrayClassDef = intArrayContentField.getEnclosingType().load();
         intArrayClass = new VmIntArrayClassImpl(this, classClass, intArrayClassDef, intClass);
-        intArrayContentOffset = layout.getInstanceLayoutInfo(byteArrayClassDef).getMember(byteArrayContentField).getOffset();
+        intArrayContentOffset = layout.getInstanceLayoutInfo(intArrayClassDef).getMember(intArrayContentField).getOffset();
 
         FieldElement longArrayContentField = coreClasses.getLongArrayContentField();
         LoadedTypeDefinition longArrayClassDef = longArrayContentField.getEnclosingType().load();
         longArrayClass = new VmLongArrayClassImpl(this, classClass, longArrayClassDef, longClass);
-        longArrayContentOffset = layout.getInstanceLayoutInfo(byteArrayClassDef).getMember(byteArrayContentField).getOffset();
+        longArrayContentOffset = layout.getInstanceLayoutInfo(longArrayClassDef).getMember(longArrayContentField).getOffset();
 
         FieldElement floatArrayContentField = coreClasses.getFloatArrayContentField();
         LoadedTypeDefinition floatArrayClassDef = floatArrayContentField.getEnclosingType().load();
         floatArrayClass = new VmFloatArrayClassImpl(this, classClass, floatArrayClassDef, floatClass);
-        floatArrayContentOffset = layout.getInstanceLayoutInfo(byteArrayClassDef).getMember(byteArrayContentField).getOffset();
+        floatArrayContentOffset = layout.getInstanceLayoutInfo(floatArrayClassDef).getMember(floatArrayContentField).getOffset();
 
         FieldElement doubleArrayContentField = coreClasses.getDoubleArrayContentField();
         LoadedTypeDefinition doubleArrayClassDef = doubleArrayContentField.getEnclosingType().load();
         doubleArrayClass = new VmDoubleArrayClassImpl(this, classClass, doubleArrayClassDef, doubleClass);
-        doubleArrayContentOffset = layout.getInstanceLayoutInfo(byteArrayClassDef).getMember(byteArrayContentField).getOffset();
+        doubleArrayContentOffset = layout.getInstanceLayoutInfo(doubleArrayClassDef).getMember(doubleArrayContentField).getOffset();
 
         FieldElement charArrayContentField = coreClasses.getCharArrayContentField();
         LoadedTypeDefinition charArrayClassDef = charArrayContentField.getEnclosingType().load();
         charArrayClass = new VmCharArrayClassImpl(this, classClass, charArrayClassDef, charClass);
-        charArrayContentOffset = layout.getInstanceLayoutInfo(byteArrayClassDef).getMember(byteArrayContentField).getOffset();
+        charArrayContentOffset = layout.getInstanceLayoutInfo(charArrayClassDef).getMember(charArrayContentField).getOffset();
 
         FieldElement booleanArrayContentField = coreClasses.getBooleanArrayContentField();
         LoadedTypeDefinition booleanArrayClassDef = booleanArrayContentField.getEnclosingType().load();
         booleanArrayClass = new VmBooleanArrayClassImpl(this, classClass, booleanArrayClassDef, booleanClass);
-        booleanArrayContentOffset = layout.getInstanceLayoutInfo(byteArrayClassDef).getMember(byteArrayContentField).getOffset();
+        booleanArrayContentOffset = layout.getInstanceLayoutInfo(booleanArrayClassDef).getMember(booleanArrayContentField).getOffset();
+
+        refArrayContentOffset = layout.getInstanceLayoutInfo(coreClasses.getReferenceArrayTypeDefinition()).getMember(coreClasses.getRefArrayContentField()).getOffset();
 
         LoadedTypeDefinition vmHelpersType = bcc.findDefinedType("org/qbicc/runtime/main/VMHelpers").load();
         VmClassImpl vmHelpersClass = new VmClassImpl(this, classClass, vmHelpersType, null);
@@ -211,6 +217,9 @@ public final class VmImpl implements Vm {
         // incompatible class change errors
         noSuchMethodErrorClass = new VmThrowableClassImpl(this, bcc.findDefinedType("java/lang/NoSuchMethodError").load(), null);
         noSuchMethodErrorClass.setName(this);
+
+        stackTraceElementClass = new VmClassImpl(this, bcc.findDefinedType("java/lang/StackTraceElement").load(), null);
+        stackTraceElementClass.setName(this);
 
         // set up the bootstrap class loader *last*
         bootstrapClassLoader = new VmClassLoaderImpl(classLoaderClass, this);
