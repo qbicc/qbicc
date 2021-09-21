@@ -7,12 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.smallrye.common.constraint.Assert;
 import org.qbicc.context.ClassContext;
 import org.qbicc.context.CompilationContext;
 import org.qbicc.graph.MemoryAtomicityMode;
 import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
+import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThrowable;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -302,6 +304,15 @@ class VmClassImpl extends VmObjectImpl implements VmClass {
             }
         }
         return target;
+    }
+
+    void registerInvokable(final ExecutableElement element, final VmInvokable invokable) {
+        Assert.checkNotNullParam("invokable", invokable);
+        synchronized (methodTable) {
+            if (methodTable.putIfAbsent(element, invokable) != null) {
+                throw new IllegalStateException("Attempted to register an invokable for an already-compiled method");
+            }
+        }
     }
 
     private VmInvokable compile(ExecutableElement element) {

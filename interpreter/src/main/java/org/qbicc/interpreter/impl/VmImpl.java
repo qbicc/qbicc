@@ -14,6 +14,7 @@ import org.qbicc.interpreter.Thrown;
 import org.qbicc.interpreter.Vm;
 import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmClassLoader;
+import org.qbicc.interpreter.VmInvokable;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.interpreter.VmThread;
 import org.qbicc.plugin.coreclasses.CoreClasses;
@@ -304,6 +305,15 @@ public final class VmImpl implements Vm {
     public VmClassLoaderImpl getClassLoaderForContext(ClassContext classContext) {
         VmClassLoaderImpl classLoader = (VmClassLoaderImpl) classContext.getClassLoader();
         return classLoader == null ? bootstrapClassLoader : classLoader;
+    }
+
+    @Override
+    public void registerInvokable(ExecutableElement element, VmInvokable invokable) {
+        DefinedTypeDefinition enclosingType = element.getEnclosingType();
+        ClassContext classContext = enclosingType.getContext();
+        VmClassLoaderImpl loader = getClassLoaderForContext(classContext);
+        VmClassImpl vmClass = loader.getOrDefineClass(enclosingType.load());
+        vmClass.registerInvokable(element, invokable);
     }
 
     VmStringImpl intern(VmStringImpl vmString) {
