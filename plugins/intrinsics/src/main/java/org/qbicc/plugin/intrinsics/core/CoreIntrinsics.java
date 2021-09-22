@@ -471,7 +471,7 @@ public final class CoreIntrinsics {
             Value threadStatus = builder.load(threadStatusHandle, MemoryAtomicityMode.NONE);
             Value aliveState = ctxt.getLiteralFactory().literalOf(threadAlive);
             Value isThreadAlive = builder.and(threadStatus, aliveState);
-            return builder.cmp(isThreadAlive, aliveState);
+            return builder.isEq(isThreadAlive, aliveState);
         };
         intrinsics.registerIntrinsic(jltDesc, "isAlive", booleanDesc, isAlive);
 
