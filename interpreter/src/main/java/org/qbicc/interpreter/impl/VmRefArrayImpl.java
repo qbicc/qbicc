@@ -18,6 +18,8 @@ final class VmRefArrayImpl extends VmArrayImpl {
 
     @Override
     public int getArrayElementOffset(int index) {
-        return index;
+        VmImpl vm = getVmClass().getVm();
+        int refSize = vm.getCompilationContext().getTypeSystem().getReferenceSize();
+        return vm.refArrayContentOffset + index * refSize;
     }
 }

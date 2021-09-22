@@ -11,6 +11,6 @@ final class VmShortArrayImpl extends VmArrayImpl {
 
     @Override
     public int getArrayElementOffset(int index) {
-        return getVmClass().getVm().shortArrayContentOffset + index;
+        return getVmClass().getVm().shortArrayContentOffset + (index << 1);
     }
 }
