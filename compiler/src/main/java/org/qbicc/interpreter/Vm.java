@@ -175,6 +175,13 @@ public interface Vm {
     Memory allocate(int size);
 
     /**
+     * Intern a host JVM String as a VmString
+     * @param string the host string to intern
+     * @return the interned VmString
+     */
+    VmString intern(String string);
+
+    /**
      * Convenience method to get the actual (non-{@code null}) class loader for the given class context.
      *
      * @param classContext the class context (must not be {@code null})
