@@ -22,6 +22,7 @@ import org.qbicc.type.FloatType;
 import org.qbicc.type.FunctionType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.NumericType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.SignedIntegerType;
 import org.qbicc.type.TypeSystem;
 import org.qbicc.type.UnsignedIntegerType;
@@ -137,6 +138,12 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
         } else {
             return super.store(handle, value, mode);
         }
+    }
+
+    @Override
+    public Node classInitCheck(ObjectType objectType) {
+        // either this is handled by an earlier BBB, or else init was 100% build time
+        return nop();
     }
 
     @Override
