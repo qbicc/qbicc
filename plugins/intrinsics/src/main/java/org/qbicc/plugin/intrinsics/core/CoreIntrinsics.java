@@ -1580,7 +1580,7 @@ public final class CoreIntrinsics {
             return voidLiteral;
         };
 
-        intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayBaseOffset0);
+        intrinsics.registerIntrinsic(unsafeDesc, "arrayIndexScale0", classToInt, arrayIndexScale0);
 
         InstanceIntrinsic addressSize0 = (builder, instance, target, arguments) -> {
             ClassContext c = builder.getCurrentElement().getEnclosingType().getContext();
