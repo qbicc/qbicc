@@ -18,6 +18,7 @@ import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.OffsetOfField;
 import org.qbicc.graph.PhiValue;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
@@ -1452,6 +1453,7 @@ public final class CoreIntrinsics {
         ClassContext classContext = ctxt.getBootstrapClassContext();
 
         ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
+        ClassTypeDescriptor objDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
         ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
 
@@ -1460,6 +1462,7 @@ public final class CoreIntrinsics {
         MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
         MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
         MethodDescriptor classStringToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(classDesc, stringDesc));
+        MethodDescriptor objLongIntToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(objDesc, BaseTypeDescriptor.J, BaseTypeDescriptor.I));
 
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
@@ -1651,5 +1654,28 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "objectFieldOffset", classStringToLong, objectFieldOffset1);
+
+        // atomics
+
+        InstanceIntrinsic getAndAddInt = (builder, instance, target, arguments) -> {
+            Value obj = arguments.get(0);
+            Value offset = arguments.get(1);
+            Value incr = arguments.get(2);
+
+            FieldElement fieldElement;
+            if (offset instanceof OffsetOfField) {
+                fieldElement = ((OffsetOfField) offset).getFieldElement();
+            } else {
+                ctxt.error(builder.getLocation(), "Invalid offset argument to %s", target);
+                return ctxt.getLiteralFactory().literalOf(0);
+            }
+            if (fieldElement.isStatic()) {
+                return builder.getAndAdd(builder.staticField(fieldElement), incr, MemoryAtomicityMode.VOLATILE);
+            } else {
+                return builder.getAndAdd(builder.instanceFieldOf(builder.referenceHandle(obj), fieldElement), incr, MemoryAtomicityMode.VOLATILE);
+            }
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "getAndAddInt", objLongIntToInt, getAndAddInt);
     }
 }
