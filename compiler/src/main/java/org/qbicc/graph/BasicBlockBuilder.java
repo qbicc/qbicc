@@ -154,6 +154,8 @@ public interface BasicBlockBuilder extends Locatable {
 
     Value currentThread();
 
+    Value offsetOfField(FieldElement fieldElement);
+
     // sub-value extraction
 
     Value extractElement(Value array, Value index);

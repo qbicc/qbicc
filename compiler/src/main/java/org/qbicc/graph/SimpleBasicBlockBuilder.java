@@ -499,6 +499,10 @@ final class SimpleBasicBlockBuilder implements BasicBlockBuilder, BasicBlockBuil
         return asDependency(new CurrentThreadRead(callSite, element, line, bci, requireDependency(), type.getReference()));
     }
 
+    public Value offsetOfField(FieldElement fieldElement) {
+        return new OffsetOfField(callSite, element, line, bci, fieldElement, typeSystem.getSignedInteger64Type());
+    }
+
     public Value extractElement(Value array, Value index) {
         return new ExtractElement(callSite, element, line, bci, array, index);
     }

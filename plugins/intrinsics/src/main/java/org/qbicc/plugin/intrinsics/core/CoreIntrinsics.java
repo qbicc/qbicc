@@ -25,9 +25,12 @@ import org.qbicc.graph.Variable;
 import org.qbicc.graph.literal.BooleanLiteral;
 import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
+import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.TypeLiteral;
 import org.qbicc.graph.literal.UndefinedLiteral;
+import org.qbicc.interpreter.VmObject;
+import org.qbicc.interpreter.VmString;
 import org.qbicc.machine.probe.CProbe;
 import org.qbicc.plugin.coreclasses.CoreClasses;
 import org.qbicc.plugin.instanceofcheckcast.SupersDisplayTables;
@@ -43,6 +46,7 @@ import org.qbicc.type.BooleanType;
 import org.qbicc.type.FloatType;
 import org.qbicc.type.IntegerType;
 import org.qbicc.type.InterfaceObjectType;
+import org.qbicc.type.ObjectType;
 import org.qbicc.type.PointerType;
 import org.qbicc.type.Primitive;
 import org.qbicc.type.ReferenceType;
@@ -1449,11 +1453,13 @@ public final class CoreIntrinsics {
 
         ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+        ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
 
         MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
         MethodDescriptor classToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(classDesc));
         MethodDescriptor emptyToInt = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of());
         MethodDescriptor emptyToBool = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.Z, List.of());
+        MethodDescriptor classStringToLong = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.J, List.of(classDesc, stringDesc));
 
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
@@ -1596,5 +1602,54 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "unalignedAccess0", emptyToBool, unalignedAccess0);
+
+        InstanceIntrinsic objectFieldOffset1 = (builder, instance, target, arguments) -> {
+            Value clazz = arguments.get(0);
+            Value string = arguments.get(1);
+            LiteralFactory lf = ctxt.getLiteralFactory();
+            ObjectType objectType;
+            if (clazz instanceof ClassOf) {
+                ClassOf classOf = (ClassOf) clazz;
+                Value typeId = classOf.getInput();
+                if (typeId instanceof TypeLiteral) {
+                    ValueType valueType = ((TypeLiteral) typeId).getValue();
+                    if (valueType instanceof ObjectType) {
+                        objectType = (ObjectType) valueType;
+                    } else {
+                        ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
+                        return lf.literalOf(0L);
+                    }
+                } else {
+                    ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
+                    return lf.literalOf(0L);
+                }
+            } else {
+                ctxt.error(builder.getLocation(), "objectFieldOffset type argument must be a literal of an object type");
+                return lf.literalOf(0L);
+            }
+            String fieldName;
+            if (string instanceof StringLiteral) {
+                fieldName = ((StringLiteral) string).getValue();
+            } else if (string instanceof ObjectLiteral) {
+                VmObject vmObject = ((ObjectLiteral) string).getValue();
+                if (! (vmObject instanceof VmString)) {
+                    ctxt.error(builder.getLocation(), "objectFieldOffset string argument must be a literal string");
+                    return lf.literalOf(0L);
+                }
+                fieldName = ((VmString) vmObject).getContent();
+            } else {
+                ctxt.error(builder.getLocation(), "objectFieldOffset string argument must be a literal string");
+                return lf.literalOf(0L);
+            }
+            LoadedTypeDefinition ltd = objectType.getDefinition().load();
+            FieldElement field = ltd.findField(fieldName);
+            if (field == null) {
+                ctxt.error(builder.getLocation(), "No such field \"%s\" on class \"%s\"", fieldName, ltd.getVmClass().getName());
+                return lf.literalOf(0L);
+            }
+            return builder.offsetOfField(field);
+        };
+
+        intrinsics.registerIntrinsic(unsafeDesc, "objectFieldOffset", classStringToLong, objectFieldOffset1);
     }
 }
