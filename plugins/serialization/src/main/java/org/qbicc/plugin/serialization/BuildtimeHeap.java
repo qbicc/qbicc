@@ -15,6 +15,8 @@ import org.qbicc.graph.literal.Literal;
 import org.qbicc.graph.literal.LiteralFactory;
 import org.qbicc.interpreter.Memory;
 import org.qbicc.interpreter.VmArray;
+import org.qbicc.interpreter.VmArrayClass;
+import org.qbicc.interpreter.VmClass;
 import org.qbicc.interpreter.VmObject;
 import org.qbicc.object.Data;
 import org.qbicc.object.Linkage;
@@ -109,8 +111,20 @@ public class BuildtimeHeap {
         PhysicalObjectType ot = value.getObjectType();
         Data sl;
         if (ot instanceof ClassObjectType) {
-            // TODO: Right here we need to detect if value is a java.lang.Class instance and handle it specially by calling serializeClassObject!
-            sl = serializeVmObject((ClassObjectType) ot, value);
+            if (value instanceof VmClass) {
+                if (value instanceof VmArrayClass) {
+                    if (((VmArrayClass)value).getInstanceObjectType().getElementType() instanceof ReferenceArrayObjectType) {
+                        ctxt.error("Serialization of reference array class objects not supported: "+((VmArrayClass)value).getInstanceObjectType());
+                    }
+                }
+                // Redirect to the class objects already serialized by the ANALYZE post hook ClassObjectSerializer.
+                sl = classObjects.get(((VmClass)value).getTypeDefinition());
+                if (sl == null) {
+                    ctxt.error("Serializing java.lang.Class instance for unreachable class: "+((VmClass)value).getTypeDefinition());
+                }
+            } else {
+                sl = serializeVmObject((ClassObjectType) ot, value);
+            }
         } else if (ot instanceof ReferenceArrayObjectType) {
             sl = serializeRefArray((ReferenceArrayObjectType) ot, (VmArray)value);
         } else {
