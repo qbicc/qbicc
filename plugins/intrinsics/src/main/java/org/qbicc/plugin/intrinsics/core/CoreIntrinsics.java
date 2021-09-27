@@ -92,6 +92,7 @@ public final class CoreIntrinsics {
         registerJavaLangMathIntrinsics(ctxt);
         registerOrgQbiccRuntimePosixPthreadCastPtr(ctxt);
         registerJdkInternalMiscUnsafeIntrinsics(ctxt);
+        registerJdkInternalMiscVMIntrinsics(ctxt);
     }
 
     private static StaticIntrinsic setVolatile(CompilationContext ctxt, FieldElement field) {
@@ -1687,5 +1688,21 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "getAndAddInt", objLongIntToInt, getAndAddInt);
+    }
+
+    private static void registerJdkInternalMiscVMIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/VM");
+        ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
+
+        MethodDescriptor classToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(classDesc));
+
+        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        StaticIntrinsic initializeFromArchive = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(vmDesc, "initializeFromArchive", classToVoid, initializeFromArchive);
     }
 }
