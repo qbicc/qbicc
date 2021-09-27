@@ -533,4 +533,10 @@ public final class VMHelpers {
         ObjectModel.set_initialized(ObjectModel.type_id_of(o));
     }
 
+    // Run time class loading
+
+    public static Class<?> classForName(String name, boolean initialize, ClassLoader loader) throws ClassNotFoundException {
+        // TODO: keep a map of run time loadable classes per class loader
+        throw new ClassNotFoundException("Run time class loading not yet supported");
+    }
 }

@@ -252,6 +252,20 @@ public final class VmImpl implements Vm {
         int type_id_ofIdx = objectModelType.findMethodIndex(me -> me.nameEquals("type_id_of"));
         MethodElement type_id_ofElement = objectModelType.getMethod(type_id_ofIdx);
         objectModelClass.registerInvokable(type_id_ofElement, (thread, target, args) -> ((VmObjectImpl) args.get(0)).getObjectTypeId());
+
+        int classForNameIdx = vmHelpersType.findMethodIndex(me -> me.nameEquals("classForName"));
+        MethodElement classForNameElement = vmHelpersType.getMethod(classForNameIdx);
+        vmHelpersClass.registerInvokable(classForNameElement, (thread, target, args) -> {
+            VmClassLoaderImpl classLoader = (VmClassLoaderImpl) args.get(2);
+            if (classLoader == null) {
+                classLoader = bootstrapClassLoader;
+            }
+            VmClassImpl clazz = classLoader.loadClass(((VmStringImpl) args.get(0)).getContent().replace('.', '/'));
+            if (((Boolean) args.get(1)).booleanValue()) {
+                clazz.initialize((VmThreadImpl) thread);
+            }
+            return clazz;
+        });
     }
 
     VmClassLoaderImpl getBootstrapClassLoader() {
