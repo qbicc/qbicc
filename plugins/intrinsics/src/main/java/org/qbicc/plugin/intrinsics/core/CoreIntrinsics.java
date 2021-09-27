@@ -1698,11 +1698,16 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor classDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Class");
 
         MethodDescriptor classToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(classDesc));
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
 
         Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
 
         StaticIntrinsic initializeFromArchive = (builder, target, arguments) -> voidLiteral;
 
         intrinsics.registerIntrinsic(vmDesc, "initializeFromArchive", classToVoid, initializeFromArchive);
+
+        StaticIntrinsic initialize = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(vmDesc, "initialize", emptyToVoid, initialize);
     }
 }
