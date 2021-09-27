@@ -750,6 +750,9 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(cNativeDesc, "zero", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), zero);
 
+        // todo: implement an "uninitialized" constant similar to zero
+        intrinsics.registerIntrinsic(cNativeDesc, "auto", MethodDescriptor.synthesize(classContext, nObjDesc, List.of()), zero);
+
         StaticIntrinsic constant = (builder, target, arguments) ->
             ctxt.getLiteralFactory().constantLiteralOfType(ctxt.getTypeSystem().getPoisonType());
 
