@@ -93,6 +93,8 @@ public final class CoreIntrinsics {
         registerOrgQbiccRuntimePosixPthreadCastPtr(ctxt);
         registerJdkInternalMiscUnsafeIntrinsics(ctxt);
         registerJdkInternalMiscVMIntrinsics(ctxt);
+        registerJavaNetInet4AddressIntrinsics(ctxt);
+        registerJavaNetInet6AddressIntrinsics(ctxt);
     }
 
     private static StaticIntrinsic setVolatile(CompilationContext ctxt, FieldElement field) {
@@ -1709,5 +1711,35 @@ public final class CoreIntrinsics {
         StaticIntrinsic initialize = (builder, target, arguments) -> voidLiteral;
 
         intrinsics.registerIntrinsic(vmDesc, "initialize", emptyToVoid, initialize);
+    }
+
+    private static void registerJavaNetInet4AddressIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor i4aDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/Inet4Address");
+
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+
+        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        StaticIntrinsic init = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(i4aDesc, "init", emptyToVoid, init);
+    }
+
+    private static void registerJavaNetInet6AddressIntrinsics(final CompilationContext ctxt) {
+        Intrinsics intrinsics = Intrinsics.get(ctxt);
+        ClassContext classContext = ctxt.getBootstrapClassContext();
+
+        ClassTypeDescriptor i6aDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/Inet6Address");
+
+        MethodDescriptor emptyToVoid = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of());
+
+        Literal voidLiteral = ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+
+        StaticIntrinsic init = (builder, target, arguments) -> voidLiteral;
+
+        intrinsics.registerIntrinsic(i6aDesc, "init", emptyToVoid, init);
     }
 }
