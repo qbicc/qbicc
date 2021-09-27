@@ -1623,9 +1623,9 @@ final strictfp class Frame implements ActionVisitor<VmThreadImpl, Void>, ValueVi
         } else if (isInt64(type)) {
             memory.store64(offset, unboxLong(value), mode);
         } else if (isFloat32(type)) {
-            memory.store32(offset, Float.floatToRawIntBits(unboxInt(value)), mode);
+            memory.store32(offset, Float.floatToRawIntBits(unboxFloat(value)), mode);
         } else if (isFloat64(type)) {
-            memory.store64(offset, Double.doubleToRawLongBits(unboxInt(value)), mode);
+            memory.store64(offset, Double.doubleToRawLongBits(unboxDouble(value)), mode);
         } else if (isBool(type)) {
             memory.store8(offset, unboxBool(value) ? 1 : 0, mode);
         } else if (isRef(type)) {
