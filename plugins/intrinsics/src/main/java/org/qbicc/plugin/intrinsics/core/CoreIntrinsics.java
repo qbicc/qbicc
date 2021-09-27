@@ -75,6 +75,7 @@ import org.qbicc.type.descriptor.MethodDescriptor;
  */
 public final class CoreIntrinsics {
     public static void register(CompilationContext ctxt) {
+        registerOrgQbiccRuntimeCNativeIntrinsics(ctxt);
         registerJavaLangClassIntrinsics(ctxt);
         registerJavaLangStringUTF16Intrinsics(ctxt);
         registerJavaLangClassLoaderIntrinsics(ctxt);
@@ -85,7 +86,6 @@ public final class CoreIntrinsics {
         registerJavaLangNumberIntrinsics(ctxt);
         registerJavaLangFloatDoubleMathIntrinsics(ctxt);
         registerJavaLangRuntimeIntrinsics(ctxt);
-        registerOrgQbiccRuntimeCNativeIntrinsics(ctxt);
         registerOrgQbiccObjectModelIntrinsics(ctxt);
         registerOrgQbiccRuntimeMainIntrinsics(ctxt);
         registerOrgQbiccRuntimeValuesIntrinsics(ctxt);
