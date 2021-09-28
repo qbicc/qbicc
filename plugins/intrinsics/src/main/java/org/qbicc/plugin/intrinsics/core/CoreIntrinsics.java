@@ -524,7 +524,7 @@ public final class CoreIntrinsics {
 
         intrinsics.registerIntrinsic(cNativeDesc, "type_id_of", objTypeIdDesc, typeOf);
 
-        FieldElement elementTypeField = Layout.get(ctxt).getRefArrayElementTypeIdField();
+        FieldElement elementTypeField = CoreClasses.get(ctxt).getRefArrayElementTypeIdField();
 
         StaticIntrinsic elementTypeOf = (builder, target, arguments) ->
             builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), elementTypeField), MemoryAtomicityMode.UNORDERED);
@@ -764,7 +764,7 @@ public final class CoreIntrinsics {
     static void registerOrgQbiccObjectModelIntrinsics(final CompilationContext ctxt) {
         Intrinsics intrinsics = Intrinsics.get(ctxt);
         ClassContext classContext = ctxt.getBootstrapClassContext();
-        Layout layout = Layout.get(ctxt);
+        CoreClasses coreClasses = CoreClasses.get(ctxt);
         SupersDisplayTables tables = SupersDisplayTables.get(ctxt);
         BuildtimeHeap buildtimeHeap = BuildtimeHeap.get(ctxt);
         LiteralFactory lf = ctxt.getLiteralFactory();
@@ -800,14 +800,14 @@ public final class CoreIntrinsics {
             builder.typeIdOf(builder.referenceHandle(arguments.get(0)));
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "type_id_of", objTypeIdDesc, typeOf);
 
-        FieldElement elementTypeField = layout.getRefArrayElementTypeIdField();
+        FieldElement elementTypeField = coreClasses.getRefArrayElementTypeIdField();
         StaticIntrinsic elementTypeOf = (builder, target, arguments) -> {
             ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), elementTypeField.getEnclosingType().load().getType().getReference()));
             return builder.load(builder.instanceFieldOf(handle, elementTypeField), MemoryAtomicityMode.UNORDERED);
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "element_type_id_of", objTypeIdDesc, elementTypeOf);
 
-        FieldElement dimensionsField = layout.getRefArrayDimensionsField();
+        FieldElement dimensionsField = coreClasses.getRefArrayDimensionsField();
         StaticIntrinsic dimensionsOf = (builder, target, arguments) -> {
             ValueHandle handle = builder.referenceHandle(builder.bitCast(arguments.get(0), dimensionsField.getEnclosingType().load().getType().getReference()));
             return builder.load(builder.instanceFieldOf(handle, dimensionsField), MemoryAtomicityMode.UNORDERED);
@@ -841,7 +841,7 @@ public final class CoreIntrinsics {
 
         StaticIntrinsic isClass = (builder, target, arguments) -> {
             LoadedTypeDefinition jlo = classContext.findDefinedType("java/lang/Object").load();
-            ValueType refArray = layout.getArrayLoadedTypeDefinition("[ref").getType();
+            ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getType();
             Value isObj = builder.isEq(arguments.get(0), lf.literalOfType(jlo.getType()));
             Value isAboveRef = builder.isLt(lf.literalOfType(refArray), arguments.get(0));
             Value isNotInterface = builder.isLt(arguments.get(0), lf.literalOf(tables.getFirstInterfaceTypeId()));
@@ -855,22 +855,22 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_interface", typeIdBooleanDesc, isInterface);
 
         StaticIntrinsic isPrimArray = (builder, target, arguments) -> {
-            ValueType firstPrimArray = layout.getArrayLoadedTypeDefinition("[Z").getType();
-            ValueType lastPrimArray = layout.getArrayLoadedTypeDefinition("[D").getType();
+            ValueType firstPrimArray = coreClasses.getArrayLoadedTypeDefinition("[Z").getType();
+            ValueType lastPrimArray = coreClasses.getArrayLoadedTypeDefinition("[D").getType();
             return builder.and(builder.isGe(arguments.get(0), lf.literalOfType(firstPrimArray)),
                 builder.isLe(arguments.get(0), lf.literalOfType(lastPrimArray)));
         };
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_prim_array", typeIdBooleanDesc, isPrimArray);
 
         StaticIntrinsic isRefArray = (builder, target, arguments) -> {
-            ValueType refArray = layout.getArrayLoadedTypeDefinition("[ref").getType();
+            ValueType refArray = coreClasses.getArrayLoadedTypeDefinition("[ref").getType();
             return builder.isEq(arguments.get(0), lf.literalOfType(refArray));
         };
 
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "is_reference_array", typeIdBooleanDesc, isRefArray);
 
         StaticIntrinsic getRefArrayTypeId = (builder, target, arguments) ->
-            ctxt.getLiteralFactory().literalOf(layout.getRefArrayContentField().getEnclosingType().load().getTypeId());
+            ctxt.getLiteralFactory().literalOf(coreClasses.getRefArrayContentField().getEnclosingType().load().getTypeId());
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_reference_array_typeid", emptyTotypeIdDesc, getRefArrayTypeId);
 
         StaticIntrinsic doesImplement = (builder, target, arguments) -> {
@@ -889,11 +889,11 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "does_implement", typeIdTypeIdBooleanDesc, doesImplement);
 
         StaticIntrinsic getDimFromClass = (builder, target, arguments) ->
-            builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), layout.getClassDimensionField()), MemoryAtomicityMode.UNORDERED);
+            builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassDimensionField()), MemoryAtomicityMode.UNORDERED);
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_dimensions_from_class", clsUint8, getDimFromClass);
 
         StaticIntrinsic getTypeIdFromClass = (builder, target, arguments) ->
-            builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), layout.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
+            builder.load(builder.instanceFieldOf(builder.referenceHandle(arguments.get(0)), coreClasses.getClassTypeIdField()), MemoryAtomicityMode.UNORDERED);
         intrinsics.registerIntrinsic(Phase.LOWER, objModDesc, "get_type_id_from_class", clsTypeId, getTypeIdFromClass);
 
         MethodElement getOrCreateArrayClass = ctxt.getOMHelperMethod("get_or_create_class_for_refarray");
