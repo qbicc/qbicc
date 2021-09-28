@@ -3,7 +3,7 @@ package org.qbicc.machine.llvm;
 import org.qbicc.machine.llvm.impl.LLVM;
 import org.qbicc.machine.llvm.op.Alloca;
 import org.qbicc.machine.llvm.op.Assignment;
-import org.qbicc.machine.llvm.op.AtomicRmwInstruction;
+import org.qbicc.machine.llvm.op.AtomicRmw;
 import org.qbicc.machine.llvm.op.Binary;
 import org.qbicc.machine.llvm.op.Branch;
 import org.qbicc.machine.llvm.op.Call;
@@ -137,7 +137,7 @@ public interface LLBuilder {
 
     Fence fence(OrderingConstraint ordering);
 
-    AtomicRmwInstruction atomicrmw();
+    AtomicRmw atomicrmw(LLValue type, LLValue value, LLValue pointeeType, LLValue pointer);
 
     GetElementPtr getelementptr(LLValue type, LLValue ptrType, LLValue pointer);
 
