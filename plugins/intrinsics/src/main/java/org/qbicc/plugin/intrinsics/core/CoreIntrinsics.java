@@ -116,6 +116,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor classLoaderDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/ClassLoader");
         ClassTypeDescriptor threadDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Thread");
         ClassTypeDescriptor systemDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/System");
+        ClassTypeDescriptor methodHandleNativesDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/invoke/MethodHandleNatives");
         ClassTypeDescriptor i4aDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/Inet4Address");
         ClassTypeDescriptor i6aDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/Inet6Address");
         ClassTypeDescriptor networkInterfaceDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/NetworkInterface");
@@ -139,6 +140,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(classLoaderDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(threadDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(systemDesc, "registerNatives", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(methodHandleNativesDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(i4aDesc, "init", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(i6aDesc, "init", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(networkInterfaceDesc, "init", emptyToVoid, emptyInit);
