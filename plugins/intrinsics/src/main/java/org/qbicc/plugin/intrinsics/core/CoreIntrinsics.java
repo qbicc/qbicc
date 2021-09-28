@@ -12,14 +12,19 @@ import org.qbicc.graph.BasicBlock;
 import org.qbicc.graph.BasicBlockBuilder;
 import org.qbicc.graph.BitCast;
 import org.qbicc.graph.BlockEarlyTermination;
+import org.qbicc.graph.BlockEntry;
 import org.qbicc.graph.BlockLabel;
 import org.qbicc.graph.ClassOf;
 import org.qbicc.graph.CmpAndSwap;
 import org.qbicc.graph.Extend;
 import org.qbicc.graph.Load;
+import org.qbicc.graph.LocalVariable;
 import org.qbicc.graph.MemoryAtomicityMode;
+import org.qbicc.graph.Node;
 import org.qbicc.graph.OffsetOfField;
+import org.qbicc.graph.OrderedNode;
 import org.qbicc.graph.PhiValue;
+import org.qbicc.graph.Store;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
 import org.qbicc.graph.Variable;
@@ -1623,8 +1628,8 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(unsafeDesc, "unalignedAccess0", emptyToBool, unalignedAccess0);
 
         InstanceIntrinsic objectFieldOffset1 = (builder, instance, target, arguments) -> {
-            Value clazz = arguments.get(0);
-            Value string = arguments.get(1);
+            Value clazz = traverseLoads(arguments.get(0));
+            Value string = traverseLoads(arguments.get(1));
             LiteralFactory lf = ctxt.getLiteralFactory();
             ObjectType objectType;
             if (clazz instanceof ClassOf) {
@@ -1693,6 +1698,29 @@ public final class CoreIntrinsics {
         };
 
         intrinsics.registerIntrinsic(unsafeDesc, "getAndAddInt", objLongIntToInt, getAndAddInt);
+    }
+
+    private static Value traverseLoads(Value value) {
+        // todo: modify Load to carry a "known value"?
+        if (value instanceof Load) {
+            ValueHandle valueHandle = value.getValueHandle();
+            if (valueHandle instanceof LocalVariable || valueHandle instanceof Variable && ((Variable) valueHandle).getVariableElement().isFinal()) {
+                Node dependency = value;
+                while (dependency instanceof OrderedNode) {
+                    dependency = ((OrderedNode) dependency).getDependency();
+                    if (dependency instanceof Store) {
+                        if (dependency.getValueHandle().equals(valueHandle)) {
+                            return ((Store) dependency).getValue();
+                        }
+                    }
+                    if (dependency instanceof BlockEntry) {
+                        // not resolvable
+                        break;
+                    }
+                }
+            }
+        }
+        return value;
     }
 
     private static void registerJdkInternalMiscVMIntrinsics(final CompilationContext ctxt) {
