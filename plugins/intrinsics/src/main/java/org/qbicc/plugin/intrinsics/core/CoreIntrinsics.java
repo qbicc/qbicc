@@ -274,6 +274,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor systemDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/System");
         LoadedTypeDefinition jls = classContext.findDefinedType("java/lang/System").load();
         ClassTypeDescriptor jloDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/Object");
+        ClassTypeDescriptor stringDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/String");
         ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "org/qbicc/runtime/main/VM");
 
         MethodDescriptor objectToIntDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.I, List.of(jloDesc));
@@ -328,6 +329,33 @@ public final class CoreIntrinsics {
             ctxt.getLiteralFactory().literalOf(0);
 
         intrinsics.registerIntrinsic(systemDesc, "identityHashCode", objectToIntDesc, identityHashCode);
+
+        MethodDescriptor stringToVoidDesc = MethodDescriptor.synthesize(classContext, BaseTypeDescriptor.V, List.of(stringDesc));
+
+        StaticIntrinsic loadLibrary = (builder, target, arguments) -> {
+            Value libraryName = arguments.get(0);
+            String content;
+            if (libraryName instanceof StringLiteral) {
+                content = ((StringLiteral) libraryName).getValue();
+            } else if (libraryName instanceof ObjectLiteral) {
+                VmObject value = ((ObjectLiteral) libraryName).getValue();
+                if (value instanceof VmString) {
+                    content = ((VmString) value).getContent();
+                } else {
+                    return null;
+                }
+            } else {
+                return null;
+            }
+            if (content.equals("net") || content.equals("extnet") || content.equals("zip") || content.equals("nio") || content.equals("prefs")) {
+                // ignore known libraries
+                return ctxt.getLiteralFactory().zeroInitializerLiteralOfType(ctxt.getTypeSystem().getVoidType());
+            } else {
+                return null;
+            }
+        };
+
+        intrinsics.registerIntrinsic(systemDesc, "loadLibrary", stringToVoidDesc, loadLibrary);
     }
 
     public static void registerJavaLangThreadIntrinsics(CompilationContext ctxt) {
