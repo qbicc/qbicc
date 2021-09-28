@@ -88,9 +88,9 @@ public class Lowering {
             FieldElement offsetField = ((OffsetOfField) initialValue).getFieldElement();
             Layout.LayoutInfo layoutInfo = Layout.get(ctxt).getInstanceLayoutInfo(offsetField.getEnclosingType());
             if (offsetField.isStatic()) {
-                initialValue = ctxt.getLiteralFactory().literalOf(-1L);
+                initialValue = ctxt.getLiteralFactory().literalOf(-1);
             } else {
-                initialValue = ctxt.getLiteralFactory().literalOf((long) layoutInfo.getMember(offsetField).getOffset());
+                initialValue = ctxt.getLiteralFactory().literalOf(layoutInfo.getMember(offsetField).getOffset());
             }
         }
         if (initialValue.getType() instanceof BooleanType) {
