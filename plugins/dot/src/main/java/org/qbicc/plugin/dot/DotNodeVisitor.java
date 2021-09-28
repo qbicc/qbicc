@@ -45,6 +45,7 @@ import org.qbicc.graph.Fence;
 import org.qbicc.graph.FunctionDeclarationHandle;
 import org.qbicc.graph.FunctionElementHandle;
 import org.qbicc.graph.FunctionHandle;
+import org.qbicc.graph.GetAndAdd;
 import org.qbicc.graph.InsertElement;
 import org.qbicc.graph.InsertMember;
 import org.qbicc.graph.InterfaceMethodElementHandle;
@@ -936,6 +937,18 @@ public class DotNodeVisitor implements NodeVisitor<Appendable, String, String, S
 
     public String visit(final Appendable param, final FloatLiteral node) {
         return literal(param, String.valueOf(node.doubleValue()));
+    }
+
+    public String visit(Appendable param, GetAndAdd node) {
+        String name = register(node);
+        appendTo(param, name);
+        attr(param, "label", "get-and-add");
+        nl(param);
+        dependencyList.add(name);
+        processDependency(param, node.getDependency());
+        addEdge(param, node, node.getValueHandle(), EdgeType.VALUE_DEPENDENCY);
+        addEdge(param, node, node.getUpdateValue(), EdgeType.VALUE_DEPENDENCY);
+        return name;
     }
 
     public String visit(Appendable param, InsertElement node) {
