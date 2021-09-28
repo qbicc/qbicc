@@ -151,6 +151,21 @@ public class LLVMCompatibleBasicBlockBuilder extends DelegatingBasicBlockBuilder
     }
 
     @Override
+    public Value getAndAdd(ValueHandle target, Value update, MemoryAtomicityMode atomicityMode) {
+        if (atomicityMode == MemoryAtomicityMode.VOLATILE) {
+            Value result = super.getAndAdd(target, update, MemoryAtomicityMode.ACQUIRE_RELEASE);
+            fence(MemoryAtomicityMode.SEQUENTIALLY_CONSISTENT);
+            return result;
+        } else if (atomicityMode == MemoryAtomicityMode.UNORDERED || atomicityMode == MemoryAtomicityMode.NONE) {
+            Value result = super.add(super.load(target, atomicityMode), update);
+            super.store(target, result, atomicityMode);
+            return result;
+        } else {
+            return super.getAndAdd(target, update, atomicityMode);
+        }
+    }
+
+    @Override
     public Node classInitCheck(ObjectType objectType) {
         // either this is handled by an earlier BBB, or else init was 100% build time
         return nop();
