@@ -6,8 +6,11 @@ import org.qbicc.graph.Node;
 import org.qbicc.graph.NodeVisitor;
 import org.qbicc.graph.Value;
 import org.qbicc.graph.ValueHandle;
+import org.qbicc.graph.literal.ObjectLiteral;
 import org.qbicc.graph.literal.StringLiteral;
 import org.qbicc.graph.literal.SymbolLiteral;
+import org.qbicc.interpreter.Vm;
+import org.qbicc.interpreter.VmString;
 import org.qbicc.object.Data;
 import org.qbicc.object.Section;
 
@@ -30,7 +33,18 @@ public class ObjectLiteralSerializingVisitor implements NodeVisitor.Delegating<N
     }
 
     public Value visit(final Node.Copier param, final StringLiteral node) {
-        Data literal = BuildtimeHeap.get(ctxt).serializeStringLiteral(node.getValue());
+        VmString vString = ctxt.getVm().intern(node.getValue());
+        Data literal = BuildtimeHeap.get(ctxt).serializeVmObject(vString);
+
+        Section section = ctxt.getImplicitSection(param.getBlockBuilder().getRootElement());
+        section.declareData(null, literal.getName(), literal.getType()).setAddrspace(1);
+
+        SymbolLiteral refToLiteral = ctxt.getLiteralFactory().literalOfSymbol(literal.getName(), literal.getType().getPointer().asCollected());
+        return param.getBlockBuilder().notNull(ctxt.getLiteralFactory().bitcastLiteral(refToLiteral, node.getType()));
+    }
+
+    public Value visit(final Node.Copier param, final ObjectLiteral node) {
+        Data literal = BuildtimeHeap.get(ctxt).serializeVmObject(node.getValue());
 
         Section section = ctxt.getImplicitSection(param.getBlockBuilder().getRootElement());
         section.declareData(null, literal.getName(), literal.getType()).setAddrspace(1);

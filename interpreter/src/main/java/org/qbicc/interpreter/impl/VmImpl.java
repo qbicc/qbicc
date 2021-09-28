@@ -349,7 +349,7 @@ public final class VmImpl implements Vm {
         return intern(vmString.getContent());
     }
 
-    VmStringImpl intern(String string) {
+    public VmStringImpl intern(String string) {
         VmStringImpl vmString = interned.get(string);
         if (vmString == null) {
             vmString = new VmStringImpl(this, stringClass, string);
