@@ -117,6 +117,7 @@ public final class CoreIntrinsics {
         ClassTypeDescriptor systemDesc = ClassTypeDescriptor.synthesize(classContext, "java/lang/System");
         ClassTypeDescriptor i4aDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/Inet4Address");
         ClassTypeDescriptor i6aDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/Inet6Address");
+        ClassTypeDescriptor networkInterfaceDesc = ClassTypeDescriptor.synthesize(classContext, "java/net/NetworkInterface");
         ClassTypeDescriptor unsafeDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/Unsafe");
         ClassTypeDescriptor vmDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/misc/VM");
         ClassTypeDescriptor perfDesc = ClassTypeDescriptor.synthesize(classContext, "jdk/internal/perf/Perf");
@@ -138,6 +139,7 @@ public final class CoreIntrinsics {
         intrinsics.registerIntrinsic(systemDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(i4aDesc, "init", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(i6aDesc, "init", emptyToVoid, emptyInit);
+        intrinsics.registerIntrinsic(networkInterfaceDesc, "init", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(unsafeDesc, "registerNatives", emptyToVoid, emptyInit);
         intrinsics.registerIntrinsic(Phase.ANALYZE, unsafeDesc, "ensureClassInitialized", classToVoid, emptyInit);
         intrinsics.registerIntrinsic(vmDesc, "initialize", emptyToVoid, emptyInit);
